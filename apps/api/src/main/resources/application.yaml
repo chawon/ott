@@ -1,0 +1,28 @@
+server:
+  port: 8080
+
+spring:
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/watchlog}
+    username: ${DB_USER:watchlog}
+    password: ${DB_PASSWORD:watchlog}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        format_sql: true
+  flyway:
+    enabled: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+tmdb:
+  base-url: https://api.themoviedb.org/3
+  access-token: ${TMDB_ACCESS_TOKEN:}
+  language: ko-KR
+  image-size: w342

@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ott-web-config
+  namespace: ott
+data:
+  BACKEND_URL: http://ott-api:8080

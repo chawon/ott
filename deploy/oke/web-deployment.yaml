@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ott-web
+  namespace: ott
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ott-web
+  template:
+    metadata:
+      labels:
+        app: ott-web
+    spec:
+      imagePullSecrets:
+        - name: ocir-pull-secret
+      containers:
+        - name: web
+          image: yny.ocir.io/axvqyylkrvmi/ott-web:latest
+          ports:
+            - containerPort: 3000
+          envFrom:
+            - configMapRef:
+                name: ott-web-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ott-web
+  namespace: ott
+spec:
+  selector:
+    app: ott-web
+  ports:
+    - name: http
+      port: 3000
+      targetPort: 3000

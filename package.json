@@ -1,0 +1,15 @@
+{
+  "name": "ott-monorepo",
+  "private": true,
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace ott",
+    "dev:web": "npm run dev --workspace ott",
+    "build": "npm run build --workspace ott",
+    "start": "npm run start --workspace ott",
+    "lint": "npm run lint --workspace ott",
+    "format": "npm run format --workspace ott"
+  }
+}
