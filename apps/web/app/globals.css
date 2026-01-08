@@ -1,5 +1,5 @@
 @import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css");
-@import url("https://cdn.jsdelivr.net/gh/rriver2/DungGeunMo/DungGeunMo.css");
+@import url("https://cdn.jsdelivr.net/npm/galmuri@latest/dist/galmuri.css");
 @import "tailwindcss";
 @import "tw-animate-css";
 
@@ -9,7 +9,7 @@
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, system-ui, Roboto, "Helvetica Neue", "Segoe UI", "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", sans-serif;
-  --font-retro: "DungGeunMo", monospace;
+  --font-retro: "Galmuri11", monospace;
   --font-mono: var(--font-geist-mono);
   
   --color-sidebar-ring: var(--sidebar-ring);
@@ -132,7 +132,7 @@
    8-BIT / NES STYLE THEME (RETRO MODE)
    ========================================= */
 .retro {
-  --font-sans: "DungGeunMo", monospace;
+  --font-sans: 'Galmuri11', monospace;
   --radius: 0;
   
   /* Retro Palette */
@@ -156,9 +156,14 @@
 }
 
 /* Force font application for retro mode */
-.retro body,
+.retro body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: 'Galmuri11', monospace !important;
+}
+
 .retro * {
-  font-family: "DungGeunMo", monospace !important;
+  font-family: 'Galmuri11', monospace !important;
   border-radius: 0 !important;
   image-rendering: pixelated;
 }
