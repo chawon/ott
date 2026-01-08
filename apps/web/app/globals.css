@@ -9,7 +9,7 @@
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, system-ui, Roboto, "Helvetica Neue", "Segoe UI", "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", sans-serif;
-  --font-retro: "Galmuri11", monospace;
+  --font-retro: "Galmuri11", "Galmuri9", monospace;
   --font-mono: var(--font-geist-mono);
   
   --color-sidebar-ring: var(--sidebar-ring);
@@ -132,7 +132,7 @@
    8-BIT / NES STYLE THEME (RETRO MODE)
    ========================================= */
 .retro {
-  --font-sans: 'Galmuri11', monospace;
+  --font-sans: 'Galmuri11', 'Galmuri9', 'Galmuri7', 'DungGeunMo', 'Dotum', 'Gulim', monospace;
   --radius: 0;
   
   /* Retro Palette */
@@ -159,11 +159,11 @@
 .retro body {
   background-color: var(--background);
   color: var(--foreground);
-  font-family: 'Galmuri11', monospace !important;
+  font-family: 'Galmuri11', 'Galmuri9', 'Galmuri7', 'DungGeunMo', 'Dotum', 'Gulim', monospace !important;
 }
 
 .retro * {
-  font-family: 'Galmuri11', monospace !important;
+  font-family: 'Galmuri11', 'Galmuri9', 'Galmuri7', 'DungGeunMo', 'Dotum', 'Gulim', monospace !important;
   border-radius: 0 !important;
   image-rendering: pixelated;
 }
