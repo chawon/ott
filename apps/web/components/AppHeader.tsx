@@ -11,8 +11,8 @@ function NavLink({ href, label, icon: Icon }: { href: string; label: string; ico
         <Link
             href={href}
             className={[
-                "rounded-lg px-2 py-1.5 text-xs transition sm:px-3 sm:py-2 sm:text-sm",
-                active ? "bg-neutral-900 text-white" : "text-neutral-700 hover:bg-neutral-100"
+                "px-4 py-2 text-sm font-bold border-2 border-transparent hover:border-black transition-none",
+                active ? "bg-black text-white border-black" : "text-black hover:bg-neutral-200"
             ].join(" ")}
         >
             <span className="flex items-center gap-2">
@@ -25,18 +25,20 @@ function NavLink({ href, label, icon: Icon }: { href: string; label: string; ico
 
 export default function AppHeader() {
     return (
-        <header className="border-b bg-white">
-            <div className="mx-auto flex max-w-5xl flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-                <Link href="/" className="flex items-center gap-2 font-semibold tracking-tight text-neutral-900">
-                    <img src="/icon.png" alt="On the Timeline" className="h-6 w-6 rounded-md" />
-                    On the Timeline (OTT)
+        <header className="sticky top-0 z-50 border-b-4 border-black bg-white">
+            <div className="mx-auto flex max-w-5xl flex-col gap-4 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+                <Link href="/" className="flex items-center gap-3 font-bold tracking-tight text-black group">
+                    <div className="border-2 border-black p-1 bg-neutral-100 group-hover:bg-red-500 group-hover:text-white transition-colors">
+                        <img src="/icon.png" alt="OTT" className="h-8 w-8 pixelated" style={{ imageRendering: "pixelated" }} />
+                    </div>
+                    <span className="text-xl uppercase">On the Timeline</span>
                 </Link>
 
-                <nav className="flex w-full flex-wrap items-center gap-1 sm:w-auto sm:flex-nowrap">
-                    <NavLink href="/" label="나의 기록" icon={User} />
-                    <NavLink href="/timeline" label="시청 기록" icon={Clock} />
-                    <NavLink href="/public" label="함께 기록" icon={MessageCircle} />
-                    <NavLink href="/account" label="설정" icon={Settings} />
+                <nav className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:flex-nowrap">
+                    <NavLink href="/" label="MY LOG" icon={User} />
+                    <NavLink href="/timeline" label="TIMELINE" icon={Clock} />
+                    <NavLink href="/public" label="CHAT" icon={MessageCircle} />
+                    <NavLink href="/account" label="CONFIG" icon={Settings} />
                 </nav>
             </div>
         </header>

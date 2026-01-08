@@ -1,3 +1,5 @@
+@import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css");
+@import url("https://cdn.jsdelivr.net/gh/rriver2/DungGeunMo/DungGeunMo.css");
 @import "tailwindcss";
 @import "tw-animate-css";
 
@@ -6,8 +8,10 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
+  --font-sans: "DungGeunMo", monospace;
+  --font-retro: "DungGeunMo", monospace;
   --font-mono: var(--font-geist-mono);
+  
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -37,89 +41,178 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
-  --radius-2xl: calc(var(--radius) + 8px);
-  --radius-3xl: calc(var(--radius) + 12px);
-  --radius-4xl: calc(var(--radius) + 16px);
+  --radius-sm: 0;
+  --radius-md: 0;
+  --radius-lg: 0;
+  --radius-xl: 0;
+  --radius-2xl: 0;
+  --radius-3xl: 0;
+  --radius-4xl: 0;
 }
 
+/* =========================================
+   8-BIT / NES STYLE THEME
+   Reference: https://www.8bitcn.com/
+   ========================================= */
+
 :root {
-  --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --radius: 0;
+  
+  /* Retro Palette */
+  --nes-beige: #f0f0f0;      /* Background */
+  --nes-black: #212529;      /* Text / Borders */
+  --nes-red: #e74c3c;        /* Accent / Primary */
+  --nes-blue: #209cee;       /* Links / Info */
+  --nes-yellow: #f7d51d;     /* Warning / Stars */
+  --nes-green: #2ecc71;      /* Success */
+  --nes-white: #ffffff;      /* Cards */
+
+  /* Semantic Mappings */
+  --background: var(--nes-beige);
+  --foreground: var(--nes-black);
+  
+  --card: var(--nes-white);
+  --card-foreground: var(--nes-black);
+  
+  --popover: var(--nes-white);
+  --popover-foreground: var(--nes-black);
+  
+  --primary: var(--nes-black);
+  --primary-foreground: var(--nes-white);
+  
+  --secondary: #d3d3d3;
+  --secondary-foreground: var(--nes-black);
+  
+  --muted: #e0e0e0;
+  --muted-foreground: #7a7a7a;
+  
+  --accent: var(--nes-red);
+  --accent-foreground: var(--nes-white);
+  
+  --destructive: var(--nes-red);
+  --destructive-foreground: var(--nes-white);
+  
+  --border: var(--nes-black);
+  --input: var(--nes-white);
+  --ring: var(--nes-black);
+  
+  --sidebar: var(--nes-white);
+  --sidebar-foreground: var(--nes-black);
+  --sidebar-primary: var(--nes-black);
+  --sidebar-primary-foreground: var(--nes-white);
+  --sidebar-accent: #d3d3d3;
+  --sidebar-accent-foreground: var(--nes-black);
+  --sidebar-border: var(--nes-black);
+  --sidebar-ring: var(--nes-black);
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  /* Dark mode mappings (if needed later) */
+  --background: #212529;
+  --foreground: #ffffff;
+  --card: #000000;
+  --card-foreground: #ffffff;
+  --border: #ffffff;
+  --input: #000000;
+  --primary: #ffffff;
+  --primary-foreground: #000000;
+  --muted: #4a4a4a;
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
+    font-family: "DungGeunMo", monospace !important;
+    border-radius: 0 !important;
+    image-rendering: pixelated;
   }
   body {
     @apply bg-background text-foreground;
   }
+  
+  /* Thick Borders for Inputs & Interactive Elements */
+  input, select, textarea, button {
+    border-width: 4px !important;
+    border-style: solid !important;
+    border-color: var(--nes-black) !important;
+  }
+}
+
+/* NES-style Card Container */
+@layer components {
+  .nes-container {
+    position: relative;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    border: 4px solid var(--nes-black);
+    background-color: var(--nes-white);
+  }
+  
+  .nes-container.is-dark {
+    background-color: var(--nes-black);
+    color: var(--nes-white);
+    border-color: var(--nes-white);
+  }
+  
+  .nes-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5rem 1rem;
+    font-weight: bold;
+    text-transform: uppercase;
+    background-color: var(--nes-white);
+    border: 4px solid var(--nes-black);
+    color: var(--nes-black);
+    cursor: pointer;
+    transition: all 0.1s;
+    box-shadow: 
+      -4px 0 0 0 var(--nes-black), 
+      4px 0 0 0 var(--nes-black), 
+      0 -4px 0 0 var(--nes-black), 
+      0 4px 0 0 var(--nes-black);
+    margin: 4px;
+  }
+  
+  .nes-btn:hover {
+    background-color: #e7e7e7;
+  }
+  
+  .nes-btn.is-primary {
+    background-color: var(--nes-blue);
+    color: var(--nes-white);
+  }
+  .nes-btn.is-primary:hover {
+    background-color: #108de0;
+  }
+  
+  .nes-btn.is-success {
+    background-color: var(--nes-green);
+    color: var(--nes-white);
+  }
+  
+  .nes-btn.is-error {
+    background-color: var(--nes-red);
+    color: var(--nes-white);
+  }
+
+  /* Pixelated Box Shadow Helper */
+  .pixel-shadow {
+    box-shadow: 4px 4px 0px 0px rgba(0,0,0,1);
+  }
+}
+
+/* Overrides for specific UI parts to match 8-bit theme */
+header {
+  border-bottom: 4px solid var(--nes-black) !important;
+  background-color: var(--nes-white) !important;
+}
+
+/* Input Fields */
+input, select, textarea {
+  box-shadow: inset 4px 4px 0px 0px #e0e0e0;
+}
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  background-color: #fff;
 }

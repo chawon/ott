@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { Calendar, MapPin, MessageSquare, Star, Users, Loader2, X } from "lucide-react";
+import { cn } from "@/lib/utils";
 import TitleSearchBox from "@/components/TitleSearchBox";
 import { enqueueCreateLog, findTitleByProvider, upsertLogLocal } from "@/lib/localStore";
 import { syncOutbox } from "@/lib/sync";
-import { safeUUID } from "@/lib/utils";
-import { OCCASION_LABELS, PLACE_LABELS, STATUS_LABELS } from "@/lib/utils";
+import { safeUUID, OCCASION_LABELS, PLACE_LABELS, STATUS_LABELS } from "@/lib/utils";
 import {
     Occasion,
     Place,
@@ -29,17 +30,14 @@ export default function QuickLogCard({
     onCreated: (log: WatchLog) => void;
 }) {
     const [selected, setSelected] = useState<TitleSearchItem | null>(null);
-
     const [status, setStatus] = useState<Status>("IN_PROGRESS");
     const [rating, setRating] = useState<number | "">("");
     const [note, setNote] = useState("");
     const [ott, setOtt] = useState("");
-
     const [place, setPlace] = useState<Place>("HOME");
     const [occasion, setOccasion] = useState<Occasion>("ALONE");
     const [useWatchedAt, setUseWatchedAt] = useState(false);
     const [watchedDate, setWatchedDate] = useState("");
-
     const [saving, setSaving] = useState(false);
     const [toast, setToast] = useState<string | null>(null);
 
@@ -68,7 +66,7 @@ export default function QuickLogCard({
             return;
         }
         if (ott === "극장") setOtt("");
-    }, [place]);
+    }, [place, ott]);
 
     async function submit() {
         if (!selected || saving) return;
@@ -149,7 +147,7 @@ export default function QuickLogCard({
             onCreated(localLog);
             await syncOutbox();
 
-            setToast("Saved ✓");
+            setToast("SAVED!");
             window.setTimeout(() => setToast(null), 1800);
 
             setSelected(null);
@@ -167,147 +165,175 @@ export default function QuickLogCard({
     }
 
     return (
-        <>
-            <section className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm space-y-4">
-
-                <TitleSearchBox onSelect={(item) => setSelected(item)} />
-
-                {selected ? (
-                    <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-4">
-                        <div className="flex items-center gap-3">
-                            <div className="h-14 w-10 overflow-hidden rounded-md bg-neutral-100">
-                                {selected.posterUrl ? (
-                                    <img
-                                        src={selected.posterUrl}
-                                        alt={selected.name}
-                                        className="h-full w-full object-cover"
-                                        loading="lazy"
-                                    />
-                                ) : null}
-                            </div>
-                            <div className="min-w-0">
-                                <div className="truncate text-sm font-semibold text-neutral-900">
-                                    {selected.name}
-                                </div>
-                                <div className="mt-0.5 text-xs text-neutral-500">
-                                    {selected.type === "movie" ? "Movie" : "Series"}
-                                    {selected.year ? ` · ${selected.year}` : ""}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                ) : null}
-
-                <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                    <label className="space-y-1">
-                        <div className="text-xs text-neutral-600">Status</div>
-                        <select
-                            value={status}
-                            onChange={(e) => setStatus(e.target.value as Status)}
-                            className="w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm"
-                        >
-                            {STATUS_OPTIONS.map((o) => (
-                                <option key={o.value} value={o.value}>{o.label}</option>
-                            ))}
-                        </select>
-                    </label>
-
-                    <label className="space-y-1">
-                        <div className="text-xs text-neutral-600">Rating</div>
-                        <select
-                            value={rating === "" ? "" : String(rating)}
-                            onChange={(e) => setRating(e.target.value === "" ? "" : Number(e.target.value))}
-                            className="w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm"
-                        >
-                            <option value="">선택 안함</option>
-                            <option value="5">😍 나에게 최고</option>
-                            <option value="3">🙂 그럭저럭</option>
-                            <option value="1">😕 나는 실망</option>
-                        </select>
-                    </label>
-
-                    <label className="space-y-1">
-                        <div className="text-xs text-neutral-600">Place</div>
-                        <select
-                            value={place}
-                            onChange={(e) => setPlace(e.target.value as Place)}
-                            className="w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm"
-                        >
-                            {PLACE_OPTIONS.map((o) => (
-                                <option key={o.value} value={o.value}>{o.label}</option>
-                            ))}
-                        </select>
-                    </label>
-
-                    <label className="space-y-1">
-                        <div className="text-xs text-neutral-600">Occasion</div>
-                        <select
-                            value={occasion}
-                            onChange={(e) => setOccasion(e.target.value as Occasion)}
-                            className="w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm"
-                        >
-                            {OCCASION_OPTIONS.map((o) => (
-                                <option key={o.value} value={o.value}>{o.label}</option>
-                            ))}
-                        </select>
-                    </label>
-
-                    <label className="space-y-1 md:col-span-2">
-                        <div className="text-xs text-neutral-600">OTT</div>
-                        <input
-                            value={ott}
-                            onChange={(e) => setOtt(e.target.value)}
-                            className="w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm"
-                            placeholder="Netflix, Disney+, YouTube…"
-                        />
-                    </label>
-
-                    <div className="md:col-span-2 space-y-2">
-                        <label className="flex items-center gap-2 text-xs text-neutral-600">
-                            <input
-                                type="checkbox"
-                                checked={useWatchedAt}
-                                onChange={(e) => setUseWatchedAt(e.target.checked)}
-                            />
-                            날짜 변경
-                        </label>
-                        {useWatchedAt ? (
-                            <input
-                                type="date"
-                                value={watchedDate}
-                                onChange={(e) => setWatchedDate(e.target.value)}
-                                className="w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm"
-                            />
-                        ) : null}
-                    </div>
-
-                    <label className="space-y-1 md:col-span-2">
-                        <div className="text-xs text-neutral-600">Note</div>
-                        <textarea
-                            value={note}
-                            onChange={(e) => setNote(e.target.value)}
-                            className="w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm"
-                            placeholder="한 줄 메모"
-                            rows={3}
-                        />
-                    </label>
+        <div className="relative">
+            <section className="nes-container">
+                <div className="absolute -top-4 left-4 bg-[#f0f0f0] px-2 text-sm font-bold tracking-widest uppercase">
+                    New Entry
                 </div>
 
-                <button
-                    type="button"
-                    disabled={!canSave}
-                    onClick={submit}
-                    className="w-full rounded-2xl bg-neutral-900 px-4 py-3 text-sm font-semibold text-white disabled:opacity-40"
-                >
-                    {saving ? "Saving…" : "기록 저장"}
-                </button>
+                <div className="space-y-4">
+                    <TitleSearchBox onSelect={(item) => setSelected(item)} />
+
+                    {selected ? (
+                        <div className="border-4 border-black bg-[#212529] p-2 text-white">
+                            <div className="flex items-center gap-4">
+                                <div className="h-16 w-12 shrink-0 border-2 border-white bg-neutral-800">
+                                    {selected.posterUrl ? (
+                                        <img
+                                            src={selected.posterUrl}
+                                            alt={selected.name}
+                                            className="h-full w-full object-cover pixelated"
+                                            style={{ imageRendering: "pixelated" }}
+                                            loading="lazy"
+                                        />
+                                    ) : null}
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                    <div className="truncate text-sm font-bold text-yellow-400">
+                                        {selected.name}
+                                    </div>
+                                    <div className="mt-1 text-xs text-neutral-400">
+                                        {selected.type === "movie" ? "MOVIE" : "SERIES"}
+                                        {selected.year ? ` · ${selected.year}` : ""}
+                                    </div>
+                                </div>
+                                <button 
+                                    onClick={() => setSelected(null)}
+                                    className="h-8 w-8 flex items-center justify-center bg-red-600 text-white border-2 border-white hover:bg-red-700"
+                                >
+                                    <X className="h-4 w-4" />
+                                </button>
+                            </div>
+                        </div>
+                    ) : null}
+
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                        <div className="space-y-1">
+                            <label className="text-xs font-bold uppercase">Status</label>
+                            <div className="relative">
+                                <select
+                                    value={status}
+                                    onChange={(e) => setStatus(e.target.value as Status)}
+                                    className="w-full bg-white px-3 py-2 text-sm font-bold appearance-none"
+                                >
+                                    {STATUS_OPTIONS.map((o) => (
+                                        <option key={o.value} value={o.value}>{o.label}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        </div>
+
+                        <div className="space-y-1">
+                            <label className="text-xs font-bold uppercase flex items-center gap-1"><Star className="h-3 w-3" /> Rating</label>
+                            <select
+                                value={rating === "" ? "" : String(rating)}
+                                onChange={(e) => setRating(e.target.value === "" ? "" : Number(e.target.value))}
+                                className="w-full bg-white px-3 py-2 text-sm font-bold"
+                            >
+                                <option value="">SELECT...</option>
+                                <option value="5">★★★★★ LOVE IT</option>
+                                <option value="3">★★★ OKAY</option>
+                                <option value="1">★ BAD</option>
+                            </select>
+                        </div>
+
+                        <div className="space-y-1">
+                            <label className="text-xs font-bold uppercase flex items-center gap-1"><MapPin className="h-3 w-3" /> Place</label>
+                            <select
+                                value={place}
+                                onChange={(e) => setPlace(e.target.value as Place)}
+                                className="w-full bg-white px-3 py-2 text-sm font-bold"
+                            >
+                                {PLACE_OPTIONS.map((o) => (
+                                    <option key={o.value} value={o.value}>{o.label}</option>
+                                ))}
+                            </select>
+                        </div>
+
+                        <div className="space-y-1">
+                            <label className="text-xs font-bold uppercase flex items-center gap-1"><Users className="h-3 w-3" /> With</label>
+                            <select
+                                value={occasion}
+                                onChange={(e) => setOccasion(e.target.value as Occasion)}
+                                className="w-full bg-white px-3 py-2 text-sm font-bold"
+                            >
+                                {OCCASION_OPTIONS.map((o) => (
+                                    <option key={o.value} value={o.value}>{o.label}</option>
+                                ))}
+                            </select>
+                        </div>
+
+                        <div className="sm:col-span-2 space-y-1">
+                            <label className="text-xs font-bold uppercase">Platform (OTT)</label>
+                            <input
+                                value={ott}
+                                onChange={(e) => setOtt(e.target.value)}
+                                className="w-full bg-white px-3 py-2 text-sm font-bold placeholder:text-neutral-400"
+                                placeholder="NETFLIX, DISNEY+..."
+                            />
+                        </div>
+
+                        <div className="sm:col-span-2 space-y-2">
+                            <button
+                                type="button"
+                                onClick={() => setUseWatchedAt(!useWatchedAt)}
+                                className={cn(
+                                    "flex items-center gap-2 text-xs font-bold uppercase",
+                                    useWatchedAt ? "text-blue-600" : "text-neutral-500 hover:text-black"
+                                )}
+                            >
+                                <Calendar className="h-3.5 w-3.5" />
+                                {useWatchedAt ? "Manual Date" : "Watched Today?"}
+                            </button>
+                            {useWatchedAt && (
+                                <input
+                                    type="date"
+                                    value={watchedDate}
+                                    onChange={(e) => setWatchedDate(e.target.value)}
+                                    className="w-full bg-white px-3 py-2 text-sm font-bold"
+                                />
+                            )}
+                        </div>
+
+                        <div className="sm:col-span-2 space-y-1">
+                            <label className="text-xs font-bold uppercase flex items-center gap-1"><MessageSquare className="h-3 w-3" /> Memo</label>
+                            <textarea
+                                value={note}
+                                onChange={(e) => setNote(e.target.value)}
+                                className="w-full min-h-[80px] bg-white px-3 py-2 text-sm font-bold placeholder:text-neutral-400 resize-none"
+                                placeholder="..."
+                            />
+                        </div>
+                    </div>
+
+                    <button
+                        type="button"
+                        disabled={!canSave}
+                        onClick={submit}
+                        className={cn(
+                            "nes-btn is-primary w-full py-3 text-sm",
+                            !canSave && "opacity-50 cursor-not-allowed bg-neutral-300 border-neutral-500 text-neutral-500"
+                        )}
+                    >
+                        {saving ? (
+                            <span className="flex items-center justify-center gap-2">
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                                SAVING...
+                            </span>
+                        ) : (
+                            "SAVE LOG"
+                        )}
+                    </button>
+                </div>
             </section>
 
             {toast ? (
-                <div className="fixed bottom-5 left-1/2 -translate-x-1/2 rounded-full bg-neutral-900 px-4 py-2 text-sm text-white shadow-lg">
-                    {toast}
+                <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[100] animate-bounce">
+                    <div className="border-4 border-black bg-[#f7d51d] px-4 py-2 text-sm font-bold text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                        {toast}
+                    </div>
                 </div>
             ) : null}
-        </>
+        </div>
     );
 }
