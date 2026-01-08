@@ -149,34 +149,33 @@ export default function TitleSearchBox({
                     }
                 }}
                 placeholder={placeholder}
-                className="w-full rounded-xl border border-neutral-200 bg-white px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-neutral-900/10"
+                className="w-full border-4 border-black bg-white px-4 py-3 text-sm font-bold outline-none shadow-[inset_4px_4px_0px_0px_#e0e0e0] focus:ring-4 focus:ring-yellow-400 focus:border-black"
             />
 
             {showPanel && (
-                <div className="absolute z-10 mt-2 w-full max-h-[70vh] overflow-auto rounded-xl border border-neutral-200 bg-white shadow-sm">
+                <div className="absolute z-10 mt-2 w-full max-h-[70vh] overflow-auto border-4 border-black bg-white shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
                     {showRecentPanel ? (
-                        <div className="border-b border-neutral-200">
-                            <div className="px-4 pt-3 text-xs font-semibold text-neutral-500">
-                                요즘 나누고 있는 작품들
+                        <div className="border-b-4 border-black">
+                            <div className="bg-black px-4 py-1 text-[10px] font-bold uppercase tracking-widest text-white">
+                                Popular Titles
                             </div>
                             {recentLoading ? (
-                                <div className="px-4 py-3 text-sm text-neutral-500">
-                                    불러오는 중…
+                                <div className="px-4 py-3 text-sm font-bold">
+                                    LOADING...
                                 </div>
                             ) : null}
                             {!recentLoading && recentErr ? (
-                                <div className="px-4 py-3 text-sm text-red-600">{recentErr}</div>
+                                <div className="px-4 py-3 text-sm text-red-600 font-bold">{recentErr}</div>
                             ) : null}
                             {!recentLoading && !recentErr && recent.length === 0 ? (
-                                <div className="px-4 py-3 text-sm text-neutral-500">
-                                    아직 없어요
+                                <div className="px-4 py-3 text-sm font-bold">
+                                    EMPTY
                                 </div>
                             ) : null}
                             {!recentLoading &&
                                 !recentErr &&
                                 recent.map((d) => {
-                                    const typeLabel = d.titleType === "movie" ? "Movie" : "Series";
-                                    const meta = `${typeLabel}${d.titleYear ? ` · ${d.titleYear}` : ""}`;
+                                    const meta = `${d.titleType === "movie" ? "MOVIE" : "SERIES"}${d.titleYear ? ` · ${d.titleYear}` : ""}`;
                                     const item: TitleSearchItem = {
                                         provider: "LOCAL",
                                         providerId: d.titleId,
@@ -192,25 +191,26 @@ export default function TitleSearchBox({
                                             key={d.id}
                                             type="button"
                                             onClick={() => pick(item)}
-                                            className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-neutral-50"
+                                            className="flex w-full items-center gap-3 border-b-2 border-black px-4 py-3 text-left hover:bg-yellow-100 last:border-b-0"
                                         >
-                                            <div className="h-12 w-9 overflow-hidden rounded-md bg-neutral-100">
+                                            <div className="h-12 w-9 shrink-0 border-2 border-black bg-neutral-200">
                                                 {d.posterUrl ? (
                                                     <img
                                                         src={d.posterUrl}
                                                         alt={d.titleName}
-                                                        className="h-full w-full object-cover"
+                                                        className="h-full w-full object-cover pixelated"
+                                                        style={{ imageRendering: "pixelated" }}
                                                         loading="lazy"
                                                     />
                                                 ) : null}
                                             </div>
                                             <div className="min-w-0 flex-1">
-                                                <div className="truncate text-sm font-medium text-neutral-900">
+                                                <div className="truncate text-sm font-bold uppercase">
                                                     {d.titleName}
                                                 </div>
-                                                <div className="mt-0.5 text-xs text-neutral-500">{meta}</div>
-                                                <div className="mt-1 text-[11px] text-neutral-500">
-                                                    댓글 {d.commentCount}
+                                                <div className="mt-0.5 text-[10px] font-bold text-neutral-500">{meta}</div>
+                                                <div className="mt-1 text-[10px] font-bold text-blue-600 uppercase">
+                                                    Comments: {d.commentCount}
                                                 </div>
                                             </div>
                                         </button>
@@ -220,19 +220,18 @@ export default function TitleSearchBox({
                     ) : null}
 
                     {loading && (
-                        <div className="px-4 py-3 text-sm text-neutral-500">검색 중…</div>
+                        <div className="px-4 py-3 text-sm font-bold">SEARCHING...</div>
                     )}
 
                     {!loading && err && (
-                        <div className="px-4 py-3 text-sm text-red-600">{err}</div>
+                        <div className="px-4 py-3 text-sm text-red-600 font-bold">{err}</div>
                     )}
 
                     {!loading &&
                         !err &&
                         items.map((t, idx) => {
                             const key = `${t.provider}:${t.providerId}`;
-                            const typeLabel = t.type === "movie" ? "Movie" : "Series";
-                            const meta = `${typeLabel}${t.year ? ` · ${t.year}` : ""}`;
+                            const meta = `${t.type === "movie" ? "MOVIE" : "SERIES"}${t.year ? ` · ${t.year}` : ""}`;
 
                             return (
                                 <button
@@ -241,29 +240,29 @@ export default function TitleSearchBox({
                                     onClick={() => pick(t)}
                                     onMouseEnter={() => setActiveIndex(idx)}
                                     className={[
-                                        "flex w-full items-center gap-3 px-4 py-3 text-left",
-                                        idx === activeIndex ? "bg-neutral-50" : "hover:bg-neutral-50",
+                                        "flex w-full items-center gap-3 border-b-2 border-black px-4 py-3 text-left last:border-b-0",
+                                        idx === activeIndex ? "bg-yellow-100" : "hover:bg-neutral-50",
                                     ].join(" ")}
                                 >
-                                    <div className="h-12 w-9 overflow-hidden rounded-md bg-neutral-100">
-                                        {/* next/image로 바꾸고 싶으면 바꿔도 됨 */}
+                                    <div className="h-12 w-9 shrink-0 border-2 border-black bg-neutral-200">
                                         {t.posterUrl ? (
                                             <img
                                                 src={t.posterUrl}
                                                 alt={t.name}
-                                                className="h-full w-full object-cover"
+                                                className="h-full w-full object-cover pixelated"
+                                                style={{ imageRendering: "pixelated" }}
                                                 loading="lazy"
                                             />
                                         ) : null}
                                     </div>
 
                                     <div className="min-w-0 flex-1">
-                                        <div className="truncate text-sm font-medium text-neutral-900">
+                                        <div className="truncate text-sm font-bold uppercase">
                                             {t.name}
                                         </div>
-                                        <div className="mt-0.5 text-xs text-neutral-500">{meta}</div>
+                                        <div className="mt-0.5 text-[10px] font-bold text-neutral-500">{meta}</div>
                                         {t.overview ? (
-                                            <div className="mt-1 line-clamp-2 text-xs text-neutral-600">
+                                            <div className="mt-1 line-clamp-1 text-[10px] font-bold text-neutral-600">
                                                 {t.overview}
                                             </div>
                                         ) : null}
@@ -273,14 +272,14 @@ export default function TitleSearchBox({
                         })}
 
                     {!loading && !err && items.length === 0 && query && (
-                        <div className="px-4 py-3 text-sm text-neutral-500">
-                            결과가 없어요
+                        <div className="px-4 py-3 text-sm font-bold">
+                            NO RESULTS
                         </div>
                     )}
 
                     {query ? (
-                        <div className="border-t border-neutral-200 px-4 py-2 text-[11px] text-neutral-500">
-                            This product uses the TMDB API but is not endorsed or certified by TMDB.
+                        <div className="border-t-4 border-black bg-neutral-100 px-4 py-2 text-[8px] font-bold text-neutral-500">
+                            THIS PRODUCT USES THE TMDB API BUT IS NOT ENDORSED OR CERTIFIED BY TMDB.
                         </div>
                     ) : null}
                 </div>
