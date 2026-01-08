@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "@/lib/api";
 import { DiscussionListItem, TitleSearchItem } from "@/lib/types";
+import { useRetro } from "@/context/RetroContext";
+import { cn } from "@/lib/utils";
 
 export default function TitleSearchBox({
                                            onSelect,
@@ -13,6 +15,7 @@ export default function TitleSearchBox({
     placeholder?: string;
     showRecentDiscussions?: boolean;
 }) {
+    const { isRetro } = useRetro();
     const [q, setQ] = useState("");
     const [open, setOpen] = useState(false);
     const [items, setItems] = useState<TitleSearchItem[]>([]);
@@ -148,34 +151,43 @@ export default function TitleSearchBox({
                         pick(items[Math.max(0, Math.min(activeIndex, items.length - 1))]);
                     }
                 }}
-                placeholder={placeholder}
-                className="w-full border-4 border-black bg-white px-4 py-3 text-sm font-bold outline-none shadow-[inset_4px_4px_0px_0px_#e0e0e0] focus:ring-4 focus:ring-yellow-400 focus:border-black"
+                placeholder={isRetro ? "퀘스트를 검색하세요 (듄, 더 베어...)" : placeholder}
+                className={cn(
+                    "w-full transition-all outline-none",
+                    isRetro 
+                        ? "border-4 border-black bg-white px-4 py-3 text-sm font-bold shadow-[inset_4px_4px_0px_0px_#e0e0e0] focus:ring-4 focus:ring-yellow-400 focus:border-black"
+                        : "rounded-xl border border-neutral-200 bg-white px-4 py-3 text-sm focus:ring-2 focus:ring-neutral-900/10 focus:border-neutral-300"
+                )}
             />
 
             {showPanel && (
-                <div className="absolute z-10 mt-2 w-full max-h-[70vh] overflow-auto border-4 border-black bg-white shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+                <div className={cn(
+                    "absolute z-50 mt-2 w-full max-h-[70vh] overflow-auto bg-white",
+                    isRetro 
+                        ? "border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]" 
+                        : "rounded-xl border border-neutral-200 shadow-xl"
+                )}>
                     {showRecentPanel ? (
-                        <div className="border-b-4 border-black">
-                            <div className="bg-black px-4 py-1 text-[10px] font-bold uppercase tracking-widest text-white">
-                                Popular Titles
+                        <div className={cn(isRetro ? "border-b-4 border-black" : "border-b border-neutral-100")}>
+                            <div className={cn(
+                                "px-4 py-2 text-[10px] font-bold uppercase tracking-widest",
+                                isRetro ? "bg-black text-white" : "text-neutral-400"
+                            )}>
+                                {isRetro ? "인기 퀘스트" : "요즘 나누고 있는 작품들"}
                             </div>
                             {recentLoading ? (
-                                <div className="px-4 py-3 text-sm font-bold">
-                                    LOADING...
-                                </div>
+                                <div className="px-4 py-3 text-sm font-bold">LOADING...</div>
                             ) : null}
                             {!recentLoading && recentErr ? (
                                 <div className="px-4 py-3 text-sm text-red-600 font-bold">{recentErr}</div>
                             ) : null}
                             {!recentLoading && !recentErr && recent.length === 0 ? (
-                                <div className="px-4 py-3 text-sm font-bold">
-                                    EMPTY
-                                </div>
+                                <div className="px-4 py-3 text-sm font-bold text-neutral-400">EMPTY</div>
                             ) : null}
                             {!recentLoading &&
                                 !recentErr &&
                                 recent.map((d) => {
-                                    const meta = `${d.titleType === "movie" ? "MOVIE" : "SERIES"}${d.titleYear ? ` · ${d.titleYear}` : ""}`;
+                                    const meta = `${d.titleType === "movie" ? "영화" : "시리즈"}${d.titleYear ? ` · ${d.titleYear}` : ""}`;
                                     const item: TitleSearchItem = {
                                         provider: "LOCAL",
                                         providerId: d.titleId,
@@ -191,26 +203,32 @@ export default function TitleSearchBox({
                                             key={d.id}
                                             type="button"
                                             onClick={() => pick(item)}
-                                            className="flex w-full items-center gap-3 border-b-2 border-black px-4 py-3 text-left hover:bg-yellow-100 last:border-b-0"
+                                            className={cn(
+                                                "flex w-full items-center gap-3 px-4 py-3 text-left transition-colors",
+                                                isRetro ? "border-b-2 border-black hover:bg-yellow-100 last:border-b-0" : "hover:bg-neutral-50"
+                                            )}
                                         >
-                                            <div className="h-12 w-9 shrink-0 border-2 border-black bg-neutral-200">
+                                            <div className={cn(
+                                                "h-12 w-9 shrink-0 overflow-hidden bg-neutral-100",
+                                                isRetro ? "border-2 border-black" : "rounded-md"
+                                            )}>
                                                 {d.posterUrl ? (
                                                     <img
                                                         src={d.posterUrl}
                                                         alt={d.titleName}
-                                                        className="h-full w-full object-cover pixelated"
-                                                        style={{ imageRendering: "pixelated" }}
+                                                        className={cn("h-full w-full object-cover", isRetro && "pixelated")}
+                                                        style={isRetro ? { imageRendering: "pixelated" } : {}}
                                                         loading="lazy"
                                                     />
                                                 ) : null}
                                             </div>
                                             <div className="min-w-0 flex-1">
-                                                <div className="truncate text-sm font-bold uppercase">
+                                                <div className={cn("truncate text-sm font-bold uppercase", !isRetro && "normal-case")}>
                                                     {d.titleName}
                                                 </div>
                                                 <div className="mt-0.5 text-[10px] font-bold text-neutral-500">{meta}</div>
-                                                <div className="mt-1 text-[10px] font-bold text-blue-600 uppercase">
-                                                    Comments: {d.commentCount}
+                                                <div className={cn("mt-1 text-[10px] font-bold uppercase", isRetro ? "text-blue-600" : "text-neutral-400")}>
+                                                    💬 {d.commentCount}
                                                 </div>
                                             </div>
                                         </button>
@@ -220,7 +238,7 @@ export default function TitleSearchBox({
                     ) : null}
 
                     {loading && (
-                        <div className="px-4 py-3 text-sm font-bold">SEARCHING...</div>
+                        <div className="px-4 py-3 text-sm font-bold">검색 중...</div>
                     )}
 
                     {!loading && err && (
@@ -231,7 +249,7 @@ export default function TitleSearchBox({
                         !err &&
                         items.map((t, idx) => {
                             const key = `${t.provider}:${t.providerId}`;
-                            const meta = `${t.type === "movie" ? "MOVIE" : "SERIES"}${t.year ? ` · ${t.year}` : ""}`;
+                            const meta = `${t.type === "movie" ? "영화" : "시리즈"}${t.year ? ` · ${t.year}` : ""}`;
 
                             return (
                                 <button
@@ -239,25 +257,30 @@ export default function TitleSearchBox({
                                     type="button"
                                     onClick={() => pick(t)}
                                     onMouseEnter={() => setActiveIndex(idx)}
-                                    className={[
-                                        "flex w-full items-center gap-3 border-b-2 border-black px-4 py-3 text-left last:border-b-0",
-                                        idx === activeIndex ? "bg-yellow-100" : "hover:bg-neutral-50",
-                                    ].join(" ")}
+                                    className={cn(
+                                        "flex w-full items-center gap-3 px-4 py-3 text-left transition-colors",
+                                        isRetro 
+                                            ? (idx === activeIndex ? "bg-yellow-100 border-b-2 border-black last:border-b-0" : "border-b-2 border-black hover:bg-neutral-50 last:border-b-0")
+                                            : (idx === activeIndex ? "bg-neutral-50" : "hover:bg-neutral-50")
+                                    )}
                                 >
-                                    <div className="h-12 w-9 shrink-0 border-2 border-black bg-neutral-200">
+                                    <div className={cn(
+                                        "h-12 w-9 shrink-0 overflow-hidden bg-neutral-100",
+                                        isRetro ? "border-2 border-black" : "rounded-md"
+                                    )}>
                                         {t.posterUrl ? (
                                             <img
                                                 src={t.posterUrl}
                                                 alt={t.name}
-                                                className="h-full w-full object-cover pixelated"
-                                                style={{ imageRendering: "pixelated" }}
+                                                className={cn("h-full w-full object-cover", isRetro && "pixelated")}
+                                                style={isRetro ? { imageRendering: "pixelated" } : {}}
                                                 loading="lazy"
                                             />
                                         ) : null}
                                     </div>
 
                                     <div className="min-w-0 flex-1">
-                                        <div className="truncate text-sm font-bold uppercase">
+                                        <div className={cn("truncate text-sm font-bold uppercase", !isRetro && "normal-case")}>
                                             {t.name}
                                         </div>
                                         <div className="mt-0.5 text-[10px] font-bold text-neutral-500">{meta}</div>
@@ -272,13 +295,14 @@ export default function TitleSearchBox({
                         })}
 
                     {!loading && !err && items.length === 0 && query && (
-                        <div className="px-4 py-3 text-sm font-bold">
-                            NO RESULTS
-                        </div>
+                        <div className="px-4 py-3 text-sm font-bold text-neutral-400">결과가 없어요</div>
                     )}
 
                     {query ? (
-                        <div className="border-t-4 border-black bg-neutral-100 px-4 py-2 text-[8px] font-bold text-neutral-500">
+                        <div className={cn(
+                            "px-4 py-2 text-[8px] font-bold text-neutral-500",
+                            isRetro ? "border-t-4 border-black bg-neutral-100" : "border-t border-neutral-50"
+                        )}>
                             THIS PRODUCT USES THE TMDB API BUT IS NOT ENDORSED OR CERTIFIED BY TMDB.
                         </div>
                     ) : null}

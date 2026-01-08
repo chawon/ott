@@ -3,17 +3,38 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Clock, MessageCircle, Settings, User } from "lucide-react";
+import { useRetro } from "@/context/RetroContext";
+import { cn } from "@/lib/utils";
 
 function NavLink({ href, label, icon: Icon }: { href: string; label: string; icon?: React.ComponentType<{ className?: string }> }) {
     const pathname = usePathname();
     const active = pathname === href;
+    const { isRetro } = useRetro();
+
+    if (isRetro) {
+        return (
+            <Link
+                href={href}
+                className={cn(
+                    "px-4 py-2 text-sm font-bold border-2 border-transparent hover:border-black transition-none",
+                    active ? "bg-black text-white border-black" : "text-black hover:bg-neutral-200"
+                )}
+            >
+                <span className="flex items-center gap-2">
+                    {Icon ? <Icon className="h-4 w-4" /> : null}
+                    {label}
+                </span>
+            </Link>
+        );
+    }
+
     return (
         <Link
             href={href}
-            className={[
-                "px-4 py-2 text-sm font-bold border-2 border-transparent hover:border-black transition-none",
-                active ? "bg-black text-white border-black" : "text-black hover:bg-neutral-200"
-            ].join(" ")}
+            className={cn(
+                "rounded-lg px-3 py-2 text-sm transition",
+                active ? "bg-neutral-900 text-white" : "text-neutral-700 hover:bg-neutral-100"
+            )}
         >
             <span className="flex items-center gap-2">
                 {Icon ? <Icon className="h-4 w-4" /> : null}
@@ -24,21 +45,46 @@ function NavLink({ href, label, icon: Icon }: { href: string; label: string; ico
 }
 
 export default function AppHeader() {
+    const { isRetro, toggleRetro } = useRetro();
+
     return (
-        <header className="sticky top-0 z-50 border-b-4 border-black bg-white">
+        <header className={cn(
+            "sticky top-0 z-50 transition-all duration-300",
+            isRetro 
+                ? "border-b-4 border-black bg-white" 
+                : "border-b border-neutral-200/60 bg-white/80 backdrop-blur-md"
+        )}>
             <div className="mx-auto flex max-w-5xl flex-col gap-4 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
-                <Link href="/" className="flex items-center gap-3 font-bold tracking-tight text-black group">
-                    <div className="border-2 border-black p-1 bg-neutral-100 group-hover:bg-red-500 group-hover:text-white transition-colors">
-                        <img src="/icon.png" alt="OTT" className="h-8 w-8 pixelated" style={{ imageRendering: "pixelated" }} />
-                    </div>
-                    <span className="text-xl uppercase">On the Timeline</span>
-                </Link>
+                <div className="flex items-center gap-3">
+                    <button 
+                        onClick={toggleRetro}
+                        className={cn(
+                            "focus:outline-none transition-transform active:scale-95",
+                            isRetro ? "border-2 border-black p-1 bg-neutral-100 hover:bg-red-500" : "hover:opacity-80"
+                        )}
+                        title={isRetro ? "현대 모드로 돌아가기" : "???"}
+                    >
+                        <img 
+                            src="/icon.png" 
+                            alt="OTT" 
+                            className={cn("h-8 w-8", isRetro && "pixelated")} 
+                            style={isRetro ? { imageRendering: "pixelated" } : {}} 
+                        />
+                    </button>
+                    
+                    <Link href="/" className={cn(
+                        "font-bold tracking-tight transition-colors",
+                        isRetro ? "text-black text-xl uppercase" : "text-neutral-900 text-lg"
+                    )}>
+                        {isRetro ? "On the Timeline" : "On the Timeline"}
+                    </Link>
+                </div>
 
                 <nav className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:flex-nowrap">
-                    <NavLink href="/" label="나의 기록" icon={User} />
-                    <NavLink href="/timeline" label="시청 이력" icon={Clock} />
-                    <NavLink href="/public" label="수다방" icon={MessageCircle} />
-                    <NavLink href="/account" label="설정" icon={Settings} />
+                    <NavLink href="/" label={isRetro ? "나의 기록" : "나의 기록"} icon={User} />
+                    <NavLink href="/timeline" label={isRetro ? "시청 이력" : "시청 기록"} icon={Clock} />
+                    <NavLink href="/public" label={isRetro ? "수다방" : "함께 기록"} icon={MessageCircle} />
+                    <NavLink href="/account" label={isRetro ? "설정" : "설정"} icon={Settings} />
                 </nav>
             </div>
         </header>
