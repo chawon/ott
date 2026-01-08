@@ -43,7 +43,7 @@ export default function DiscussionList({
               href={linkMode === "discussion" ? `/public/${d.id}` : `/title/${d.titleId}`}
               className="flex items-center gap-3 border-b-2 border-dashed border-neutral-300 px-2 py-3 transition-none hover:bg-yellow-100 last:border-b-0"
             >
-              <div className="h-14 w-10 shrink-0 border-2 border-black bg-neutral-200">
+              <div className="h-20 w-14 shrink-0 border-2 border-black bg-neutral-200">
                 {d.posterUrl ? (
                   <img
                     src={d.posterUrl}
@@ -55,12 +55,12 @@ export default function DiscussionList({
                 ) : null}
               </div>
               <div className="min-w-0 flex-1">
-                <div className="truncate text-sm font-bold uppercase text-black">
+                <div className="truncate text-base font-bold uppercase text-black">
                   {d.titleName}
                 </div>
-                <div className="mt-1 flex items-center gap-2 text-[10px] font-bold text-neutral-500 uppercase">
+                <div className="mt-1 flex items-center gap-2 text-xs font-bold text-neutral-500 uppercase">
                   <span className="bg-black text-white px-1">
-                    {d.titleType === "movie" ? "MOVIE" : "SERIES"}
+                    {d.titleType === "movie" ? "영화" : "연속극"}
                   </span>
                   {d.titleYear ? <span>{d.titleYear}</span> : ""}
                 </div>
@@ -83,9 +83,9 @@ export default function DiscussionList({
           <Link
             key={d.id}
             href={linkMode === "discussion" ? `/public/${d.id}` : `/title/${d.titleId}`}
-            className="flex items-center gap-3 rounded-xl px-2 py-2 transition hover:bg-neutral-50"
+            className="flex items-center gap-4 rounded-xl px-2 py-2 transition hover:bg-neutral-50"
           >
-            <div className="h-12 w-9 overflow-hidden rounded-md bg-neutral-100">
+            <div className="h-16 w-12 shrink-0 overflow-hidden rounded-lg bg-neutral-100 border border-neutral-100">
               {d.posterUrl ? (
                 <img
                   src={d.posterUrl}

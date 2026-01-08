@@ -171,36 +171,35 @@ export default function QuickLogCard({
             <div className="relative">
                 <section className="nes-container !bg-white">
                     <div className="absolute -top-4 left-4 bg-white border-2 border-black px-2 text-xs font-bold tracking-widest uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-                        새로운 기록
+                        새로운 비디오
                     </div>
 
                     <div className="space-y-4">
                         <TitleSearchBox onSelect={(item) => setSelected(item)} />
 
                         {selected ? (
-                            <div className="border-4 border-black bg-[#212529] p-2 text-white">
-                                <div className="flex items-center gap-4">
-                                    <div className="h-16 w-12 shrink-0 border-2 border-white bg-neutral-800">
-                                        {selected.posterUrl ? (
-                                            <img
-                                                src={selected.posterUrl}
-                                                alt={selected.name}
-                                                className="h-full w-full object-cover pixelated"
-                                                style={{ imageRendering: "pixelated" }}
-                                                loading="lazy"
-                                            />
-                                        ) : null}
-                                    </div>
-                                    <div className="min-w-0 flex-1">
-                                        <div className="truncate text-sm font-bold text-yellow-400">
-                                            {selected.name}
-                                        </div>
-                                        <div className="mt-1 text-xs text-neutral-400">
-                                            {selected.type === "movie" ? "영화" : "시리즈"}
-                                            {selected.year ? ` · ${selected.year}` : ""}
-                                        </div>
-                                    </div>
-                                    <button 
+                                                    <div className="border-4 border-black bg-[#212529] p-2 text-white">
+                                                        <div className="flex items-center gap-4">
+                                                            <div className="h-32 w-24 shrink-0 border-2 border-white bg-neutral-800 shadow-[2px_2px_0px_0px_white]">
+                                                                {selected.posterUrl ? (
+                                                                    <img
+                                                                        src={selected.posterUrl}
+                                                                        alt={selected.name}
+                                                                        className="h-full w-full object-cover pixelated"
+                                                                        style={{ imageRendering: "pixelated" }}
+                                                                        loading="lazy"
+                                                                    />
+                                                                ) : null}
+                                                            </div>
+                                                            <div className="min-w-0 flex-1">
+                                                                <div className="truncate text-lg font-bold text-yellow-400 uppercase">
+                                                                    {selected.name}
+                                                                </div>
+                                                                <div className="mt-1 text-xs text-neutral-400">
+                                                                    {selected.type === "movie" ? "영화" : "시리즈"}
+                                                                    {selected.year ? ` · ${selected.year}` : ""}
+                                                                </div>
+                                                            </div>                                    <button 
                                         onClick={() => setSelected(null)}
                                         className="h-8 w-8 flex items-center justify-center bg-red-600 text-white border-2 border-white hover:bg-red-700"
                                     >
@@ -297,7 +296,7 @@ export default function QuickLogCard({
                             </div>
 
                             <div className="sm:col-span-2 space-y-1">
-                                <label className="text-xs font-bold uppercase flex items-center gap-1"><MessageSquare className="h-3 w-3" /> 메모</label>
+                                <label className="text-xs font-bold uppercase flex items-center gap-1"><MessageSquare className="h-3 w-3" /> 내용</label>
                                 <textarea
                                     value={note}
                                     onChange={(e) => setNote(e.target.value)}
@@ -322,7 +321,7 @@ export default function QuickLogCard({
                                     저장 중...
                                 </span>
                             ) : (
-                                "기록 저장하기"
+                                "날적이 남기기"
                             )}
                         </button>
                     </div>
@@ -346,8 +345,8 @@ export default function QuickLogCard({
 
                 {selected ? (
                     <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-4 transition-colors">
-                        <div className="flex items-center gap-3">
-                            <div className="h-14 w-10 overflow-hidden rounded-lg bg-neutral-100 shadow-sm">
+                        <div className="flex items-center gap-5">
+                            <div className="h-32 w-20 shrink-0 overflow-hidden rounded-lg bg-neutral-100 shadow-sm border border-neutral-100">
                                 {selected.posterUrl ? (
                                     <img
                                         src={selected.posterUrl}
@@ -358,10 +357,10 @@ export default function QuickLogCard({
                                 ) : null}
                             </div>
                             <div className="min-w-0 flex-1">
-                                <div className="truncate text-sm font-semibold text-neutral-900">
+                                <div className="truncate text-base font-bold text-neutral-900">
                                     {selected.name}
                                 </div>
-                                <div className="mt-0.5 text-xs text-neutral-500">
+                                <div className="mt-1 text-sm text-neutral-500 font-medium">
                                     {selected.type === "movie" ? "영화" : "시리즈"}
                                     {selected.year ? ` · ${selected.year}` : ""}
                                 </div>

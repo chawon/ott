@@ -151,7 +151,7 @@ export default function TitleSearchBox({
                         pick(items[Math.max(0, Math.min(activeIndex, items.length - 1))]);
                     }
                 }}
-                placeholder={isRetro ? "퀘스트를 검색하세요 (듄, 더 베어...)" : placeholder}
+                placeholder={isRetro ? "비디오를 검색하세요 (터미네이터, 투캅스...)" : placeholder}
                 className={cn(
                     "w-full transition-all outline-none",
                     isRetro 
@@ -173,7 +173,7 @@ export default function TitleSearchBox({
                                 "px-4 py-2 text-[10px] font-bold uppercase tracking-widest",
                                 isRetro ? "bg-black text-white" : "text-neutral-400"
                             )}>
-                                {isRetro ? "인기 퀘스트" : "요즘 나누고 있는 작품들"}
+                                {isRetro ? "인기 비디오" : "요즘 수다 떠는 비디오들"}
                             </div>
                             {recentLoading ? (
                                 <div className="px-4 py-3 text-sm font-bold">LOADING...</div>
@@ -204,13 +204,13 @@ export default function TitleSearchBox({
                                             type="button"
                                             onClick={() => pick(item)}
                                             className={cn(
-                                                "flex w-full items-center gap-3 px-4 py-3 text-left transition-colors",
+                                                "flex w-full items-center gap-4 px-4 py-3 text-left transition-colors",
                                                 isRetro ? "border-b-2 border-black hover:bg-yellow-100 last:border-b-0" : "hover:bg-neutral-50"
                                             )}
                                         >
                                             <div className={cn(
-                                                "h-12 w-9 shrink-0 overflow-hidden bg-neutral-100",
-                                                isRetro ? "border-2 border-black" : "rounded-md"
+                                                "h-20 w-14 shrink-0 overflow-hidden bg-neutral-100",
+                                                isRetro ? "border-2 border-black" : "rounded-lg shadow-sm border border-neutral-100"
                                             )}>
                                                 {d.posterUrl ? (
                                                     <img
@@ -258,15 +258,15 @@ export default function TitleSearchBox({
                                     onClick={() => pick(t)}
                                     onMouseEnter={() => setActiveIndex(idx)}
                                     className={cn(
-                                        "flex w-full items-center gap-3 px-4 py-3 text-left transition-colors",
+                                        "flex w-full items-center gap-4 px-4 py-3 text-left transition-colors",
                                         isRetro 
                                             ? (idx === activeIndex ? "bg-yellow-100 border-b-2 border-black last:border-b-0" : "border-b-2 border-black hover:bg-neutral-50 last:border-b-0")
                                             : (idx === activeIndex ? "bg-neutral-50" : "hover:bg-neutral-50")
                                     )}
                                 >
                                     <div className={cn(
-                                        "h-12 w-9 shrink-0 overflow-hidden bg-neutral-100",
-                                        isRetro ? "border-2 border-black" : "rounded-md"
+                                        "h-24 w-16 shrink-0 overflow-hidden bg-neutral-100",
+                                        isRetro ? "border-2 border-black" : "rounded-lg shadow-sm border border-neutral-100"
                                     )}>
                                         {t.posterUrl ? (
                                             <img

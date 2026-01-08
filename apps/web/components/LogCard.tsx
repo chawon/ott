@@ -54,68 +54,108 @@ export default function LogCard({ log }: { log: WatchLog }) {
 
     if (isRetro) {
         return (
-            <article className="nes-container hover:bg-neutral-50 transition-none">
-                <div className="flex items-start justify-between gap-3 mb-4">
-                    <div>
-                        <Link href={`/title/${t.id}`} className="text-lg font-bold hover:text-red-600 hover:underline decoration-2 underline-offset-4">
-                            {t.name}
-                        </Link>
-                        <div className="mt-1 text-sm text-neutral-600 font-bold uppercase flex gap-2">
-                            <span className="bg-black text-white px-1">{statusLabel(log.status)}</span>
-                            <span>{formatDate(log.watchedAt ?? log.createdAt, true)}</span>
-                            {log.ott ? <span className="text-blue-600">@{log.ott}</span> : ""}
-                        </div>
+            <article className="nes-container hover:bg-neutral-50 transition-none flex gap-6">
+                <div className="shrink-0">
+                    <div className="h-40 w-28 border-4 border-black bg-neutral-200 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] overflow-hidden">
+                        {t.posterUrl ? (
+                            <img
+                                src={t.posterUrl}
+                                alt={t.name}
+                                className="h-full w-full object-cover pixelated"
+                                style={{ imageRendering: "pixelated" }}
+                                loading="lazy"
+                            />
+                        ) : (
+                            <div className="h-full w-full flex items-center justify-center text-[10px] text-neutral-400 font-bold text-center p-2 uppercase">NO IMAGE</div>
+                        )}
                     </div>
-                    {typeof log.rating === "number" ? (
-                        <div className="bg-black px-2 py-1 text-sm font-bold text-yellow-400 border-2 border-yellow-400">
-                            ★ {log.rating.toFixed(1)}
+                </div>
+                <div className="flex-1 min-w-0 flex flex-col">
+                    <div className="flex items-start justify-between gap-3 mb-2">
+                        <div className="min-w-0">
+                            <Link href={`/title/${t.id}`} className="text-xl font-bold hover:text-red-600 hover:underline decoration-2 underline-offset-4 truncate block">
+                                {t.name}
+                            </Link>
+                            <div className="mt-1 text-sm text-neutral-600 font-bold uppercase flex flex-wrap gap-2">
+                                <span className="bg-black text-white px-1">{statusLabel(log.status)}</span>
+                                <span>{formatDate(log.watchedAt ?? log.createdAt, true)}</span>
+                                {log.ott ? <span className="text-blue-600">@{log.ott}</span> : ""}
+                            </div>
+                        </div>
+                        {typeof log.rating === "number" ? (
+                            <div className="shrink-0 bg-black px-2 py-1 text-sm font-bold text-yellow-400 border-2 border-yellow-400">
+                                ★ {log.rating.toFixed(1)}
+                            </div>
+                        ) : null}
+                    </div>
+                    {(log.place || log.occasion) ? (
+                        <div className="flex flex-wrap gap-2 mb-3">
+                            {log.place ? chip(placeLabel(log.place), "place", true) : null}
+                            {log.occasion ? chip(occasionLabel(log.occasion), "occasion", true) : null}
+                        </div>
+                    ) : null}
+                    {log.note ? (
+                        <div className="border-t-2 border-dashed border-neutral-300 pt-3 mt-auto">
+                            <p className="text-sm leading-relaxed text-neutral-900 line-clamp-3">{renderBody(formatNoteInline(log.note), true)}</p>
                         </div>
                     ) : null}
                 </div>
-                {(log.place || log.occasion) ? (
-                    <div className="flex flex-wrap gap-2 mb-3">
-                        {log.place ? chip(placeLabel(log.place), "place", true) : null}
-                        {log.occasion ? chip(occasionLabel(log.occasion), "occasion", true) : null}
-                    </div>
-                ) : null}
-                {log.note ? (
-                    <div className="border-t-2 border-dashed border-neutral-300 pt-3 mt-2">
-                        <p className="text-sm leading-relaxed text-neutral-900">{renderBody(formatNoteInline(log.note), true)}</p>
-                    </div>
-                ) : null}
             </article>
         );
     }
 
     return (
-        <article className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm space-y-3">
-            <div className="flex items-start justify-between gap-3">
-                <div>
-                    <Link href={`/title/${t.id}`} className="text-base font-semibold hover:underline">
-                        {t.name}
-                    </Link>
-                    <div className="mt-1 text-sm text-neutral-600">
-                        {statusLabel(log.status)} · {formatDate(log.watchedAt ?? log.createdAt, false)}
-                        {log.ott ? ` · ${log.ott}` : ""}
-                    </div>
+        <article className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm hover:border-neutral-300 transition-all flex gap-5">
+            <div className="shrink-0">
+                <div className="h-32 w-20 overflow-hidden rounded-xl bg-neutral-100 shadow-sm border border-neutral-100">
+                    {t.posterUrl ? (
+                        <img
+                            src={t.posterUrl}
+                            alt={t.name}
+                            className="h-full w-full object-cover"
+                            loading="lazy"
+                        />
+                    ) : (
+                        <div className="h-full w-full flex items-center justify-center text-[10px] text-neutral-400 font-medium">NO IMAGE</div>
+                    )}
                 </div>
-                {typeof log.rating === "number" ? (
-                    <div className="rounded-xl bg-neutral-900 px-3 py-1 text-sm font-semibold text-white">
-                        {log.rating.toFixed(1)}
+            </div>
+            <div className="flex-1 min-w-0">
+                <div className="flex items-start justify-between gap-3 mb-1">
+                    <div className="min-w-0">
+                        <Link href={`/title/${t.id}`} className="text-lg font-bold text-neutral-900 hover:underline decoration-neutral-400 underline-offset-4 truncate block">
+                            {t.name}
+                        </Link>
+                        <div className="mt-1 flex items-center gap-1.5 text-xs font-medium text-neutral-500">
+                            <span>{statusLabel(log.status)}</span>
+                            <span className="text-neutral-300">·</span>
+                            <span>{formatDate(log.watchedAt ?? log.createdAt, false)}</span>
+                            {log.ott ? (
+                                <>
+                                    <span className="text-neutral-300">·</span>
+                                    <span className="text-indigo-600/80">{log.ott}</span>
+                                </>
+                            ) : null}
+                        </div>
+                    </div>
+                    {typeof log.rating === "number" ? (
+                        <div className="shrink-0 rounded-xl bg-neutral-900 px-2.5 py-1 text-xs font-bold text-white shadow-sm">
+                            {log.rating.toFixed(1)}
+                        </div>
+                    ) : null}
+                </div>
+                {(log.place || log.occasion) ? (
+                    <div className="flex flex-wrap gap-1.5 mb-3">
+                        {log.place ? chip(placeLabel(log.place), "place", false) : null}
+                        {log.occasion ? chip(occasionLabel(log.occasion), "occasion", false) : null}
                     </div>
                 ) : null}
+                {log.note ? (
+                    <p className="text-sm leading-relaxed text-neutral-700 line-clamp-2">
+                        {renderBody(formatNoteInline(log.note), false)}
+                    </p>
+                ) : null}
             </div>
-            {(log.place || log.occasion) ? (
-                <div className="flex flex-wrap gap-2">
-                    {log.place ? chip(placeLabel(log.place), "place", false) : null}
-                    {log.occasion ? chip(occasionLabel(log.occasion), "occasion", false) : null}
-                </div>
-            ) : null}
-            {log.note ? (
-                <p className="text-sm leading-relaxed text-neutral-800">
-                    {renderBody(formatNoteInline(log.note), false)}
-                </p>
-            ) : null}
         </article>
     );
 }
