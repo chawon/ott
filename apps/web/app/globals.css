@@ -1,14 +1,7 @@
 @import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css");
+@import url("https://cdn.jsdelivr.net/gh/rriver2/DungGeunMo/DungGeunMo.css");
 @import "tailwindcss";
 @import "tw-animate-css";
-
-@font-face {
-  font-family: 'DungGeunMo';
-  src: url('https://cdn.jsdelivr.net/gh/rriver2/DungGeunMo/DungGeunMo.woff2') format('woff2');
-  font-weight: normal;
-  font-style: normal;
-  font-display: swap;
-}
 
 @custom-variant dark (&:is(.dark *));
 
@@ -139,7 +132,7 @@
    8-BIT / NES STYLE THEME (RETRO MODE)
    ========================================= */
 .retro {
-  --font-sans: 'DungGeunMo', monospace;
+  --font-sans: "DungGeunMo", monospace;
   --radius: 0;
   
   /* Retro Palette */
@@ -162,12 +155,8 @@
   --input: var(--nes-white);
 }
 
-.retro body {
-  background-color: var(--background);
-  color: var(--foreground);
-  font-family: "DungGeunMo", monospace !important;
-}
-
+/* Force font application for retro mode */
+.retro body,
 .retro * {
   font-family: "DungGeunMo", monospace !important;
   border-radius: 0 !important;
