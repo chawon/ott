@@ -168,7 +168,7 @@ export default function QuickLogCard({
         <div className="relative">
             <section className="nes-container !bg-white">
                 <div className="absolute -top-4 left-4 bg-white border-2 border-black px-2 text-xs font-bold tracking-widest uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-                    New Entry
+                    새로운 기록
                 </div>
 
                 <div className="space-y-4">
@@ -193,7 +193,7 @@ export default function QuickLogCard({
                                         {selected.name}
                                     </div>
                                     <div className="mt-1 text-xs text-neutral-400">
-                                        {selected.type === "movie" ? "MOVIE" : "SERIES"}
+                                        {selected.type === "movie" ? "영화" : "시리즈"}
                                         {selected.year ? ` · ${selected.year}` : ""}
                                     </div>
                                 </div>
@@ -209,7 +209,7 @@ export default function QuickLogCard({
 
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                         <div className="space-y-1">
-                            <label className="text-xs font-bold uppercase">Status</label>
+                            <label className="text-xs font-bold uppercase">상태</label>
                             <div className="relative">
                                 <select
                                     value={status}
@@ -224,21 +224,21 @@ export default function QuickLogCard({
                         </div>
 
                         <div className="space-y-1">
-                            <label className="text-xs font-bold uppercase flex items-center gap-1"><Star className="h-3 w-3" /> Rating</label>
+                            <label className="text-xs font-bold uppercase flex items-center gap-1"><Star className="h-3 w-3" /> 평점</label>
                             <select
                                 value={rating === "" ? "" : String(rating)}
                                 onChange={(e) => setRating(e.target.value === "" ? "" : Number(e.target.value))}
                                 className="w-full bg-white px-3 py-2 text-sm font-bold"
                             >
-                                <option value="">SELECT...</option>
-                                <option value="5">★★★★★ LOVE IT</option>
-                                <option value="3">★★★ OKAY</option>
-                                <option value="1">★ BAD</option>
+                                <option value="">선택 안함</option>
+                                <option value="5">★★★★★ 최고!</option>
+                                <option value="3">★★★ 그럭저럭</option>
+                                <option value="1">★ 별로...</option>
                             </select>
                         </div>
 
                         <div className="space-y-1">
-                            <label className="text-xs font-bold uppercase flex items-center gap-1"><MapPin className="h-3 w-3" /> Place</label>
+                            <label className="text-xs font-bold uppercase flex items-center gap-1"><MapPin className="h-3 w-3" /> 장소</label>
                             <select
                                 value={place}
                                 onChange={(e) => setPlace(e.target.value as Place)}
@@ -251,7 +251,7 @@ export default function QuickLogCard({
                         </div>
 
                         <div className="space-y-1">
-                            <label className="text-xs font-bold uppercase flex items-center gap-1"><Users className="h-3 w-3" /> With</label>
+                            <label className="text-xs font-bold uppercase flex items-center gap-1"><Users className="h-3 w-3" /> 누구와</label>
                             <select
                                 value={occasion}
                                 onChange={(e) => setOccasion(e.target.value as Occasion)}
@@ -264,12 +264,12 @@ export default function QuickLogCard({
                         </div>
 
                         <div className="sm:col-span-2 space-y-1">
-                            <label className="text-xs font-bold uppercase">Platform (OTT)</label>
+                            <label className="text-xs font-bold uppercase">플랫폼 (OTT)</label>
                             <input
                                 value={ott}
                                 onChange={(e) => setOtt(e.target.value)}
                                 className="w-full bg-white px-3 py-2 text-sm font-bold placeholder:text-neutral-400"
-                                placeholder="NETFLIX, DISNEY+..."
+                                placeholder="넷플릭스, 디즈니+, 극장 등..."
                             />
                         </div>
 
@@ -283,7 +283,7 @@ export default function QuickLogCard({
                                 )}
                             >
                                 <Calendar className="h-3.5 w-3.5" />
-                                {useWatchedAt ? "Manual Date" : "Watched Today?"}
+                                {useWatchedAt ? "날짜 직접 입력" : "오늘 보셨나요?"}
                             </button>
                             {useWatchedAt && (
                                 <input
@@ -296,12 +296,12 @@ export default function QuickLogCard({
                         </div>
 
                         <div className="sm:col-span-2 space-y-1">
-                            <label className="text-xs font-bold uppercase flex items-center gap-1"><MessageSquare className="h-3 w-3" /> Memo</label>
+                            <label className="text-xs font-bold uppercase flex items-center gap-1"><MessageSquare className="h-3 w-3" /> 메모</label>
                             <textarea
                                 value={note}
                                 onChange={(e) => setNote(e.target.value)}
                                 className="w-full min-h-[80px] bg-white px-3 py-2 text-sm font-bold placeholder:text-neutral-400 resize-none"
-                                placeholder="..."
+                                placeholder="짧은 감상을 남겨보세요..."
                             />
                         </div>
                     </div>
@@ -318,10 +318,10 @@ export default function QuickLogCard({
                         {saving ? (
                             <span className="flex items-center justify-center gap-2">
                                 <Loader2 className="h-4 w-4 animate-spin" />
-                                SAVING...
+                                저장 중...
                             </span>
                         ) : (
-                            "SAVE LOG"
+                            "기록 저장하기"
                         )}
                     </button>
                 </div>

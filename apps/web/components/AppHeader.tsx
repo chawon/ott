@@ -35,10 +35,10 @@ export default function AppHeader() {
                 </Link>
 
                 <nav className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:flex-nowrap">
-                    <NavLink href="/" label="MY LOG" icon={User} />
-                    <NavLink href="/timeline" label="TIMELINE" icon={Clock} />
-                    <NavLink href="/public" label="CHAT" icon={MessageCircle} />
-                    <NavLink href="/account" label="CONFIG" icon={Settings} />
+                    <NavLink href="/" label="나의 기록" icon={User} />
+                    <NavLink href="/timeline" label="시청 이력" icon={Clock} />
+                    <NavLink href="/public" label="수다방" icon={MessageCircle} />
+                    <NavLink href="/account" label="설정" icon={Settings} />
                 </nav>
             </div>
         </header>

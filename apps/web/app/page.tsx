@@ -58,7 +58,7 @@ export default function HomePage() {
             <div className="space-y-10">
                 <section className="space-y-4">
                     <div className="bg-black inline-block px-3 py-1 text-sm font-bold uppercase tracking-widest text-white shadow-[4px_4px_0px_0px_rgba(0,0,0,0.2)]">
-                        Quick Entry
+                        빠른 기록
                     </div>
                     <QuickLogCard
                         onCreated={async (created) => {
@@ -71,21 +71,21 @@ export default function HomePage() {
                 
                 <section className="space-y-4">
                     <div className="flex items-baseline justify-between border-b-4 border-black pb-2">
-                        <div className="text-xl font-bold uppercase tracking-tighter">My History</div>
+                        <div className="text-xl font-bold uppercase tracking-tighter">나의 역사</div>
                         <a href="/timeline" className="text-xs font-bold text-blue-600 hover:bg-blue-600 hover:text-white px-1 uppercase underline underline-offset-4">
-                            View All
+                            전체 보기
                         </a>
                     </div>
 
                     {loading && logs.length === 0 ? (
                         <div className="border-4 border-black bg-white p-5 text-sm font-bold uppercase">
-                            Loading...
+                            로딩 중...
                         </div>
                     ) : null}
 
                     {!loading && logs.length === 0 ? (
                         <div className="border-4 border-dashed border-neutral-400 bg-neutral-100 p-10 text-center text-sm font-bold uppercase text-neutral-500">
-                            No logs yet. Start your quest above!
+                            아직 기록이 없습니다. 위에서 모험을 시작하세요!
                         </div>
                     ) : null}
 
@@ -100,9 +100,9 @@ export default function HomePage() {
             <aside className="space-y-6">
                 <section className="space-y-4">
                     <div className="flex items-baseline justify-between border-b-4 border-black pb-2">
-                        <div className="text-lg font-bold uppercase tracking-tighter">Live Feeds</div>
+                        <div className="text-lg font-bold uppercase tracking-tighter">실시간 수다</div>
                         <a href="/public" className="text-xs font-bold text-blue-600 hover:bg-blue-600 hover:text-white px-1 uppercase underline underline-offset-4">
-                            View All
+                            전체 보기
                         </a>
                     </div>
                     <DiscussionList items={discussions} />
@@ -110,8 +110,8 @@ export default function HomePage() {
 
                 <div className="nes-container is-dark p-4 mt-8">
                     <p className="text-[10px] font-bold leading-relaxed uppercase">
-                        Welcome to OTT (On The Timeline). <br/>
-                        Track your movies and dramas in 8-bit style!
+                        환영합니다, 모험가여. <br/>
+                        OTT (On The Timeline)에서 당신의 여정을 기록하세요!
                     </p>
                 </div>
             </aside>
