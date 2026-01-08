@@ -214,7 +214,7 @@ export default function QuickLogCard({
                                 <select
                                     value={status}
                                     onChange={(e) => setStatus(e.target.value as Status)}
-                                    className="w-full bg-white px-3 py-2 text-sm font-bold appearance-none"
+                                    className="w-full bg-white px-3 py-2 text-sm font-bold"
                                 >
                                     {STATUS_OPTIONS.map((o) => (
                                         <option key={o.value} value={o.value}>{o.label}</option>

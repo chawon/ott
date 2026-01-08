@@ -136,6 +136,18 @@
     border-style: solid !important;
     border-color: var(--nes-black) !important;
   }
+
+  /* Custom Select Style for 8-bit Theme */
+  select {
+    appearance: none !important;
+    -webkit-appearance: none !important;
+    -moz-appearance: none !important;
+    background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24'%3E%3Cpath fill='%23000' d='M7 10h10v4h-2v-2h-2v2h-2v-2H9v2H7v-4z'/%3E%3C/svg%3E") !important;
+    background-repeat: no-repeat !important;
+    background-position: right 12px center !important;
+    background-size: 16px !important;
+    padding-right: 2.5rem !important; /* Space for the arrow */
+  }
 }
 
 /* NES-style Card Container */
