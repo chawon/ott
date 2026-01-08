@@ -76,7 +76,7 @@ export default function AppHeader() {
                         "font-bold tracking-tight transition-colors",
                         isRetro ? "text-black text-xl uppercase" : "text-neutral-900 text-lg"
                     )}>
-                        {isRetro ? "On the Timeline" : "On the Timeline"}
+                        {isRetro ? "으뜸과 버금" : "으뜸과 버금"}
                     </Link>
                 </div>
 

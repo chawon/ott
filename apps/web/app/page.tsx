@@ -112,13 +112,12 @@ export default function HomePage() {
                         <DiscussionList items={discussions} />
                     </section>
 
-                    <div className="nes-container is-dark p-4 mt-8">
-                        <p className="text-[10px] font-bold leading-relaxed uppercase">
-                            환영합니다, 모험가여. <br/>
-                            OTT (On The Timeline)에서 당신의 여정을 기록하세요!
-                        </p>
-                    </div>
-                </aside>
+                                    <div className="nes-container is-dark p-4 mt-8">
+                                        <p className="text-[10px] font-bold leading-relaxed uppercase">
+                                            환영합니다, 모험가여. <br/>
+                                            '으뜸과 버금'에서 당신의 여정을 기록하세요!
+                                        </p>
+                                    </div>                </aside>
             </div>
         );
     }
