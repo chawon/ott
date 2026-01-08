@@ -166,8 +166,8 @@ export default function QuickLogCard({
 
     return (
         <div className="relative">
-            <section className="nes-container">
-                <div className="absolute -top-4 left-4 bg-[#f0f0f0] px-2 text-sm font-bold tracking-widest uppercase">
+            <section className="nes-container !bg-white">
+                <div className="absolute -top-4 left-4 bg-white border-2 border-black px-2 text-xs font-bold tracking-widest uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
                     New Entry
                 </div>
 

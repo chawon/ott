@@ -144,8 +144,9 @@
     position: relative;
     padding: 1.5rem;
     margin-bottom: 2rem;
-    border: 4px solid var(--nes-black);
+    border: 4px solid var(--nes-black) !important;
     background-color: var(--nes-white);
+    box-shadow: 4px 4px 0px 0px rgba(0,0,0,1);
   }
   
   .nes-container.is-dark {
