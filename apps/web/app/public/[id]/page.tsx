@@ -109,7 +109,7 @@ export default function PublicDiscussionDetailPage() {
                   ? "bg-blue-600 text-white px-2 py-1 font-bold uppercase hover:bg-blue-700" 
                   : "text-neutral-700 hover:text-black hover:underline"
               )}>
-                {isRetro ? "VIEW DETAILS" : "작품 상세 정보 보기 →"}
+                {isRetro ? "이 비디오는 말이야 →" : "작품 상세 정보 보기 →"}
               </Link>
             </div>
           </div>

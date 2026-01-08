@@ -372,9 +372,9 @@ export default function TitlePage() {
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1.1fr_0.9fr]">
                 <section className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm space-y-4">
                     <div>
-                        <div className="text-base font-semibold">My log</div>
+                        <div className="text-base font-semibold">나의 기록</div>
                         <div className="text-sm text-neutral-600">
-                            {log ? "상태를 바꾸면 히스토리가 자동으로 쌓여" : "아직 이 작품에 대한 기록이 없어. 홈에서 먼저 저장해줘."}
+                            {log ? "내용을 추가하면 히스토리가 자동으로 쌓여" : "아직 이 작품에 대한 기록이 없어. 홈에서 먼저 저장해줘."}
                         </div>
                     </div>
 
@@ -487,7 +487,7 @@ export default function TitlePage() {
 
                 <section className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm space-y-3">
                     <div>
-                        <div className="text-base font-semibold">History</div>
+                        <div className="text-base font-semibold">히스토리</div>
                         <div className="text-sm text-neutral-600">업데이트 할 때마다 스냅샷이 쌓여</div>
                     </div>
 
