@@ -2,18 +2,23 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:mobile/core/models/comment.dart';
 import 'package:mobile/core/models/discussion_list_item.dart';
 import 'package:mobile/core/ui/texts_kr.dart';
 import 'package:mobile/features/public/presentation/public_providers.dart';
 
-class PublicPage extends ConsumerWidget {
-  const PublicPage({super.key});
+class PublicDetailPage extends ConsumerWidget {
+  const PublicDetailPage({super.key, required this.discussionId});
 
-  String _formatDate(DateTime? date) {
+  final String discussionId;
+
+  String _formatDateTime(DateTime? date) {
     if (date == null) return '';
     final mm = date.month.toString().padLeft(2, '0');
     final dd = date.day.toString().padLeft(2, '0');
-    return '${date.year}.$mm.$dd';
+    final hh = date.hour.toString().padLeft(2, '0');
+    final min = date.minute.toString().padLeft(2, '0');
+    return '${date.year}.$mm.$dd $hh:$min';
   }
 
   String _typeLabel(String type) {
@@ -27,18 +32,7 @@ class PublicPage extends ConsumerWidget {
     }
   }
 
-  Widget _buildEmptyCard(BuildContext context, String text) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceVariant,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Text(text),
-    );
-  }
-
-  Widget _buildDiscussionCard(
+  Widget _buildHeader(
     BuildContext context,
     DiscussionListItem item,
   ) {
@@ -47,11 +41,9 @@ class PublicPage extends ConsumerWidget {
     if (typeLabel.isNotEmpty) subtitleParts.add(typeLabel);
     if (item.titleYear != null) subtitleParts.add('${item.titleYear}');
 
-    final dateLabel = _formatDate(item.createdAt);
-
     return InkWell(
       borderRadius: BorderRadius.circular(14),
-      onTap: () => context.go('/public/${item.id}'),
+      onTap: () => context.go('/title/${item.titleId}'),
       child: Ink(
         decoration: BoxDecoration(
           color: Theme.of(context).colorScheme.surface,
@@ -66,8 +58,8 @@ class PublicPage extends ConsumerWidget {
               ClipRRect(
                 borderRadius: BorderRadius.circular(8),
                 child: Container(
-                  width: 54,
-                  height: 72,
+                  width: 64,
+                  height: 86,
                   color: Theme.of(context).colorScheme.surfaceVariant,
                   child: item.posterUrl == null
                       ? const Icon(Icons.movie_outlined)
@@ -88,7 +80,7 @@ class PublicPage extends ConsumerWidget {
                       item.titleName,
                       style: const TextStyle(
                         fontWeight: FontWeight.w600,
-                        fontSize: 16,
+                        fontSize: 18,
                       ),
                     ),
                     const SizedBox(height: 6),
@@ -106,22 +98,12 @@ class PublicPage extends ConsumerWidget {
                             size: 14, color: Colors.grey[600]),
                         const SizedBox(width: 4),
                         Text(
-                          '${item.commentCount}개',
+                          '${item.commentCount}개 댓글',
                           style: Theme.of(context)
                               .textTheme
                               .bodySmall
                               ?.copyWith(color: Colors.grey[600]),
                         ),
-                        if (dateLabel.isNotEmpty) ...[
-                          const SizedBox(width: 10),
-                          Text(
-                            dateLabel,
-                            style: Theme.of(context)
-                                .textTheme
-                                .bodySmall
-                                ?.copyWith(color: Colors.grey[600]),
-                          ),
-                        ],
                       ],
                     ),
                   ],
@@ -134,56 +116,106 @@ class PublicPage extends ConsumerWidget {
     );
   }
 
+  Widget _buildCommentCard(BuildContext context, Comment comment) {
+    final timeLabel = _formatDateTime(comment.createdAt);
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Theme.of(context).dividerColor),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                comment.authorName,
+                style: const TextStyle(fontWeight: FontWeight.w600),
+              ),
+              if (timeLabel.isNotEmpty)
+                Text(
+                  timeLabel,
+                  style: Theme.of(context)
+                      .textTheme
+                      .bodySmall
+                      ?.copyWith(color: Colors.grey[600]),
+                ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(comment.body),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final feed = ref.watch(publicFeedProvider);
+    final discussion = ref.watch(publicDiscussionProvider(discussionId));
+    final comments = ref.watch(publicCommentsProvider(discussionId));
 
-    return Scaffold(
-      appBar: AppBar(title: const Text(KrText.publicTab)),
-      body: feed.when(
-        data: (data) {
-          return RefreshIndicator(
+    return discussion.when(
+      data: (item) {
+        return Scaffold(
+          appBar: AppBar(title: const Text(KrText.publicTab)),
+          body: RefreshIndicator(
             onRefresh: () async {
-              ref.invalidate(publicFeedProvider);
+              ref.invalidate(publicDiscussionProvider(discussionId));
+              ref.invalidate(publicCommentsProvider(discussionId));
             },
             child: ListView(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
               children: [
+                _buildHeader(context, item),
+                const SizedBox(height: 16),
                 const Text(
-                  '최신 글감',
+                  '댓글',
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                 ),
                 const SizedBox(height: 8),
-                if (data.latest.isEmpty)
-                  _buildEmptyCard(context, '공개 기록이 아직 없어요')
-                else
-                  ...data.latest
-                      .map((item) => Padding(
-                            padding: const EdgeInsets.only(bottom: 10),
-                            child: _buildDiscussionCard(context, item),
-                          ))
-                      .toList(),
-                const SizedBox(height: 18),
-                const Text(
-                  '전체 글감',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                comments.when(
+                  data: (items) {
+                    if (items.isEmpty) {
+                      return Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.surfaceVariant,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Text('댓글이 아직 없어요'),
+                      );
+                    }
+
+                    return Column(
+                      children: items
+                          .map((comment) => Padding(
+                                padding: const EdgeInsets.only(bottom: 10),
+                                child: _buildCommentCard(context, comment),
+                              ))
+                          .toList(),
+                    );
+                  },
+                  loading: () => const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 24),
+                    child: Center(child: CircularProgressIndicator()),
+                  ),
+                  error: (err, _) => Text('Error: $err'),
                 ),
-                const SizedBox(height: 8),
-                if (data.all.isEmpty)
-                  _buildEmptyCard(context, '데이터가 없어요')
-                else
-                  ...data.all
-                      .map((item) => Padding(
-                            padding: const EdgeInsets.only(bottom: 10),
-                            child: _buildDiscussionCard(context, item),
-                          ))
-                      .toList(),
               ],
             ),
-          );
-        },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, _) => Center(child: Text('Error: $err')),
+          ),
+        );
+      },
+      loading: () => const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      ),
+      error: (err, _) => Scaffold(
+        appBar: AppBar(title: const Text(KrText.publicTab)),
+        body: Center(child: Text('Error: $err')),
       ),
     );
   }

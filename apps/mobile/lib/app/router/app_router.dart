@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:mobile/core/ui/texts_kr.dart';
 import 'package:mobile/features/account/presentation/account_page.dart';
 import 'package:mobile/features/home/presentation/home_page.dart';
+import 'package:mobile/features/public/presentation/public_detail_page.dart';
 import 'package:mobile/features/public/presentation/public_page.dart';
 import 'package:mobile/features/timeline/presentation/timeline_page.dart';
 import 'package:mobile/features/title_detail/presentation/title_detail_page.dart';
@@ -32,6 +33,11 @@ final appRouter = GoRouter(
           pageBuilder: (context, state) => const NoTransitionPage(
             child: PublicPage(),
           ),
+        ),
+        GoRoute(
+          path: '/public/:id',
+          builder: (context, state) =>
+              PublicDetailPage(discussionId: state.pathParameters['id']!),
         ),
         GoRoute(
           path: '/account',
