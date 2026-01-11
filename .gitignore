@@ -21,12 +21,24 @@ node_modules
 
 # production
 /build
+build/
 
 # misc
 .DS_Store
 *.pem
 *.iml
 .idea/
+.gemini/
+deploy/.gemini/
+.gradle/
+
+# flutter / local tooling
+.tools/
+.pub-cache/
+.config/
+.cache/
+.dart-tool/
+.flutter
 
 # debug
 npm-debug.log*
