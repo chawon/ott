@@ -80,6 +80,10 @@ export interface WatchLog {
     note?: string | null;
     spoiler: boolean;
     ott?: string | null;
+    seasonNumber?: number | null;
+    episodeNumber?: number | null;
+    seasonPosterUrl?: string | null;
+    seasonYear?: number | null;
     syncStatus?: "pending" | "synced" | "failed";
     updatedAt?: string;
     deletedAt?: string | null;
@@ -106,6 +110,10 @@ export interface CreateWatchLogRequest {
     note?: string;
     spoiler?: boolean;
     ott?: string;
+    seasonNumber?: number | null;
+    episodeNumber?: number | null;
+    seasonPosterUrl?: string | null;
+    seasonYear?: number | null;
 
     watchedAt?: string;
     place?: Place;
@@ -120,6 +128,10 @@ export interface WatchLogHistory {
     note?: string | null;
     spoiler: boolean;
     ott?: string | null;
+    seasonNumber?: number | null;
+    episodeNumber?: number | null;
+    seasonPosterUrl?: string | null;
+    seasonYear?: number | null;
     watchedAt: string;
     place?: Place | null;
     occasion?: Occasion | null;

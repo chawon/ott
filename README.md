@@ -1,9 +1,10 @@
 # OTT Monorepo
 
-Next.js 프런트엔드를 `apps/web` 아래로 옮겨 백엔드(Sprint Boot 예정)와 같은 레포에서 워크스페이스로 관리합니다.
+Next.js 프런트엔드와 Spring Boot 백엔드를 같은 레포에서 워크스페이스로 관리합니다.
 
 ## 구조
 - `apps/web` – Next.js 앱 (기존 소스)
+- `apps/api` – Spring Boot API
 - `package.json` – 루트 워크스페이스 스크립트/설정
 - `tsconfig.json` – 프로젝트 참조(루트 → apps/web)
 

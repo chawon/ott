@@ -30,6 +30,10 @@ public class WatchLogHistoryService {
         h.setSpoiler(log.isSpoiler());
         h.setOtt(log.getOtt());
         h.setWatchedAt(log.getWatchedAt());
+        h.setSeasonNumber(log.getSeasonNumber());
+        h.setEpisodeNumber(log.getEpisodeNumber());
+        h.setSeasonPosterUrl(log.getSeasonPosterUrl());
+        h.setSeasonYear(log.getSeasonYear());
         h.setPlace(log.getPlace());
         h.setOccasion(log.getOccasion());
         repo.save(h);

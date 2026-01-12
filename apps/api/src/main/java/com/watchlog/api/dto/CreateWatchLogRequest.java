@@ -26,6 +26,11 @@ public record CreateWatchLogRequest(
         Boolean spoiler,
         String ott,
 
+        Integer seasonNumber,
+        Integer episodeNumber,
+        String seasonPosterUrl,
+        Integer seasonYear,
+
         OffsetDateTime watchedAt,
         Place place,
         Occasion occasion

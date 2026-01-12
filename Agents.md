@@ -17,11 +17,14 @@
 2) 백엔드(Spring) API를 `/api/*`로 프록시하도록 rewrites 사용
 3) TMDB 검색 결과를 UI에서 포스터/기본정보와 함께 표시 가능
 4) QuickLogCard에서 기록 저장 성공 시 홈/타임라인 카드 즉시 추가 + 토스트 표시 구현됨
-5) 추천 메뉴/추천 페이지는 제거하기로 결정했고, 홈 레이아웃에서 추천 영역(div)도 정리 완료
+5) 추천 메뉴는 헤더에서 제거, 홈 레이아웃에 추천 영역 없음(단, `/recommendations` 라우트는 남아 있음)
 6) 로컬 우선(Local-first) 캐시/쓰기 도입 (Dexie + outbox)
 7) 공개 글감/댓글(같이 기록) + 멘션 기능 적용
 8) 페어링 코드 기반 로그인(개인정보 없음) 적용
 9) 평점은 3단계 라벨(최고/그럭저럭/실망)로 선택
+10) 레트로 UI 토글(헤더 아이콘) 및 레트로 전용 홈 레이아웃 지원
+11) 시리즈 선택 시 시즌/에피소드 선택 및 시즌 포스터/연도 반영
+12) 플랫폼(OTT) 드롭다운 + 직접 입력 + 내 입력 목록 노출
 
 ### 주요 파일
 1) `next.config.ts`
@@ -40,28 +43,38 @@
     1. TitleSearchItem 선택 후 기록 저장
     2. Place/Occasion 선택(기본 HOME/ALONE)
     3. 저장 성공 시 토스트("Saved ✓") + 입력 초기화 + 홈 로그 즉시 반영
+    4. 시리즈 시즌/에피소드 선택, 시즌 포스터/연도 표시
+    5. 플랫폼 드롭다운 + 직접 입력 + 내 입력 목록
 7) `components/LogCard.tsx`
     1. watchedAt 우선 표기(없으면 createdAt)
     2. place/occasion 칩 표시
 8) `app/page.tsx`
-    1. 추천 제거 후 QuickLogCard + Recent logs만 노출
+    1. QuickLogCard + Recent logs + 최신 같이 기록 노출
+    2. 레트로 모드 분기 UI 포함
 9) `app/timeline/page.tsx`
     1. `/api/logs` 기반 로딩
-    2. (추가 예정) place/occasion 필터 UI
-10) `lib/db.ts`
+    2. status/ott 필터 UI 적용 (FiltersBar)
+10) `components/FiltersBar.tsx`
+    1. status/OTT 드롭다운 필터
+    2. OTT 내 입력 목록 표시
+11) `lib/db.ts`
     1. Dexie 스키마(titles/logs/history/outbox)
-11) `lib/localStore.ts`
+12) `lib/localStore.ts`
     1. 로컬 저장/조회 + outbox 큐 관리
-12) `lib/sync.ts`
+13) `lib/sync.ts`
     1. outbox 처리(오프라인→온라인 자동 동기화)
-13) `components/SyncWorker.tsx`
+14) `components/SyncWorker.tsx`
     1. online/visibilitychange 시 syncOutbox 트리거
-14) `components/CommentsPanel.tsx`
+15) `components/CommentsPanel.tsx`
     1. 공개 댓글 + 멘션 UI
-15) `app/public/page.tsx`, `app/public/[id]/page.tsx`
+16) `app/public/page.tsx`, `app/public/[id]/page.tsx`
     1. 같이 기록 목록/상세
-16) `app/account/page.tsx`
+17) `app/account/page.tsx`
     1. 페어링 코드 확인/연결
+18) `app/recommendations/page.tsx`
+    1. 추천 페이지(현재 라우트는 존재하나 헤더에서 미노출)
+19) `context/RetroContext.tsx`
+    1. 레트로 모드 토글 상태 관리
 
 ### Next 15 params 이슈 해결
 1) `params.id` 직접 접근 시 “params is a Promise” 경고/에러 발생
@@ -122,6 +135,7 @@
         4. name, year, posterUrl, overview
 2) `GET /api/titles/{uuid}`
     1. DB에 저장된 title 스냅샷 반환(내부 UUID 기반)
+    2. provider/providerId 포함(시즌/에피소드 조회용)
 
 ### Logs
 1) `GET /api/logs?limit=&status=&ott=&place=&occasion=`
@@ -140,6 +154,8 @@
 4) `GET /api/logs?titleId={uuid}&limit=1`
     1. 상세 화면에서 해당 작품의 “내 로그” 불러오기용
     2. repository/query에 titleId 필터 반영 완료
+5) 로그 추가 필드
+    1. seasonNumber, episodeNumber, seasonPosterUrl, seasonYear (시리즈 시즌/에피소드 기록용)
 
 ### Discussions/Comments (같이 기록)
 1) `GET /api/discussions?titleId=...`
@@ -156,6 +172,12 @@
     1. 댓글 목록
 7) `POST /api/discussions/{id}/comments`
     1. 댓글 작성(mentions 포함 가능)
+
+### TMDB 보조 API (시즌/에피소드)
+1) `GET /api/tmdb/tv/{providerId}/seasons`
+    1. 시즌 목록(시즌 번호/이름/에피소드 수/포스터/연도)
+2) `GET /api/tmdb/tv/{providerId}/seasons/{seasonNumber}`
+    1. 에피소드 목록(번호/이름)
 
 ### Auth (페어링 코드)
 1) `POST /api/auth/register`
@@ -180,7 +202,7 @@
 ## 추천 제거 결정
 1) 프론트에서
     1. Recommendations 메뉴 제거
-    2. `/recommendations` 라우트 제거
+    2. `/recommendations` 라우트는 아직 남아 있음(헤더에서 미노출)
     3. 홈에서 RecoShelf 관련 div/그리드 제거
 2) 백엔드 추천 API는 당장 호출되지 않음(정리 여부는 TODO)
 
@@ -312,7 +334,8 @@
 2) 한글/공백 검색 정상 동작
 3) 기록 저장 POST 동작 + 홈/타임라인 즉시 반영
 4) TPO(Place/Occasion, watchedAt 기본값) 저장 및 카드 표시
-5) 추천 기능 제거 및 홈 레이아웃 정리
+5) 추천 메뉴 제거 및 홈 레이아웃 정리(추천 페이지 라우트는 잔존)
+13) 레트로 모드 토글/전용 홈 레이아웃
 6) PATCH /api/logs/{id} 업데이트 + 상세 페이지 연결
 7) 히스토리 테이블/엔티티/서비스/컨트롤러 추가 및 상세 표시
 8) titleId 필터 기반 로그 조회 API 지원(상세용)
@@ -320,9 +343,34 @@
 10) 공개 글감(같이 기록) + 댓글/멘션 기능
 11) 페어링 코드 로그인 + 계정 병합
 12) 평점 3단계 라벨/이모지 적용
+14) 시리즈 시즌/에피소드 선택 + 시즌 포스터/연도 저장/표시
+15) 플랫폼 드롭다운 + 직접 입력 + 내 입력 목록
+16) 타임라인 OTT 필터 드롭다운
+17) 서버 status 필터 정상화 (enum 문자열 비교)
 
 미완료(바로 진행)
 1) 삭제 동기화 및 복구
 2) 사용자 기기 목록/해제
 3) 복구 코드(페어링 코드) 입력 UX + 보안 정책 결정
 
+
+---
+
+## 새 작업 제안: 시리즈 시즌/에피소드 선택
+요구사항
+1) QuickLog에서 시리즈 선택 시 시즌/에피소드 선택 UI 노출
+2) 선택하지 않으면 현재처럼 저장
+3) 선택하면 시즌/에피소드 정보가 로그에 저장 및 표시
+
+설계 방향(초안)
+1) 백엔드
+    1. watch_logs 및 watch_log_history에 season_number, episode_number, episode_name?, season_poster_url? 등 컬럼 추가
+    2. Create/Update/Sync DTO에 필드 추가
+    3. TMDB TV 상세/시즌 상세 조회 API 추가 (시즌 목록/썸네일)
+2) 프론트
+    1. QuickLogCard에서 series 선택 시 시즌/에피소드 dropdown
+    2. TMDB 시즌 목록 호출 (/api/titles/{providerId}/seasons 등)
+    3. 선택된 시즌/에피소드가 카드/타임라인/상세/히스토리에 표시
+3) 로컬 캐시/Sync
+    1. Dexie/LocalStore에도 필드 보존
+    2. Outbox payload에도 season/episode 포함

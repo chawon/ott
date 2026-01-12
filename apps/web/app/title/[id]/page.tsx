@@ -27,12 +27,74 @@ import {
 } from "@/lib/types";
 import { formatNoteInline, OCCASION_LABELS, PLACE_LABELS, STATUS_LABELS, ratingDisplay, safeUUID } from "@/lib/utils";
 
+type SeasonOption = {
+    seasonNumber: number;
+    name: string;
+    episodeCount?: number | null;
+    posterUrl?: string | null;
+    year?: number | null;
+};
+
+type EpisodeOption = {
+    episodeNumber: number;
+    name: string;
+};
+
 const PLACE_OPTIONS: { value: Place; label: string }[] = (Object.keys(PLACE_LABELS) as Place[])
     .map((value) => ({ value, label: PLACE_LABELS[value] }));
 const OCCASION_OPTIONS: { value: Occasion; label: string }[] = (Object.keys(OCCASION_LABELS) as Occasion[])
     .map((value) => ({ value, label: OCCASION_LABELS[value] }));
 const STATUS_OPTIONS: { value: Status; label: string }[] = (Object.keys(STATUS_LABELS) as Status[])
     .map((value) => ({ value, label: STATUS_LABELS[value] }));
+
+const OTT_OPTIONS = [
+    "넷플릭스",
+    "디즈니플러스",
+    "티빙",
+    "웨이브",
+    "쿠팡플레이",
+    "애플티비",
+    "프라임비디오",
+    "왓챠",
+    "채널",
+    "VOD",
+    "CGV",
+    "롯데시네마",
+    "메가박스",
+    "씨네Q",
+] as const;
+
+const OTT_GROUPS = [
+    { label: "OTT", options: ["넷플릭스", "디즈니플러스", "티빙", "웨이브", "쿠팡플레이", "애플티비", "프라임비디오", "왓챠"] },
+    { label: "유료방송", options: ["채널", "VOD"] },
+    { label: "극장", options: ["CGV", "롯데시네마", "메가박스", "씨네Q"] },
+] as const;
+
+const OTT_CUSTOM_VALUE = "__custom__";
+const OTT_CUSTOM_KEY = "watchlog.ott.custom";
+
+function resolveOttSelect(value: string, options: string[]) {
+    if (!value) return "";
+    return options.includes(value) ? value : OTT_CUSTOM_VALUE;
+}
+
+function loadCustomOttOptions(): string[] {
+    if (typeof localStorage === "undefined") return [];
+    try {
+        const raw = localStorage.getItem(OTT_CUSTOM_KEY);
+        if (!raw) return [];
+        const parsed = JSON.parse(raw);
+        if (!Array.isArray(parsed)) return [];
+        return parsed.filter((v) => typeof v === "string" && v.trim().length > 0);
+    } catch {
+        return [];
+    }
+}
+
+function saveCustomOttOptions(options: string[]) {
+    if (typeof localStorage === "undefined") return;
+    localStorage.setItem(OTT_CUSTOM_KEY, JSON.stringify(options));
+}
 
 function fmt(iso: string) {
     const d = new Date(iso);
@@ -83,6 +145,12 @@ function renderBody(text: string) {
     });
 }
 
+function seasonEpisodeLabel(seasonNumber?: number | null, episodeNumber?: number | null) {
+    if (typeof seasonNumber !== "number") return null;
+    if (typeof episodeNumber === "number") return `S${seasonNumber} · E${episodeNumber}`;
+    return `S${seasonNumber}`;
+}
+
 export default function TitlePage() {
     const params = useParams<{ id: string }>();
     const rawId = params?.id;
@@ -98,12 +166,29 @@ export default function TitlePage() {
     const [status, setStatus] = useState<Status>("IN_PROGRESS");
     const [rating, setRating] = useState<number | "">("");
     const [ott, setOtt] = useState("");
+    const [ottSelect, setOttSelect] = useState<string>("");
     const [note, setNote] = useState("");
     const [place, setPlace] = useState<Place>("HOME");
     const [occasion, setOccasion] = useState<Occasion>("ALONE");
     const [useWatchedAt, setUseWatchedAt] = useState(false);
     const [watchedDate, setWatchedDate] = useState("");
+    const [seasons, setSeasons] = useState<SeasonOption[]>([]);
+    const [episodes, setEpisodes] = useState<EpisodeOption[]>([]);
+    const [selectedSeason, setSelectedSeason] = useState<number | "">("");
+    const [selectedEpisode, setSelectedEpisode] = useState<number | "">("");
+    const [seasonPosterUrl, setSeasonPosterUrl] = useState<string | null>(null);
+    const [seasonYear, setSeasonYear] = useState<number | null>(null);
+    const [customOttOptions, setCustomOttOptions] = useState<string[]>([]);
+    const [seasonLoading, setSeasonLoading] = useState(false);
+    const [episodeLoading, setEpisodeLoading] = useState(false);
+    const [seasonError, setSeasonError] = useState<string | null>(null);
     const [userId, setUserId] = useState<string | null>(null);
+
+    const allOttOptions = useMemo(() => {
+        const base = Array.from(OTT_OPTIONS);
+        const extras = customOttOptions.filter((v) => !base.includes(v));
+        return [...base, ...extras];
+    }, [customOttOptions]);
 
     async function reloadAll() {
         if (!titleId) return;
@@ -128,9 +213,14 @@ export default function TitlePage() {
                 setStatus(current.status);
                 setRating(typeof current.rating === "number" ? current.rating : "");
                 setOtt(current.ott ?? "");
+                setOttSelect(resolveOttSelect(current.ott ?? "", allOttOptions));
                 setNote(current.note ?? "");
                 setPlace((current.place ?? "HOME") as Place);
                 setOccasion((current.occasion ?? "ALONE") as Occasion);
+                setSelectedSeason(typeof current.seasonNumber === "number" ? current.seasonNumber : "");
+                setSelectedEpisode(typeof current.episodeNumber === "number" ? current.episodeNumber : "");
+                setSeasonPosterUrl(current.seasonPosterUrl ?? null);
+                setSeasonYear(typeof current.seasonYear === "number" ? current.seasonYear : null);
                 setWatchedDate(toDateInput(new Date(current.watchedAt ?? current.createdAt)));
 
                 const h = await api<WatchLogHistory[]>(`/logs/${current.id}/history?limit=50`);
@@ -165,9 +255,14 @@ export default function TitlePage() {
                 setStatus(localCurrent.status);
                 setRating(typeof localCurrent.rating === "number" ? localCurrent.rating : "");
                 setOtt(localCurrent.ott ?? "");
+                setOttSelect(resolveOttSelect(localCurrent.ott ?? "", allOttOptions));
                 setNote(localCurrent.note ?? "");
                 setPlace((localCurrent.place ?? "HOME") as Place);
                 setOccasion((localCurrent.occasion ?? "ALONE") as Occasion);
+                setSelectedSeason(typeof localCurrent.seasonNumber === "number" ? localCurrent.seasonNumber : "");
+                setSelectedEpisode(typeof localCurrent.episodeNumber === "number" ? localCurrent.episodeNumber : "");
+                setSeasonPosterUrl(localCurrent.seasonPosterUrl ?? null);
+                setSeasonYear(typeof localCurrent.seasonYear === "number" ? localCurrent.seasonYear : null);
                 setWatchedDate(toDateInput(new Date(localCurrent.watchedAt ?? localCurrent.createdAt)));
 
                 const localHistory = await listHistoryLocal(localCurrent.id, 50);
@@ -181,18 +276,87 @@ export default function TitlePage() {
     }, [titleId]);
 
     useEffect(() => {
-        if (place === "THEATER") {
-            setOtt("극장");
-            return;
-        }
-        if (ott === "극장") setOtt("");
-    }, [place]);
+        setCustomOttOptions(loadCustomOttOptions());
+    }, []);
+
+    useEffect(() => {
+        if (ottSelect === OTT_CUSTOM_VALUE) return;
+        setOttSelect(resolveOttSelect(ott, allOttOptions));
+    }, [ott, ottSelect, allOttOptions]);
 
     useEffect(() => {
         if (useWatchedAt && !watchedDate) {
             setWatchedDate(toDateInput(new Date()));
         }
     }, [useWatchedAt, watchedDate]);
+
+    useEffect(() => {
+        let cancelled = false;
+        async function loadSeasons() {
+            if (!title || title.type !== "series" || !title.providerId) return;
+            setSeasonLoading(true);
+            setSeasonError(null);
+            try {
+                const res = await api<SeasonOption[]>(`/tmdb/tv/${title.providerId}/seasons`);
+                if (!cancelled) setSeasons(res);
+            } catch (e: any) {
+                if (!cancelled) {
+                    setSeasons([]);
+                    setSeasonError(e?.message ?? "Failed to load seasons");
+                }
+            } finally {
+                if (!cancelled) setSeasonLoading(false);
+            }
+        }
+
+        setSeasons([]);
+        setEpisodes([]);
+        setSeasonError(null);
+        setSeasonYear(null);
+
+        if (title?.type === "series" && title.providerId) {
+            loadSeasons();
+        }
+
+        return () => {
+            cancelled = true;
+        };
+    }, [title]);
+
+    useEffect(() => {
+        let cancelled = false;
+        async function loadEpisodes() {
+            if (!title || title.type !== "series" || !title.providerId) return;
+            if (selectedSeason === "") return;
+            setEpisodeLoading(true);
+            try {
+                const res = await api<EpisodeOption[]>(
+                    `/tmdb/tv/${title.providerId}/seasons/${selectedSeason}`
+                );
+                if (!cancelled) setEpisodes(res);
+            } catch {
+                if (!cancelled) setEpisodes([]);
+            } finally {
+                if (!cancelled) setEpisodeLoading(false);
+            }
+        }
+
+        setEpisodes([]);
+        if (selectedSeason !== "") {
+            const season = seasons.find((s) => s.seasonNumber === selectedSeason);
+            setSeasonPosterUrl(season?.posterUrl ?? null);
+            setSeasonYear(typeof season?.year === "number" ? season.year : null);
+            loadEpisodes();
+        } else {
+            setSeasonPosterUrl(null);
+            setSeasonYear(null);
+            setSelectedEpisode("");
+        }
+
+        return () => {
+            cancelled = true;
+        };
+    }, [title, selectedSeason, seasons]);
 
     useEffect(() => {
         setUserId(getUserId());
@@ -214,6 +378,9 @@ export default function TitlePage() {
         const baselinePlace = (log.place ?? "HOME") as Place;
         const baselineOccasion = (log.occasion ?? "ALONE") as Occasion;
         const baselineWatchedDate = toDateInput(new Date(log.watchedAt ?? log.createdAt));
+        const baselineSeason = typeof log.seasonNumber === "number" ? log.seasonNumber : "";
+        const baselineEpisode = typeof log.episodeNumber === "number" ? log.episodeNumber : "";
+        const baselineSeasonYear = typeof log.seasonYear === "number" ? log.seasonYear : null;
         return (
             status !== log.status ||
             (rating === "" ? null : rating) !== baselineRating ||
@@ -221,9 +388,12 @@ export default function TitlePage() {
             note.trim() !== baselineNote ||
             place !== baselinePlace ||
             occasion !== baselineOccasion ||
+            selectedSeason !== baselineSeason ||
+            selectedEpisode !== baselineEpisode ||
+            seasonYear !== baselineSeasonYear ||
             (useWatchedAt && watchedDate && watchedDate !== baselineWatchedDate)
         );
-    }, [log, status, rating, ott, note, place, occasion, useWatchedAt, watchedDate]);
+    }, [log, status, rating, ott, note, place, occasion, useWatchedAt, watchedDate, selectedSeason, selectedEpisode, seasonYear]);
 
     const canUpdate = useMemo(() => !!log && !saving && isDirty, [log, saving, isDirty]);
 
@@ -234,6 +404,14 @@ export default function TitlePage() {
             if (!isDirty) return;
             const now = new Date().toISOString();
             const pickedWatchedAt = useWatchedAt && watchedDate ? dateToIso(watchedDate) : null;
+            if (ott.trim()) {
+                const trimmed = ott.trim();
+                if (!Array.from(OTT_OPTIONS).includes(trimmed) && !customOttOptions.includes(trimmed)) {
+                    const next = [...customOttOptions, trimmed];
+                    setCustomOttOptions(next);
+                    saveCustomOttOptions(next);
+                }
+            }
             const payload = {
                 id: log.id,
                 op: "upsert",
@@ -243,6 +421,10 @@ export default function TitlePage() {
                     rating: rating === "" ? null : rating,
                     ott: ott.trim() ? ott.trim() : null,
                     note: note.trim() ? note.trim() : null,
+                    seasonNumber: selectedSeason === "" ? null : selectedSeason,
+                    episodeNumber: selectedEpisode === "" ? null : selectedEpisode,
+                    seasonPosterUrl: seasonPosterUrl ?? null,
+                    seasonYear: seasonYear ?? null,
                     place,
                     occasion,
                     watchedAt: pickedWatchedAt,
@@ -255,6 +437,10 @@ export default function TitlePage() {
                 rating: rating === "" ? null : rating,
                 ott: ott.trim() ? ott.trim() : null,
                 note: note.trim() ? note.trim() : null,
+                seasonNumber: selectedSeason === "" ? null : selectedSeason,
+                episodeNumber: selectedEpisode === "" ? null : selectedEpisode,
+                seasonPosterUrl: seasonPosterUrl ?? null,
+                seasonYear: seasonYear ?? null,
                 place,
                 occasion,
                 syncStatus: "pending",
@@ -273,6 +459,10 @@ export default function TitlePage() {
                 note: note.trim() ? note.trim() : null,
                 spoiler: false,
                 ott: ott.trim() ? ott.trim() : null,
+                seasonNumber: selectedSeason === "" ? null : selectedSeason,
+                episodeNumber: selectedEpisode === "" ? null : selectedEpisode,
+                seasonPosterUrl: seasonPosterUrl ?? null,
+                seasonYear: seasonYear ?? null,
                 watchedAt: pickedWatchedAt ?? log.watchedAt,
                 place,
                 occasion,
@@ -328,9 +518,9 @@ export default function TitlePage() {
             <section className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
                 <div className="flex flex-col gap-4 sm:flex-row">
                     <div className="h-28 w-20 overflow-hidden rounded-xl bg-neutral-100 sm:h-36 sm:w-24">
-                        {title.posterUrl ? (
+                        {(log?.seasonPosterUrl ?? title.posterUrl) ? (
                             <img
-                                src={title.posterUrl}
+                                src={log?.seasonPosterUrl ?? title.posterUrl ?? ""}
                                 alt={title.name}
                                 className="h-full w-full object-cover"
                                 loading="lazy"
@@ -341,7 +531,7 @@ export default function TitlePage() {
                         <div className="text-xl font-semibold">{title.name}</div>
                         <div className="mt-1 text-sm text-neutral-600">
                             {title.type === "movie" ? "Movie" : "Series"}
-                            {title.year ? ` · ${title.year}` : ""}
+                            {(seasonYear ?? title.year) ? ` · ${seasonYear ?? title.year}` : ""}
                         </div>
                         {title.genres && title.genres.length > 0 ? (
                             <div className="mt-3 flex flex-wrap gap-2">
@@ -382,7 +572,7 @@ export default function TitlePage() {
                         <>
                             <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                                 <label className="space-y-1">
-                                    <div className="text-xs text-neutral-600">Status</div>
+                                    <div className="text-xs text-neutral-600">상태</div>
                                     <select
                                         value={status}
                                         onChange={(e) => setStatus(e.target.value as Status)}
@@ -394,8 +584,54 @@ export default function TitlePage() {
                                     </select>
                                 </label>
 
+                                {title.type === "series" ? (
+                                    <label className="space-y-1">
+                                        <div className="text-xs text-neutral-600">시즌</div>
+                                        <select
+                                            value={selectedSeason}
+                                            onChange={(e) => setSelectedSeason(e.target.value ? Number(e.target.value) : "")}
+                                            className="w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm"
+                                        >
+                                            <option value="">선택 안함</option>
+                                            {seasons.map((s) => (
+                                                <option key={s.seasonNumber} value={s.seasonNumber}>
+                                                    시즌 {s.seasonNumber}{s.name ? ` · ${s.name}` : ""}
+                                                </option>
+                                            ))}
+                                        </select>
+                                        {seasonLoading ? (
+                                            <div className="text-[11px] text-neutral-400">시즌 불러오는 중...</div>
+                                        ) : null}
+                                        {seasonError ? (
+                                            <div className="text-[11px] text-red-500">{seasonError}</div>
+                                        ) : null}
+                                    </label>
+                                ) : null}
+
+                                {title.type === "series" ? (
+                                    <label className="space-y-1">
+                                        <div className="text-xs text-neutral-600">에피소드</div>
+                                        <select
+                                            value={selectedEpisode}
+                                            onChange={(e) => setSelectedEpisode(e.target.value ? Number(e.target.value) : "")}
+                                            className="w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm"
+                                            disabled={selectedSeason === "" || episodeLoading}
+                                        >
+                                            <option value="">선택 안함</option>
+                                            {episodes.map((e) => (
+                                                <option key={e.episodeNumber} value={e.episodeNumber}>
+                                                    EP {e.episodeNumber}{e.name ? ` · ${e.name}` : ""}
+                                                </option>
+                                            ))}
+                                        </select>
+                                        {episodeLoading ? (
+                                            <div className="text-[11px] text-neutral-400">에피소드 불러오는 중...</div>
+                                        ) : null}
+                                    </label>
+                                ) : null}
+
                                 <label className="space-y-1">
-                                    <div className="text-xs text-neutral-600">Rating</div>
+                                    <div className="text-xs text-neutral-600">평점</div>
                                     <select
                                         value={rating === "" ? "" : String(rating)}
                                         onChange={(e) => setRating(e.target.value === "" ? "" : Number(e.target.value))}
@@ -409,7 +645,7 @@ export default function TitlePage() {
                                 </label>
 
                                 <label className="space-y-1">
-                                    <div className="text-xs text-neutral-600">Place</div>
+                                    <div className="text-xs text-neutral-600">장소</div>
                                     <select
                                         value={place}
                                         onChange={(e) => setPlace(e.target.value as Place)}
@@ -422,7 +658,7 @@ export default function TitlePage() {
                                 </label>
 
                                 <label className="space-y-1">
-                                    <div className="text-xs text-neutral-600">Occasion</div>
+                                    <div className="text-xs text-neutral-600">누구와</div>
                                     <select
                                         value={occasion}
                                         onChange={(e) => setOccasion(e.target.value as Occasion)}
@@ -435,12 +671,45 @@ export default function TitlePage() {
                                 </label>
 
                                 <label className="space-y-1 md:col-span-2">
-                                    <div className="text-xs text-neutral-600">OTT</div>
-                                    <input
-                                        value={ott}
-                                        onChange={(e) => setOtt(e.target.value)}
+                                    <div className="text-xs text-neutral-600">플랫폼</div>
+                                    <select
+                                        value={ottSelect}
+                                        onChange={(e) => {
+                                            const next = e.target.value;
+                                            setOttSelect(next);
+                                            if (next === OTT_CUSTOM_VALUE) {
+                                                setOtt("");
+                                            } else {
+                                                setOtt(next);
+                                            }
+                                        }}
                                         className="w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm"
-                                    />
+                                    >
+                                        <option value="">선택 안함</option>
+                                        {OTT_GROUPS.map((g) => (
+                                            <optgroup key={g.label} label={g.label}>
+                                                {g.options.map((o) => (
+                                                    <option key={o} value={o}>{o}</option>
+                                                ))}
+                                            </optgroup>
+                                        ))}
+                                        {customOttOptions.length > 0 ? (
+                                            <optgroup label="내 입력">
+                                                {customOttOptions.map((o) => (
+                                                    <option key={o} value={o}>{o}</option>
+                                                ))}
+                                            </optgroup>
+                                        ) : null}
+                                        <option value={OTT_CUSTOM_VALUE}>직접 입력</option>
+                                    </select>
+                                    {ottSelect === OTT_CUSTOM_VALUE ? (
+                                        <input
+                                            value={ott}
+                                            onChange={(e) => setOtt(e.target.value)}
+                                            className="mt-2 w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm"
+                                            placeholder="직접 입력"
+                                        />
+                                    ) : null}
                                 </label>
 
                                 <div className="space-y-2 md:col-span-2">
@@ -463,7 +732,7 @@ export default function TitlePage() {
                                 </div>
 
                                 <label className="space-y-1 md:col-span-2">
-                                    <div className="text-xs text-neutral-600">Note</div>
+                                    <div className="text-xs text-neutral-600">메모</div>
                                     <textarea
                                         value={note}
                                         onChange={(e) => setNote(e.target.value)}
@@ -501,6 +770,7 @@ export default function TitlePage() {
                                 <div key={h.id} className="rounded-xl border border-neutral-200 p-4">
                                     <div className="text-sm font-semibold text-neutral-900">
                                         {fmt(h.recordedAt)} · {STATUS_LABELS[h.status]}
+                                        {seasonEpisodeLabel(h.seasonNumber, h.episodeNumber) ? ` · ${seasonEpisodeLabel(h.seasonNumber, h.episodeNumber)}` : ""}
                                         {ratingDisplay(h.rating) ? ` · ${ratingDisplay(h.rating)?.emoji} ${ratingDisplay(h.rating)?.label}` : ""}
                                     </div>
                                     <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">

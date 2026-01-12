@@ -17,6 +17,10 @@ public record WatchLogHistoryDto(
         String note,
         boolean spoiler,
         String ott,
+        Integer seasonNumber,
+        Integer episodeNumber,
+        String seasonPosterUrl,
+        Integer seasonYear,
         OffsetDateTime watchedAt,
         Place place,
         Occasion occasion
@@ -31,6 +35,10 @@ public record WatchLogHistoryDto(
                 e.getNote(),
                 e.isSpoiler(),
                 e.getOtt(),
+                e.getSeasonNumber(),
+                e.getEpisodeNumber(),
+                e.getSeasonPosterUrl(),
+                e.getSeasonYear(),
                 e.getWatchedAt(),
                 e.getPlace(),
                 e.getOccasion()

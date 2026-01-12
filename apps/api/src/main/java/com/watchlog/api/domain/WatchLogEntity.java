@@ -40,6 +40,18 @@ public class WatchLogEntity {
     @Column(name = "watched_at", nullable = false)
     private OffsetDateTime watchedAt = OffsetDateTime.now();
 
+    @Column(name = "season_number")
+    private Integer seasonNumber;
+
+    @Column(name = "episode_number")
+    private Integer episodeNumber;
+
+    @Column(name = "season_poster_url", columnDefinition = "text")
+    private String seasonPosterUrl;
+
+    @Column(name = "season_year")
+    private Integer seasonYear;
+
     @Enumerated(EnumType.STRING)
     @Column(length = 16)
     private Place place;
@@ -74,6 +86,10 @@ public class WatchLogEntity {
     public boolean isSpoiler() { return spoiler; }
     public String getOtt() { return ott; }
     public OffsetDateTime getWatchedAt() { return watchedAt; }
+    public Integer getSeasonNumber() { return seasonNumber; }
+    public Integer getEpisodeNumber() { return episodeNumber; }
+    public String getSeasonPosterUrl() { return seasonPosterUrl; }
+    public Integer getSeasonYear() { return seasonYear; }
     public Place getPlace() { return place; }
     public Occasion getOccasion() { return occasion; }
     public OffsetDateTime getCreatedAt() { return createdAt; }
@@ -87,6 +103,10 @@ public class WatchLogEntity {
     public void setSpoiler(boolean spoiler) { this.spoiler = spoiler; }
     public void setOtt(String ott) { this.ott = ott; }
     public void setWatchedAt(OffsetDateTime watchedAt) { this.watchedAt = watchedAt; }
+    public void setSeasonNumber(Integer seasonNumber) { this.seasonNumber = seasonNumber; }
+    public void setEpisodeNumber(Integer episodeNumber) { this.episodeNumber = episodeNumber; }
+    public void setSeasonPosterUrl(String seasonPosterUrl) { this.seasonPosterUrl = seasonPosterUrl; }
+    public void setSeasonYear(Integer seasonYear) { this.seasonYear = seasonYear; }
     public void setPlace(Place place) { this.place = place; }
     public void setOccasion(Occasion occasion) { this.occasion = occasion; }
     public void setUpdatedAt(OffsetDateTime updatedAt) { this.updatedAt = updatedAt; }

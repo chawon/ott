@@ -47,19 +47,34 @@ function chip(label: string, tone: "place" | "occasion", isRetro: boolean) {
     return <span className={`rounded-full border px-3 py-1 text-xs ${toneClass}`}>{label}</span>;
 }
 
+function seasonEpisodeLabel(log: WatchLog) {
+    if (typeof log.seasonNumber !== "number") return null;
+    if (typeof log.episodeNumber === "number") {
+        return `S${log.seasonNumber} · E${log.episodeNumber}`;
+    }
+    return `S${log.seasonNumber}`;
+}
+
+function seasonYearLabel(log: WatchLog) {
+    if (typeof log.seasonYear === "number") return String(log.seasonYear);
+    return null;
+}
+
 export default function LogCard({ log }: { log: WatchLog }) {
     const t = log.title;
     const { isRetro } = useRetro();
     if (!t?.id) return null;
+    const seasonLabel = seasonEpisodeLabel(log);
+    const yearLabel = seasonYearLabel(log) ?? (t.year ? String(t.year) : null);
 
     if (isRetro) {
         return (
             <article className="nes-container hover:bg-neutral-50 transition-none flex gap-6">
                 <div className="shrink-0">
-                    <div className="h-40 w-28 border-4 border-black bg-neutral-200 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] overflow-hidden">
-                        {t.posterUrl ? (
+                <div className="h-40 w-28 border-4 border-black bg-neutral-200 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] overflow-hidden">
+                        {(log.seasonPosterUrl ?? t.posterUrl) ? (
                             <img
-                                src={t.posterUrl}
+                                src={log.seasonPosterUrl ?? t.posterUrl ?? ""}
                                 alt={t.name}
                                 className="h-full w-full object-cover pixelated"
                                 style={{ imageRendering: "pixelated" }}
@@ -78,6 +93,8 @@ export default function LogCard({ log }: { log: WatchLog }) {
                             </Link>
                             <div className="mt-1 text-sm text-neutral-600 font-bold uppercase flex flex-wrap gap-2">
                                 <span className="bg-black text-white px-1">{statusLabel(log.status)}</span>
+                                {seasonLabel ? <span className="bg-white text-black px-1 border border-black">{seasonLabel}</span> : null}
+                                {yearLabel ? <span>{yearLabel}</span> : null}
                                 <span>{formatDate(log.watchedAt ?? log.createdAt, true)}</span>
                                 {log.ott ? <span className="text-blue-600">@{log.ott}</span> : ""}
                             </div>
@@ -108,9 +125,9 @@ export default function LogCard({ log }: { log: WatchLog }) {
         <article className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm hover:border-neutral-300 transition-all flex gap-5">
             <div className="shrink-0">
                 <div className="h-32 w-20 overflow-hidden rounded-xl bg-neutral-100 shadow-sm border border-neutral-100">
-                    {t.posterUrl ? (
+                    {(log.seasonPosterUrl ?? t.posterUrl) ? (
                         <img
-                            src={t.posterUrl}
+                            src={log.seasonPosterUrl ?? t.posterUrl ?? ""}
                             alt={t.name}
                             className="h-full w-full object-cover"
                             loading="lazy"
@@ -128,6 +145,18 @@ export default function LogCard({ log }: { log: WatchLog }) {
                         </Link>
                         <div className="mt-1 flex items-center gap-1.5 text-xs font-medium text-neutral-500">
                             <span>{statusLabel(log.status)}</span>
+                            {seasonLabel ? (
+                                <>
+                                    <span className="text-neutral-300">·</span>
+                                    <span>{seasonLabel}</span>
+                                </>
+                            ) : null}
+                            {yearLabel ? (
+                                <>
+                                    <span className="text-neutral-300">·</span>
+                                    <span>{yearLabel}</span>
+                                </>
+                            ) : null}
                             <span className="text-neutral-300">·</span>
                             <span>{formatDate(log.watchedAt ?? log.createdAt, false)}</span>
                             {log.ott ? (

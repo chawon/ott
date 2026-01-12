@@ -15,7 +15,9 @@ public record TitleDto(
         List<String> directors,
         List<String> cast,
         String overview,
-        String posterUrl
+        String posterUrl,
+        String provider,
+        String providerId
 ) {
     public static TitleDto from(TitleEntity e) {
         return new TitleDto(
@@ -27,7 +29,9 @@ public record TitleDto(
                 e.directorsList(),
                 e.castList(),
                 e.getOverview(),
-                e.getPosterUrl()
+                e.getPosterUrl(),
+                e.getProvider(),
+                e.getProviderId()
         );
     }
 }

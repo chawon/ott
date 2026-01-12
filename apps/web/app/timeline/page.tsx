@@ -16,6 +16,17 @@ function buildQuery(params: Record<string, string | undefined>) {
     return s ? `?${s}` : "";
 }
 
+function applyFilters(logs: WatchLog[], status: Status | "ALL", ott: string) {
+    return logs.filter((l) => {
+        if (status !== "ALL" && l.status !== status) return false;
+        if (ott && ott.trim()) {
+            if (!l.ott) return false;
+            if (!l.ott.toLowerCase().includes(ott.trim().toLowerCase())) return false;
+        }
+        return true;
+    });
+}
+
 export default function TimelinePage() {
     const [status, setStatus] = useState<Status | "ALL">("ALL");
     const [ott, setOtt] = useState("");
@@ -49,7 +60,8 @@ export default function TimelinePage() {
                 });
 
                 const res = await api<WatchLog[]>(`/logs${query}`);
-                if (!cancelled) setLogs(res);
+                const filtered = applyFilters(res, status, ott);
+                if (!cancelled) setLogs(filtered);
                 await upsertLogsLocal(res);
             } catch (e: any) {
                 if (!cancelled) {
@@ -82,13 +94,13 @@ export default function TimelinePage() {
     const headerSubtitle = useMemo(() => {
         if (loading) return "불러오는 중…";
         if (err) return err;
-        return "내 기록을 카드 피드로 관리";
+        return "전체 기록";
     }, [loading, err]);
 
     return (
         <div className="space-y-4">
             <div>
-                <div className="text-xl font-semibold">기록의 시간들</div>
+                <div className="text-xl font-semibold">나의 기록</div>
                 <div className="text-sm text-neutral-600">{headerSubtitle}</div>
             </div>
 

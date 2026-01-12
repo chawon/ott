@@ -43,7 +43,7 @@ public class LogService {
         return watchLogRepository.findFiltered(
                 userId,
                 titleId,
-                status,
+                status == null ? null : status.name(),
                 (ott == null || ott.isBlank()) ? null : ott.trim(),
                 place,
                 occasion,
@@ -65,6 +65,10 @@ public class LogService {
         if (req.note() != null) log.setNote(req.note().trim().isEmpty() ? null : req.note().trim());
         if (req.ott() != null) log.setOtt(req.ott().trim().isEmpty() ? null : req.ott().trim());
         if (req.spoiler() != null) log.setSpoiler(req.spoiler());
+        if (req.seasonNumber() != null) log.setSeasonNumber(req.seasonNumber());
+        if (req.episodeNumber() != null) log.setEpisodeNumber(req.episodeNumber());
+        if (req.seasonPosterUrl() != null) log.setSeasonPosterUrl(req.seasonPosterUrl());
+        if (req.seasonYear() != null) log.setSeasonYear(req.seasonYear());
 
         log.setWatchedAt(req.watchedAt() != null ? req.watchedAt() : OffsetDateTime.now());
         log.setPlace(req.place());
@@ -90,6 +94,10 @@ public class LogService {
         if (req.note() != null) log.setNote(req.note().trim().isEmpty() ? null : req.note().trim());
         if (req.ott() != null) log.setOtt(req.ott().trim().isEmpty() ? null : req.ott().trim());
         if (req.spoiler() != null) log.setSpoiler(req.spoiler());
+        if (req.seasonNumber() != null) log.setSeasonNumber(req.seasonNumber());
+        if (req.episodeNumber() != null) log.setEpisodeNumber(req.episodeNumber());
+        if (req.seasonPosterUrl() != null) log.setSeasonPosterUrl(req.seasonPosterUrl());
+        if (req.seasonYear() != null) log.setSeasonYear(req.seasonYear());
 
         if (req.watchedAt() != null) log.setWatchedAt(req.watchedAt());
         if (req.place() != null) log.setPlace(req.place());

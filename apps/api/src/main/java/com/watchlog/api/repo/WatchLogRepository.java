@@ -30,7 +30,7 @@ public interface WatchLogRepository extends JpaRepository<WatchLogEntity, UUID> 
     List<WatchLogEntity> findFiltered(
             @Param("userId") UUID userId,
             @Param("titleId") UUID titleId,
-            @Param("status") Status status,
+            @Param("status") String status,
             @Param("ott") String ott,
             @Param("place") Place place,
             @Param("occasion") Occasion occasion,

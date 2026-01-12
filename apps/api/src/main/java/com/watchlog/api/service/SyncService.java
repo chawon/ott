@@ -251,6 +251,10 @@ public class SyncService {
                 if (payload.note() != null) existing.setNote(payload.note());
                 if (payload.spoiler() != null) existing.setSpoiler(payload.spoiler());
                 if (payload.ott() != null) existing.setOtt(payload.ott());
+                if (payload.seasonNumber() != null) existing.setSeasonNumber(payload.seasonNumber());
+                if (payload.episodeNumber() != null) existing.setEpisodeNumber(payload.episodeNumber());
+                if (payload.seasonPosterUrl() != null) existing.setSeasonPosterUrl(payload.seasonPosterUrl());
+                if (payload.seasonYear() != null) existing.setSeasonYear(payload.seasonYear());
                 if (payload.watchedAt() != null) existing.setWatchedAt(payload.watchedAt());
                 if (payload.place() != null) existing.setPlace(payload.place());
                 if (payload.occasion() != null) existing.setOccasion(payload.occasion());
@@ -295,6 +299,10 @@ public class SyncService {
             if (payload.note() != null) existing.setNote(payload.note());
             if (payload.spoiler() != null) existing.setSpoiler(payload.spoiler());
             if (payload.ott() != null) existing.setOtt(payload.ott());
+            if (payload.seasonNumber() != null) existing.setSeasonNumber(payload.seasonNumber());
+            if (payload.episodeNumber() != null) existing.setEpisodeNumber(payload.episodeNumber());
+            if (payload.seasonPosterUrl() != null) existing.setSeasonPosterUrl(payload.seasonPosterUrl());
+            if (payload.seasonYear() != null) existing.setSeasonYear(payload.seasonYear());
             if (payload.watchedAt() != null) existing.setWatchedAt(payload.watchedAt());
             existing.setPlace(payload.place());
             existing.setOccasion(payload.occasion());
@@ -309,6 +317,10 @@ public class SyncService {
         if (payload.note() != null) created.setNote(payload.note());
         if (payload.spoiler() != null) created.setSpoiler(payload.spoiler());
         if (payload.ott() != null) created.setOtt(payload.ott());
+        if (payload.seasonNumber() != null) created.setSeasonNumber(payload.seasonNumber());
+        if (payload.episodeNumber() != null) created.setEpisodeNumber(payload.episodeNumber());
+        if (payload.seasonPosterUrl() != null) created.setSeasonPosterUrl(payload.seasonPosterUrl());
+        if (payload.seasonYear() != null) created.setSeasonYear(payload.seasonYear());
         if (payload.watchedAt() != null) created.setWatchedAt(payload.watchedAt());
         created.setPlace(payload.place());
         created.setOccasion(payload.occasion());

@@ -91,6 +91,50 @@ public class TmdbClient {
         );
     }
 
+    public List<SeasonItem> listSeasons(String providerId) {
+        requireToken();
+        long id = Long.parseLong(providerId);
+
+        var uri = UriComponentsBuilder.fromPath("/tv/{id}")
+                .queryParam("language", props.language())
+                .buildAndExpand(id)
+                .toUriString();
+
+        var tv = rest.get().uri(uri).retrieve().body(TvDetails.class);
+        if (tv == null || tv.seasons == null) return List.of();
+
+        return tv.seasons.stream()
+                .filter(s -> s.seasonNumber != null)
+                .sorted(Comparator.comparingInt(s -> s.seasonNumber))
+                .map(s -> new SeasonItem(
+                        s.seasonNumber,
+                        s.name,
+                        s.episodeCount,
+                        posterUrl(s.posterPath),
+                        yearFrom(s.airDate)
+                ))
+                .toList();
+    }
+
+    public List<EpisodeItem> listEpisodes(String providerId, int seasonNumber) {
+        requireToken();
+        long id = Long.parseLong(providerId);
+
+        var uri = UriComponentsBuilder.fromPath("/tv/{id}/season/{season}")
+                .queryParam("language", props.language())
+                .buildAndExpand(id, seasonNumber)
+                .toUriString();
+
+        var season = rest.get().uri(uri).retrieve().body(SeasonDetails.class);
+        if (season == null || season.episodes == null) return List.of();
+
+        return season.episodes.stream()
+                .filter(e -> e.episodeNumber != null)
+                .sorted(Comparator.comparingInt(e -> e.episodeNumber))
+                .map(e -> new EpisodeItem(e.episodeNumber, e.name))
+                .toList();
+    }
+
     private void requireToken() {
         if (props.accessToken() == null || props.accessToken().isBlank()) {
             throw new IllegalStateException("TMDB_ACCESS_TOKEN is missing");
@@ -207,6 +251,27 @@ public class TmdbClient {
         @JsonProperty("overview") String overview;
         @JsonProperty("poster_path") String posterPath;
         @JsonProperty("genres") List<Genre> genres;
+        @JsonProperty("seasons") List<SeasonSummary> seasons;
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    static class SeasonSummary {
+        @JsonProperty("season_number") Integer seasonNumber;
+        @JsonProperty("name") String name;
+        @JsonProperty("poster_path") String posterPath;
+        @JsonProperty("episode_count") Integer episodeCount;
+        @JsonProperty("air_date") String airDate;
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    static class SeasonDetails {
+        @JsonProperty("episodes") List<EpisodeSummary> episodes;
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    static class EpisodeSummary {
+        @JsonProperty("episode_number") Integer episodeNumber;
+        @JsonProperty("name") String name;
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
@@ -236,6 +301,19 @@ public class TmdbClient {
             List<String> genres,
             List<String> directors,
             List<String> cast
+    ) {}
+
+    public record SeasonItem(
+            int seasonNumber,
+            String name,
+            Integer episodeCount,
+            String posterUrl,
+            Integer year
+    ) {}
+
+    public record EpisodeItem(
+            int episodeNumber,
+            String name
     ) {}
 
     private record Credits(List<String> directors, List<String> cast) {}

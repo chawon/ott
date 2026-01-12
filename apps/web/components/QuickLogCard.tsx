@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Calendar, MapPin, MessageSquare, Star, Users, Loader2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { api } from "@/lib/api";
 import TitleSearchBox from "@/components/TitleSearchBox";
 import { enqueueCreateLog, findTitleByProvider, upsertLogLocal } from "@/lib/localStore";
 import { syncOutbox } from "@/lib/sync";
@@ -16,6 +17,19 @@ import {
     WatchLog,
 } from "@/lib/types";
 
+type SeasonOption = {
+    seasonNumber: number;
+    name: string;
+    episodeCount?: number | null;
+    posterUrl?: string | null;
+    year?: number | null;
+};
+
+type EpisodeOption = {
+    episodeNumber: number;
+    name: string;
+};
+
 const PLACE_OPTIONS: { value: Place; label: string }[] = (Object.keys(PLACE_LABELS) as Place[])
     .map((value) => ({ value, label: PLACE_LABELS[value] }));
 
@@ -24,6 +38,55 @@ const OCCASION_OPTIONS: { value: Occasion; label: string }[] = (Object.keys(OCCA
 
 const STATUS_OPTIONS: { value: Status; label: string }[] = (Object.keys(STATUS_LABELS) as Status[])
     .map((value) => ({ value, label: STATUS_LABELS[value] }));
+
+const OTT_OPTIONS = [
+    "넷플릭스",
+    "디즈니플러스",
+    "티빙",
+    "웨이브",
+    "쿠팡플레이",
+    "애플티비",
+    "프라임비디오",
+    "왓챠",
+    "채널",
+    "VOD",
+    "CGV",
+    "롯데시네마",
+    "메가박스",
+    "씨네Q",
+] as const;
+
+const OTT_GROUPS = [
+    { label: "OTT", options: ["넷플릭스", "디즈니플러스", "티빙", "웨이브", "쿠팡플레이", "애플티비", "프라임비디오", "왓챠"] },
+    { label: "유료방송", options: ["채널", "VOD"] },
+    { label: "극장", options: ["CGV", "롯데시네마", "메가박스", "씨네Q"] },
+] as const;
+
+const OTT_CUSTOM_VALUE = "__custom__";
+const OTT_CUSTOM_KEY = "watchlog.ott.custom";
+
+function resolveOttSelect(value: string, options: string[]) {
+    if (!value) return "";
+    return options.includes(value) ? value : OTT_CUSTOM_VALUE;
+}
+
+function loadCustomOttOptions(): string[] {
+    if (typeof localStorage === "undefined") return [];
+    try {
+        const raw = localStorage.getItem(OTT_CUSTOM_KEY);
+        if (!raw) return [];
+        const parsed = JSON.parse(raw);
+        if (!Array.isArray(parsed)) return [];
+        return parsed.filter((v) => typeof v === "string" && v.trim().length > 0);
+    } catch {
+        return [];
+    }
+}
+
+function saveCustomOttOptions(options: string[]) {
+    if (typeof localStorage === "undefined") return;
+    localStorage.setItem(OTT_CUSTOM_KEY, JSON.stringify(options));
+}
 
 export default function QuickLogCard({
                                          onCreated,
@@ -36,10 +99,21 @@ export default function QuickLogCard({
     const [rating, setRating] = useState<number | "">("");
     const [note, setNote] = useState("");
     const [ott, setOtt] = useState("");
+    const [ottSelect, setOttSelect] = useState<string>("");
+    const [customOttOptions, setCustomOttOptions] = useState<string[]>([]);
     const [place, setPlace] = useState<Place>("HOME");
     const [occasion, setOccasion] = useState<Occasion>("ALONE");
     const [useWatchedAt, setUseWatchedAt] = useState(false);
     const [watchedDate, setWatchedDate] = useState("");
+    const [seasons, setSeasons] = useState<SeasonOption[]>([]);
+    const [episodes, setEpisodes] = useState<EpisodeOption[]>([]);
+    const [selectedSeason, setSelectedSeason] = useState<number | "">("");
+    const [selectedEpisode, setSelectedEpisode] = useState<number | "">("");
+    const [seasonPosterUrl, setSeasonPosterUrl] = useState<string | null>(null);
+    const [seasonYear, setSeasonYear] = useState<number | null>(null);
+    const [seasonLoading, setSeasonLoading] = useState(false);
+    const [episodeLoading, setEpisodeLoading] = useState(false);
+    const [seasonError, setSeasonError] = useState<string | null>(null);
     const [saving, setSaving] = useState(false);
     const [toast, setToast] = useState<string | null>(null);
 
@@ -63,12 +137,97 @@ export default function QuickLogCard({
     }, [useWatchedAt, watchedDate]);
 
     useEffect(() => {
-        if (place === "THEATER") {
-            setOtt("극장");
-            return;
+        setCustomOttOptions(loadCustomOttOptions());
+    }, []);
+
+    const allOttOptions = useMemo(() => {
+        const base = Array.from(OTT_OPTIONS);
+        const extras = customOttOptions.filter((v) => !base.includes(v));
+        return [...base, ...extras];
+    }, [customOttOptions]);
+
+    useEffect(() => {
+        if (ottSelect === OTT_CUSTOM_VALUE) return;
+        setOttSelect(resolveOttSelect(ott, allOttOptions));
+    }, [ott, ottSelect, allOttOptions]);
+
+    useEffect(() => {
+        let cancelled = false;
+
+        async function loadSeasons() {
+            if (!selected || selected.type !== "series") return;
+            setSeasonLoading(true);
+            setSeasonError(null);
+            try {
+                const res = await api<SeasonOption[]>(`/tmdb/tv/${selected.providerId}/seasons`);
+                if (!cancelled) {
+                    setSeasons(res);
+                }
+            } catch (e: any) {
+                if (!cancelled) {
+                    setSeasons([]);
+                    setSeasonError(e?.message ?? "Failed to load seasons");
+                }
+            } finally {
+                if (!cancelled) setSeasonLoading(false);
+            }
         }
-        if (ott === "극장") setOtt("");
-    }, [place, ott]);
+
+        setSeasons([]);
+        setEpisodes([]);
+        setSelectedSeason("");
+        setSelectedEpisode("");
+        setSeasonPosterUrl(null);
+        setSeasonYear(null);
+        setSeasonError(null);
+
+        if (selected?.type === "series") {
+            loadSeasons();
+        }
+
+        return () => {
+            cancelled = true;
+        };
+    }, [selected]);
+
+    useEffect(() => {
+        let cancelled = false;
+        async function loadEpisodes() {
+            if (!selected || selected.type !== "series") return;
+            if (selectedSeason === "") return;
+            setEpisodeLoading(true);
+            try {
+                const res = await api<EpisodeOption[]>(
+                    `/tmdb/tv/${selected.providerId}/seasons/${selectedSeason}`
+                );
+                if (!cancelled) {
+                    setEpisodes(res);
+                }
+            } catch {
+                if (!cancelled) {
+                    setEpisodes([]);
+                }
+            } finally {
+                if (!cancelled) setEpisodeLoading(false);
+            }
+        }
+
+        setEpisodes([]);
+        setSelectedEpisode("");
+        if (selectedSeason !== "") {
+            const season = seasons.find((s) => s.seasonNumber === selectedSeason);
+            setSeasonPosterUrl(season?.posterUrl ?? null);
+            setSeasonYear(typeof season?.year === "number" ? season.year : null);
+            loadEpisodes();
+        } else {
+            setSeasonPosterUrl(null);
+            setSeasonYear(null);
+        }
+
+        return () => {
+            cancelled = true;
+        };
+    }, [selected, selectedSeason, seasons]);
 
     async function submit() {
         if (!selected || saving) return;
@@ -82,6 +241,15 @@ export default function QuickLogCard({
             const localTitleId = selected.titleId ?? existingTitle?.id ?? safeUUID();
             const localLogId = safeUUID();
 
+            if (ott.trim()) {
+                const trimmed = ott.trim();
+                if (!Array.from(OTT_OPTIONS).includes(trimmed) && !customOttOptions.includes(trimmed)) {
+                    const next = [...customOttOptions, trimmed];
+                    setCustomOttOptions(next);
+                    saveCustomOttOptions(next);
+                }
+            }
+
             const pickedWatchedAt = useWatchedAt && watchedDate ? dateToIso(watchedDate) : now;
             const localLog: WatchLog = {
                 id: localLogId,
@@ -89,7 +257,7 @@ export default function QuickLogCard({
                     id: localTitleId,
                     type: selected.type,
                     name: selected.name,
-                    year: selected.year ?? undefined,
+                year: selected.year ?? undefined,
                     posterUrl: selected.posterUrl ?? undefined,
                     overview: selected.overview ?? undefined,
                     provider: selected.provider,
@@ -100,6 +268,10 @@ export default function QuickLogCard({
                 rating: rating === "" ? null : rating,
                 note: note.trim() ? note.trim() : null,
                 ott: ott.trim() ? ott.trim() : null,
+                seasonNumber: selectedSeason === "" ? null : selectedSeason,
+                episodeNumber: selectedEpisode === "" ? null : selectedEpisode,
+                seasonPosterUrl: seasonPosterUrl ?? null,
+                seasonYear: seasonYear ?? null,
                 spoiler: false,
                 watchedAt: pickedWatchedAt,
                 createdAt: now,
@@ -124,6 +296,10 @@ export default function QuickLogCard({
                         rating: rating === "" ? null : rating,
                         note: note.trim() ? note.trim() : null,
                         ott: ott.trim() ? ott.trim() : null,
+                        seasonNumber: selectedSeason === "" ? null : selectedSeason,
+                        episodeNumber: selectedEpisode === "" ? null : selectedEpisode,
+                        seasonPosterUrl: seasonPosterUrl ?? null,
+                        seasonYear: seasonYear ?? null,
                         spoiler: false,
                         watchedAt: pickedWatchedAt,
                         place,
@@ -157,10 +333,18 @@ export default function QuickLogCard({
             setRating("");
             setNote("");
             setOtt("");
+            setOttSelect("");
+            setCustomOttOptions(loadCustomOttOptions());
             setPlace("HOME");
             setOccasion("ALONE");
             setUseWatchedAt(false);
             setWatchedDate("");
+            setSeasons([]);
+            setEpisodes([]);
+            setSelectedSeason("");
+            setSelectedEpisode("");
+            setSeasonPosterUrl(null);
+            setSeasonYear(null);
         } finally {
             setSaving(false);
         }
@@ -181,9 +365,9 @@ export default function QuickLogCard({
                                                     <div className="border-4 border-black bg-[#212529] p-2 text-white">
                                                         <div className="flex items-center gap-4">
                                                             <div className="h-32 w-24 shrink-0 border-2 border-white bg-neutral-800 shadow-[2px_2px_0px_0px_white]">
-                                                                {selected.posterUrl ? (
+                                                                {(seasonPosterUrl ?? selected.posterUrl) ? (
                                                                     <img
-                                                                        src={selected.posterUrl}
+                                                                        src={seasonPosterUrl ?? selected.posterUrl ?? ""}
                                                                         alt={selected.name}
                                                                         className="h-full w-full object-cover pixelated"
                                                                         style={{ imageRendering: "pixelated" }}
@@ -197,7 +381,9 @@ export default function QuickLogCard({
                                                                 </div>
                                                                 <div className="mt-1 text-xs text-neutral-400">
                                                                     {selected.type === "movie" ? "영화" : "시리즈"}
-                                                                    {selected.year ? ` · ${selected.year}` : ""}
+                                                                    {(seasonYear ?? selected.year) ? ` · ${seasonYear ?? selected.year}` : ""}
+                                                                    {selectedSeason !== "" ? ` · 시즌 ${selectedSeason}` : ""}
+                                                                    {selectedEpisode !== "" ? ` · EP ${selectedEpisode}` : ""}
                                                                 </div>
                                                             </div>                                    <button 
                                         onClick={() => setSelected(null)}
@@ -222,6 +408,52 @@ export default function QuickLogCard({
                                     ))}
                                 </select>
                             </div>
+
+                            {selected?.type === "series" ? (
+                                <>
+                                    <div className="space-y-1">
+                                        <label className="text-xs font-bold uppercase">시즌</label>
+                                        <select
+                                            value={selectedSeason}
+                                            onChange={(e) => setSelectedSeason(e.target.value ? Number(e.target.value) : "")}
+                                            className="w-full bg-white px-3 py-2 text-sm font-bold"
+                                        >
+                                            <option value="">선택 안함</option>
+                                            {seasons.map((s) => (
+                                                <option key={s.seasonNumber} value={s.seasonNumber}>
+                                                    시즌 {s.seasonNumber}{s.name ? ` · ${s.name}` : ""}
+                                                </option>
+                                            ))}
+                                        </select>
+                                        {seasonLoading ? (
+                                            <div className="text-[10px] text-neutral-400">시즌 불러오는 중...</div>
+                                        ) : null}
+                                        {seasonError ? (
+                                            <div className="text-[10px] text-red-500">{seasonError}</div>
+                                        ) : null}
+                                    </div>
+
+                                    <div className="space-y-1">
+                                        <label className="text-xs font-bold uppercase">에피소드</label>
+                                        <select
+                                            value={selectedEpisode}
+                                            onChange={(e) => setSelectedEpisode(e.target.value ? Number(e.target.value) : "")}
+                                            className="w-full bg-white px-3 py-2 text-sm font-bold"
+                                            disabled={selectedSeason === "" || episodeLoading}
+                                        >
+                                            <option value="">선택 안함</option>
+                                            {episodes.map((e) => (
+                                                <option key={e.episodeNumber} value={e.episodeNumber}>
+                                                    EP {e.episodeNumber}{e.name ? ` · ${e.name}` : ""}
+                                                </option>
+                                            ))}
+                                        </select>
+                                        {episodeLoading ? (
+                                            <div className="text-[10px] text-neutral-400">에피소드 불러오는 중...</div>
+                                        ) : null}
+                                    </div>
+                                </>
+                            ) : null}
 
                             <div className="space-y-1">
                                 <label className="text-xs font-bold uppercase flex items-center gap-1"><Star className="h-3 w-3" /> 평점</label>
@@ -265,12 +497,44 @@ export default function QuickLogCard({
 
                             <div className="sm:col-span-2 space-y-1">
                                 <label className="text-xs font-bold uppercase">플랫폼 (OTT)</label>
-                                <input
-                                    value={ott}
-                                    onChange={(e) => setOtt(e.target.value)}
-                                    className="w-full bg-white px-3 py-2 text-sm font-bold placeholder:text-neutral-400"
-                                    placeholder="넷플릭스, 디즈니+, 극장 등..."
-                                />
+                                <select
+                                    value={ottSelect}
+                                    onChange={(e) => {
+                                        const next = e.target.value;
+                                        setOttSelect(next);
+                                        if (next === OTT_CUSTOM_VALUE) {
+                                            setOtt("");
+                                        } else {
+                                            setOtt(next);
+                                        }
+                                    }}
+                                    className="w-full bg-white px-3 py-2 text-sm font-bold"
+                                >
+                                    <option value="">선택 안함</option>
+                                    {OTT_GROUPS.map((g) => (
+                                        <optgroup key={g.label} label={g.label}>
+                                            {g.options.map((o) => (
+                                                <option key={o} value={o}>{o}</option>
+                                            ))}
+                                        </optgroup>
+                                    ))}
+                                    {customOttOptions.length > 0 ? (
+                                        <optgroup label="내 입력">
+                                            {customOttOptions.map((o) => (
+                                                <option key={o} value={o}>{o}</option>
+                                            ))}
+                                        </optgroup>
+                                    ) : null}
+                                    <option value={OTT_CUSTOM_VALUE}>직접 입력</option>
+                                </select>
+                                {ottSelect === OTT_CUSTOM_VALUE ? (
+                                    <input
+                                        value={ott}
+                                        onChange={(e) => setOtt(e.target.value)}
+                                        className="mt-2 w-full bg-white px-3 py-2 text-sm font-bold placeholder:text-neutral-400"
+                                        placeholder="직접 입력"
+                                    />
+                                ) : null}
                             </div>
 
                             <div className="sm:col-span-2 space-y-2">
@@ -347,9 +611,9 @@ export default function QuickLogCard({
                     <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-4 transition-colors">
                         <div className="flex items-center gap-5">
                             <div className="h-32 w-20 shrink-0 overflow-hidden rounded-lg bg-neutral-100 shadow-sm border border-neutral-100">
-                                {selected.posterUrl ? (
+                                {(seasonPosterUrl ?? selected.posterUrl) ? (
                                     <img
-                                        src={selected.posterUrl}
+                                        src={seasonPosterUrl ?? selected.posterUrl ?? ""}
                                         alt={selected.name}
                                         className="h-full w-full object-cover"
                                         loading="lazy"
@@ -362,7 +626,9 @@ export default function QuickLogCard({
                                 </div>
                                 <div className="mt-1 text-sm text-neutral-500 font-medium">
                                     {selected.type === "movie" ? "영화" : "시리즈"}
-                                    {selected.year ? ` · ${selected.year}` : ""}
+                                    {(seasonYear ?? selected.year) ? ` · ${seasonYear ?? selected.year}` : ""}
+                                    {selectedSeason !== "" ? ` · 시즌 ${selectedSeason}` : ""}
+                                    {selectedEpisode !== "" ? ` · EP ${selectedEpisode}` : ""}
                                 </div>
                             </div>
                             <button 
@@ -388,6 +654,52 @@ export default function QuickLogCard({
                             ))}
                         </select>
                     </div>
+
+                    {selected?.type === "series" ? (
+                        <>
+                            <div className="space-y-1.5">
+                                <div className="text-xs font-medium text-neutral-500 ml-1">시즌</div>
+                                <select
+                                    value={selectedSeason}
+                                    onChange={(e) => setSelectedSeason(e.target.value ? Number(e.target.value) : "")}
+                                    className="w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm focus:ring-2 focus:ring-neutral-900/5 transition-all outline-none"
+                                >
+                                    <option value="">선택 안함</option>
+                                    {seasons.map((s) => (
+                                        <option key={s.seasonNumber} value={s.seasonNumber}>
+                                            시즌 {s.seasonNumber}{s.name ? ` · ${s.name}` : ""}
+                                        </option>
+                                    ))}
+                                </select>
+                                {seasonLoading ? (
+                                    <div className="text-[11px] text-neutral-400">시즌 불러오는 중...</div>
+                                ) : null}
+                                {seasonError ? (
+                                    <div className="text-[11px] text-red-500">{seasonError}</div>
+                                ) : null}
+                            </div>
+
+                            <div className="space-y-1.5">
+                                <div className="text-xs font-medium text-neutral-500 ml-1">에피소드</div>
+                                <select
+                                    value={selectedEpisode}
+                                    onChange={(e) => setSelectedEpisode(e.target.value ? Number(e.target.value) : "")}
+                                    className="w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm focus:ring-2 focus:ring-neutral-900/5 transition-all outline-none"
+                                    disabled={selectedSeason === "" || episodeLoading}
+                                >
+                                    <option value="">선택 안함</option>
+                                    {episodes.map((e) => (
+                                        <option key={e.episodeNumber} value={e.episodeNumber}>
+                                            EP {e.episodeNumber}{e.name ? ` · ${e.name}` : ""}
+                                        </option>
+                                    ))}
+                                </select>
+                                {episodeLoading ? (
+                                    <div className="text-[11px] text-neutral-400">에피소드 불러오는 중...</div>
+                                ) : null}
+                            </div>
+                        </>
+                    ) : null}
 
                     <div className="space-y-1.5">
                         <div className="text-xs font-medium text-neutral-500 ml-1">평점</div>
@@ -431,12 +743,44 @@ export default function QuickLogCard({
 
                     <div className="md:col-span-2 space-y-1.5">
                         <div className="text-xs font-medium text-neutral-500 ml-1">플랫폼 (OTT)</div>
-                        <input
-                            value={ott}
-                            onChange={(e) => setOtt(e.target.value)}
+                        <select
+                            value={ottSelect}
+                            onChange={(e) => {
+                                const next = e.target.value;
+                                setOttSelect(next);
+                                if (next === OTT_CUSTOM_VALUE) {
+                                    setOtt("");
+                                } else {
+                                    setOtt(next);
+                                }
+                            }}
                             className="w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm focus:ring-2 focus:ring-neutral-900/5 transition-all outline-none"
-                            placeholder="어디서 보셨나요?"
-                        />
+                        >
+                            <option value="">선택 안함</option>
+                            {OTT_GROUPS.map((g) => (
+                                <optgroup key={g.label} label={g.label}>
+                                    {g.options.map((o) => (
+                                        <option key={o} value={o}>{o}</option>
+                                    ))}
+                                </optgroup>
+                            ))}
+                            {customOttOptions.length > 0 ? (
+                                <optgroup label="내 입력">
+                                    {customOttOptions.map((o) => (
+                                        <option key={o} value={o}>{o}</option>
+                                    ))}
+                                </optgroup>
+                            ) : null}
+                            <option value={OTT_CUSTOM_VALUE}>직접 입력</option>
+                        </select>
+                        {ottSelect === OTT_CUSTOM_VALUE ? (
+                            <input
+                                value={ott}
+                                onChange={(e) => setOtt(e.target.value)}
+                                className="mt-2 w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm focus:ring-2 focus:ring-neutral-900/5 transition-all outline-none"
+                                placeholder="직접 입력"
+                            />
+                        ) : null}
                     </div>
 
                     <div className="md:col-span-2 space-y-2">
