@@ -59,6 +59,8 @@ const OTT_OPTIONS = [
     "왓챠",
     "채널",
     "VOD",
+    "DVD",
+    "블루레이",
     "CGV",
     "롯데시네마",
     "메가박스",
@@ -67,7 +69,8 @@ const OTT_OPTIONS = [
 
 const OTT_GROUPS = [
     { label: "OTT", options: ["넷플릭스", "디즈니플러스", "티빙", "웨이브", "쿠팡플레이", "애플티비", "프라임비디오", "왓챠"] },
-    { label: "유료방송", options: ["채널", "VOD"] },
+    { label: "유료 방송", options: ["채널", "VOD"] },
+    { label: "물리 매체", options: ["DVD", "블루레이"] },
     { label: "극장", options: ["CGV", "롯데시네마", "메가박스", "씨네Q"] },
 ] as const;
 
