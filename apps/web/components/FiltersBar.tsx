@@ -62,7 +62,7 @@ export default function FiltersBar({
     const [customOttOptions, setCustomOttOptions] = useState<string[]>([]);
 
     const allOttOptions = useMemo(() => {
-        const base = Array.from(OTT_OPTIONS);
+        const base = Array.from(OTT_OPTIONS) as string[];
         const extras = customOttOptions.filter((v) => !base.includes(v));
         return [...base, ...extras];
     }, [customOttOptions]);

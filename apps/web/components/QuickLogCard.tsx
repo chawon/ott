@@ -145,7 +145,7 @@ export default function QuickLogCard({
     }, []);
 
     const allOttOptions = useMemo(() => {
-        const base = Array.from(OTT_OPTIONS);
+        const base = Array.from(OTT_OPTIONS) as string[];
         const extras = customOttOptions.filter((v) => !base.includes(v));
         return [...base, ...extras];
     }, [customOttOptions]);
@@ -247,7 +247,8 @@ export default function QuickLogCard({
 
             if (ott.trim()) {
                 const trimmed = ott.trim();
-                if (!Array.from(OTT_OPTIONS).includes(trimmed) && !customOttOptions.includes(trimmed)) {
+                const baseOptions = Array.from(OTT_OPTIONS) as string[];
+                if (!baseOptions.includes(trimmed) && !customOttOptions.includes(trimmed)) {
                     const next = [...customOttOptions, trimmed];
                     setCustomOttOptions(next);
                     saveCustomOttOptions(next);
