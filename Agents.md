@@ -25,6 +25,8 @@
 10) 레트로 UI 토글(헤더 아이콘) 및 레트로 전용 홈 레이아웃 지원
 11) 시리즈 선택 시 시즌/에피소드 선택 및 시즌 포스터/연도 반영
 12) 플랫폼(OTT) 드롭다운 + 직접 입력 + 내 입력 목록 노출
+13) 홈 QuickLog 접기/펼치기 지원
+14) 헤더/주요 섹션 라벨 아이콘 정렬 및 모바일 헤더 한 줄 정렬
 
 ### 주요 파일
 1) `next.config.ts`
@@ -51,6 +53,7 @@
 8) `app/page.tsx`
     1. QuickLogCard + Recent logs + 최신 같이 기록 노출
     2. 레트로 모드 분기 UI 포함
+    3. QuickLog 접기/펼치기
 9) `app/timeline/page.tsx`
     1. `/api/logs` 기반 로딩
     2. status/ott 필터 UI 적용 (FiltersBar)
@@ -67,14 +70,19 @@
     1. online/visibilitychange 시 syncOutbox 트리거
 15) `components/CommentsPanel.tsx`
     1. 공개 댓글 + 멘션 UI
+    2. 댓글 수 표기 문구(“n개의 이야기들”)
 16) `app/public/page.tsx`, `app/public/[id]/page.tsx`
     1. 같이 기록 목록/상세
 17) `app/account/page.tsx`
     1. 페어링 코드 확인/연결
+    2. 라벨 아이콘(설정)
 18) `app/recommendations/page.tsx`
     1. 추천 페이지(현재 라우트는 존재하나 헤더에서 미노출)
 19) `context/RetroContext.tsx`
     1. 레트로 모드 토글 상태 관리
+20) `components/AppHeader.tsx`
+    1. 모바일 1줄 메뉴 정렬
+    2. 레트로 라벨 축약(맞추기)
 
 ### Next 15 params 이슈 해결
 1) `params.id` 직접 접근 시 “params is a Promise” 경고/에러 발생
@@ -162,8 +170,8 @@
     1. 해당 작품의 공개 글감 조회(없으면 null)
 2) `POST /api/discussions`
     1. titleId 기반 글감 생성/보장
-3) `GET /api/discussions/latest?limit=`
-    1. 최신 글감 목록
+3) `GET /api/discussions/latest?limit=&minComments=`
+    1. 최신 글감 목록 (minComments로 댓글 수 필터)
 4) `GET /api/discussions/all?limit=`
     1. 전체 글감 목록
 5) `GET /api/discussions/{id}`
@@ -347,6 +355,10 @@
 15) 플랫폼 드롭다운 + 직접 입력 + 내 입력 목록
 16) 타임라인 OTT 필터 드롭다운
 17) 서버 status 필터 정상화 (enum 문자열 비교)
+18) 홈 QuickLog 접기/펼치기
+19) 홈/타임라인/공개/계정 라벨 아이콘 정리
+20) 함께 기록 댓글 노출 문구 정리(“n개의 이야기들”)
+21) 홈/검색 미리보기 최신 같이 기록은 댓글 1개 이상만 표시
 
 미완료(바로 진행)
 1) 삭제 동기화 및 복구
