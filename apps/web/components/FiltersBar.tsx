@@ -52,11 +52,15 @@ export default function FiltersBar({
                                        setStatus,
                                        ott,
                                        setOtt,
+                                       origin,
+                                       setOrigin,
                                    }: {
     status: Status | "ALL";
     setStatus: (s: Status | "ALL") => void;
     ott: string;
     setOtt: (s: string) => void;
+    origin: "ALL" | "LOG" | "COMMENT";
+    setOrigin: (s: "ALL" | "LOG" | "COMMENT") => void;
 }) {
     const [ottSelect, setOttSelect] = useState<string>("");
     const [customOttOptions, setCustomOttOptions] = useState<string[]>([]);
@@ -89,6 +93,19 @@ export default function FiltersBar({
                     <option value="DONE">봤어요</option>
                     <option value="IN_PROGRESS">보는 중</option>
                     <option value="WISHLIST">보고 싶어요</option>
+                </select>
+            </div>
+
+            <div className="flex items-center gap-2">
+                <div className="text-sm text-neutral-600">구분</div>
+                <select
+                    value={origin}
+                    onChange={(e) => setOrigin(e.target.value as "ALL" | "LOG" | "COMMENT")}
+                    className="rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm outline-none"
+                >
+                    <option value="ALL">전체</option>
+                    <option value="LOG">내 기록</option>
+                    <option value="COMMENT">코멘트</option>
                 </select>
             </div>
 

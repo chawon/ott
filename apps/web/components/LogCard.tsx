@@ -66,10 +66,14 @@ export default function LogCard({ log }: { log: WatchLog }) {
     if (!t?.id) return null;
     const seasonLabel = seasonEpisodeLabel(log);
     const yearLabel = seasonYearLabel(log) ?? (t.year ? String(t.year) : null);
+    const isCommentOrigin = log.origin === "COMMENT";
 
     if (isRetro) {
         return (
-            <article className="nes-container hover:bg-neutral-50 transition-none flex gap-6">
+            <article className={cn(
+                "nes-container hover:bg-neutral-50 transition-none flex gap-6",
+                isCommentOrigin && "bg-[#fff7e6] border-4 border-[#f59e0b]"
+            )}>
                 <div className="shrink-0">
                 <div className="h-40 w-28 border-4 border-black bg-neutral-200 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] overflow-hidden">
                         {(log.seasonPosterUrl ?? t.posterUrl) ? (
@@ -122,7 +126,10 @@ export default function LogCard({ log }: { log: WatchLog }) {
     }
 
     return (
-        <article className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm hover:border-neutral-300 transition-all flex gap-5">
+        <article className={cn(
+            "rounded-2xl border bg-white p-5 shadow-sm transition-all flex gap-5",
+            isCommentOrigin ? "border-amber-300 bg-amber-50/40" : "border-neutral-200 hover:border-neutral-300"
+        )}>
             <div className="shrink-0">
                 <div className="h-32 w-20 overflow-hidden rounded-xl bg-neutral-100 shadow-sm border border-neutral-100">
                     {(log.seasonPosterUrl ?? t.posterUrl) ? (

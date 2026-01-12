@@ -30,13 +30,14 @@ public class LogController {
     public List<WatchLogDto> list(
             @RequestParam(value = "titleId", required = false) UUID titleId,
             @RequestParam(value = "status", required = false) Status status,
+            @RequestParam(value = "origin", required = false) com.watchlog.api.domain.LogOrigin origin,
             @RequestParam(value = "ott", required = false) String ott,
             @RequestParam(value = "place", required = false) Place place,
             @RequestParam(value = "occasion", required = false) Occasion occasion,
             @RequestParam(value = "limit", defaultValue = "50") int limit,
             @RequestHeader(value = "X-User-Id", required = false) UUID userId
     ) {
-        return logService.list(titleId, status, ott, place, occasion, limit, userId).stream().map(WatchLogDto::from).toList();
+        return logService.list(titleId, status, origin, ott, place, occasion, limit, userId).stream().map(WatchLogDto::from).toList();
     }
 
     @PostMapping

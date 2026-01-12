@@ -22,6 +22,7 @@ public interface WatchLogRepository extends JpaRepository<WatchLogEntity, UUID> 
             where (cast(:userId as uuid) is null or w.user_id = cast(:userId as uuid))
               and (cast(:titleId as uuid) is null or w.title_id = cast(:titleId as uuid))
               and (cast(:status as text) is null or w.status = cast(:status as text))
+              and (cast(:origin as text) is null or w.origin = cast(:origin as text))
               and (cast(:ott as text) is null or coalesce(w.ott, '') ilike concat('%', cast(:ott as text), '%'))
               and (cast(:place as text) is null or w.place = cast(:place as text))
               and (cast(:occasion as text) is null or w.occasion = cast(:occasion as text))
@@ -31,6 +32,7 @@ public interface WatchLogRepository extends JpaRepository<WatchLogEntity, UUID> 
             @Param("userId") UUID userId,
             @Param("titleId") UUID titleId,
             @Param("status") String status,
+            @Param("origin") String origin,
             @Param("ott") String ott,
             @Param("place") Place place,
             @Param("occasion") Occasion occasion,

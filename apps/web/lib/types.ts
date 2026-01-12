@@ -84,6 +84,7 @@ export interface WatchLog {
     episodeNumber?: number | null;
     seasonPosterUrl?: string | null;
     seasonYear?: number | null;
+    origin?: "LOG" | "COMMENT";
     syncStatus?: "pending" | "synced" | "failed";
     updatedAt?: string;
     deletedAt?: string | null;
@@ -114,6 +115,7 @@ export interface CreateWatchLogRequest {
     episodeNumber?: number | null;
     seasonPosterUrl?: string | null;
     seasonYear?: number | null;
+    origin?: "LOG" | "COMMENT";
 
     watchedAt?: string;
     place?: Place;
@@ -132,6 +134,7 @@ export interface WatchLogHistory {
     episodeNumber?: number | null;
     seasonPosterUrl?: string | null;
     seasonYear?: number | null;
+    origin?: "LOG" | "COMMENT";
     watchedAt: string;
     place?: Place | null;
     occasion?: Occasion | null;

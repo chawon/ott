@@ -17,9 +17,10 @@ function buildQuery(params: Record<string, string | undefined>) {
     return s ? `?${s}` : "";
 }
 
-function applyFilters(logs: WatchLog[], status: Status | "ALL", ott: string) {
+function applyFilters(logs: WatchLog[], status: Status | "ALL", ott: string, origin: "ALL" | "LOG" | "COMMENT") {
     return logs.filter((l) => {
         if (status !== "ALL" && l.status !== status) return false;
+        if (origin !== "ALL" && l.origin !== origin) return false;
         if (ott && ott.trim()) {
             if (!l.ott) return false;
             if (!l.ott.toLowerCase().includes(ott.trim().toLowerCase())) return false;
@@ -30,6 +31,7 @@ function applyFilters(logs: WatchLog[], status: Status | "ALL", ott: string) {
 
 export default function TimelinePage() {
     const [status, setStatus] = useState<Status | "ALL">("ALL");
+    const [origin, setOrigin] = useState<"ALL" | "LOG" | "COMMENT">("ALL");
     const [ott, setOtt] = useState("");
     const [logs, setLogs] = useState<WatchLog[]>([]);
     const [loading, setLoading] = useState(false);
@@ -47,6 +49,7 @@ export default function TimelinePage() {
                 const cached = await listLogsLocal({
                     limit: 50,
                     status: status === "ALL" ? undefined : status,
+                    origin: origin === "ALL" ? undefined : origin,
                     ott: ott.trim() ? ott : undefined,
                 });
                 if (!cancelled) {
@@ -57,11 +60,12 @@ export default function TimelinePage() {
                 const query = buildQuery({
                     limit: "50",
                     status: status === "ALL" ? undefined : status,
+                    origin: origin === "ALL" ? undefined : origin,
                     ott: ott.trim() ? ott : undefined,
                 });
 
                 const res = await api<WatchLog[]>(`/logs${query}`);
-                const filtered = applyFilters(res, status, ott);
+                const filtered = applyFilters(res, status, ott, origin);
                 if (!cancelled) setLogs(filtered);
                 await upsertLogsLocal(res);
             } catch (e: any) {
@@ -78,19 +82,20 @@ export default function TimelinePage() {
             cancelled = true;
             clearTimeout(timer);
         };
-    }, [status, ott]);
+    }, [status, ott, origin]);
 
     useEffect(() => {
         function handleSync() {
             listLogsLocal({
                 limit: 50,
                 status: status === "ALL" ? undefined : status,
+                origin: origin === "ALL" ? undefined : origin,
                 ott: ott.trim() ? ott : undefined,
             }).then((cached) => setLogs(cached));
         }
         window.addEventListener("sync:updated", handleSync);
         return () => window.removeEventListener("sync:updated", handleSync);
-    }, [status, ott]);
+    }, [status, ott, origin]);
 
     const headerSubtitle = useMemo(() => {
         if (loading) return "불러오는 중…";
@@ -108,7 +113,7 @@ export default function TimelinePage() {
                 <div className="text-sm text-neutral-600">{headerSubtitle}</div>
             </div>
 
-            <FiltersBar status={status} setStatus={setStatus} ott={ott} setOtt={setOtt} />
+            <FiltersBar status={status} setStatus={setStatus} origin={origin} setOrigin={setOrigin} ott={ott} setOtt={setOtt} />
 
             {loading && logs.length === 0 && (
                 <div className="rounded-2xl border border-neutral-200 bg-white p-5 text-sm text-neutral-600 shadow-sm">

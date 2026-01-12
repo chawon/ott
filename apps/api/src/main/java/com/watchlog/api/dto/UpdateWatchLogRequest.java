@@ -1,5 +1,6 @@
 package com.watchlog.api.dto;
 
+import com.watchlog.api.domain.LogOrigin;
 import com.watchlog.api.domain.Occasion;
 import com.watchlog.api.domain.Place;
 import com.watchlog.api.domain.Status;
@@ -16,6 +17,7 @@ public record UpdateWatchLogRequest(
         Integer episodeNumber,
         String seasonPosterUrl,
         Integer seasonYear,
+        LogOrigin origin,
         OffsetDateTime watchedAt,
         Place place,
         Occasion occasion

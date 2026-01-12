@@ -2,6 +2,7 @@ package com.watchlog.api.service;
 
 import com.watchlog.api.domain.CommentEntity;
 import com.watchlog.api.domain.DiscussionEntity;
+import com.watchlog.api.domain.LogOrigin;
 import com.watchlog.api.domain.Status;
 import com.watchlog.api.domain.WatchLogEntity;
 import com.watchlog.api.repo.CommentRepository;
@@ -106,6 +107,7 @@ public class CommentService {
         log.setNote(body);
         log.setWatchedAt(OffsetDateTime.now());
         log.setUpdatedAt(OffsetDateTime.now());
+        log.setOrigin(LogOrigin.COMMENT);
         var saved = watchLogRepository.save(log);
         historyService.recordSnapshot(saved);
     }

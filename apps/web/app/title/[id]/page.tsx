@@ -179,6 +179,7 @@ export default function TitlePage() {
     const [selectedEpisode, setSelectedEpisode] = useState<number | "">("");
     const [seasonPosterUrl, setSeasonPosterUrl] = useState<string | null>(null);
     const [seasonYear, setSeasonYear] = useState<number | null>(null);
+    const [origin, setOrigin] = useState<WatchLog["origin"]>("LOG");
     const [customOttOptions, setCustomOttOptions] = useState<string[]>([]);
     const [seasonLoading, setSeasonLoading] = useState(false);
     const [episodeLoading, setEpisodeLoading] = useState(false);
@@ -222,6 +223,7 @@ export default function TitlePage() {
                 setSelectedEpisode(typeof current.episodeNumber === "number" ? current.episodeNumber : "");
                 setSeasonPosterUrl(current.seasonPosterUrl ?? null);
                 setSeasonYear(typeof current.seasonYear === "number" ? current.seasonYear : null);
+                setOrigin(current.origin ?? "LOG");
                 setWatchedDate(toDateInput(new Date(current.watchedAt ?? current.createdAt)));
 
                 const h = await api<WatchLogHistory[]>(`/logs/${current.id}/history?limit=50`);
@@ -264,6 +266,7 @@ export default function TitlePage() {
                 setSelectedEpisode(typeof localCurrent.episodeNumber === "number" ? localCurrent.episodeNumber : "");
                 setSeasonPosterUrl(localCurrent.seasonPosterUrl ?? null);
                 setSeasonYear(typeof localCurrent.seasonYear === "number" ? localCurrent.seasonYear : null);
+                setOrigin(localCurrent.origin ?? "LOG");
                 setWatchedDate(toDateInput(new Date(localCurrent.watchedAt ?? localCurrent.createdAt)));
 
                 const localHistory = await listHistoryLocal(localCurrent.id, 50);
@@ -427,6 +430,7 @@ export default function TitlePage() {
                     episodeNumber: selectedEpisode === "" ? null : selectedEpisode,
                     seasonPosterUrl: seasonPosterUrl ?? null,
                     seasonYear: seasonYear ?? null,
+                    origin,
                     place,
                     occasion,
                     watchedAt: pickedWatchedAt,
@@ -443,6 +447,7 @@ export default function TitlePage() {
                 episodeNumber: selectedEpisode === "" ? null : selectedEpisode,
                 seasonPosterUrl: seasonPosterUrl ?? null,
                 seasonYear: seasonYear ?? null,
+                origin,
                 place,
                 occasion,
                 syncStatus: "pending",
@@ -465,6 +470,7 @@ export default function TitlePage() {
                 episodeNumber: selectedEpisode === "" ? null : selectedEpisode,
                 seasonPosterUrl: seasonPosterUrl ?? null,
                 seasonYear: seasonYear ?? null,
+                origin,
                 watchedAt: pickedWatchedAt ?? log.watchedAt,
                 place,
                 occasion,

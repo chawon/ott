@@ -141,6 +141,7 @@ async function pullChanges() {
         episodeNumber: l.episodeNumber ?? null,
         seasonPosterUrl: l.seasonPosterUrl ?? null,
         seasonYear: l.seasonYear ?? null,
+        origin: l.origin ?? "LOG",
         watchedAt: l.watchedAt,
         place: l.place ?? null,
         occasion: l.occasion ?? null,

@@ -1,5 +1,6 @@
 package com.watchlog.api.dto;
 
+import com.watchlog.api.domain.LogOrigin;
 import com.watchlog.api.domain.Occasion;
 import com.watchlog.api.domain.Place;
 import com.watchlog.api.domain.Status;
@@ -20,6 +21,7 @@ public record WatchLogDto(
         Integer episodeNumber,
         String seasonPosterUrl,
         Integer seasonYear,
+        LogOrigin origin,
         OffsetDateTime watchedAt,
         Place place,
         Occasion occasion,
@@ -38,6 +40,7 @@ public record WatchLogDto(
                 e.getEpisodeNumber(),
                 e.getSeasonPosterUrl(),
                 e.getSeasonYear(),
+                e.getOrigin(),
                 e.getWatchedAt(),
                 e.getPlace(),
                 e.getOccasion(),

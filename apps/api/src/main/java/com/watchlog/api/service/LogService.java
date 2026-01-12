@@ -1,5 +1,6 @@
 package com.watchlog.api.service;
 
+import com.watchlog.api.domain.LogOrigin;
 import com.watchlog.api.domain.Occasion;
 import com.watchlog.api.domain.Place;
 import com.watchlog.api.domain.Status;
@@ -38,12 +39,13 @@ public class LogService {
     }
 
     @Transactional(readOnly = true)
-    public List<WatchLogEntity> list(UUID titleId, Status status, String ott, Place place, Occasion occasion, int limit, UUID userId) {
+    public List<WatchLogEntity> list(UUID titleId, Status status, LogOrigin origin, String ott, Place place, Occasion occasion, int limit, UUID userId) {
         int safeLimit = Math.max(1, Math.min(limit, 100));
         return watchLogRepository.findFiltered(
                 userId,
                 titleId,
                 status == null ? null : status.name(),
+                origin == null ? null : origin.name(),
                 (ott == null || ott.isBlank()) ? null : ott.trim(),
                 place,
                 occasion,
@@ -69,6 +71,7 @@ public class LogService {
         if (req.episodeNumber() != null) log.setEpisodeNumber(req.episodeNumber());
         if (req.seasonPosterUrl() != null) log.setSeasonPosterUrl(req.seasonPosterUrl());
         if (req.seasonYear() != null) log.setSeasonYear(req.seasonYear());
+        if (req.origin() != null) log.setOrigin(req.origin());
 
         log.setWatchedAt(req.watchedAt() != null ? req.watchedAt() : OffsetDateTime.now());
         log.setPlace(req.place());
@@ -98,6 +101,7 @@ public class LogService {
         if (req.episodeNumber() != null) log.setEpisodeNumber(req.episodeNumber());
         if (req.seasonPosterUrl() != null) log.setSeasonPosterUrl(req.seasonPosterUrl());
         if (req.seasonYear() != null) log.setSeasonYear(req.seasonYear());
+        if (req.origin() != null) log.setOrigin(req.origin());
 
         if (req.watchedAt() != null) log.setWatchedAt(req.watchedAt());
         if (req.place() != null) log.setPlace(req.place());

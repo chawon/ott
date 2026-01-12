@@ -49,15 +49,17 @@ export async function upsertHistoryLocal(items: WatchLogHistory[]) {
 export async function listLogsLocal(params: {
   limit: number;
   status?: WatchLog["status"];
+  origin?: WatchLog["origin"];
   ott?: string;
   place?: WatchLog["place"];
   occasion?: WatchLog["occasion"];
 }) {
-  const { limit, status, ott, place, occasion } = params;
+  const { limit, status, origin, ott, place, occasion } = params;
   let coll = db.logs.orderBy("watchedAt").reverse();
   if (status || ott || place || occasion) {
     coll = coll.filter((l) => {
       if (status && l.status !== status) return false;
+      if (origin && l.origin !== origin) return false;
       if (place && l.place !== place) return false;
       if (occasion && l.occasion !== occasion) return false;
       if (ott && l.ott && !l.ott.toLowerCase().includes(ott.toLowerCase())) return false;

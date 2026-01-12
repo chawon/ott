@@ -77,7 +77,7 @@
     1. 페어링 코드 확인/연결
     2. 라벨 아이콘(설정)
 18) `app/recommendations/page.tsx`
-    1. 추천 페이지(현재 라우트는 존재하나 헤더에서 미노출)
+    1. 삭제됨 (추천 기능 정리)
 19) `context/RetroContext.tsx`
     1. 레트로 모드 토글 상태 관리
 20) `components/AppHeader.tsx`
@@ -98,7 +98,7 @@
 3) 기록 저장 시
     1. TMDB provider/providerId로 titles upsert
     2. watch_logs 생성
-4) 추천 API는 프론트에서 제거(백엔드도 나중에 정리 가능)
+4) 추천 API는 프론트/백엔드 모두 제거 완료
 
 ### TMDB 연동
 1) 설정
@@ -212,7 +212,7 @@
     1. Recommendations 메뉴 제거
     2. `/recommendations` 라우트는 아직 남아 있음(헤더에서 미노출)
     3. 홈에서 RecoShelf 관련 div/그리드 제거
-2) 백엔드 추천 API는 당장 호출되지 않음(정리 여부는 TODO)
+2) 백엔드 추천 API 제거 완료
 
 ---
 
@@ -364,6 +364,18 @@
 1) 삭제 동기화 및 복구
 2) 사용자 기기 목록/해제
 3) 복구 코드(페어링 코드) 입력 UX + 보안 정책 결정
+
+---
+
+## 추후 계획: 월별 통계/리포트
+기본 데이터는 이미 수집 중이며, 추후 `watchedAt` 기준으로 월별 집계 가능.
+집계 후보
+1) 월별 시청량(로그 수)
+2) 상태 분포(DONE/IN_PROGRESS/WISHLIST)
+3) 플랫폼(ott)별 분포
+4) TPO(Place/Occasion) 분포
+5) 평점 분포
+6) 코멘트 생성 로그(origin=COMMENT) vs 직접 기록(origin=LOG)
 
 
 ---

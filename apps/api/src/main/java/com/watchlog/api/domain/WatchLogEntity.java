@@ -53,6 +53,10 @@ public class WatchLogEntity {
     private Integer seasonYear;
 
     @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 16)
+    private LogOrigin origin = LogOrigin.LOG;
+
+    @Enumerated(EnumType.STRING)
     @Column(length = 16)
     private Place place;
 
@@ -90,6 +94,7 @@ public class WatchLogEntity {
     public Integer getEpisodeNumber() { return episodeNumber; }
     public String getSeasonPosterUrl() { return seasonPosterUrl; }
     public Integer getSeasonYear() { return seasonYear; }
+    public LogOrigin getOrigin() { return origin; }
     public Place getPlace() { return place; }
     public Occasion getOccasion() { return occasion; }
     public OffsetDateTime getCreatedAt() { return createdAt; }
@@ -107,6 +112,7 @@ public class WatchLogEntity {
     public void setEpisodeNumber(Integer episodeNumber) { this.episodeNumber = episodeNumber; }
     public void setSeasonPosterUrl(String seasonPosterUrl) { this.seasonPosterUrl = seasonPosterUrl; }
     public void setSeasonYear(Integer seasonYear) { this.seasonYear = seasonYear; }
+    public void setOrigin(LogOrigin origin) { this.origin = origin; }
     public void setPlace(Place place) { this.place = place; }
     public void setOccasion(Occasion occasion) { this.occasion = occasion; }
     public void setUpdatedAt(OffsetDateTime updatedAt) { this.updatedAt = updatedAt; }
