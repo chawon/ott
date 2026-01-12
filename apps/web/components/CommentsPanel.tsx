@@ -181,7 +181,7 @@ export default function CommentsPanel({
         ) : (
           <>
             <div className="flex items-center justify-between text-xs text-neutral-500 mb-4 sticky top-0 bg-inherit z-10 py-2 border-b border-neutral-200">
-              <span className={cn(isRetro && "font-bold uppercase")}>{comments.length} {isRetro ? "개의 수다" : "comments"}</span>
+              <span className={cn(isRetro && "font-bold uppercase")}>{comments.length} {isRetro ? "개의 수다" : "개의 이야기들"}</span>
               <div className="flex items-center gap-2">
                 <span>정렬</span>
                 <select

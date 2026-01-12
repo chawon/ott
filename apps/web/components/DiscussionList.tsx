@@ -106,7 +106,7 @@ export default function DiscussionList({
             </div>
             <div className="text-right text-xs text-neutral-500">
               <div>{formatShortDate(d.createdAt)}</div>
-              <div>{d.commentCount} comments</div>
+              <div>{d.commentCount}개의 이야기들</div>
             </div>
           </Link>
         ))}

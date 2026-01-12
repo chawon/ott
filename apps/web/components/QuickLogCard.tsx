@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Calendar, MapPin, MessageSquare, Star, Users, Loader2, X } from "lucide-react";
+import { Calendar, MapPin, MessageSquare, Star, Users, Loader2, X, Clock, MonitorPlay } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { api } from "@/lib/api";
 import TitleSearchBox from "@/components/TitleSearchBox";
@@ -15,6 +15,9 @@ import {
     Status,
     TitleSearchItem,
     WatchLog,
+    Discussion,
+    Comment,
+    CreateCommentRequest,
 } from "@/lib/types";
 
 type SeasonOption = {
@@ -111,6 +114,7 @@ export default function QuickLogCard({
     const [selectedEpisode, setSelectedEpisode] = useState<number | "">("");
     const [seasonPosterUrl, setSeasonPosterUrl] = useState<string | null>(null);
     const [seasonYear, setSeasonYear] = useState<number | null>(null);
+    const [shareToDiscussion, setShareToDiscussion] = useState(false);
     const [seasonLoading, setSeasonLoading] = useState(false);
     const [episodeLoading, setEpisodeLoading] = useState(false);
     const [seasonError, setSeasonError] = useState<string | null>(null);
@@ -325,6 +329,29 @@ export default function QuickLogCard({
             onCreated(localLog);
             await syncOutbox();
 
+            if (shareToDiscussion && note.trim()) {
+                try {
+                    const discussion = await api<Discussion>("/discussions", {
+                        method: "POST",
+                        body: JSON.stringify({ titleId: localTitleId }),
+                    });
+                    const req: CreateCommentRequest = {
+                        body: note.trim(),
+                        userId: null,
+                        mentions: [],
+                    };
+                    await api<Comment>(`/discussions/${discussion.id}/comments`, {
+                        method: "POST",
+                        body: JSON.stringify(req),
+                    });
+                    if (typeof window !== "undefined") {
+                        window.dispatchEvent(new CustomEvent("sync:updated"));
+                    }
+                } catch {
+                    // ignore share failures (e.g., offline)
+                }
+            }
+
             setToast(isRetro ? "SAVED!" : "저장되었습니다!");
             window.setTimeout(() => setToast(null), 1800);
 
@@ -345,6 +372,7 @@ export default function QuickLogCard({
             setSelectedEpisode("");
             setSeasonPosterUrl(null);
             setSeasonYear(null);
+            setShareToDiscussion(false);
         } finally {
             setSaving(false);
         }
@@ -397,7 +425,7 @@ export default function QuickLogCard({
 
                         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                             <div className="space-y-1">
-                                <label className="text-xs font-bold uppercase">상태</label>
+                                <label className="text-xs font-bold uppercase flex items-center gap-1"><Clock className="h-3 w-3" /> 상태</label>
                                 <select
                                     value={status}
                                     onChange={(e) => setStatus(e.target.value as Status)}
@@ -496,7 +524,7 @@ export default function QuickLogCard({
                             </div>
 
                             <div className="sm:col-span-2 space-y-1">
-                                <label className="text-xs font-bold uppercase">플랫폼 (OTT)</label>
+                                <label className="text-xs font-bold uppercase flex items-center gap-1"><MonitorPlay className="h-3 w-3" /> 플랫폼</label>
                                 <select
                                     value={ottSelect}
                                     onChange={(e) => {
@@ -560,13 +588,21 @@ export default function QuickLogCard({
                             </div>
 
                             <div className="sm:col-span-2 space-y-1">
-                                <label className="text-xs font-bold uppercase flex items-center gap-1"><MessageSquare className="h-3 w-3" /> 내용</label>
+                                <label className="text-xs font-bold uppercase flex items-center gap-1"><MessageSquare className="h-3 w-3" /> 메모</label>
                                 <textarea
                                     value={note}
                                     onChange={(e) => setNote(e.target.value)}
                                     className="w-full min-h-[80px] bg-white px-3 py-2 text-sm font-bold placeholder:text-neutral-400 resize-none"
                                     placeholder="짧은 감상을 남겨보세요..."
                                 />
+                                <label className="mt-2 flex items-center gap-2 text-xs font-bold uppercase">
+                                    <input
+                                        type="checkbox"
+                                        checked={shareToDiscussion}
+                                        onChange={(e) => setShareToDiscussion(e.target.checked)}
+                                    />
+                                    함께 기록에 공유
+                                </label>
                             </div>
                         </div>
 
@@ -643,7 +679,10 @@ export default function QuickLogCard({
 
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                     <div className="space-y-1.5">
-                        <div className="text-xs font-medium text-neutral-500 ml-1">상태</div>
+                        <div className="text-xs font-medium text-neutral-500 ml-1 flex items-center gap-1.5">
+                            <Clock className="h-3 w-3" />
+                            상태
+                        </div>
                         <select
                             value={status}
                             onChange={(e) => setStatus(e.target.value as Status)}
@@ -702,7 +741,10 @@ export default function QuickLogCard({
                     ) : null}
 
                     <div className="space-y-1.5">
-                        <div className="text-xs font-medium text-neutral-500 ml-1">평점</div>
+                        <div className="text-xs font-medium text-neutral-500 ml-1 flex items-center gap-1.5">
+                            <Star className="h-3 w-3" />
+                            평점
+                        </div>
                         <select
                             value={rating === "" ? "" : String(rating)}
                             onChange={(e) => setRating(e.target.value === "" ? "" : Number(e.target.value))}
@@ -716,7 +758,10 @@ export default function QuickLogCard({
                     </div>
 
                     <div className="space-y-1.5">
-                        <div className="text-xs font-medium text-neutral-500 ml-1">장소</div>
+                        <div className="text-xs font-medium text-neutral-500 ml-1 flex items-center gap-1.5">
+                            <MapPin className="h-3 w-3" />
+                            장소
+                        </div>
                         <select
                             value={place}
                             onChange={(e) => setPlace(e.target.value as Place)}
@@ -729,7 +774,10 @@ export default function QuickLogCard({
                     </div>
 
                     <div className="space-y-1.5">
-                        <div className="text-xs font-medium text-neutral-500 ml-1">누구와</div>
+                        <div className="text-xs font-medium text-neutral-500 ml-1 flex items-center gap-1.5">
+                            <Users className="h-3 w-3" />
+                            누구와
+                        </div>
                         <select
                             value={occasion}
                             onChange={(e) => setOccasion(e.target.value as Occasion)}
@@ -742,7 +790,10 @@ export default function QuickLogCard({
                     </div>
 
                     <div className="md:col-span-2 space-y-1.5">
-                        <div className="text-xs font-medium text-neutral-500 ml-1">플랫폼 (OTT)</div>
+                        <div className="text-xs font-medium text-neutral-500 ml-1 flex items-center gap-1.5">
+                            <MonitorPlay className="h-3 w-3" />
+                            플랫폼
+                        </div>
                         <select
                             value={ottSelect}
                             onChange={(e) => {
@@ -806,7 +857,10 @@ export default function QuickLogCard({
                     </div>
 
                     <div className="md:col-span-2 space-y-1.5">
-                        <div className="text-xs font-medium text-neutral-500 ml-1">메모</div>
+                        <div className="text-xs font-medium text-neutral-500 ml-1 flex items-center gap-1.5">
+                            <MessageSquare className="h-3 w-3" />
+                            메모
+                        </div>
                         <textarea
                             value={note}
                             onChange={(e) => setNote(e.target.value)}
@@ -814,6 +868,14 @@ export default function QuickLogCard({
                             placeholder="짧은 감상을 남겨보세요."
                             rows={3}
                         />
+                        <label className="flex items-center gap-2 text-xs font-medium text-neutral-600">
+                            <input
+                                type="checkbox"
+                                checked={shareToDiscussion}
+                                onChange={(e) => setShareToDiscussion(e.target.checked)}
+                            />
+                            함께 기록에 공유
+                        </label>
                     </div>
                 </div>
 

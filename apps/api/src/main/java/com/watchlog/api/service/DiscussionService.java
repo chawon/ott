@@ -43,6 +43,16 @@ public class DiscussionService {
         return discussionRepository.findLatest(PageRequest.of(0, safeLimit));
     }
 
+    @Transactional(readOnly = true)
+    public List<DiscussionEntity> listLatest(int limit, Integer minComments) {
+        int safeLimit = Math.max(1, Math.min(limit, 100));
+        if (minComments == null) {
+            return discussionRepository.findLatest(PageRequest.of(0, safeLimit));
+        }
+        int safeMin = Math.max(0, minComments);
+        return discussionRepository.findLatestWithMinComments(safeMin, PageRequest.of(0, safeLimit));
+    }
+
     @Transactional
     public DiscussionEntity lock(UUID id) {
         return discussionRepository.findWithLockById(id)

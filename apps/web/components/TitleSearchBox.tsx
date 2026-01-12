@@ -74,7 +74,7 @@ export default function TitleSearchBox({
             setRecentLoading(true);
             setRecentErr(null);
             try {
-                const res = await api<DiscussionListItem[]>("/discussions/latest?limit=6");
+                const res = await api<DiscussionListItem[]>("/discussions/latest?limit=6&minComments=1");
                 if (!cancelled) setRecent(res);
             } catch (e: any) {
                 if (!cancelled) {
@@ -155,8 +155,8 @@ export default function TitleSearchBox({
                 className={cn(
                     "w-full transition-all outline-none",
                     isRetro 
-                        ? "border-4 border-black bg-white px-4 py-3 text-sm font-bold shadow-[inset_4px_4px_0px_0px_#e0e0e0] focus:ring-4 focus:ring-yellow-400 focus:border-black"
-                        : "rounded-xl border border-neutral-200 bg-white px-4 py-3 text-sm focus:ring-2 focus:ring-neutral-900/10 focus:border-neutral-300"
+                        ? "border-4 border-black bg-white px-4 py-3 text-sm font-bold shadow-[inset_4px_4px_0px_0px_#e0e0e0] focus:ring-4 focus:ring-yellow-400 focus:border-black placeholder:text-neutral-600"
+                        : "rounded-xl border border-neutral-200 bg-white px-4 py-3 text-sm focus:ring-2 focus:ring-neutral-900/10 focus:border-neutral-300 placeholder:text-neutral-500"
                 )}
             />
 
@@ -173,7 +173,7 @@ export default function TitleSearchBox({
                                 "px-4 py-2 text-[10px] font-bold uppercase tracking-widest",
                                 isRetro ? "bg-black text-white" : "text-neutral-400"
                             )}>
-                                {isRetro ? "인기 비디오" : "요즘 수다 떠는 비디오들"}
+                                {isRetro ? "요즘 수다 떠는 비디오들" : "요즘 함께 하는 작품들"}
                             </div>
                             {recentLoading ? (
                                 <div className="px-4 py-3 text-sm font-bold">LOADING...</div>

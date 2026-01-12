@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Settings } from "lucide-react";
 import { ensureAuth, pairWithCode } from "@/lib/auth";
 import { getDeviceId, getPairingCode, getUserId, resetLocalState } from "@/lib/localStore";
 import { api } from "@/lib/api";
@@ -131,7 +132,10 @@ export default function AccountPage() {
   return (
     <div className="space-y-4">
       <div>
-        <div className="text-xl font-semibold">기기 연결</div>
+        <div className="text-xl font-semibold flex items-center gap-2">
+          <Settings className="h-5 w-5" />
+          기기 연결
+        </div>
         <div className="text-sm text-neutral-600">
           이메일 없이 페어링 코드로 여러 기기를 연결해.
         </div>

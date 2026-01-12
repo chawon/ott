@@ -34,8 +34,11 @@ public class DiscussionController {
     }
 
     @GetMapping("/latest")
-    public List<DiscussionListItemDto> latest(@RequestParam(value = "limit", defaultValue = "6") int limit) {
-        return discussionService.listLatest(limit).stream()
+    public List<DiscussionListItemDto> latest(
+            @RequestParam(value = "limit", defaultValue = "6") int limit,
+            @RequestParam(value = "minComments", required = false) Integer minComments
+    ) {
+        return discussionService.listLatest(limit, minComments).stream()
                 .map(DiscussionListItemDto::from)
                 .toList();
     }

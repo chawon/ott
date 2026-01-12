@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { Clock } from "lucide-react";
 import FiltersBar from "@/components/FiltersBar";
 import LogCard from "@/components/LogCard";
 import { api } from "@/lib/api";
@@ -100,7 +101,10 @@ export default function TimelinePage() {
     return (
         <div className="space-y-4">
             <div>
-                <div className="text-xl font-semibold">나의 기록</div>
+                <div className="text-xl font-semibold flex items-center gap-2">
+                    <Clock className="h-5 w-5" />
+                    나의 시청 기록
+                </div>
                 <div className="text-sm text-neutral-600">{headerSubtitle}</div>
             </div>
 

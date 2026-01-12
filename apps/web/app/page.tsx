@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { MessageCircle, PencilLine, NotebookPen } from "lucide-react";
 import QuickLogCard from "@/components/QuickLogCard";
 import LogCard from "@/components/LogCard";
 import { api } from "@/lib/api";
@@ -14,11 +15,12 @@ export default function HomePage() {
     const [logs, setLogs] = useState<WatchLog[]>([]);
     const [loading, setLoading] = useState(false);
     const [discussions, setDiscussions] = useState<DiscussionListItem[]>([]);
+    const [quickOpen, setQuickOpen] = useState(true);
     const { isRetro } = useRetro();
 
     async function loadDiscussions() {
         try {
-            const latest = await api<DiscussionListItem[]>("/discussions/latest?limit=6");
+            const latest = await api<DiscussionListItem[]>("/discussions/latest?limit=6&minComments=1");
             setDiscussions(latest);
         } catch {
             setDiscussions([]);
@@ -61,16 +63,28 @@ export default function HomePage() {
             <div className="grid grid-cols-1 gap-10 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
                 <div className="space-y-10">
                     <section className="space-y-4">
-                        <div className="bg-black inline-block px-3 py-1 text-sm font-bold uppercase tracking-widest text-white shadow-[4px_4px_0px_0px_rgba(0,0,0,0.2)]">
-                            빠른 날적이
+                        <div className="flex items-center justify-between">
+                            <div className="bg-black inline-block px-3 py-1 text-sm font-bold uppercase tracking-widest text-white shadow-[4px_4px_0px_0px_rgba(0,0,0,0.2)]">
+                                빠른 날적이
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setQuickOpen((v) => !v)}
+                                className="border-2 border-black px-2 py-1 text-xs font-bold uppercase"
+                                aria-expanded={quickOpen}
+                            >
+                                {quickOpen ? "접기" : "펼치기"}
+                            </button>
                         </div>
-                        <QuickLogCard
-                            onCreated={async (created) => {
-                                setLogs((prev) => [created, ...prev].slice(0, 8));
-                                await upsertLogsLocal([created]);
-                                await loadDiscussions();
-                            }}
-                        />
+                        {quickOpen ? (
+                            <QuickLogCard
+                                onCreated={async (created) => {
+                                    setLogs((prev) => [created, ...prev].slice(0, 8));
+                                    await upsertLogsLocal([created]);
+                                    await loadDiscussions();
+                                }}
+                            />
+                        ) : null}
                     </section>
                     
                     <section className="space-y-4">
@@ -127,18 +141,36 @@ export default function HomePage() {
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
             <div className="space-y-6">
                 <section className="space-y-3">
-                    <div className="text-base font-semibold">빠르게 기록 남기기</div>
-                    <QuickLogCard
-                        onCreated={async (created) => {
-                            setLogs((prev) => [created, ...prev].slice(0, 8));
-                            await upsertLogsLocal([created]);
-                            await loadDiscussions();
-                        }}
-                    />
+                    <div className="flex items-center justify-between">
+                        <div className="text-base font-semibold flex items-center gap-2">
+                            <PencilLine className="h-4 w-4" />
+                            빠르게 기록 남기기
+                        </div>
+                        <button
+                            type="button"
+                            onClick={() => setQuickOpen((v) => !v)}
+                            className="text-xs font-medium text-neutral-600 hover:text-neutral-900"
+                            aria-expanded={quickOpen}
+                        >
+                            {quickOpen ? "접기" : "펼치기"}
+                        </button>
+                    </div>
+                    {quickOpen ? (
+                        <QuickLogCard
+                            onCreated={async (created) => {
+                                setLogs((prev) => [created, ...prev].slice(0, 8));
+                                await upsertLogsLocal([created]);
+                                await loadDiscussions();
+                            }}
+                        />
+                    ) : null}
                 </section>
                 <section className="space-y-3">
                     <div className="flex items-baseline justify-between">
-                        <div className="text-base font-semibold">나의 기록</div>
+                        <div className="text-base font-semibold flex items-center gap-2">
+                            <NotebookPen className="h-4 w-4" />
+                            나의 기록
+                        </div>
                         <a href="/timeline" className="text-sm text-neutral-700 hover:underline">
                             전체 보기
                         </a>
@@ -165,8 +197,11 @@ export default function HomePage() {
             </div>
 
             <aside className="space-y-3">
-                <div className="flex items-baseline justify-between">
-                    <div className="text-base font-semibold">요즘 함께 하는 기록들</div>
+                    <div className="flex items-baseline justify-between">
+                        <div className="text-base font-semibold flex items-center gap-2">
+                            <MessageCircle className="h-4 w-4" />
+                            요즘 함께 하는 기록들
+                        </div>
                     <a href="/public" className="text-sm text-neutral-700 hover:underline">
                         전체 보기
                     </a>

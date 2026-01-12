@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { Clock, MapPin, MessageSquare, MonitorPlay, Star, Users } from "lucide-react";
 import { useParams } from "next/navigation";
 import { api } from "@/lib/api";
 import CommentsPanel from "@/components/CommentsPanel";
@@ -572,7 +573,10 @@ export default function TitlePage() {
                         <>
                             <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                                 <label className="space-y-1">
-                                    <div className="text-xs text-neutral-600">상태</div>
+                                    <div className="text-xs text-neutral-600 flex items-center gap-1.5">
+                                        <Clock className="h-3 w-3" />
+                                        상태
+                                    </div>
                                     <select
                                         value={status}
                                         onChange={(e) => setStatus(e.target.value as Status)}
@@ -631,7 +635,10 @@ export default function TitlePage() {
                                 ) : null}
 
                                 <label className="space-y-1">
-                                    <div className="text-xs text-neutral-600">평점</div>
+                                    <div className="text-xs text-neutral-600 flex items-center gap-1.5">
+                                        <Star className="h-3 w-3" />
+                                        평점
+                                    </div>
                                     <select
                                         value={rating === "" ? "" : String(rating)}
                                         onChange={(e) => setRating(e.target.value === "" ? "" : Number(e.target.value))}
@@ -645,7 +652,10 @@ export default function TitlePage() {
                                 </label>
 
                                 <label className="space-y-1">
-                                    <div className="text-xs text-neutral-600">장소</div>
+                                    <div className="text-xs text-neutral-600 flex items-center gap-1.5">
+                                        <MapPin className="h-3 w-3" />
+                                        장소
+                                    </div>
                                     <select
                                         value={place}
                                         onChange={(e) => setPlace(e.target.value as Place)}
@@ -658,7 +668,10 @@ export default function TitlePage() {
                                 </label>
 
                                 <label className="space-y-1">
-                                    <div className="text-xs text-neutral-600">누구와</div>
+                                    <div className="text-xs text-neutral-600 flex items-center gap-1.5">
+                                        <Users className="h-3 w-3" />
+                                        누구와
+                                    </div>
                                     <select
                                         value={occasion}
                                         onChange={(e) => setOccasion(e.target.value as Occasion)}
@@ -671,7 +684,10 @@ export default function TitlePage() {
                                 </label>
 
                                 <label className="space-y-1 md:col-span-2">
-                                    <div className="text-xs text-neutral-600">플랫폼</div>
+                                    <div className="text-xs text-neutral-600 flex items-center gap-1.5">
+                                        <MonitorPlay className="h-3 w-3" />
+                                        플랫폼
+                                    </div>
                                     <select
                                         value={ottSelect}
                                         onChange={(e) => {
@@ -732,7 +748,10 @@ export default function TitlePage() {
                                 </div>
 
                                 <label className="space-y-1 md:col-span-2">
-                                    <div className="text-xs text-neutral-600">메모</div>
+                                    <div className="text-xs text-neutral-600 flex items-center gap-1.5">
+                                        <MessageSquare className="h-3 w-3" />
+                                        메모
+                                    </div>
                                     <textarea
                                         value={note}
                                         onChange={(e) => setNote(e.target.value)}

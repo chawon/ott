@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { MessageCircle } from "lucide-react";
 import DiscussionList from "@/components/DiscussionList";
 import { api } from "@/lib/api";
 import { DiscussionListItem } from "@/lib/types";
@@ -39,7 +40,10 @@ export default function PublicDiscussionsPage() {
   return (
     <div className="space-y-4">
       <div>
-        <div className="text-xl font-semibold">모두 함께 기록</div>
+        <div className="text-xl font-semibold flex items-center gap-2">
+          <MessageCircle className="h-5 w-5" />
+          모두 함께 기록
+        </div>
         <div className="text-sm text-neutral-600">
           {loading ? "불러오는 중…" : err ? err : "공개된 기록을 한눈에 함께"}
         </div>
