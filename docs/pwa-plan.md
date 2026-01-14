@@ -55,3 +55,12 @@
 - [x] 아이콘 리소스 보강 (192x192 추가)
 - [x] manifest 설계
 - [x] 설치 안내 UI 문구 확정
+- [x] Service Worker 등록
+- [x] 오프라인 페이지 및 기본 캐싱 추가
+- [x] 핵심 라우트 최소 precache 추가 (/, /timeline)
+- [x] PWA 설치/실행 이벤트 수집(API + 웹)
+
+## TWA 내부 테스트 (Android)
+- [ ] Bubblewrap init 및 TWA 프로젝트 생성
+- [ ] 디버그 APK 빌드 및 기기 설치 테스트
+- [ ] assetlinks.json 배치 및 디지털 자산 링크 검증
