@@ -404,3 +404,4 @@
 ## PWA 전환 계획 문서
 - `docs/pwa-plan.md`
 - PWA 1단계 적용 중: manifest + iOS 설치 안내 배너
+- PWA 아이콘 192x192 추가 및 Android 설치 프롬프트 안내 UI 포함
