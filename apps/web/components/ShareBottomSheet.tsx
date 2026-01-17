@@ -47,7 +47,7 @@ export default function ShareBottomSheet({
       date: `${year}.${month}.${day}`,
       posterUrl: log.seasonPosterUrl ?? log.title.posterUrl ?? null,
       watermark: isRetro ? "으뜸과 버금" : "On the Timeline",
-      theme: isRetro ? "retro" : "default",
+      theme: (isRetro ? "retro" : "default") as "retro" | "default",
     };
   }, [isRetro, log, showNote, showRatingLabel]);
 
