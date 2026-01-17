@@ -27,6 +27,7 @@
 12) 플랫폼(OTT) 드롭다운 + 직접 입력 + 내 입력 목록 노출
 13) 홈 QuickLog 접기/펼치기 지원
 14) 헤더/주요 섹션 라벨 아이콘 정렬 및 모바일 헤더 한 줄 정렬
+15) 공유 카드 만들기(서버 렌더 OG) + 체크박스로 조건부 오픈
 
 ### 주요 파일
 1) `next.config.ts`
@@ -47,6 +48,7 @@
     3. 저장 성공 시 토스트("Saved ✓") + 입력 초기화 + 홈 로그 즉시 반영
     4. 시리즈 시즌/에피소드 선택, 시즌 포스터/연도 표시
     5. 플랫폼 드롭다운 + 직접 입력 + 내 입력 목록
+    6. 공유 카드 만들기 체크박스 추가
 7) `components/LogCard.tsx`
     1. watchedAt 우선 표기(없으면 createdAt)
     2. place/occasion 칩 표시
@@ -54,6 +56,7 @@
     1. QuickLogCard + Recent logs + 최신 같이 기록 노출
     2. 레트로 모드 분기 UI 포함
     3. QuickLog 접기/펼치기
+    4. 공유 카드 체크 시 바텀시트 오픈
 9) `app/timeline/page.tsx`
     1. `/api/logs` 기반 로딩
     2. status/ott 필터 UI 적용 (FiltersBar)
@@ -83,6 +86,14 @@
 20) `components/AppHeader.tsx`
     1. 모바일 1줄 메뉴 정렬
     2. 레트로 라벨 축약(맞추기)
+21) `components/ShareBottomSheet.tsx`
+    1. 공유 카드 미리보기/다운로드/공유
+    2. 서버 렌더 이미지(`/api/share-card`) 사용
+22) `app/api/share-card/route.tsx`
+    1. 공유 카드 이미지 생성(1080x1920)
+    2. 포스터 70% + 텍스트 패널 30%
+23) `lib/share.ts`
+    1. 공유 카드 이미지 요청/공유 유틸
 
 ### Next 15 params 이슈 해결
 1) `params.id` 직접 접근 시 “params is a Promise” 경고/에러 발생
@@ -359,6 +370,7 @@
 19) 홈/타임라인/공개/계정 라벨 아이콘 정리
 20) 함께 기록 댓글 노출 문구 정리(“n개의 이야기들”)
 21) 홈/검색 미리보기 최신 같이 기록은 댓글 1개 이상만 표시
+22) 공유 카드 만들기(서버 렌더 OG, 체크박스 기반)
 
 미완료(바로 진행)
 1) 삭제 동기화 및 복구
