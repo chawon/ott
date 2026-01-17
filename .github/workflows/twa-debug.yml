@@ -2,7 +2,7 @@ name: Build TWA Debug APK
 
 on:
   push:
-    branches: ["feature/pwa"]
+    branches: ["main", "feature/pwa"]
   workflow_dispatch:
 
 permissions:
@@ -27,7 +27,7 @@ jobs:
 
       - name: Build debug APK
         working-directory: apps/twa
-        run: ./gradlew assembleDebug
+        run: ./gradlew assembleDebug --no-daemon
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4

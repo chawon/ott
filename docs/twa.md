@@ -6,7 +6,7 @@
 
 ## 필수 입력 값
 - 도메인: https://ott.preview.pe.kr
-- 패키지명: kr.pe.preview.ott
+- 패키지명: kr.pe.preview.ott.twa
 - 앱명: On the Timeline (OTT)
 
 ## 사전 요구사항
@@ -65,3 +65,7 @@ adb install -r apps/twa/app/build/outputs/apk/debug/app-debug.apk
 ## 참고
 - 스토어 배포용은 AAB 빌드 필요 (`./gradlew bundleRelease`)
 - 실서비스 배포 시에는 release keystore의 SHA-256으로 `assetlinks.json`을 갱신해야 함
+
+## CI (GitHub Actions) 빌드 준비
+- Secrets: `TWA_KEYSTORE_BASE64`, `TWA_KEYSTORE_PASSWORD`, `TWA_KEY_ALIAS`, `TWA_KEY_PASSWORD`
+- Base64 디코딩으로 `apps/twa/android.keystore` 생성 후 `apps/twa/keystore.properties` 작성
