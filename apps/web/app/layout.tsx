@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import AppHeader from "@/components/AppHeader";
 import SyncWorker from "@/components/SyncWorker";
@@ -17,6 +17,9 @@ export const metadata: Metadata = {
         title: "OTT",
         statusBarStyle: "black-translucent",
     },
+};
+
+export const viewport: Viewport = {
     themeColor: "#111827",
 };
 

@@ -97,7 +97,7 @@ function saveCustomOttOptions(options: string[]) {
 export default function QuickLogCard({
                                          onCreated,
                                      }: {
-    onCreated: (log: WatchLog) => void;
+    onCreated: (log: WatchLog, options?: { shareCard: boolean }) => void;
 }) {
     const { isRetro } = useRetro();
     const [selected, setSelected] = useState<TitleSearchItem | null>(null);
@@ -118,6 +118,7 @@ export default function QuickLogCard({
     const [seasonPosterUrl, setSeasonPosterUrl] = useState<string | null>(null);
     const [seasonYear, setSeasonYear] = useState<number | null>(null);
     const [shareToDiscussion, setShareToDiscussion] = useState(false);
+    const [shareCard, setShareCard] = useState(false);
     const [seasonLoading, setSeasonLoading] = useState(false);
     const [episodeLoading, setEpisodeLoading] = useState(false);
     const [seasonError, setSeasonError] = useState<string | null>(null);
@@ -332,7 +333,7 @@ export default function QuickLogCard({
                     },
                 },
             });
-            onCreated(localLog);
+            onCreated(localLog, { shareCard });
             await syncOutbox();
 
             if (shareToDiscussion && note.trim()) {
@@ -378,6 +379,7 @@ export default function QuickLogCard({
             setSelectedEpisode("");
             setSeasonPosterUrl(null);
             setSeasonYear(null);
+            setShareCard(false);
             setShareToDiscussion(false);
         } finally {
             setSaving(false);
@@ -608,6 +610,14 @@ export default function QuickLogCard({
                                         onChange={(e) => setShareToDiscussion(e.target.checked)}
                                     />
                                     함께 기록에 공유
+                                </label>
+                                <label className="mt-1 flex items-center gap-2 text-xs font-bold uppercase">
+                                    <input
+                                        type="checkbox"
+                                        checked={shareCard}
+                                        onChange={(e) => setShareCard(e.target.checked)}
+                                    />
+                                    공유 카드 만들기
                                 </label>
                             </div>
                         </div>
@@ -881,6 +891,14 @@ export default function QuickLogCard({
                                 onChange={(e) => setShareToDiscussion(e.target.checked)}
                             />
                             함께 기록에 공유
+                        </label>
+                        <label className="flex items-center gap-2 text-xs font-medium text-neutral-600">
+                            <input
+                                type="checkbox"
+                                checked={shareCard}
+                                onChange={(e) => setShareCard(e.target.checked)}
+                            />
+                            공유 카드 만들기
                         </label>
                     </div>
                 </div>

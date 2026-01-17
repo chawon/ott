@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { MessageCircle, PencilLine, NotebookPen } from "lucide-react";
 import QuickLogCard from "@/components/QuickLogCard";
 import LogCard from "@/components/LogCard";
+import ShareBottomSheet from "@/components/ShareBottomSheet";
 import { api } from "@/lib/api";
 import DiscussionList from "@/components/DiscussionList";
 import { listLogsLocal, upsertLogsLocal } from "@/lib/localStore";
@@ -16,6 +17,8 @@ export default function HomePage() {
     const [loading, setLoading] = useState(false);
     const [discussions, setDiscussions] = useState<DiscussionListItem[]>([]);
     const [quickOpen, setQuickOpen] = useState(true);
+    const [shareOpen, setShareOpen] = useState(false);
+    const [shareLog, setShareLog] = useState<WatchLog | null>(null);
     const { isRetro } = useRetro();
 
     async function loadDiscussions() {
@@ -78,10 +81,14 @@ export default function HomePage() {
                         </div>
                         {quickOpen ? (
                             <QuickLogCard
-                                onCreated={async (created) => {
+                                onCreated={async (created, options) => {
                                     setLogs((prev) => [created, ...prev].slice(0, 8));
                                     await upsertLogsLocal([created]);
                                     await loadDiscussions();
+                                    if (options?.shareCard) {
+                                        setShareLog(created);
+                                        setShareOpen(true);
+                                    }
                                 }}
                             />
                         ) : null}
@@ -133,6 +140,11 @@ export default function HomePage() {
                                             으뜸과 버금에서 당신의 비디오를 찾아보세요!
                                         </p>
                                     </div>                </aside>
+                <ShareBottomSheet
+                    open={shareOpen}
+                    log={shareLog}
+                    onClose={() => setShareOpen(false)}
+                />
             </div>
         );
     }
@@ -157,10 +169,14 @@ export default function HomePage() {
                     </div>
                     {quickOpen ? (
                         <QuickLogCard
-                            onCreated={async (created) => {
+                            onCreated={async (created, options) => {
                                 setLogs((prev) => [created, ...prev].slice(0, 8));
                                 await upsertLogsLocal([created]);
                                 await loadDiscussions();
+                                if (options?.shareCard) {
+                                    setShareLog(created);
+                                    setShareOpen(true);
+                                }
                             }}
                         />
                     ) : null}
@@ -208,6 +224,11 @@ export default function HomePage() {
                 </div>
                 <DiscussionList items={discussions} />
             </aside>
+            <ShareBottomSheet
+                open={shareOpen}
+                log={shareLog}
+                onClose={() => setShareOpen(false)}
+            />
         </div>
     );
 }
