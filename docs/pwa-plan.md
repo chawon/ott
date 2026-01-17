@@ -61,6 +61,6 @@
 - [x] PWA 설치/실행 이벤트 수집(API + 웹)
 
 ## TWA 내부 테스트 (Android)
-- [ ] Bubblewrap init 및 TWA 프로젝트 생성
-- [ ] 디버그 APK 빌드 및 기기 설치 테스트
+- [x] Bubblewrap init 및 TWA 프로젝트 생성
+- [x] 디버그 APK 빌드 및 기기 설치 테스트 (GitHub Actions)
 - [ ] assetlinks.json 배치 및 디지털 자산 링크 검증

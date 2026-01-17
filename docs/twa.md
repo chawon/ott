@@ -4,6 +4,9 @@
 - PWA를 Android TWA로 패키징해 내부 테스트용 APK 생성
 - 실제 배포 전, 기본 설치/실행/딥링크/스탠드얼론 동작 확인
 
+## 진행 상황
+- GitHub Actions에서 디버그 APK 빌드 성공 및 기기 설치 확인 완료
+
 ## 필수 입력 값
 - 도메인: https://ott.preview.pe.kr
 - 패키지명: kr.pe.preview.ott.twa
