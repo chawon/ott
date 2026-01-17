@@ -13,6 +13,7 @@ import {
     Occasion,
     Place,
     Status,
+    Title,
     TitleSearchItem,
     WatchLog,
     Discussion,
@@ -145,6 +146,34 @@ export default function QuickLogCard({
     }, [useWatchedAt, watchedDate]);
 
     useEffect(() => {
+        if (!selected || selected.provider !== "LOCAL" || !selected.titleId) return;
+        let cancelled = false;
+        (async () => {
+            try {
+                const title = await api<Title>(`/titles/${selected.titleId}`);
+                if (cancelled) return;
+                setSelected((prev) => {
+                    if (!prev || prev.titleId !== selected.titleId) return prev;
+                    return {
+                        ...prev,
+                        provider: title.provider ?? prev.provider,
+                        providerId: title.providerId ?? prev.providerId,
+                        posterUrl: title.posterUrl ?? prev.posterUrl,
+                        year: title.year ?? prev.year,
+                        type: title.type ?? prev.type,
+                        name: title.name ?? prev.name,
+                    };
+                });
+            } catch {
+                // ignore resolution errors
+            }
+        })();
+        return () => {
+            cancelled = true;
+        };
+    }, [selected?.provider, selected?.titleId]);
+
+    useEffect(() => {
         setCustomOttOptions(loadCustomOttOptions());
     }, []);
 
@@ -164,6 +193,7 @@ export default function QuickLogCard({
 
         async function loadSeasons() {
             if (!selected || selected.type !== "series") return;
+            if (!selected.providerId || selected.provider === "LOCAL") return;
             setSeasonLoading(true);
             setSeasonError(null);
             try {
@@ -203,6 +233,7 @@ export default function QuickLogCard({
         async function loadEpisodes() {
             if (!selected || selected.type !== "series") return;
             if (selectedSeason === "") return;
+            if (!selected.providerId || selected.provider === "LOCAL") return;
             setEpisodeLoading(true);
             try {
                 const res = await api<EpisodeOption[]>(
