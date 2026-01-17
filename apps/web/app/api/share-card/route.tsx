@@ -41,7 +41,7 @@ export async function POST(req: Request) {
   try {
     const fontRegularPath = "/usr/share/fonts/truetype/nanum/NanumSquareR.ttf";
     const fontBoldPath = "/usr/share/fonts/truetype/nanum/NanumSquareB.ttf";
-    const fonts: Array<{ name: string; data: ArrayBuffer; weight: number; style: "normal" }> = [];
+    const fonts: Array<{ name: string; data: ArrayBuffer; weight: 400 | 700; style: "normal" }> = [];
 
     try {
       const data = await fs.readFile(fontRegularPath);
