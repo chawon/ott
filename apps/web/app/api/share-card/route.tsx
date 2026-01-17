@@ -45,12 +45,14 @@ export async function POST(req: Request) {
 
     try {
       const data = await fs.readFile(fontRegularPath);
-      fonts.push({ name: "NanumSquare", data, weight: 400, style: "normal" });
+      const buffer = data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength);
+      fonts.push({ name: "NanumSquare", data: buffer, weight: 400, style: "normal" });
     } catch {}
 
     try {
       const data = await fs.readFile(fontBoldPath);
-      fonts.push({ name: "NanumSquare", data, weight: 700, style: "normal" });
+      const buffer = data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength);
+      fonts.push({ name: "NanumSquare", data: buffer, weight: 700, style: "normal" });
     } catch {}
 
     const body = (await req.json()) as ShareCardPayload;
