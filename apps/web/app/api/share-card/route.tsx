@@ -1,5 +1,8 @@
 import { ImageResponse } from "next/og";
 import fs from "node:fs/promises";
+import path from "node:path";
+import os from "node:os";
+import { getAverageColor } from "fast-average-color-node";
 
 export const runtime = "nodejs";
 
@@ -39,21 +42,32 @@ function formatTitleForCard(title: string) {
 
 export async function POST(req: Request) {
   try {
-    const fontRegularPath = "/usr/share/fonts/truetype/nanum/NanumSquareR.ttf";
-    const fontBoldPath = "/usr/share/fonts/truetype/nanum/NanumSquareB.ttf";
     const fonts: Array<{ name: string; data: ArrayBuffer; weight: 400 | 700; style: "normal" }> = [];
 
-    try {
-      const data = await fs.readFile(fontRegularPath);
-      const buffer = data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength);
-      fonts.push({ name: "NanumSquare", data: buffer, weight: 400, style: "normal" });
-    } catch {}
+    // Try multiple paths for fonts (System path and Project path)
+    const fontPaths = [
+      { name: "NanumSquare", weight: 400 as const, paths: ["/usr/share/fonts/truetype/nanum/NanumSquareR.ttf", "./public/fonts/NanumSquareR.ttf"] },
+      { name: "NanumSquare", weight: 700 as const, paths: ["/usr/share/fonts/truetype/nanum/NanumSquareB.ttf", "./public/fonts/NanumSquareB.ttf"] },
+      { name: "Galmuri11", weight: 400 as const, paths: ["./public/fonts/Galmuri11.ttf"] },
+      { name: "Galmuri11", weight: 700 as const, paths: ["./public/fonts/Galmuri11-Bold.ttf"] }
+    ];
 
-    try {
-      const data = await fs.readFile(fontBoldPath);
-      const buffer = data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength);
-      fonts.push({ name: "NanumSquare", data: buffer, weight: 700, style: "normal" });
-    } catch {}
+    for (const fontInfo of fontPaths) {
+      for (const path of fontInfo.paths) {
+        try {
+          const data = await fs.readFile(path);
+          fonts.push({
+            name: fontInfo.name,
+            data: data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength),
+            weight: fontInfo.weight,
+            style: "normal"
+          });
+          break; // Use the first successful one
+        } catch {
+          continue;
+        }
+      }
+    }
 
     const body = (await req.json()) as ShareCardPayload;
     const title = clampText(body.title ?? "", 60);
@@ -62,15 +76,53 @@ export async function POST(req: Request) {
     let posterUrl = body.posterUrl ?? null;
     const watermark = body.watermark ?? "On the Timeline";
     const isRetro = body.theme === "retro";
+    
+    // Select font family based on theme
+    const fontFamily = isRetro ? "Galmuri11, sans-serif" : "NanumSquare, sans-serif";
+
+    let backgroundColor = isRetro ? "#f8f2e9" : "#0b0c10";
+    let contentBgColor = isRetro ? "#fff6dd" : "#0b1224";
 
     if (posterUrl) {
       try {
         const res = await fetch(posterUrl);
         if (res.ok) {
           const arrayBuffer = await res.arrayBuffer();
-          const base64 = Buffer.from(arrayBuffer).toString("base64");
+          const buffer = Buffer.from(arrayBuffer);
+          const base64 = buffer.toString("base64");
           const contentType = res.headers.get("content-type") || "image/jpeg";
-          posterUrl = `data:${contentType};base64,${base64}`;
+          const finalPosterUrl = `data:${contentType};base64,${base64}`;
+
+          // Extract color if not retro and using a real image
+          if (!isRetro) {
+            try {
+              const colorData = await getAverageColor(buffer);
+              
+              if (colorData && colorData.value) {
+                const [r, g, b] = colorData.value;
+                // Darken the color significantly to ensure white text readability
+                // Mix with black (70% black, 30% color) for the main background
+                // Or just use it as a base for a gradient
+                const darken = 0.2;
+                const dr = Math.floor(r * darken);
+                const dg = Math.floor(g * darken);
+                const db = Math.floor(b * darken);
+                
+                // For content area, maybe slightly lighter but still dark
+                const contentDarken = 0.25;
+                const cr = Math.floor(r * contentDarken);
+                const cg = Math.floor(g * contentDarken);
+                const cb = Math.floor(b * contentDarken);
+
+                backgroundColor = `rgb(${dr}, ${dg}, ${db})`;
+                contentBgColor = `rgb(${cr}, ${cg}, ${cb})`;
+              }
+            } catch (e) {
+                console.error("Color extraction failed:", e);
+            }
+          }
+
+          posterUrl = finalPosterUrl;
         } else {
           posterUrl = null;
         }
@@ -88,9 +140,9 @@ export async function POST(req: Request) {
             display: "flex",
             flexDirection: "column",
             position: "relative",
-            backgroundColor: isRetro ? "#f8f2e9" : "#0b0c10",
+            backgroundColor,
             color: isRetro ? "#111827" : "#ffffff",
-            fontFamily: "NanumSquare, sans-serif",
+            fontFamily,
           }}
         >
           <div
@@ -99,7 +151,7 @@ export async function POST(req: Request) {
               height: "70%",
               display: "flex",
               position: "relative",
-              backgroundColor: isRetro ? "#f8f2e9" : "#111827",
+              backgroundColor: isRetro ? "#f8f2e9" : backgroundColor, // Use same bg to blend
               overflow: "hidden",
             }}
           >
@@ -123,18 +175,7 @@ export async function POST(req: Request) {
                 height: "36%",
                 display: "flex",
                 background:
-                  "linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.28) 45%, rgba(0,0,0,0.55) 100%)",
-              }}
-            />
-            <div
-              style={{
-                position: "absolute",
-                bottom: 0,
-                left: 0,
-                right: 0,
-                height: "18%",
-                display: "flex",
-                background: "linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.35) 100%)",
+                  `linear-gradient(180deg, rgba(0,0,0,0) 0%, ${contentBgColor} 100%)`, // Fade into content color
               }}
             />
           </div>
@@ -147,7 +188,7 @@ export async function POST(req: Request) {
               flexDirection: "column",
               justifyContent: "flex-start",
               padding: "64px 88px 72px",
-              backgroundColor: isRetro ? "#fff6dd" : "#0b1224",
+              backgroundColor: contentBgColor,
             }}
           >
             <div
