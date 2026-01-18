@@ -67,8 +67,13 @@ export default function HomePage() {
                 <div className="space-y-10">
                     <section className="space-y-4">
                         <div className="flex items-center justify-between">
-                            <div className="bg-black inline-block px-3 py-1 text-sm font-bold uppercase tracking-widest text-white shadow-[4px_4px_0px_0px_rgba(0,0,0,0.2)]">
-                                빠른 날적이
+                            <div className="space-y-1">
+                                <h1 className="bg-black inline-block px-3 py-1 text-sm font-bold uppercase tracking-widest text-white shadow-[4px_4px_0px_0px_rgba(0,0,0,0.2)]">
+                                    로그인 없이 바로 남기는 시청 기록
+                                </h1>
+                                <p className="text-[10px] font-bold text-neutral-500 uppercase tracking-tight">
+                                    한 줄만 적어두면 타임라인이 쌓여요
+                                </p>
                             </div>
                             <button
                                 type="button"
@@ -154,9 +159,14 @@ export default function HomePage() {
             <div className="space-y-6">
                 <section className="space-y-3">
                     <div className="flex items-center justify-between">
-                        <div className="text-base font-semibold flex items-center gap-2">
-                            <PencilLine className="h-4 w-4" />
-                            빠르게 기록 남기기
+                        <div className="space-y-1">
+                            <h1 className="text-base font-semibold flex items-center gap-2">
+                                <PencilLine className="h-4 w-4" />
+                                로그인 없이 바로 남기는 시청 기록
+                            </h1>
+                            <p className="text-xs text-neutral-500 ml-6">
+                                한 줄만 적어두면 타임라인이 쌓여요
+                            </p>
                         </div>
                         <button
                             type="button"
