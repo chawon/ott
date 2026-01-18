@@ -31,8 +31,8 @@ export default function FaqPage() {
         <section className="space-y-3">
           <h2 className="text-lg font-bold text-neutral-900">Q. 기록을 삭제하고 싶으면 어떻게 하나요?</h2>
           <p className="text-neutral-600 leading-relaxed">
-            각 로그 카드의 상세 페이지나 목록에서 삭제 버튼을 눌러 언제든 지울 수 있습니다. 
-            삭제된 데이터는 로컬과 서버 모두에서 즉시 제거되거나 복구 불가능한 상태로 처리됩니다.
+            기록은 개별 삭제 대신 <strong>설정 &gt; 로컬 초기화</strong>에서 한 번에 지울 수 있어요.
+            이 기능은 현재 기기에 저장된 데이터만 삭제하며, 서버 데이터는 삭제되지 않습니다.
           </p>
         </section>
 
