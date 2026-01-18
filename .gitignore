@@ -13,6 +13,8 @@
 node_modules/
 build/
 ott.iml
+apps/twa/*.keystore
+apps/twa/keystore.properties
 
 # App-specific local content
 apps/mobile/

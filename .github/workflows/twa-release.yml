@@ -1,0 +1,54 @@
+name: Build TWA Release AAB
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-release-aab:
+    runs-on: ubuntu-latest
+    env:
+      TWA_KEYSTORE_BASE64: ${{ secrets.TWA_KEYSTORE_BASE64 }}
+      TWA_KEYSTORE_PASSWORD: ${{ secrets.TWA_KEYSTORE_PASSWORD }}
+      TWA_KEY_ALIAS: ${{ secrets.TWA_KEY_ALIAS }}
+      TWA_KEY_PASSWORD: ${{ secrets.TWA_KEY_PASSWORD }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: "17"
+          cache: "gradle"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Prepare signing keystore
+        shell: bash
+        run: |
+          if [[ -z "$TWA_KEYSTORE_BASE64" || -z "$TWA_KEYSTORE_PASSWORD" || -z "$TWA_KEY_ALIAS" || -z "$TWA_KEY_PASSWORD" ]]; then
+            echo "Missing one or more required secrets: TWA_KEYSTORE_BASE64, TWA_KEYSTORE_PASSWORD, TWA_KEY_ALIAS, TWA_KEY_PASSWORD"
+            exit 1
+          fi
+          echo "$TWA_KEYSTORE_BASE64" | base64 --decode > apps/twa/android.keystore
+          cat > apps/twa/keystore.properties <<EOF
+          storeFile=android.keystore
+          storePassword=$TWA_KEYSTORE_PASSWORD
+          keyAlias=$TWA_KEY_ALIAS
+          keyPassword=$TWA_KEY_PASSWORD
+          EOF
+
+      - name: Build release AAB
+        working-directory: apps/twa
+        run: ./gradlew bundleRelease --no-daemon
+
+      - name: Upload AAB artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ott-twa-release-aab
+          path: apps/twa/app/build/outputs/bundle/release/app-release.aab
