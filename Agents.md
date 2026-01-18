@@ -375,6 +375,10 @@
     2. 포스터 주요 색상 추출 및 배경 자동 적용 (fast-average-color-node)
     3. 레트로 모드 전용 폰트(Galmuri11) 및 테마 적용
     4. 이미지 저장 및 Web Share API 연동
+23) PWA 기능 통합 완료
+    1. 설치 유도 배너(`PwaInstallBanner`) 추가 (iOS/Android 분기)
+    2. 서비스 워커(`sw.js`) 캐싱 전략 적용
+    3. `manifest.ts` 및 `layout.tsx` 연동
 
 미완료(바로 진행)
 1) 삭제 동기화 및 복구
