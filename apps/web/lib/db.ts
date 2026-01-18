@@ -23,6 +23,15 @@ export type OutboxItem =
       createdAt: string;
       attempts: number;
       lastError?: string | null;
+    }
+  | {
+      id: string;
+      type: "delete_log";
+      logId: string;
+      payload: unknown;
+      createdAt: string;
+      attempts: number;
+      lastError?: string | null;
     };
 
 class WatchLogDB extends Dexie {

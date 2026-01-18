@@ -1,6 +1,9 @@
 import Link from "next/link";
+import { Trash2 } from "lucide-react";
 import { WatchLog } from "@/lib/types";
 import { formatNoteInline, occasionLabel, placeLabel, statusLabel } from "@/lib/utils";
+import { deleteLog } from "@/lib/localStore";
+import { syncOutbox } from "@/lib/sync";
 import { useRetro } from "@/context/RetroContext";
 import { cn } from "@/lib/utils";
 
@@ -63,10 +66,20 @@ function seasonYearLabel(log: WatchLog) {
 export default function LogCard({ log }: { log: WatchLog }) {
     const t = log.title;
     const { isRetro } = useRetro();
+    if (log.deletedAt) return null;
     if (!t?.id) return null;
     const seasonLabel = seasonEpisodeLabel(log);
     const yearLabel = seasonYearLabel(log) ?? (t.year ? String(t.year) : null);
     const isCommentOrigin = log.origin === "COMMENT";
+
+    async function handleDelete() {
+        if (!confirm("정말 삭제하시겠습니까? 복구할 수 없습니다.")) return;
+        await deleteLog(log.id);
+        await syncOutbox();
+        if (typeof window !== "undefined") {
+            window.dispatchEvent(new CustomEvent("sync:updated"));
+        }
+    }
 
     if (isRetro) {
         return (
@@ -103,11 +116,20 @@ export default function LogCard({ log }: { log: WatchLog }) {
                                 {log.ott ? <span className="text-blue-600">@{log.ott}</span> : ""}
                             </div>
                         </div>
-                        {typeof log.rating === "number" ? (
-                            <div className="shrink-0 bg-black px-2 py-1 text-sm font-bold text-yellow-400 border-2 border-yellow-400">
-                                ★ {log.rating.toFixed(1)}
-                            </div>
-                        ) : null}
+                        <div className="flex items-center gap-2 shrink-0">
+                            {typeof log.rating === "number" ? (
+                                <div className="bg-black px-2 py-1 text-sm font-bold text-yellow-400 border-2 border-yellow-400">
+                                    ★ {log.rating.toFixed(1)}
+                                </div>
+                            ) : null}
+                            <button
+                                onClick={handleDelete}
+                                className="p-1 text-red-600 hover:bg-red-100 border-2 border-transparent hover:border-red-600 transition-colors"
+                                title="삭제"
+                            >
+                                <Trash2 className="h-4 w-4" />
+                            </button>
+                        </div>
                     </div>
                     {(log.place || log.occasion) ? (
                         <div className="flex flex-wrap gap-2 mb-3">
@@ -174,11 +196,20 @@ export default function LogCard({ log }: { log: WatchLog }) {
                             ) : null}
                         </div>
                     </div>
-                    {typeof log.rating === "number" ? (
-                        <div className="shrink-0 rounded-xl bg-neutral-900 px-2.5 py-1 text-xs font-bold text-white shadow-sm">
-                            {log.rating.toFixed(1)}
-                        </div>
-                    ) : null}
+                    <div className="flex items-center gap-1 shrink-0 ml-4">
+                        {typeof log.rating === "number" ? (
+                            <div className="rounded-xl bg-neutral-900 px-2.5 py-1 text-xs font-bold text-white shadow-sm">
+                                {log.rating.toFixed(1)}
+                            </div>
+                        ) : null}
+                        <button
+                            onClick={handleDelete}
+                            className="p-1.5 text-neutral-300 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                            title="삭제"
+                        >
+                            <Trash2 className="h-4 w-4" />
+                        </button>
+                    </div>
                 </div>
                 {(log.place || log.occasion) ? (
                     <div className="flex flex-wrap gap-1.5 mb-3">

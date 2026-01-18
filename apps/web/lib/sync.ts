@@ -3,9 +3,9 @@ import {
   getTitleLocal,
   findTitleByProvider,
   listOutbox,
+  markLogDeleted,
   recordOutboxError,
   remapLogsForTitle,
-  removeLogLocal,
   removeLogsByTitleExcept,
   removeOutboxItem,
   removeTitleLocal,
@@ -117,7 +117,7 @@ async function pullChanges() {
   if (res.changes?.logs?.length) {
     for (const l of res.changes.logs) {
       if (l.deletedAt) {
-        await removeLogLocal(l.id);
+        await markLogDeleted(l.id, l.deletedAt, l.updatedAt);
         continue;
       }
       const title =

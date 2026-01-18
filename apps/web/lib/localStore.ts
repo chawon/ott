@@ -15,6 +15,11 @@ export async function upsertTitleLocal(title: Title) {
 
 export async function upsertLogLocal(log: WatchLog) {
   await upsertTitleLocal(log.title);
+  const existing = await db.logs.get(log.id);
+  if (existing) {
+    if (existing.deletedAt && !log.deletedAt) return;
+    if (existing.updatedAt && log.updatedAt && new Date(existing.updatedAt) > new Date(log.updatedAt)) return;
+  }
   const local: LocalWatchLog = {
     ...log,
     titleId: log.title.id,
@@ -31,14 +36,26 @@ export async function upsertLogsLocal(logs: WatchLog[]) {
       updatedAt: l.title.updatedAt ?? nowIso(),
     }))
   );
-  await db.logs.bulkPut(
-    logs.map((l) => ({
-      ...l,
-      syncStatus: l.syncStatus ?? "synced",
-      titleId: l.title.id,
-      updatedAt: l.updatedAt ?? nowIso(),
-    }))
-  );
+  const existingLogs = await db.logs.bulkGet(logs.map((l) => l.id));
+  const existingMap = new Map(existingLogs.filter((l): l is LocalWatchLog => !!l).map((l) => [l.id, l]));
+
+  const toPut: LocalWatchLog[] = [];
+  for (const log of logs) {
+    const existing = existingMap.get(log.id);
+    if (existing) {
+      if (existing.deletedAt && !log.deletedAt) continue;
+      const localTime = existing.updatedAt ? new Date(existing.updatedAt).getTime() : 0;
+      const incomingTime = log.updatedAt ? new Date(log.updatedAt).getTime() : 0;
+      if (localTime > incomingTime) continue;
+    }
+    toPut.push({
+      ...log,
+      syncStatus: log.syncStatus ?? "synced",
+      titleId: log.title.id,
+      updatedAt: log.updatedAt ?? nowIso(),
+    });
+  }
+  if (toPut.length > 0) await db.logs.bulkPut(toPut);
 }
 
 export async function upsertHistoryLocal(items: WatchLogHistory[]) {
@@ -56,17 +73,16 @@ export async function listLogsLocal(params: {
 }) {
   const { limit, status, origin, ott, place, occasion } = params;
   let coll = db.logs.orderBy("watchedAt").reverse();
-  if (status || ott || place || occasion) {
-    coll = coll.filter((l) => {
-      if (status && l.status !== status) return false;
-      if (origin && l.origin !== origin) return false;
-      if (place && l.place !== place) return false;
-      if (occasion && l.occasion !== occasion) return false;
-      if (ott && l.ott && !l.ott.toLowerCase().includes(ott.toLowerCase())) return false;
-      if (ott && !l.ott) return false;
-      return true;
-    });
-  }
+  coll = coll.filter((l) => {
+    if (l.deletedAt) return false;
+    if (status && l.status !== status) return false;
+    if (origin && l.origin !== origin) return false;
+    if (place && l.place !== place) return false;
+    if (occasion && l.occasion !== occasion) return false;
+    if (ott && l.ott && !l.ott.toLowerCase().includes(ott.toLowerCase())) return false;
+    if (ott && !l.ott) return false;
+    return true;
+  });
   return coll.limit(limit).toArray();
 }
 
@@ -79,7 +95,8 @@ export async function removeTitleLocal(id: string) {
 }
 
 export async function listLogsByTitleLocal(titleId: string, limit: number) {
-  return db.logs.where("titleId").equals(titleId).reverse().limit(limit).toArray();
+  const items = await db.logs.where("titleId").equals(titleId).reverse().limit(limit).toArray();
+  return items.filter((l) => !l.deletedAt);
 }
 
 export async function listHistoryLocal(logId: string, limit: number) {
@@ -112,6 +129,42 @@ export async function setLogSyncStatus(id: string, status: WatchLog["syncStatus"
 
 export async function removeLogLocal(id: string) {
   await db.logs.delete(id);
+}
+
+export async function markLogDeleted(id: string, deletedAt?: string, updatedAt?: string) {
+  const item = await db.logs.get(id);
+  if (!item) return;
+  await db.logs.put({
+    ...item,
+    deletedAt: deletedAt ?? nowIso(),
+    updatedAt: updatedAt ?? nowIso(),
+  });
+}
+
+export async function enqueueDeleteLog(logId: string, deletedAt?: string, updatedAt?: string) {
+  const item: OutboxItem = {
+    id: safeUUID(),
+    type: "delete_log",
+    logId,
+    payload: {
+      log: {
+        id: logId,
+        op: "delete",
+        deletedAt: deletedAt ?? nowIso(),
+        updatedAt: updatedAt ?? nowIso(),
+      },
+    },
+    createdAt: nowIso(),
+    attempts: 0,
+    lastError: null,
+  };
+  await db.outbox.put(item);
+}
+
+export async function deleteLog(id: string) {
+  const now = nowIso();
+  await markLogDeleted(id, now, now);
+  await enqueueDeleteLog(id, now, now);
 }
 
 export async function removeLogsByTitleExcept(titleId: string, keepId: string) {
