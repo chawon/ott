@@ -69,10 +69,10 @@ export default function HomePage() {
                         <div className="flex items-center justify-between">
                             <div className="space-y-1">
                                 <h1 className="bg-black inline-block px-3 py-1 text-sm font-bold uppercase tracking-widest text-white shadow-[4px_4px_0px_0px_rgba(0,0,0,0.2)]">
-                                    로그인 없이 바로 남기는 시청 기록
+                                    봤니? 그럼 날적이 해보자~
                                 </h1>
                                 <p className="text-[10px] font-bold text-neutral-500 uppercase tracking-tight">
-                                    한 줄만 적어두면 타임라인이 쌓여요
+                                    한 번 적어 두면 발자취가 또렷해져요
                                 </p>
                             </div>
                             <button
