@@ -19,18 +19,6 @@ function buildQuery(params: Record<string, string | undefined>) {
     return s ? `?${s}` : "";
 }
 
-function applyFilters(logs: WatchLog[], status: Status | "ALL", ott: string, origin: "ALL" | "LOG" | "COMMENT") {
-    return logs.filter((l) => {
-        if (status !== "ALL" && l.status !== status) return false;
-        if (origin !== "ALL" && l.origin !== origin) return false;
-        if (ott && ott.trim()) {
-            if (!l.ott) return false;
-            if (!l.ott.toLowerCase().includes(ott.trim().toLowerCase())) return false;
-        }
-        return true;
-    });
-}
-
 export default function TimelinePage() {
     const { isRetro } = useRetro();
     const [status, setStatus] = useState<Status | "ALL">("ALL");
@@ -68,9 +56,14 @@ export default function TimelinePage() {
                 });
 
                 const res = await api<WatchLog[]>(`/logs${query}`);
-                const filtered = applyFilters(res, status, ott, origin);
-                if (!cancelled) setLogs(filtered);
                 await upsertLogsLocal(res);
+                const refreshed = await listLogsLocal({
+                    limit: 50,
+                    status: status === "ALL" ? undefined : status,
+                    origin: origin === "ALL" ? undefined : origin,
+                    ott: ott.trim() ? ott : undefined,
+                });
+                if (!cancelled) setLogs(refreshed);
             } catch (e: any) {
                 if (!cancelled) {
                     setErr(e?.message ?? "Failed to load logs");

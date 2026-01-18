@@ -38,8 +38,9 @@ export default function HomePage() {
                 if (cached.length > 0) setLogs(cached);
 
                 const l = await api<WatchLog[]>("/logs?limit=8");
-                setLogs(l);
                 await upsertLogsLocal(l);
+                const refreshed = await listLogsLocal({ limit: 8 });
+                if (refreshed.length > 0) setLogs(refreshed);
             } catch {
                 // keep cached logs if network fails
             } finally {
