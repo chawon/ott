@@ -5,8 +5,11 @@ import { Settings } from "lucide-react";
 import { ensureAuth, pairWithCode } from "@/lib/auth";
 import { getDeviceId, getPairingCode, getUserId, resetLocalState } from "@/lib/localStore";
 import { api } from "@/lib/api";
+import { useRetro } from "@/context/RetroContext";
+import { cn } from "@/lib/utils";
 
 export default function AccountPage() {
+  const { isRetro } = useRetro();
   const [userId, setUserId] = useState<string | null>(null);
   const [deviceId, setDeviceId] = useState<string | null>(null);
   const [pairingCode, setPairingCode] = useState<string | null>(null);
@@ -129,15 +132,28 @@ export default function AccountPage() {
     }
   }
 
+  const headerTitle = isRetro ? "맞춤" : "설정";
+  const headerSubtitle = isRetro 
+    ? "기기 잇기" 
+    : "이메일 없이 페어링 코드로 여러 기기를 연결하기";
+
   return (
     <div className="space-y-4">
       <div>
-        <div className="text-xl font-semibold flex items-center gap-2">
-          <Settings className="h-5 w-5" />
-          기기 연결
-        </div>
-        <div className="text-sm text-neutral-600">
-          이메일 없이 페어링 코드로 여러 기기를 연결해.
+        {isRetro ? (
+          <div className="flex items-baseline justify-between border-b-4 border-black pb-2 mb-4">
+            <div className="text-xl font-bold uppercase tracking-tighter">{headerTitle}</div>
+          </div>
+        ) : (
+          <div className="text-xl font-semibold flex items-center gap-2">
+            <Settings className="h-5 w-5" />
+            {headerTitle}
+          </div>
+        )}
+        <div className={cn(
+          isRetro ? "text-xs font-bold text-neutral-500 uppercase" : "text-sm text-neutral-600"
+        )}>
+          {headerSubtitle}
         </div>
       </div>
 

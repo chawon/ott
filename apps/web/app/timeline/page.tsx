@@ -7,6 +7,8 @@ import LogCard from "@/components/LogCard";
 import { api } from "@/lib/api";
 import { listLogsLocal, upsertLogsLocal } from "@/lib/localStore";
 import { Status, WatchLog } from "@/lib/types";
+import { useRetro } from "@/context/RetroContext";
+import { cn } from "@/lib/utils";
 
 function buildQuery(params: Record<string, string | undefined>) {
     const qs = new URLSearchParams();
@@ -30,6 +32,7 @@ function applyFilters(logs: WatchLog[], status: Status | "ALL", ott: string, ori
 }
 
 export default function TimelinePage() {
+    const { isRetro } = useRetro();
     const [status, setStatus] = useState<Status | "ALL">("ALL");
     const [origin, setOrigin] = useState<"ALL" | "LOG" | "COMMENT">("ALL");
     const [ott, setOtt] = useState("");
@@ -97,20 +100,31 @@ export default function TimelinePage() {
         return () => window.removeEventListener("sync:updated", handleSync);
     }, [status, ott, origin]);
 
+    const headerTitle = isRetro ? "발자취" : "나의 타임라인";
     const headerSubtitle = useMemo(() => {
         if (loading) return "불러오는 중…";
         if (err) return err;
-        return "전체 기록";
-    }, [loading, err]);
+        return isRetro ? "내가 남긴 날적이가 한눈에 보여요" : "내가 본 것들이 시간 순서로 모여요";
+    }, [loading, err, isRetro]);
 
     return (
         <div className="space-y-4">
             <div>
-                <div className="text-xl font-semibold flex items-center gap-2">
-                    <Clock className="h-5 w-5" />
-                    나의 시청 기록
+                {isRetro ? (
+                    <div className="flex items-baseline justify-between border-b-4 border-black pb-2 mb-4">
+                        <div className="text-xl font-bold uppercase tracking-tighter">{headerTitle}</div>
+                    </div>
+                ) : (
+                    <div className="text-xl font-semibold flex items-center gap-2">
+                        <Clock className="h-5 w-5" />
+                        {headerTitle}
+                    </div>
+                )}
+                <div className={cn(
+                    isRetro ? "text-xs font-bold text-neutral-500 uppercase" : "text-sm text-neutral-600"
+                )}>
+                    {headerSubtitle}
                 </div>
-                <div className="text-sm text-neutral-600">{headerSubtitle}</div>
             </div>
 
             <FiltersBar status={status} setStatus={setStatus} origin={origin} setOrigin={setOrigin} ott={ott} setOtt={setOtt} />
@@ -122,8 +136,15 @@ export default function TimelinePage() {
             )}
 
             {!loading && logs.length === 0 && !err && (
-                <div className="rounded-2xl border border-neutral-200 bg-white p-5 text-sm text-neutral-600 shadow-sm">
-                    아직 기록이 없어요. Home에서 하나 저장해봐.
+                <div className={cn(
+                    "p-10 text-center text-sm font-bold shadow-sm",
+                    isRetro 
+                        ? "border-4 border-dashed border-neutral-400 bg-neutral-100 text-neutral-500 uppercase" 
+                        : "rounded-2xl border border-neutral-200 bg-white text-neutral-600"
+                )}>
+                    {isRetro 
+                        ? "아직 발자취가 없어. 위에서 날적이 하나 남겨봐~" 
+                        : "첫 기록을 남겨보세요. 타임라인이 바로 시작돼요."}
                 </div>
             )}
 

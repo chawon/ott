@@ -257,3 +257,7 @@ export async function recordOutboxError(id: string, message: string) {
     lastError: message,
   });
 }
+
+export async function countLogsLocal() {
+  return db.logs.count();
+}

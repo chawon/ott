@@ -1,14 +1,15 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Calendar, MapPin, MessageSquare, Star, Users, Loader2, X, Clock, MonitorPlay } from "lucide-react";
+import { Calendar, MapPin, MessageSquare, Star, Users, Loader2, X, Clock, MonitorPlay, ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { api } from "@/lib/api";
 import TitleSearchBox from "@/components/TitleSearchBox";
-import { enqueueCreateLog, findTitleByProvider, upsertLogLocal } from "@/lib/localStore";
+import { enqueueCreateLog, findTitleByProvider, upsertLogLocal, countLogsLocal } from "@/lib/localStore";
 import { syncOutbox } from "@/lib/sync";
 import { safeUUID, OCCASION_LABELS, PLACE_LABELS, STATUS_LABELS } from "@/lib/utils";
 import { useRetro } from "@/context/RetroContext";
+import Link from "next/link";
 import {
     Occasion,
     Place,
@@ -124,7 +125,7 @@ export default function QuickLogCard({
     const [episodeLoading, setEpisodeLoading] = useState(false);
     const [seasonError, setSeasonError] = useState<string | null>(null);
     const [saving, setSaving] = useState(false);
-    const [toast, setToast] = useState<string | null>(null);
+    const [banner, setBanner] = useState<{ visible: boolean; count: number } | null>(null);
 
     const canSave = useMemo(() => !!selected && !saving, [selected, saving]);
 
@@ -390,8 +391,9 @@ export default function QuickLogCard({
                 }
             }
 
-            setToast(isRetro ? "SAVED!" : "저장되었습니다!");
-            window.setTimeout(() => setToast(null), 1800);
+            const totalCount = await countLogsLocal();
+            setBanner({ visible: true, count: totalCount });
+            window.setTimeout(() => setBanner(null), 3000);
 
             setSelected(null);
             setStatus("IN_PROGRESS");
@@ -674,10 +676,15 @@ export default function QuickLogCard({
                     </div>
                 </section>
 
-                {toast ? (
-                    <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[100] animate-bounce">
-                        <div className="border-4 border-black bg-[#f7d51d] px-4 py-2 text-sm font-bold text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-                            {toast}
+                {banner && banner.visible ? (
+                    <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[100] w-[90%] max-w-md animate-bounce">
+                        <div className="border-4 border-black bg-[#f7d51d] p-4 text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex items-center justify-between gap-4">
+                            <div className="text-xs font-bold uppercase">
+                                좋아요! {banner.count}번째 타임라인이 쌓였어요.
+                            </div>
+                            <Link href="/timeline" className="flex-shrink-0 border-2 border-black bg-white px-2 py-1 text-[10px] font-bold uppercase hover:bg-neutral-100">
+                                보기
+                            </Link>
                         </div>
                     </div>
                 ) : null}
@@ -944,10 +951,18 @@ export default function QuickLogCard({
                 </button>
             </section>
 
-            {toast ? (
-                <div className="fixed bottom-5 left-1/2 -translate-x-1/2 z-[100] animate-in fade-in slide-in-from-bottom-4">
-                    <div className="rounded-full bg-neutral-900 px-6 py-2 text-sm text-white shadow-lg">
-                        {toast}
+            {banner && banner.visible ? (
+                <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[100] w-full max-w-sm px-4 animate-in fade-in slide-in-from-bottom-4 duration-300">
+                    <div className="flex items-center justify-between gap-4 rounded-2xl border border-neutral-200 bg-white/90 p-4 shadow-xl backdrop-blur-md">
+                        <div className="text-sm font-medium text-neutral-900">
+                            좋아요, <span className="font-bold text-blue-600">{banner.count}</span>번째 타임라인이 쌓였어요.
+                        </div>
+                        <Link 
+                            href="/timeline" 
+                            className="flex items-center gap-1 text-xs font-bold text-blue-600 hover:underline"
+                        >
+                            보기 <ArrowRight className="h-3 w-3" />
+                        </Link>
                     </div>
                 </div>
             ) : null}

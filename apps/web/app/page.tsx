@@ -115,7 +115,7 @@ export default function HomePage() {
 
                         {!loading && logs.length === 0 ? (
                             <div className="border-4 border-dashed border-neutral-400 bg-neutral-100 p-10 text-center text-sm font-bold uppercase text-neutral-500">
-                                아직 날적이가 없네... 위에서 날적이를 경험해봐!
+                                아직 발자취가 없어. 위에서 날적이 하나 남겨봐~
                             </div>
                         ) : null}
 
@@ -210,7 +210,7 @@ export default function HomePage() {
 
                     {!loading && logs.length === 0 ? (
                         <div className="rounded-2xl border border-neutral-200 bg-white p-5 text-sm text-neutral-600 shadow-sm">
-                            아직 기록이 없어요. 위에서 하나 저장해봐.
+                            첫 기록을 남겨보세요. 타임라인이 바로 시작돼요.
                         </div>
                     ) : null}
 

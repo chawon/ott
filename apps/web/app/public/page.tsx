@@ -5,8 +5,11 @@ import { MessageCircle } from "lucide-react";
 import DiscussionList from "@/components/DiscussionList";
 import { api } from "@/lib/api";
 import { DiscussionListItem } from "@/lib/types";
+import { useRetro } from "@/context/RetroContext";
+import { cn } from "@/lib/utils";
 
 export default function PublicDiscussionsPage() {
+  const { isRetro } = useRetro();
   const [items, setItems] = useState<DiscussionListItem[]>([]);
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<"latest" | "comments">("latest");
@@ -37,15 +40,32 @@ export default function PublicDiscussionsPage() {
     })();
   }, []);
 
+  const headerTitle = isRetro ? "서로 날적이" : "함께 기록";
+  const headerSubtitle = loading 
+    ? "불러오는 중…" 
+    : err 
+      ? err 
+      : isRetro 
+        ? "남긴 날적이를 서로 슬쩍 구경하기" 
+        : "공개로 남긴 기록을 둘러보고 영감 얻기";
+
   return (
     <div className="space-y-4">
       <div>
-        <div className="text-xl font-semibold flex items-center gap-2">
-          <MessageCircle className="h-5 w-5" />
-          모두 함께 기록
-        </div>
-        <div className="text-sm text-neutral-600">
-          {loading ? "불러오는 중…" : err ? err : "공개된 기록을 한눈에 함께"}
+        {isRetro ? (
+          <div className="flex items-baseline justify-between border-b-4 border-black pb-2 mb-4">
+            <div className="text-xl font-bold uppercase tracking-tighter">{headerTitle}</div>
+          </div>
+        ) : (
+          <div className="text-xl font-semibold flex items-center gap-2">
+            <MessageCircle className="h-5 w-5" />
+            {headerTitle}
+          </div>
+        )}
+        <div className={cn(
+          isRetro ? "text-xs font-bold text-neutral-500 uppercase" : "text-sm text-neutral-600"
+        )}>
+          {headerSubtitle}
         </div>
       </div>
 

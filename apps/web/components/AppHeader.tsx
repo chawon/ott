@@ -76,15 +76,15 @@ export default function AppHeader() {
                         "font-bold tracking-tight transition-colors",
                         isRetro ? "text-black text-xl uppercase" : "text-neutral-900 text-lg"
                     )}>
-                        {isRetro ? "으뜸과 버금" : "On the Timeline (OTT)"}
+                        {isRetro ? "으뜸과 버금" : "On the Timeline"}
                     </Link>
                 </div>
 
                 <nav className="grid w-full grid-cols-4 items-center gap-1 sm:w-auto sm:flex sm:flex-nowrap sm:gap-2">
-                    <NavLink href="/" label={isRetro ? "날적이" : "나의 기록"} icon={User} />
-                    <NavLink href="/timeline" label={isRetro ? "발자취" : "시청 기록"} icon={Clock} />
-                    <NavLink href="/public" label={isRetro ? "수다방" : "함께 기록"} icon={MessageCircle} />
-                    <NavLink href="/account" label={isRetro ? "맞추기" : "기기 연결"} icon={Settings} />
+                    <NavLink href="/" label={isRetro ? "날적이" : "기록하기"} icon={User} />
+                    <NavLink href="/timeline" label={isRetro ? "발자취" : "타임라인"} icon={Clock} />
+                    <NavLink href="/public" label={isRetro ? "서로 날적이" : "함께"} icon={MessageCircle} />
+                    <NavLink href="/account" label={isRetro ? "맞춤" : "설정"} icon={Settings} />
                 </nav>
             </div>
         </header>
