@@ -11,7 +11,7 @@ export type ShareCardPayload = {
 };
 
 export async function fetchShareCardBlob(payload: ShareCardPayload) {
-  const res = await fetch("/api/share-card", {
+  const res = await fetch("/og/share-card", {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify(payload),

@@ -88,8 +88,8 @@
     2. 레트로 라벨 축약(맞추기)
 21) `components/ShareBottomSheet.tsx`
     1. 공유 카드 미리보기/다운로드/공유
-    2. 서버 렌더 이미지(`/api/share-card`) 사용
-22) `app/api/share-card/route.tsx`
+    2. 서버 렌더 이미지(`/og/share-card`) 사용
+22) `app/og/share-card/route.tsx`
     1. 공유 카드 이미지 생성(1080x1920)
     2. 포스터 70% + 텍스트 패널 30%
 23) `lib/share.ts`
