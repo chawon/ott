@@ -113,6 +113,22 @@ export default function AccountPage() {
     }
   }
 
+  async function resetLocalOnly() {
+    const ok = confirm("브라우저에 저장된 모든 데이터가 삭제됩니다. 계속할까요?");
+    if (!ok) return;
+    setLoading(true);
+    setStatus(null);
+    try {
+      await resetLocalState();
+      setStatus("로컬 데이터가 초기화되었어. 새로고침할게.");
+      if (typeof window !== "undefined") {
+        window.location.reload();
+      }
+    } finally {
+      setLoading(false);
+    }
+  }
+
   function formatShort(iso: string) {
     const d = new Date(iso);
     return d.toLocaleDateString("ko-KR", { month: "short", day: "numeric" });
@@ -198,6 +214,30 @@ export default function AccountPage() {
         <div className="text-sm text-neutral-600">내 계정 정보</div>
         <div className="text-xs text-neutral-500">User: {userId ?? "—"}</div>
         <div className="text-xs text-neutral-500">Device: {deviceId ?? "—"}</div>
+      </section>
+
+      <section className={cn(
+        "rounded-2xl p-6 shadow-sm space-y-3",
+        isRetro ? "border-4 border-black bg-white" : "border border-neutral-200 bg-white"
+      )}>
+        <div className="text-sm font-semibold">로컬 데이터 초기화</div>
+        <div className="text-xs text-neutral-500">
+          이 기기에 저장된 기록/캐시를 모두 삭제해. 서버 데이터는 삭제되지 않아.
+        </div>
+        <button
+          type="button"
+          onClick={resetLocalOnly}
+          disabled={loading}
+          className={cn(
+            "w-full px-4 py-3 text-sm font-semibold",
+            isRetro
+              ? "border-2 border-black bg-white text-black hover:bg-yellow-200"
+              : "rounded-2xl border border-neutral-200 bg-white text-neutral-700 hover:bg-neutral-50",
+            loading && "opacity-40"
+          )}
+        >
+          로컬 초기화
+        </button>
       </section>
 
       <section className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm space-y-3">
