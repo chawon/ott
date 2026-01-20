@@ -40,6 +40,16 @@ function formatTitleForCard(title: string) {
   return `${before}\n${after}`;
 }
 
+function tmdbResize(url: string | null | undefined, size: string): string | undefined {
+  if (!url) return url ?? undefined;
+  const marker = "https://image.tmdb.org/t/p/";
+  if (!url.startsWith(marker)) return url;
+  const rest = url.slice(marker.length);
+  const slash = rest.indexOf("/");
+  if (slash <= 0) return url;
+  return `${marker}${size}${rest.slice(slash)}`;
+}
+
 export async function POST(req: Request) {
   try {
     const fonts: Array<{ name: string; data: ArrayBuffer; weight: 400 | 700; style: "normal" }> = [];
@@ -84,6 +94,7 @@ export async function POST(req: Request) {
     let contentBgColor = isRetro ? "#fff6dd" : "#0b1224";
 
     if (posterUrl) {
+      posterUrl = tmdbResize(posterUrl, "w780") ?? posterUrl;
       try {
         const res = await fetch(posterUrl);
         if (res.ok) {
