@@ -128,6 +128,7 @@ export default function QuickLogCard({
     const [banner, setBanner] = useState<{ visible: boolean; count: number } | null>(null);
 
     const canSave = useMemo(() => !!selected && !saving, [selected, saving]);
+    const isWishlist = status === "WISHLIST";
 
     function toDateInput(d: Date) {
         const y = d.getFullYear();
@@ -529,7 +530,11 @@ export default function QuickLogCard({
                                 <select
                                     value={rating === "" ? "" : String(rating)}
                                     onChange={(e) => setRating(e.target.value === "" ? "" : Number(e.target.value))}
-                                    className="w-full bg-white px-3 py-2 text-sm font-bold"
+                                    className={cn(
+                                        "w-full bg-white px-3 py-2 text-sm font-bold",
+                                        isWishlist && "opacity-50 cursor-not-allowed"
+                                    )}
+                                    disabled={isWishlist}
                                 >
                                     <option value="">선택 안함</option>
                                     <option value="5">★★★★★ 최고!</option>
@@ -543,7 +548,11 @@ export default function QuickLogCard({
                                 <select
                                     value={place}
                                     onChange={(e) => setPlace(e.target.value as Place)}
-                                    className="w-full bg-white px-3 py-2 text-sm font-bold"
+                                    className={cn(
+                                        "w-full bg-white px-3 py-2 text-sm font-bold",
+                                        isWishlist && "opacity-50 cursor-not-allowed"
+                                    )}
+                                    disabled={isWishlist}
                                 >
                                     {PLACE_OPTIONS.map((o) => (
                                         <option key={o.value} value={o.value}>{o.label}</option>
@@ -556,7 +565,11 @@ export default function QuickLogCard({
                                 <select
                                     value={occasion}
                                     onChange={(e) => setOccasion(e.target.value as Occasion)}
-                                    className="w-full bg-white px-3 py-2 text-sm font-bold"
+                                    className={cn(
+                                        "w-full bg-white px-3 py-2 text-sm font-bold",
+                                        isWishlist && "opacity-50 cursor-not-allowed"
+                                    )}
+                                    disabled={isWishlist}
                                 >
                                     {OCCASION_OPTIONS.map((o) => (
                                         <option key={o.value} value={o.value}>{o.label}</option>
@@ -636,22 +649,26 @@ export default function QuickLogCard({
                                     className="w-full min-h-[80px] bg-white px-3 py-2 text-sm font-bold placeholder:text-neutral-400 resize-none"
                                     placeholder="짧은 감상을 남겨보세요..."
                                 />
-                                <label className="mt-2 flex items-center gap-2 text-xs font-bold uppercase">
-                                    <input
-                                        type="checkbox"
-                                        checked={shareToDiscussion}
-                                        onChange={(e) => setShareToDiscussion(e.target.checked)}
-                                    />
-                                    함께 기록에 공유
-                                </label>
-                                <label className="mt-1 flex items-center gap-2 text-xs font-bold uppercase">
-                                    <input
-                                        type="checkbox"
-                                        checked={shareCard}
-                                        onChange={(e) => setShareCard(e.target.checked)}
-                                    />
-                                    공유 카드 만들기
-                                </label>
+                                <div className="mt-2 flex flex-wrap items-center gap-4">
+                                    <label className="flex items-center gap-2 text-xs font-bold uppercase whitespace-nowrap">
+                                        <input
+                                            type="checkbox"
+                                            checked={shareToDiscussion}
+                                            onChange={(e) => setShareToDiscussion(e.target.checked)}
+                                            className="h-5 w-5"
+                                        />
+                                        함께 기록 공유
+                                    </label>
+                                    <label className="flex items-center gap-2 text-xs font-bold uppercase whitespace-nowrap">
+                                        <input
+                                            type="checkbox"
+                                            checked={shareCard}
+                                            onChange={(e) => setShareCard(e.target.checked)}
+                                            className="h-5 w-5"
+                                        />
+                                        공유 카드 만들기
+                                    </label>
+                                </div>
                             </div>
                         </div>
 
@@ -802,7 +819,11 @@ export default function QuickLogCard({
                         <select
                             value={rating === "" ? "" : String(rating)}
                             onChange={(e) => setRating(e.target.value === "" ? "" : Number(e.target.value))}
-                            className="w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm focus:ring-2 focus:ring-neutral-900/5 transition-all outline-none"
+                            className={cn(
+                                "w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm focus:ring-2 focus:ring-neutral-900/5 transition-all outline-none",
+                                isWishlist && "opacity-50 cursor-not-allowed"
+                            )}
+                            disabled={isWishlist}
                         >
                             <option value="">선택 안함</option>
                             <option value="5">😍 최고예요</option>
@@ -819,7 +840,11 @@ export default function QuickLogCard({
                         <select
                             value={place}
                             onChange={(e) => setPlace(e.target.value as Place)}
-                            className="w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm focus:ring-2 focus:ring-neutral-900/5 transition-all outline-none"
+                            className={cn(
+                                "w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm focus:ring-2 focus:ring-neutral-900/5 transition-all outline-none",
+                                isWishlist && "opacity-50 cursor-not-allowed"
+                            )}
+                            disabled={isWishlist}
                         >
                             {PLACE_OPTIONS.map((o) => (
                                 <option key={o.value} value={o.value}>{o.label}</option>
@@ -835,7 +860,11 @@ export default function QuickLogCard({
                         <select
                             value={occasion}
                             onChange={(e) => setOccasion(e.target.value as Occasion)}
-                            className="w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm focus:ring-2 focus:ring-neutral-900/5 transition-all outline-none"
+                            className={cn(
+                                "w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm focus:ring-2 focus:ring-neutral-900/5 transition-all outline-none",
+                                isWishlist && "opacity-50 cursor-not-allowed"
+                            )}
+                            disabled={isWishlist}
                         >
                             {OCCASION_OPTIONS.map((o) => (
                                 <option key={o.value} value={o.value}>{o.label}</option>
@@ -922,22 +951,26 @@ export default function QuickLogCard({
                             placeholder="짧은 감상을 남겨보세요."
                             rows={3}
                         />
-                        <label className="flex items-center gap-2 text-xs font-medium text-neutral-600">
-                            <input
-                                type="checkbox"
-                                checked={shareToDiscussion}
-                                onChange={(e) => setShareToDiscussion(e.target.checked)}
-                            />
-                            함께 기록에 공유
-                        </label>
-                        <label className="flex items-center gap-2 text-xs font-medium text-neutral-600">
-                            <input
-                                type="checkbox"
-                                checked={shareCard}
-                                onChange={(e) => setShareCard(e.target.checked)}
-                            />
-                            공유 카드 만들기
-                        </label>
+                        <div className="flex flex-wrap items-center gap-4">
+                            <label className="flex items-center gap-2 text-xs font-medium text-neutral-600 whitespace-nowrap">
+                                <input
+                                    type="checkbox"
+                                    checked={shareToDiscussion}
+                                    onChange={(e) => setShareToDiscussion(e.target.checked)}
+                                    className="h-5 w-5"
+                                />
+                                함께 기록 공유
+                            </label>
+                            <label className="flex items-center gap-2 text-xs font-medium text-neutral-600 whitespace-nowrap">
+                                <input
+                                    type="checkbox"
+                                    checked={shareCard}
+                                    onChange={(e) => setShareCard(e.target.checked)}
+                                    className="h-5 w-5"
+                                />
+                                공유 카드 만들기
+                            </label>
+                        </div>
                     </div>
                 </div>
 
