@@ -7,7 +7,7 @@ import { api } from "@/lib/api";
 import TitleSearchBox from "@/components/TitleSearchBox";
 import { enqueueCreateLog, findTitleByProvider, upsertLogLocal, countLogsLocal } from "@/lib/localStore";
 import { syncOutbox } from "@/lib/sync";
-import { safeUUID, OCCASION_LABELS, PLACE_LABELS, STATUS_LABELS } from "@/lib/utils";
+import { safeUUID, OCCASION_LABELS, PLACE_LABELS, STATUS_LABELS, tmdbResize } from "@/lib/utils";
 import { useRetro } from "@/context/RetroContext";
 import Link from "next/link";
 import {
@@ -436,7 +436,7 @@ export default function QuickLogCard({
                                                             <div className="h-32 w-24 shrink-0 border-2 border-white bg-neutral-800 shadow-[2px_2px_0px_0px_white]">
                                                                 {(seasonPosterUrl ?? selected.posterUrl) ? (
                                                                     <img
-                                                                        src={seasonPosterUrl ?? selected.posterUrl ?? ""}
+                                                                        src={tmdbResize(seasonPosterUrl ?? selected.posterUrl, "w185") ?? seasonPosterUrl ?? selected.posterUrl ?? ""}
                                                                         alt={selected.name}
                                                                         className="h-full w-full object-cover pixelated"
                                                                         style={{ imageRendering: "pixelated" }}
@@ -703,7 +703,7 @@ export default function QuickLogCard({
                             <div className="h-32 w-20 shrink-0 overflow-hidden rounded-lg bg-neutral-100 shadow-sm border border-neutral-100">
                                 {(seasonPosterUrl ?? selected.posterUrl) ? (
                                     <img
-                                        src={seasonPosterUrl ?? selected.posterUrl ?? ""}
+                                        src={tmdbResize(seasonPosterUrl ?? selected.posterUrl, "w185") ?? seasonPosterUrl ?? selected.posterUrl ?? ""}
                                         alt={selected.name}
                                         className="h-full w-full object-cover"
                                         loading="lazy"

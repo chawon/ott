@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "@/lib/api";
 import { DiscussionListItem, TitleSearchItem } from "@/lib/types";
 import { useRetro } from "@/context/RetroContext";
-import { cn } from "@/lib/utils";
+import { cn, tmdbResize } from "@/lib/utils";
 
 export default function TitleSearchBox({
                                            onSelect,
@@ -214,7 +214,7 @@ export default function TitleSearchBox({
                                             )}>
                                                 {d.posterUrl ? (
                                                     <img
-                                                        src={d.posterUrl}
+                                                        src={tmdbResize(d.posterUrl, "w185") ?? d.posterUrl}
                                                         alt={d.titleName}
                                                         className={cn("h-full w-full object-cover", isRetro && "pixelated")}
                                                         style={isRetro ? { imageRendering: "pixelated" } : {}}
@@ -270,7 +270,7 @@ export default function TitleSearchBox({
                                     )}>
                                         {t.posterUrl ? (
                                             <img
-                                                src={t.posterUrl}
+                                                src={tmdbResize(t.posterUrl, "w185") ?? t.posterUrl}
                                                 alt={t.name}
                                                 className={cn("h-full w-full object-cover", isRetro && "pixelated")}
                                                 style={isRetro ? { imageRendering: "pixelated" } : {}}

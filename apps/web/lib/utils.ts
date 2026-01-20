@@ -64,6 +64,16 @@ export function safeUUID(): string {
   return `${b.slice(0, 8)}-${b.slice(8, 12)}-${b.slice(12, 16)}-${b.slice(16, 20)}-${b.slice(20)}`;
 }
 
+export function tmdbResize(url: string | null | undefined, size: string): string | undefined {
+  if (!url) return url ?? undefined;
+  const marker = "https://image.tmdb.org/t/p/";
+  if (!url.startsWith(marker)) return url;
+  const rest = url.slice(marker.length);
+  const slash = rest.indexOf("/");
+  if (slash <= 0) return url;
+  return `${marker}${size}${rest.slice(slash)}`;
+}
+
 export function ratingDisplay(rating?: number | null) {
   if (typeof rating !== "number") return null;
   if (rating >= 5) return { emoji: "😍", label: "나에게 최고", value: 5 };

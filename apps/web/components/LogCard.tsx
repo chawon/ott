@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { WatchLog } from "@/lib/types";
-import { formatNoteInline, occasionLabel, placeLabel, statusLabel } from "@/lib/utils";
+import { formatNoteInline, occasionLabel, placeLabel, statusLabel, tmdbResize } from "@/lib/utils";
 import { useRetro } from "@/context/RetroContext";
 import { cn } from "@/lib/utils";
 
@@ -79,7 +79,7 @@ export default function LogCard({ log }: { log: WatchLog }) {
                 <div className="h-40 w-28 border-4 border-black bg-neutral-200 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] overflow-hidden">
                         {(log.seasonPosterUrl ?? t.posterUrl) ? (
                             <img
-                                src={log.seasonPosterUrl ?? t.posterUrl ?? ""}
+                                src={tmdbResize(log.seasonPosterUrl ?? t.posterUrl, "w185") ?? log.seasonPosterUrl ?? t.posterUrl ?? ""}
                                 alt={t.name}
                                 className="h-full w-full object-cover pixelated"
                                 style={{ imageRendering: "pixelated" }}
@@ -135,7 +135,7 @@ export default function LogCard({ log }: { log: WatchLog }) {
                 <div className="h-32 w-20 overflow-hidden rounded-xl bg-neutral-100 shadow-sm border border-neutral-100">
                     {(log.seasonPosterUrl ?? t.posterUrl) ? (
                         <img
-                            src={log.seasonPosterUrl ?? t.posterUrl ?? ""}
+                            src={tmdbResize(log.seasonPosterUrl ?? t.posterUrl, "w185") ?? log.seasonPosterUrl ?? t.posterUrl ?? ""}
                             alt={t.name}
                             className="h-full w-full object-cover"
                             loading="lazy"

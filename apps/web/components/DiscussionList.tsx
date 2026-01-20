@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { DiscussionListItem } from "@/lib/types";
 import { useRetro } from "@/context/RetroContext";
-import { cn } from "@/lib/utils";
+import { cn, tmdbResize } from "@/lib/utils";
 
 function formatShortDate(iso: string) {
   const d = new Date(iso);
@@ -46,7 +46,7 @@ export default function DiscussionList({
               <div className="h-20 w-14 shrink-0 border-2 border-black bg-neutral-200">
                 {d.posterUrl ? (
                   <img
-                    src={d.posterUrl}
+                    src={tmdbResize(d.posterUrl, "w185") ?? d.posterUrl}
                     alt={d.titleName}
                     className="h-full w-full object-cover pixelated"
                     style={{ imageRendering: "pixelated" }}
@@ -88,7 +88,7 @@ export default function DiscussionList({
             <div className="h-16 w-12 shrink-0 overflow-hidden rounded-lg bg-neutral-100 border border-neutral-100">
               {d.posterUrl ? (
                 <img
-                  src={d.posterUrl}
+                  src={tmdbResize(d.posterUrl, "w185") ?? d.posterUrl}
                   alt={d.titleName}
                   className="h-full w-full object-cover"
                   loading="lazy"
