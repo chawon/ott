@@ -222,7 +222,7 @@ export default function AccountPage() {
       )}>
         <div className="text-sm font-semibold">로컬 데이터 초기화</div>
         <div className="text-xs text-neutral-500">
-          이 기기에 저장된 기록/캐시를 모두 삭제해. 서버 데이터는 삭제되지 않아.
+          이 기기에 저장된 기록/캐시를 모두 삭제해요. 서버 데이터는 삭제되지 않아요.
         </div>
         <button
           type="button"
