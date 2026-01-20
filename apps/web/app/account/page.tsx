@@ -28,7 +28,7 @@ export default function AccountPage() {
         setUserId(res?.userId ?? getUserId());
         setDeviceId(res?.deviceId ?? getDeviceId());
         setPairingCode(res?.pairingCode ?? getPairingCode());
-        if (!res) setStatus("페어링 코드 발급에 실패했어. 다시 시도해줘.");
+        if (!res) setStatus("페어링 코드 발급에 실패했어요. 다시 시도해 주세요.");
         await loadDevices();
       } finally {
         setInitializing(false);
@@ -85,10 +85,10 @@ export default function AccountPage() {
       const next = await loadDevices();
       if (next.length === 0) {
         await resetIdentity();
-        setStatus("모든 기기를 해제해서 계정을 초기화했어.");
+        setStatus("모든 기기를 해제해서 계정을 초기화했어요.");
         return;
       }
-      setStatus("기기 연결을 해제했어.");
+      setStatus("기기 연결을 해제했어요.");
     } catch (e: any) {
       setStatus(e?.message ?? "해제 실패");
     } finally {
@@ -105,7 +105,7 @@ export default function AccountPage() {
         await api(`/auth/devices/${d.id}`, { method: "DELETE" });
       }
       await resetIdentity();
-      setStatus("모든 기기를 해제해서 계정을 초기화했어.");
+      setStatus("모든 기기를 해제해서 계정을 초기화했어요.");
     } catch (e: any) {
       setStatus(e?.message ?? "초기화 실패");
     } finally {
@@ -120,7 +120,7 @@ export default function AccountPage() {
     setStatus(null);
     try {
       await resetLocalState();
-      setStatus("로컬 데이터가 초기화되었어. 새로고침할게.");
+      setStatus("로컬 데이터가 초기화되었어요. 새로고침할게요.");
       if (typeof window !== "undefined") {
         window.location.reload();
       }
@@ -142,7 +142,7 @@ export default function AccountPage() {
       setUserId(res?.userId ?? getUserId());
       setDeviceId(res?.deviceId ?? getDeviceId());
       setPairingCode(res?.pairingCode ?? getPairingCode());
-      if (!res) setStatus("페어링 코드 발급에 실패했어. 서버 상태를 확인해줘.");
+      if (!res) setStatus("페어링 코드 발급에 실패했어요. 서버 상태를 확인해 주세요.");
     } finally {
       setInitializing(false);
     }
@@ -178,7 +178,7 @@ export default function AccountPage() {
         <div className="text-2xl font-semibold tracking-widest">
           {initializing ? "발급 중…" : (pairingCode ?? "—")}
         </div>
-        <div className="text-xs text-neutral-500">다른 기기에서 이 코드를 입력해.</div>
+        <div className="text-xs text-neutral-500">다른 기기에서 이 코드를 입력해 주세요.</div>
         {!pairingCode ? (
           <button
             type="button"
