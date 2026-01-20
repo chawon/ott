@@ -163,7 +163,7 @@ export default function HomePage() {
                         <div className="space-y-1">
                             <h1 className="text-base font-semibold flex items-center gap-2">
                                 <PencilLine className="h-4 w-4" />
-                                로그인 없이 바로 남기는 시청 기록
+                                바로 남기는 나의 시청 기록
                             </h1>
                             <p className="text-xs text-neutral-500 ml-6">
                                 한 줄만 적어두면 타임라인이 쌓여요
