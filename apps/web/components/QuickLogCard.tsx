@@ -629,7 +629,7 @@ export default function QuickLogCard({
                                     )}
                                 >
                                     <Calendar className="h-3.5 w-3.5" />
-                                    {useWatchedAt ? "날짜 직접 입력" : "오늘 보셨나요?"}
+                                    {useWatchedAt ? "날짜 직접 입력" : "다른 날짜로 기록하기"}
                                 </button>
                                 {useWatchedAt && (
                                     <input
@@ -711,13 +711,13 @@ export default function QuickLogCard({
 
     return (
         <>
-            <section className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm space-y-4 transition-all hover:border-neutral-300">
+            <section className="rounded-2xl border border-border bg-card p-6 text-card-foreground shadow-sm space-y-4 transition-all hover:border-border/80">
                 <TitleSearchBox onSelect={(item) => setSelected(item)} />
 
                 {selected ? (
-                    <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-4 transition-colors">
+                    <div className="rounded-xl border border-border bg-muted p-4 transition-colors">
                         <div className="flex items-center gap-5">
-                            <div className="h-32 w-20 shrink-0 overflow-hidden rounded-lg bg-neutral-100 shadow-sm border border-neutral-100">
+                            <div className="h-32 w-20 shrink-0 overflow-hidden rounded-lg bg-muted shadow-sm border border-border">
                                 {(seasonPosterUrl ?? selected.posterUrl) ? (
                                     <img
                                         src={tmdbResize(seasonPosterUrl ?? selected.posterUrl, "w185") ?? seasonPosterUrl ?? selected.posterUrl ?? ""}
@@ -728,10 +728,10 @@ export default function QuickLogCard({
                                 ) : null}
                             </div>
                             <div className="min-w-0 flex-1">
-                                <div className="truncate text-base font-bold text-neutral-900">
+                                <div className="truncate text-base font-bold text-foreground">
                                     {selected.name}
                                 </div>
-                                <div className="mt-1 text-sm text-neutral-500 font-medium">
+                                <div className="mt-1 text-sm text-muted-foreground font-medium">
                                     {selected.type === "movie" ? "영화" : "시리즈"}
                                     {(seasonYear ?? selected.year) ? ` · ${seasonYear ?? selected.year}` : ""}
                                     {selectedSeason !== "" ? ` · 시즌 ${selectedSeason}` : ""}
@@ -740,7 +740,7 @@ export default function QuickLogCard({
                             </div>
                             <button 
                                 onClick={() => setSelected(null)}
-                                className="rounded-full p-1 text-neutral-400 hover:bg-neutral-200 hover:text-neutral-600 transition-colors"
+                                className="rounded-full p-1 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
                             >
                                 <X className="h-4 w-4" />
                             </button>
@@ -757,7 +757,7 @@ export default function QuickLogCard({
                         <select
                             value={status}
                             onChange={(e) => setStatus(e.target.value as Status)}
-                            className="w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm focus:ring-2 focus:ring-neutral-900/5 transition-all outline-none"
+                            className="w-full select-base rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-neutral-900/5 transition-all outline-none"
                         >
                             {STATUS_OPTIONS.map((o) => (
                                 <option key={o.value} value={o.value}>{o.label}</option>
@@ -772,7 +772,7 @@ export default function QuickLogCard({
                                 <select
                                     value={selectedSeason}
                                     onChange={(e) => setSelectedSeason(e.target.value ? Number(e.target.value) : "")}
-                                    className="w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm focus:ring-2 focus:ring-neutral-900/5 transition-all outline-none"
+                                    className="w-full select-base rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-neutral-900/5 transition-all outline-none"
                                 >
                                     <option value="">선택 안함</option>
                                     {seasons.map((s) => (
@@ -794,7 +794,7 @@ export default function QuickLogCard({
                                 <select
                                     value={selectedEpisode}
                                     onChange={(e) => setSelectedEpisode(e.target.value ? Number(e.target.value) : "")}
-                                    className="w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm focus:ring-2 focus:ring-neutral-900/5 transition-all outline-none"
+                                    className="w-full select-base rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-neutral-900/5 transition-all outline-none"
                                     disabled={selectedSeason === "" || episodeLoading}
                                 >
                                     <option value="">선택 안함</option>
@@ -820,7 +820,7 @@ export default function QuickLogCard({
                             value={rating === "" ? "" : String(rating)}
                             onChange={(e) => setRating(e.target.value === "" ? "" : Number(e.target.value))}
                             className={cn(
-                                "w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm focus:ring-2 focus:ring-neutral-900/5 transition-all outline-none",
+                                "w-full select-base rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-neutral-900/5 transition-all outline-none",
                                 isWishlist && "opacity-50 cursor-not-allowed"
                             )}
                             disabled={isWishlist}
@@ -841,7 +841,7 @@ export default function QuickLogCard({
                             value={place}
                             onChange={(e) => setPlace(e.target.value as Place)}
                             className={cn(
-                                "w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm focus:ring-2 focus:ring-neutral-900/5 transition-all outline-none",
+                                "w-full select-base rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-neutral-900/5 transition-all outline-none",
                                 isWishlist && "opacity-50 cursor-not-allowed"
                             )}
                             disabled={isWishlist}
@@ -861,7 +861,7 @@ export default function QuickLogCard({
                             value={occasion}
                             onChange={(e) => setOccasion(e.target.value as Occasion)}
                             className={cn(
-                                "w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm focus:ring-2 focus:ring-neutral-900/5 transition-all outline-none",
+                                "w-full select-base rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-neutral-900/5 transition-all outline-none",
                                 isWishlist && "opacity-50 cursor-not-allowed"
                             )}
                             disabled={isWishlist}
@@ -888,7 +888,7 @@ export default function QuickLogCard({
                                     setOtt(next);
                                 }
                             }}
-                            className="w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm focus:ring-2 focus:ring-neutral-900/5 transition-all outline-none"
+                            className="w-full select-base rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-neutral-900/5 transition-all outline-none"
                         >
                             <option value="">선택 안함</option>
                             {OTT_GROUPS.map((g) => (
@@ -911,7 +911,7 @@ export default function QuickLogCard({
                             <input
                                 value={ott}
                                 onChange={(e) => setOtt(e.target.value)}
-                                className="mt-2 w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm focus:ring-2 focus:ring-neutral-900/5 transition-all outline-none"
+                                className="mt-2 w-full select-base rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-neutral-900/5 transition-all outline-none"
                                 placeholder="직접 입력"
                             />
                         ) : null}
@@ -927,14 +927,14 @@ export default function QuickLogCard({
                             )}
                         >
                             <Calendar className="h-3.5 w-3.5" />
-                            {useWatchedAt ? "날짜 직접 선택 중" : "오늘 보셨나요?"}
+                            {useWatchedAt ? "날짜 직접 선택 중" : "다른 날짜로 기록하기"}
                         </button>
                         {useWatchedAt ? (
                             <input
                                 type="date"
                                 value={watchedDate}
                                 onChange={(e) => setWatchedDate(e.target.value)}
-                                className="w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm focus:ring-2 focus:ring-neutral-900/5 transition-all outline-none"
+                                className="w-full select-base rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-neutral-900/5 transition-all outline-none"
                             />
                         ) : null}
                     </div>
@@ -947,7 +947,7 @@ export default function QuickLogCard({
                         <textarea
                             value={note}
                             onChange={(e) => setNote(e.target.value)}
-                            className="w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm focus:ring-2 focus:ring-neutral-900/5 transition-all outline-none resize-none"
+                            className="w-full select-base rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-neutral-900/5 transition-all outline-none resize-none"
                             placeholder="짧은 감상을 남겨보세요."
                             rows={3}
                         />
@@ -986,8 +986,8 @@ export default function QuickLogCard({
 
             {banner && banner.visible ? (
                 <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[100] w-full max-w-sm px-4 animate-in fade-in slide-in-from-bottom-4 duration-300">
-                    <div className="flex items-center justify-between gap-4 rounded-2xl border border-neutral-200 bg-white/90 p-4 shadow-xl backdrop-blur-md">
-                        <div className="text-sm font-medium text-neutral-900">
+                    <div className="flex items-center justify-between gap-4 rounded-2xl border border-border bg-card/90 p-4 shadow-xl backdrop-blur-md">
+                        <div className="text-sm font-medium text-foreground">
                             좋아요, <span className="font-bold text-blue-600">{banner.count}</span>번째 타임라인이 쌓였어요.
                         </div>
                         <Link 

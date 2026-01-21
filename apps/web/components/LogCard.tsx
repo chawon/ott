@@ -19,7 +19,9 @@ function renderBody(text: string, isRetro: boolean) {
             const name = p.slice(2, -1);
             return (
                 <span key={idx} className={cn(
-                    isRetro ? "bg-blue-100 text-blue-800 px-1 border border-blue-800 mx-0.5" : "rounded-md bg-indigo-50 px-1 text-indigo-700"
+                    isRetro
+                        ? "bg-blue-100 text-blue-800 px-1 border border-blue-800 mx-0.5"
+                        : "rounded-md bg-accent px-1 text-accent-foreground"
                 )}>
                     @{name}
                 </span>
@@ -28,7 +30,9 @@ function renderBody(text: string, isRetro: boolean) {
         if (p.startsWith("@")) {
             return (
                 <span key={idx} className={cn(
-                    isRetro ? "bg-blue-100 text-blue-800 px-1 border border-blue-800 mx-0.5" : "rounded-md bg-indigo-50 px-1 text-indigo-700"
+                    isRetro
+                        ? "bg-blue-100 text-blue-800 px-1 border border-blue-800 mx-0.5"
+                        : "rounded-md bg-accent px-1 text-accent-foreground"
                 )}>
                     {p}
                 </span>
@@ -128,11 +132,13 @@ export default function LogCard({ log }: { log: WatchLog }) {
 
     return (
         <article className={cn(
-            "rounded-2xl border bg-white p-5 shadow-sm transition-all flex gap-5",
-            isCommentOrigin ? "border-amber-300 bg-amber-50/40" : "border-neutral-200 hover:border-neutral-300"
+            "rounded-2xl border border-border bg-card p-5 text-card-foreground shadow-sm transition-all flex gap-5",
+            isCommentOrigin
+                ? "border-amber-300 bg-amber-50/40 dark:border-amber-800 dark:bg-amber-950/30"
+                : "hover:border-border/80"
         )}>
             <div className="shrink-0">
-                <div className="h-32 w-20 overflow-hidden rounded-xl bg-neutral-100 shadow-sm border border-neutral-100">
+                <div className="h-32 w-20 overflow-hidden rounded-xl bg-muted shadow-sm border border-border">
                     {(log.seasonPosterUrl ?? t.posterUrl) ? (
                         <img
                             src={tmdbResize(log.seasonPosterUrl ?? t.posterUrl, "w185") ?? log.seasonPosterUrl ?? t.posterUrl ?? ""}
@@ -141,42 +147,42 @@ export default function LogCard({ log }: { log: WatchLog }) {
                             loading="lazy"
                         />
                     ) : (
-                        <div className="h-full w-full flex items-center justify-center text-[10px] text-neutral-400 font-medium">NO IMAGE</div>
+                        <div className="h-full w-full flex items-center justify-center text-[10px] text-muted-foreground font-medium">NO IMAGE</div>
                     )}
                 </div>
             </div>
             <div className="flex-1 min-w-0">
                 <div className="flex items-start justify-between gap-3 mb-1">
                     <div className="min-w-0">
-                        <Link href={`/title/${t.id}`} className="text-lg font-bold text-neutral-900 hover:underline decoration-neutral-400 underline-offset-4 truncate block">
+                        <Link href={`/title/${t.id}`} className="text-lg font-bold text-foreground hover:underline decoration-muted-foreground underline-offset-4 truncate block">
                             {t.name}
                         </Link>
-                        <div className="mt-1 flex items-center gap-1.5 text-xs font-medium text-neutral-500">
+                        <div className="mt-1 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
                             <span>{statusLabel(log.status)}</span>
                             {seasonLabel ? (
                                 <>
-                                    <span className="text-neutral-300">·</span>
+                                    <span className="text-muted-foreground/60">·</span>
                                     <span>{seasonLabel}</span>
                                 </>
                             ) : null}
                             {yearLabel ? (
                                 <>
-                                    <span className="text-neutral-300">·</span>
+                                    <span className="text-muted-foreground/60">·</span>
                                     <span>{yearLabel}</span>
                                 </>
                             ) : null}
-                            <span className="text-neutral-300">·</span>
+                            <span className="text-muted-foreground/60">·</span>
                             <span>{formatDate(log.watchedAt ?? log.createdAt, false)}</span>
                             {log.ott ? (
                                 <>
-                                    <span className="text-neutral-300">·</span>
+                                    <span className="text-muted-foreground/60">·</span>
                                     <span className="text-indigo-600/80">{log.ott}</span>
                                 </>
                             ) : null}
                         </div>
                     </div>
                     {typeof log.rating === "number" ? (
-                        <div className="shrink-0 rounded-xl bg-neutral-900 px-2.5 py-1 text-xs font-bold text-white shadow-sm">
+                        <div className="shrink-0 rounded-xl bg-foreground px-2.5 py-1 text-xs font-bold text-background shadow-sm">
                             {log.rating.toFixed(1)}
                         </div>
                     ) : null}
@@ -188,7 +194,7 @@ export default function LogCard({ log }: { log: WatchLog }) {
                     </div>
                 ) : null}
                 {log.note ? (
-                    <p className="text-sm leading-relaxed text-neutral-700 line-clamp-2">
+                    <p className="text-sm leading-relaxed text-muted-foreground line-clamp-2">
                         {renderBody(formatNoteInline(log.note), false)}
                     </p>
                 ) : null}

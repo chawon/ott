@@ -159,20 +159,20 @@ export default function HomePage() {
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
             <div className="space-y-6">
                 <section className="space-y-3">
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-end justify-between">
                         <div className="space-y-1">
-                            <h1 className="text-base font-semibold flex items-center gap-2">
+                            <h1 className="text-xl font-semibold flex items-center gap-2">
                                 <PencilLine className="h-4 w-4" />
                                 바로 남기는 나의 시청 기록
                             </h1>
-                            <p className="text-xs text-neutral-500 ml-6">
+                            <p className="text-sm text-muted-foreground ml-6">
                                 한 줄만 적어두면 타임라인이 쌓여요
                             </p>
                         </div>
                         <button
                             type="button"
                             onClick={() => setQuickOpen((v) => !v)}
-                            className="text-xs font-medium text-neutral-600 hover:text-neutral-900"
+                            className="text-sm font-medium text-muted-foreground hover:text-foreground"
                             aria-expanded={quickOpen}
                         >
                             {quickOpen ? "접기" : "펼치기"}
@@ -204,13 +204,13 @@ export default function HomePage() {
                     </div>
 
                     {loading && logs.length === 0 ? (
-                        <div className="rounded-2xl border border-neutral-200 bg-white p-5 text-sm text-neutral-600 shadow-sm">
+                        <div className="rounded-2xl border border-border bg-card p-5 text-sm text-muted-foreground shadow-sm">
                             Loading…
                         </div>
                     ) : null}
 
                     {!loading && logs.length === 0 ? (
-                        <div className="rounded-2xl border border-neutral-200 bg-white p-5 text-sm text-neutral-600 shadow-sm">
+                        <div className="rounded-2xl border border-border bg-card p-5 text-sm text-muted-foreground shadow-sm">
                             첫 기록을 남겨보세요. 타임라인이 바로 시작돼요.
                         </div>
                     ) : null}
@@ -224,11 +224,11 @@ export default function HomePage() {
             </div>
 
             <aside className="space-y-3">
-                    <div className="flex items-baseline justify-between">
-                        <div className="text-base font-semibold flex items-center gap-2">
-                            <MessageCircle className="h-4 w-4" />
-                            요즘 함께 하는 기록들
-                        </div>
+                <div className="flex items-end justify-between min-h-[52px]">
+                    <div className="text-base font-semibold flex items-center gap-2">
+                        <MessageCircle className="h-4 w-4" />
+                        요즘 함께 하는 기록들
+                    </div>
                     <a href="/public" className="text-sm text-neutral-700 hover:underline">
                         전체 보기
                     </a>

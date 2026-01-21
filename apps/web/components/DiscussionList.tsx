@@ -26,7 +26,7 @@ export default function DiscussionList({
       <div className={cn(
         isRetro 
           ? "border-4 border-black bg-white p-5 text-sm font-bold uppercase shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]" 
-          : "rounded-2xl border border-neutral-200 bg-white p-5 text-sm text-neutral-600 shadow-sm"
+          : "rounded-2xl border border-border bg-card p-5 text-sm text-muted-foreground shadow-sm"
       )}>
         {emptyText}
       </div>
@@ -77,15 +77,15 @@ export default function DiscussionList({
   }
 
   return (
-    <div className="rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm">
+    <div className="rounded-2xl border border-border bg-card p-4 shadow-sm text-card-foreground">
       <div className="space-y-3">
         {items.map((d) => (
           <Link
             key={d.id}
             href={linkMode === "discussion" ? `/public/${d.id}` : `/title/${d.titleId}`}
-            className="flex items-center gap-4 rounded-xl px-2 py-2 transition hover:bg-neutral-50"
+            className="flex items-center gap-4 rounded-xl px-2 py-2 transition hover:bg-muted"
           >
-            <div className="h-16 w-12 shrink-0 overflow-hidden rounded-lg bg-neutral-100 border border-neutral-100">
+            <div className="h-16 w-12 shrink-0 overflow-hidden rounded-lg bg-muted border border-border">
               {d.posterUrl ? (
                 <img
                   src={tmdbResize(d.posterUrl, "w185") ?? d.posterUrl}
@@ -96,15 +96,15 @@ export default function DiscussionList({
               ) : null}
             </div>
             <div className="min-w-0 flex-1">
-              <div className="truncate text-sm font-semibold text-neutral-900">
+              <div className="truncate text-sm font-semibold text-foreground">
                 {d.titleName}
               </div>
-              <div className="mt-0.5 text-xs text-neutral-500">
+              <div className="mt-0.5 text-xs text-muted-foreground">
                 {d.titleType === "movie" ? "Movie" : "Series"}
                 {d.titleYear ? ` · ${d.titleYear}` : ""}
               </div>
             </div>
-            <div className="text-right text-xs text-neutral-500">
+            <div className="text-right text-xs text-muted-foreground">
               <div>{formatShortDate(d.createdAt)}</div>
               <div>{d.commentCount}개의 이야기들</div>
             </div>

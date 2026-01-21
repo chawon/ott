@@ -5,6 +5,7 @@ import AppFooter from "@/components/AppFooter";
 import PwaInstallBanner from "@/components/PwaInstallBanner";
 import SyncWorker from "@/components/SyncWorker";
 import { RetroProvider } from "@/context/RetroContext";
+import { ThemeProvider } from "@/context/ThemeContext";
 
 export const metadata: Metadata = {
     title: {
@@ -41,13 +42,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <html lang="ko">
         <body className="min-h-screen bg-background text-foreground font-sans antialiased transition-colors duration-300">
         <RetroProvider>
-            <AppHeader />
-            <PwaInstallBanner />
-            <SyncWorker />
-            <main className="mx-auto max-w-5xl px-4 py-8">
-                {children}
-            </main>
-            <AppFooter />
+            <ThemeProvider>
+                <AppHeader />
+                <PwaInstallBanner />
+                <SyncWorker />
+                <main className="mx-auto max-w-5xl px-4 py-8">
+                    {children}
+                </main>
+                <AppFooter />
+            </ThemeProvider>
         </RetroProvider>
         </body>
         </html>

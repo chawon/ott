@@ -156,22 +156,22 @@ export default function TitleSearchBox({
                     "w-full transition-all outline-none",
                     isRetro 
                         ? "border-4 border-black bg-white px-4 py-3 text-sm font-bold shadow-[inset_4px_4px_0px_0px_#e0e0e0] focus:ring-4 focus:ring-yellow-400 focus:border-black placeholder:text-neutral-600"
-                        : "rounded-xl border border-neutral-200 bg-white px-4 py-3 text-sm focus:ring-2 focus:ring-neutral-900/10 focus:border-neutral-300 placeholder:text-neutral-500"
+                        : "rounded-xl border border-border bg-card px-4 py-3 text-sm text-foreground focus:ring-2 focus:ring-ring/40 focus:border-border placeholder:text-muted-foreground"
                 )}
             />
 
             {showPanel && (
                 <div className={cn(
-                    "absolute z-50 mt-2 w-full max-h-[70vh] overflow-auto bg-white",
+                    "absolute z-50 mt-2 w-full max-h-[70vh] overflow-auto bg-card text-card-foreground",
                     isRetro 
                         ? "border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]" 
-                        : "rounded-xl border border-neutral-200 shadow-xl"
+                        : "rounded-xl border border-border shadow-xl"
                 )}>
                     {showRecentPanel ? (
-                        <div className={cn(isRetro ? "border-b-4 border-black" : "border-b border-neutral-100")}>
+                        <div className={cn(isRetro ? "border-b-4 border-black" : "border-b border-border")}>
                             <div className={cn(
                                 "px-4 py-2 text-[10px] font-bold uppercase tracking-widest",
-                                isRetro ? "bg-black text-white" : "text-neutral-400"
+                                isRetro ? "bg-black text-white" : "text-muted-foreground"
                             )}>
                                 {isRetro ? "요즘 수다 떠는 비디오들" : "요즘 함께 하는 작품들"}
                             </div>
@@ -182,7 +182,7 @@ export default function TitleSearchBox({
                                 <div className="px-4 py-3 text-sm text-red-600 font-bold">{recentErr}</div>
                             ) : null}
                             {!recentLoading && !recentErr && recent.length === 0 ? (
-                                <div className="px-4 py-3 text-sm font-bold text-neutral-400">EMPTY</div>
+                                <div className="px-4 py-3 text-sm font-bold text-muted-foreground">EMPTY</div>
                             ) : null}
                             {!recentLoading &&
                                 !recentErr &&
@@ -205,12 +205,12 @@ export default function TitleSearchBox({
                                             onClick={() => pick(item)}
                                             className={cn(
                                                 "flex w-full items-center gap-4 px-4 py-3 text-left transition-colors",
-                                                isRetro ? "border-b-2 border-black hover:bg-yellow-100 last:border-b-0" : "hover:bg-neutral-50"
+                                                isRetro ? "border-b-2 border-black hover:bg-yellow-100 last:border-b-0" : "hover:bg-muted"
                                             )}
                                         >
                                             <div className={cn(
-                                                "h-20 w-14 shrink-0 overflow-hidden bg-neutral-100",
-                                                isRetro ? "border-2 border-black" : "rounded-lg shadow-sm border border-neutral-100"
+                                                "h-20 w-14 shrink-0 overflow-hidden bg-muted",
+                                                isRetro ? "border-2 border-black" : "rounded-lg shadow-sm border border-border"
                                             )}>
                                                 {d.posterUrl ? (
                                                     <img
@@ -226,8 +226,8 @@ export default function TitleSearchBox({
                                                 <div className={cn("truncate text-sm font-bold uppercase", !isRetro && "normal-case")}>
                                                     {d.titleName}
                                                 </div>
-                                                <div className="mt-0.5 text-[10px] font-bold text-neutral-500">{meta}</div>
-                                                <div className={cn("mt-1 text-[10px] font-bold uppercase", isRetro ? "text-blue-600" : "text-neutral-400")}>
+                                                <div className="mt-0.5 text-[10px] font-bold text-muted-foreground">{meta}</div>
+                                                <div className={cn("mt-1 text-[10px] font-bold uppercase", isRetro ? "text-blue-600" : "text-muted-foreground")}>
                                                     💬 {d.commentCount}
                                                 </div>
                                             </div>
@@ -261,12 +261,12 @@ export default function TitleSearchBox({
                                         "flex w-full items-center gap-4 px-4 py-3 text-left transition-colors",
                                         isRetro 
                                             ? (idx === activeIndex ? "bg-yellow-100 border-b-2 border-black last:border-b-0" : "border-b-2 border-black hover:bg-neutral-50 last:border-b-0")
-                                            : (idx === activeIndex ? "bg-neutral-50" : "hover:bg-neutral-50")
+                                            : (idx === activeIndex ? "bg-muted" : "hover:bg-muted")
                                     )}
                                 >
                                     <div className={cn(
-                                        "h-24 w-16 shrink-0 overflow-hidden bg-neutral-100",
-                                        isRetro ? "border-2 border-black" : "rounded-lg shadow-sm border border-neutral-100"
+                                        "h-24 w-16 shrink-0 overflow-hidden bg-muted",
+                                        isRetro ? "border-2 border-black" : "rounded-lg shadow-sm border border-border"
                                     )}>
                                         {t.posterUrl ? (
                                             <img
@@ -283,9 +283,9 @@ export default function TitleSearchBox({
                                         <div className={cn("truncate text-sm font-bold uppercase", !isRetro && "normal-case")}>
                                             {t.name}
                                         </div>
-                                        <div className="mt-0.5 text-[10px] font-bold text-neutral-500">{meta}</div>
+                                        <div className="mt-0.5 text-[10px] font-bold text-muted-foreground">{meta}</div>
                                         {t.overview ? (
-                                            <div className="mt-1 line-clamp-1 text-[10px] font-bold text-neutral-600">
+                                            <div className="mt-1 line-clamp-1 text-[10px] font-bold text-muted-foreground">
                                                 {t.overview}
                                             </div>
                                         ) : null}
@@ -295,13 +295,13 @@ export default function TitleSearchBox({
                         })}
 
                     {!loading && !err && items.length === 0 && query && (
-                        <div className="px-4 py-3 text-sm font-bold text-neutral-400">결과가 없어요</div>
+                        <div className="px-4 py-3 text-sm font-bold text-muted-foreground">결과가 없어요</div>
                     )}
 
                     {query ? (
                         <div className={cn(
-                            "px-4 py-2 text-[8px] font-bold text-neutral-500",
-                            isRetro ? "border-t-4 border-black bg-neutral-100" : "border-t border-neutral-50"
+                            "px-4 py-2 text-[8px] font-bold text-muted-foreground",
+                            isRetro ? "border-t-4 border-black bg-neutral-100" : "border-t border-border"
                         )}>
                             THIS PRODUCT USES THE TMDB API BUT IS NOT ENDORSED OR CERTIFIED BY TMDB.
                         </div>

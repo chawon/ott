@@ -124,20 +124,20 @@ export default function ShareBottomSheet({
       <SheetContent
         side="bottom"
         className={cn(
-          "max-h-[90vh] overflow-y-auto rounded-t-3xl border-t bg-white",
+          "max-h-[90vh] overflow-y-auto rounded-t-3xl border-t border-border bg-card text-card-foreground",
           "p-0"
         )}
       >
         <SheetHeader className="px-6 pt-6">
           <SheetTitle className="text-base">공유 카드 만들기</SheetTitle>
-          <div className="text-xs text-neutral-500">저장한 기록을 이미지로 공유해보세요.</div>
+          <div className="text-xs text-muted-foreground">저장한 기록을 이미지로 공유해보세요.</div>
         </SheetHeader>
 
         <div className="grid grid-cols-1 gap-6 px-6 pb-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,320px)]">
           <div className="space-y-4">
-            <div className="rounded-3xl border border-neutral-200 bg-neutral-50 p-4">
+            <div className="rounded-3xl border border-border bg-muted/60 p-4">
               <div className="mx-auto flex w-full justify-center">
-                <div className="relative h-[500px] w-[280px] overflow-hidden rounded-2xl bg-white shadow-sm">
+                <div className="relative h-[500px] w-[280px] overflow-hidden rounded-2xl bg-card shadow-sm">
                   {previewUrl ? (
                     <img
                       src={previewUrl}
@@ -145,7 +145,7 @@ export default function ShareBottomSheet({
                       className="h-full w-full object-cover"
                     />
                   ) : (
-                    <div className="flex h-full w-full items-center justify-center text-xs text-neutral-400">
+                    <div className="flex h-full w-full items-center justify-center text-xs text-muted-foreground">
                       미리보기 준비 중...
                     </div>
                   )}
@@ -153,21 +153,21 @@ export default function ShareBottomSheet({
               </div>
             </div>
             <div className="flex flex-wrap items-center gap-3">
-              <label className="flex items-center gap-2 text-xs text-neutral-600">
+              <label className="flex items-center gap-2 text-xs text-muted-foreground">
                 <input
                   type="checkbox"
                   checked={showRatingLabel}
                   onChange={(e) => setShowRatingLabel(e.target.checked)}
-                  className="h-4 w-4 rounded border-neutral-300"
+                  className="h-4 w-4 rounded border-border"
                 />
                 평점 문구 포함
               </label>
-              <label className="flex items-center gap-2 text-xs text-neutral-600">
+              <label className="flex items-center gap-2 text-xs text-muted-foreground">
                 <input
                   type="checkbox"
                   checked={showNote}
                   onChange={(e) => setShowNote(e.target.checked)}
-                  className="h-4 w-4 rounded border-neutral-300"
+                  className="h-4 w-4 rounded border-border"
                   disabled={!log?.note}
                 />
                 한 줄 메모 포함
@@ -180,7 +180,7 @@ export default function ShareBottomSheet({
               type="button"
               onClick={handleDownload}
               disabled={busy || !log}
-              className="flex w-full items-center justify-center gap-2 rounded-2xl border border-neutral-200 bg-white px-4 py-3 text-sm font-medium text-neutral-700 hover:bg-neutral-50 disabled:opacity-50"
+              className="flex w-full items-center justify-center gap-2 rounded-2xl border border-border bg-card px-4 py-3 text-sm font-medium text-foreground hover:bg-muted disabled:opacity-50"
             >
               <Download className="h-4 w-4" />
               이미지 저장
@@ -189,12 +189,12 @@ export default function ShareBottomSheet({
               type="button"
               onClick={handleShare}
               disabled={busy || !log || !shareCardBlob}
-              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-neutral-900 px-4 py-3 text-sm font-semibold text-white hover:bg-black disabled:opacity-50"
+              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-foreground px-4 py-3 text-sm font-semibold text-background hover:bg-foreground/90 disabled:opacity-50"
             >
               <Share2 className="h-4 w-4" />
               {shareCardBlob ? "공유하기" : "준비 중..."}
             </button>
-            <div className="text-[11px] text-neutral-500">
+            <div className="text-[11px] text-muted-foreground">
               이미지 크기: 1080×1920 (Story)
             </div>
           </div>

@@ -114,7 +114,7 @@ export default function TimelinePage() {
                     </div>
                 )}
                 <div className={cn(
-                    isRetro ? "text-xs font-bold text-neutral-500 uppercase" : "text-sm text-neutral-600"
+                    isRetro ? "text-xs font-bold text-neutral-500 uppercase" : "text-sm text-muted-foreground"
                 )}>
                     {headerSubtitle}
                 </div>
@@ -123,7 +123,7 @@ export default function TimelinePage() {
             <FiltersBar status={status} setStatus={setStatus} origin={origin} setOrigin={setOrigin} ott={ott} setOtt={setOtt} />
 
             {loading && logs.length === 0 && (
-                <div className="rounded-2xl border border-neutral-200 bg-white p-5 text-sm text-neutral-600 shadow-sm">
+                <div className="rounded-2xl border border-border bg-card p-5 text-sm text-muted-foreground shadow-sm">
                     Loading…
                 </div>
             )}
@@ -133,7 +133,7 @@ export default function TimelinePage() {
                     "p-10 text-center text-sm font-bold shadow-sm",
                     isRetro 
                         ? "border-4 border-dashed border-neutral-400 bg-neutral-100 text-neutral-500 uppercase" 
-                        : "rounded-2xl border border-neutral-200 bg-white text-neutral-600"
+                        : "rounded-2xl border border-border bg-card text-muted-foreground"
                 )}>
                     {isRetro 
                         ? "아직 발자취가 없어. 위에서 날적이 하나 남겨봐~" 

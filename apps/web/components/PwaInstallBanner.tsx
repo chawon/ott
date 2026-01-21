@@ -49,7 +49,7 @@ export default function PwaInstallBanner() {
 
   return (
     <div className="mx-auto w-full max-w-5xl px-4">
-      <div className="mb-4 rounded-xl border border-neutral-200 bg-white px-4 py-3 text-sm text-neutral-700 shadow-sm">
+      <div className="mb-4 rounded-xl border border-border bg-card px-4 py-3 text-sm text-neutral-700 shadow-sm">
         <div className="flex items-start justify-between gap-3">
           <div>
             <div className="font-semibold text-neutral-900">홈 화면에 추가</div>

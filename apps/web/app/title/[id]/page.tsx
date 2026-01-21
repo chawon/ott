@@ -493,7 +493,7 @@ export default function TitlePage() {
 
     if (!titleId) {
         return (
-            <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
+            <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
                 <div className="text-base font-semibold">Invalid route</div>
             </div>
         );
@@ -501,7 +501,7 @@ export default function TitlePage() {
 
     if (loading && !title) {
         return (
-            <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
+            <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
                 <div className="text-sm text-neutral-600">Loading…</div>
             </div>
         );
@@ -509,7 +509,7 @@ export default function TitlePage() {
 
     if (err) {
         return (
-            <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
+            <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
                 <div className="text-base font-semibold">Error</div>
                 <div className="mt-2 text-sm text-neutral-700">{err}</div>
             </div>
@@ -518,7 +518,7 @@ export default function TitlePage() {
 
     if (!title) {
         return (
-            <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
+            <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
                 <div className="text-base font-semibold">Not found</div>
             </div>
         );
@@ -526,7 +526,7 @@ export default function TitlePage() {
 
     return (
         <div className="space-y-4">
-            <section className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
+            <section className="rounded-2xl border border-border bg-card p-6 shadow-sm">
                 <div className="flex flex-col gap-4 sm:flex-row">
                     <div className="h-28 w-20 overflow-hidden rounded-xl bg-neutral-100 sm:h-36 sm:w-24">
                         {(log?.seasonPosterUrl ?? title.posterUrl) ? (
@@ -540,7 +540,7 @@ export default function TitlePage() {
                     </div>
                     <div className="min-w-0 flex-1">
                         <div className="text-xl font-semibold">{title.name}</div>
-                        <div className="mt-1 text-sm text-neutral-600">
+                        <div className="mt-1 text-sm text-muted-foreground">
                             {title.type === "movie" ? "Movie" : "Series"}
                             {(seasonYear ?? title.year) ? ` · ${seasonYear ?? title.year}` : ""}
                         </div>
@@ -571,7 +571,7 @@ export default function TitlePage() {
             </section>
 
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1.1fr_0.9fr]">
-                <section className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm space-y-4">
+                <section className="rounded-2xl border border-border bg-card p-6 shadow-sm space-y-4">
                     <div>
                         <div className="text-base font-semibold">나의 기록</div>
                         <div className="text-sm text-neutral-600">
@@ -590,7 +590,7 @@ export default function TitlePage() {
                                     <select
                                         value={status}
                                         onChange={(e) => setStatus(e.target.value as Status)}
-                                        className="w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm"
+                                        className="w-full select-base rounded-xl px-3 py-2 text-sm"
                                     >
                                         {STATUS_OPTIONS.map((s) => (
                                             <option key={s.value} value={s.value}>{s.label}</option>
@@ -604,7 +604,7 @@ export default function TitlePage() {
                                         <select
                                             value={selectedSeason}
                                             onChange={(e) => setSelectedSeason(e.target.value ? Number(e.target.value) : "")}
-                                            className="w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm"
+                                            className="w-full select-base rounded-xl px-3 py-2 text-sm"
                                         >
                                             <option value="">선택 안함</option>
                                             {seasons.map((s) => (
@@ -628,7 +628,7 @@ export default function TitlePage() {
                                         <select
                                             value={selectedEpisode}
                                             onChange={(e) => setSelectedEpisode(e.target.value ? Number(e.target.value) : "")}
-                                            className="w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm"
+                                            className="w-full select-base rounded-xl px-3 py-2 text-sm"
                                             disabled={selectedSeason === "" || episodeLoading}
                                         >
                                             <option value="">선택 안함</option>
@@ -652,7 +652,7 @@ export default function TitlePage() {
                                     <select
                                         value={rating === "" ? "" : String(rating)}
                                         onChange={(e) => setRating(e.target.value === "" ? "" : Number(e.target.value))}
-                                        className="w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm"
+                                        className="w-full select-base rounded-xl px-3 py-2 text-sm"
                                     >
                                         <option value="">선택 안함</option>
                                         <option value="5">😍 나에게 최고</option>
@@ -669,7 +669,7 @@ export default function TitlePage() {
                                     <select
                                         value={place}
                                         onChange={(e) => setPlace(e.target.value as Place)}
-                                        className="w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm"
+                                        className="w-full select-base rounded-xl px-3 py-2 text-sm"
                                     >
                                         {PLACE_OPTIONS.map((p) => (
                                             <option key={p.value} value={p.value}>{p.label}</option>
@@ -685,7 +685,7 @@ export default function TitlePage() {
                                     <select
                                         value={occasion}
                                         onChange={(e) => setOccasion(e.target.value as Occasion)}
-                                        className="w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm"
+                                        className="w-full select-base rounded-xl px-3 py-2 text-sm"
                                     >
                                         {OCCASION_OPTIONS.map((o) => (
                                             <option key={o.value} value={o.value}>{o.label}</option>
@@ -709,7 +709,7 @@ export default function TitlePage() {
                                                 setOtt(next);
                                             }
                                         }}
-                                        className="w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm"
+                                        className="w-full select-base rounded-xl px-3 py-2 text-sm"
                                     >
                                         <option value="">선택 안함</option>
                                         {OTT_GROUPS.map((g) => (
@@ -732,14 +732,14 @@ export default function TitlePage() {
                                         <input
                                             value={ott}
                                             onChange={(e) => setOtt(e.target.value)}
-                                            className="mt-2 w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm"
+                                            className="mt-2 w-full select-base rounded-xl px-3 py-2 text-sm"
                                             placeholder="직접 입력"
                                         />
                                     ) : null}
                                 </label>
 
                                 <div className="space-y-2 md:col-span-2">
-                                    <label className="flex items-center gap-2 text-xs text-neutral-600">
+                                    <label className="flex items-center gap-2 text-xs text-muted-foreground">
                                         <input
                                             type="checkbox"
                                             checked={useWatchedAt}
@@ -752,20 +752,20 @@ export default function TitlePage() {
                                             type="date"
                                             value={watchedDate}
                                             onChange={(e) => setWatchedDate(e.target.value)}
-                                            className="w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm"
+                                            className="w-full select-base rounded-xl px-3 py-2 text-sm"
                                         />
                                     ) : null}
                                 </div>
 
                                 <label className="space-y-1 md:col-span-2">
-                                    <div className="text-xs text-neutral-600 flex items-center gap-1.5">
+                                    <div className="text-xs text-muted-foreground flex items-center gap-1.5">
                                         <MessageSquare className="h-3 w-3" />
                                         메모
                                     </div>
                                     <textarea
                                         value={note}
                                         onChange={(e) => setNote(e.target.value)}
-                                        className="w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm"
+                                        className="w-full select-base rounded-xl px-3 py-2 text-sm"
                                         rows={3}
                                     />
                                 </label>
@@ -783,21 +783,21 @@ export default function TitlePage() {
                     ) : null}
                 </section>
 
-                <section className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm space-y-3">
+                <section className="rounded-2xl border border-border bg-card p-6 shadow-sm space-y-3">
                     <div>
                         <div className="text-base font-semibold">히스토리</div>
-                        <div className="text-sm text-neutral-600">업데이트할 때마다 스냅샷이 쌓여요.</div>
+                        <div className="text-sm text-muted-foreground">업데이트할 때마다 스냅샷이 쌓여요.</div>
                     </div>
 
                     {!log ? (
-                        <div className="text-sm text-neutral-600">아직 히스토리가 없어요.</div>
+                        <div className="text-sm text-muted-foreground">아직 히스토리가 없어요.</div>
                     ) : history.length === 0 ? (
-                        <div className="text-sm text-neutral-600">아직 히스토리가 없어요.</div>
+                        <div className="text-sm text-muted-foreground">아직 히스토리가 없어요.</div>
                     ) : (
                         <div className="space-y-2">
                             {history.map((h) => (
-                                <div key={h.id} className="rounded-xl border border-neutral-200 p-4">
-                                    <div className="text-sm font-semibold text-neutral-900">
+                                <div key={h.id} className="rounded-xl border border-border bg-card/80 p-4 text-card-foreground">
+                                    <div className="text-sm font-semibold text-foreground">
                                         {fmt(h.recordedAt)} · {STATUS_LABELS[h.status]}
                                         {seasonEpisodeLabel(h.seasonNumber, h.episodeNumber) ? ` · ${seasonEpisodeLabel(h.seasonNumber, h.episodeNumber)}` : ""}
                                         {ratingDisplay(h.rating) ? ` · ${ratingDisplay(h.rating)?.emoji} ${ratingDisplay(h.rating)?.label}` : ""}
@@ -806,13 +806,13 @@ export default function TitlePage() {
                                         {h.place ? chip(PLACE_LABELS[h.place], "place") : null}
                                         {h.occasion ? chip(OCCASION_LABELS[h.occasion], "occasion") : null}
                                         {h.ott ? (
-                                            <span className="rounded-full border border-neutral-200 bg-neutral-50 px-3 py-1 text-neutral-700">
+                                            <span className="rounded-full border border-border bg-muted px-3 py-1 text-muted-foreground">
                                                 {h.ott}
                                             </span>
                                         ) : null}
                                     </div>
                                     {h.note ? (
-                                        <div className="mt-2 text-sm text-neutral-800">
+                                        <div className="mt-2 text-sm text-foreground">
                                             {renderBody(formatNoteInline(h.note))}
                                         </div>
                                     ) : null}

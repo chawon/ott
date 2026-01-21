@@ -43,7 +43,7 @@ export default function PublicDiscussionDetailPage() {
 
   if (!discussionId) {
     return (
-      <div className={cn(isRetro ? "nes-container border-4 border-black p-6 font-bold" : "rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm")}>
+      <div className={cn(isRetro ? "nes-container border-4 border-black p-6 font-bold" : "rounded-2xl border border-border bg-card p-6 shadow-sm")}>
         <div className="text-base font-semibold">{isRetro ? "INVALID ROUTE" : "유효하지 않은 경로"}</div>
       </div>
     );
@@ -51,7 +51,7 @@ export default function PublicDiscussionDetailPage() {
 
   if (loading && !detail) {
     return (
-      <div className={cn(isRetro ? "nes-container border-4 border-black p-6 font-bold" : "rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm")}>
+      <div className={cn(isRetro ? "nes-container border-4 border-black p-6 font-bold" : "rounded-2xl border border-border bg-card p-6 shadow-sm")}>
         <div className="text-sm text-neutral-600">{isRetro ? "LOADING..." : "불러오는 중…"}</div>
       </div>
     );
@@ -59,7 +59,7 @@ export default function PublicDiscussionDetailPage() {
 
   if (err) {
     return (
-      <div className={cn(isRetro ? "nes-container border-4 border-black p-6 font-bold" : "rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm")}>
+      <div className={cn(isRetro ? "nes-container border-4 border-black p-6 font-bold" : "rounded-2xl border border-border bg-card p-6 shadow-sm")}>
         <div className="text-base font-semibold text-red-600">Error</div>
         <div className="mt-2 text-sm text-neutral-700">{err}</div>
       </div>
@@ -68,7 +68,7 @@ export default function PublicDiscussionDetailPage() {
 
   if (!detail) {
     return (
-      <div className={cn(isRetro ? "nes-container border-4 border-black p-6 font-bold" : "rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm")}>
+      <div className={cn(isRetro ? "nes-container border-4 border-black p-6 font-bold" : "rounded-2xl border border-border bg-card p-6 shadow-sm")}>
         <div className="text-base font-semibold">{isRetro ? "NOT FOUND" : "찾을 수 없음"}</div>
       </div>
     );
@@ -79,7 +79,7 @@ export default function PublicDiscussionDetailPage() {
       <section className={cn(
         isRetro 
           ? "nes-container border-4 border-black bg-white p-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]" 
-          : "rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm"
+          : "rounded-2xl border border-border bg-card p-6 shadow-sm"
       )}>
         <div className="flex items-start gap-6">
           <div className={cn(
@@ -97,8 +97,8 @@ export default function PublicDiscussionDetailPage() {
             ) : null}
           </div>
           <div className="min-w-0 flex-1">
-            <div className={cn("text-xl font-bold", isRetro && "uppercase")}>{detail.titleName}</div>
-            <div className={cn("mt-1 text-sm font-medium", isRetro ? "text-black uppercase" : "text-neutral-600")}>
+            <div className={cn("text-xl font-semibold", isRetro && "uppercase")}>{detail.titleName}</div>
+            <div className={cn("mt-1 text-sm font-medium", isRetro ? "text-black uppercase" : "text-muted-foreground")}>
               {detail.titleType === "movie" ? (isRetro ? "MOVIE" : "Movie") : (isRetro ? "SERIES" : "Series")}
               {detail.titleYear ? ` · ${detail.titleYear}` : ""}
             </div>

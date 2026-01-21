@@ -84,13 +84,13 @@ export default function FiltersBar({
     }, [ott, ottSelect, allOttOptions]);
 
     return (
-        <div className="flex flex-col gap-3 rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm md:flex-row md:items-center md:justify-between">
+        <div className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-4 text-card-foreground shadow-sm md:flex-row md:items-center md:justify-between">
             <div className="flex items-center gap-2">
                 <div className="text-sm font-medium">필터</div>
                 <select
                     value={status}
                     onChange={(e) => setStatus(e.target.value as any)}
-                    className="rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm outline-none"
+                    className="select-base rounded-xl px-3 py-2 text-sm"
                 >
                     <option value="ALL">전체</option>
                     <option value="DONE">봤어요</option>
@@ -100,11 +100,11 @@ export default function FiltersBar({
             </div>
 
             <div className="flex items-center gap-2">
-                <div className="text-sm text-neutral-600">구분</div>
+                <div className="text-sm text-muted-foreground">구분</div>
                 <select
                     value={origin}
                     onChange={(e) => setOrigin(e.target.value as "ALL" | "LOG" | "COMMENT")}
-                    className="rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm outline-none"
+                    className="select-base rounded-xl px-3 py-2 text-sm"
                 >
                     <option value="ALL">전체</option>
                     <option value="LOG">내 기록</option>
@@ -113,7 +113,7 @@ export default function FiltersBar({
             </div>
 
             <div className="flex items-center gap-2">
-                <div className="text-sm text-neutral-600">OTT</div>
+                <div className="text-sm text-muted-foreground">OTT</div>
                 <div className="w-full md:w-64">
                     <select
                         value={ottSelect}
@@ -126,7 +126,7 @@ export default function FiltersBar({
                                 setOtt(next);
                             }
                         }}
-                        className="w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm outline-none"
+                        className="w-full select-base rounded-xl px-3 py-2 text-sm"
                     >
                         <option value="">전체</option>
                         {OTT_GROUPS.map((g) => (
@@ -150,7 +150,7 @@ export default function FiltersBar({
                             value={ott}
                             onChange={(e) => setOtt(e.target.value)}
                             placeholder="직접 입력"
-                            className="mt-2 w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm outline-none"
+                            className="mt-2 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm text-foreground outline-none"
                         />
                     ) : null}
                 </div>

@@ -63,25 +63,25 @@ export default function PublicDiscussionsPage() {
           </div>
         )}
         <div className={cn(
-          isRetro ? "text-xs font-bold text-neutral-500 uppercase" : "text-sm text-neutral-600"
+          isRetro ? "text-xs font-bold text-neutral-500 uppercase" : "text-sm text-muted-foreground"
         )}>
           {headerSubtitle}
         </div>
       </div>
 
-      <div className="flex flex-col gap-3 rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm md:flex-row md:items-center md:justify-between">
+      <div className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-4 shadow-sm md:flex-row md:items-center md:justify-between">
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="제목 검색"
-          className="w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm outline-none md:w-72"
+          className="w-full rounded-xl border border-border bg-card px-3 py-2 text-sm outline-none md:w-72"
         />
         <div className="flex items-center gap-2">
           <div className="text-xs text-neutral-500">정렬</div>
           <select
             value={sort}
             onChange={(e) => setSort(e.target.value as "latest" | "comments")}
-            className="rounded-xl border border-neutral-200 bg-white px-3 py-2 text-xs"
+            className="select-base rounded-xl px-3 py-2 text-xs"
           >
             <option value="latest">최신</option>
             <option value="comments">댓글 많은 순</option>
