@@ -1,4 +1,4 @@
-import { api } from "./api";
+import { api, ensureAuthIds } from "./api";
 import {
   getTitleLocal,
   findTitleByProvider,
@@ -55,14 +55,15 @@ async function pushItem(item: OutboxItem) {
     logs: payload?.log ? [payload.log] : [],
     titles: payload?.title ? [payload.title] : [],
   };
+  const auth = await ensureAuthIds();
 
   const res = await api<{ accepted: string[]; rejected: { id: string; reason: string }[] }>(
     "/sync/push",
     {
       method: "POST",
       body: JSON.stringify({
-        userId: getUserId(),
-        deviceId: getDeviceId(),
+        userId: auth.userId ?? getUserId(),
+        deviceId: auth.deviceId ?? getDeviceId(),
         clientTime: new Date().toISOString(),
         changes,
       }),

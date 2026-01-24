@@ -369,21 +369,26 @@ export default function QuickLogCard({
             onCreated(localLog, { shareCard });
             await syncOutbox();
 
-            if (shareToDiscussion && note.trim()) {
+            if (shareToDiscussion) {
                 try {
                     const discussion = await api<Discussion>("/discussions", {
                         method: "POST",
                         body: JSON.stringify({ titleId: localTitleId }),
                     });
-                    const req: CreateCommentRequest = {
-                        body: note.trim(),
-                        userId: null,
-                        mentions: [],
-                    };
-                    await api<Comment>(`/discussions/${discussion.id}/comments`, {
-                        method: "POST",
-                        body: JSON.stringify(req),
-                    });
+                    if (note.trim()) {
+                        const userId =
+                            typeof localStorage !== "undefined" ? localStorage.getItem("watchlog.userId") : null;
+                        const req: CreateCommentRequest = {
+                            body: note.trim(),
+                            userId: userId ?? null,
+                            mentions: [],
+                            syncLog: false,
+                        };
+                        await api<Comment>(`/discussions/${discussion.id}/comments`, {
+                            method: "POST",
+                            body: JSON.stringify(req),
+                        });
+                    }
                     if (typeof window !== "undefined") {
                         window.dispatchEvent(new CustomEvent("sync:updated"));
                     }

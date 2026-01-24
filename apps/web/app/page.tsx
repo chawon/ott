@@ -23,7 +23,7 @@ export default function HomePage() {
 
     async function loadDiscussions() {
         try {
-            const latest = await api<DiscussionListItem[]>("/discussions/latest?limit=6&minComments=1");
+            const latest = await api<DiscussionListItem[]>("/discussions/latest?limit=6&days=7");
             setDiscussions(latest);
         } catch {
             setDiscussions([]);

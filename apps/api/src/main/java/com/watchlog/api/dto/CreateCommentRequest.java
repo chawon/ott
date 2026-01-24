@@ -5,5 +5,6 @@ import java.util.UUID;
 public record CreateCommentRequest(
         String body,
         UUID userId,
-        java.util.List<MentionRef> mentions
+        java.util.List<MentionRef> mentions,
+        Boolean syncLog
 ) {}

@@ -181,8 +181,10 @@
     1. 해당 작품의 공개 글감 조회(없으면 null)
 2) `POST /api/discussions`
     1. titleId 기반 글감 생성/보장
-3) `GET /api/discussions/latest?limit=&minComments=`
-    1. 최신 글감 목록 (minComments로 댓글 수 필터)
+3) `GET /api/discussions/latest?limit=&minComments=&days=`
+    1. 최신 글감 목록
+    2. days= 최근 N일 내 생성된 글감만
+    3. minComments= 댓글 수 필터(옵션)
 4) `GET /api/discussions/all?limit=`
     1. 전체 글감 목록
 5) `GET /api/discussions/{id}`
@@ -191,6 +193,7 @@
     1. 댓글 목록
 7) `POST /api/discussions/{id}/comments`
     1. 댓글 작성(mentions 포함 가능)
+    2. syncLog=false 시 댓글 작성으로 내 로그/히스토리 동기화 생략
 
 ### TMDB 보조 API (시즌/에피소드)
 1) `GET /api/tmdb/tv/{providerId}/seasons`
@@ -379,6 +382,9 @@
     1. 설치 유도 배너(`PwaInstallBanner`) 추가 (iOS/Android 분기)
     2. 서비스 워커(`sw.js`) 캐싱 전략 적용
     3. `manifest.ts` 및 `layout.tsx` 연동
+24) 함께 기록 공유는 체크 시에만 생성 + 댓글 생성 시 로그/히스토리 중복 방지
+    1. QuickLog 공유 댓글은 syncLog=false
+    2. /discussions/latest에 days 필터 및 최신 댓글 기준 정렬 반영
 
 미완료(바로 진행)
 1) 삭제 동기화 및 복구

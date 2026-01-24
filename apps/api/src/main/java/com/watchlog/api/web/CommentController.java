@@ -33,6 +33,7 @@ public class CommentController {
             @PathVariable UUID discussionId,
             @RequestBody CreateCommentRequest req
     ) {
-        return CommentDto.from(commentService.create(discussionId, req.body(), req.userId(), req.mentions()));
+        boolean syncLog = req.syncLog() == null || req.syncLog();
+        return CommentDto.from(commentService.create(discussionId, req.body(), req.userId(), req.mentions(), syncLog));
     }
 }

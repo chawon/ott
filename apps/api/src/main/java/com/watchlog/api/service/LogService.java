@@ -24,18 +24,15 @@ public class LogService {
     private final WatchLogRepository watchLogRepository;
     private final TitleService titleService;
     private final WatchLogHistoryService historyService;
-    private final DiscussionService discussionService;
 
     public LogService(
             WatchLogRepository watchLogRepository,
             TitleService titleService,
-            WatchLogHistoryService historyService,
-            DiscussionService discussionService
+            WatchLogHistoryService historyService
     ) {
         this.watchLogRepository = watchLogRepository;
         this.titleService = titleService;
         this.historyService = historyService;
-        this.discussionService = discussionService;
     }
 
     @Transactional(readOnly = true)
@@ -80,7 +77,6 @@ public class LogService {
 
         var saved = watchLogRepository.save(log);
         historyService.recordSnapshot(saved);
-        discussionService.ensureForTitle(title);
         return saved;
     }
 

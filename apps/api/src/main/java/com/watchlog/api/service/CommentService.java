@@ -46,14 +46,14 @@ public class CommentService {
     }
 
     @Transactional
-    public CommentEntity create(UUID discussionId, String body, UUID userId, List<com.watchlog.api.dto.MentionRef> mentions) {
+    public CommentEntity create(UUID discussionId, String body, UUID userId, List<com.watchlog.api.dto.MentionRef> mentions, boolean syncLog) {
         if (body == null || body.trim().isEmpty()) {
             throw new IllegalArgumentException("Comment body is required");
         }
 
         DiscussionEntity discussion = discussionService.lock(discussionId);
         String originBaseName = normalizeTitleName(discussion.getTitle().getName());
-        CommentEntity saved = createForDiscussion(discussion, body.trim(), userId, true, originBaseName);
+        CommentEntity saved = createForDiscussion(discussion, body.trim(), userId, syncLog, originBaseName);
 
         if (mentions != null && !mentions.isEmpty()) {
             var baseTitleId = discussion.getTitle().getId();

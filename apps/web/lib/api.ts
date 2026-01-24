@@ -41,6 +41,13 @@ async function ensureClientAuth(path: string) {
   }
 }
 
+export async function ensureAuthIds() {
+    await ensureClientAuth("/sync/push");
+    const userId = typeof localStorage !== "undefined" ? localStorage.getItem("watchlog.userId") : null;
+    const deviceId = typeof localStorage !== "undefined" ? localStorage.getItem("watchlog.deviceId") : null;
+    return { userId, deviceId };
+}
+
 export async function api<T>(path: string, init?: RequestInit): Promise<T> {
     await ensureClientAuth(path);
 
@@ -69,5 +76,7 @@ export async function api<T>(path: string, init?: RequestInit): Promise<T> {
         }
         throw new Error(`API ${res.status}: ${msg}`);
     }
-    return res.json() as Promise<T>;
+    const text = await res.text();
+    if (!text) return null as T;
+    return JSON.parse(text) as T;
 }

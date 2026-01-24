@@ -39,18 +39,24 @@ public class DiscussionService {
 
     @Transactional(readOnly = true)
     public List<DiscussionEntity> listLatest(int limit) {
-        int safeLimit = Math.max(1, Math.min(limit, 100));
-        return discussionRepository.findLatest(PageRequest.of(0, safeLimit));
+        return listLatest(limit, null, null);
     }
 
     @Transactional(readOnly = true)
-    public List<DiscussionEntity> listLatest(int limit, Integer minComments) {
+    public List<DiscussionEntity> listLatest(int limit, Integer minComments, Integer days) {
         int safeLimit = Math.max(1, Math.min(limit, 100));
-        if (minComments == null) {
-            return discussionRepository.findLatest(PageRequest.of(0, safeLimit));
+        Integer safeMin = (minComments == null) ? null : Math.max(0, minComments);
+        Integer safeDays = (days == null) ? null : Math.max(1, days);
+        var since = (safeDays == null) ? null : java.time.OffsetDateTime.now().minusDays(safeDays);
+        var ids = discussionRepository.findLatestIds(since, safeMin, PageRequest.of(0, safeLimit));
+        if (ids.isEmpty()) return List.of();
+        var items = discussionRepository.findByIdInWithTitle(ids);
+        var index = new java.util.HashMap<java.util.UUID, Integer>();
+        for (int i = 0; i < ids.size(); i++) {
+            index.put(ids.get(i), i);
         }
-        int safeMin = Math.max(0, minComments);
-        return discussionRepository.findLatestWithMinComments(safeMin, PageRequest.of(0, safeLimit));
+        items.sort(java.util.Comparator.comparingInt(d -> index.getOrDefault(d.getId(), Integer.MAX_VALUE)));
+        return items;
     }
 
     @Transactional

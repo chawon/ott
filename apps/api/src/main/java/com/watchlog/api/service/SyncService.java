@@ -22,20 +22,17 @@ public class SyncService {
 
     private final TitleRepository titleRepository;
     private final WatchLogRepository watchLogRepository;
-    private final DiscussionService discussionService;
     private final WatchLogHistoryService historyService;
     private final TmdbClient tmdbClient;
 
     public SyncService(
             TitleRepository titleRepository,
             WatchLogRepository watchLogRepository,
-            DiscussionService discussionService,
             WatchLogHistoryService historyService,
             TmdbClient tmdbClient
     ) {
         this.titleRepository = titleRepository;
         this.watchLogRepository = watchLogRepository;
-        this.discussionService = discussionService;
         this.historyService = historyService;
         this.tmdbClient = tmdbClient;
     }
@@ -158,7 +155,6 @@ public class SyncService {
                 hydrateFromTmdbIfNeeded(existing, payload);
             }
             accepted.add(existing.getId());
-            discussionService.ensureForTitle(existing);
             return;
         }
 
@@ -330,7 +326,6 @@ public class SyncService {
         created.setUpdatedAt(change.updatedAt());
         watchLogRepository.save(created);
         historyService.recordSnapshot(created);
-        discussionService.ensureForTitle(title.get());
         accepted.add(created.getId());
     }
 

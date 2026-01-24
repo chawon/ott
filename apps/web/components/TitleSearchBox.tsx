@@ -74,7 +74,7 @@ export default function TitleSearchBox({
             setRecentLoading(true);
             setRecentErr(null);
             try {
-                const res = await api<DiscussionListItem[]>("/discussions/latest?limit=6&minComments=1");
+                const res = await api<DiscussionListItem[]>("/discussions/latest?limit=6&days=7");
                 if (!cancelled) setRecent(res);
             } catch (e: any) {
                 if (!cancelled) {

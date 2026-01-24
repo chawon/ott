@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import jakarta.persistence.LockModeType;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -21,9 +22,21 @@ public interface DiscussionRepository extends JpaRepository<DiscussionEntity, UU
     @Query("select d from DiscussionEntity d join fetch d.title where d.id = :id")
     Optional<DiscussionEntity> findByIdWithTitle(UUID id);
 
-    @Query("select d from DiscussionEntity d join fetch d.title order by d.createdAt desc")
-    List<DiscussionEntity> findLatest(Pageable pageable);
+    @Query(value = """
+            select d.id
+            from discussions d
+            left join comments c on c.discussion_id = d.id
+            where (cast(:since as timestamptz) is null or d.created_at >= cast(:since as timestamptz))
+              and (cast(:minComments as int) is null or d.comment_seq >= cast(:minComments as int))
+            group by d.id, d.created_at
+            order by coalesce(max(c.created_at), d.created_at) desc
+            """, nativeQuery = true)
+    List<UUID> findLatestIds(
+            @Param("since") OffsetDateTime since,
+            @Param("minComments") Integer minComments,
+            Pageable pageable
+    );
 
-    @Query("select d from DiscussionEntity d join fetch d.title where d.commentSeq >= :minComments order by d.createdAt desc")
-    List<DiscussionEntity> findLatestWithMinComments(@Param("minComments") int minComments, Pageable pageable);
+    @Query("select d from DiscussionEntity d join fetch d.title where d.id in :ids")
+    List<DiscussionEntity> findByIdInWithTitle(@Param("ids") List<UUID> ids);
 }
