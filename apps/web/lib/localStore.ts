@@ -72,6 +72,9 @@ export async function listLogsLocal(params: {
   occasion?: WatchLog["occasion"];
 }) {
   const { limit, status, origin, ott, place, occasion } = params;
+  const ottList = ott && ott.includes(",")
+    ? ott.split(",").map((v) => v.trim()).filter(Boolean)
+    : null;
   let coll = db.logs.orderBy("watchedAt").reverse();
   coll = coll.filter((l) => {
     if (l.deletedAt) return false;
@@ -79,8 +82,14 @@ export async function listLogsLocal(params: {
     if (origin && l.origin !== origin) return false;
     if (place && l.place !== place) return false;
     if (occasion && l.occasion !== occasion) return false;
-    if (ott && l.ott && !l.ott.toLowerCase().includes(ott.toLowerCase())) return false;
-    if (ott && !l.ott) return false;
+    if (ottList) {
+      if (!l.ott) return false;
+      const v = l.ott.toLowerCase();
+      if (!ottList.some((o) => v.includes(o.toLowerCase()))) return false;
+    } else if (ott) {
+      if (l.ott && !l.ott.toLowerCase().includes(ott.toLowerCase())) return false;
+      if (!l.ott) return false;
+    }
     return true;
   });
   return coll.limit(limit).toArray();

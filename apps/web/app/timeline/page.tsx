@@ -100,6 +100,25 @@ export default function TimelinePage() {
         return isRetro ? "내가 남긴 날적이가 한눈에 보여요" : "내가 본 것들이 시간 순서로 모여요";
     }, [loading, err, isRetro]);
 
+    const enableYearGrouping = logs.length > 0;
+    const yearGroups = useMemo(() => {
+        if (!enableYearGrouping) return [];
+        const groups: { year: number; items: WatchLog[] }[] = [];
+        const index = new Map<number, number>();
+        for (const log of logs) {
+            const base = log.watchedAt ?? log.createdAt;
+            const year = new Date(base).getFullYear();
+            const existing = index.get(year);
+            if (existing === undefined) {
+                index.set(year, groups.length);
+                groups.push({ year, items: [log] });
+            } else {
+                groups[existing].items.push(log);
+            }
+        }
+        return groups;
+    }, [enableYearGrouping, logs]);
+
     return (
         <div className="space-y-4">
             <div>
@@ -141,11 +160,72 @@ export default function TimelinePage() {
                 </div>
             )}
 
-            <div className="grid grid-cols-1 gap-3">
-                {logs.map((l) => (
-                    <LogCard key={l.id} log={l} />
-                ))}
-            </div>
+            {enableYearGrouping ? (
+                <div className="space-y-6">
+                    {yearGroups.map((group) => (
+                        <div key={group.year} className="space-y-3">
+                            <div className={cn(
+                                "text-sm font-semibold",
+                                isRetro ? "uppercase text-neutral-500" : "text-muted-foreground"
+                            )}>
+                                {status === "ALL" ? (
+                                    <>
+                                        <span className={cn(
+                                            "font-bold",
+                                            isRetro ? "text-neutral-700" : "text-slate-700"
+                                        )}>
+                                            {group.year}
+                                        </span>
+                                        <span> </span>
+                                        <span className={cn(
+                                            "font-bold",
+                                            isRetro ? "text-blue-700" : "text-indigo-600"
+                                        )}>
+                                            ({group.items.length})
+                                        </span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <span className={cn(
+                                            "font-bold",
+                                            isRetro ? "text-neutral-700" : "text-slate-700"
+                                        )}>
+                                            {group.year}년
+                                        </span>
+                                        <span>에는 </span>
+                                        <span className={cn(
+                                            "font-bold",
+                                            isRetro ? "text-blue-700" : "text-indigo-600"
+                                        )}>
+                                            {group.items.length}
+                                        </span>
+                                        <span>
+                                            {status === "DONE"
+                                                ? "편을 봤어요"
+                                                : status === "IN_PROGRESS"
+                                                ? "편을 보는 중"
+                                                : status === "WISHLIST"
+                                                ? "편을 보고 싶어요"
+                                                : "편을 봤어요"}
+                                        </span>
+                                    </>
+                                )}
+                            </div>
+                            <div className="grid grid-cols-1 gap-3">
+                                {group.items.map((l) => (
+                                    <LogCard key={l.id} log={l} />
+                                ))}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            ) : (
+                <div className="grid grid-cols-1 gap-3">
+                    {logs.map((l) => (
+                        <LogCard key={l.id} log={l} />
+                    ))}
+                </div>
+            )}
         </div>
     );
 }

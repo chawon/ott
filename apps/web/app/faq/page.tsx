@@ -28,8 +28,16 @@ export default function FaqPage() {
         <section className="space-y-3">
           <h2 className="text-lg font-bold">Q. 기기를 변경해도 기록을 볼 수 있나요?</h2>
           <p className="leading-relaxed text-muted-foreground">
-            네, 가능합니다! [계정] 메뉴에서 발급받은 <strong>페어링 코드</strong>를 새로운 기기에 입력하면 
-            기존의 모든 기록을 동기화하여 이어서 사용할 수 있습니다. 개인정보를 수집하지 않으면서도 강력한 동기화를 제공합니다.
+            네, 가능합니다! [계정] 메뉴에서 발급받은 <strong>페어링 코드</strong>를 새 기기에 입력하면
+            지금까지의 기록을 그대로 이어서 볼 수 있어요. 여러 기기에서 각각 쌓아둔 기록도 하나로 모아집니다.
+          </p>
+        </section>
+        
+        <section className="space-y-3">
+          <h2 className="text-lg font-bold">Q. 페어링을 하면 기록은 어떻게 합쳐지나요?</h2>
+          <p className="leading-relaxed text-muted-foreground">
+            같은 작품에 대한 기록이 양쪽에 모두 있으면, <strong>더 최근에 수정된 내용</strong>이 남아요.
+            그래서 최신 상태로 자연스럽게 정리됩니다. 기존 기록이 사라지는 것이 아니라, 더 최신 기록으로 정리된다고 보면 됩니다.
           </p>
         </section>
 

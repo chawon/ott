@@ -38,12 +38,36 @@ public class LogService {
     @Transactional(readOnly = true)
     public List<WatchLogEntity> list(UUID titleId, Status status, LogOrigin origin, String ott, Place place, Occasion occasion, int limit, UUID userId) {
         int safeLimit = Math.max(1, Math.min(limit, 100));
+        String normalizedOtt = (ott == null || ott.isBlank()) ? null : ott.trim();
+        String[] ottPatterns = null;
+        if (normalizedOtt != null && normalizedOtt.contains(",")) {
+            var parts = java.util.Arrays.stream(normalizedOtt.split(","))
+                    .map(String::trim)
+                    .filter(v -> !v.isBlank())
+                    .map(v -> "%" + v + "%")
+                    .toList();
+            if (!parts.isEmpty()) {
+                ottPatterns = parts.toArray(String[]::new);
+            }
+        }
+        if (ottPatterns != null) {
+            return watchLogRepository.findFilteredWithOttPatterns(
+                    userId,
+                    titleId,
+                    status == null ? null : status.name(),
+                    origin == null ? null : origin.name(),
+                    ottPatterns,
+                    place,
+                    occasion,
+                    PageRequest.of(0, safeLimit)
+            );
+        }
         return watchLogRepository.findFiltered(
                 userId,
                 titleId,
                 status == null ? null : status.name(),
                 origin == null ? null : origin.name(),
-                (ott == null || ott.isBlank()) ? null : ott.trim(),
+                normalizedOtt,
                 place,
                 occasion,
                 PageRequest.of(0, safeLimit)

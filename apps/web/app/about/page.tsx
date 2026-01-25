@@ -45,6 +45,30 @@ export default function AboutPage() {
         </div>
       </section>
 
+      <section className="space-y-6">
+        <h2 className="border-b border-border pb-2 text-xl font-semibold">더 편하게 쓰는 방법</h2>
+        <div className="grid gap-6">
+          <div className="flex gap-4">
+            <div className="flex-shrink-0 w-8 h-8 rounded-full bg-neutral-900 text-white flex items-center justify-center font-bold">+</div>
+            <div>
+              <h3 className="font-medium">앱처럼 설치해서 사용</h3>
+              <p className="text-sm text-muted-foreground">
+                On the Timeline은 설치형 앱처럼 사용할 수 있어요. 홈 화면에 추가하면 앱 아이콘으로 빠르게 열 수 있습니다.
+              </p>
+            </div>
+          </div>
+          <div className="flex gap-4">
+            <div className="flex-shrink-0 w-8 h-8 rounded-full bg-neutral-900 text-white flex items-center justify-center font-bold">+</div>
+            <div>
+              <h3 className="font-medium">공유 카드로 기록 올리기</h3>
+              <p className="text-sm text-muted-foreground">
+                기록 저장 후 “공유 카드 만들기”를 선택하면, SNS에 올릴 수 있는 예쁜 카드가 자동으로 만들어집니다.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <section className="rounded-2xl border border-border bg-muted/60 p-6 italic text-muted-foreground">
         "기억은 흐릿해지지만, 기록은 타임라인으로 남습니다."
       </section>

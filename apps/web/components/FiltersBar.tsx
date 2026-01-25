@@ -34,6 +34,15 @@ const OTT_CUSTOM_KEY = "watchlog.ott.custom";
 
 function resolveOttSelect(value: string, options: string[]) {
     if (!value) return "";
+    if (value.includes(",")) {
+        const picked = value.split(",").map((v) => v.trim()).filter(Boolean);
+        for (const group of OTT_GROUPS) {
+            if (picked.length !== group.options.length) continue;
+            const allMatch = picked.every((v) => group.options.includes(v));
+            if (allMatch) return `__group:${group.label}`;
+        }
+        return OTT_CUSTOM_VALUE;
+    }
     return options.includes(value) ? value : OTT_CUSTOM_VALUE;
 }
 
@@ -122,6 +131,10 @@ export default function FiltersBar({
                             setOttSelect(next);
                             if (next === OTT_CUSTOM_VALUE) {
                                 setOtt("");
+                            } else if (next.startsWith("__group:")) {
+                                const label = next.replace("__group:", "");
+                                const group = OTT_GROUPS.find((g) => g.label === label);
+                                setOtt(group ? group.options.join(",") : "");
                             } else {
                                 setOtt(next);
                             }
@@ -129,6 +142,13 @@ export default function FiltersBar({
                         className="w-full select-base rounded-xl px-3 py-2 text-sm"
                     >
                         <option value="">전체</option>
+                        <optgroup label="그룹">
+                            {OTT_GROUPS.map((g) => (
+                                <option key={g.label} value={`__group:${g.label}`}>
+                                    {g.label} 전체
+                                </option>
+                            ))}
+                        </optgroup>
                         {OTT_GROUPS.map((g) => (
                             <optgroup key={g.label} label={g.label}>
                                 {g.options.map((o) => (

@@ -39,6 +39,28 @@ public interface WatchLogRepository extends JpaRepository<WatchLogEntity, UUID> 
             Pageable pageable
     );
 
+    @Query(value = """
+            select * from watch_logs w
+            where (cast(:userId as uuid) is null or w.user_id = cast(:userId as uuid))
+              and (cast(:titleId as uuid) is null or w.title_id = cast(:titleId as uuid))
+              and (cast(:status as text) is null or w.status = cast(:status as text))
+              and (cast(:origin as text) is null or w.origin = cast(:origin as text))
+              and (cast(:ottPatterns as text[]) is null or coalesce(w.ott, '') ilike any (cast(:ottPatterns as text[])))
+              and (cast(:place as text) is null or w.place = cast(:place as text))
+              and (cast(:occasion as text) is null or w.occasion = cast(:occasion as text))
+            order by w.watched_at desc
+            """, nativeQuery = true)
+    List<WatchLogEntity> findFilteredWithOttPatterns(
+            @Param("userId") UUID userId,
+            @Param("titleId") UUID titleId,
+            @Param("status") String status,
+            @Param("origin") String origin,
+            @Param("ottPatterns") String[] ottPatterns,
+            @Param("place") Place place,
+            @Param("occasion") Occasion occasion,
+            Pageable pageable
+    );
+
     List<WatchLogEntity> findByUpdatedAtAfterOrDeletedAtAfter(OffsetDateTime updatedAt, OffsetDateTime deletedAt);
 
     @Query(value = """

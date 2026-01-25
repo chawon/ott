@@ -7,9 +7,12 @@ import { cn } from "@/lib/utils";
 function formatDate(iso: string, isRetro: boolean) {
     const d = new Date(iso);
     if (isRetro) {
-        return d.toLocaleDateString("ko-KR", { month: "2-digit", day: "2-digit" }).replace(/\. /g, '-').replace('.', '');
+        return d
+            .toLocaleDateString("ko-KR", { year: "numeric", month: "2-digit", day: "2-digit" })
+            .replace(/\. /g, "-")
+            .replace(".", "");
     }
-    return d.toLocaleDateString("ko-KR", { month: "short", day: "numeric" });
+    return d.toLocaleDateString("ko-KR", { year: "numeric", month: "2-digit", day: "2-digit" });
 }
 
 function renderBody(text: string, isRetro: boolean) {
@@ -70,7 +73,6 @@ export default function LogCard({ log }: { log: WatchLog }) {
     if (log.deletedAt) return null;
     if (!t?.id) return null;
     const seasonLabel = seasonEpisodeLabel(log);
-    const yearLabel = seasonYearLabel(log) ?? (t.year ? String(t.year) : null);
     const isCommentOrigin = log.origin === "COMMENT";
 
     if (isRetro) {
@@ -103,7 +105,6 @@ export default function LogCard({ log }: { log: WatchLog }) {
                             <div className="mt-1 text-sm text-neutral-600 font-bold uppercase flex flex-wrap gap-2">
                                 <span className="bg-black text-white px-1">{statusLabel(log.status)}</span>
                                 {seasonLabel ? <span className="bg-white text-black px-1 border border-black">{seasonLabel}</span> : null}
-                                {yearLabel ? <span>{yearLabel}</span> : null}
                                 <span>{formatDate(log.watchedAt ?? log.createdAt, true)}</span>
                                 {log.ott ? <span className="text-blue-600">@{log.ott}</span> : ""}
                             </div>
@@ -163,12 +164,6 @@ export default function LogCard({ log }: { log: WatchLog }) {
                                 <>
                                     <span className="text-muted-foreground/60">·</span>
                                     <span>{seasonLabel}</span>
-                                </>
-                            ) : null}
-                            {yearLabel ? (
-                                <>
-                                    <span className="text-muted-foreground/60">·</span>
-                                    <span>{yearLabel}</span>
                                 </>
                             ) : null}
                             <span className="text-muted-foreground/60">·</span>
