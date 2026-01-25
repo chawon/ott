@@ -1,12 +1,13 @@
 FROM node:24-alpine AS deps
 WORKDIR /app
-COPY package.json ./
+# 컨텍스트가 루트일 때를 대비하여 경로 수정
+COPY apps/web/package.json ./
 RUN npm install
 
 FROM node:24-alpine AS build
 WORKDIR /app
 COPY --from=deps /app/node_modules node_modules
-COPY . .
+COPY apps/web/. .
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN npm run build
 
