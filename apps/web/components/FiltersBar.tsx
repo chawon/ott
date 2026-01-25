@@ -38,7 +38,7 @@ function resolveOttSelect(value: string, options: string[]) {
         const picked = value.split(",").map((v) => v.trim()).filter(Boolean);
         for (const group of OTT_GROUPS) {
             if (picked.length !== group.options.length) continue;
-            const allMatch = picked.every((v) => group.options.includes(v));
+            const allMatch = picked.every((v) => (group.options as readonly string[]).includes(v));
             if (allMatch) return `__group:${group.label}`;
         }
         return OTT_CUSTOM_VALUE;
