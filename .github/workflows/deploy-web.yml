@@ -53,7 +53,7 @@ jobs:
           WEB_IMAGE="${{ secrets.OCIR_REGISTRY }}/${{ secrets.OCIR_NAMESPACE }}/ott-web:$NEW_TAG"
 
           echo "Updating Web image to: $WEB_IMAGE"
-          yq -i ".spec.template.spec.containers[0].image = \"$WEB_IMAGE\"" deploy/oke/web-deployment.yaml
+          yq -i "select(.kind == \"Deployment\").spec.template.spec.containers[0].image = \"$WEB_IMAGE\"" deploy/oke/web-deployment.yaml
 
           if [[ -n $(git status -s) ]]; then
             git add deploy/oke/web-deployment.yaml

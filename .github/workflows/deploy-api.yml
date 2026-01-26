@@ -53,7 +53,7 @@ jobs:
           API_IMAGE="${{ secrets.OCIR_REGISTRY }}/${{ secrets.OCIR_NAMESPACE }}/ott-api:$NEW_TAG"
 
           echo "Updating API image to: $API_IMAGE"
-          yq -i ".spec.template.spec.containers[0].image = \"$API_IMAGE\"" deploy/oke/api-deployment.yaml
+          yq -i "select(.kind == \"Deployment\").spec.template.spec.containers[0].image = \"$API_IMAGE\"" deploy/oke/api-deployment.yaml
 
           if [[ -n $(git status -s) ]]; then
             git add deploy/oke/api-deployment.yaml
