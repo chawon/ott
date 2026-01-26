@@ -80,7 +80,6 @@ export default function AppFooter() {
             isRetro ? "font-bold text-neutral-400" : "text-muted-foreground"
           )}>
             <p>© {currentYear} {isRetro ? "으뜸과 버금" : "On the Timeline"}. All rights reserved.</p>
-            <p>{isRetro ? "당신의 비디오를 기억하며." : "Designed for the moments you watch."}</p>
           </div>
         </div>
       </div>
