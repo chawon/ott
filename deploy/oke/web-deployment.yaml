@@ -36,7 +36,3 @@ spec:
     - name: http
       port: 3000
       targetPort: 3000
-  template:
-    spec:
-      containers:
-        - image: yny.ocir.io/axvqyylkrvmi/ott-web:22ae7a47ef78acf0e52e0bea178a636d199a65f5

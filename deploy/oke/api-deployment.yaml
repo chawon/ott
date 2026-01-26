@@ -36,7 +36,3 @@ spec:
     - name: http
       port: 8080
       targetPort: 8080
-  template:
-    spec:
-      containers:
-        - image: yny.ocir.io/axvqyylkrvmi/ott-api:22ae7a47ef78acf0e52e0bea178a636d199a65f5
