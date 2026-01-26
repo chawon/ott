@@ -7,10 +7,6 @@ on:
       - 'apps/api/**'
       - 'shared/**'
       - '.github/workflows/deploy-api.yml'
-    paths-ignore:
-      - 'deploy/**'
-      - 'docs/**'
-      - '*.md'
 
 permissions:
   contents: write

@@ -7,10 +7,6 @@ on:
       - 'apps/web/**'
       - 'shared/**'
       - '.github/workflows/deploy-web.yml'
-    paths-ignore:
-      - 'deploy/**'
-      - 'docs/**'
-      - '*.md'
 
 permissions:
   contents: write
