@@ -1,8 +1,12 @@
-name: Build and Update Manifests
+name: Deploy API to OKE
 
 on:
   push:
     branches: ["main"]
+    paths:
+      - 'apps/api/**'
+      - 'shared/**'
+      - '.github/workflows/deploy-api.yml'
     paths-ignore:
       - 'deploy/**'
       - 'docs/**'
@@ -12,13 +16,12 @@ permissions:
   contents: write
 
 jobs:
-  build-and-push:
+  build-and-push-api:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # QEMU 설정 추가 (Multi-platform 빌드 지원)
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
 
@@ -37,24 +40,12 @@ jobs:
         with:
           context: .
           file: ./apps/api/Dockerfile
-          # ARM64 플랫폼 추가
           platforms: linux/arm64
           push: true
           tags: |
             ${{ secrets.OCIR_REGISTRY }}/${{ secrets.OCIR_NAMESPACE }}/ott-api:${{ github.sha }}
 
-      - name: Build and push Web image
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: ./apps/web/Dockerfile
-          # ARM64 플랫폼 추가
-          platforms: linux/arm64
-          push: true
-          tags: |
-            ${{ secrets.OCIR_REGISTRY }}/${{ secrets.OCIR_NAMESPACE }}/ott-web:${{ github.sha }}
-
-      - name: Update Kubernetes manifests
+      - name: Update API Manifest
         run: |
           git config --global user.name "GitHub Actions"
           git config --global user.email "actions@github.com"
@@ -64,18 +55,15 @@ jobs:
 
           NEW_TAG="${{ github.sha }}"
           API_IMAGE="${{ secrets.OCIR_REGISTRY }}/${{ secrets.OCIR_NAMESPACE }}/ott-api:$NEW_TAG"
-          WEB_IMAGE="${{ secrets.OCIR_REGISTRY }}/${{ secrets.OCIR_NAMESPACE }}/ott-web:$NEW_TAG"
 
           echo "Updating API image to: $API_IMAGE"
           yq -i ".spec.template.spec.containers[0].image = \"$API_IMAGE\"" deploy/oke/api-deployment.yaml
 
-          echo "Updating Web image to: $WEB_IMAGE"
-          yq -i ".spec.template.spec.containers[0].image = \"$WEB_IMAGE\"" deploy/oke/web-deployment.yaml
-
           if [[ -n $(git status -s) ]]; then
-            git add deploy/oke/api-deployment.yaml deploy/oke/web-deployment.yaml
-            git commit -m "chore: update image tags to ${{ github.sha }}"
+            git add deploy/oke/api-deployment.yaml
+            git commit -m "chore(api): update image tag to ${{ github.sha }}"
             git push
           else
             echo "No changes to manifests."
           fi
+
