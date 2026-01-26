@@ -58,6 +58,7 @@ jobs:
           if [[ -n $(git status -s) ]]; then
             git add deploy/oke/web-deployment.yaml
             git commit -m "chore(web): update image tag to ${{ github.sha }}"
+            git pull --rebase origin main
             git push
           else
             echo "No changes to manifests."
