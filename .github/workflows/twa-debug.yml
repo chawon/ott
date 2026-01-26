@@ -1,8 +1,6 @@
 name: Build TWA Debug APK
 
 on:
-  push:
-    branches: ["main", "feature/pwa"]
   workflow_dispatch:
 
 permissions:
