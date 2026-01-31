@@ -13,7 +13,7 @@ permissions:
 
 jobs:
   build-and-push-web:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -63,4 +63,3 @@ jobs:
           else
             echo "No changes to manifests."
           fi
-
