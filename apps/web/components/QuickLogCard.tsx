@@ -187,7 +187,8 @@ export default function QuickLogCard({
     const [saving, setSaving] = useState(false);
     const [banner, setBanner] = useState<{ visible: boolean; count: number } | null>(null);
 
-    const bookSearchMode: "mock" | "api" = "api";
+    const bookSearchMode: "mock" | "api" =
+        process.env.NEXT_PUBLIC_BOOK_SEARCH_MODE === "mock" ? "mock" : "api";
     const isBookMode = contentType === "book";
     const isBookMock = isBookMode && bookSearchMode === "mock";
     const canSave = useMemo(() => !!selected && !saving && !isBookMock, [selected, saving, isBookMock]);
