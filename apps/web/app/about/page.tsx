@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "서비스 소개 및 사용법",
-  description: "로그인 없이 10초 만에 끝내는 시청·독서 기록 서비스, On the Timeline 사용법을 알아보세요.",
+  description: "로그인 없이 10초 만에 끝내는 영상·책 기록 서비스, On the Timeline 사용법을 알아보세요.",
 };
 
 export default function AboutPage() {
@@ -10,10 +10,10 @@ export default function AboutPage() {
     <div className="mx-auto max-w-2xl space-y-10 py-10 text-foreground">
       <section className="space-y-2">
         <h1 className="text-xl font-semibold">
-          로그인 없이 기록하는 시청·독서 타임라인
+          로그인 없이 기록하는 영상·책 타임라인
         </h1>
         <p className="text-sm leading-relaxed text-muted-foreground">
-          On the Timeline은 당신의 소중한 시청·독서 시간을 가장 빠르고 간편하게 기록하기 위해 태어났습니다.
+          On the Timeline은 당신의 소중한 영상·책 기록을 가장 빠르고 간편하게 남기기 위해 태어났습니다.
           번거로운 가입 절차 없이, 지금 보고 있거나 읽고 있는 작품을 바로 기록해보세요.
         </p>
       </section>
