@@ -7,7 +7,7 @@
 ### 주요 특징
 *   **GitOps:** GitHub 저장소의 `deploy/oke` 폴더가 진실의 원천(Source of Truth)입니다. ArgoCD가 이 폴더를 감지하여 클러스터 상태를 동기화합니다.
 *   **분리 배포 (Split Deployment):** Web(`apps/web`)과 API(`apps/api`)는 서로 다른 GitHub Actions 워크플로우를 통해 독립적으로 빌드되고 배포됩니다.
-*   **ARM64 지원:** OKE의 Ampere A1 (ARM64) 노드에서 실행되도록 `linux/arm64` 아키텍처로 도커 이미지를 빌드합니다.
+*   **ARM64 지원:** OKE의 Ampere A1 (ARM64) 노드에서 실행되도록 `linux/arm64` 아키텍처로 도커 이미지를 빌드합니다. GitHub Actions는 **ARM64 호스티드 러너(ubuntu-24.04-arm)** 를 사용합니다.
 *   **비용 최적화:** ArgoCD 전용 Load Balancer 없이 기존 Traefik Ingress를 통해 통합 접속(`argocd.preview.pe.kr`)합니다.
 
 ---
@@ -23,9 +23,8 @@ graph TD
     end
 
     subgraph "GitHub Actions (CI)"
-        ActionWeb[🚀 Deploy Web Workflow]
-        ActionAPI[🚀 Deploy API Workflow]
-        QEMU[🏗️ QEMU (ARM64 Build)]
+        ActionWeb[🚀 Deploy Web Workflow (ARM64 Runner)]
+        ActionAPI[🚀 Deploy API Workflow (ARM64 Runner)]
     end
 
     subgraph "Repositories"
@@ -66,10 +65,14 @@ graph TD
 1.  **`deploy-web.yml`**:
     *   **트리거:** `apps/web/**` 또는 `shared/**` 폴더 변경 시.
     *   **동작:** Web Dockerfile 빌드 (`linux/arm64`) -> OCIR 푸시 -> `deploy/oke/web-deployment.yaml` 태그 업데이트 -> Git Push.
+    *   **러너:** `ubuntu-24.04-arm` (ARM64 호스티드 러너)
+    *   **yq:** 러너 아키텍처에 맞는 바이너리 다운로드 (arm64/amd64 자동 선택)
 
 2.  **`deploy-api.yml`**:
     *   **트리거:** `apps/api/**` 또는 `shared/**` 폴더 변경 시.
     *   **동작:** API Dockerfile 빌드 (`linux/arm64`) -> OCIR 푸시 -> `deploy/oke/api-deployment.yaml` 태그 업데이트 -> Git Push.
+    *   **러너:** `ubuntu-24.04-arm` (ARM64 호스티드 러너)
+    *   **yq:** 러너 아키텍처에 맞는 바이너리 다운로드 (arm64/amd64 자동 선택)
 
 > **주의:** `deploy/` 폴더 내의 파일 수정은 CI를 트리거하지 않도록 설정되어 있습니다 (`paths-ignore` 효과). 이는 무한 배포 루프를 방지하기 위함입니다.
 
