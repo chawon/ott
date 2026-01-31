@@ -43,7 +43,9 @@ jobs:
           git config --global user.name "GitHub Actions"
           git config --global user.email "actions@github.com"
 
-          wget https://github.com/mikefarah/yq/releases/download/v4.44.3/yq_linux_amd64 -O /usr/local/bin/yq
+          ARCH=$(uname -m)
+          if [[ "$ARCH" == "x86_64" ]]; then YQ_ARCH="amd64"; elif [[ "$ARCH" == "aarch64" || "$ARCH" == "arm64" ]]; then YQ_ARCH="arm64"; else YQ_ARCH="$ARCH"; fi
+          wget https://github.com/mikefarah/yq/releases/download/v4.44.3/yq_linux_${YQ_ARCH} -O /usr/local/bin/yq
           chmod +x /usr/local/bin/yq
 
           NEW_TAG="${{ github.sha }}"
