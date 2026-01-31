@@ -64,6 +64,26 @@ export default function AboutPage() {
               <p className="text-sm text-muted-foreground">
                 기록 저장 후 “공유 카드 만들기”를 선택하면, SNS에 올릴 수 있는 예쁜 카드가 자동으로 만들어집니다.
               </p>
+              <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                <figure className="space-y-2">
+                  <img
+                    src="/share-cards/share-card-video.svg"
+                    alt="영상 공유 카드 예시"
+                    className="w-full rounded-2xl border border-border bg-muted/40"
+                    loading="lazy"
+                  />
+                  <figcaption className="text-xs text-muted-foreground">영상 공유 카드 예시</figcaption>
+                </figure>
+                <figure className="space-y-2">
+                  <img
+                    src="/share-cards/share-card-book.svg"
+                    alt="책 공유 카드 예시"
+                    className="w-full rounded-2xl border border-border bg-muted/40"
+                    loading="lazy"
+                  />
+                  <figcaption className="text-xs text-muted-foreground">책 공유 카드 예시</figcaption>
+                </figure>
+              </div>
             </div>
           </div>
         </div>

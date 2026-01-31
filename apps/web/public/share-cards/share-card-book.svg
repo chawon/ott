@@ -1,0 +1,21 @@
+<svg width="540" height="960" viewBox="0 0 540 960" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="540" height="960" rx="36" fill="#F8F2E9"/>
+  <rect x="24" y="24" width="492" height="624" rx="28" fill="#F3E6D4"/>
+  <rect x="170" y="96" width="200" height="300" rx="18" fill="url(#cover)"/>
+  <rect x="188" y="124" width="164" height="20" rx="8" fill="#FDE68A"/>
+  <rect x="188" y="156" width="120" height="16" rx="8" fill="#FCD34D"/>
+  <rect x="188" y="196" width="140" height="12" rx="6" fill="#F97316"/>
+  <rect x="24" y="676" width="492" height="44" rx="12" fill="#C7B8A5"/>
+  <rect x="24" y="736" width="320" height="20" rx="8" fill="#B59F8B"/>
+  <rect x="24" y="768" width="420" height="20" rx="8" fill="#B59F8B"/>
+  <rect x="24" y="812" width="120" height="28" rx="12" fill="#F59E0B"/>
+  <rect x="156" y="812" width="84" height="28" rx="12" fill="#10B981"/>
+  <rect x="252" y="812" width="84" height="28" rx="12" fill="#EF4444"/>
+  <text x="270" y="720" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" fill="#4B5563">BOOK LOG</text>
+  <defs>
+    <linearGradient id="cover" x1="170" y1="96" x2="370" y2="396" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#D97706"/>
+      <stop offset="1" stop-color="#92400E"/>
+    </linearGradient>
+  </defs>
+</svg>
