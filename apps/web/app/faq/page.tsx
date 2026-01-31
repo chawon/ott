@@ -52,7 +52,7 @@ export default function FaqPage() {
         <section className="space-y-3">
           <h2 className="text-lg font-bold">Q. 서비스 이용료가 있나요?</h2>
           <p className="leading-relaxed text-muted-foreground">
-            On the Timeline은 모든 기능을 무료로 제공합니다. 시청 기록을 남기는 즐거움에만 집중하세요!
+            On the Timeline은 모든 기능을 무료로 제공합니다. 기록을 남기는 즐거움에만 집중하세요!
           </p>
         </section>
       </div>

@@ -2,9 +2,9 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "On the Timeline (OTT)",
-    short_name: "OTT",
-    description: "Watch log timeline and shared discussions",
+    name: "On the Timeline",
+    short_name: "Timeline",
+    description: "Watch and read log timeline with shared discussions",
     start_url: "/",
     display: "standalone",
     background_color: "#ffffff",
