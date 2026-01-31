@@ -11,13 +11,11 @@ export default function TitleSearchBox({
                                            placeholder = "작품 검색 (예: 듄, 더 베어)",
                                            showRecentDiscussions = true,
                                            contentType = "video",
-                                           mockItems,
                                        }: {
     onSelect: (item: TitleSearchItem) => void;
     placeholder?: string;
     showRecentDiscussions?: boolean;
     contentType?: "video" | "book";
-    mockItems?: TitleSearchItem[];
 }) {
     const { isRetro } = useRetro();
     const [q, setQ] = useState("");
@@ -33,8 +31,6 @@ export default function TitleSearchBox({
 
     const query = useMemo(() => q.trim(), [q]);
 
-    const useMock = contentType === "book" && Array.isArray(mockItems);
-
     useEffect(() => {
         if (!open) return;
 
@@ -46,27 +42,6 @@ export default function TitleSearchBox({
         }
 
         let cancelled = false;
-
-        if (useMock) {
-            const normalized = query.toLowerCase();
-            const results = (mockItems ?? []).filter((item) => {
-                const haystack = [
-                    item.name,
-                    item.author,
-                    item.publisher,
-                    item.isbn13,
-                    item.isbn10,
-                ]
-                    .filter(Boolean)
-                    .join(" ")
-                    .toLowerCase();
-                return haystack.includes(normalized);
-            });
-            setLoading(false);
-            setErr(null);
-            setItems(results);
-            return;
-        }
 
         const t = setTimeout(async () => {
             setLoading(true);
@@ -92,7 +67,7 @@ export default function TitleSearchBox({
             cancelled = true;
             clearTimeout(t);
         };
-    }, [query, open, useMock, mockItems, contentType]);
+    }, [query, open, contentType]);
 
     useEffect(() => {
         if (!open || !showRecentDiscussions) return;

@@ -67,7 +67,7 @@ export default function AboutPage() {
               <div className="mt-4 grid gap-4 sm:grid-cols-2">
                 <figure className="space-y-2">
                   <img
-                    src="/share-cards/share-card-video.svg"
+                    src="/og/share-card?sample=video"
                     alt="영상 공유 카드 예시"
                     className="w-full rounded-2xl border border-border bg-muted/40"
                     loading="lazy"
@@ -76,7 +76,7 @@ export default function AboutPage() {
                 </figure>
                 <figure className="space-y-2">
                   <img
-                    src="/share-cards/share-card-book.svg"
+                    src="/og/share-card?sample=book"
                     alt="책 공유 카드 예시"
                     className="w-full rounded-2xl border border-border bg-muted/40"
                     loading="lazy"

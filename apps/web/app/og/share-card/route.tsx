@@ -1,7 +1,5 @@
 import { ImageResponse } from "next/og";
 import fs from "node:fs/promises";
-import path from "node:path";
-import os from "node:os";
 import { getAverageColor } from "fast-average-color-node";
 
 export const runtime = "nodejs";
@@ -20,53 +18,7 @@ type ShareCardPayload = {
   theme: "default" | "retro";
 };
 
-function clampText(text: string, maxLen: number) {
-  if (text.length <= maxLen) return text;
-  return `${text.slice(0, maxLen - 1)}…`;
-}
-
-function normalizeNote(text: string, maxLines = 2) {
-  const lines = text
-    .replace(/\r\n/g, "\n")
-    .split("\n")
-    .map((line) => line.trim())
-    .filter((line) => line.length > 0);
-  return lines.slice(0, maxLines).join("\n");
-}
-
-function stripBookSubtitle(title: string) {
-  const withoutParens = title
-    .replace(/\s*[\(\[\{][^)\]\}]+[\)\]\}]/g, " ")
-    .replace(/\s{2,}/g, " ")
-    .trim();
-  const colonIndex = withoutParens.search(/:\s+/);
-  const dashIndex = withoutParens.search(/\s[-–—]\s+/);
-  let cutIndex = -1;
-  if (colonIndex !== -1) cutIndex = colonIndex;
-  if (dashIndex !== -1) cutIndex = cutIndex === -1 ? dashIndex : Math.min(cutIndex, dashIndex);
-  const trimmed = cutIndex === -1 ? withoutParens : withoutParens.slice(0, cutIndex).trim();
-  return trimmed.length > 0 ? trimmed : title;
-}
-
-function formatTitleForCard(title: string) {
-  const idx = title.indexOf(":");
-  if (idx === -1) return title;
-  const before = title.slice(0, idx + 1);
-  const after = title.slice(idx + 1).trim();
-  return `${before}\n${after}`;
-}
-
-function tmdbResize(url: string | null | undefined, size: string): string | undefined {
-  if (!url) return url ?? undefined;
-  const marker = "https://image.tmdb.org/t/p/";
-  if (!url.startsWith(marker)) return url;
-  const rest = url.slice(marker.length);
-  const slash = rest.indexOf("/");
-  if (slash <= 0) return url;
-  return `${marker}${size}${rest.slice(slash)}`;
-}
-
-export async function POST(req: Request) {
+async function renderShareCard(body: ShareCardPayload) {
   try {
     const fonts: Array<{ name: string; data: ArrayBuffer; weight: 400 | 700; style: "normal" }> = [];
 
@@ -95,7 +47,6 @@ export async function POST(req: Request) {
       }
     }
 
-    const body = (await req.json()) as ShareCardPayload;
     const rawTitle = body.title ?? "";
     const isBook = body.titleType === "book";
     const format = body.format ?? "story";
@@ -355,4 +306,85 @@ export async function POST(req: Request) {
       status: 500,
     });
   }
+}
+
+function clampText(text: string, maxLen: number) {
+  if (text.length <= maxLen) return text;
+  return `${text.slice(0, maxLen - 1)}…`;
+}
+
+function normalizeNote(text: string, maxLines = 2) {
+  const lines = text
+    .replace(/\r\n/g, "\n")
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0);
+  return lines.slice(0, maxLines).join("\n");
+}
+
+function stripBookSubtitle(title: string) {
+  const withoutParens = title
+    .replace(/\s*[\(\[\{][^)\]\}]+[\)\]\}]/g, " ")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+  const colonIndex = withoutParens.search(/:\s+/);
+  const dashIndex = withoutParens.search(/\s[-–—]\s+/);
+  let cutIndex = -1;
+  if (colonIndex !== -1) cutIndex = colonIndex;
+  if (dashIndex !== -1) cutIndex = cutIndex === -1 ? dashIndex : Math.min(cutIndex, dashIndex);
+  const trimmed = cutIndex === -1 ? withoutParens : withoutParens.slice(0, cutIndex).trim();
+  return trimmed.length > 0 ? trimmed : title;
+}
+
+function formatTitleForCard(title: string) {
+  const idx = title.indexOf(":");
+  if (idx === -1) return title;
+  const before = title.slice(0, idx + 1);
+  const after = title.slice(idx + 1).trim();
+  return `${before}\n${after}`;
+}
+
+function tmdbResize(url: string | null | undefined, size: string): string | undefined {
+  if (!url) return url ?? undefined;
+  const marker = "https://image.tmdb.org/t/p/";
+  if (!url.startsWith(marker)) return url;
+  const rest = url.slice(marker.length);
+  const slash = rest.indexOf("/");
+  if (slash <= 0) return url;
+  return `${marker}${size}${rest.slice(slash)}`;
+}
+
+export async function POST(req: Request) {
+  const body = (await req.json()) as ShareCardPayload;
+  return renderShareCard(body);
+}
+
+export async function GET(req: Request) {
+  const { searchParams, origin } = new URL(req.url);
+  const sample = searchParams.get("sample");
+  if (!sample) {
+    return new Response("Missing sample parameter", { status: 400 });
+  }
+  if (sample !== "video" && sample !== "book") {
+    return new Response("Unsupported sample", { status: 400 });
+  }
+
+  const isBookSample = sample === "book";
+  const posterUrl = `${origin}/share-cards/${isBookSample ? "sample-book-poster.svg" : "sample-video-poster.svg"}`;
+
+  const body: ShareCardPayload = {
+    title: isBookSample ? "불편한 편의점" : "듄: 파트 두",
+    titleType: isBookSample ? "book" : "movie",
+    format: "story",
+    note: isBookSample ? "퇴근 후 한 장씩" : "아이맥스로 다시 한 번",
+    statusLabel: isBookSample ? "읽었어요" : "봤어요",
+    ratingLabel: isBookSample ? "인생책" : "최고예요",
+    ratingValue: 5,
+    date: "2026.01.31",
+    posterUrl,
+    watermark: "On the Timeline",
+    theme: "default",
+  };
+
+  return renderShareCard(body);
 }

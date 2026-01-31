@@ -112,45 +112,6 @@ function bookMeta(item: Pick<TitleSearchItem, "author" | "publisher" | "year">) 
         .join(" · ");
 }
 
-const BOOK_MOCK_ITEMS: TitleSearchItem[] = [
-    {
-        provider: "NAVER",
-        providerId: "9788950990877",
-        type: "book",
-        name: "불편한 편의점",
-        author: "김호연",
-        publisher: "나무옆의자",
-        year: 2021,
-        isbn13: "9788950990877",
-        isbn10: "8950990873",
-        posterUrl: "https://placehold.co/300x450?text=BOOK+01",
-    },
-    {
-        provider: "NAVER",
-        providerId: "9788996991342",
-        type: "book",
-        name: "아몬드",
-        author: "손원평",
-        publisher: "창비",
-        year: 2017,
-        isbn13: "9788996991342",
-        isbn10: "8996991341",
-        posterUrl: "https://placehold.co/300x450?text=BOOK+02",
-    },
-    {
-        provider: "NAVER",
-        providerId: "9788956058007",
-        type: "book",
-        name: "달러구트 꿈 백화점",
-        author: "이미예",
-        publisher: "팩토리나인",
-        year: 2020,
-        isbn13: "9788956058007",
-        isbn10: "8956058003",
-        posterUrl: "https://placehold.co/300x450?text=BOOK+03",
-    },
-];
-
 export default function QuickLogCard({
                                          onCreated,
                                          onContentTypeChange,
@@ -187,11 +148,8 @@ export default function QuickLogCard({
     const [saving, setSaving] = useState(false);
     const [banner, setBanner] = useState<{ visible: boolean; count: number } | null>(null);
 
-    const bookSearchMode: "mock" | "api" =
-        process.env.NEXT_PUBLIC_BOOK_SEARCH_MODE === "mock" ? "mock" : "api";
     const isBookMode = contentType === "book";
-    const isBookMock = isBookMode && bookSearchMode === "mock";
-    const canSave = useMemo(() => !!selected && !saving && !isBookMock, [selected, saving, isBookMock]);
+    const canSave = useMemo(() => !!selected && !saving, [selected, saving]);
     const isWishlist = status === "WISHLIST";
     const statusOptions = useMemo(
         () => statusOptionsForType(isBookMode ? "book" : "movie"),
@@ -365,8 +323,6 @@ export default function QuickLogCard({
 
     async function submit() {
         if (!selected || saving) return;
-        if (isBookMock) return;
-
         setSaving(true);
         try {
             const now = new Date().toISOString();
@@ -564,9 +520,6 @@ export default function QuickLogCard({
                             >
                                 책
                             </button>
-                            {isBookMock ? (
-                                <span className="text-[10px] font-bold text-neutral-500">MOCK</span>
-                            ) : null}
                         </div>
 
                         <TitleSearchBox
@@ -575,13 +528,7 @@ export default function QuickLogCard({
                             placeholder={isBookMode ? "책 검색 (어린 왕자, 불편한 편의점...)" : "작품 검색 (듄, 더 베어...)"} 
                             showRecentDiscussions
                             contentType={isBookMode ? "book" : "video"}
-                            mockItems={isBookMock ? BOOK_MOCK_ITEMS : undefined}
                         />
-                        {isBookMock ? (
-                            <div className="text-[10px] font-bold text-neutral-500">
-                                책 검색은 프론트 목업 데이터로 동작합니다. 저장은 비활성화되어 있어요.
-                            </div>
-                        ) : null}
 
                         {selected ? (
                                                     <div className="border-4 border-black bg-[#212529] p-2 text-white">
@@ -907,9 +854,6 @@ export default function QuickLogCard({
                     >
                         책
                     </button>
-                    {isBookMock ? (
-                        <span className="text-[11px] font-semibold text-muted-foreground">MOCK</span>
-                    ) : null}
                 </div>
 
                 <TitleSearchBox
@@ -918,13 +862,7 @@ export default function QuickLogCard({
                     placeholder={isBookMode ? "책 검색 (어린 왕자, 불편한 편의점...)" : "작품 검색 (예: 듄, 더 베어)"}
                     showRecentDiscussions
                     contentType={isBookMode ? "book" : "video"}
-                    mockItems={isBookMock ? BOOK_MOCK_ITEMS : undefined}
                 />
-                {isBookMock ? (
-                    <div className="text-xs text-muted-foreground">
-                        책 검색은 프론트 목업 데이터로 동작합니다. 저장은 비활성화되어 있어요.
-                    </div>
-                ) : null}
 
                 {selected ? (
                     <div className="rounded-xl border border-border bg-muted p-4 transition-colors">

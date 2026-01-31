@@ -1,0 +1,17 @@
+<svg width="600" height="900" viewBox="0 0 600 900" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="600" y2="900" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0F172A"/>
+      <stop offset="1" stop-color="#1F2937"/>
+    </linearGradient>
+  </defs>
+  <rect width="600" height="900" rx="32" fill="url(#bg)"/>
+  <rect x="64" y="96" width="472" height="64" rx="16" fill="#111827"/>
+  <rect x="64" y="184" width="360" height="28" rx="14" fill="#334155"/>
+  <rect x="64" y="228" width="420" height="28" rx="14" fill="#334155"/>
+  <circle cx="300" cy="470" r="110" fill="rgba(15,23,42,0.55)"/>
+  <polygon points="286,420 286,520 370,470" fill="#E5E7EB"/>
+  <rect x="64" y="700" width="200" height="36" rx="18" fill="#0EA5E9"/>
+  <rect x="64" y="752" width="280" height="22" rx="11" fill="#60A5FA"/>
+  <text x="300" y="820" text-anchor="middle" font-family="Arial, sans-serif" font-size="28" fill="#E5E7EB">VIDEO POSTER</text>
+</svg>
