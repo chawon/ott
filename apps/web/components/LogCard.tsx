@@ -1,19 +1,19 @@
 import Link from "next/link";
-import { BookOpen, Film, Tv } from "lucide-react";
-import { WatchLog } from "@/lib/types";
-import { formatNoteInline, occasionLabel, placeLabel, statusLabel, tmdbResize } from "@/lib/utils";
-import { useRetro } from "@/context/RetroContext";
-import { cn } from "@/lib/utils";
+import {BookOpen, Film, Tv} from "lucide-react";
+import {WatchLog} from "@/lib/types";
+import {formatNoteInline, occasionLabel, placeLabel, statusLabel, tmdbResize} from "@/lib/utils";
+import {useRetro} from "@/context/RetroContext";
+import {cn} from "@/lib/utils";
 
 function formatDate(iso: string, isRetro: boolean) {
     const d = new Date(iso);
     if (isRetro) {
         return d
-            .toLocaleDateString("ko-KR", { year: "numeric", month: "2-digit", day: "2-digit" })
+            .toLocaleDateString("ko-KR", {year: "numeric", month: "2-digit", day: "2-digit"})
             .replace(/\. /g, "-")
             .replace(".", "");
     }
-    return d.toLocaleDateString("ko-KR", { year: "numeric", month: "2-digit", day: "2-digit" });
+    return d.toLocaleDateString("ko-KR", {year: "numeric", month: "2-digit", day: "2-digit"});
 }
 
 function renderBody(text: string, isRetro: boolean) {
@@ -68,9 +68,9 @@ function seasonYearLabel(log: WatchLog) {
     return null;
 }
 
-export default function LogCard({ log }: { log: WatchLog }) {
+export default function LogCard({log}: { log: WatchLog }) {
     const t = log.title;
-    const { isRetro } = useRetro();
+    const {isRetro} = useRetro();
     if (log.deletedAt) return null;
     if (!t?.id) return null;
     const seasonLabel = seasonEpisodeLabel(log);
@@ -85,13 +85,13 @@ export default function LogCard({ log }: { log: WatchLog }) {
                 isCommentOrigin && "bg-[#fff7e6] border-4 border-[#f59e0b]"
             )}>
                 <div className="shrink-0">
-                <div className="h-40 w-28 border-4 border-black bg-neutral-200 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] overflow-hidden">
+                    <div className="h-40 w-28 border-4 border-black bg-neutral-200 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] overflow-hidden">
                         {(log.seasonPosterUrl ?? t.posterUrl) ? (
                             <img
                                 src={tmdbResize(log.seasonPosterUrl ?? t.posterUrl, "w185") ?? log.seasonPosterUrl ?? t.posterUrl ?? ""}
                                 alt={t.name}
                                 className="h-full w-full object-cover pixelated"
-                                style={{ imageRendering: "pixelated" }}
+                                style={{imageRendering: "pixelated"}}
                                 loading="lazy"
                             />
                         ) : (
@@ -108,17 +108,17 @@ export default function LogCard({ log }: { log: WatchLog }) {
                             <div className="mt-1 text-sm text-neutral-600 font-bold uppercase flex flex-wrap gap-2">
                                 {isBook ? (
                                     <span className="inline-flex items-center gap-1 border-2 border-black bg-[#d9f7e8] px-1.5 py-0.5 text-[10px] font-bold text-[#1e7a4f]">
-                                        <BookOpen className="h-3 w-3" />
+                                        <BookOpen className="h-3 w-3"/>
                                         BOOK
                                     </span>
                                 ) : t.type === "movie" ? (
                                     <span className="inline-flex items-center gap-1 border-2 border-black bg-[#e9ecff] px-1.5 py-0.5 text-[10px] font-bold text-[#2c3ea8]">
-                                        <Film className="h-3 w-3" />
+                                        <Film className="h-3 w-3"/>
                                         MOVIE
                                     </span>
                                 ) : (
                                     <span className="inline-flex items-center gap-1 border-2 border-black bg-[#fff4d9] px-1.5 py-0.5 text-[10px] font-bold text-[#9a5b14]">
-                                        <Tv className="h-3 w-3" />
+                                        <Tv className="h-3 w-3"/>
                                         SERIES
                                     </span>
                                 )}
@@ -182,17 +182,17 @@ export default function LogCard({ log }: { log: WatchLog }) {
                         <div className="mt-1 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
                             {isBook ? (
                                 <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200/80 bg-emerald-50/70 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/40 dark:text-emerald-200">
-                                    <BookOpen className="h-3 w-3" />
+                                    <BookOpen className="h-3 w-3"/>
                                     BOOK
                                 </span>
                             ) : t.type === "movie" ? (
                                 <span className="inline-flex items-center gap-1 rounded-full border border-indigo-200/80 bg-indigo-50/70 px-2 py-0.5 text-[10px] font-semibold text-indigo-700 dark:border-indigo-900/60 dark:bg-indigo-950/40 dark:text-indigo-200">
-                                    <Film className="h-3 w-3" />
+                                    <Film className="h-3 w-3"/>
                                     MOVIE
                                 </span>
                             ) : (
                                 <span className="inline-flex items-center gap-1 rounded-full border border-amber-200/80 bg-amber-50/70 px-2 py-0.5 text-[10px] font-semibold text-amber-700 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-200">
-                                    <Tv className="h-3 w-3" />
+                                    <Tv className="h-3 w-3"/>
                                     SERIES
                                 </span>
                             )}

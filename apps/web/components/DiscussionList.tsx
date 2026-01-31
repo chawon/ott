@@ -12,7 +12,7 @@ function formatShortDate(iso: string) {
 
 export default function DiscussionList({
   items,
-  emptyText = "아직 같이 기록이 없어요.",
+  emptyText = "아직 함께 기록이 없어요.",
   linkMode = "title",
 }: {
   items: DiscussionListItem[];
