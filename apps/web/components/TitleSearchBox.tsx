@@ -10,10 +10,14 @@ export default function TitleSearchBox({
                                            onSelect,
                                            placeholder = "작품 검색 (예: 듄, 더 베어)",
                                            showRecentDiscussions = true,
+                                           contentType = "video",
+                                           mockItems,
                                        }: {
     onSelect: (item: TitleSearchItem) => void;
     placeholder?: string;
     showRecentDiscussions?: boolean;
+    contentType?: "video" | "book";
+    mockItems?: TitleSearchItem[];
 }) {
     const { isRetro } = useRetro();
     const [q, setQ] = useState("");
@@ -29,24 +33,49 @@ export default function TitleSearchBox({
 
     const query = useMemo(() => q.trim(), [q]);
 
+    const useMock = contentType === "book" && Array.isArray(mockItems);
+
     useEffect(() => {
         if (!open) return;
 
         if (!query) {
             setItems([]);
             setErr(null);
+            setLoading(false);
             return;
         }
 
         let cancelled = false;
+
+        if (useMock) {
+            const normalized = query.toLowerCase();
+            const results = (mockItems ?? []).filter((item) => {
+                const haystack = [
+                    item.name,
+                    item.author,
+                    item.publisher,
+                    item.isbn13,
+                    item.isbn10,
+                ]
+                    .filter(Boolean)
+                    .join(" ")
+                    .toLowerCase();
+                return haystack.includes(normalized);
+            });
+            setLoading(false);
+            setErr(null);
+            setItems(results);
+            return;
+        }
 
         const t = setTimeout(async () => {
             setLoading(true);
             setErr(null);
 
             try {
+                const typeQuery = contentType === "book" ? "&type=book" : "";
                 const res = await api<TitleSearchItem[]>(
-                    `/titles/search?q=${encodeURIComponent(query)}`
+                    `/titles/search?q=${encodeURIComponent(query)}${typeQuery}`
                 );
                 if (!cancelled) setItems(res);
             } catch (e: any) {
@@ -63,7 +92,7 @@ export default function TitleSearchBox({
             cancelled = true;
             clearTimeout(t);
         };
-    }, [query, open]);
+    }, [query, open, useMock, mockItems, contentType]);
 
     useEffect(() => {
         if (!open || !showRecentDiscussions) return;
@@ -118,12 +147,22 @@ export default function TitleSearchBox({
         setActiveIndex(0);
     }
 
-    const showRecentPanel = showRecentDiscussions && !query && (recentLoading || recentErr || recent.length > 0);
+    const filteredRecent = useMemo(() => {
+        if (contentType === "book") return recent.filter((d) => d.titleType === "book");
+        return recent.filter((d) => d.titleType === "movie" || d.titleType === "series");
+    }, [contentType, recent]);
+
+    const showRecentPanel = showRecentDiscussions && !query && (recentLoading || recentErr || filteredRecent.length > 0);
     const showPanel = open && (loading || err || items.length > 0 || showRecentPanel);
 
     useEffect(() => {
         setActiveIndex(0);
     }, [items]);
+
+    const retroPlaceholder =
+        contentType === "book"
+            ? "책을 검색하세요 (어린 왕자, 불편한 편의점...)"
+            : "비디오를 검색하세요 (터미네이터, 투캅스...)";
 
     return (
         <div ref={rootRef} className="relative">
@@ -151,7 +190,7 @@ export default function TitleSearchBox({
                         pick(items[Math.max(0, Math.min(activeIndex, items.length - 1))]);
                     }
                 }}
-                placeholder={isRetro ? "비디오를 검색하세요 (터미네이터, 투캅스...)" : placeholder}
+                placeholder={isRetro ? retroPlaceholder : placeholder}
                 className={cn(
                     "w-full transition-all outline-none",
                     isRetro 
@@ -186,8 +225,10 @@ export default function TitleSearchBox({
                             ) : null}
                             {!recentLoading &&
                                 !recentErr &&
-                                recent.map((d) => {
-                                    const meta = `${d.titleType === "movie" ? "영화" : "시리즈"}${d.titleYear ? ` · ${d.titleYear}` : ""}`;
+                                filteredRecent.map((d) => {
+                                    const typeLabel =
+                                        d.titleType === "movie" ? "영화" : d.titleType === "series" ? "시리즈" : "책";
+                                    const meta = `${typeLabel}${d.titleYear ? ` · ${d.titleYear}` : ""}`;
                                     const item: TitleSearchItem = {
                                         provider: "LOCAL",
                                         providerId: d.titleId,
@@ -249,7 +290,13 @@ export default function TitleSearchBox({
                         !err &&
                         items.map((t, idx) => {
                             const key = `${t.provider}:${t.providerId}`;
-                            const meta = `${t.type === "movie" ? "영화" : "시리즈"}${t.year ? ` · ${t.year}` : ""}`;
+                            const typeLabel = t.type === "movie" ? "영화" : t.type === "series" ? "시리즈" : "책";
+                            const meta = t.type === "book"
+                                ? [t.author, t.publisher, t.year ? String(t.year) : null].filter(Boolean).join(" · ")
+                                : `${typeLabel}${t.year ? ` · ${t.year}` : ""}`;
+                            const detailLine = t.type === "book"
+                                ? (t.isbn13 || t.isbn10 ? `ISBN ${t.isbn13 ?? t.isbn10}` : t.overview)
+                                : t.overview;
 
                             return (
                                 <button
@@ -283,10 +330,12 @@ export default function TitleSearchBox({
                                         <div className={cn("truncate text-sm font-bold uppercase", !isRetro && "normal-case")}>
                                             {t.name}
                                         </div>
-                                        <div className="mt-0.5 text-[10px] font-bold text-muted-foreground">{meta}</div>
-                                        {t.overview ? (
+                                        <div className="mt-0.5 text-[10px] font-bold text-muted-foreground">
+                                            {t.type === "book" ? `책${meta ? ` · ${meta}` : ""}` : meta}
+                                        </div>
+                                        {detailLine ? (
                                             <div className="mt-1 line-clamp-1 text-[10px] font-bold text-muted-foreground">
-                                                {t.overview}
+                                                {detailLine}
                                             </div>
                                         ) : null}
                                     </div>
@@ -298,7 +347,7 @@ export default function TitleSearchBox({
                         <div className="px-4 py-3 text-sm font-bold text-muted-foreground">결과가 없어요</div>
                     )}
 
-                    {query ? (
+                    {query && contentType === "video" ? (
                         <div className={cn(
                             "px-4 py-2 text-[8px] font-bold text-muted-foreground",
                             isRetro ? "border-t-4 border-black bg-neutral-100" : "border-t border-border"

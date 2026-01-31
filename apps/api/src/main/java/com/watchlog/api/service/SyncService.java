@@ -102,6 +102,11 @@ public class SyncService {
                 existing.setYear(payload.year());
                 existing.setOverview(payload.overview());
                 existing.setPosterUrl(payload.posterUrl());
+                existing.setAuthor(payload.author());
+                existing.setPublisher(payload.publisher());
+                existing.setIsbn10(payload.isbn10());
+                existing.setIsbn13(payload.isbn13());
+                existing.setPubdate(payload.pubdate());
                 if (payload.genres() != null) {
                     existing.setGenres(payload.genres().toArray(String[]::new));
                 }
@@ -139,6 +144,11 @@ public class SyncService {
                 existing.setYear(payload.year());
                 existing.setOverview(payload.overview());
                 existing.setPosterUrl(payload.posterUrl());
+                existing.setAuthor(payload.author());
+                existing.setPublisher(payload.publisher());
+                existing.setIsbn10(payload.isbn10());
+                existing.setIsbn13(payload.isbn13());
+                existing.setPubdate(payload.pubdate());
                 if (payload.genres() != null) {
                     existing.setGenres(payload.genres().toArray(String[]::new));
                 }
@@ -182,6 +192,11 @@ public class SyncService {
                             snapshot.cast(),
                             snapshot.overview(),
                             snapshot.posterUrl(),
+                            null,
+                            null,
+                            null,
+                            null,
+                            null,
                             payload.provider(),
                             payload.providerId()
                     );
@@ -199,6 +214,11 @@ public class SyncService {
         created.setYear(payload.year());
         created.setOverview(payload.overview());
         created.setPosterUrl(payload.posterUrl());
+        created.setAuthor(payload.author());
+        created.setPublisher(payload.publisher());
+        created.setIsbn10(payload.isbn10());
+        created.setIsbn13(payload.isbn13());
+        created.setPubdate(payload.pubdate());
         if (payload.genres() != null) {
             created.setGenres(payload.genres().toArray(String[]::new));
         }

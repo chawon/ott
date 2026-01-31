@@ -6,5 +6,10 @@ public enum Place {
     TRANSIT,
     CAFE,
     OFFICE,
+    LIBRARY,
+    BOOKSTORE,
+    SCHOOL,
+    PARK,
+    OUTDOOR,
     ETC
 }

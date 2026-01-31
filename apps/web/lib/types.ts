@@ -1,8 +1,19 @@
 export type Status = "DONE" | "IN_PROGRESS" | "WISHLIST";
-export type TitleType = "movie" | "series";
-export type Provider = "TMDB" | "LOCAL";
+export type TitleType = "movie" | "series" | "book";
+export type Provider = "TMDB" | "LOCAL" | "NAVER";
 
-export type Place = "HOME" | "THEATER" | "TRANSIT" | "CAFE" | "OFFICE" | "ETC";
+export type Place =
+    | "HOME"
+    | "THEATER"
+    | "TRANSIT"
+    | "CAFE"
+    | "OFFICE"
+    | "LIBRARY"
+    | "BOOKSTORE"
+    | "SCHOOL"
+    | "PARK"
+    | "OUTDOOR"
+    | "ETC";
 export type Occasion = "ALONE" | "DATE" | "FAMILY" | "FRIENDS" | "BREAK" | "ETC";
 
 export interface Title {
@@ -15,6 +26,11 @@ export interface Title {
     cast?: string[] | null;
     overview?: string | null;
     posterUrl?: string | null;
+    author?: string | null;
+    publisher?: string | null;
+    isbn10?: string | null;
+    isbn13?: string | null;
+    pubdate?: string | null;
     provider?: Provider;
     providerId?: string;
     updatedAt?: string;
@@ -71,6 +87,11 @@ export interface TitleSearchItem {
     year?: number | null;
     posterUrl?: string | null;
     overview?: string | null;
+    author?: string | null;
+    publisher?: string | null;
+    isbn10?: string | null;
+    isbn13?: string | null;
+    pubdate?: string | null;
 }
 
 export interface WatchLog {
@@ -106,6 +127,13 @@ export interface CreateWatchLogRequest {
     titleName?: string;
     year?: number;
     genres?: string[];
+    overview?: string;
+    posterUrl?: string;
+    author?: string;
+    publisher?: string;
+    isbn10?: string;
+    isbn13?: string;
+    pubdate?: string;
 
     status: Status;
     rating?: number;

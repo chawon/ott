@@ -13,6 +13,11 @@ public record SyncTitlePayload(
         List<String> cast,
         String overview,
         String posterUrl,
+        String author,
+        String publisher,
+        String isbn10,
+        String isbn13,
+        String pubdate,
         String provider,
         String providerId
 ) {}

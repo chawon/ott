@@ -17,6 +17,7 @@ export default function HomePage() {
     const [loading, setLoading] = useState(false);
     const [discussions, setDiscussions] = useState<DiscussionListItem[]>([]);
     const [quickOpen, setQuickOpen] = useState(true);
+    const [quickType, setQuickType] = useState<"video" | "book">("video");
     const [shareOpen, setShareOpen] = useState(false);
     const [shareLog, setShareLog] = useState<WatchLog | null>(null);
     const { isRetro } = useRetro();
@@ -96,6 +97,8 @@ export default function HomePage() {
                                         setShareOpen(true);
                                     }
                                 }}
+                                onContentTypeChange={setQuickType}
+                                initialContentType={quickType}
                             />
                         ) : null}
                     </section>
@@ -161,13 +164,13 @@ export default function HomePage() {
                 <section className="space-y-3">
                     <div className="flex items-end justify-between">
                         <div className="space-y-1">
-                            <h1 className="text-xl font-semibold flex items-center gap-2">
-                                <PencilLine className="h-4 w-4" />
-                                바로 남기는 나의 시청 기록
-                            </h1>
-                            <p className="text-sm text-muted-foreground ml-6">
-                                한 줄만 적어두면 타임라인이 쌓여요
-                            </p>
+                                <h1 className="text-xl font-semibold flex items-center gap-2">
+                                    <PencilLine className="h-4 w-4" />
+                                    {quickType === "book" ? "나의 책 기록" : "나의 영상 기록"}
+                                </h1>
+                                <p className="text-sm text-muted-foreground ml-6">
+                                    한 줄만 적어두면 타임라인이 쌓여요
+                                </p>
                         </div>
                         <button
                             type="button"
@@ -189,6 +192,8 @@ export default function HomePage() {
                                     setShareOpen(true);
                                 }
                             }}
+                            onContentTypeChange={setQuickType}
+                            initialContentType={quickType}
                         />
                     ) : null}
                 </section>

@@ -7,7 +7,7 @@ import { api } from "@/lib/api";
 import TitleSearchBox from "@/components/TitleSearchBox";
 import { enqueueCreateLog, findTitleByProvider, upsertLogLocal, countLogsLocal } from "@/lib/localStore";
 import { syncOutbox } from "@/lib/sync";
-import { safeUUID, OCCASION_LABELS, PLACE_LABELS, STATUS_LABELS, tmdbResize } from "@/lib/utils";
+import { safeUUID, OCCASION_LABELS, placeOptionsForType, ratingOptionsForType, statusOptionsForType, tmdbResize } from "@/lib/utils";
 import { useRetro } from "@/context/RetroContext";
 import Link from "next/link";
 import {
@@ -35,14 +35,20 @@ type EpisodeOption = {
     name: string;
 };
 
-const PLACE_OPTIONS: { value: Place; label: string }[] = (Object.keys(PLACE_LABELS) as Place[])
-    .map((value) => ({ value, label: PLACE_LABELS[value] }));
-
 const OCCASION_OPTIONS: { value: Occasion; label: string }[] = (Object.keys(OCCASION_LABELS) as Occasion[])
     .map((value) => ({ value, label: OCCASION_LABELS[value] }));
 
-const STATUS_OPTIONS: { value: Status; label: string }[] = (Object.keys(STATUS_LABELS) as Status[])
-    .map((value) => ({ value, label: STATUS_LABELS[value] }));
+const RETRO_VIDEO_RATING_OPTIONS = [
+    { value: 5, label: "★★★★★ 최고!" },
+    { value: 3, label: "★★★ 그럭저럭" },
+    { value: 1, label: "★ 별로..." },
+];
+
+const RETRO_BOOK_RATING_OPTIONS = [
+    { value: 5, label: "★★★★★ 인생책" },
+    { value: 3, label: "★★★ 무난해요" },
+    { value: 1, label: "★ 아쉬워요" },
+];
 
 const OTT_OPTIONS = [
     "넷플릭스",
@@ -96,12 +102,66 @@ function saveCustomOttOptions(options: string[]) {
     localStorage.setItem(OTT_CUSTOM_KEY, JSON.stringify(options));
 }
 
+function titleTypeLabel(type: Title["type"]) {
+    return type === "movie" ? "영화" : type === "series" ? "시리즈" : "책";
+}
+
+function bookMeta(item: Pick<TitleSearchItem, "author" | "publisher" | "year">) {
+    return [item.author, item.publisher, item.year ? String(item.year) : null]
+        .filter(Boolean)
+        .join(" · ");
+}
+
+const BOOK_MOCK_ITEMS: TitleSearchItem[] = [
+    {
+        provider: "NAVER",
+        providerId: "9788950990877",
+        type: "book",
+        name: "불편한 편의점",
+        author: "김호연",
+        publisher: "나무옆의자",
+        year: 2021,
+        isbn13: "9788950990877",
+        isbn10: "8950990873",
+        posterUrl: "https://placehold.co/300x450?text=BOOK+01",
+    },
+    {
+        provider: "NAVER",
+        providerId: "9788996991342",
+        type: "book",
+        name: "아몬드",
+        author: "손원평",
+        publisher: "창비",
+        year: 2017,
+        isbn13: "9788996991342",
+        isbn10: "8996991341",
+        posterUrl: "https://placehold.co/300x450?text=BOOK+02",
+    },
+    {
+        provider: "NAVER",
+        providerId: "9788956058007",
+        type: "book",
+        name: "달러구트 꿈 백화점",
+        author: "이미예",
+        publisher: "팩토리나인",
+        year: 2020,
+        isbn13: "9788956058007",
+        isbn10: "8956058003",
+        posterUrl: "https://placehold.co/300x450?text=BOOK+03",
+    },
+];
+
 export default function QuickLogCard({
                                          onCreated,
+                                         onContentTypeChange,
+                                         initialContentType = "video",
                                      }: {
     onCreated: (log: WatchLog, options?: { shareCard: boolean }) => void;
+    onContentTypeChange?: (type: "video" | "book") => void;
+    initialContentType?: "video" | "book";
 }) {
     const { isRetro } = useRetro();
+    const [contentType, setContentType] = useState<"video" | "book">(initialContentType);
     const [selected, setSelected] = useState<TitleSearchItem | null>(null);
     const [status, setStatus] = useState<Status>("IN_PROGRESS");
     const [rating, setRating] = useState<number | "">("");
@@ -127,8 +187,22 @@ export default function QuickLogCard({
     const [saving, setSaving] = useState(false);
     const [banner, setBanner] = useState<{ visible: boolean; count: number } | null>(null);
 
-    const canSave = useMemo(() => !!selected && !saving, [selected, saving]);
+    const bookSearchMode: "mock" | "api" = "api";
+    const isBookMode = contentType === "book";
+    const isBookMock = isBookMode && bookSearchMode === "mock";
+    const canSave = useMemo(() => !!selected && !saving && !isBookMock, [selected, saving, isBookMock]);
     const isWishlist = status === "WISHLIST";
+    const statusOptions = useMemo(
+        () => statusOptionsForType(isBookMode ? "book" : "movie"),
+        [isBookMode]
+    );
+    const placeOptions = useMemo(
+        () => placeOptionsForType(isBookMode ? "book" : "movie"),
+        [isBookMode]
+    );
+    const ratingOptions = isRetro
+        ? (isBookMode ? RETRO_BOOK_RATING_OPTIONS : RETRO_VIDEO_RATING_OPTIONS)
+        : ratingOptionsForType(isBookMode ? "book" : "movie");
 
     function toDateInput(d: Date) {
         const y = d.getFullYear();
@@ -178,6 +252,24 @@ export default function QuickLogCard({
     useEffect(() => {
         setCustomOttOptions(loadCustomOttOptions());
     }, []);
+
+    useEffect(() => {
+        setContentType(initialContentType);
+    }, [initialContentType]);
+
+    useEffect(() => {
+        if (onContentTypeChange) onContentTypeChange(contentType);
+    }, [contentType, onContentTypeChange]);
+
+    useEffect(() => {
+        setSelected(null);
+        setSeasons([]);
+        setEpisodes([]);
+        setSelectedSeason("");
+        setSelectedEpisode("");
+        setSeasonPosterUrl(null);
+        setSeasonYear(null);
+    }, [contentType]);
 
     const allOttOptions = useMemo(() => {
         const base = Array.from(OTT_OPTIONS) as string[];
@@ -272,6 +364,7 @@ export default function QuickLogCard({
 
     async function submit() {
         if (!selected || saving) return;
+        if (isBookMock) return;
 
         setSaving(true);
         try {
@@ -299,9 +392,14 @@ export default function QuickLogCard({
                     id: localTitleId,
                     type: selected.type,
                     name: selected.name,
-                year: selected.year ?? undefined,
+                    year: selected.year ?? undefined,
                     posterUrl: selected.posterUrl ?? undefined,
                     overview: selected.overview ?? undefined,
+                    author: selected.author ?? undefined,
+                    publisher: selected.publisher ?? undefined,
+                    isbn10: selected.isbn10 ?? undefined,
+                    isbn13: selected.isbn13 ?? undefined,
+                    pubdate: selected.pubdate ?? undefined,
                     provider: selected.provider,
                     providerId: selected.providerId,
                     updatedAt: now,
@@ -361,6 +459,11 @@ export default function QuickLogCard({
                         genres: null,
                         overview: selected.overview ?? null,
                         posterUrl: selected.posterUrl ?? null,
+                        author: selected.author ?? null,
+                        publisher: selected.publisher ?? null,
+                        isbn10: selected.isbn10 ?? null,
+                        isbn13: selected.isbn13 ?? null,
+                        pubdate: selected.pubdate ?? null,
                         provider: selected.provider,
                         providerId: selected.providerId,
                     },
@@ -428,13 +531,56 @@ export default function QuickLogCard({
     if (isRetro) {
         return (
             <div className="relative">
-                <section className="nes-container !bg-white">
+                <section className={cn(
+                    "nes-container !bg-white",
+                    isBookMode && "!bg-[#f1fff2] !border-[#2ecc71]"
+                )}>
                     <div className="absolute -top-4 left-4 bg-white border-2 border-black px-2 text-xs font-bold tracking-widest uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-                        새로운 비디오
+                        {contentType === "book" ? "새로운 책" : "새로운 비디오"}
                     </div>
 
                     <div className="space-y-4">
-                        <TitleSearchBox onSelect={(item) => setSelected(item)} />
+                        <div className="flex items-center gap-2">
+                            <button
+                                type="button"
+                                onClick={() => setContentType("video")}
+                                className={cn(
+                                    "nes-btn !px-3 !py-1 text-xs",
+                                    contentType === "video" ? "is-primary" : "",
+                                    contentType === "book" && "is-success"
+                                )}
+                            >
+                                영상
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setContentType("book")}
+                                className={cn(
+                                    "nes-btn !px-3 !py-1 text-xs",
+                                    contentType === "book" ? "is-primary" : "",
+                                    contentType === "book" && "is-success"
+                                )}
+                            >
+                                책
+                            </button>
+                            {isBookMock ? (
+                                <span className="text-[10px] font-bold text-neutral-500">MOCK</span>
+                            ) : null}
+                        </div>
+
+                        <TitleSearchBox
+                            key={contentType}
+                            onSelect={(item) => setSelected(item)}
+                            placeholder={isBookMode ? "책 검색 (어린 왕자, 불편한 편의점...)" : "작품 검색 (듄, 더 베어...)"} 
+                            showRecentDiscussions
+                            contentType={isBookMode ? "book" : "video"}
+                            mockItems={isBookMock ? BOOK_MOCK_ITEMS : undefined}
+                        />
+                        {isBookMock ? (
+                            <div className="text-[10px] font-bold text-neutral-500">
+                                책 검색은 프론트 목업 데이터로 동작합니다. 저장은 비활성화되어 있어요.
+                            </div>
+                        ) : null}
 
                         {selected ? (
                                                     <div className="border-4 border-black bg-[#212529] p-2 text-white">
@@ -455,10 +601,16 @@ export default function QuickLogCard({
                                                                     {selected.name}
                                                                 </div>
                                                                 <div className="mt-1 text-xs text-neutral-400">
-                                                                    {selected.type === "movie" ? "영화" : "시리즈"}
-                                                                    {(seasonYear ?? selected.year) ? ` · ${seasonYear ?? selected.year}` : ""}
-                                                                    {selectedSeason !== "" ? ` · 시즌 ${selectedSeason}` : ""}
-                                                                    {selectedEpisode !== "" ? ` · EP ${selectedEpisode}` : ""}
+                                                                    {titleTypeLabel(selected.type)}
+                                                                    {selected.type === "book" ? (
+                                                                        bookMeta(selected) ? ` · ${bookMeta(selected)}` : ""
+                                                                    ) : (
+                                                                        <>
+                                                                            {(seasonYear ?? selected.year) ? ` · ${seasonYear ?? selected.year}` : ""}
+                                                                            {selectedSeason !== "" ? ` · 시즌 ${selectedSeason}` : ""}
+                                                                            {selectedEpisode !== "" ? ` · EP ${selectedEpisode}` : ""}
+                                                                        </>
+                                                                    )}
                                                                 </div>
                                                             </div>                                    <button 
                                         onClick={() => setSelected(null)}
@@ -478,7 +630,7 @@ export default function QuickLogCard({
                                     onChange={(e) => setStatus(e.target.value as Status)}
                                     className="w-full bg-white px-3 py-2 text-sm font-bold"
                                 >
-                                    {STATUS_OPTIONS.map((o) => (
+                                    {statusOptions.map((o) => (
                                         <option key={o.value} value={o.value}>{o.label}</option>
                                     ))}
                                 </select>
@@ -542,9 +694,9 @@ export default function QuickLogCard({
                                     disabled={isWishlist}
                                 >
                                     <option value="">선택 안함</option>
-                                    <option value="5">★★★★★ 최고!</option>
-                                    <option value="3">★★★ 그럭저럭</option>
-                                    <option value="1">★ 별로...</option>
+                                    {ratingOptions.map((o) => (
+                                        <option key={o.value} value={String(o.value)}>{o.label}</option>
+                                    ))}
                                 </select>
                             </div>
 
@@ -559,7 +711,7 @@ export default function QuickLogCard({
                                     )}
                                     disabled={isWishlist}
                                 >
-                                    {PLACE_OPTIONS.map((o) => (
+                                    {placeOptions.map((o) => (
                                         <option key={o.value} value={o.value}>{o.label}</option>
                                     ))}
                                 </select>
@@ -583,45 +735,56 @@ export default function QuickLogCard({
                             </div>
 
                             <div className="sm:col-span-2 space-y-1">
-                                <label className="text-xs font-bold uppercase flex items-center gap-1"><MonitorPlay className="h-3 w-3" /> 플랫폼</label>
-                                <select
-                                    value={ottSelect}
-                                    onChange={(e) => {
-                                        const next = e.target.value;
-                                        setOttSelect(next);
-                                        if (next === OTT_CUSTOM_VALUE) {
-                                            setOtt("");
-                                        } else {
-                                            setOtt(next);
-                                        }
-                                    }}
-                                    className="w-full bg-white px-3 py-2 text-sm font-bold"
-                                >
-                                    <option value="">선택 안함</option>
-                                    {OTT_GROUPS.map((g) => (
-                                        <optgroup key={g.label} label={g.label}>
-                                            {g.options.map((o) => (
-                                                <option key={o} value={o}>{o}</option>
-                                            ))}
-                                        </optgroup>
-                                    ))}
-                                    {customOttOptions.length > 0 ? (
-                                        <optgroup label="내 입력">
-                                            {customOttOptions.map((o) => (
-                                                <option key={o} value={o}>{o}</option>
-                                            ))}
-                                        </optgroup>
-                                    ) : null}
-                                    <option value={OTT_CUSTOM_VALUE}>직접 입력</option>
-                                </select>
-                                {ottSelect === OTT_CUSTOM_VALUE ? (
+                                <label className="text-xs font-bold uppercase flex items-center gap-1"><MonitorPlay className="h-3 w-3" /> {isBookMode ? "구매처/소장" : "플랫폼"}</label>
+                                {isBookMode ? (
                                     <input
                                         value={ott}
                                         onChange={(e) => setOtt(e.target.value)}
-                                        className="mt-2 w-full bg-white px-3 py-2 text-sm font-bold placeholder:text-neutral-400"
-                                        placeholder="직접 입력"
+                                        className="w-full bg-white px-3 py-2 text-sm font-bold placeholder:text-neutral-400"
+                                        placeholder="예: 교보문고, 리디북스, 도서관"
                                     />
-                                ) : null}
+                                ) : (
+                                    <>
+                                        <select
+                                            value={ottSelect}
+                                            onChange={(e) => {
+                                                const next = e.target.value;
+                                                setOttSelect(next);
+                                                if (next === OTT_CUSTOM_VALUE) {
+                                                    setOtt("");
+                                                } else {
+                                                    setOtt(next);
+                                                }
+                                            }}
+                                            className="w-full bg-white px-3 py-2 text-sm font-bold"
+                                        >
+                                            <option value="">선택 안함</option>
+                                            {OTT_GROUPS.map((g) => (
+                                                <optgroup key={g.label} label={g.label}>
+                                                    {g.options.map((o) => (
+                                                        <option key={o} value={o}>{o}</option>
+                                                    ))}
+                                                </optgroup>
+                                            ))}
+                                            {customOttOptions.length > 0 ? (
+                                                <optgroup label="내 입력">
+                                                    {customOttOptions.map((o) => (
+                                                        <option key={o} value={o}>{o}</option>
+                                                    ))}
+                                                </optgroup>
+                                            ) : null}
+                                            <option value={OTT_CUSTOM_VALUE}>직접 입력</option>
+                                        </select>
+                                        {ottSelect === OTT_CUSTOM_VALUE ? (
+                                            <input
+                                                value={ott}
+                                                onChange={(e) => setOtt(e.target.value)}
+                                                className="mt-2 w-full bg-white px-3 py-2 text-sm font-bold placeholder:text-neutral-400"
+                                                placeholder="직접 입력"
+                                            />
+                                        ) : null}
+                                    </>
+                                )}
                             </div>
 
                             <div className="sm:col-span-2 space-y-2">
@@ -716,8 +879,51 @@ export default function QuickLogCard({
 
     return (
         <>
-            <section className="rounded-2xl border border-border bg-card p-6 text-card-foreground shadow-sm space-y-4 transition-all hover:border-border/80">
-                <TitleSearchBox onSelect={(item) => setSelected(item)} />
+            <section className={cn(
+                "rounded-2xl border border-border bg-card p-6 text-card-foreground shadow-sm space-y-4 transition-all hover:border-border/80",
+                isBookMode && "bg-emerald-50/30 ring-1 ring-emerald-100/80 border-emerald-200/70 dark:bg-emerald-950/25 dark:ring-emerald-900/60 dark:border-emerald-900/50"
+            )}>
+                <div className="flex items-center gap-2">
+                    <button
+                        type="button"
+                        onClick={() => setContentType("video")}
+                        className={cn(
+                            "rounded-full px-4 py-1.5 text-xs font-semibold transition-all",
+                            contentType === "video" ? "bg-neutral-900 text-white" : "bg-muted text-muted-foreground hover:bg-muted/80",
+                            contentType === "book" && "border border-emerald-200/70 bg-emerald-50/60 text-emerald-700 hover:bg-emerald-50"
+                        )}
+                    >
+                        영상
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setContentType("book")}
+                        className={cn(
+                            "rounded-full px-4 py-1.5 text-xs font-semibold transition-all",
+                            contentType === "book" ? "bg-neutral-900 text-white" : "bg-muted text-muted-foreground hover:bg-muted/80",
+                            contentType === "book" && "border border-emerald-200/70 bg-emerald-50/60 text-emerald-700 hover:bg-emerald-50"
+                        )}
+                    >
+                        책
+                    </button>
+                    {isBookMock ? (
+                        <span className="text-[11px] font-semibold text-muted-foreground">MOCK</span>
+                    ) : null}
+                </div>
+
+                <TitleSearchBox
+                    key={contentType}
+                    onSelect={(item) => setSelected(item)}
+                    placeholder={isBookMode ? "책 검색 (어린 왕자, 불편한 편의점...)" : "작품 검색 (예: 듄, 더 베어)"}
+                    showRecentDiscussions
+                    contentType={isBookMode ? "book" : "video"}
+                    mockItems={isBookMock ? BOOK_MOCK_ITEMS : undefined}
+                />
+                {isBookMock ? (
+                    <div className="text-xs text-muted-foreground">
+                        책 검색은 프론트 목업 데이터로 동작합니다. 저장은 비활성화되어 있어요.
+                    </div>
+                ) : null}
 
                 {selected ? (
                     <div className="rounded-xl border border-border bg-muted p-4 transition-colors">
@@ -737,10 +943,16 @@ export default function QuickLogCard({
                                     {selected.name}
                                 </div>
                                 <div className="mt-1 text-sm text-muted-foreground font-medium">
-                                    {selected.type === "movie" ? "영화" : "시리즈"}
-                                    {(seasonYear ?? selected.year) ? ` · ${seasonYear ?? selected.year}` : ""}
-                                    {selectedSeason !== "" ? ` · 시즌 ${selectedSeason}` : ""}
-                                    {selectedEpisode !== "" ? ` · EP ${selectedEpisode}` : ""}
+                                    {titleTypeLabel(selected.type)}
+                                    {selected.type === "book" ? (
+                                        bookMeta(selected) ? ` · ${bookMeta(selected)}` : ""
+                                    ) : (
+                                        <>
+                                            {(seasonYear ?? selected.year) ? ` · ${seasonYear ?? selected.year}` : ""}
+                                            {selectedSeason !== "" ? ` · 시즌 ${selectedSeason}` : ""}
+                                            {selectedEpisode !== "" ? ` · EP ${selectedEpisode}` : ""}
+                                        </>
+                                    )}
                                 </div>
                             </div>
                             <button 
@@ -764,7 +976,7 @@ export default function QuickLogCard({
                             onChange={(e) => setStatus(e.target.value as Status)}
                             className="w-full select-base rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-neutral-900/5 transition-all outline-none"
                         >
-                            {STATUS_OPTIONS.map((o) => (
+                            {statusOptions.map((o) => (
                                 <option key={o.value} value={o.value}>{o.label}</option>
                             ))}
                         </select>
@@ -831,9 +1043,9 @@ export default function QuickLogCard({
                             disabled={isWishlist}
                         >
                             <option value="">선택 안함</option>
-                            <option value="5">😍 최고예요</option>
-                            <option value="3">🙂 볼만해요</option>
-                            <option value="1">😕 아쉬워요</option>
+                            {ratingOptions.map((o) => (
+                                <option key={o.value} value={String(o.value)}>{o.label}</option>
+                            ))}
                         </select>
                     </div>
 
@@ -851,7 +1063,7 @@ export default function QuickLogCard({
                             )}
                             disabled={isWishlist}
                         >
-                            {PLACE_OPTIONS.map((o) => (
+                            {placeOptions.map((o) => (
                                 <option key={o.value} value={o.value}>{o.label}</option>
                             ))}
                         </select>
@@ -880,46 +1092,57 @@ export default function QuickLogCard({
                     <div className="md:col-span-2 space-y-1.5">
                         <div className="text-xs font-medium text-neutral-500 ml-1 flex items-center gap-1.5">
                             <MonitorPlay className="h-3 w-3" />
-                            플랫폼
+                            {isBookMode ? "구매처/소장" : "플랫폼"}
                         </div>
-                        <select
-                            value={ottSelect}
-                            onChange={(e) => {
-                                const next = e.target.value;
-                                setOttSelect(next);
-                                if (next === OTT_CUSTOM_VALUE) {
-                                    setOtt("");
-                                } else {
-                                    setOtt(next);
-                                }
-                            }}
-                            className="w-full select-base rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-neutral-900/5 transition-all outline-none"
-                        >
-                            <option value="">선택 안함</option>
-                            {OTT_GROUPS.map((g) => (
-                                <optgroup key={g.label} label={g.label}>
-                                    {g.options.map((o) => (
-                                        <option key={o} value={o}>{o}</option>
-                                    ))}
-                                </optgroup>
-                            ))}
-                            {customOttOptions.length > 0 ? (
-                                <optgroup label="내 입력">
-                                    {customOttOptions.map((o) => (
-                                        <option key={o} value={o}>{o}</option>
-                                    ))}
-                                </optgroup>
-                            ) : null}
-                            <option value={OTT_CUSTOM_VALUE}>직접 입력</option>
-                        </select>
-                        {ottSelect === OTT_CUSTOM_VALUE ? (
+                        {isBookMode ? (
                             <input
                                 value={ott}
                                 onChange={(e) => setOtt(e.target.value)}
-                                className="mt-2 w-full select-base rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-neutral-900/5 transition-all outline-none"
-                                placeholder="직접 입력"
+                                className="w-full select-base rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-neutral-900/5 transition-all outline-none"
+                                placeholder="예: 교보문고, 리디북스, 도서관"
                             />
-                        ) : null}
+                        ) : (
+                            <>
+                                <select
+                                    value={ottSelect}
+                                    onChange={(e) => {
+                                        const next = e.target.value;
+                                        setOttSelect(next);
+                                        if (next === OTT_CUSTOM_VALUE) {
+                                            setOtt("");
+                                        } else {
+                                            setOtt(next);
+                                        }
+                                    }}
+                                    className="w-full select-base rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-neutral-900/5 transition-all outline-none"
+                                >
+                                    <option value="">선택 안함</option>
+                                    {OTT_GROUPS.map((g) => (
+                                        <optgroup key={g.label} label={g.label}>
+                                            {g.options.map((o) => (
+                                                <option key={o} value={o}>{o}</option>
+                                            ))}
+                                        </optgroup>
+                                    ))}
+                                    {customOttOptions.length > 0 ? (
+                                        <optgroup label="내 입력">
+                                            {customOttOptions.map((o) => (
+                                                <option key={o} value={o}>{o}</option>
+                                            ))}
+                                        </optgroup>
+                                    ) : null}
+                                    <option value={OTT_CUSTOM_VALUE}>직접 입력</option>
+                                </select>
+                                {ottSelect === OTT_CUSTOM_VALUE ? (
+                                    <input
+                                        value={ott}
+                                        onChange={(e) => setOtt(e.target.value)}
+                                        className="mt-2 w-full select-base rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-neutral-900/5 transition-all outline-none"
+                                        placeholder="직접 입력"
+                                    />
+                                ) : null}
+                            </>
+                        )}
                     </div>
 
                     <div className="md:col-span-2 space-y-2">

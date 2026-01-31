@@ -60,7 +60,7 @@ export default function DiscussionList({
                 </div>
                 <div className="mt-1 flex items-center gap-2 text-xs font-bold text-neutral-500 uppercase">
                   <span className="bg-black text-white px-1">
-                    {d.titleType === "movie" ? "영화" : "연속극"}
+                    {d.titleType === "movie" ? "영화" : d.titleType === "series" ? "연속극" : "책"}
                   </span>
                   {d.titleYear ? <span>{d.titleYear}</span> : ""}
                 </div>
@@ -100,7 +100,7 @@ export default function DiscussionList({
                 {d.titleName}
               </div>
               <div className="mt-0.5 text-xs text-muted-foreground">
-                {d.titleType === "movie" ? "Movie" : "Series"}
+                {d.titleType === "movie" ? "Movie" : d.titleType === "series" ? "Series" : "Book"}
                 {d.titleYear ? ` · ${d.titleYear}` : ""}
               </div>
             </div>

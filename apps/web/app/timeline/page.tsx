@@ -8,7 +8,7 @@ import { api } from "@/lib/api";
 import { listLogsLocal, upsertLogsLocal } from "@/lib/localStore";
 import { Status, WatchLog } from "@/lib/types";
 import { useRetro } from "@/context/RetroContext";
-import { cn } from "@/lib/utils";
+import { cn, statusOptionsForType } from "@/lib/utils";
 
 function buildQuery(params: Record<string, string | undefined>) {
     const qs = new URLSearchParams();
@@ -22,11 +22,19 @@ function buildQuery(params: Record<string, string | undefined>) {
 export default function TimelinePage() {
     const { isRetro } = useRetro();
     const [status, setStatus] = useState<Status | "ALL">("ALL");
+    const [contentType, setContentType] = useState<"ALL" | "video" | "book">("ALL");
     const [origin, setOrigin] = useState<"ALL" | "LOG" | "COMMENT">("ALL");
     const [ott, setOtt] = useState("");
     const [logs, setLogs] = useState<WatchLog[]>([]);
     const [loading, setLoading] = useState(false);
     const [err, setErr] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (contentType === "ALL") {
+            setStatus("ALL");
+        }
+        setOtt("");
+    }, [contentType]);
 
     useEffect(() => {
         let cancelled = false;
@@ -39,6 +47,7 @@ export default function TimelinePage() {
             try {
                 const cached = await listLogsLocal({
                     limit: 50,
+                    contentType: contentType === "ALL" ? undefined : contentType,
                     status: status === "ALL" ? undefined : status,
                     origin: origin === "ALL" ? undefined : origin,
                     ott: ott.trim() ? ott : undefined,
@@ -59,6 +68,7 @@ export default function TimelinePage() {
                 await upsertLogsLocal(res);
                 const refreshed = await listLogsLocal({
                     limit: 50,
+                    contentType: contentType === "ALL" ? undefined : contentType,
                     status: status === "ALL" ? undefined : status,
                     origin: origin === "ALL" ? undefined : origin,
                     ott: ott.trim() ? ott : undefined,
@@ -78,12 +88,13 @@ export default function TimelinePage() {
             cancelled = true;
             clearTimeout(timer);
         };
-    }, [status, ott, origin]);
+    }, [status, ott, origin, contentType]);
 
     useEffect(() => {
         function handleSync() {
             listLogsLocal({
                 limit: 50,
+                contentType: contentType === "ALL" ? undefined : contentType,
                 status: status === "ALL" ? undefined : status,
                 origin: origin === "ALL" ? undefined : origin,
                 ott: ott.trim() ? ott : undefined,
@@ -91,7 +102,7 @@ export default function TimelinePage() {
         }
         window.addEventListener("sync:updated", handleSync);
         return () => window.removeEventListener("sync:updated", handleSync);
-    }, [status, ott, origin]);
+    }, [status, ott, origin, contentType]);
 
     const headerTitle = isRetro ? "발자취" : "나의 타임라인";
     const headerSubtitle = useMemo(() => {
@@ -99,6 +110,12 @@ export default function TimelinePage() {
         if (err) return err;
         return isRetro ? "내가 남긴 날적이가 한눈에 보여요" : "내가 본 것들이 시간 순서로 모여요";
     }, [loading, err, isRetro]);
+
+    const statusLabel = useMemo(() => {
+        if (status === "ALL") return null;
+        const labels = statusOptionsForType(contentType === "book" ? "book" : "movie");
+        return labels.find((s) => s.value === status)?.label ?? null;
+    }, [contentType, status]);
 
     const enableYearGrouping = logs.length > 0;
     const yearGroups = useMemo(() => {
@@ -139,7 +156,16 @@ export default function TimelinePage() {
                 </div>
             </div>
 
-            <FiltersBar status={status} setStatus={setStatus} origin={origin} setOrigin={setOrigin} ott={ott} setOtt={setOtt} />
+            <FiltersBar
+                status={status}
+                setStatus={setStatus}
+                origin={origin}
+                setOrigin={setOrigin}
+                ott={ott}
+                setOtt={setOtt}
+                contentType={contentType}
+                setContentType={setContentType}
+            />
 
             {loading && logs.length === 0 && (
                 <div className="rounded-2xl border border-border bg-card p-5 text-sm text-muted-foreground shadow-sm">
@@ -200,13 +226,8 @@ export default function TimelinePage() {
                                             {group.items.length}
                                         </span>
                                         <span>
-                                            {status === "DONE"
-                                                ? "편을 봤어요"
-                                                : status === "IN_PROGRESS"
-                                                ? "편을 보는 중"
-                                                : status === "WISHLIST"
-                                                ? "편을 보고 싶어요"
-                                                : "편을 봤어요"}
+                                            {contentType === "book" ? "권을 " : "편을 "}
+                                            {statusLabel ?? "봤어요"}
                                         </span>
                                     </>
                                 )}

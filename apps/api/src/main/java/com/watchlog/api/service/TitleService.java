@@ -76,4 +76,74 @@ public class TitleService {
         created.setUpdatedAt(java.time.OffsetDateTime.now());
         return titleRepository.save(created);
     }
+
+    @Transactional
+    public TitleEntity upsertFromSnapshot(
+            String provider,
+            String providerId,
+            TitleType type,
+            String name,
+            Integer year,
+            List<String> genres,
+            String overview,
+            String posterUrl,
+            String author,
+            String publisher,
+            String isbn10,
+            String isbn13,
+            String pubdate
+    ) {
+        if (provider == null || provider.isBlank() || providerId == null || providerId.isBlank()) {
+            throw new IllegalArgumentException("provider/providerId is required");
+        }
+        String trimmedName = (name == null || name.isBlank()) ? null : name.trim();
+        TitleType resolvedType = (type == null)
+                ? ("NAVER".equalsIgnoreCase(provider) ? TitleType.book : TitleType.movie)
+                : type;
+
+        var existing = titleRepository.findByProviderAndProviderId(provider, providerId);
+        if (existing.isPresent()) {
+            var t = existing.get();
+            t.setProvider(provider);
+            t.setProviderId(providerId);
+            if (trimmedName != null) t.setName(trimmedName);
+            if (type != null) t.setType(type);
+            if (year != null) t.setYear(year);
+            if (overview != null) t.setOverview(blankToNull(overview));
+            if (posterUrl != null) t.setPosterUrl(blankToNull(posterUrl));
+            if (genres != null) t.setGenres(genres.toArray(String[]::new));
+            if (author != null) t.setAuthor(blankToNull(author));
+            if (publisher != null) t.setPublisher(blankToNull(publisher));
+            if (isbn10 != null) t.setIsbn10(blankToNull(isbn10));
+            if (isbn13 != null) t.setIsbn13(blankToNull(isbn13));
+            if (pubdate != null) t.setPubdate(blankToNull(pubdate));
+            t.setUpdatedAt(java.time.OffsetDateTime.now());
+            return t;
+        }
+
+        if (trimmedName == null) {
+            throw new IllegalArgumentException("titleName is required when titleId is missing");
+        }
+
+        var created = new TitleEntity(UUID.randomUUID(), resolvedType, trimmedName);
+        created.setProvider(provider);
+        created.setProviderId(providerId);
+        created.setYear(year);
+        created.setOverview(blankToNull(overview));
+        created.setPosterUrl(blankToNull(posterUrl));
+        if (genres != null) created.setGenres(genres.toArray(String[]::new));
+        created.setAuthor(blankToNull(author));
+        created.setPublisher(blankToNull(publisher));
+        created.setIsbn10(blankToNull(isbn10));
+        created.setIsbn13(blankToNull(isbn13));
+        created.setPubdate(blankToNull(pubdate));
+        created.setUpdatedAt(java.time.OffsetDateTime.now());
+        return titleRepository.save(created);
+    }
+
+    private static String blankToNull(String value) {
+        if (value == null) return null;
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
+    }
 }

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { BookOpen, Film, Tv } from "lucide-react";
 import { WatchLog } from "@/lib/types";
 import { formatNoteInline, occasionLabel, placeLabel, statusLabel, tmdbResize } from "@/lib/utils";
 import { useRetro } from "@/context/RetroContext";
@@ -74,11 +75,13 @@ export default function LogCard({ log }: { log: WatchLog }) {
     if (!t?.id) return null;
     const seasonLabel = seasonEpisodeLabel(log);
     const isCommentOrigin = log.origin === "COMMENT";
+    const isBook = t.type === "book";
 
     if (isRetro) {
         return (
             <article className={cn(
                 "nes-container hover:bg-neutral-50 transition-none flex gap-6",
+                isBook && "bg-[#f1fff2] border-4 border-[#2ecc71]",
                 isCommentOrigin && "bg-[#fff7e6] border-4 border-[#f59e0b]"
             )}>
                 <div className="shrink-0">
@@ -103,7 +106,23 @@ export default function LogCard({ log }: { log: WatchLog }) {
                                 {t.name}
                             </Link>
                             <div className="mt-1 text-sm text-neutral-600 font-bold uppercase flex flex-wrap gap-2">
-                                <span className="bg-black text-white px-1">{statusLabel(log.status)}</span>
+                                {isBook ? (
+                                    <span className="inline-flex items-center gap-1 border-2 border-black bg-[#d9f7e8] px-1.5 py-0.5 text-[10px] font-bold text-[#1e7a4f]">
+                                        <BookOpen className="h-3 w-3" />
+                                        BOOK
+                                    </span>
+                                ) : t.type === "movie" ? (
+                                    <span className="inline-flex items-center gap-1 border-2 border-black bg-[#e9ecff] px-1.5 py-0.5 text-[10px] font-bold text-[#2c3ea8]">
+                                        <Film className="h-3 w-3" />
+                                        MOVIE
+                                    </span>
+                                ) : (
+                                    <span className="inline-flex items-center gap-1 border-2 border-black bg-[#fff4d9] px-1.5 py-0.5 text-[10px] font-bold text-[#9a5b14]">
+                                        <Tv className="h-3 w-3" />
+                                        SERIES
+                                    </span>
+                                )}
+                                <span className="bg-black text-white px-1">{statusLabel(log.status, t.type)}</span>
                                 {seasonLabel ? <span className="bg-white text-black px-1 border border-black">{seasonLabel}</span> : null}
                                 <span>{formatDate(log.watchedAt ?? log.createdAt, true)}</span>
                                 {log.ott ? <span className="text-blue-600">@{log.ott}</span> : ""}
@@ -134,6 +153,8 @@ export default function LogCard({ log }: { log: WatchLog }) {
     return (
         <article className={cn(
             "rounded-2xl border border-border bg-card p-5 text-card-foreground shadow-sm transition-all flex gap-5",
+            isBook && "bg-emerald-50/30 ring-1 ring-emerald-100/80 dark:bg-emerald-950/25 dark:ring-emerald-900/60",
+            isBook && !isCommentOrigin && "border-emerald-200 dark:border-emerald-900/50",
             isCommentOrigin
                 ? "border-amber-300 bg-amber-50/40 dark:border-amber-800 dark:bg-amber-950/30"
                 : "hover:border-border/80"
@@ -159,7 +180,23 @@ export default function LogCard({ log }: { log: WatchLog }) {
                             {t.name}
                         </Link>
                         <div className="mt-1 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-                            <span>{statusLabel(log.status)}</span>
+                            {isBook ? (
+                                <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200/80 bg-emerald-50/70 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/40 dark:text-emerald-200">
+                                    <BookOpen className="h-3 w-3" />
+                                    BOOK
+                                </span>
+                            ) : t.type === "movie" ? (
+                                <span className="inline-flex items-center gap-1 rounded-full border border-indigo-200/80 bg-indigo-50/70 px-2 py-0.5 text-[10px] font-semibold text-indigo-700 dark:border-indigo-900/60 dark:bg-indigo-950/40 dark:text-indigo-200">
+                                    <Film className="h-3 w-3" />
+                                    MOVIE
+                                </span>
+                            ) : (
+                                <span className="inline-flex items-center gap-1 rounded-full border border-amber-200/80 bg-amber-50/70 px-2 py-0.5 text-[10px] font-semibold text-amber-700 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-200">
+                                    <Tv className="h-3 w-3" />
+                                    SERIES
+                                </span>
+                            )}
+                            <span>{statusLabel(log.status, t.type)}</span>
                             {seasonLabel ? (
                                 <>
                                     <span className="text-muted-foreground/60">·</span>

@@ -19,10 +19,13 @@ export default function ShareBottomSheet({
 }) {
   const [showRatingLabel, setShowRatingLabel] = useState(true);
   const [showNote, setShowNote] = useState(true);
+  const [format, setFormat] = useState<"story" | "feed">("story");
   const [busy, setBusy] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [shareCardBlob, setShareCardBlob] = useState<Blob | null>(null);
   const { isRetro } = useRetro();
+  const previewAspect = format === "feed" ? "aspect-[4/5]" : "aspect-[9/16]";
+  const sizeLabel = format === "feed" ? "1080×1350 (Feed)" : "1080×1920 (Story)";
 
   useEffect(() => {
     if (!log) return;
@@ -36,12 +39,14 @@ export default function ShareBottomSheet({
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, "0");
     const day = String(date.getDate()).padStart(2, "0");
-    const rating = ratingDisplay(log.rating);
+    const rating = ratingDisplay(log.rating, log.title?.type);
     const note = log.note ? log.note : null;
     return {
       title: log.title.name,
+      titleType: log.title?.type,
+      format,
       note: showNote ? note : null,
-      statusLabel: statusLabel(log.status),
+      statusLabel: statusLabel(log.status, log.title?.type),
       ratingLabel: showRatingLabel && rating ? rating.label : null,
       ratingValue: showRatingLabel && rating ? rating.value : null,
       date: `${year}.${month}.${day}`,
@@ -49,7 +54,7 @@ export default function ShareBottomSheet({
       watermark: isRetro ? "으뜸과 버금" : "On the Timeline",
       theme: (isRetro ? "retro" : "default") as "retro" | "default",
     };
-  }, [isRetro, log, showNote, showRatingLabel]);
+  }, [format, isRetro, log, showNote, showRatingLabel]);
 
   useEffect(() => {
     let active = true;
@@ -81,7 +86,8 @@ export default function ShareBottomSheet({
 
   function filenameFor(log: WatchLog) {
     const safeTitle = log.title.name.replace(/[^a-zA-Z0-9가-힣_-]+/g, "_").slice(0, 40);
-    return `ott-${safeTitle || "share"}.png`;
+    const suffix = format === "feed" ? "feed" : "story";
+    return `ott-${safeTitle || "share"}-${suffix}.png`;
   }
 
   async function buildBlob() {
@@ -137,7 +143,7 @@ export default function ShareBottomSheet({
           <div className="space-y-4">
             <div className="rounded-3xl border border-border bg-muted/60 p-4">
               <div className="mx-auto flex w-full justify-center">
-                <div className="relative h-[500px] w-[280px] overflow-hidden rounded-2xl bg-card shadow-sm">
+                <div className={cn("relative w-[280px] overflow-hidden rounded-2xl bg-card shadow-sm", previewAspect)}>
                   {previewUrl ? (
                     <img
                       src={previewUrl}
@@ -173,6 +179,31 @@ export default function ShareBottomSheet({
                 한 줄 메모 포함
               </label>
             </div>
+            <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+              <span>이미지 비율</span>
+              <div className="flex items-center rounded-full border border-border bg-muted/40 p-0.5">
+                <button
+                  type="button"
+                  onClick={() => setFormat("story")}
+                  className={cn(
+                    "rounded-full px-3 py-1 text-xs font-medium transition",
+                    format === "story" ? "bg-foreground text-background" : "text-muted-foreground"
+                  )}
+                >
+                  스토리 9:16
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFormat("feed")}
+                  className={cn(
+                    "rounded-full px-3 py-1 text-xs font-medium transition",
+                    format === "feed" ? "bg-foreground text-background" : "text-muted-foreground"
+                  )}
+                >
+                  피드 4:5
+                </button>
+              </div>
+            </div>
           </div>
 
           <div className="space-y-3">
@@ -195,7 +226,7 @@ export default function ShareBottomSheet({
               {shareCardBlob ? "공유하기" : "준비 중..."}
             </button>
             <div className="text-[11px] text-muted-foreground">
-              이미지 크기: 1080×1920 (Story)
+              이미지 크기: {sizeLabel}
             </div>
           </div>
         </div>

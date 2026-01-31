@@ -20,6 +20,13 @@ public record CreateWatchLogRequest(
         String titleName,
         Integer year,
         List<String> genres,
+        String overview,
+        String posterUrl,
+        String author,
+        String publisher,
+        String isbn10,
+        String isbn13,
+        String pubdate,
 
         @NotNull Status status,
         Double rating,

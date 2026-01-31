@@ -16,6 +16,11 @@ public record TitleDto(
         List<String> cast,
         String overview,
         String posterUrl,
+        String author,
+        String publisher,
+        String isbn10,
+        String isbn13,
+        String pubdate,
         String provider,
         String providerId
 ) {
@@ -30,6 +35,11 @@ public record TitleDto(
                 e.castList(),
                 e.getOverview(),
                 e.getPosterUrl(),
+                e.getAuthor(),
+                e.getPublisher(),
+                e.getIsbn10(),
+                e.getIsbn13(),
+                e.getPubdate(),
                 e.getProvider(),
                 e.getProviderId()
         );

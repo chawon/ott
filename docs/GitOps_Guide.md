@@ -1,115 +1,111 @@
 # 📝 OKE GitOps 구축 및 운영 가이드
 
-## 1. 진행 내역 요약
+## 1. 시스템 개요
 
-사용자님의 **OCI Free Tier** 환경을 고려하여 비용 효율적이고 자동화된 배포 시스템을 구축했습니다.
+이 프로젝트는 **Oracle Cloud Infrastructure (OCI) Kubernetes Engine (OKE)** 환경에서 운영되며, **ArgoCD**를 통한 **GitOps** 방식으로 배포를 자동화하고 있습니다.
 
-*   **ArgoCD 설치:** Kubernetes 클러스터 내에 CD(Continuous Deployment) 도구인 ArgoCD를 설치했습니다.
-*   **Git 저장소 연결:** Private GitHub 저장소(`chawon/ott`)와 ArgoCD를 SSH Key로 안전하게 연결했습니다.
-*   **Application 생성:** `ott-app`을 생성하여 `deploy/oke` 폴더의 매니페스트(Web, API)를 `ott` 네임스페이스에 자동 동기화하도록 설정했습니다.
-*   **비용 최적화 (Load Balancer 통합):**
-    *   ArgoCD용 별도 Load Balancer를 제거했습니다. (Free Tier 제한 준수)
-    *   기존 사용 중인 **Traefik Ingress**를 통해 ArgoCD에 접속하도록 설정했습니다.
-*   **접속 환경 구성:** `argocd.preview.pe.kr` 도메인으로 접속하도록 Ingress 라우팅을 설정했습니다.
+### 주요 특징
+*   **GitOps:** GitHub 저장소의 `deploy/oke` 폴더가 진실의 원천(Source of Truth)입니다. ArgoCD가 이 폴더를 감지하여 클러스터 상태를 동기화합니다.
+*   **분리 배포 (Split Deployment):** Web(`apps/web`)과 API(`apps/api`)는 서로 다른 GitHub Actions 워크플로우를 통해 독립적으로 빌드되고 배포됩니다.
+*   **ARM64 지원:** OKE의 Ampere A1 (ARM64) 노드에서 실행되도록 `linux/arm64` 아키텍처로 도커 이미지를 빌드합니다.
+*   **비용 최적화:** ArgoCD 전용 Load Balancer 없이 기존 Traefik Ingress를 통해 통합 접속(`argocd.preview.pe.kr`)합니다.
 
 ---
 
-## 2. CD (지속적 배포) 아키텍처 흐름도
+## 2. CI/CD 아키텍처 흐름도
 
 ```mermaid
 graph TD
-    subgraph "Local / CI Environment"
+    subgraph "Local Development"
         Dev[👨‍💻 Developer]
-        Code[📝 Source Code]
-        Build[🏗️ Build Image]
+        CodeWeb[📝 Web Code]
+        CodeAPI[⚙️ API Code]
+    end
+
+    subgraph "GitHub Actions (CI)"
+        ActionWeb[🚀 Deploy Web Workflow]
+        ActionAPI[🚀 Deploy API Workflow]
+        QEMU[🏗️ QEMU (ARM64 Build)]
     end
 
     subgraph "Repositories"
-        Git[("🐙 GitHub (Manifests)")]
+        GitSource[("🐙 GitHub (Source)")]
+        GitManifest[("🐙 GitHub (Manifests)")]
         OCIR[("📦 OCIR (Docker Images)")]
     end
 
     subgraph "OCI Kubernetes Engine (OKE)"
-        Traefik[("🌐 Traefik LB (Ingress)")]
-        
-        subgraph "Namespace: argocd"
-            ArgoCD[("🐙 ArgoCD Controller")]
-        end
-
-        subgraph "Namespace: ott"
-            PodWeb[("🚀 OTT Web Pod")]
-            PodAPI[("⚙️ OTT API Pod")]
-        end
+        ArgoCD[("🐙 ArgoCD Controller")]
+        PodWeb[("🌍 OTT Web Pod (ARM64)")]
+        PodAPI[("⚙️ OTT API Pod (ARM64)")]
     end
 
     %% Flow
-    Dev -->|1. Code Push| Git
-    Dev -->|2. Docker Build & Push| OCIR
-    Dev -->|3. Update Image Tag & Push| Git
+    Dev -->|Push apps/web| CodeWeb
+    Dev -->|Push apps/api| CodeAPI
     
-    ArgoCD -- "4. Watch & Sync (Auto)" --> Git
-    ArgoCD -- "5. Apply Manifests" --> PodWeb & PodAPI
+    CodeWeb --> ActionWeb
+    CodeAPI --> ActionAPI
     
-    PodWeb -.->|6. Image Pull| OCIR
-    PodAPI -.->|6. Image Pull| OCIR
+    ActionWeb -->|Build & Push| OCIR
+    ActionWeb -->|Update Tag & Push| GitManifest
     
-    User((👤 User)) -->|https://ott...| Traefik
-    Admin((🛡️ Admin)) -->|https://argocd...| Traefik
-    Traefik --> PodWeb & PodAPI
-    Traefik --> ArgoCD
+    ActionAPI -->|Build & Push| OCIR
+    ActionAPI -->|Update Tag & Push| GitManifest
+    
+    ArgoCD -- "Watch deploy/oke" --> GitManifest
+    ArgoCD -- "Sync" --> PodWeb & PodAPI
 ```
 
 ---
 
-## 3. 구체적인 운영 가이드
+## 3. GitHub Actions 워크플로우
+
+두 개의 독립된 워크플로우 파일이 존재합니다.
+
+1.  **`deploy-web.yml`**:
+    *   **트리거:** `apps/web/**` 또는 `shared/**` 폴더 변경 시.
+    *   **동작:** Web Dockerfile 빌드 (`linux/arm64`) -> OCIR 푸시 -> `deploy/oke/web-deployment.yaml` 태그 업데이트 -> Git Push.
+
+2.  **`deploy-api.yml`**:
+    *   **트리거:** `apps/api/**` 또는 `shared/**` 폴더 변경 시.
+    *   **동작:** API Dockerfile 빌드 (`linux/arm64`) -> OCIR 푸시 -> `deploy/oke/api-deployment.yaml` 태그 업데이트 -> Git Push.
+
+> **주의:** `deploy/` 폴더 내의 파일 수정은 CI를 트리거하지 않도록 설정되어 있습니다 (`paths-ignore` 효과). 이는 무한 배포 루프를 방지하기 위함입니다.
+
+---
+
+## 4. 운영 가이드
 
 ### A. 새로운 버전 배포 방법 (Routine Deployment)
 
-기능을 개발하고 배포하는 표준 절차입니다.
+개발자는 **소스 코드만 수정하고 푸시**하면 됩니다. 나머지는 자동입니다.
 
-1.  **이미지 빌드 및 푸시:**
-    *   로컬 개발 환경에서 코드를 수정합니다.
-    *   Docker 이미지를 빌드하고 OCIR에 푸시합니다.
-    ```bash
-    # 예시
-    docker build -t yny.ocir.io/axvqyylkrvmi/ott-api:v2.0 .
-    docker push yny.ocir.io/axvqyylkrvmi/ott-api:v2.0
-    ```
-
-2.  **Manifest 업데이트 (Git):**
-    *   `workspace/ott/deploy/oke` 폴더 내의 Deployment 파일(`api-deployment.yaml` 등)을 엽니다.
-    *   `image` 태그를 방금 푸시한 버전(`:v2.0`)으로 수정합니다.
-    *   변경 사항을 GitHub에 커밋하고 푸시합니다.
-    ```bash
-    git add deploy/oke/api-deployment.yaml
-    git commit -m "chore: update api image to v2.0"
-    git push origin main
-    ```
-
-3.  **배포 자동화 (ArgoCD):**
-    *   ArgoCD는 GitHub의 변경 사항을 감지하고(약 3분 주기), OKE 클러스터의 상태를 Git 정의와 일치시킵니다 (`Self Healing`).
-    *   즉시 배포를 원하면 ArgoCD 대시보드에서 **[Refresh]** -> **[Sync]** 버튼을 누르면 됩니다.
+1.  **코드 수정:** `apps/web` 또는 `apps/api` 코드를 수정합니다.
+2.  **Git Push:** `main` 브랜치로 푸시합니다.
+3.  **자동 배포:**
+    *   GitHub Actions가 자동으로 실행되어 이미지를 빌드합니다.
+    *   빌드가 성공하면 Manifest 파일(`deploy/oke/*.yaml`)의 이미지 태그가 자동으로 업데이트됩니다.
+    *   ArgoCD가 변경 사항을 감지하고 OKE 클러스터의 파드를 교체합니다.
 
 ### B. 환경 설정 변경 (Config/Secret)
 
-1.  **ConfigMap 변경:**
-    *   `web-config.yaml` 등의 내용을 수정하고 Git에 푸시하면, ArgoCD가 이를 반영합니다.
-    *   단, 파드는 ConfigMap 변경 시 자동으로 재시작되지 않을 수 있습니다. 확실한 적용을 위해 파드를 재생성하거나 Deployment 업데이트 전략을 사용하세요.
+1.  **ConfigMap/Secret 변경:**
+    *   `deploy/oke/web-config.yaml` 또는 `api-secret.yaml`을 수정하고 푸시하면 ArgoCD가 반영합니다.
+    *   **Secret 주의:** `api-secret.yaml`에는 실제 DB 접속 정보가 포함되어야 합니다. (플레이스홀더 `<DB_HOST>` 등이 있으면 안 됨)
 
-2.  **Secret 관리 (주의):**
-    *   `api-secret.yaml` 등 민감 정보가 담긴 파일은 Git에 평문으로 올리지 않는 것이 좋습니다.
-    *   현재는 로컬에서 `kubectl apply`로 관리하거나, Git에는 암호화된 값(Sealed Secrets 등)을 올리는 방식을 고려해야 합니다. 현재 설정에서는 GitHub에 있는 Secret 파일이 그대로 클러스터에 적용됩니다.
+### C. 문제 발생 시 대응
 
-### C. ArgoCD 접속 및 모니터링
+*   **배포 실패 (GitHub Actions):** Actions 탭에서 로그를 확인합니다. `npm build` 에러나 `docker push` 에러인지 확인하세요.
+*   **Git Push 충돌:** Web과 API가 동시에 배포될 경우 `git push` 단계에서 충돌이 날 수 있습니다. 워크플로우에는 `git pull --rebase` 로직이 포함되어 있어 자동으로 해결을 시도합니다.
+*   **파드 에러 (CrashLoopBackOff):** `kubectl logs -n ott <pod-name>`으로 로그를 확인하세요. DB 연결 정보나 환경 변수 문제일 수 있습니다.
+*   **롤백 (Rollback):**
+    *   GitHub에서 문제가 발생하기 전의 커밋으로 `git revert` 합니다.
+    *   ArgoCD가 과거 버전의 이미지 태그로 Manifest를 되돌리고, 클러스터도 롤백됩니다.
+    *   *참고:* Deployment 설정에 `revisionHistoryLimit: 3`이 적용되어 있어, 클러스터 내에는 최근 3개의 버전만 기록으로 남습니다.
 
-*   **주소:** `https://argocd.preview.pe.kr`
-*   **계정:** `admin`
-*   **초기 비밀번호:** `FZU-8L2G9Thq2nUC`
-    *   *보안 권장사항:* 로그인 후 `User Info` 메뉴에서 비밀번호를 변경하는 것을 권장합니다.
+### D. 접속 정보
 
-### D. 문제 발생 시 롤백 (Rollback)
-
-ArgoCD는 **Git을 진실의 원천(Source of Truth)**으로 여깁니다.
-
-*   **올바른 롤백 방법:** Git에서 문제가 발생하기 전의 커밋으로 되돌린 후(`git revert`), 다시 푸시합니다. ArgoCD가 이를 감지하여 클러스터 상태를 과거의 안정적인 상태로 되돌립니다.
-*   *주의:* ArgoCD UI에서 'Rollback' 버튼을 누를 수 있지만, Git에 새로운 커밋이 발생하면 다시 덮어씌워집니다. 항상 Git을 수정하는 습관을 들이세요.
+*   **서비스 주소:** `https://ott.preview.pe.kr`
+*   **ArgoCD 대시보드:** `https://argocd.preview.pe.kr`
+    *   계정: `admin` / `FZU-8L2G9Thq2nUC`

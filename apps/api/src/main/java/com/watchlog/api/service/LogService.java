@@ -80,6 +80,22 @@ public class LogService {
                 ? titleService.require(req.titleId())
                 : (req.provider() != null && req.providerId() != null && "TMDB".equalsIgnoreCase(req.provider()))
                 ? titleService.upsertFromTmdb(req.providerId(), req.titleType())
+                : (req.provider() != null && req.providerId() != null)
+                ? titleService.upsertFromSnapshot(
+                        req.provider(),
+                        req.providerId(),
+                        req.titleType(),
+                        req.titleName(),
+                        req.year(),
+                        req.genres(),
+                        req.overview(),
+                        req.posterUrl(),
+                        req.author(),
+                        req.publisher(),
+                        req.isbn10(),
+                        req.isbn13(),
+                        req.pubdate()
+                )
                 : titleService.createIfNeeded(req.titleType(), req.titleName(), req.year(), req.genres());
 
         var log = new WatchLogEntity(UUID.randomUUID(), title, req.status());

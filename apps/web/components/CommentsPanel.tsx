@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { api } from "@/lib/api";
-import { Comment, CreateCommentRequest, Discussion, MentionRef, TitleSearchItem } from "@/lib/types";
+import { Comment, CreateCommentRequest, Discussion, MentionRef, Title, TitleSearchItem } from "@/lib/types";
 import { formatNoteInline } from "@/lib/utils";
 import TitleSearchBox from "@/components/TitleSearchBox";
 import { useRetro } from "@/context/RetroContext";
@@ -16,9 +16,11 @@ function formatTime(iso: string) {
 export default function CommentsPanel({
   titleId,
   userId,
+  titleType,
 }: {
   titleId: string;
   userId?: string | null;
+  titleType?: Title["type"];
 }) {
   const { isRetro } = useRetro();
   const [discussion, setDiscussion] = useState<Discussion | null>(null);
@@ -287,8 +289,15 @@ export default function CommentsPanel({
           </div>
           <TitleSearchBox
             onSelect={addMention}
-            placeholder={isRetro ? "@ TITLE SEARCH" : "@로 추가할 작품을 검색"}
+            placeholder={
+              isRetro
+                ? "@ TITLE SEARCH"
+                : titleType === "book"
+                ? "@로 추가할 책을 검색"
+                : "@로 추가할 작품을 검색"
+            }
             showRecentDiscussions={false}
+            contentType={titleType === "book" ? "book" : "video"}
           />
           {mentions.length > 0 ? (
             <div className="flex flex-wrap gap-2 mt-2">

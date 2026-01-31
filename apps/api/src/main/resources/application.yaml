@@ -26,3 +26,8 @@ tmdb:
   access-token: ${TMDB_ACCESS_TOKEN:}
   language: ko-KR
   image-size: w342
+
+naver:
+  base-url: https://openapi.naver.com
+  client-id: ${NAVER_CLIENT_ID:}
+  client-secret: ${NAVER_CLIENT_SECRET:}

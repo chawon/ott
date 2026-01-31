@@ -26,7 +26,7 @@ import {
     WatchLog,
     WatchLogHistory,
 } from "@/lib/types";
-import { formatNoteInline, OCCASION_LABELS, PLACE_LABELS, STATUS_LABELS, ratingDisplay, safeUUID } from "@/lib/utils";
+import { formatNoteInline, OCCASION_LABELS, PLACE_LABELS, placeOptionsForType, ratingDisplay, ratingOptionsForType, safeUUID, statusOptionsForType } from "@/lib/utils";
 
 type SeasonOption = {
     seasonNumber: number;
@@ -41,12 +41,8 @@ type EpisodeOption = {
     name: string;
 };
 
-const PLACE_OPTIONS: { value: Place; label: string }[] = (Object.keys(PLACE_LABELS) as Place[])
-    .map((value) => ({ value, label: PLACE_LABELS[value] }));
 const OCCASION_OPTIONS: { value: Occasion; label: string }[] = (Object.keys(OCCASION_LABELS) as Occasion[])
     .map((value) => ({ value, label: OCCASION_LABELS[value] }));
-const STATUS_OPTIONS: { value: Status; label: string }[] = (Object.keys(STATUS_LABELS) as Status[])
-    .map((value) => ({ value, label: STATUS_LABELS[value] }));
 
 const OTT_OPTIONS = [
     "넷플릭스",
@@ -194,6 +190,10 @@ export default function TitlePage() {
         const extras = customOttOptions.filter((v) => !base.includes(v));
         return [...base, ...extras];
     }, [customOttOptions]);
+    const isBook = title?.type === "book";
+    const statusOptions = useMemo(() => statusOptionsForType(title?.type), [title?.type]);
+    const placeOptions = useMemo(() => placeOptionsForType(title?.type), [title?.type]);
+    const ratingOptions = useMemo(() => ratingOptionsForType(title?.type), [title?.type]);
 
     async function reloadAll() {
         if (!titleId) return;
@@ -541,7 +541,7 @@ export default function TitlePage() {
                     <div className="min-w-0 flex-1">
                         <div className="text-xl font-semibold">{title.name}</div>
                         <div className="mt-1 text-sm text-muted-foreground">
-                            {title.type === "movie" ? "Movie" : "Series"}
+                            {title.type === "movie" ? "Movie" : title.type === "series" ? "Series" : "Book"}
                             {(seasonYear ?? title.year) ? ` · ${seasonYear ?? title.year}` : ""}
                         </div>
                         {title.genres && title.genres.length > 0 ? (
@@ -592,7 +592,7 @@ export default function TitlePage() {
                                         onChange={(e) => setStatus(e.target.value as Status)}
                                         className="w-full select-base rounded-xl px-3 py-2 text-sm"
                                     >
-                                        {STATUS_OPTIONS.map((s) => (
+                                        {statusOptions.map((s) => (
                                             <option key={s.value} value={s.value}>{s.label}</option>
                                         ))}
                                     </select>
@@ -655,9 +655,9 @@ export default function TitlePage() {
                                         className="w-full select-base rounded-xl px-3 py-2 text-sm"
                                     >
                                         <option value="">선택 안함</option>
-                                        <option value="5">😍 나에게 최고</option>
-                                        <option value="3">🙂 그럭저럭</option>
-                                        <option value="1">😕 나는 실망</option>
+                                        {ratingOptions.map((o) => (
+                                            <option key={o.value} value={String(o.value)}>{o.label}</option>
+                                        ))}
                                     </select>
                                 </label>
 
@@ -671,7 +671,7 @@ export default function TitlePage() {
                                         onChange={(e) => setPlace(e.target.value as Place)}
                                         className="w-full select-base rounded-xl px-3 py-2 text-sm"
                                     >
-                                        {PLACE_OPTIONS.map((p) => (
+                                        {placeOptions.map((p) => (
                                             <option key={p.value} value={p.value}>{p.label}</option>
                                         ))}
                                     </select>
@@ -696,46 +696,57 @@ export default function TitlePage() {
                                 <label className="space-y-1 md:col-span-2">
                                     <div className="text-xs text-neutral-600 flex items-center gap-1.5">
                                         <MonitorPlay className="h-3 w-3" />
-                                        플랫폼
+                                        {isBook ? "구매처/소장" : "플랫폼"}
                                     </div>
-                                    <select
-                                        value={ottSelect}
-                                        onChange={(e) => {
-                                            const next = e.target.value;
-                                            setOttSelect(next);
-                                            if (next === OTT_CUSTOM_VALUE) {
-                                                setOtt("");
-                                            } else {
-                                                setOtt(next);
-                                            }
-                                        }}
-                                        className="w-full select-base rounded-xl px-3 py-2 text-sm"
-                                    >
-                                        <option value="">선택 안함</option>
-                                        {OTT_GROUPS.map((g) => (
-                                            <optgroup key={g.label} label={g.label}>
-                                                {g.options.map((o) => (
-                                                    <option key={o} value={o}>{o}</option>
-                                                ))}
-                                            </optgroup>
-                                        ))}
-                                        {customOttOptions.length > 0 ? (
-                                            <optgroup label="내 입력">
-                                                {customOttOptions.map((o) => (
-                                                    <option key={o} value={o}>{o}</option>
-                                                ))}
-                                            </optgroup>
-                                        ) : null}
-                                        <option value={OTT_CUSTOM_VALUE}>직접 입력</option>
-                                    </select>
-                                    {ottSelect === OTT_CUSTOM_VALUE ? (
+                                    {isBook ? (
                                         <input
                                             value={ott}
                                             onChange={(e) => setOtt(e.target.value)}
-                                            className="mt-2 w-full select-base rounded-xl px-3 py-2 text-sm"
-                                            placeholder="직접 입력"
+                                            className="w-full select-base rounded-xl px-3 py-2 text-sm"
+                                            placeholder="예: 교보문고, 리디북스, 도서관"
                                         />
-                                    ) : null}
+                                    ) : (
+                                        <>
+                                            <select
+                                                value={ottSelect}
+                                                onChange={(e) => {
+                                                    const next = e.target.value;
+                                                    setOttSelect(next);
+                                                    if (next === OTT_CUSTOM_VALUE) {
+                                                        setOtt("");
+                                                    } else {
+                                                        setOtt(next);
+                                                    }
+                                                }}
+                                                className="w-full select-base rounded-xl px-3 py-2 text-sm"
+                                            >
+                                                <option value="">선택 안함</option>
+                                                {OTT_GROUPS.map((g) => (
+                                                    <optgroup key={g.label} label={g.label}>
+                                                        {g.options.map((o) => (
+                                                            <option key={o} value={o}>{o}</option>
+                                                        ))}
+                                                    </optgroup>
+                                                ))}
+                                                {customOttOptions.length > 0 ? (
+                                                    <optgroup label="내 입력">
+                                                        {customOttOptions.map((o) => (
+                                                            <option key={o} value={o}>{o}</option>
+                                                        ))}
+                                                    </optgroup>
+                                                ) : null}
+                                                <option value={OTT_CUSTOM_VALUE}>직접 입력</option>
+                                            </select>
+                                            {ottSelect === OTT_CUSTOM_VALUE ? (
+                                                <input
+                                                    value={ott}
+                                                    onChange={(e) => setOtt(e.target.value)}
+                                                    className="mt-2 w-full select-base rounded-xl px-3 py-2 text-sm"
+                                                    placeholder="직접 입력"
+                                                />
+                                            ) : null}
+                                        </>
+                                    )}
                                 </label>
 
                                 <div className="space-y-2 md:col-span-2">
@@ -795,12 +806,15 @@ export default function TitlePage() {
                         <div className="text-sm text-muted-foreground">아직 히스토리가 없어요.</div>
                     ) : (
                         <div className="space-y-2">
-                            {history.map((h) => (
+                            {history.map((h) => {
+                                const ratingInfo = ratingDisplay(h.rating, title?.type);
+                                const statusText = statusOptions.find((s) => s.value === h.status)?.label ?? h.status;
+                                return (
                                 <div key={h.id} className="rounded-xl border border-border bg-card/80 p-4 text-card-foreground">
                                     <div className="text-sm font-semibold text-foreground">
-                                        {fmt(h.recordedAt)} · {STATUS_LABELS[h.status]}
+                                        {fmt(h.recordedAt)} · {statusText}
                                         {seasonEpisodeLabel(h.seasonNumber, h.episodeNumber) ? ` · ${seasonEpisodeLabel(h.seasonNumber, h.episodeNumber)}` : ""}
-                                        {ratingDisplay(h.rating) ? ` · ${ratingDisplay(h.rating)?.emoji} ${ratingDisplay(h.rating)?.label}` : ""}
+                                        {ratingInfo ? ` · ${ratingInfo.emoji} ${ratingInfo.label}` : ""}
                                     </div>
                                     <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
                                         {h.place ? chip(PLACE_LABELS[h.place], "place") : null}
@@ -817,13 +831,13 @@ export default function TitlePage() {
                                         </div>
                                     ) : null}
                                 </div>
-                            ))}
+                            );})}
                         </div>
                     )}
                 </section>
             </div>
 
-            <CommentsPanel titleId={titleId} userId={userId} />
+            <CommentsPanel titleId={titleId} userId={userId} titleType={title?.type} />
         </div>
     );
 }

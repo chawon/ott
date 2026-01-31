@@ -8,6 +8,8 @@ export const runtime = "nodejs";
 
 type ShareCardPayload = {
   title: string;
+  titleType?: "movie" | "series" | "book";
+  format?: "story" | "feed";
   note?: string | null;
   statusLabel: string;
   ratingLabel?: string | null;
@@ -23,13 +25,27 @@ function clampText(text: string, maxLen: number) {
   return `${text.slice(0, maxLen - 1)}…`;
 }
 
-function normalizeNote(text: string) {
+function normalizeNote(text: string, maxLines = 2) {
   const lines = text
     .replace(/\r\n/g, "\n")
     .split("\n")
     .map((line) => line.trim())
     .filter((line) => line.length > 0);
-  return lines.slice(0, 2).join("\n");
+  return lines.slice(0, maxLines).join("\n");
+}
+
+function stripBookSubtitle(title: string) {
+  const withoutParens = title
+    .replace(/\s*[\(\[\{][^)\]\}]+[\)\]\}]/g, " ")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+  const colonIndex = withoutParens.search(/:\s+/);
+  const dashIndex = withoutParens.search(/\s[-–—]\s+/);
+  let cutIndex = -1;
+  if (colonIndex !== -1) cutIndex = colonIndex;
+  if (dashIndex !== -1) cutIndex = cutIndex === -1 ? dashIndex : Math.min(cutIndex, dashIndex);
+  const trimmed = cutIndex === -1 ? withoutParens : withoutParens.slice(0, cutIndex).trim();
+  return trimmed.length > 0 ? trimmed : title;
 }
 
 function formatTitleForCard(title: string) {
@@ -80,9 +96,20 @@ export async function POST(req: Request) {
     }
 
     const body = (await req.json()) as ShareCardPayload;
-    const title = clampText(body.title ?? "", 60);
+    const rawTitle = body.title ?? "";
+    const isBook = body.titleType === "book";
+    const format = body.format ?? "story";
+    const isFeed = format === "feed";
+    const scale = isFeed ? 0.8 : 1;
+    const s = (value: number) => Math.round(value * scale);
+    const width = 1080;
+    const height = isFeed ? 1350 : 1920;
+    const cleanedTitle = body.titleType === "book" ? stripBookSubtitle(rawTitle) : rawTitle;
+    const title = clampText(cleanedTitle, 60);
     const formattedTitle = formatTitleForCard(title);
-    const note = body.note ? clampText(normalizeNote(body.note), 80) : null;
+    const note = body.note
+      ? clampText(normalizeNote(body.note, isBook ? 3 : 2), isBook ? 120 : 80)
+      : null;
     let posterUrl = body.posterUrl ?? null;
     const watermark = body.watermark ?? "On the Timeline";
     const isRetro = body.theme === "retro";
@@ -173,7 +200,7 @@ export async function POST(req: Request) {
                   width: "100%",
                   height: "100%",
                   objectFit: "cover",
-                  objectPosition: "center 12%",
+                  objectPosition: isBook ? "center top" : "center 12%",
                 }}
               />
             ) : null}
@@ -198,7 +225,7 @@ export async function POST(req: Request) {
               display: "flex",
               flexDirection: "column",
               justifyContent: "flex-start",
-              padding: "64px 88px 72px",
+              padding: `${s(64)}px ${s(88)}px ${s(72)}px`,
               backgroundColor: contentBgColor,
             }}
           >
@@ -206,15 +233,15 @@ export async function POST(req: Request) {
               style={{
                 display: "flex",
                 flexDirection: "column",
-                gap: 18,
+                gap: s(18),
               }}
             >
               <div
                 style={{
                   display: "flex",
-                  fontSize: 84,
+                  fontSize: s(isBook ? 64 : 84),
                   fontWeight: isRetro ? 700 : 700,
-                  lineHeight: 1.05,
+                  lineHeight: isBook ? 1.12 : 1.05,
                   letterSpacing: "-0.02em",
                   textTransform: isRetro ? "uppercase" : "none",
                   color: isRetro ? "#111827" : "#ffffff",
@@ -228,7 +255,7 @@ export async function POST(req: Request) {
                 <div
                   style={{
                     display: "flex",
-                    fontSize: 38,
+                    fontSize: s(isBook ? 40 : 38),
                     fontWeight: isRetro ? 700 : 500,
                     lineHeight: 1.3,
                     color: isRetro ? "#1f2937" : "#dbe4ff",
@@ -242,9 +269,9 @@ export async function POST(req: Request) {
               <div
                 style={{
                   display: "flex",
-                  gap: 12,
+                  gap: s(12),
                   flexWrap: "wrap",
-                  fontSize: 28,
+                  fontSize: s(isBook ? 26 : 28),
                   fontWeight: isRetro ? 700 : 600,
                   color: isRetro ? "#374151" : "#cbd5f5",
                 }}
@@ -253,11 +280,11 @@ export async function POST(req: Request) {
                   style={{
                     display: "flex",
                     alignItems: "center",
-                    gap: 8,
-                    padding: "10px 16px",
+                    gap: s(8),
+                    padding: `${s(10)}px ${s(16)}px`,
                     borderRadius: 999,
                     backgroundColor: isRetro ? "rgba(17,24,39,0.08)" : "rgba(255,255,255,0.08)",
-                    height: 48,
+                    height: s(48),
                   }}
                 >
                   <span>👀</span>
@@ -266,17 +293,17 @@ export async function POST(req: Request) {
                 {body.ratingLabel ? (
                   <div
                     style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 8,
-                      padding: "10px 16px",
-                      borderRadius: 999,
-                      backgroundColor: isRetro ? "rgba(17,24,39,0.08)" : "rgba(255,255,255,0.08)",
-                      height: 48,
-                    }}
-                  >
-                    <span>⭐</span>
-                    <span>
+                    display: "flex",
+                    alignItems: "center",
+                    gap: s(8),
+                    padding: `${s(10)}px ${s(16)}px`,
+                    borderRadius: 999,
+                    backgroundColor: isRetro ? "rgba(17,24,39,0.08)" : "rgba(255,255,255,0.08)",
+                    height: s(48),
+                  }}
+                >
+                  <span>⭐</span>
+                  <span>
                       {body.ratingLabel}
                       {typeof body.ratingValue === "number" ? ` ${body.ratingValue.toFixed(1)}` : ""}
                     </span>
@@ -286,11 +313,11 @@ export async function POST(req: Request) {
                   style={{
                     display: "flex",
                     alignItems: "center",
-                    gap: 8,
-                    padding: "10px 16px",
+                    gap: s(8),
+                    padding: `${s(10)}px ${s(16)}px`,
                     borderRadius: 999,
                     backgroundColor: isRetro ? "rgba(17,24,39,0.08)" : "rgba(255,255,255,0.08)",
-                    height: 48,
+                    height: s(48),
                   }}
                 >
                   <span>🗓</span>
@@ -303,10 +330,10 @@ export async function POST(req: Request) {
           <div
             style={{
               position: "absolute",
-              bottom: 64,
-              left: 88,
+              bottom: s(64),
+              left: s(88),
               display: "flex",
-              fontSize: 26,
+              fontSize: s(26),
               fontWeight: isRetro ? 700 : 500,
               letterSpacing: isRetro ? "0.06em" : "0.02em",
               textTransform: isRetro ? "uppercase" : "none",
@@ -318,8 +345,8 @@ export async function POST(req: Request) {
         </div>
       ),
       {
-        width: 1080,
-        height: 1920,
+        width,
+        height,
         fonts,
       }
     );

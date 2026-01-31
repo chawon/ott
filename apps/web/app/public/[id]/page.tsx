@@ -99,7 +99,11 @@ export default function PublicDiscussionDetailPage() {
           <div className="min-w-0 flex-1">
             <div className={cn("text-xl font-semibold", isRetro && "uppercase")}>{detail.titleName}</div>
             <div className={cn("mt-1 text-sm font-medium", isRetro ? "text-black uppercase" : "text-muted-foreground")}>
-              {detail.titleType === "movie" ? (isRetro ? "MOVIE" : "Movie") : (isRetro ? "SERIES" : "Series")}
+              {detail.titleType === "movie"
+                ? (isRetro ? "MOVIE" : "Movie")
+                : detail.titleType === "series"
+                ? (isRetro ? "SERIES" : "Series")
+                : (isRetro ? "BOOK" : "Book")}
               {detail.titleYear ? ` · ${detail.titleYear}` : ""}
             </div>
             <div className="mt-4 text-sm">
@@ -116,7 +120,7 @@ export default function PublicDiscussionDetailPage() {
         </div>
       </section>
 
-      <CommentsPanel titleId={detail.titleId} userId={userId} />
+      <CommentsPanel titleId={detail.titleId} userId={userId} titleType={detail.titleType} />
     </div>
   );
 }

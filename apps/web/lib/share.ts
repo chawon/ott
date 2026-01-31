@@ -1,5 +1,7 @@
 export type ShareCardPayload = {
   title: string;
+  titleType?: "movie" | "series" | "book";
+  format?: "story" | "feed";
   note?: string | null;
   statusLabel: string;
   ratingLabel?: string | null;

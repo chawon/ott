@@ -26,7 +26,8 @@ export default function RecoShelf({
                     >
                         <div className="font-medium">{t.name}</div>
                         <div className="mt-1 text-neutral-600">
-                            {t.type === "movie" ? "Movie" : "Series"}{t.year ? ` · ${t.year}` : ""}
+                            {t.type === "movie" ? "Movie" : t.type === "series" ? "Series" : "Book"}
+                            {t.year ? ` · ${t.year}` : ""}
                         </div>
                     </Link>
                 ))}

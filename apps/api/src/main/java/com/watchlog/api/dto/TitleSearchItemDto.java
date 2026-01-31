@@ -9,5 +9,10 @@ public record TitleSearchItemDto(
         String name,
         Integer year,
         String posterUrl,
-        String overview
+        String overview,
+        String author,
+        String publisher,
+        String isbn10,
+        String isbn13,
+        String pubdate
 ) {}
