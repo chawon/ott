@@ -26,9 +26,9 @@ export default function AppFooter() {
               "text-xs leading-relaxed",
               isRetro ? "font-bold text-neutral-600" : "text-muted-foreground"
             )}>
-              {isRetro 
-                ? "봤니? 그럼 날적이 해보자~ 한 번 적어 두면 발자취가 또렷해져요." 
-                : "로그인 없이 10초 만에 남기는 OTT 시청 기록. 나만의 필모그래피를 가장 빠르게 기록하고 공유하세요."}
+              {isRetro
+                ? "봤니? 읽었니? 그럼 날적이 해보자~ 한 번 적어 두면 발자취가 또렷해져요."
+                : "로그인 없이 10초 만에 남기는 시청·독서 기록. 영상과 책을 가장 빠르게 기록하고 공유하세요."}
             </p>
           </div>
 
