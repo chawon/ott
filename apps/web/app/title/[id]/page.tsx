@@ -44,7 +44,7 @@ type EpisodeOption = {
 const OCCASION_OPTIONS: { value: Occasion; label: string }[] = (Object.keys(OCCASION_LABELS) as Occasion[])
     .map((value) => ({ value, label: OCCASION_LABELS[value] }));
 
-const OTT_OPTIONS = [
+const VIDEO_PLATFORM_OPTIONS = [
     "넷플릭스",
     "디즈니플러스",
     "티빙",
@@ -63,25 +63,47 @@ const OTT_OPTIONS = [
     "씨네Q",
 ] as const;
 
-const OTT_GROUPS = [
+const VIDEO_PLATFORM_GROUPS = [
     { label: "OTT", options: ["넷플릭스", "디즈니플러스", "티빙", "웨이브", "쿠팡플레이", "애플티비", "프라임비디오", "왓챠"] },
     { label: "유료 방송", options: ["채널", "VOD"] },
     { label: "물리 매체", options: ["DVD", "블루레이"] },
     { label: "극장", options: ["CGV", "롯데시네마", "메가박스", "씨네Q"] },
 ] as const;
 
-const OTT_CUSTOM_VALUE = "__custom__";
-const OTT_CUSTOM_KEY = "watchlog.ott.custom";
+const BOOK_PLATFORM_GROUPS = [
+    { label: "서점", options: ["교보문고", "영풍문고", "예스24", "알라딘"] },
+    { label: "전자책", options: ["리디", "밀리의서재", "윌라", "플레이북"] },
+    { label: "도서관", options: ["공공도서관", "대학도서관", "학교도서관"] },
+] as const;
 
-function resolveOttSelect(value: string, options: string[]) {
+const BOOK_PLATFORM_OPTIONS = BOOK_PLATFORM_GROUPS.flatMap((group) => group.options);
+
+const OTT_CUSTOM_VALUE = "__custom__";
+const VIDEO_CUSTOM_KEY = "watchlog.ott.custom";
+const BOOK_CUSTOM_KEY = "watchlog.book.platform.custom";
+
+function resolvePlatformSelect(
+    value: string,
+    options: string[],
+    groups: { label: string; options: readonly string[] }[]
+) {
     if (!value) return "";
+    if (value.includes(",")) {
+        const picked = value.split(",").map((v) => v.trim()).filter(Boolean);
+        for (const group of groups) {
+            if (picked.length !== group.options.length) continue;
+            const allMatch = picked.every((v) => (group.options as readonly string[]).includes(v));
+            if (allMatch) return `__group:${group.label}`;
+        }
+        return OTT_CUSTOM_VALUE;
+    }
     return options.includes(value) ? value : OTT_CUSTOM_VALUE;
 }
 
-function loadCustomOttOptions(): string[] {
+function loadCustomOptions(key: string): string[] {
     if (typeof localStorage === "undefined") return [];
     try {
-        const raw = localStorage.getItem(OTT_CUSTOM_KEY);
+        const raw = localStorage.getItem(key);
         if (!raw) return [];
         const parsed = JSON.parse(raw);
         if (!Array.isArray(parsed)) return [];
@@ -91,9 +113,9 @@ function loadCustomOttOptions(): string[] {
     }
 }
 
-function saveCustomOttOptions(options: string[]) {
+function saveCustomOptions(key: string, options: string[]) {
     if (typeof localStorage === "undefined") return;
-    localStorage.setItem(OTT_CUSTOM_KEY, JSON.stringify(options));
+    localStorage.setItem(key, JSON.stringify(options));
 }
 
 function fmt(iso: string) {
@@ -185,12 +207,18 @@ export default function TitlePage() {
     const [seasonError, setSeasonError] = useState<string | null>(null);
     const [userId, setUserId] = useState<string | null>(null);
 
+    const isBook = title?.type === "book";
+    const platformOptions = isBook ? BOOK_PLATFORM_OPTIONS : VIDEO_PLATFORM_OPTIONS;
+    const platformGroups = isBook ? BOOK_PLATFORM_GROUPS : VIDEO_PLATFORM_GROUPS;
+    const platformCustomKey = isBook ? BOOK_CUSTOM_KEY : VIDEO_CUSTOM_KEY;
+    const platformPlaceholder = isBook
+        ? "예: 교보문고, 리디, 공공도서관"
+        : "직접 입력";
     const allOttOptions = useMemo(() => {
-        const base = Array.from(OTT_OPTIONS) as string[];
+        const base = Array.from(platformOptions) as string[];
         const extras = customOttOptions.filter((v) => !base.includes(v));
         return [...base, ...extras];
-    }, [customOttOptions]);
-    const isBook = title?.type === "book";
+    }, [customOttOptions, platformOptions]);
     const statusOptions = useMemo(() => statusOptionsForType(title?.type), [title?.type]);
     const placeOptions = useMemo(() => placeOptionsForType(title?.type), [title?.type]);
     const ratingOptions = useMemo(() => ratingOptionsForType(title?.type), [title?.type]);
@@ -218,7 +246,7 @@ export default function TitlePage() {
                 setStatus(current.status);
                 setRating(typeof current.rating === "number" ? current.rating : "");
                 setOtt(current.ott ?? "");
-                setOttSelect(resolveOttSelect(current.ott ?? "", allOttOptions));
+                setOttSelect(resolvePlatformSelect(current.ott ?? "", allOttOptions, platformGroups));
                 setNote(current.note ?? "");
                 setPlace((current.place ?? "HOME") as Place);
                 setOccasion((current.occasion ?? "ALONE") as Occasion);
@@ -261,7 +289,7 @@ export default function TitlePage() {
                 setStatus(localCurrent.status);
                 setRating(typeof localCurrent.rating === "number" ? localCurrent.rating : "");
                 setOtt(localCurrent.ott ?? "");
-                setOttSelect(resolveOttSelect(localCurrent.ott ?? "", allOttOptions));
+                setOttSelect(resolvePlatformSelect(localCurrent.ott ?? "", allOttOptions, platformGroups));
                 setNote(localCurrent.note ?? "");
                 setPlace((localCurrent.place ?? "HOME") as Place);
                 setOccasion((localCurrent.occasion ?? "ALONE") as Occasion);
@@ -283,13 +311,13 @@ export default function TitlePage() {
     }, [titleId]);
 
     useEffect(() => {
-        setCustomOttOptions(loadCustomOttOptions());
-    }, []);
+        setCustomOttOptions(loadCustomOptions(platformCustomKey));
+    }, [platformCustomKey]);
 
     useEffect(() => {
         if (ottSelect === OTT_CUSTOM_VALUE) return;
-        setOttSelect(resolveOttSelect(ott, allOttOptions));
-    }, [ott, ottSelect, allOttOptions]);
+        setOttSelect(resolvePlatformSelect(ott, allOttOptions, platformGroups));
+    }, [ott, ottSelect, allOttOptions, platformGroups]);
 
     useEffect(() => {
         if (useWatchedAt && !watchedDate) {
@@ -413,11 +441,11 @@ export default function TitlePage() {
             const pickedWatchedAt = useWatchedAt && watchedDate ? dateToIso(watchedDate) : null;
             if (ott.trim()) {
                 const trimmed = ott.trim();
-                const baseOptions = Array.from(OTT_OPTIONS) as string[];
+                const baseOptions = Array.from(platformOptions) as string[];
                 if (!baseOptions.includes(trimmed) && !customOttOptions.includes(trimmed)) {
                     const next = [...customOttOptions, trimmed];
                     setCustomOttOptions(next);
-                    saveCustomOttOptions(next);
+                    saveCustomOptions(platformCustomKey, next);
                 }
             }
             const payload = {
@@ -696,57 +724,59 @@ export default function TitlePage() {
                                 <label className="space-y-1 md:col-span-2">
                                     <div className="text-xs text-neutral-600 flex items-center gap-1.5">
                                         <MonitorPlay className="h-3 w-3" />
-                                        {isBook ? "구매처/소장" : "플랫폼"}
+                                        플랫폼
                                     </div>
-                                    {isBook ? (
-                                        <input
-                                            value={ott}
-                                            onChange={(e) => setOtt(e.target.value)}
+                                    <>
+                                        <select
+                                            value={ottSelect}
+                                            onChange={(e) => {
+                                                const next = e.target.value;
+                                                setOttSelect(next);
+                                                if (next === OTT_CUSTOM_VALUE) {
+                                                    setOtt("");
+                                                } else if (next.startsWith("__group:")) {
+                                                    const label = next.replace("__group:", "");
+                                                    const group = platformGroups.find((g) => g.label === label);
+                                                    setOtt(group ? group.options.join(",") : "");
+                                                } else {
+                                                    setOtt(next);
+                                                }
+                                            }}
                                             className="w-full select-base rounded-xl px-3 py-2 text-sm"
-                                            placeholder="예: 교보문고, 리디북스, 도서관"
-                                        />
-                                    ) : (
-                                        <>
-                                            <select
-                                                value={ottSelect}
-                                                onChange={(e) => {
-                                                    const next = e.target.value;
-                                                    setOttSelect(next);
-                                                    if (next === OTT_CUSTOM_VALUE) {
-                                                        setOtt("");
-                                                    } else {
-                                                        setOtt(next);
-                                                    }
-                                                }}
-                                                className="w-full select-base rounded-xl px-3 py-2 text-sm"
-                                            >
-                                                <option value="">선택 안함</option>
-                                                {OTT_GROUPS.map((g) => (
-                                                    <optgroup key={g.label} label={g.label}>
-                                                        {g.options.map((o) => (
-                                                            <option key={o} value={o}>{o}</option>
-                                                        ))}
-                                                    </optgroup>
+                                        >
+                                            <option value="">선택 안함</option>
+                                            <optgroup label="그룹">
+                                                {platformGroups.map((g) => (
+                                                    <option key={g.label} value={`__group:${g.label}`}>
+                                                        {g.label} 전체
+                                                    </option>
                                                 ))}
-                                                {customOttOptions.length > 0 ? (
-                                                    <optgroup label="내 입력">
-                                                        {customOttOptions.map((o) => (
-                                                            <option key={o} value={o}>{o}</option>
-                                                        ))}
-                                                    </optgroup>
-                                                ) : null}
-                                                <option value={OTT_CUSTOM_VALUE}>직접 입력</option>
-                                            </select>
-                                            {ottSelect === OTT_CUSTOM_VALUE ? (
-                                                <input
-                                                    value={ott}
-                                                    onChange={(e) => setOtt(e.target.value)}
-                                                    className="mt-2 w-full select-base rounded-xl px-3 py-2 text-sm"
-                                                    placeholder="직접 입력"
-                                                />
+                                            </optgroup>
+                                            {platformGroups.map((g) => (
+                                                <optgroup key={g.label} label={g.label}>
+                                                    {g.options.map((o) => (
+                                                        <option key={o} value={o}>{o}</option>
+                                                    ))}
+                                                </optgroup>
+                                            ))}
+                                            {customOttOptions.length > 0 ? (
+                                                <optgroup label="내 입력">
+                                                    {customOttOptions.map((o) => (
+                                                        <option key={o} value={o}>{o}</option>
+                                                    ))}
+                                                </optgroup>
                                             ) : null}
-                                        </>
-                                    )}
+                                            <option value={OTT_CUSTOM_VALUE}>직접 입력</option>
+                                        </select>
+                                        {ottSelect === OTT_CUSTOM_VALUE ? (
+                                            <input
+                                                value={ott}
+                                                onChange={(e) => setOtt(e.target.value)}
+                                                className="mt-2 w-full select-base rounded-xl px-3 py-2 text-sm"
+                                                placeholder={platformPlaceholder}
+                                            />
+                                        ) : null}
+                                    </>
                                 </label>
 
                                 <div className="space-y-2 md:col-span-2">

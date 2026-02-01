@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Status } from "@/lib/types";
 import { cn, statusOptionsForType } from "@/lib/utils";
 
-const OTT_OPTIONS = [
+const VIDEO_PLATFORM_OPTIONS = [
     "넷플릭스",
     "디즈니플러스",
     "티빙",
@@ -23,21 +23,34 @@ const OTT_OPTIONS = [
     "씨네Q",
 ] as const;
 
-const OTT_GROUPS = [
+const VIDEO_PLATFORM_GROUPS = [
     { label: "OTT", options: ["넷플릭스", "디즈니플러스", "티빙", "웨이브", "쿠팡플레이", "애플티비", "프라임비디오", "왓챠"] },
     { label: "유료 방송", options: ["채널", "VOD"] },
     { label: "물리 매체", options: ["DVD", "블루레이"] },
     { label: "극장", options: ["CGV", "롯데시네마", "메가박스", "씨네Q"] },
 ] as const;
 
-const OTT_CUSTOM_VALUE = "__custom__";
-const OTT_CUSTOM_KEY = "watchlog.ott.custom";
+const BOOK_PLATFORM_GROUPS = [
+    { label: "서점", options: ["교보문고", "영풍문고", "예스24", "알라딘"] },
+    { label: "전자책", options: ["리디", "밀리의서재", "윌라", "플레이북"] },
+    { label: "도서관", options: ["공공도서관", "대학도서관", "학교도서관"] },
+] as const;
 
-function resolveOttSelect(value: string, options: string[]) {
+const BOOK_PLATFORM_OPTIONS = BOOK_PLATFORM_GROUPS.flatMap((group) => group.options);
+
+const OTT_CUSTOM_VALUE = "__custom__";
+const VIDEO_CUSTOM_KEY = "watchlog.ott.custom";
+const BOOK_CUSTOM_KEY = "watchlog.book.platform.custom";
+
+function resolvePlatformSelect(
+    value: string,
+    options: string[],
+    groups: { label: string; options: readonly string[] }[]
+) {
     if (!value) return "";
     if (value.includes(",")) {
         const picked = value.split(",").map((v) => v.trim()).filter(Boolean);
-        for (const group of OTT_GROUPS) {
+        for (const group of groups) {
             if (picked.length !== group.options.length) continue;
             const allMatch = picked.every((v) => (group.options as readonly string[]).includes(v));
             if (allMatch) return `__group:${group.label}`;
@@ -47,10 +60,10 @@ function resolveOttSelect(value: string, options: string[]) {
     return options.includes(value) ? value : OTT_CUSTOM_VALUE;
 }
 
-function loadCustomOttOptions(): string[] {
+function loadCustomOptions(key: string): string[] {
     if (typeof localStorage === "undefined") return [];
     try {
-        const raw = localStorage.getItem(OTT_CUSTOM_KEY);
+        const raw = localStorage.getItem(key);
         if (!raw) return [];
         const parsed = JSON.parse(raw);
         if (!Array.isArray(parsed)) return [];
@@ -81,24 +94,31 @@ export default function FiltersBar({
 }) {
     const [ottSelect, setOttSelect] = useState<string>("");
     const [customOttOptions, setCustomOttOptions] = useState<string[]>([]);
+    const isBookMode = contentType === "book";
+    const platformOptions = isBookMode ? BOOK_PLATFORM_OPTIONS : VIDEO_PLATFORM_OPTIONS;
+    const platformGroups = isBookMode ? BOOK_PLATFORM_GROUPS : VIDEO_PLATFORM_GROUPS;
+    const platformCustomKey = isBookMode ? BOOK_CUSTOM_KEY : VIDEO_CUSTOM_KEY;
+    const platformPlaceholder = isBookMode
+        ? "예: 교보문고, 리디, 공공도서관"
+        : "직접 입력";
 
     const allOttOptions = useMemo(() => {
-        const base = Array.from(OTT_OPTIONS) as string[];
+        const base = Array.from(platformOptions) as string[];
         const extras = customOttOptions.filter((v) => !base.includes(v));
         return [...base, ...extras];
-    }, [customOttOptions]);
+    }, [customOttOptions, platformOptions]);
 
     useEffect(() => {
-        setCustomOttOptions(loadCustomOttOptions());
-    }, []);
+        setCustomOttOptions(loadCustomOptions(platformCustomKey));
+    }, [platformCustomKey]);
 
     useEffect(() => {
         if (ottSelect === OTT_CUSTOM_VALUE) return;
-        setOttSelect(resolveOttSelect(ott, allOttOptions));
-    }, [ott, ottSelect, allOttOptions]);
+        setOttSelect(resolvePlatformSelect(ott, allOttOptions, platformGroups));
+    }, [ott, ottSelect, allOttOptions, platformGroups]);
 
     useEffect(() => {
-        if (contentType !== "video") {
+        if (contentType === "ALL") {
             setOttSelect("");
         }
     }, [contentType]);
@@ -159,9 +179,9 @@ export default function FiltersBar({
                 </select>
             </div>
 
-            {contentType === "video" ? (
+            {contentType === "video" || contentType === "book" ? (
                 <div className="flex items-center gap-2">
-                    <div className="text-sm text-muted-foreground">OTT</div>
+                    <div className="text-sm text-muted-foreground">플랫폼</div>
                     <div className="w-full md:w-64">
                         <select
                             value={ottSelect}
@@ -172,7 +192,7 @@ export default function FiltersBar({
                                     setOtt("");
                                 } else if (next.startsWith("__group:")) {
                                     const label = next.replace("__group:", "");
-                                    const group = OTT_GROUPS.find((g) => g.label === label);
+                                    const group = platformGroups.find((g) => g.label === label);
                                     setOtt(group ? group.options.join(",") : "");
                                 } else {
                                     setOtt(next);
@@ -182,13 +202,13 @@ export default function FiltersBar({
                         >
                             <option value="">전체</option>
                             <optgroup label="그룹">
-                                {OTT_GROUPS.map((g) => (
+                                {platformGroups.map((g) => (
                                     <option key={g.label} value={`__group:${g.label}`}>
                                         {g.label} 전체
                                     </option>
                                 ))}
                             </optgroup>
-                            {OTT_GROUPS.map((g) => (
+                            {platformGroups.map((g) => (
                                 <optgroup key={g.label} label={g.label}>
                                     {g.options.map((o) => (
                                         <option key={o} value={o}>{o}</option>
@@ -208,24 +228,10 @@ export default function FiltersBar({
                             <input
                                 value={ott}
                                 onChange={(e) => setOtt(e.target.value)}
-                                placeholder="직접 입력"
+                                placeholder={platformPlaceholder}
                                 className="mt-2 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm text-foreground outline-none"
                             />
                         ) : null}
-                    </div>
-                </div>
-            ) : null}
-
-            {contentType === "book" ? (
-                <div className="flex items-center gap-2">
-                    <div className="text-sm text-muted-foreground">구매처/소장</div>
-                    <div className="w-full md:w-64">
-                        <input
-                            value={ott}
-                            onChange={(e) => setOtt(e.target.value)}
-                            placeholder="예: 교보문고, 리디북스, 도서관"
-                            className="w-full rounded-xl border border-border bg-card px-3 py-2 text-sm text-foreground outline-none"
-                        />
                     </div>
                 </div>
             ) : null}
