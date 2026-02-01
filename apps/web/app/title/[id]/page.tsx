@@ -734,10 +734,6 @@ export default function TitlePage() {
                                                 setOttSelect(next);
                                                 if (next === OTT_CUSTOM_VALUE) {
                                                     setOtt("");
-                                                } else if (next.startsWith("__group:")) {
-                                                    const label = next.replace("__group:", "");
-                                                    const group = platformGroups.find((g) => g.label === label);
-                                                    setOtt(group ? group.options.join(",") : "");
                                                 } else {
                                                     setOtt(next);
                                                 }
@@ -745,13 +741,6 @@ export default function TitlePage() {
                                             className="w-full select-base rounded-xl px-3 py-2 text-sm"
                                         >
                                             <option value="">선택 안함</option>
-                                            <optgroup label="그룹">
-                                                {platformGroups.map((g) => (
-                                                    <option key={g.label} value={`__group:${g.label}`}>
-                                                        {g.label} 전체
-                                                    </option>
-                                                ))}
-                                            </optgroup>
                                             {platformGroups.map((g) => (
                                                 <optgroup key={g.label} label={g.label}>
                                                     {g.options.map((o) => (
