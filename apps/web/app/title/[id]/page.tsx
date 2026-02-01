@@ -85,7 +85,7 @@ const BOOK_CUSTOM_KEY = "watchlog.book.platform.custom";
 function resolvePlatformSelect(
     value: string,
     options: string[],
-    groups: { label: string; options: readonly string[] }[]
+    groups: readonly { label: string; options: readonly string[] }[]
 ) {
     if (!value) return "";
     if (value.includes(",")) {
