@@ -26,9 +26,9 @@ public interface DiscussionRepository extends JpaRepository<DiscussionEntity, UU
             select d.id
             from discussions d
             left join comments c on c.discussion_id = d.id
-            where (cast(:since as timestamptz) is null or d.created_at >= cast(:since as timestamptz))
-              and (cast(:minComments as int) is null or d.comment_seq >= cast(:minComments as int))
+            where (cast(:minComments as int) is null or d.comment_seq >= cast(:minComments as int))
             group by d.id, d.created_at
+            having (cast(:since as timestamptz) is null or max(c.created_at) >= cast(:since as timestamptz))
             order by coalesce(max(c.created_at), d.created_at) desc
             """, nativeQuery = true)
     List<UUID> findLatestIds(
