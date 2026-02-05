@@ -50,6 +50,14 @@ export default function FaqPage() {
         </section>
 
         <section className="space-y-3">
+          <h2 className="text-lg font-bold">Q. 내 기록을 파일로 내려받을 수 있나요?</h2>
+          <p className="leading-relaxed text-muted-foreground">
+            네. <strong>설정 &gt; 내 기록 내보내기</strong>에서 CSV 파일로 내려받아
+            엑셀이나 스프레드시트로 정리할 수 있어요.
+          </p>
+        </section>
+
+        <section className="space-y-3">
           <h2 className="text-lg font-bold">Q. 서비스 이용료가 있나요?</h2>
           <p className="leading-relaxed text-muted-foreground">
             On the Timeline은 모든 기능을 무료로 제공합니다. 기록을 남기는 즐거움에만 집중하세요!

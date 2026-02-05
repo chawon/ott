@@ -64,7 +64,7 @@ export async function upsertHistoryLocal(items: WatchLogHistory[]) {
 }
 
 export async function listLogsLocal(params: {
-  limit: number;
+  limit?: number;
   status?: WatchLog["status"];
   origin?: WatchLog["origin"];
   ott?: string;
@@ -95,7 +95,15 @@ export async function listLogsLocal(params: {
     }
     return true;
   });
-  return coll.limit(limit).toArray();
+  if (typeof limit === "number") {
+    return coll.limit(limit).toArray();
+  }
+  return coll.toArray();
+}
+
+export async function listAllLogsLocal() {
+  const items = await db.logs.orderBy("watchedAt").reverse().toArray();
+  return items.filter((l) => !l.deletedAt);
 }
 
 export async function getTitleLocal(id: string) {

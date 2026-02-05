@@ -3,10 +3,11 @@
 import { useEffect, useState } from "react";
 import { Settings } from "lucide-react";
 import { ensureAuth, pairWithCode } from "@/lib/auth";
-import { getDeviceId, getPairingCode, getUserId, resetLocalState } from "@/lib/localStore";
+import { getDeviceId, getPairingCode, getUserId, listAllLogsLocal, resetLocalState } from "@/lib/localStore";
 import { api } from "@/lib/api";
 import { useRetro } from "@/context/RetroContext";
 import { cn } from "@/lib/utils";
+import { downloadTimelineCsv } from "@/lib/export";
 
 export default function AccountPage() {
   const { isRetro } = useRetro();
@@ -16,6 +17,9 @@ export default function AccountPage() {
   const [input, setInput] = useState("");
   const [status, setStatus] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [exportStatus, setExportStatus] = useState<string | null>(null);
+  const [exportContentType, setExportContentType] = useState<"ALL" | "video" | "book">("ALL");
   const [initializing, setInitializing] = useState(false);
   const [devices, setDevices] = useState<{ id: string; createdAt: string; lastSeenAt: string; os?: string | null; browser?: string | null }[]>([]);
 
@@ -129,6 +133,39 @@ export default function AccountPage() {
     }
   }
 
+  function exportFileName() {
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, "0");
+    const d = String(now.getDate()).padStart(2, "0");
+    const hh = String(now.getHours()).padStart(2, "0");
+    const mm = String(now.getMinutes()).padStart(2, "0");
+    return `watchlog-timeline-${y}${m}${d}-${hh}${mm}.csv`;
+  }
+
+  async function exportTimelineCsv() {
+    setExporting(true);
+    setExportStatus(null);
+    try {
+      const logs = await listAllLogsLocal();
+      const filtered = exportContentType === "book"
+        ? logs.filter((log) => log.title?.type === "book")
+        : exportContentType === "video"
+          ? logs.filter((log) => log.title?.type !== "book")
+          : logs;
+      if (filtered.length === 0) {
+        setExportStatus("해당 조건의 기록이 없어요.");
+        return;
+      }
+      downloadTimelineCsv(filtered, exportFileName());
+      setExportStatus("CSV 파일을 저장했어요.");
+    } catch (e: any) {
+      setExportStatus(e?.message ?? "내보내기에 실패했어요.");
+    } finally {
+      setExporting(false);
+    }
+  }
+
   function formatShort(iso: string) {
     const d = new Date(iso);
     return d.toLocaleDateString("ko-KR", { month: "short", day: "numeric" });
@@ -238,6 +275,49 @@ export default function AccountPage() {
         >
           로컬 초기화
         </button>
+      </section>
+
+      <section className={cn(
+        "rounded-2xl p-6 shadow-sm space-y-3",
+        isRetro ? "border-4 border-black bg-white" : "border border-border bg-card"
+      )}>
+        <div className="text-sm font-semibold">내 기록 내보내기</div>
+        <div className="text-xs text-muted-foreground">
+          이 기기에 저장된 타임라인을 CSV로 저장할 수 있어요.
+        </div>
+        <div>
+          <div className="text-xs text-muted-foreground mb-1">내보내기 범위</div>
+          <select
+            value={exportContentType}
+            onChange={(e) => setExportContentType(e.target.value as "ALL" | "video" | "book")}
+            className={cn(
+              "w-full select-base rounded-xl px-3 py-2 text-sm",
+              isRetro && "border-2 border-black bg-white text-black"
+            )}
+          >
+            <option value="ALL">전체</option>
+            <option value="video">영상(영화/시리즈)</option>
+            <option value="book">책</option>
+          </select>
+        </div>
+        <button
+          type="button"
+          onClick={exportTimelineCsv}
+          disabled={exporting}
+          className={cn(
+            "w-full px-4 py-3 text-sm font-semibold",
+            isRetro
+              ? "border-2 border-black bg-white text-black hover:bg-yellow-200"
+              : "rounded-2xl bg-foreground text-background",
+            exporting && "opacity-40"
+          )}
+        >
+          {exporting ? "CSV 만드는 중…" : "CSV 다운로드"}
+        </button>
+        <div className="text-xs text-muted-foreground">
+          최신 기록을 포함하려면 동기화가 완료된 상태에서 내보내기 해주세요.
+        </div>
+        {exportStatus ? <div className="text-sm text-muted-foreground">{exportStatus}</div> : null}
       </section>
 
       <section className="rounded-2xl border border-border bg-card p-6 shadow-sm space-y-3">

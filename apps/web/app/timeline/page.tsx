@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Clock } from "lucide-react";
+import { Clock, Download } from "lucide-react";
 import FiltersBar from "@/components/FiltersBar";
 import LogCard from "@/components/LogCard";
 import { api } from "@/lib/api";
@@ -9,6 +9,7 @@ import { listLogsLocal, upsertLogsLocal } from "@/lib/localStore";
 import { Status, WatchLog } from "@/lib/types";
 import { useRetro } from "@/context/RetroContext";
 import { cn, statusOptionsForType } from "@/lib/utils";
+import { downloadTimelineCsv } from "@/lib/export";
 
 function buildQuery(params: Record<string, string | undefined>) {
     const qs = new URLSearchParams();
@@ -28,6 +29,8 @@ export default function TimelinePage() {
     const [logs, setLogs] = useState<WatchLog[]>([]);
     const [loading, setLoading] = useState(false);
     const [err, setErr] = useState<string | null>(null);
+    const [exporting, setExporting] = useState(false);
+    const [exportStatus, setExportStatus] = useState<string | null>(null);
 
     useEffect(() => {
         if (contentType === "ALL") {
@@ -117,6 +120,39 @@ export default function TimelinePage() {
         return labels.find((s) => s.value === status)?.label ?? null;
     }, [contentType, status]);
 
+    function exportFileName() {
+        const now = new Date();
+        const y = now.getFullYear();
+        const m = String(now.getMonth() + 1).padStart(2, "0");
+        const d = String(now.getDate()).padStart(2, "0");
+        const hh = String(now.getHours()).padStart(2, "0");
+        const mm = String(now.getMinutes()).padStart(2, "0");
+        return `watchlog-timeline-${y}${m}${d}-${hh}${mm}.csv`;
+    }
+
+    async function exportTimelineCsv() {
+        setExporting(true);
+        setExportStatus(null);
+        try {
+            const filtered = await listLogsLocal({
+                contentType: contentType === "ALL" ? undefined : contentType,
+                status: status === "ALL" ? undefined : status,
+                origin: origin === "ALL" ? undefined : origin,
+                ott: ott.trim() ? ott : undefined,
+            });
+            if (filtered.length === 0) {
+                setExportStatus("해당 조건의 기록이 없어요.");
+                return;
+            }
+            downloadTimelineCsv(filtered, exportFileName());
+            setExportStatus("CSV 파일을 저장했어요.");
+        } catch (e: any) {
+            setExportStatus(e?.message ?? "내보내기에 실패했어요.");
+        } finally {
+            setExporting(false);
+        }
+    }
+
     const enableYearGrouping = logs.length > 0;
     const yearGroups = useMemo(() => {
         if (!enableYearGrouping) return [];
@@ -142,11 +178,39 @@ export default function TimelinePage() {
                 {isRetro ? (
                     <div className="flex items-baseline justify-between border-b-4 border-black pb-2 mb-4">
                         <div className="text-xl font-bold uppercase tracking-tighter">{headerTitle}</div>
+                        <button
+                            type="button"
+                            onClick={exportTimelineCsv}
+                            disabled={exporting}
+                            title="CSV 다운로드"
+                            aria-label="CSV 다운로드"
+                            className={cn(
+                                "border-2 border-black bg-white px-2 py-1 text-black hover:bg-yellow-200",
+                                exporting && "opacity-40"
+                            )}
+                        >
+                            <Download className="h-4 w-4" />
+                        </button>
                     </div>
                 ) : (
-                    <div className="text-xl font-semibold flex items-center gap-2">
-                        <Clock className="h-5 w-5" />
-                        {headerTitle}
+                    <div className="flex items-center justify-between">
+                        <div className="text-xl font-semibold flex items-center gap-2">
+                            <Clock className="h-5 w-5" />
+                            {headerTitle}
+                        </div>
+                        <button
+                            type="button"
+                            onClick={exportTimelineCsv}
+                            disabled={exporting}
+                            title="CSV 다운로드"
+                            aria-label="CSV 다운로드"
+                            className={cn(
+                                "rounded-lg border border-border bg-card px-2 py-1 text-muted-foreground hover:bg-muted",
+                                exporting && "opacity-40"
+                            )}
+                        >
+                            <Download className="h-4 w-4" />
+                        </button>
                     </div>
                 )}
                 <div className={cn(
@@ -154,6 +218,14 @@ export default function TimelinePage() {
                 )}>
                     {headerSubtitle}
                 </div>
+                {exportStatus ? (
+                    <div className={cn(
+                        "text-xs",
+                        isRetro ? "font-bold text-neutral-500 uppercase" : "text-sm text-muted-foreground"
+                    )}>
+                        {exportStatus}
+                    </div>
+                ) : null}
             </div>
 
             <FiltersBar

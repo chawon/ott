@@ -60,6 +60,15 @@ export default function AboutPage() {
           <div className="flex gap-4">
             <div className="flex-shrink-0 w-8 h-8 rounded-full bg-neutral-900 text-white flex items-center justify-center font-bold">+</div>
             <div>
+              <h3 className="font-medium">내 기록 CSV로 내보내기</h3>
+              <p className="text-sm text-muted-foreground">
+                설정에서 내 기록을 CSV로 내려받아 엑셀이나 스프레드시트로 정리할 수 있어요.
+              </p>
+            </div>
+          </div>
+          <div className="flex gap-4">
+            <div className="flex-shrink-0 w-8 h-8 rounded-full bg-neutral-900 text-white flex items-center justify-center font-bold">+</div>
+            <div>
               <h3 className="font-medium">공유 카드로 기록 올리기</h3>
               <p className="text-sm text-muted-foreground">
                 기록 저장 후 “공유 카드 만들기”를 선택하면, SNS에 올릴 수 있는 예쁜 카드가 자동으로 만들어집니다.
