@@ -241,7 +241,7 @@ export default function TimelinePage() {
 
             {loading && logs.length === 0 && (
                 <div className="rounded-2xl border border-border bg-card p-5 text-sm text-muted-foreground shadow-sm">
-                    Loading…
+                    불러오는 중…
                 </div>
             )}
 

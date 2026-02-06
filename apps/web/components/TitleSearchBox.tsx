@@ -187,16 +187,20 @@ export default function TitleSearchBox({
                                 "px-4 py-2 text-[10px] font-bold uppercase tracking-widest",
                                 isRetro ? "bg-black text-white" : "text-muted-foreground"
                             )}>
-                                {isRetro ? "요즘 수다 떠는 비디오들" : "요즘 함께 하는 작품들"}
+                                {isRetro
+                                    ? contentType === "book"
+                                        ? "요즘 수다 떠는 책들"
+                                        : "요즘 수다 떠는 영상들"
+                                    : "요즘 함께 하는 작품들"}
                             </div>
                             {recentLoading ? (
-                                <div className="px-4 py-3 text-sm font-bold">LOADING...</div>
+                                <div className="px-4 py-3 text-sm font-bold">불러오는 중...</div>
                             ) : null}
                             {!recentLoading && recentErr ? (
                                 <div className="px-4 py-3 text-sm text-red-600 font-bold">{recentErr}</div>
                             ) : null}
                             {!recentLoading && !recentErr && recent.length === 0 ? (
-                                <div className="px-4 py-3 text-sm font-bold text-muted-foreground">EMPTY</div>
+                                <div className="px-4 py-3 text-sm font-bold text-muted-foreground">아직 없어요</div>
                             ) : null}
                             {!recentLoading &&
                                 !recentErr &&

@@ -530,7 +530,7 @@ export default function TitlePage() {
     if (loading && !title) {
         return (
             <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
-                <div className="text-sm text-neutral-600">Loading…</div>
+                <div className="text-sm text-neutral-600">불러오는 중…</div>
             </div>
         );
     }
@@ -538,7 +538,7 @@ export default function TitlePage() {
     if (err) {
         return (
             <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
-                <div className="text-base font-semibold">Error</div>
+                <div className="text-base font-semibold">문제가 발생했어요</div>
                 <div className="mt-2 text-sm text-neutral-700">{err}</div>
             </div>
         );
@@ -547,7 +547,7 @@ export default function TitlePage() {
     if (!title) {
         return (
             <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
-                <div className="text-base font-semibold">Not found</div>
+                <div className="text-base font-semibold">작품을 찾을 수 없어요</div>
             </div>
         );
     }
@@ -569,7 +569,7 @@ export default function TitlePage() {
                     <div className="min-w-0 flex-1">
                         <div className="text-xl font-semibold">{title.name}</div>
                         <div className="mt-1 text-sm text-muted-foreground">
-                            {title.type === "movie" ? "Movie" : title.type === "series" ? "Series" : "Book"}
+                            {title.type === "movie" ? "영화" : title.type === "series" ? "시리즈" : "책"}
                             {(seasonYear ?? title.year) ? ` · ${seasonYear ?? title.year}` : ""}
                         </div>
                         {title.genres && title.genres.length > 0 ? (

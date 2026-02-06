@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Calendar, MapPin, MessageSquare, Star, Users, Loader2, X, Clock, MonitorPlay, ArrowRight } from "lucide-react";
+import { Calendar, MapPin, MessageSquare, Star, Users, Loader2, X, Clock, MonitorPlay, ArrowRight, Share2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { api } from "@/lib/api";
 import TitleSearchBox from "@/components/TitleSearchBox";
@@ -782,7 +782,16 @@ export default function QuickLogCard({
                                     className="w-full min-h-[80px] bg-white px-3 py-2 text-sm font-bold placeholder:text-neutral-400 resize-none"
                                     placeholder="짧은 감상을 남겨보세요..."
                                 />
-                                <div className="mt-2 flex flex-wrap items-center gap-4">
+                            </div>
+                        </div>
+
+                        <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-[1fr_auto] sm:items-end">
+                            <div className="space-y-1">
+                                <div className="text-[10px] font-bold uppercase text-neutral-700 flex items-center gap-1">
+                                    <Share2 className="h-3 w-3" />
+                                    저장 후 함께 하기
+                                </div>
+                                <div className="flex flex-wrap items-center gap-4">
                                     <label className="flex items-center gap-2 text-xs font-bold uppercase whitespace-nowrap">
                                         <input
                                             type="checkbox"
@@ -790,7 +799,7 @@ export default function QuickLogCard({
                                             onChange={(e) => setShareToDiscussion(e.target.checked)}
                                             className="h-5 w-5"
                                         />
-                                        함께 기록 공유
+                                        함께 하는 기록 남기기
                                     </label>
                                     <label className="flex items-center gap-2 text-xs font-bold uppercase whitespace-nowrap">
                                         <input
@@ -799,30 +808,30 @@ export default function QuickLogCard({
                                             onChange={(e) => setShareCard(e.target.checked)}
                                             className="h-5 w-5"
                                         />
-                                        공유 카드 만들기
+                                        공유 이미지 카드 만들기
                                     </label>
                                 </div>
                             </div>
-                        </div>
 
-                        <button
-                            type="button"
-                            disabled={!canSave}
-                            onClick={submit}
-                            className={cn(
-                                "nes-btn is-primary w-full py-3 text-sm",
-                                !canSave && "opacity-50 cursor-not-allowed bg-neutral-300 border-neutral-500 text-neutral-500"
-                            )}
-                        >
-                            {saving ? (
-                                <span className="flex items-center justify-center gap-2">
-                                    <Loader2 className="h-4 w-4 animate-spin" />
-                                    저장 중...
-                                </span>
-                            ) : (
-                                "날적이 남기기"
-                            )}
-                        </button>
+                            <button
+                                type="button"
+                                disabled={!canSave}
+                                onClick={submit}
+                                className={cn(
+                                    "nes-btn is-primary h-[38px] px-5 text-sm whitespace-nowrap",
+                                    !canSave && "opacity-50 cursor-not-allowed bg-neutral-300 border-neutral-500 text-neutral-500"
+                                )}
+                            >
+                                {saving ? (
+                                    <span className="flex items-center justify-center gap-2">
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                        저장 중...
+                                    </span>
+                                ) : (
+                                    "날적이 남기기"
+                                )}
+                            </button>
+                        </div>
                     </div>
                 </section>
 
@@ -1005,46 +1014,6 @@ export default function QuickLogCard({
                         </select>
                     </div>
 
-                    <div className="space-y-1.5">
-                        <div className="text-xs font-medium text-neutral-500 ml-1 flex items-center gap-1.5">
-                            <MapPin className="h-3 w-3" />
-                            장소
-                        </div>
-                        <select
-                            value={place}
-                            onChange={(e) => setPlace(e.target.value as Place)}
-                            className={cn(
-                                "w-full select-base rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-neutral-900/5 transition-all outline-none",
-                                isWishlist && "opacity-50 cursor-not-allowed"
-                            )}
-                            disabled={isWishlist}
-                        >
-                            {placeOptions.map((o) => (
-                                <option key={o.value} value={o.value}>{o.label}</option>
-                            ))}
-                        </select>
-                    </div>
-
-                    <div className="space-y-1.5">
-                        <div className="text-xs font-medium text-neutral-500 ml-1 flex items-center gap-1.5">
-                            <Users className="h-3 w-3" />
-                            누구와
-                        </div>
-                        <select
-                            value={occasion}
-                            onChange={(e) => setOccasion(e.target.value as Occasion)}
-                            className={cn(
-                                "w-full select-base rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-neutral-900/5 transition-all outline-none",
-                                isWishlist && "opacity-50 cursor-not-allowed"
-                            )}
-                            disabled={isWishlist}
-                        >
-                            {OCCASION_OPTIONS.map((o) => (
-                                <option key={o.value} value={o.value}>{o.label}</option>
-                            ))}
-                        </select>
-                    </div>
-
                     <div className="md:col-span-2 space-y-1.5">
                         <div className="text-xs font-medium text-neutral-500 ml-1 flex items-center gap-1.5">
                             <MonitorPlay className="h-3 w-3" />
@@ -1090,27 +1059,69 @@ export default function QuickLogCard({
                         ) : null}
                     </div>
 
-                    <div className="md:col-span-2 space-y-2">
-                        <button
-                            type="button"
-                            onClick={() => setUseWatchedAt(!useWatchedAt)}
-                            className={cn(
-                                "flex items-center gap-2 text-xs font-medium transition-colors",
-                                useWatchedAt ? "text-neutral-900" : "text-neutral-400 hover:text-neutral-600"
-                            )}
-                        >
-                            <Calendar className="h-3.5 w-3.5" />
-                            {useWatchedAt ? "날짜 직접 선택 중" : "다른 날짜로 기록하기"}
-                        </button>
-                        {useWatchedAt ? (
-                            <input
-                                type="date"
-                                value={watchedDate}
-                                onChange={(e) => setWatchedDate(e.target.value)}
-                                className="w-full select-base rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-neutral-900/5 transition-all outline-none"
-                            />
-                        ) : null}
-                    </div>
+                    <>
+                            <div className="space-y-1.5">
+                                <div className="text-xs font-medium text-neutral-500 ml-1 flex items-center gap-1.5">
+                                    <MapPin className="h-3 w-3" />
+                                    장소
+                                </div>
+                                <select
+                                    value={place}
+                                    onChange={(e) => setPlace(e.target.value as Place)}
+                                    className={cn(
+                                        "w-full select-base rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-neutral-900/5 transition-all outline-none",
+                                        isWishlist && "opacity-50 cursor-not-allowed"
+                                    )}
+                                    disabled={isWishlist}
+                                >
+                                    {placeOptions.map((o) => (
+                                        <option key={o.value} value={o.value}>{o.label}</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div className="space-y-1.5">
+                                <div className="text-xs font-medium text-neutral-500 ml-1 flex items-center gap-1.5">
+                                    <Users className="h-3 w-3" />
+                                    누구와
+                                </div>
+                                <select
+                                    value={occasion}
+                                    onChange={(e) => setOccasion(e.target.value as Occasion)}
+                                    className={cn(
+                                        "w-full select-base rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-neutral-900/5 transition-all outline-none",
+                                        isWishlist && "opacity-50 cursor-not-allowed"
+                                    )}
+                                    disabled={isWishlist}
+                                >
+                                    {OCCASION_OPTIONS.map((o) => (
+                                        <option key={o.value} value={o.value}>{o.label}</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div className="md:col-span-2 space-y-2">
+                                <button
+                                    type="button"
+                                    onClick={() => setUseWatchedAt(!useWatchedAt)}
+                                    className={cn(
+                                        "flex items-center gap-2 text-xs font-medium transition-colors",
+                                        useWatchedAt ? "text-neutral-900" : "text-neutral-400 hover:text-neutral-600"
+                                    )}
+                                >
+                                    <Calendar className="h-3.5 w-3.5" />
+                                    {useWatchedAt ? "날짜 직접 선택 중" : "다른 날짜로 기록하기"}
+                                </button>
+                                {useWatchedAt ? (
+                                    <input
+                                        type="date"
+                                        value={watchedDate}
+                                        onChange={(e) => setWatchedDate(e.target.value)}
+                                        className="w-full select-base rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-neutral-900/5 transition-all outline-none"
+                                    />
+                                ) : null}
+                            </div>
+                    </>
 
                     <div className="md:col-span-2 space-y-1.5">
                         <div className="text-xs font-medium text-neutral-500 ml-1 flex items-center gap-1.5">
@@ -1124,37 +1135,46 @@ export default function QuickLogCard({
                             placeholder="짧은 감상을 남겨보세요."
                             rows={3}
                         />
-                        <div className="flex flex-wrap items-center gap-4">
-                            <label className="flex items-center gap-2 text-xs font-medium text-neutral-600 whitespace-nowrap">
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_auto] sm:items-end">
+                    <div className="space-y-1">
+                        <div className="text-xs font-medium text-neutral-500 ml-1 flex items-center gap-1.5">
+                            <Share2 className="h-3 w-3" />
+                            저장 후 함께 하기
+                        </div>
+                        <div className="flex flex-wrap items-center gap-4 rounded-xl border border-border bg-muted/30 px-3 py-2">
+                            <label className="flex items-center gap-2 text-xs font-medium text-neutral-700 whitespace-nowrap">
                                 <input
                                     type="checkbox"
                                     checked={shareToDiscussion}
                                     onChange={(e) => setShareToDiscussion(e.target.checked)}
                                     className="h-5 w-5"
                                 />
-                                함께 기록 공유
+                                함께 하는 기록 남기기
                             </label>
-                            <label className="flex items-center gap-2 text-xs font-medium text-neutral-600 whitespace-nowrap">
+                            <label className="flex items-center gap-2 text-xs font-medium text-neutral-700 whitespace-nowrap">
                                 <input
                                     type="checkbox"
                                     checked={shareCard}
                                     onChange={(e) => setShareCard(e.target.checked)}
                                     className="h-5 w-5"
                                 />
-                                공유 카드 만들기
+                                공유 이미지 카드 만들기
                             </label>
                         </div>
                     </div>
-                </div>
 
-                <button
-                    type="button"
-                    disabled={!canSave}
-                    onClick={submit}
-                    className="w-full rounded-2xl bg-neutral-900 px-4 py-3 text-sm font-semibold text-white transition-all hover:bg-neutral-800 active:scale-[0.98] disabled:opacity-40 disabled:pointer-events-none"
-                >
-                    {saving ? "저장 중..." : "기록 저장"}
-                </button>
+                    <button
+                        type="button"
+                        disabled={!canSave}
+                        onClick={submit}
+                        className="h-[40px] rounded-2xl bg-neutral-900 px-5 text-sm font-semibold text-white transition-all hover:bg-neutral-800 active:scale-[0.98] disabled:opacity-40 disabled:pointer-events-none whitespace-nowrap"
+                    >
+                        {saving ? "저장 중..." : "기록 저장"}
+                    </button>
+                </div>
             </section>
 
             {banner && banner.visible ? (
