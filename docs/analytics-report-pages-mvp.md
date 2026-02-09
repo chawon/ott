@@ -49,8 +49,8 @@
 
 2. 데이터 계층
 - [x] 개인 리포트 로컬 집계 유틸
-- [ ] 이벤트 수집 테이블/엔드포인트
-- [ ] 관리자용 집계 쿼리/뷰
+- [x] 이벤트 수집 테이블/엔드포인트
+- [x] 관리자용 기본 집계 API
 
 3. 운영 적용
 - [ ] 관리자 인증 고도화(RBAC/SSO)
@@ -62,3 +62,21 @@
 주의:
 - 토큰 기반 접근은 MVP 단계의 임시 방안이다.
 - 프로덕션 운영 단계에서는 세션 기반 권한 체계로 전환 필요.
+
+## 백엔드 API (MVP)
+- `POST /api/analytics/events`
+  - 헤더: `X-User-Id` (선택)
+  - 요청 본문:
+    - `eventId`(선택, uuid)
+    - `eventName`(필수, `^[a-z0-9_]{2,64}$`)
+    - `platform`(필수, `web|pwa|twa`)
+    - `sessionId`(선택)
+    - `clientVersion`(선택)
+    - `occurredAt`(선택, ISO)
+    - `properties`(선택, json)
+- `GET /api/analytics/me/report`
+  - 헤더: `X-User-Id` (필수)
+  - 응답: 개인 리포트 요약 지표
+- `GET /api/admin/analytics/overview?days=30`
+  - 헤더: `X-Admin-Token` (필수)
+  - 환경 변수 `ADMIN_ANALYTICS_TOKEN`과 일치해야 접근 가능

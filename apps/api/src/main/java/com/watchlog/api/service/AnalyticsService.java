@@ -1,0 +1,269 @@
+package com.watchlog.api.service;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.watchlog.api.domain.WatchLogEntity;
+import com.watchlog.api.dto.AdminAnalyticsOverviewDto;
+import com.watchlog.api.dto.AdminPlatformSummaryDto;
+import com.watchlog.api.dto.PersonalAnalyticsReportDto;
+import com.watchlog.api.dto.TrackAnalyticsEventRequest;
+import com.watchlog.api.dto.TrackAnalyticsEventResponse;
+import com.watchlog.api.repo.WatchLogRepository;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
+
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.time.LocalDate;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
+import java.util.*;
+
+@Service
+public class AnalyticsService {
+
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+
+    private final JdbcTemplate jdbcTemplate;
+    private final WatchLogRepository watchLogRepository;
+    private final String adminAnalyticsToken;
+
+    public AnalyticsService(
+            JdbcTemplate jdbcTemplate,
+            WatchLogRepository watchLogRepository,
+            @Value("${admin.analytics.token:}") String adminAnalyticsToken
+    ) {
+        this.jdbcTemplate = jdbcTemplate;
+        this.watchLogRepository = watchLogRepository;
+        this.adminAnalyticsToken = adminAnalyticsToken;
+    }
+
+    @Transactional
+    public TrackAnalyticsEventResponse trackEvent(TrackAnalyticsEventRequest req, UUID userId) {
+        UUID eventId = req.eventId() == null ? UUID.randomUUID() : req.eventId();
+        OffsetDateTime occurredAt = req.occurredAt() == null ? OffsetDateTime.now() : req.occurredAt();
+        String sessionId = (req.sessionId() == null || req.sessionId().isBlank())
+                ? "anon-" + eventId
+                : req.sessionId().trim();
+        String clientVersion = (req.clientVersion() == null || req.clientVersion().isBlank())
+                ? null
+                : req.clientVersion().trim();
+
+        String propertiesJson;
+        try {
+            propertiesJson = OBJECT_MAPPER.writeValueAsString(req.properties() == null ? Map.of() : req.properties());
+        } catch (JsonProcessingException e) {
+            throw new IllegalArgumentException("Invalid properties payload");
+        }
+
+        int inserted = jdbcTemplate.update("""
+                insert into analytics_events (
+                    event_id, user_id, session_id, event_name, platform, client_version, properties, occurred_at, created_at
+                ) values (?, ?, ?, ?, ?, ?, cast(? as jsonb), ?, now())
+                on conflict (event_id) do nothing
+                """,
+                eventId,
+                userId,
+                sessionId,
+                req.eventName(),
+                req.platform(),
+                clientVersion,
+                propertiesJson,
+                occurredAt
+        );
+
+        return new TrackAnalyticsEventResponse(eventId, inserted > 0, occurredAt);
+    }
+
+    @Transactional(readOnly = true)
+    public PersonalAnalyticsReportDto personalReport(UUID userId) {
+        if (userId == null) {
+            throw new IllegalArgumentException("X-User-Id header is required");
+        }
+
+        List<WatchLogEntity> logs = watchLogRepository.findByUserId(userId).stream()
+                .filter(l -> l.getDeletedAt() == null)
+                .toList();
+        if (logs.isEmpty()) {
+            return new PersonalAnalyticsReportDto(0, 0, 0, 0, 0, "-", "-", "-", 0, 0, null);
+        }
+
+        OffsetDateTime now = OffsetDateTime.now();
+        int thisMonthLogs = 0;
+        int doneCount = 0;
+        int ratingCount = 0;
+        int noteCount = 0;
+        OffsetDateTime lastLoggedAt = logs.getFirst().getWatchedAt();
+        Map<String, Integer> typeCounts = new HashMap<>();
+        Map<String, Integer> placeCounts = new HashMap<>();
+        Map<String, Integer> occasionCounts = new HashMap<>();
+        Set<LocalDate> activeDays = new HashSet<>();
+
+        for (WatchLogEntity log : logs) {
+            OffsetDateTime watchedAt = log.getWatchedAt();
+            if (watchedAt.getYear() == now.getYear() && watchedAt.getMonthValue() == now.getMonthValue()) {
+                thisMonthLogs += 1;
+            }
+            if (log.getStatus() != null && "DONE".equals(log.getStatus().name())) {
+                doneCount += 1;
+            }
+            if (log.getRating() != null) {
+                ratingCount += 1;
+            }
+            if (log.getNote() != null && !log.getNote().trim().isEmpty()) {
+                noteCount += 1;
+            }
+            if (lastLoggedAt == null || watchedAt.isAfter(lastLoggedAt)) {
+                lastLoggedAt = watchedAt;
+            }
+            if (log.getTitle() != null && log.getTitle().getType() != null) {
+                typeCounts.merge(log.getTitle().getType().name(), 1, Integer::sum);
+            }
+            if (log.getPlace() != null) {
+                placeCounts.merge(log.getPlace().name(), 1, Integer::sum);
+            }
+            if (log.getOccasion() != null) {
+                occasionCounts.merge(log.getOccasion().name(), 1, Integer::sum);
+            }
+            activeDays.add(watchedAt.atZoneSameInstant(ZoneOffset.UTC).toLocalDate());
+        }
+
+        Streak streak = calculateStreak(activeDays, now.toLocalDate());
+
+        return new PersonalAnalyticsReportDto(
+                logs.size(),
+                thisMonthLogs,
+                pct(doneCount, logs.size()),
+                pct(ratingCount, logs.size()),
+                pct(noteCount, logs.size()),
+                topKey(typeCounts),
+                topKey(placeCounts),
+                topKey(occasionCounts),
+                streak.currentDays(),
+                streak.longestDays(),
+                lastLoggedAt
+        );
+    }
+
+    @Transactional(readOnly = true)
+    public AdminAnalyticsOverviewDto adminOverview(String token, int days) {
+        if (adminAnalyticsToken == null || adminAnalyticsToken.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Admin analytics token is not configured");
+        }
+        if (!adminAnalyticsToken.equals(token)) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND);
+        }
+
+        int safeDays = Math.max(1, Math.min(days, 90));
+        OffsetDateTime to = OffsetDateTime.now();
+        OffsetDateTime from = to.minusDays(safeDays);
+
+        long events = queryLong("select count(*) from analytics_events where occurred_at >= ?", from);
+
+        OffsetDateTime startOfTodayUtc = LocalDate.now(ZoneOffset.UTC).atStartOfDay().atOffset(ZoneOffset.UTC);
+        long dau = countDistinctActorsByEventSince("app_open", startOfTodayUtc);
+        long wau = countDistinctActorsByEventSince("app_open", to.minusDays(7));
+        long mau = countDistinctActorsByEventSince("app_open", to.minusDays(30));
+
+        long funnelAppOpenUsers = countDistinctActorsByEventSince("app_open", from);
+        long funnelLoginUsers = countDistinctActorsByEventSince("login_success", from);
+        long funnelLogCreateUsers = countDistinctActorsByEventSince("log_create", from);
+
+        List<AdminPlatformSummaryDto> platforms = jdbcTemplate.query("""
+                select
+                    platform,
+                    count(*) as events,
+                    count(distinct coalesce(user_id::text, session_id)) filter (where event_name = 'app_open') as active_users
+                from analytics_events
+                where occurred_at >= ?
+                group by platform
+                order by platform asc
+                """,
+                (rs, rowNum) -> mapPlatformSummary(rs),
+                from
+        );
+
+        return new AdminAnalyticsOverviewDto(
+                safeDays,
+                from,
+                to,
+                events,
+                dau,
+                wau,
+                mau,
+                funnelAppOpenUsers,
+                funnelLoginUsers,
+                funnelLogCreateUsers,
+                platforms
+        );
+    }
+
+    private long countDistinctActorsByEventSince(String eventName, OffsetDateTime since) {
+        return queryLong("""
+                select count(distinct coalesce(user_id::text, session_id))
+                from analytics_events
+                where event_name = ? and occurred_at >= ?
+                """, eventName, since);
+    }
+
+    private long queryLong(String sql, Object... args) {
+        Long value = jdbcTemplate.queryForObject(sql, Long.class, args);
+        return value == null ? 0L : value;
+    }
+
+    private AdminPlatformSummaryDto mapPlatformSummary(ResultSet rs) throws SQLException {
+        return new AdminPlatformSummaryDto(
+                rs.getString("platform"),
+                rs.getLong("events"),
+                rs.getLong("active_users")
+        );
+    }
+
+    private double pct(int numerator, int denominator) {
+        if (denominator == 0) return 0;
+        return Math.round((numerator * 1000.0) / denominator) / 10.0;
+    }
+
+    private String topKey(Map<String, Integer> counts) {
+        return counts.entrySet().stream()
+                .max(Map.Entry.comparingByValue())
+                .map(Map.Entry::getKey)
+                .orElse("-");
+    }
+
+    private Streak calculateStreak(Set<LocalDate> activeDays, LocalDate today) {
+        if (activeDays.isEmpty()) {
+            return new Streak(0, 0);
+        }
+
+        List<LocalDate> sorted = activeDays.stream().sorted().toList();
+        int longest = 1;
+        int run = 1;
+        for (int i = 1; i < sorted.size(); i += 1) {
+            if (sorted.get(i - 1).plusDays(1).equals(sorted.get(i))) {
+                run += 1;
+                longest = Math.max(longest, run);
+            } else {
+                run = 1;
+            }
+        }
+
+        int current = 0;
+        LocalDate anchor = activeDays.contains(today) ? today : (activeDays.contains(today.minusDays(1)) ? today.minusDays(1) : null);
+        if (anchor != null) {
+            LocalDate cursor = anchor;
+            while (activeDays.contains(cursor)) {
+                current += 1;
+                cursor = cursor.minusDays(1);
+            }
+        }
+
+        return new Streak(current, longest);
+    }
+
+    private record Streak(int currentDays, int longestDays) {}
+}

@@ -31,3 +31,7 @@ naver:
   base-url: https://openapi.naver.com
   client-id: ${NAVER_CLIENT_ID:}
   client-secret: ${NAVER_CLIENT_SECRET:}
+
+admin:
+  analytics:
+    token: ${ADMIN_ANALYTICS_TOKEN:}
