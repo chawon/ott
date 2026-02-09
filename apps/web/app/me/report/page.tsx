@@ -1,11 +1,10 @@
 "use client";
 
-import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { listAllLogsLocal } from "@/lib/localStore";
-import { buildPersonalReport } from "@/lib/report";
+import { buildPersonalReport, PersonalReport } from "@/lib/report";
 import { OCCASION_LABELS, PLACE_LABELS } from "@/lib/utils";
-import { WatchLog } from "@/lib/types";
+import { api } from "@/lib/api";
 
 function typeLabel(type: string) {
   if (type === "movie") return "영화";
@@ -15,7 +14,8 @@ function typeLabel(type: string) {
 }
 
 export default function MyReportPage() {
-  const [logs, setLogs] = useState<WatchLog[]>([]);
+  const [report, setReport] = useState<PersonalReport | null>(null);
+  const [source, setSource] = useState<"server" | "local">("server");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -24,17 +24,22 @@ export default function MyReportPage() {
       setLoading(true);
       setError(null);
       try {
-        const items = await listAllLogsLocal();
-        setLogs(items);
+        const serverReport = await api<PersonalReport>("/analytics/me/report");
+        setReport(serverReport);
+        setSource("server");
       } catch (e: any) {
-        setError(e?.message ?? "리포트를 불러오지 못했어요.");
+        try {
+          const items = await listAllLogsLocal();
+          setReport(buildPersonalReport(items));
+          setSource("local");
+        } catch (fallbackError: any) {
+          setError(fallbackError?.message ?? e?.message ?? "리포트를 불러오지 못했어요.");
+        }
       } finally {
         setLoading(false);
       }
     })();
   }, []);
-
-  const report = useMemo(() => buildPersonalReport(logs), [logs]);
 
   if (loading) {
     return <div className="text-sm text-muted-foreground">리포트를 계산하고 있어요...</div>;
@@ -42,6 +47,9 @@ export default function MyReportPage() {
 
   if (error) {
     return <div className="text-sm text-red-500">{error}</div>;
+  }
+  if (!report) {
+    return <div className="text-sm text-muted-foreground">리포트 데이터가 없습니다.</div>;
   }
 
   const place = report.topPlace !== "-" ? PLACE_LABELS[report.topPlace as keyof typeof PLACE_LABELS] ?? report.topPlace : "-";
@@ -54,7 +62,7 @@ export default function MyReportPage() {
       <section className="space-y-2">
         <h1 className="text-2xl font-bold tracking-tight">내 이용 리포트</h1>
         <p className="text-sm text-muted-foreground">
-          로컬에 저장된 기록을 기준으로 집계한 개인 리포트입니다.
+          {source === "server" ? "서버에 동기화된 기록을 기준으로 집계한 개인 리포트입니다." : "로컬 기록 기준으로 임시 집계한 리포트입니다."}
         </p>
       </section>
 
@@ -108,9 +116,6 @@ export default function MyReportPage() {
         </article>
       </section>
 
-      <section className="rounded-2xl border border-border bg-card p-4 text-sm text-muted-foreground">
-        관리자 전체 통계는 <Link className="underline underline-offset-2" href="/admin/analytics">/admin/analytics</Link>에서 확인합니다.
-      </section>
     </div>
   );
 }

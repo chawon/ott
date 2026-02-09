@@ -7,6 +7,7 @@ import { WatchLog } from "@/lib/types";
 import { downloadBlob, fetchShareCardBlob, shareBlob } from "@/lib/share";
 import { cn, ratingDisplay, statusLabel } from "@/lib/utils";
 import { useRetro } from "@/context/RetroContext";
+import { trackEvent } from "@/lib/analytics";
 
 export default function ShareBottomSheet({
   open,
@@ -104,6 +105,11 @@ export default function ShareBottomSheet({
       setBusy(true);
       const blob = await buildBlob();
       await downloadBlob(blob, filenameFor(log));
+      await trackEvent("share_action", {
+        action: "download",
+        format,
+        titleType: log.title?.type ?? null,
+      });
     } finally {
       setBusy(false);
     }
@@ -117,6 +123,11 @@ export default function ShareBottomSheet({
       const filename = filenameFor(log);
       const text = `내 기록 공유: ${log.title.name}`;
       const shared = await shareBlob(blob, filename, log.title.name, text);
+      await trackEvent("share_action", {
+        action: shared ? "share" : "fallback_download",
+        format,
+        titleType: log.title?.type ?? null,
+      });
       if (!shared) {
         await downloadBlob(blob, filename);
       }

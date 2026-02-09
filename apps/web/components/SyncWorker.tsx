@@ -3,11 +3,13 @@
 import { useEffect } from "react";
 import { ensureAuth } from "@/lib/auth";
 import { syncOutbox } from "@/lib/sync";
+import { trackEvent } from "@/lib/analytics";
 
 export default function SyncWorker() {
   useEffect(() => {
     (async () => {
       await ensureAuth();
+      await trackEvent("app_open");
       await syncOutbox();
     })();
 

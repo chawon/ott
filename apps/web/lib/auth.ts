@@ -1,4 +1,5 @@
 import { api } from "./api";
+import { trackEvent } from "./analytics";
 import {
   getDeviceId,
   getPairingCode,
@@ -26,6 +27,7 @@ export async function ensureAuth(): Promise<AuthInfo | null> {
     setUserId(res.userId);
     setDeviceId(res.deviceId);
     setPairingCode(res.pairingCode);
+    await trackEvent("login_success", { method: "register" });
     return res;
   } catch {
     return null;
@@ -41,5 +43,6 @@ export async function pairWithCode(code: string): Promise<AuthInfo> {
   setUserId(res.userId);
   setDeviceId(res.deviceId);
   setPairingCode(res.pairingCode);
+  await trackEvent("login_success", { method: "pair" });
   return res;
 }

@@ -21,12 +21,12 @@
 - 연속 기록일(streak)
 
 데이터 소스:
-- 우선 `IndexedDB(localStore)` 기준으로 즉시 제공
-- 이후 서버 이벤트/DB 집계값으로 교체
+- 서버 리포트 API(`/api/analytics/me/report`) 우선 사용
+- API 실패 시 `IndexedDB(localStore)` 집계로 폴백
 
 ### 관리자 통계 (`/admin/analytics`)
-- 현재는 안전한 접근 제어 + 빈 상태 페이지로 시작
-- 지표 백엔드 연결 전까지 준비 상태/연결 체크리스트 제공
+- `token` 기반 접근 제어 + 서버 집계 API 연동 완료
+- DAU/WAU/MAU, 퍼널, 플랫폼별 요약 카드 노출
 - 추후 연결 지표:
   - DAU/WAU/MAU
   - D1/D7/D30
@@ -44,13 +44,14 @@
 
 ## 구현 단계
 1. 프론트 라우트 생성
-- [x] `/me/report` 뼈대
-- [x] `/admin/analytics` 뼈대
+- [x] `/me/report` 서버 우선 리포트 + 로컬 폴백
+- [x] `/admin/analytics` API 연동 대시보드
 
 2. 데이터 계층
 - [x] 개인 리포트 로컬 집계 유틸
 - [x] 이벤트 수집 테이블/엔드포인트
 - [x] 관리자용 기본 집계 API
+- [x] 프론트 이벤트 트래킹 (`app_open`, `login_success`, `log_create`, `share_action`)
 
 3. 운영 적용
 - [ ] 관리자 인증 고도화(RBAC/SSO)

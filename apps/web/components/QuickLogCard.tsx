@@ -10,6 +10,7 @@ import { syncOutbox } from "@/lib/sync";
 import { safeUUID, OCCASION_LABELS, placeOptionsForType, ratingOptionsForType, statusOptionsForType, tmdbResize } from "@/lib/utils";
 import { useRetro } from "@/context/RetroContext";
 import Link from "next/link";
+import { trackEvent } from "@/lib/analytics";
 import {
     Occasion,
     Place,
@@ -453,6 +454,12 @@ export default function QuickLogCard({
                         providerId: selected.providerId,
                     },
                 },
+            });
+            await trackEvent("log_create", {
+                titleType: selected.type,
+                hasRating: rating !== "",
+                hasNote: note.trim().length > 0,
+                hasOtt: ott.trim().length > 0,
             });
             onCreated(localLog, { shareCard });
             await syncOutbox();
