@@ -4,6 +4,9 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.watchlog.api.domain.WatchLogEntity;
 import com.watchlog.api.dto.AdminAnalyticsOverviewDto;
+import com.watchlog.api.dto.AdminDailyAnalyticsDto;
+import com.watchlog.api.dto.AdminEventBreakdownDto;
+import com.watchlog.api.dto.AdminEventRowDto;
 import com.watchlog.api.dto.AdminPlatformSummaryDto;
 import com.watchlog.api.dto.PersonalAnalyticsReportDto;
 import com.watchlog.api.dto.TrackAnalyticsEventRequest;
@@ -151,12 +154,7 @@ public class AnalyticsService {
 
     @Transactional(readOnly = true)
     public AdminAnalyticsOverviewDto adminOverview(String token, int days) {
-        if (adminAnalyticsToken == null || adminAnalyticsToken.isBlank()) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Admin analytics token is not configured");
-        }
-        if (!adminAnalyticsToken.equals(token)) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND);
-        }
+        verifyAdminToken(token);
 
         int safeDays = Math.max(1, Math.min(days, 90));
         OffsetDateTime to = OffsetDateTime.now();
@@ -187,6 +185,48 @@ public class AnalyticsService {
                 from
         );
 
+        List<AdminEventBreakdownDto> eventBreakdown = jdbcTemplate.query("""
+                select
+                    event_name,
+                    count(*) as events,
+                    count(distinct coalesce(user_id::text, session_id)) as actors
+                from analytics_events
+                where occurred_at >= ?
+                group by event_name
+                order by events desc, event_name asc
+                """,
+                (rs, rowNum) -> new AdminEventBreakdownDto(
+                        rs.getString("event_name"),
+                        rs.getLong("events"),
+                        rs.getLong("actors")
+                ),
+                from
+        );
+
+        List<AdminDailyAnalyticsDto> daily = jdbcTemplate.query("""
+                select
+                    date_trunc('day', occurred_at)::date as day,
+                    count(*) as events,
+                    count(distinct coalesce(user_id::text, session_id)) filter (where event_name = 'app_open') as app_open_users,
+                    count(distinct coalesce(user_id::text, session_id)) filter (where event_name = 'login_success') as login_users,
+                    count(distinct coalesce(user_id::text, session_id)) filter (where event_name = 'log_create') as log_create_users,
+                    count(distinct coalesce(user_id::text, session_id)) filter (where event_name = 'share_action') as share_action_users
+                from analytics_events
+                where occurred_at >= ?
+                group by 1
+                order by 1 desc
+                """,
+                (rs, rowNum) -> new AdminDailyAnalyticsDto(
+                        rs.getObject("day", LocalDate.class),
+                        rs.getLong("events"),
+                        rs.getLong("app_open_users"),
+                        rs.getLong("login_users"),
+                        rs.getLong("log_create_users"),
+                        rs.getLong("share_action_users")
+                ),
+                from
+        );
+
         return new AdminAnalyticsOverviewDto(
                 safeDays,
                 from,
@@ -198,7 +238,63 @@ public class AnalyticsService {
                 funnelAppOpenUsers,
                 funnelLoginUsers,
                 funnelLogCreateUsers,
-                platforms
+                platforms,
+                eventBreakdown,
+                daily
+        );
+    }
+
+    @Transactional(readOnly = true)
+    public List<AdminEventRowDto> adminRecentEvents(
+            String token,
+            int days,
+            int limit,
+            String eventName,
+            String platform
+    ) {
+        verifyAdminToken(token);
+
+        int safeDays = Math.max(1, Math.min(days, 90));
+        int safeLimit = Math.max(1, Math.min(limit, 500));
+        OffsetDateTime from = OffsetDateTime.now().minusDays(safeDays);
+        String normalizedEventName = eventName == null || eventName.isBlank() ? null : eventName.trim();
+        String normalizedPlatform = platform == null || platform.isBlank() ? null : platform.trim();
+
+        return jdbcTemplate.query("""
+                select
+                    event_id,
+                    user_id,
+                    session_id,
+                    event_name,
+                    platform,
+                    client_version,
+                    properties::text as properties,
+                    occurred_at,
+                    created_at
+                from analytics_events
+                where occurred_at >= ?
+                  and (? is null or event_name = ?)
+                  and (? is null or platform = ?)
+                order by occurred_at desc
+                limit ?
+                """,
+                (rs, rowNum) -> new AdminEventRowDto(
+                        rs.getObject("event_id", UUID.class),
+                        rs.getObject("user_id", UUID.class),
+                        rs.getString("session_id"),
+                        rs.getString("event_name"),
+                        rs.getString("platform"),
+                        rs.getString("client_version"),
+                        rs.getString("properties"),
+                        rs.getObject("occurred_at", OffsetDateTime.class),
+                        rs.getObject("created_at", OffsetDateTime.class)
+                ),
+                from,
+                normalizedEventName,
+                normalizedEventName,
+                normalizedPlatform,
+                normalizedPlatform,
+                safeLimit
         );
     }
 
@@ -213,6 +309,15 @@ public class AnalyticsService {
     private long queryLong(String sql, Object... args) {
         Long value = jdbcTemplate.queryForObject(sql, Long.class, args);
         return value == null ? 0L : value;
+    }
+
+    private void verifyAdminToken(String token) {
+        if (adminAnalyticsToken == null || adminAnalyticsToken.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Admin analytics token is not configured");
+        }
+        if (!adminAnalyticsToken.equals(token)) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND);
+        }
     }
 
     private AdminPlatformSummaryDto mapPlatformSummary(ResultSet rs) throws SQLException {

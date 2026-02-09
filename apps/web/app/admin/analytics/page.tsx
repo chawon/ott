@@ -22,6 +22,27 @@ type AdminOverview = {
   funnelLoginUsers: number;
   funnelLogCreateUsers: number;
   platforms: Array<{ platform: "web" | "pwa" | "twa"; events: number; activeUsers: number }>;
+  eventBreakdown: Array<{ eventName: string; events: number; actors: number }>;
+  daily: Array<{
+    day: string;
+    events: number;
+    appOpenUsers: number;
+    loginUsers: number;
+    logCreateUsers: number;
+    shareActionUsers: number;
+  }>;
+};
+
+type AdminEventRow = {
+  eventId: string;
+  userId: string | null;
+  sessionId: string;
+  eventName: string;
+  platform: "web" | "pwa" | "twa";
+  clientVersion: string | null;
+  properties: string;
+  occurredAt: string;
+  createdAt: string;
 };
 
 export default async function AdminAnalyticsPage({ searchParams }: Props) {
@@ -47,18 +68,27 @@ export default async function AdminAnalyticsPage({ searchParams }: Props) {
   }
 
   let overview: AdminOverview | null = null;
+  let recentEvents: AdminEventRow[] = [];
   let loadError: string | null = null;
   try {
-    const response = await fetch(`${backendUrl}/api/admin/analytics/overview?days=${Number.isFinite(days) ? days : 30}`, {
+    const safeDays = Number.isFinite(days) ? days : 30;
+    const response = await fetch(`${backendUrl}/api/admin/analytics/overview?days=${safeDays}`, {
       headers: {
         "X-Admin-Token": expected,
       },
       cache: "no-store",
     });
-    if (!response.ok) {
+    const eventsResponse = await fetch(`${backendUrl}/api/admin/analytics/events?days=${safeDays}&limit=300`, {
+      headers: {
+        "X-Admin-Token": expected,
+      },
+      cache: "no-store",
+    });
+    if (!response.ok || !eventsResponse.ok) {
       loadError = `통계 API 오류: ${response.status}`;
     } else {
       overview = (await response.json()) as AdminOverview;
+      recentEvents = (await eventsResponse.json()) as AdminEventRow[];
     }
   } catch (e: any) {
     loadError = e?.message ?? "통계 API 호출에 실패했습니다.";
@@ -121,6 +151,92 @@ export default async function AdminAnalyticsPage({ searchParams }: Props) {
                   <span className="text-muted-foreground">events {p.events} · active {p.activeUsers}</span>
                 </div>
               ))}
+            </div>
+          </section>
+
+          <section className="rounded-2xl border border-border bg-card p-6">
+            <div className="text-sm font-semibold">이벤트 종류별 상세</div>
+            <div className="mt-3 overflow-x-auto">
+              <table className="w-full min-w-[520px] text-sm">
+                <thead>
+                  <tr className="border-b border-border text-left text-xs text-muted-foreground">
+                    <th className="py-2 pr-3">event</th>
+                    <th className="py-2 pr-3">count</th>
+                    <th className="py-2 pr-3">actors</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {overview.eventBreakdown.map((item) => (
+                    <tr key={item.eventName} className="border-b border-border/60">
+                      <td className="py-2 pr-3 font-medium">{item.eventName}</td>
+                      <td className="py-2 pr-3">{item.events}</td>
+                      <td className="py-2 pr-3">{item.actors}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section className="rounded-2xl border border-border bg-card p-6">
+            <div className="text-sm font-semibold">일자별 상세</div>
+            <div className="mt-3 overflow-x-auto">
+              <table className="w-full min-w-[820px] text-sm">
+                <thead>
+                  <tr className="border-b border-border text-left text-xs text-muted-foreground">
+                    <th className="py-2 pr-3">day</th>
+                    <th className="py-2 pr-3">events</th>
+                    <th className="py-2 pr-3">app_open</th>
+                    <th className="py-2 pr-3">login_success</th>
+                    <th className="py-2 pr-3">log_create</th>
+                    <th className="py-2 pr-3">share_action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {overview.daily.map((d) => (
+                    <tr key={d.day} className="border-b border-border/60">
+                      <td className="py-2 pr-3 font-medium">{d.day}</td>
+                      <td className="py-2 pr-3">{d.events}</td>
+                      <td className="py-2 pr-3">{d.appOpenUsers}</td>
+                      <td className="py-2 pr-3">{d.loginUsers}</td>
+                      <td className="py-2 pr-3">{d.logCreateUsers}</td>
+                      <td className="py-2 pr-3">{d.shareActionUsers}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section className="rounded-2xl border border-border bg-card p-6">
+            <div className="text-sm font-semibold">최근 수집 이벤트 (최대 300)</div>
+            <div className="mt-3 overflow-x-auto">
+              <table className="w-full min-w-[1100px] text-xs">
+                <thead>
+                  <tr className="border-b border-border text-left text-[11px] text-muted-foreground">
+                    <th className="py-2 pr-3">occurredAt</th>
+                    <th className="py-2 pr-3">event</th>
+                    <th className="py-2 pr-3">platform</th>
+                    <th className="py-2 pr-3">userId</th>
+                    <th className="py-2 pr-3">sessionId</th>
+                    <th className="py-2 pr-3">clientVersion</th>
+                    <th className="py-2 pr-3">properties</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {recentEvents.map((row) => (
+                    <tr key={row.eventId} className="border-b border-border/60 align-top">
+                      <td className="py-2 pr-3 whitespace-nowrap">{new Date(row.occurredAt).toLocaleString("ko-KR")}</td>
+                      <td className="py-2 pr-3 font-medium">{row.eventName}</td>
+                      <td className="py-2 pr-3">{row.platform}</td>
+                      <td className="py-2 pr-3">{row.userId ?? "-"}</td>
+                      <td className="py-2 pr-3">{row.sessionId}</td>
+                      <td className="py-2 pr-3">{row.clientVersion ?? "-"}</td>
+                      <td className="py-2 pr-3 max-w-[440px] break-all text-muted-foreground">{row.properties}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </section>
         </>
