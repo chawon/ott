@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { Settings } from "lucide-react";
 import { ensureAuth, pairWithCode } from "@/lib/auth";
 import { getDeviceId, getPairingCode, getUserId, listAllLogsLocal, resetLocalState } from "@/lib/localStore";
@@ -209,6 +210,17 @@ export default function AccountPage() {
           {headerSubtitle}
         </div>
       </div>
+
+      <section className="rounded-2xl border border-border bg-card p-6 shadow-sm space-y-2">
+        <div className="text-sm font-semibold">리포트</div>
+        <div className="text-xs text-muted-foreground">내 이용 패턴을 요약해서 확인할 수 있어요.</div>
+        <Link
+          href="/me/report"
+          className="inline-flex rounded-xl border border-border px-3 py-2 text-sm font-semibold text-foreground hover:bg-muted"
+        >
+          내 이용 리포트 보기
+        </Link>
+      </section>
 
       <section className="rounded-2xl border border-border bg-card p-6 shadow-sm space-y-2">
         <div className="text-sm text-muted-foreground">내 페어링 코드</div>
