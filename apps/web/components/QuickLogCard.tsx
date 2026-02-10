@@ -138,10 +138,12 @@ function bookMeta(item: Pick<TitleSearchItem, "author" | "publisher" | "year">) 
 export default function QuickLogCard({
                                          onCreated,
                                          onContentTypeChange,
+                                         onContentTypePicked,
                                          initialContentType = "video",
                                      }: {
     onCreated: (log: WatchLog, options?: { shareCard: boolean }) => void;
     onContentTypeChange?: (type: "video" | "book") => void;
+    onContentTypePicked?: (type: "video" | "book") => void;
     initialContentType?: "video" | "book";
 }) {
     const { isRetro } = useRetro();
@@ -532,10 +534,13 @@ export default function QuickLogCard({
                     </div>
 
                     <div className="space-y-4">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2" data-onboarding-target="content-type">
                             <button
                                 type="button"
-                                onClick={() => setContentType("video")}
+                                onClick={() => {
+                                    setContentType("video");
+                                    onContentTypePicked?.("video");
+                                }}
                                 className={cn(
                                     "nes-btn !px-3 !py-1 text-xs",
                                     contentType === "video" ? "is-primary" : "",
@@ -546,7 +551,10 @@ export default function QuickLogCard({
                             </button>
                             <button
                                 type="button"
-                                onClick={() => setContentType("book")}
+                                onClick={() => {
+                                    setContentType("book");
+                                    onContentTypePicked?.("book");
+                                }}
                                 className={cn(
                                     "nes-btn !px-3 !py-1 text-xs",
                                     contentType === "book" ? "is-primary" : "",
@@ -557,16 +565,18 @@ export default function QuickLogCard({
                             </button>
                         </div>
 
-                        <TitleSearchBox
-                            key={contentType}
-                            onSelect={(item) => setSelected(item)}
-                            placeholder={isBookMode ? "책 검색 (어린 왕자, 불편한 편의점...)" : "작품 검색 (듄, 더 베어...)"} 
-                            showRecentDiscussions
-                            contentType={isBookMode ? "book" : "video"}
-                        />
+                        <div data-onboarding-target="title-search">
+                            <TitleSearchBox
+                                key={contentType}
+                                onSelect={(item) => setSelected(item)}
+                                placeholder={isBookMode ? "책 검색 (어린 왕자, 불편한 편의점...)" : "작품 검색 (듄, 더 베어...)"}
+                                showRecentDiscussions
+                                contentType={isBookMode ? "book" : "video"}
+                            />
+                        </div>
 
                         {selected ? (
-                                                    <div className="border-4 border-black bg-[#212529] p-2 text-white">
+                                                    <div className="border-4 border-black bg-[#212529] p-2 text-white" data-onboarding-target="selected-title">
                                                         <div className="flex items-center gap-4">
                                                             <div className="h-32 w-24 shrink-0 border-2 border-white bg-neutral-800 shadow-[2px_2px_0px_0px_white]">
                                                                 {(seasonPosterUrl ?? selected.posterUrl) ? (
@@ -792,7 +802,10 @@ export default function QuickLogCard({
                             </div>
                         </div>
 
-                        <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-[1fr_auto] sm:items-end">
+                        <div
+                            className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-[1fr_auto] sm:items-end"
+                            data-onboarding-target="status-save"
+                        >
                             <div className="space-y-1">
                                 <div className="text-[10px] font-bold uppercase text-neutral-700 flex items-center gap-1">
                                     <Share2 className="h-3 w-3" />
@@ -848,8 +861,12 @@ export default function QuickLogCard({
                             <div className="text-xs font-bold uppercase">
                                 좋아요! {banner.count}번째 타임라인이 쌓였어요.
                             </div>
-                            <Link href="/timeline" className="flex-shrink-0 border-2 border-black bg-white px-2 py-1 text-[10px] font-bold uppercase hover:bg-neutral-100">
-                                보기
+                            <Link
+                                href="/timeline"
+                                data-onboarding-target="timeline-confirm"
+                                className="flex-shrink-0 border-2 border-black bg-white px-2 py-1 text-[10px] font-bold uppercase hover:bg-neutral-100"
+                            >
+                                타임라인 보기
                             </Link>
                         </div>
                     </div>
@@ -864,10 +881,13 @@ export default function QuickLogCard({
                 "rounded-2xl border border-border bg-card p-6 text-card-foreground shadow-sm space-y-4 transition-all hover:border-border/80",
                 isBookMode && "bg-emerald-50/30 ring-1 ring-emerald-100/80 border-emerald-200/70 dark:bg-emerald-950/25 dark:ring-emerald-900/60 dark:border-emerald-900/50"
             )}>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2" data-onboarding-target="content-type">
                     <button
                         type="button"
-                        onClick={() => setContentType("video")}
+                        onClick={() => {
+                            setContentType("video");
+                            onContentTypePicked?.("video");
+                        }}
                         className={cn(
                             "rounded-full px-4 py-1.5 text-xs font-semibold transition-all",
                             contentType === "video" ? "bg-neutral-900 text-white" : "bg-muted text-muted-foreground hover:bg-muted/80",
@@ -878,7 +898,10 @@ export default function QuickLogCard({
                     </button>
                     <button
                         type="button"
-                        onClick={() => setContentType("book")}
+                        onClick={() => {
+                            setContentType("book");
+                            onContentTypePicked?.("book");
+                        }}
                         className={cn(
                             "rounded-full px-4 py-1.5 text-xs font-semibold transition-all",
                             contentType === "book" ? "bg-neutral-900 text-white" : "bg-muted text-muted-foreground hover:bg-muted/80",
@@ -889,16 +912,18 @@ export default function QuickLogCard({
                     </button>
                 </div>
 
-                <TitleSearchBox
-                    key={contentType}
-                    onSelect={(item) => setSelected(item)}
-                    placeholder={isBookMode ? "책 검색 (어린 왕자, 불편한 편의점...)" : "작품 검색 (예: 듄, 더 베어)"}
-                    showRecentDiscussions
-                    contentType={isBookMode ? "book" : "video"}
-                />
+                <div data-onboarding-target="title-search">
+                    <TitleSearchBox
+                        key={contentType}
+                        onSelect={(item) => setSelected(item)}
+                        placeholder={isBookMode ? "책 검색 (어린 왕자, 불편한 편의점...)" : "작품 검색 (예: 듄, 더 베어)"}
+                        showRecentDiscussions
+                        contentType={isBookMode ? "book" : "video"}
+                    />
+                </div>
 
                 {selected ? (
-                    <div className="rounded-xl border border-border bg-muted p-4 transition-colors">
+                    <div className="rounded-xl border border-border bg-muted p-4 transition-colors" data-onboarding-target="selected-title">
                         <div className="flex items-center gap-5">
                             <div className="h-32 w-20 shrink-0 overflow-hidden rounded-lg bg-muted shadow-sm border border-border">
                                 {(seasonPosterUrl ?? selected.posterUrl) ? (
@@ -1145,7 +1170,10 @@ export default function QuickLogCard({
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_auto] sm:items-end">
+                <div
+                    className="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_auto] sm:items-end"
+                    data-onboarding-target="status-save"
+                >
                     <div className="space-y-1">
                         <div className="text-xs font-medium text-neutral-500 ml-1 flex items-center gap-1.5">
                             <Share2 className="h-3 w-3" />
@@ -1190,11 +1218,12 @@ export default function QuickLogCard({
                         <div className="text-sm font-medium text-foreground">
                             좋아요, <span className="font-bold text-blue-600">{banner.count}</span>번째 타임라인이 쌓였어요.
                         </div>
-                        <Link 
-                            href="/timeline" 
+                        <Link
+                            href="/timeline"
+                            data-onboarding-target="timeline-confirm"
                             className="flex items-center gap-1 text-xs font-bold text-blue-600 hover:underline"
                         >
-                            보기 <ArrowRight className="h-3 w-3" />
+                            타임라인 보기 <ArrowRight className="h-3 w-3" />
                         </Link>
                     </div>
                 </div>

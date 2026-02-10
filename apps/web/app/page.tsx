@@ -1,16 +1,20 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { MessageCircle, PencilLine, NotebookPen } from "lucide-react";
 import QuickLogCard from "@/components/QuickLogCard";
 import LogCard from "@/components/LogCard";
 import ShareBottomSheet from "@/components/ShareBottomSheet";
+import FirstLogOnboardingOverlay from "@/components/FirstLogOnboardingOverlay";
 import { api } from "@/lib/api";
+import { trackEvent } from "@/lib/analytics";
 import DiscussionList from "@/components/DiscussionList";
 import { listLogsLocal, upsertLogsLocal } from "@/lib/localStore";
-import { DiscussionListItem, WatchLog } from "@/lib/types";
+import type { DiscussionListItem, WatchLog } from "@/lib/types";
 import { useRetro } from "@/context/RetroContext";
-import { cn } from "@/lib/utils";
+
+const ONBOARDING_COMPLETED_KEY = "watchlog.onboarding.firstLog.completed";
+const ONBOARDING_SKIPPED_KEY = "watchlog.onboarding.firstLog.skipped";
 
 export default function HomePage() {
     const [logs, setLogs] = useState<WatchLog[]>([]);
@@ -20,6 +24,10 @@ export default function HomePage() {
     const [quickType, setQuickType] = useState<"video" | "book">("video");
     const [shareOpen, setShareOpen] = useState(false);
     const [shareLog, setShareLog] = useState<WatchLog | null>(null);
+    const [onboardingOpen, setOnboardingOpen] = useState(false);
+    const [onboardingStep, setOnboardingStep] = useState<1 | 2 | 3 | 4>(1);
+    const [onboardingTypePicked, setOnboardingTypePicked] = useState(false);
+    const onboardingViewTrackedRef = useRef(false);
     const { isRetro } = useRetro();
 
     async function loadDiscussions() {
@@ -63,6 +71,61 @@ export default function HomePage() {
         return () => window.removeEventListener("sync:updated", handleSync);
     }, []);
 
+    useEffect(() => {
+        if (typeof window === "undefined") return;
+        if (isRetro) return;
+        if (loading) return;
+        if (logs.length > 0 && !(onboardingOpen && onboardingStep === 4)) {
+            setOnboardingOpen(false);
+            return;
+        }
+        if (onboardingOpen) {
+            if (!quickOpen) setQuickOpen(true);
+            return;
+        }
+        const completed = localStorage.getItem(ONBOARDING_COMPLETED_KEY) === "1";
+        const skipped = localStorage.getItem(ONBOARDING_SKIPPED_KEY) === "1";
+        if (completed || skipped) {
+            setOnboardingOpen(false);
+            return;
+        }
+        setOnboardingOpen(true);
+        setOnboardingStep(1);
+        setOnboardingTypePicked(false);
+        if (!quickOpen) setQuickOpen(true);
+    }, [isRetro, loading, logs.length, quickOpen, onboardingOpen, onboardingStep]);
+
+    function completeOnboarding() {
+        if (typeof window !== "undefined") {
+            localStorage.setItem(ONBOARDING_COMPLETED_KEY, "1");
+        }
+        void trackEvent("onboarding_first_log_complete", {
+            step: onboardingStep,
+            contentTypePicked: onboardingTypePicked,
+        });
+        setOnboardingOpen(false);
+    }
+
+    function skipOnboarding() {
+        if (typeof window !== "undefined") {
+            localStorage.setItem(ONBOARDING_SKIPPED_KEY, "1");
+        }
+        void trackEvent("onboarding_first_log_skip", {
+            step: onboardingStep,
+            contentTypePicked: onboardingTypePicked,
+        });
+        setOnboardingOpen(false);
+    }
+
+    useEffect(() => {
+        if (!onboardingOpen) return;
+        if (onboardingViewTrackedRef.current) return;
+        onboardingViewTrackedRef.current = true;
+        void trackEvent("onboarding_first_log_view", {
+            step: onboardingStep,
+        });
+    }, [onboardingOpen, onboardingStep]);
+
     if (isRetro) {
         return (
             <div className="grid grid-cols-1 gap-10 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
@@ -90,6 +153,14 @@ export default function HomePage() {
                             <QuickLogCard
                                 onCreated={async (created, options) => {
                                     setLogs((prev) => [created, ...prev].slice(0, 8));
+                                    if (onboardingOpen) {
+                                        setOnboardingStep(4);
+                                        void trackEvent("onboarding_first_log_step_next", {
+                                            fromStep: onboardingStep,
+                                            toStep: 4,
+                                            reason: "log_saved",
+                                        });
+                                    }
                                     await upsertLogsLocal([created]);
                                     await loadDiscussions();
                                     if (options?.shareCard) {
@@ -98,6 +169,17 @@ export default function HomePage() {
                                     }
                                 }}
                                 onContentTypeChange={setQuickType}
+                                onContentTypePicked={() => {
+                                    setOnboardingTypePicked(true);
+                                    if (onboardingOpen && onboardingStep === 1) {
+                                        setOnboardingStep(2);
+                                        void trackEvent("onboarding_first_log_step_next", {
+                                            fromStep: 1,
+                                            toStep: 2,
+                                            reason: "content_type_picked",
+                                        });
+                                    }
+                                }}
                                 initialContentType={quickType}
                             />
                         ) : null}
@@ -185,6 +267,14 @@ export default function HomePage() {
                         <QuickLogCard
                             onCreated={async (created, options) => {
                                 setLogs((prev) => [created, ...prev].slice(0, 8));
+                                if (onboardingOpen) {
+                                    setOnboardingStep(4);
+                                    void trackEvent("onboarding_first_log_step_next", {
+                                        fromStep: onboardingStep,
+                                        toStep: 4,
+                                        reason: "log_saved",
+                                    });
+                                }
                                 await upsertLogsLocal([created]);
                                 await loadDiscussions();
                                 if (options?.shareCard) {
@@ -193,6 +283,17 @@ export default function HomePage() {
                                 }
                             }}
                             onContentTypeChange={setQuickType}
+                            onContentTypePicked={() => {
+                                setOnboardingTypePicked(true);
+                                if (onboardingOpen && onboardingStep === 1) {
+                                    setOnboardingStep(2);
+                                    void trackEvent("onboarding_first_log_step_next", {
+                                        fromStep: 1,
+                                        toStep: 2,
+                                        reason: "content_type_picked",
+                                    });
+                                }
+                            }}
                             initialContentType={quickType}
                         />
                     ) : null}
@@ -244,6 +345,23 @@ export default function HomePage() {
                 open={shareOpen}
                 log={shareLog}
                 onClose={() => setShareOpen(false)}
+            />
+            <FirstLogOnboardingOverlay
+                open={onboardingOpen}
+                step={onboardingStep}
+                contentTypePicked={onboardingTypePicked}
+                onPrev={() => setOnboardingStep((prev) => (prev === 1 ? 1 : ((prev - 1) as 1 | 2 | 3 | 4)))}
+                onNext={() => {
+                    const toStep = onboardingStep === 4 ? 4 : ((onboardingStep + 1) as 1 | 2 | 3 | 4);
+                    setOnboardingStep(toStep);
+                    void trackEvent("onboarding_first_log_step_next", {
+                        fromStep: onboardingStep,
+                        toStep,
+                        reason: "manual_next",
+                    });
+                }}
+                onSkip={skipOnboarding}
+                onComplete={completeOnboarding}
             />
         </div>
     );

@@ -26,7 +26,15 @@ function ensureSessionId(): string {
 }
 
 export async function trackEvent(
-  eventName: "app_open" | "login_success" | "log_create" | "share_action",
+  eventName:
+    | "app_open"
+    | "login_success"
+    | "log_create"
+    | "share_action"
+    | "onboarding_first_log_view"
+    | "onboarding_first_log_step_next"
+    | "onboarding_first_log_skip"
+    | "onboarding_first_log_complete",
   properties?: Record<string, unknown>
 ) {
   try {

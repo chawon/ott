@@ -180,7 +180,7 @@ export default function TitleSearchBox({
                     isRetro 
                         ? "border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]" 
                         : "rounded-xl border border-border shadow-xl"
-                )}>
+                )} data-onboarding-target="title-search-panel">
                     {showRecentPanel ? (
                         <div className={cn(isRetro ? "border-b-4 border-black" : "border-b border-border")}>
                             <div className={cn(
