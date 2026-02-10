@@ -47,7 +47,7 @@ export default function PublicDiscussionsPage() {
       ? err 
       : isRetro 
         ? "남긴 날적이를 서로 슬쩍 구경하기" 
-        : "공개로 남긴 기록을 둘러보고 영감 얻기";
+        : "공개로 남긴 기록을 둘러보고 영감을 얻어요.";
 
   return (
     <div className="space-y-4">

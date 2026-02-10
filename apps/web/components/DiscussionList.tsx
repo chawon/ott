@@ -67,7 +67,7 @@ export default function DiscussionList({
               </div>
               <div className="shrink-0 text-right text-[10px] font-bold uppercase text-blue-600">
                 <div className="bg-blue-600 text-white px-1 mb-1 inline-block">{formatShortDate(d.createdAt)}</div>
-                <div className="text-black">💬 {d.commentCount}</div>
+                <div className="text-black">댓글 {d.commentCount}</div>
               </div>
             </Link>
           ))}
@@ -100,7 +100,7 @@ export default function DiscussionList({
                 {d.titleName}
               </div>
               <div className="mt-0.5 text-xs text-muted-foreground">
-                {d.titleType === "movie" ? "Movie" : d.titleType === "series" ? "Series" : "Book"}
+                {d.titleType === "movie" ? "영화" : d.titleType === "series" ? "시리즈" : "책"}
                 {d.titleYear ? ` · ${d.titleYear}` : ""}
               </div>
             </div>

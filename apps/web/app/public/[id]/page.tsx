@@ -34,7 +34,7 @@ export default function PublicDiscussionDetailPage() {
         const res = await api<DiscussionListItem>(`/discussions/${discussionId}`);
         setDetail(res);
       } catch (e: any) {
-        setErr(e?.message ?? "Failed to load discussion");
+        setErr(e?.message ?? "함께 기록을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.");
       } finally {
         setLoading(false);
       }
@@ -44,7 +44,7 @@ export default function PublicDiscussionDetailPage() {
   if (!discussionId) {
     return (
       <div className={cn(isRetro ? "nes-container border-4 border-black p-6 font-bold" : "rounded-2xl border border-border bg-card p-6 shadow-sm")}>
-        <div className="text-base font-semibold">{isRetro ? "INVALID ROUTE" : "유효하지 않은 경로"}</div>
+        <div className="text-base font-semibold">{isRetro ? "유효하지 않은 경로예요" : "유효하지 않은 경로예요."}</div>
       </div>
     );
   }
@@ -52,7 +52,7 @@ export default function PublicDiscussionDetailPage() {
   if (loading && !detail) {
     return (
       <div className={cn(isRetro ? "nes-container border-4 border-black p-6 font-bold" : "rounded-2xl border border-border bg-card p-6 shadow-sm")}>
-        <div className="text-sm text-neutral-600">{isRetro ? "LOADING..." : "불러오는 중…"}</div>
+        <div className="text-sm text-neutral-600">불러오는 중…</div>
       </div>
     );
   }
@@ -60,7 +60,7 @@ export default function PublicDiscussionDetailPage() {
   if (err) {
     return (
       <div className={cn(isRetro ? "nes-container border-4 border-black p-6 font-bold" : "rounded-2xl border border-border bg-card p-6 shadow-sm")}>
-        <div className="text-base font-semibold text-red-600">Error</div>
+        <div className="text-base font-semibold text-red-600">불러오지 못했어요.</div>
         <div className="mt-2 text-sm text-neutral-700">{err}</div>
       </div>
     );
@@ -69,7 +69,7 @@ export default function PublicDiscussionDetailPage() {
   if (!detail) {
     return (
       <div className={cn(isRetro ? "nes-container border-4 border-black p-6 font-bold" : "rounded-2xl border border-border bg-card p-6 shadow-sm")}>
-        <div className="text-base font-semibold">{isRetro ? "NOT FOUND" : "찾을 수 없음"}</div>
+        <div className="text-base font-semibold">찾을 수 없어요.</div>
       </div>
     );
   }
@@ -100,10 +100,10 @@ export default function PublicDiscussionDetailPage() {
             <div className={cn("text-xl font-semibold", isRetro && "uppercase")}>{detail.titleName}</div>
             <div className={cn("mt-1 text-sm font-medium", isRetro ? "text-black uppercase" : "text-muted-foreground")}>
               {detail.titleType === "movie"
-                ? (isRetro ? "MOVIE" : "Movie")
+                ? "영화"
                 : detail.titleType === "series"
-                ? (isRetro ? "SERIES" : "Series")
-                : (isRetro ? "BOOK" : "Book")}
+                ? "시리즈"
+                : "책"}
               {detail.titleYear ? ` · ${detail.titleYear}` : ""}
             </div>
             <div className="mt-4 text-sm">
@@ -113,7 +113,7 @@ export default function PublicDiscussionDetailPage() {
                   ? "bg-blue-600 text-white px-2 py-1 font-bold uppercase hover:bg-blue-700" 
                   : "text-neutral-700 hover:text-black hover:underline"
               )}>
-                {isRetro ? "이 비디오는 말이야 →" : "작품 상세 정보 보기 →"}
+                작품 상세 보기 →
               </Link>
             </div>
           </div>

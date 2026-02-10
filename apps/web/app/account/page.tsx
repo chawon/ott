@@ -189,7 +189,7 @@ export default function AccountPage() {
   const headerTitle = isRetro ? "맞춤" : "설정";
   const headerSubtitle = isRetro 
     ? "기기 잇기" 
-    : "이메일 없이 페어링 코드로 여러 기기를 연결하기";
+    : "이메일 없이 페어링 코드로 여러 기기를 연결해요.";
 
   return (
     <div className="space-y-4">

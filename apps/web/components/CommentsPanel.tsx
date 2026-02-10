@@ -61,7 +61,7 @@ export default function CommentsPanel({
         setComments([]);
       }
     } catch (e: any) {
-      setErr(e?.message ?? "Failed to load discussion");
+      setErr(e?.message ?? "함께 기록을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.");
     } finally {
       setLoading(false);
     }
@@ -100,7 +100,7 @@ export default function CommentsPanel({
       setBody("");
       setMentions([]);
     } catch (e: any) {
-      setErr(e?.message ?? "Failed to post");
+      setErr(e?.message ?? "댓글을 남기지 못했어요. 다시 시도해 주세요.");
     } finally {
       setPosting(false);
     }
@@ -161,7 +161,7 @@ export default function CommentsPanel({
       <section className={cn(
         isRetro ? "nes-container border-4 border-black p-6" : "rounded-2xl border border-border bg-card p-6 shadow-sm"
       )}>
-        <div className="text-sm text-neutral-600">로딩 중...</div>
+        <div className="text-sm text-neutral-600">불러오는 중…</div>
       </section>
     );
   }
