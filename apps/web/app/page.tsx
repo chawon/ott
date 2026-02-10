@@ -19,6 +19,7 @@ const ONBOARDING_SKIPPED_KEY = "watchlog.onboarding.firstLog.skipped";
 export default function HomePage() {
     const [logs, setLogs] = useState<WatchLog[]>([]);
     const [loading, setLoading] = useState(false);
+    const [bootstrapped, setBootstrapped] = useState(false);
     const [discussions, setDiscussions] = useState<DiscussionListItem[]>([]);
     const [quickOpen, setQuickOpen] = useState(true);
     const [quickType, setQuickType] = useState<"video" | "book">("video");
@@ -54,6 +55,7 @@ export default function HomePage() {
                 // keep cached logs if network fails
             } finally {
                 setLoading(false);
+                setBootstrapped(true);
             }
         })();
     }, []);
@@ -74,6 +76,7 @@ export default function HomePage() {
     useEffect(() => {
         if (typeof window === "undefined") return;
         if (isRetro) return;
+        if (!bootstrapped) return;
         if (loading) return;
         if (logs.length > 0 && !(onboardingOpen && onboardingStep === 4)) {
             setOnboardingOpen(false);
@@ -93,7 +96,7 @@ export default function HomePage() {
         setOnboardingStep(1);
         setOnboardingTypePicked(false);
         if (!quickOpen) setQuickOpen(true);
-    }, [isRetro, loading, logs.length, quickOpen, onboardingOpen, onboardingStep]);
+    }, [bootstrapped, isRetro, loading, logs.length, quickOpen, onboardingOpen, onboardingStep]);
 
     function completeOnboarding() {
         if (typeof window !== "undefined") {
