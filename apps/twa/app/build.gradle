@@ -26,6 +26,8 @@ def hasKeystore = keystorePropertiesFile.exists()
 if (hasKeystore) {
     keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
 }
+def releaseVersionCode = (project.findProperty("releaseVersionCode") ?: "1").toInteger()
+def releaseVersionName = project.findProperty("releaseVersionName") ?: "1.0.0"
 
 def twaManifest = [
     applicationId: 'kr.pe.preview.ott.twa',
@@ -74,8 +76,8 @@ android {
         applicationId "kr.pe.preview.ott.twa"
         minSdkVersion 21
         targetSdkVersion 35
-        versionCode 1
-        versionName "1"
+        versionCode releaseVersionCode
+        versionName releaseVersionName
 
         // The name for the application
         resValue "string", "appName", twaManifest.name

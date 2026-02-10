@@ -2,6 +2,15 @@ name: Build TWA Release AAB
 
 on:
   workflow_dispatch:
+    inputs:
+      version_code:
+        description: "Android versionCode (must increase every release)"
+        required: true
+        type: string
+      version_name:
+        description: "Android versionName (e.g. 1.0.0)"
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -43,9 +52,24 @@ jobs:
           keyPassword=$TWA_KEY_PASSWORD
           EOF
 
+      - name: Validate version inputs
+        shell: bash
+        run: |
+          if ! [[ "${{ github.event.inputs.version_code }}" =~ ^[0-9]+$ ]]; then
+            echo "version_code must be a positive integer."
+            exit 1
+          fi
+          if [[ -z "${{ github.event.inputs.version_name }}" ]]; then
+            echo "version_name must not be empty."
+            exit 1
+          fi
+
       - name: Build release AAB
         working-directory: apps/twa
-        run: ./gradlew bundleRelease --no-daemon
+        run: |
+          ./gradlew bundleRelease --no-daemon \
+            -PreleaseVersionCode=${{ github.event.inputs.version_code }} \
+            -PreleaseVersionName=${{ github.event.inputs.version_name }}
 
       - name: Upload AAB artifact
         uses: actions/upload-artifact@v4
