@@ -24,6 +24,8 @@ spec:
           envFrom:
             - configMapRef:
                 name: ott-web-config
+            - secretRef:
+                name: ott-api-secrets
 ---
 apiVersion: v1
 kind: Service
