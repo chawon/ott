@@ -10,6 +10,16 @@ export default function SyncWorker() {
   const pathname = usePathname();
 
   useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (!("serviceWorker" in navigator)) return;
+    if (!window.isSecureContext) return;
+
+    navigator.serviceWorker.register("/sw.js").catch(() => {
+      // Ignore registration errors to avoid blocking runtime flows.
+    });
+  }, []);
+
+  useEffect(() => {
     if (pathname?.startsWith("/admin")) return;
 
     (async () => {

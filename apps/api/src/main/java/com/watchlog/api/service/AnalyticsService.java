@@ -11,6 +11,7 @@ import com.watchlog.api.dto.AdminPlatformSummaryDto;
 import com.watchlog.api.dto.PersonalAnalyticsReportDto;
 import com.watchlog.api.dto.TrackAnalyticsEventRequest;
 import com.watchlog.api.dto.TrackAnalyticsEventResponse;
+import com.watchlog.api.repo.UserRepository;
 import com.watchlog.api.repo.WatchLogRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
@@ -33,15 +34,18 @@ public class AnalyticsService {
 
     private final JdbcTemplate jdbcTemplate;
     private final WatchLogRepository watchLogRepository;
+    private final UserRepository userRepository;
     private final String adminAnalyticsToken;
 
     public AnalyticsService(
             JdbcTemplate jdbcTemplate,
             WatchLogRepository watchLogRepository,
+            UserRepository userRepository,
             @Value("${admin.analytics.token:}") String adminAnalyticsToken
     ) {
         this.jdbcTemplate = jdbcTemplate;
         this.watchLogRepository = watchLogRepository;
+        this.userRepository = userRepository;
         this.adminAnalyticsToken = adminAnalyticsToken;
     }
 
@@ -49,6 +53,7 @@ public class AnalyticsService {
     public TrackAnalyticsEventResponse trackEvent(TrackAnalyticsEventRequest req, UUID userId) {
         UUID eventId = req.eventId() == null ? UUID.randomUUID() : req.eventId();
         OffsetDateTime occurredAt = req.occurredAt() == null ? OffsetDateTime.now() : req.occurredAt();
+        UUID safeUserId = resolveKnownUserId(userId);
         String sessionId = (req.sessionId() == null || req.sessionId().isBlank())
                 ? "anon-" + eventId
                 : req.sessionId().trim();
@@ -70,7 +75,7 @@ public class AnalyticsService {
                 on conflict (event_id) do nothing
                 """,
                 eventId,
-                userId,
+                safeUserId,
                 sessionId,
                 req.eventName(),
                 req.platform(),
@@ -273,8 +278,8 @@ public class AnalyticsService {
                     created_at
                 from analytics_events
                 where occurred_at >= ?
-                  and (? is null or event_name = ?)
-                  and (? is null or platform = ?)
+                  and (cast(? as text) is null or event_name = cast(? as text))
+                  and (cast(? as text) is null or platform = cast(? as text))
                 order by occurred_at desc
                 limit ?
                 """,
@@ -318,6 +323,11 @@ public class AnalyticsService {
         if (!adminAnalyticsToken.equals(token)) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND);
         }
+    }
+
+    private UUID resolveKnownUserId(UUID userId) {
+        if (userId == null) return null;
+        return userRepository.existsById(userId) ? userId : null;
     }
 
     private AdminPlatformSummaryDto mapPlatformSummary(ResultSet rs) throws SQLException {
