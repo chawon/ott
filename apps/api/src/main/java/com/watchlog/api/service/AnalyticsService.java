@@ -32,6 +32,7 @@ import java.util.*;
 public class AnalyticsService {
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+    private static final String EXCLUDED_ADMIN_ID = "2777a431-5ccb-4761-9c8a-2b17a34ff566";
 
     private final JdbcTemplate jdbcTemplate;
     private final WatchLogRepository watchLogRepository;
@@ -169,7 +170,7 @@ public class AnalyticsService {
         OffsetDateTime to = OffsetDateTime.now(kst);
         OffsetDateTime from = to.minusDays(safeDays);
 
-        long events = queryLong("select count(*) from analytics_events where occurred_at >= ?", from);
+        long events = queryLong("select count(*) from analytics_events where occurred_at >= ? and (user_id is null or user_id::text != ?)", from, EXCLUDED_ADMIN_ID);
 
         OffsetDateTime startOfTodayKst = LocalDate.now(kst).atStartOfDay(kst).toOffsetDateTime();
         long dau = countDistinctActorsByEventSince("app_open", startOfTodayKst);
@@ -187,11 +188,13 @@ public class AnalyticsService {
                     count(distinct coalesce(user_id::text, session_id)) filter (where event_name = 'app_open') as active_users
                 from analytics_events
                 where occurred_at >= ?
+                  and (user_id is null or user_id::text != ?)
                 group by platform
                 order by platform asc
                 """,
                 (rs, rowNum) -> mapPlatformSummary(rs),
-                from
+                from,
+                EXCLUDED_ADMIN_ID
         );
 
         List<AdminEventBreakdownDto> eventBreakdown = jdbcTemplate.query("""
@@ -201,6 +204,7 @@ public class AnalyticsService {
                     count(distinct coalesce(user_id::text, session_id)) as actors
                 from analytics_events
                 where occurred_at >= ?
+                  and (user_id is null or user_id::text != ?)
                 group by event_name
                 order by events desc, event_name asc
                 """,
@@ -209,7 +213,8 @@ public class AnalyticsService {
                         rs.getLong("events"),
                         rs.getLong("actors")
                 ),
-                from
+                from,
+                EXCLUDED_ADMIN_ID
         );
 
         List<AdminDailyAnalyticsDto> daily = jdbcTemplate.query("""
@@ -222,6 +227,7 @@ public class AnalyticsService {
                     count(distinct coalesce(user_id::text, session_id)) filter (where event_name = 'share_action') as share_action_users
                 from analytics_events
                 where occurred_at >= ?
+                  and (user_id is null or user_id::text != ?)
                 group by 1
                 order by 1 desc
                 """,
@@ -233,7 +239,8 @@ public class AnalyticsService {
                         rs.getLong("log_create_users"),
                         rs.getLong("share_action_users")
                 ),
-                from
+                from,
+                EXCLUDED_ADMIN_ID
         );
 
         return new AdminAnalyticsOverviewDto(
@@ -284,6 +291,7 @@ public class AnalyticsService {
                 where occurred_at >= ?
                   and (cast(? as text) is null or event_name = cast(? as text))
                   and (cast(? as text) is null or platform = cast(? as text))
+                  and (user_id is null or user_id::text != ?)
                 order by occurred_at desc
                 limit ?
                 """,
@@ -303,6 +311,7 @@ public class AnalyticsService {
                 normalizedEventName,
                 normalizedPlatform,
                 normalizedPlatform,
+                EXCLUDED_ADMIN_ID,
                 safeLimit
         );
     }
@@ -312,7 +321,8 @@ public class AnalyticsService {
                 select count(distinct coalesce(user_id::text, session_id))
                 from analytics_events
                 where event_name = ? and occurred_at >= ?
-                """, eventName, since);
+                  and (user_id is null or user_id::text != ?)
+                """, eventName, since, EXCLUDED_ADMIN_ID);
     }
 
     private long queryLong(String sql, Object... args) {
