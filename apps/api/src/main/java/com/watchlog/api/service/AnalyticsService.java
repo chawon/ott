@@ -100,7 +100,8 @@ public class AnalyticsService {
             return new PersonalAnalyticsReportDto(0, 0, 0, 0, 0, "-", "-", "-", 0, 0, null);
         }
 
-        OffsetDateTime now = OffsetDateTime.now();
+        ZoneId kst = ZoneId.of("Asia/Seoul");
+        OffsetDateTime now = OffsetDateTime.now(kst);
         int thisMonthLogs = 0;
         int doneCount = 0;
         int ratingCount = 0;
@@ -113,7 +114,8 @@ public class AnalyticsService {
 
         for (WatchLogEntity log : logs) {
             OffsetDateTime watchedAt = log.getWatchedAt();
-            if (watchedAt.getYear() == now.getYear() && watchedAt.getMonthValue() == now.getMonthValue()) {
+            if (watchedAt.atZoneSameInstant(kst).getYear() == now.getYear() && 
+                watchedAt.atZoneSameInstant(kst).getMonthValue() == now.getMonthValue()) {
                 thisMonthLogs += 1;
             }
             if (log.getStatus() != null && "DONE".equals(log.getStatus().name())) {
@@ -137,7 +139,7 @@ public class AnalyticsService {
             if (log.getOccasion() != null) {
                 occasionCounts.merge(log.getOccasion().name(), 1, Integer::sum);
             }
-            activeDays.add(watchedAt.atZoneSameInstant(ZoneOffset.UTC).toLocalDate());
+            activeDays.add(watchedAt.atZoneSameInstant(kst).toLocalDate());
         }
 
         Streak streak = calculateStreak(activeDays, now.toLocalDate());
@@ -161,14 +163,15 @@ public class AnalyticsService {
     public AdminAnalyticsOverviewDto adminOverview(String token, int days) {
         verifyAdminToken(token);
 
+        ZoneId kst = ZoneId.of("Asia/Seoul");
         int safeDays = Math.max(1, Math.min(days, 90));
-        OffsetDateTime to = OffsetDateTime.now();
+        OffsetDateTime to = OffsetDateTime.now(kst);
         OffsetDateTime from = to.minusDays(safeDays);
 
         long events = queryLong("select count(*) from analytics_events where occurred_at >= ?", from);
 
-        OffsetDateTime startOfTodayUtc = LocalDate.now(ZoneOffset.UTC).atStartOfDay().atOffset(ZoneOffset.UTC);
-        long dau = countDistinctActorsByEventSince("app_open", startOfTodayUtc);
+        OffsetDateTime startOfTodayKst = LocalDate.now(kst).atStartOfDay(kst).toOffsetDateTime();
+        long dau = countDistinctActorsByEventSince("app_open", startOfTodayKst);
         long wau = countDistinctActorsByEventSince("app_open", to.minusDays(7));
         long mau = countDistinctActorsByEventSince("app_open", to.minusDays(30));
 
@@ -210,7 +213,7 @@ public class AnalyticsService {
 
         List<AdminDailyAnalyticsDto> daily = jdbcTemplate.query("""
                 select
-                    date_trunc('day', occurred_at)::date as day,
+                    date_trunc('day', occurred_at at time zone 'Asia/Seoul')::date as day,
                     count(*) as events,
                     count(distinct coalesce(user_id::text, session_id)) filter (where event_name = 'app_open') as app_open_users,
                     count(distinct coalesce(user_id::text, session_id)) filter (where event_name = 'login_success') as login_users,

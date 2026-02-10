@@ -90,7 +90,7 @@ export default function MyReportPage() {
         <article className="rounded-2xl border border-border bg-card p-4">
           <div className="text-xs text-muted-foreground">최근 기록일</div>
           <div className="mt-1 text-base font-semibold">
-            {report.lastLoggedAt ? new Date(report.lastLoggedAt).toLocaleDateString("ko-KR") : "-"}
+            {report.lastLoggedAt ? new Date(report.lastLoggedAt).toLocaleDateString("ko-KR", { timeZone: "Asia/Seoul" }) : "-"}
           </div>
         </article>
       </section>

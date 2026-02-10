@@ -226,7 +226,7 @@ export default async function AdminAnalyticsPage({ searchParams }: Props) {
                 <tbody>
                   {recentEvents.map((row) => (
                     <tr key={row.eventId} className="border-b border-border/60 align-top">
-                      <td className="py-2 pr-3 whitespace-nowrap">{new Date(row.occurredAt).toLocaleString("ko-KR")}</td>
+                      <td className="py-2 pr-3 whitespace-nowrap">{new Date(row.occurredAt).toLocaleString("ko-KR", { timeZone: "Asia/Seoul" })}</td>
                       <td className="py-2 pr-3 font-medium">{row.eventName}</td>
                       <td className="py-2 pr-3">{row.platform}</td>
                       <td className="py-2 pr-3">{row.userId ?? "-"}</td>

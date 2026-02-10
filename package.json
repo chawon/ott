@@ -11,5 +11,8 @@
     "start": "npm run start --workspace ott",
     "lint": "npm run lint --workspace ott",
     "format": "npm run format --workspace ott"
+  },
+  "devDependencies": {
+    "baseline-browser-mapping": "^2.9.19"
   }
 }

@@ -67,7 +67,7 @@ export default function AppHeader() {
                             "focus:outline-none transition-transform active:scale-95",
                             isRetro ? "border-2 border-black p-1 bg-neutral-100 hover:bg-red-500" : "hover:opacity-80"
                         )}
-                        title={isRetro ? "현대 모드로 돌아가기" : "???"}
+                        title={isRetro ? "현대 모드로 돌아가기" : "레트로 모드로 보기"}
                     >
                         <img 
                             src="/icon.png" 
