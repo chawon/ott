@@ -172,11 +172,11 @@ export default function CommentsPanel({
       isRetro ? "nes-container border-4 border-black p-6" : "rounded-2xl border border-border bg-card p-6 shadow-sm"
     )}>
       <div>
-        <div className={cn("text-base font-semibold", isRetro && "uppercase text-lg")}>
-          {isRetro ? "수다 떨기" : "함께 기록"}
+        <div className={cn("text-base font-semibold", isRetro && "text-lg")}>
+          {isRetro ? "수다판" : "함께 기록"}
         </div>
         <div className="text-sm text-muted-foreground">
-          {discussion ? (isRetro ? "이 비디오에 대해 수다 떨기" : "노트를 남기면 같이 기록으로 쌓여요.") : (isRetro ? "아직 기록이 없습니다. 첫 번째 기록자가 되어보세요!" : "아직 같이 기록이 없어요. 댓글을 남기면 생성돼요.")}
+          {discussion ? (isRetro ? "이 작품 수다판에 한 줄 남겨보세요." : "노트를 남기면 같이 기록으로 쌓여요.") : (isRetro ? "아직 수다판 기록이 없어요. 첫 기록자가 되어보세요!" : "아직 같이 기록이 없어요. 댓글을 남기면 생성돼요.")}
         </div>
       </div>
 
@@ -196,7 +196,7 @@ export default function CommentsPanel({
         ) : (
           <>
             <div className="flex items-center justify-between text-xs text-muted-foreground mb-4 border-b border-border pb-2">
-              <span className={cn(isRetro && "font-bold uppercase")}>{comments.length} {isRetro ? "개의 수다" : "개의 이야기들"}</span>
+              <span className={cn(isRetro && "font-bold")}>{comments.length} {isRetro ? "개의 수다" : "개의 이야기들"}</span>
               <div className="flex items-center gap-2">
                 <span>정렬</span>
                 <select
@@ -225,7 +225,7 @@ export default function CommentsPanel({
                   )}
                 >
                   <div className="flex items-center justify-between text-xs text-muted-foreground mb-2">
-                    <span className={cn("font-semibold text-foreground", isRetro && "uppercase text-black")}>
+                    <span className={cn("font-semibold text-foreground", isRetro && "text-black")}>
                       {c.authorName}
                       {isMine ? (
                         isRetro 
@@ -263,7 +263,7 @@ export default function CommentsPanel({
         isRetro ? "border-t-4 border-black" : "border-t border-border"
       )}>
         <div className="space-y-2">
-          <label className={cn("text-xs font-bold block", isRetro ? "uppercase text-black" : "text-muted-foreground")}>
+          <label className={cn("text-sm font-bold block", isRetro ? "text-black" : "text-muted-foreground")}>
             {isRetro ? "하하호호" : "의견 남기기"}
           </label>
           <textarea
@@ -284,7 +284,7 @@ export default function CommentsPanel({
           "space-y-2",
           isRetro ? "border-2 border-dashed border-neutral-400 p-2 bg-[#f0f0f0]" : "rounded-xl border border-border bg-muted/60 p-3"
         )}>
-          <div className={cn("text-xs", isRetro ? "font-bold uppercase text-black" : "text-muted-foreground")}>
+          <div className={cn("text-sm", isRetro ? "font-bold text-black" : "text-muted-foreground")}>
             {isRetro ? "다른 비디오" : "작품 멘션"}
           </div>
           <TitleSearchBox
@@ -336,7 +336,7 @@ export default function CommentsPanel({
               : "rounded-2xl bg-neutral-900 text-white hover:bg-neutral-800 active:scale-[0.98] disabled:opacity-40"
           )}
         >
-          {posting ? (isRetro ? "SAVING..." : "등록 중...") : (isRetro ? "나의 수다 올리기" : "댓글 등록")}
+          {posting ? "등록 중..." : (isRetro ? "나의 수다 올리기" : "댓글 등록")}
         </button>
       </div>
     </section>

@@ -162,19 +162,40 @@
 .retro body {
   background-color: var(--background);
   color: var(--foreground);
-  font-family: 'Galmuri11', 'Galmuri9', 'Galmuri7', 'DungGeunMo', 'Dotum', 'Gulim', monospace !important;
+  font-family: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, system-ui, Roboto, "Helvetica Neue", "Segoe UI", "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", sans-serif !important;
+  line-height: 1.5;
+  letter-spacing: -0.01em;
 }
 
 .retro * {
-  font-family: 'Galmuri11', 'Galmuri9', 'Galmuri7', 'DungGeunMo', 'Dotum', 'Gulim', monospace !important;
   border-radius: 0 !important;
+}
+
+.retro img {
   image-rendering: pixelated;
+}
+
+.retro h1,
+.retro h2,
+.retro h3,
+.retro h4,
+.retro h5,
+.retro h6,
+.retro .nes-btn {
+  font-family: 'Galmuri11', 'Galmuri9', 'Galmuri7', 'DungGeunMo', 'Dotum', 'Gulim', monospace !important;
 }
 
 .retro input, .retro select, .retro textarea, .retro button {
   border-width: 4px !important;
   border-style: solid !important;
   border-color: var(--nes-black) !important;
+}
+
+.retro input, .retro select, .retro textarea {
+  font-family: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, system-ui, Roboto, "Helvetica Neue", "Segoe UI", "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", sans-serif !important;
+  font-size: 16px;
+  line-height: 1.5;
+  font-weight: 600;
 }
 
 .retro select {

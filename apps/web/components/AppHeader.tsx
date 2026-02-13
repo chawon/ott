@@ -17,7 +17,7 @@ function NavLink({ href, label, icon: Icon }: { href: string; label: string; ico
             <Link
                 href={href}
                 className={cn(
-                    "w-full px-2 py-2 text-xs font-bold border-2 border-transparent hover:border-black transition-none sm:w-auto sm:px-4 sm:text-sm",
+                    "w-full px-2 py-2 text-sm font-bold border-2 border-transparent hover:border-black transition-none sm:w-auto sm:px-4",
                     active ? "bg-black text-white border-black" : "text-black hover:bg-neutral-200"
                 )}
             >
@@ -100,7 +100,7 @@ export default function AppHeader() {
                 <nav className="grid w-full grid-cols-4 items-center gap-1 sm:w-auto sm:flex sm:flex-nowrap sm:gap-2">
                     <NavLink href="/" label={isRetro ? "날적이" : "기록하기"} icon={PencilLine} />
                     <NavLink href="/timeline" label={isRetro ? "발자취" : "타임라인"} icon={Clock} />
-                    <NavLink href="/public" label={isRetro ? "서로 날적이" : "함께"} icon={MessageCircle} />
+                    <NavLink href="/public" label={isRetro ? "수다판" : "함께"} icon={MessageCircle} />
                     <NavLink href="/account" label={isRetro ? "맞춤" : "설정"} icon={Settings} />
                 </nav>
             </div>

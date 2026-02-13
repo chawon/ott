@@ -50,7 +50,7 @@ export default function AppFooter() {
                 <Link href="/timeline" className="hover:underline">{isRetro ? "발자취" : "타임라인"}</Link>
               </li>
               <li>
-                <Link href="/public" className="hover:underline">{isRetro ? "서로 날적이" : "함께"}</Link>
+                <Link href="/public" className="hover:underline">{isRetro ? "수다판" : "함께"}</Link>
               </li>
             </ul>
           </div>

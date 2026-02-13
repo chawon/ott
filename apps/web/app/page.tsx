@@ -137,7 +137,7 @@ export default function HomePage() {
                         <div className="flex items-center justify-between">
                             <div className="space-y-1">
                                 <h1 className="bg-black inline-block px-3 py-1 text-sm font-bold uppercase tracking-widest text-white shadow-[4px_4px_0px_0px_rgba(0,0,0,0.2)]">
-                                    봤니? 그럼 날적이 해보자~
+                                    {quickType === "book" ? "읽었니? 그럼 날적이 해보자~" : "봤니? 그럼 날적이 해보자~"}
                                 </h1>
                                 <p className="text-[10px] font-bold text-neutral-500 uppercase tracking-tight">
                                     한 번 적어 두면 발자취가 또렷해져요
@@ -219,7 +219,7 @@ export default function HomePage() {
                 <aside className="space-y-6">
                     <section className="space-y-4">
                         <div className="flex items-baseline justify-between border-b-4 border-black pb-2">
-                            <div className="text-lg font-bold uppercase tracking-tighter">실시간 수다</div>
+                            <div className="text-lg font-bold tracking-tighter">수다판</div>
                             <a href="/public" className="text-xs font-bold text-blue-600 hover:bg-blue-600 hover:text-white px-1 uppercase underline underline-offset-4">
                                 전체 보기
                             </a>

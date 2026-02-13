@@ -529,7 +529,7 @@ export default function QuickLogCard({
                     "nes-container !bg-white",
                     isBookMode && "!bg-[#f1fff2] !border-[#2ecc71]"
                 )}>
-                    <div className="absolute -top-4 left-4 bg-white border-2 border-black px-2 text-xs font-bold tracking-widest uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                    <div className="absolute -top-4 left-4 bg-white border-2 border-black px-2 text-xs font-bold tracking-wide shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
                         {contentType === "book" ? "새로운 책" : "새로운 비디오"}
                     </div>
 
@@ -590,7 +590,7 @@ export default function QuickLogCard({
                                                                 ) : null}
                                                             </div>
                                                             <div className="min-w-0 flex-1">
-                                                                <div className="truncate text-lg font-bold text-yellow-400 uppercase">
+                                                                <div className="truncate text-lg font-bold text-yellow-400">
                                                                     {selected.name}
                                                                 </div>
                                                                 <div className="mt-1 text-xs text-neutral-400">
@@ -617,7 +617,7 @@ export default function QuickLogCard({
 
                         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                             <div className="space-y-1">
-                                <label className="text-xs font-bold uppercase flex items-center gap-1"><Clock className="h-3 w-3" /> 상태</label>
+                                <label className="text-sm font-bold flex items-center gap-1"><Clock className="h-3 w-3" /> 상태</label>
                                 <select
                                     value={status}
                                     onChange={(e) => setStatus(e.target.value as Status)}
@@ -632,7 +632,7 @@ export default function QuickLogCard({
                             {selected?.type === "series" ? (
                                 <>
                                     <div className="space-y-1">
-                                        <label className="text-xs font-bold uppercase">시즌</label>
+                                        <label className="text-sm font-bold">시즌</label>
                                         <select
                                             value={selectedSeason}
                                             onChange={(e) => setSelectedSeason(e.target.value ? Number(e.target.value) : "")}
@@ -646,15 +646,15 @@ export default function QuickLogCard({
                                             ))}
                                         </select>
                                         {seasonLoading ? (
-                                            <div className="text-[10px] text-neutral-400">시즌 불러오는 중...</div>
+                                            <div className="text-xs text-neutral-500">시즌 불러오는 중...</div>
                                         ) : null}
                                         {seasonError ? (
-                                            <div className="text-[10px] text-red-500">{seasonError}</div>
+                                            <div className="text-xs text-red-600">{seasonError}</div>
                                         ) : null}
                                     </div>
 
                                     <div className="space-y-1">
-                                        <label className="text-xs font-bold uppercase">에피소드</label>
+                                        <label className="text-sm font-bold">에피소드</label>
                                         <select
                                             value={selectedEpisode}
                                             onChange={(e) => setSelectedEpisode(e.target.value ? Number(e.target.value) : "")}
@@ -669,14 +669,14 @@ export default function QuickLogCard({
                                             ))}
                                         </select>
                                         {episodeLoading ? (
-                                            <div className="text-[10px] text-neutral-400">에피소드 불러오는 중...</div>
+                                            <div className="text-xs text-neutral-500">에피소드 불러오는 중...</div>
                                         ) : null}
                                     </div>
                                 </>
                             ) : null}
 
                             <div className="space-y-1">
-                                <label className="text-xs font-bold uppercase flex items-center gap-1"><Star className="h-3 w-3" /> 평점</label>
+                                <label className="text-sm font-bold flex items-center gap-1"><Star className="h-3 w-3" /> 평점</label>
                                 <select
                                     value={rating === "" ? "" : String(rating)}
                                     onChange={(e) => setRating(e.target.value === "" ? "" : Number(e.target.value))}
@@ -694,7 +694,7 @@ export default function QuickLogCard({
                             </div>
 
                             <div className="space-y-1">
-                                <label className="text-xs font-bold uppercase flex items-center gap-1"><MapPin className="h-3 w-3" /> 장소</label>
+                                <label className="text-sm font-bold flex items-center gap-1"><MapPin className="h-3 w-3" /> 장소</label>
                                 <select
                                     value={place}
                                     onChange={(e) => setPlace(e.target.value as Place)}
@@ -711,7 +711,7 @@ export default function QuickLogCard({
                             </div>
 
                             <div className="space-y-1">
-                                <label className="text-xs font-bold uppercase flex items-center gap-1"><Users className="h-3 w-3" /> 누구와</label>
+                                <label className="text-sm font-bold flex items-center gap-1"><Users className="h-3 w-3" /> 누구와</label>
                                 <select
                                     value={occasion}
                                     onChange={(e) => setOccasion(e.target.value as Occasion)}
@@ -728,7 +728,7 @@ export default function QuickLogCard({
                             </div>
 
                             <div className="sm:col-span-2 space-y-1">
-                                <label className="text-xs font-bold uppercase flex items-center gap-1"><MonitorPlay className="h-3 w-3" /> 플랫폼</label>
+                                <label className="text-sm font-bold flex items-center gap-1"><MonitorPlay className="h-3 w-3" /> 플랫폼</label>
                                 <select
                                     value={ottSelect}
                                     onChange={(e) => {
@@ -774,7 +774,7 @@ export default function QuickLogCard({
                                     type="button"
                                     onClick={() => setUseWatchedAt(!useWatchedAt)}
                                     className={cn(
-                                        "flex items-center gap-2 text-xs font-bold uppercase",
+                                        "flex items-center gap-2 text-sm font-bold",
                                         useWatchedAt ? "text-blue-600" : "text-neutral-500 hover:text-black"
                                     )}
                                 >
@@ -792,7 +792,7 @@ export default function QuickLogCard({
                             </div>
 
                             <div className="sm:col-span-2 space-y-1">
-                                <label className="text-xs font-bold uppercase flex items-center gap-1"><MessageSquare className="h-3 w-3" /> 메모</label>
+                                <label className="text-sm font-bold flex items-center gap-1"><MessageSquare className="h-3 w-3" /> 메모</label>
                                 <textarea
                                     value={note}
                                     onChange={(e) => setNote(e.target.value)}
@@ -807,12 +807,12 @@ export default function QuickLogCard({
                             data-onboarding-target="status-save"
                         >
                             <div className="space-y-1">
-                                <div className="text-[10px] font-bold uppercase text-neutral-700 flex items-center gap-1">
+                                <div className="text-xs font-bold text-neutral-800 flex items-center gap-1">
                                     <Share2 className="h-3 w-3" />
                                     저장 후 함께 하기
                                 </div>
                                 <div className="flex flex-wrap items-center gap-4">
-                                    <label className="flex items-center gap-2 text-xs font-bold uppercase whitespace-nowrap">
+                                    <label className="flex items-center gap-2 text-sm font-bold whitespace-nowrap">
                                         <input
                                             type="checkbox"
                                             checked={shareToDiscussion}
@@ -821,7 +821,7 @@ export default function QuickLogCard({
                                         />
                                         함께 하는 기록 남기기
                                     </label>
-                                    <label className="flex items-center gap-2 text-xs font-bold uppercase whitespace-nowrap">
+                                    <label className="flex items-center gap-2 text-sm font-bold whitespace-nowrap">
                                         <input
                                             type="checkbox"
                                             checked={shareCard}
@@ -858,13 +858,13 @@ export default function QuickLogCard({
                 {banner && banner.visible ? (
                     <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[100] w-[90%] max-w-md animate-bounce">
                         <div className="border-4 border-black bg-[#f7d51d] p-4 text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex items-center justify-between gap-4">
-                            <div className="text-xs font-bold uppercase">
+                            <div className="text-sm font-bold">
                                 좋아요! {banner.count}번째 타임라인이 쌓였어요.
                             </div>
                             <Link
                                 href="/timeline"
                                 data-onboarding-target="timeline-confirm"
-                                className="flex-shrink-0 border-2 border-black bg-white px-2 py-1 text-[10px] font-bold uppercase hover:bg-neutral-100"
+                                className="flex-shrink-0 border-2 border-black bg-white px-2 py-1 text-xs font-bold hover:bg-neutral-100"
                             >
                                 타임라인 보기
                             </Link>

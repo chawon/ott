@@ -169,7 +169,7 @@ export default function TitleSearchBox({
                 className={cn(
                     "w-full transition-all outline-none",
                     isRetro 
-                        ? "border-4 border-black bg-white px-4 py-3 text-sm font-bold shadow-[inset_4px_4px_0px_0px_#e0e0e0] focus:ring-4 focus:ring-yellow-400 focus:border-black placeholder:text-neutral-600"
+                        ? "border-4 border-black bg-white px-4 py-3 text-base font-semibold shadow-[inset_4px_4px_0px_0px_#e0e0e0] focus:ring-4 focus:ring-yellow-400 focus:border-black placeholder:text-neutral-600"
                         : "rounded-xl border border-border bg-card px-4 py-3 text-sm text-foreground focus:ring-2 focus:ring-ring/40 focus:border-border placeholder:text-muted-foreground"
                 )}
             />
@@ -246,9 +246,9 @@ export default function TitleSearchBox({
                                                 <div className={cn("truncate text-sm font-bold uppercase", !isRetro && "normal-case")}>
                                                     {d.titleName}
                                                 </div>
-                                                <div className="mt-0.5 text-[10px] font-bold text-muted-foreground">{meta}</div>
-                                                <div className={cn("mt-1 text-[10px] font-bold uppercase", isRetro ? "text-blue-600" : "text-muted-foreground")}>
-                                                    💬 {d.commentCount}
+                                                <div className={cn("mt-0.5", isRetro ? "text-xs font-semibold text-neutral-700" : "text-[10px] font-bold text-muted-foreground")}>{meta}</div>
+                                                <div className={cn("mt-1 text-xs font-semibold", isRetro ? "text-blue-700" : "text-muted-foreground")}>
+                                                    댓글 {d.commentCount}
                                                 </div>
                                             </div>
                                         </button>
@@ -309,11 +309,11 @@ export default function TitleSearchBox({
                                         <div className={cn("truncate text-sm font-bold uppercase", !isRetro && "normal-case")}>
                                             {t.name}
                                         </div>
-                                        <div className="mt-0.5 text-[10px] font-bold text-muted-foreground">
+                                        <div className={cn("mt-0.5", isRetro ? "text-xs font-semibold text-neutral-700" : "text-[10px] font-bold text-muted-foreground")}>
                                             {t.type === "book" ? `책${meta ? ` · ${meta}` : ""}` : meta}
                                         </div>
                                         {detailLine ? (
-                                            <div className="mt-1 line-clamp-1 text-[10px] font-bold text-muted-foreground">
+                                            <div className={cn("mt-1 line-clamp-1", isRetro ? "text-xs text-neutral-700" : "text-[10px] font-bold text-muted-foreground")}>
                                                 {detailLine}
                                             </div>
                                         ) : null}

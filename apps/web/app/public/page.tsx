@@ -40,13 +40,13 @@ export default function PublicDiscussionsPage() {
     })();
   }, []);
 
-  const headerTitle = isRetro ? "서로 날적이" : "함께 기록";
+  const headerTitle = isRetro ? "수다판" : "함께 기록";
   const headerSubtitle = loading 
     ? "불러오는 중…" 
     : err 
       ? err 
       : isRetro 
-        ? "남긴 날적이를 서로 슬쩍 구경하기" 
+        ? "요즘 올라온 기록과 댓글 구경하기" 
         : "공개로 남긴 기록을 둘러보고 영감을 얻어요.";
 
   return (
