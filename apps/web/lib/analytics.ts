@@ -31,6 +31,7 @@ export async function trackEvent(
     | "login_success"
     | "log_create"
     | "share_action"
+    | "retro_mode_toggle"
     | "onboarding_first_log_view"
     | "onboarding_first_log_step_next"
     | "onboarding_first_log_skip"

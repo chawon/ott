@@ -8,6 +8,7 @@ import com.watchlog.api.dto.AdminDailyAnalyticsDto;
 import com.watchlog.api.dto.AdminEventBreakdownDto;
 import com.watchlog.api.dto.AdminEventRowDto;
 import com.watchlog.api.dto.AdminPlatformSummaryDto;
+import com.watchlog.api.dto.AdminWeeklyRetroDto;
 import com.watchlog.api.dto.PersonalAnalyticsReportDto;
 import com.watchlog.api.dto.TrackAnalyticsEventRequest;
 import com.watchlog.api.dto.TrackAnalyticsEventResponse;
@@ -180,6 +181,15 @@ public class AnalyticsService {
         long funnelAppOpenUsers = countDistinctActorsByEventSince("app_open", from);
         long funnelLoginUsers = countDistinctActorsByEventSince("login_success", from);
         long funnelLogCreateUsers = countDistinctActorsByEventSince("log_create", from);
+        long retroAppOpenUsers = queryLong("""
+                select count(distinct coalesce(user_id::text, session_id))
+                from analytics_events
+                where event_name = 'app_open'
+                  and occurred_at >= ?
+                  and coalesce(properties->>'isRetro', 'false') = 'true'
+                  and (user_id is null or user_id::text != ?)
+                """, from, EXCLUDED_ADMIN_ID);
+        long retroToggleUsers = countDistinctActorsByEventSince("retro_mode_toggle", from);
 
         List<AdminPlatformSummaryDto> platforms = jdbcTemplate.query("""
                 select
@@ -222,6 +232,8 @@ public class AnalyticsService {
                     date_trunc('day', occurred_at at time zone 'Asia/Seoul')::date as day,
                     count(*) as events,
                     count(distinct coalesce(user_id::text, session_id)) filter (where event_name = 'app_open') as app_open_users,
+                    count(distinct coalesce(user_id::text, session_id)) filter (where event_name = 'app_open' and coalesce(properties->>'isRetro', 'false') = 'true') as retro_app_open_users,
+                    count(distinct coalesce(user_id::text, session_id)) filter (where event_name = 'retro_mode_toggle') as retro_toggle_users,
                     count(distinct coalesce(user_id::text, session_id)) filter (where event_name = 'login_success') as login_users,
                     count(distinct coalesce(user_id::text, session_id)) filter (where event_name = 'log_create') as log_create_users,
                     count(distinct coalesce(user_id::text, session_id)) filter (where event_name = 'share_action') as share_action_users
@@ -235,9 +247,35 @@ public class AnalyticsService {
                         rs.getObject("day", LocalDate.class),
                         rs.getLong("events"),
                         rs.getLong("app_open_users"),
+                        rs.getLong("retro_app_open_users"),
+                        rs.getLong("retro_toggle_users"),
                         rs.getLong("login_users"),
                         rs.getLong("log_create_users"),
                         rs.getLong("share_action_users")
+                ),
+                from,
+                EXCLUDED_ADMIN_ID
+        );
+
+        List<AdminWeeklyRetroDto> weeklyRetro = jdbcTemplate.query("""
+                select
+                    date_trunc('week', occurred_at at time zone 'Asia/Seoul')::date as week_start,
+                    count(distinct coalesce(user_id::text, session_id)) filter (where event_name = 'app_open') as app_open_users,
+                    count(distinct coalesce(user_id::text, session_id)) filter (where event_name = 'app_open' and coalesce(properties->>'isRetro', 'false') = 'true') as retro_app_open_users,
+                    count(distinct coalesce(user_id::text, session_id)) filter (where event_name = 'retro_mode_toggle') as retro_toggle_users,
+                    count(distinct coalesce(user_id::text, session_id)) filter (where event_name = 'retro_mode_toggle' and coalesce(properties->>'enabled', 'false') = 'true') as retro_toggle_on_users
+                from analytics_events
+                where occurred_at >= ?
+                  and (user_id is null or user_id::text != ?)
+                group by 1
+                order by 1 desc
+                """,
+                (rs, rowNum) -> new AdminWeeklyRetroDto(
+                        rs.getObject("week_start", LocalDate.class),
+                        rs.getLong("app_open_users"),
+                        rs.getLong("retro_app_open_users"),
+                        rs.getLong("retro_toggle_users"),
+                        rs.getLong("retro_toggle_on_users")
                 ),
                 from,
                 EXCLUDED_ADMIN_ID
@@ -254,9 +292,12 @@ public class AnalyticsService {
                 funnelAppOpenUsers,
                 funnelLoginUsers,
                 funnelLogCreateUsers,
+                retroAppOpenUsers,
+                retroToggleUsers,
                 platforms,
                 eventBreakdown,
-                daily
+                daily,
+                weeklyRetro
         );
     }
 

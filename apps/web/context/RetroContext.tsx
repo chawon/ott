@@ -1,9 +1,11 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState } from "react";
+import { trackEvent } from "@/lib/analytics";
 
 type RetroContextType = {
   isRetro: boolean;
+  isRetroReady: boolean;
   toggleRetro: () => void;
 };
 
@@ -32,12 +34,13 @@ export function RetroProvider({ children }: { children: React.ReactNode }) {
         document.documentElement.classList.remove("retro");
         localStorage.setItem("retro-mode", "false");
       }
+      void trackEvent("retro_mode_toggle", { enabled: next });
       return next;
     });
   };
 
   return (
-    <RetroContext.Provider value={{ isRetro, toggleRetro }}>
+    <RetroContext.Provider value={{ isRetro, isRetroReady: mounted, toggleRetro }}>
       {children}
     </RetroContext.Provider>
   );

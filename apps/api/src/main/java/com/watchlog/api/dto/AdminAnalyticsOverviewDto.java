@@ -14,7 +14,10 @@ public record AdminAnalyticsOverviewDto(
         long funnelAppOpenUsers,
         long funnelLoginUsers,
         long funnelLogCreateUsers,
+        long retroAppOpenUsers,
+        long retroToggleUsers,
         List<AdminPlatformSummaryDto> platforms,
         List<AdminEventBreakdownDto> eventBreakdown,
-        List<AdminDailyAnalyticsDto> daily
+        List<AdminDailyAnalyticsDto> daily,
+        List<AdminWeeklyRetroDto> weeklyRetro
 ) {}

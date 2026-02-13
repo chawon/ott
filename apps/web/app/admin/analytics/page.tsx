@@ -21,15 +21,26 @@ type AdminOverview = {
   funnelAppOpenUsers: number;
   funnelLoginUsers: number;
   funnelLogCreateUsers: number;
+  retroAppOpenUsers: number;
+  retroToggleUsers: number;
   platforms: Array<{ platform: "web" | "pwa" | "twa"; events: number; activeUsers: number }>;
   eventBreakdown: Array<{ eventName: string; events: number; actors: number }>;
   daily: Array<{
     day: string;
     events: number;
     appOpenUsers: number;
+    retroAppOpenUsers: number;
+    retroToggleUsers: number;
     loginUsers: number;
     logCreateUsers: number;
     shareActionUsers: number;
+  }>;
+  weeklyRetro: Array<{
+    weekStart: string;
+    appOpenUsers: number;
+    retroAppOpenUsers: number;
+    retroToggleUsers: number;
+    retroToggleOnUsers: number;
   }>;
 };
 
@@ -143,6 +154,20 @@ export default async function AdminAnalyticsPage({ searchParams }: Props) {
           </section>
 
           <section className="rounded-2xl border border-border bg-card p-6">
+            <div className="text-sm font-semibold">레트로 모드 사용 (최근 {overview.days}일)</div>
+            <div className="mt-3 grid gap-3 sm:grid-cols-2">
+              <div>
+                <div className="text-xs text-muted-foreground">레트로로 앱 오픈한 사용자</div>
+                <div className="text-xl font-semibold">{overview.retroAppOpenUsers}</div>
+              </div>
+              <div>
+                <div className="text-xs text-muted-foreground">레트로 토글 사용자</div>
+                <div className="text-xl font-semibold">{overview.retroToggleUsers}</div>
+              </div>
+            </div>
+          </section>
+
+          <section className="rounded-2xl border border-border bg-card p-6">
             <div className="text-sm font-semibold">플랫폼별</div>
             <div className="mt-3 space-y-2">
               {overview.platforms.map((p) => (
@@ -181,12 +206,14 @@ export default async function AdminAnalyticsPage({ searchParams }: Props) {
           <section className="rounded-2xl border border-border bg-card p-6">
             <div className="text-sm font-semibold">일자별 상세</div>
             <div className="mt-3 overflow-x-auto">
-              <table className="w-full min-w-[820px] text-sm">
+              <table className="w-full min-w-[980px] text-sm">
                 <thead>
                   <tr className="border-b border-border text-left text-xs text-muted-foreground">
                     <th className="py-2 pr-3">day</th>
                     <th className="py-2 pr-3">events</th>
                     <th className="py-2 pr-3">app_open</th>
+                    <th className="py-2 pr-3">retro_app_open</th>
+                    <th className="py-2 pr-3">retro_toggle</th>
                     <th className="py-2 pr-3">login_success</th>
                     <th className="py-2 pr-3">log_create</th>
                     <th className="py-2 pr-3">share_action</th>
@@ -198,9 +225,40 @@ export default async function AdminAnalyticsPage({ searchParams }: Props) {
                       <td className="py-2 pr-3 font-medium">{d.day}</td>
                       <td className="py-2 pr-3">{d.events}</td>
                       <td className="py-2 pr-3">{d.appOpenUsers}</td>
+                      <td className="py-2 pr-3">{d.retroAppOpenUsers}</td>
+                      <td className="py-2 pr-3">{d.retroToggleUsers}</td>
                       <td className="py-2 pr-3">{d.loginUsers}</td>
                       <td className="py-2 pr-3">{d.logCreateUsers}</td>
                       <td className="py-2 pr-3">{d.shareActionUsers}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section className="rounded-2xl border border-border bg-card p-6">
+            <div className="text-sm font-semibold">주차별 레트로 추이</div>
+            <div className="mt-1 text-xs text-muted-foreground">월요일 시작 기준, 최근 {overview.days}일</div>
+            <div className="mt-3 overflow-x-auto">
+              <table className="w-full min-w-[760px] text-sm">
+                <thead>
+                  <tr className="border-b border-border text-left text-xs text-muted-foreground">
+                    <th className="py-2 pr-3">week_start</th>
+                    <th className="py-2 pr-3">app_open_users</th>
+                    <th className="py-2 pr-3">retro_app_open_users</th>
+                    <th className="py-2 pr-3">retro_toggle_users</th>
+                    <th className="py-2 pr-3">retro_toggle_on_users</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {overview.weeklyRetro.map((w) => (
+                    <tr key={w.weekStart} className="border-b border-border/60">
+                      <td className="py-2 pr-3 font-medium">{w.weekStart}</td>
+                      <td className="py-2 pr-3">{w.appOpenUsers}</td>
+                      <td className="py-2 pr-3">{w.retroAppOpenUsers}</td>
+                      <td className="py-2 pr-3">{w.retroToggleUsers}</td>
+                      <td className="py-2 pr-3">{w.retroToggleOnUsers}</td>
                     </tr>
                   ))}
                 </tbody>
