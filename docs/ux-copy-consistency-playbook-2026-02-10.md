@@ -240,3 +240,22 @@
 
 ### 메모
 - 관련 상세 판단 문서는 `docs/retro-mode-usage-decision-2026-02-13.md`를 기준으로 운영한다.
+
+## 진행 업데이트 (2026-02-14)
+### 완료
+1. 첫 기록 온보딩 기능 제거
+- 오버레이/트리거/연관 이벤트 호출을 모두 제거해 첫 경험 방해 요소를 해소함
+- 파일: `apps/web/app/page.tsx`
+- 파일: `apps/web/components/QuickLogCard.tsx`
+- 파일: `apps/web/components/TitleSearchBox.tsx`
+- 파일: `apps/web/lib/analytics.ts`
+- 파일: `apps/web/components/FirstLogOnboardingOverlay.tsx` (삭제)
+
+2. 기록 시작점 UI 강조
+- 작품 검색 영역을 시작 행동으로 인지되도록 라벨/강조 박스 적용
+- 파일: `apps/web/components/QuickLogCard.tsx`
+
+3. 관리자 통계 용어/노이즈 정리
+- 퍼널 라벨 `로그인 성공` -> `기기 등록 성공`
+- 온보딩 이벤트(`onboarding_first_log_*`)를 관리자 목록/최근 이벤트 기본 노출에서 제외
+- 파일: `apps/web/app/admin/analytics/page.tsx`

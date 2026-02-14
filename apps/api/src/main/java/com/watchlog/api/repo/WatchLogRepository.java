@@ -77,6 +77,17 @@ public interface WatchLogRepository extends JpaRepository<WatchLogEntity, UUID> 
 
     List<WatchLogEntity> findByUserId(UUID userId);
 
+    @Query(value = """
+            select distinct on (w.title_id) w.title_id, w.season_poster_url
+            from watch_logs w
+            where w.title_id in (:titleIds)
+              and w.deleted_at is null
+              and w.season_poster_url is not null
+              and btrim(w.season_poster_url) <> ''
+            order by w.title_id, w.updated_at desc
+            """, nativeQuery = true)
+    List<Object[]> findLatestSeasonPosterUrlsByTitleIds(@Param("titleIds") List<UUID> titleIds);
+
     @Modifying
     @Query(value = "update watch_logs set user_id = cast(:userId as uuid) where user_id is null", nativeQuery = true)
     int assignUserToOrphanLogs(@Param("userId") UUID userId);

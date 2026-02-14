@@ -27,6 +27,15 @@
 - UI
   - 관리자 통계 화면에 레트로 전용 카드/일자표/주차표 추가 완료
 
+## 구현 반영 상태 (2026-02-14)
+- 디바이스 세그먼트 추가 수집/조회
+  - `deviceType`: `mobile | tablet | desktop`
+  - `osFamily`: `ios | android | windows | macos | linux | chromeos | unknown`
+  - `browserFamily`: `chrome | safari | edge | firefox | samsung_internet | in_app | unknown`
+  - `installState`: `browser | pwa_installed | twa`
+- 관리자 통계 화면에 세그먼트 섹션 추가 완료
+- 참고: 기존 온보딩 이벤트는 기능 제거 후 기본 통계 화면에서 제외됨
+
 참고 파일:
 - `apps/web/lib/analytics.ts`
 - `apps/web/context/RetroContext.tsx`

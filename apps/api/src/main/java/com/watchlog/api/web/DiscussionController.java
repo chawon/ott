@@ -30,7 +30,9 @@ public class DiscussionController {
 
     @GetMapping("/{id}")
     public DiscussionListItemDto get(@PathVariable UUID id) {
-        return DiscussionListItemDto.from(discussionService.require(id));
+        var discussion = discussionService.require(id);
+        var posterByTitleId = discussionService.findLatestSeasonPosterUrlByTitleIds(List.of(discussion.getTitle().getId()));
+        return DiscussionListItemDto.from(discussion, posterByTitleId.get(discussion.getTitle().getId()));
     }
 
     @GetMapping("/latest")
@@ -39,15 +41,23 @@ public class DiscussionController {
             @RequestParam(value = "minComments", required = false) Integer minComments,
             @RequestParam(value = "days", required = false) Integer days
     ) {
-        return discussionService.listLatest(limit, minComments, days).stream()
-                .map(DiscussionListItemDto::from)
+        var discussions = discussionService.listLatest(limit, minComments, days);
+        var posterByTitleId = discussionService.findLatestSeasonPosterUrlByTitleIds(
+                discussions.stream().map(d -> d.getTitle().getId()).distinct().toList()
+        );
+        return discussions.stream()
+                .map(d -> DiscussionListItemDto.from(d, posterByTitleId.get(d.getTitle().getId())))
                 .toList();
     }
 
     @GetMapping("/all")
     public List<DiscussionListItemDto> all(@RequestParam(value = "limit", defaultValue = "100") int limit) {
-        return discussionService.listLatest(limit).stream()
-                .map(DiscussionListItemDto::from)
+        var discussions = discussionService.listLatest(limit);
+        var posterByTitleId = discussionService.findLatestSeasonPosterUrlByTitleIds(
+                discussions.stream().map(d -> d.getTitle().getId()).distinct().toList()
+        );
+        return discussions.stream()
+                .map(d -> DiscussionListItemDto.from(d, posterByTitleId.get(d.getTitle().getId())))
                 .toList();
     }
 

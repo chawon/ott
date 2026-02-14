@@ -3,20 +3,25 @@ package com.watchlog.api.service;
 import com.watchlog.api.domain.DiscussionEntity;
 import com.watchlog.api.domain.TitleEntity;
 import com.watchlog.api.repo.DiscussionRepository;
+import com.watchlog.api.repo.WatchLogRepository;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 public class DiscussionService {
 
     private final DiscussionRepository discussionRepository;
+    private final WatchLogRepository watchLogRepository;
 
-    public DiscussionService(DiscussionRepository discussionRepository) {
+    public DiscussionService(DiscussionRepository discussionRepository, WatchLogRepository watchLogRepository) {
         this.discussionRepository = discussionRepository;
+        this.watchLogRepository = watchLogRepository;
     }
 
     @Transactional
@@ -63,5 +68,18 @@ public class DiscussionService {
     public DiscussionEntity lock(UUID id) {
         return discussionRepository.findWithLockById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Discussion not found: " + id));
+    }
+
+    @Transactional(readOnly = true)
+    public Map<UUID, String> findLatestSeasonPosterUrlByTitleIds(List<UUID> titleIds) {
+        if (titleIds == null || titleIds.isEmpty()) return Map.of();
+        var rows = watchLogRepository.findLatestSeasonPosterUrlsByTitleIds(titleIds);
+        return rows.stream()
+                .filter(row -> row.length >= 2 && row[0] instanceof UUID && row[1] instanceof String)
+                .collect(Collectors.toMap(
+                        row -> (UUID) row[0],
+                        row -> (String) row[1],
+                        (a, b) -> a
+                ));
     }
 }
