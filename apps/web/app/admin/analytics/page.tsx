@@ -24,6 +24,10 @@ type AdminOverview = {
   retroAppOpenUsers: number;
   retroToggleUsers: number;
   platforms: Array<{ platform: "web" | "pwa" | "twa"; events: number; activeUsers: number }>;
+  deviceTypes: Array<{ key: string; events: number; activeUsers: number }>;
+  osFamilies: Array<{ key: string; events: number; activeUsers: number }>;
+  browserFamilies: Array<{ key: string; events: number; activeUsers: number }>;
+  installStates: Array<{ key: string; events: number; activeUsers: number }>;
   eventBreakdown: Array<{ eventName: string; events: number; actors: number }>;
   daily: Array<{
     day: string;
@@ -105,6 +109,10 @@ export default async function AdminAnalyticsPage({ searchParams }: Props) {
     loadError = e?.message ?? "통계 API 호출에 실패했습니다.";
   }
 
+  const isOnboardingEvent = (eventName: string) => eventName.startsWith("onboarding_first_log_");
+  const visibleEventBreakdown = overview ? overview.eventBreakdown.filter((item) => !isOnboardingEvent(item.eventName)) : [];
+  const visibleRecentEvents = recentEvents.filter((row) => !isOnboardingEvent(row.eventName));
+
   return (
     <div className="space-y-6">
       <section className="space-y-2">
@@ -143,7 +151,7 @@ export default async function AdminAnalyticsPage({ searchParams }: Props) {
                 <div className="text-xl font-semibold">{overview.funnelAppOpenUsers}</div>
               </div>
               <div>
-                <div className="text-xs text-muted-foreground">로그인 성공</div>
+                <div className="text-xs text-muted-foreground">기기 등록 성공</div>
                 <div className="text-xl font-semibold">{overview.funnelLoginUsers}</div>
               </div>
               <div>
@@ -180,6 +188,56 @@ export default async function AdminAnalyticsPage({ searchParams }: Props) {
           </section>
 
           <section className="rounded-2xl border border-border bg-card p-6">
+            <div className="text-sm font-semibold">디바이스 세그먼트 (app_open 기준)</div>
+            <div className="mt-3 grid gap-4 lg:grid-cols-2">
+              <div className="rounded-xl border border-border p-3">
+                <div className="mb-2 text-xs font-semibold text-muted-foreground">device_type</div>
+                <div className="space-y-1.5 text-sm">
+                  {overview.deviceTypes.map((row) => (
+                    <div key={row.key} className="flex items-center justify-between">
+                      <span className="font-medium">{row.key}</span>
+                      <span className="text-muted-foreground">events {row.events} · active {row.activeUsers}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="rounded-xl border border-border p-3">
+                <div className="mb-2 text-xs font-semibold text-muted-foreground">os_family</div>
+                <div className="space-y-1.5 text-sm">
+                  {overview.osFamilies.map((row) => (
+                    <div key={row.key} className="flex items-center justify-between">
+                      <span className="font-medium">{row.key}</span>
+                      <span className="text-muted-foreground">events {row.events} · active {row.activeUsers}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="rounded-xl border border-border p-3">
+                <div className="mb-2 text-xs font-semibold text-muted-foreground">browser_family</div>
+                <div className="space-y-1.5 text-sm">
+                  {overview.browserFamilies.map((row) => (
+                    <div key={row.key} className="flex items-center justify-between">
+                      <span className="font-medium">{row.key}</span>
+                      <span className="text-muted-foreground">events {row.events} · active {row.activeUsers}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="rounded-xl border border-border p-3">
+                <div className="mb-2 text-xs font-semibold text-muted-foreground">install_state</div>
+                <div className="space-y-1.5 text-sm">
+                  {overview.installStates.map((row) => (
+                    <div key={row.key} className="flex items-center justify-between">
+                      <span className="font-medium">{row.key}</span>
+                      <span className="text-muted-foreground">events {row.events} · active {row.activeUsers}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section className="rounded-2xl border border-border bg-card p-6">
             <div className="text-sm font-semibold">이벤트 종류별 상세</div>
             <div className="mt-3 overflow-x-auto">
               <table className="w-full min-w-[520px] text-sm">
@@ -191,7 +249,7 @@ export default async function AdminAnalyticsPage({ searchParams }: Props) {
                   </tr>
                 </thead>
                 <tbody>
-                  {overview.eventBreakdown.map((item) => (
+                  {visibleEventBreakdown.map((item) => (
                     <tr key={item.eventName} className="border-b border-border/60">
                       <td className="py-2 pr-3 font-medium">{item.eventName}</td>
                       <td className="py-2 pr-3">{item.events}</td>
@@ -282,7 +340,7 @@ export default async function AdminAnalyticsPage({ searchParams }: Props) {
                   </tr>
                 </thead>
                 <tbody>
-                  {recentEvents.map((row) => (
+                  {visibleRecentEvents.map((row) => (
                     <tr key={row.eventId} className="border-b border-border/60 align-top">
                       <td className="py-2 pr-3 whitespace-nowrap">{new Date(row.occurredAt).toLocaleString("ko-KR", { timeZone: "Asia/Seoul" })}</td>
                       <td className="py-2 pr-3 font-medium">{row.eventName}</td>

@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.watchlog.api.domain.WatchLogEntity;
 import com.watchlog.api.dto.AdminAnalyticsOverviewDto;
 import com.watchlog.api.dto.AdminDailyAnalyticsDto;
+import com.watchlog.api.dto.AdminDimensionSummaryDto;
 import com.watchlog.api.dto.AdminEventBreakdownDto;
 import com.watchlog.api.dto.AdminEventRowDto;
 import com.watchlog.api.dto.AdminPlatformSummaryDto;
@@ -206,6 +207,10 @@ public class AnalyticsService {
                 from,
                 EXCLUDED_ADMIN_ID
         );
+        List<AdminDimensionSummaryDto> deviceTypes = queryAppOpenDimensionSummary("deviceType", from);
+        List<AdminDimensionSummaryDto> osFamilies = queryAppOpenDimensionSummary("osFamily", from);
+        List<AdminDimensionSummaryDto> browserFamilies = queryAppOpenDimensionSummary("browserFamily", from);
+        List<AdminDimensionSummaryDto> installStates = queryAppOpenDimensionSummary("installState", from);
 
         List<AdminEventBreakdownDto> eventBreakdown = jdbcTemplate.query("""
                 select
@@ -295,6 +300,10 @@ public class AnalyticsService {
                 retroAppOpenUsers,
                 retroToggleUsers,
                 platforms,
+                deviceTypes,
+                osFamilies,
+                browserFamilies,
+                installStates,
                 eventBreakdown,
                 daily,
                 weeklyRetro
@@ -369,6 +378,30 @@ public class AnalyticsService {
     private long queryLong(String sql, Object... args) {
         Long value = jdbcTemplate.queryForObject(sql, Long.class, args);
         return value == null ? 0L : value;
+    }
+
+    private List<AdminDimensionSummaryDto> queryAppOpenDimensionSummary(String propertyKey, OffsetDateTime from) {
+        return jdbcTemplate.query("""
+                select
+                    coalesce(nullif(properties->>?, ''), 'unknown') as dim_key,
+                    count(*) as events,
+                    count(distinct coalesce(user_id::text, session_id)) as active_users
+                from analytics_events
+                where event_name = 'app_open'
+                  and occurred_at >= ?
+                  and (user_id is null or user_id::text != ?)
+                group by 1
+                order by events desc, dim_key asc
+                """,
+                (rs, rowNum) -> new AdminDimensionSummaryDto(
+                        rs.getString("dim_key"),
+                        rs.getLong("events"),
+                        rs.getLong("active_users")
+                ),
+                propertyKey,
+                from,
+                EXCLUDED_ADMIN_ID
+        );
     }
 
     private void verifyAdminToken(String token) {

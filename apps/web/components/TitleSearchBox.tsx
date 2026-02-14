@@ -147,7 +147,9 @@ export default function TitleSearchBox({
                     setQ(e.target.value);
                     setOpen(true);
                 }}
-                onFocus={() => setOpen(true)}
+                onFocus={() => {
+                    setOpen(true);
+                }}
                 onKeyDown={(e) => {
                     if (e.key === "Escape") {
                         setOpen(false);

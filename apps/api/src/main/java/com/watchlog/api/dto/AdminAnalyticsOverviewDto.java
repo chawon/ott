@@ -17,6 +17,10 @@ public record AdminAnalyticsOverviewDto(
         long retroAppOpenUsers,
         long retroToggleUsers,
         List<AdminPlatformSummaryDto> platforms,
+        List<AdminDimensionSummaryDto> deviceTypes,
+        List<AdminDimensionSummaryDto> osFamilies,
+        List<AdminDimensionSummaryDto> browserFamilies,
+        List<AdminDimensionSummaryDto> installStates,
         List<AdminEventBreakdownDto> eventBreakdown,
         List<AdminDailyAnalyticsDto> daily,
         List<AdminWeeklyRetroDto> weeklyRetro

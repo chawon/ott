@@ -204,3 +204,39 @@
 3. 운영화
 - PR 템플릿 체크리스트 반영
 - 정기 검색 점검(`rg`) 자동화 또는 루틴화
+
+## 진행 업데이트 (2026-02-13)
+### 완료
+1. 레트로 홈 문구 컨텍스트 반영
+- 책 선택 시 헤드라인 분기 적용
+- `봤니? 그럼 날적이 해보자~` / `읽었니? 그럼 날적이 해보자~`
+- 파일: `apps/web/app/page.tsx`
+
+2. 레트로 네이밍 3글자 통일
+- 메뉴/푸터/공개페이지/댓글영역 타이틀을 `수다판`으로 정리
+- 파일: `apps/web/components/AppHeader.tsx`
+- 파일: `apps/web/components/AppFooter.tsx`
+- 파일: `apps/web/app/public/page.tsx`
+- 파일: `apps/web/components/CommentsPanel.tsx`
+- 파일: `apps/web/app/page.tsx`
+
+3. 레트로 한글 가독성 개선
+- 전역 픽셀폰트 강제(`.retro *`) 제거
+- 본문/입력은 가독성 폰트(Pretendard/Noto Sans KR fallback) 사용
+- 레트로 감성은 제목/버튼 중심으로 유지
+- 파일: `apps/web/app/globals.css`
+- 파일: `apps/web/components/QuickLogCard.tsx`
+- 파일: `apps/web/components/TitleSearchBox.tsx`
+
+4. 레트로 지표 수집 연계
+- `app_open`에 `isRetro` 포함
+- `retro_mode_toggle` 이벤트 추가
+- 관리자 통계에서 일자/주차 단위 레트로 추이 조회 가능
+- 파일: `apps/web/lib/analytics.ts`
+- 파일: `apps/web/context/RetroContext.tsx`
+- 파일: `apps/web/components/SyncWorker.tsx`
+- 파일: `apps/api/src/main/java/com/watchlog/api/service/AnalyticsService.java`
+- 파일: `apps/web/app/admin/analytics/page.tsx`
+
+### 메모
+- 관련 상세 판단 문서는 `docs/retro-mode-usage-decision-2026-02-13.md`를 기준으로 운영한다.

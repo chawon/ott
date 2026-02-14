@@ -138,12 +138,10 @@ function bookMeta(item: Pick<TitleSearchItem, "author" | "publisher" | "year">) 
 export default function QuickLogCard({
                                          onCreated,
                                          onContentTypeChange,
-                                         onContentTypePicked,
                                          initialContentType = "video",
                                      }: {
     onCreated: (log: WatchLog, options?: { shareCard: boolean }) => void;
     onContentTypeChange?: (type: "video" | "book") => void;
-    onContentTypePicked?: (type: "video" | "book") => void;
     initialContentType?: "video" | "book";
 }) {
     const { isRetro } = useRetro();
@@ -539,7 +537,6 @@ export default function QuickLogCard({
                                 type="button"
                                 onClick={() => {
                                     setContentType("video");
-                                    onContentTypePicked?.("video");
                                 }}
                                 className={cn(
                                     "nes-btn !px-3 !py-1 text-xs",
@@ -553,7 +550,6 @@ export default function QuickLogCard({
                                 type="button"
                                 onClick={() => {
                                     setContentType("book");
-                                    onContentTypePicked?.("book");
                                 }}
                                 className={cn(
                                     "nes-btn !px-3 !py-1 text-xs",
@@ -565,7 +561,11 @@ export default function QuickLogCard({
                             </button>
                         </div>
 
-                        <div data-onboarding-target="title-search">
+                        <div
+                            data-onboarding-target="title-search"
+                            className="rounded-md border-4 border-black bg-yellow-100 p-2 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"
+                        >
+                            <div className="mb-1 text-sm font-bold text-black">여기부터 시작: 작품 검색</div>
                             <TitleSearchBox
                                 key={contentType}
                                 onSelect={(item) => setSelected(item)}
@@ -886,7 +886,6 @@ export default function QuickLogCard({
                         type="button"
                         onClick={() => {
                             setContentType("video");
-                            onContentTypePicked?.("video");
                         }}
                         className={cn(
                             "rounded-full px-4 py-1.5 text-xs font-semibold transition-all",
@@ -900,7 +899,6 @@ export default function QuickLogCard({
                         type="button"
                         onClick={() => {
                             setContentType("book");
-                            onContentTypePicked?.("book");
                         }}
                         className={cn(
                             "rounded-full px-4 py-1.5 text-xs font-semibold transition-all",
@@ -912,7 +910,14 @@ export default function QuickLogCard({
                     </button>
                 </div>
 
-                <div data-onboarding-target="title-search">
+                <div
+                    data-onboarding-target="title-search"
+                    className="rounded-xl border border-blue-200 bg-blue-50/70 p-3 ring-2 ring-blue-100 shadow-sm"
+                >
+                    <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-blue-700">
+                        <ArrowRight className="h-4 w-4" />
+                        먼저 작품을 검색해 보세요
+                    </div>
                     <TitleSearchBox
                         key={contentType}
                         onSelect={(item) => setSelected(item)}
