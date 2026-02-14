@@ -3,7 +3,7 @@ import type { MetadataRoute } from "next";
 export default function sitemap(): MetadataRoute.Sitemap {
   const baseUrl = "https://ott.preview.pe.kr"; // 실제 운영 URL
 
-  const routes = ["", "/timeline", "/public", "/account", "/about", "/faq"].map(
+  const routes = ["", "/timeline", "/public", "/account", "/about", "/faq", "/privacy"].map(
     (route) => ({
       url: `${baseUrl}${route}`,
       lastModified: new Date(),

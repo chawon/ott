@@ -72,6 +72,9 @@ export default function AppFooter() {
               <li>
                 <Link href="/faq" className="hover:underline">{isRetro ? "물음방" : "자주 묻는 질문"}</Link>
               </li>
+              <li>
+                <Link href="/privacy" className="hover:underline">{isRetro ? "개인정보" : "개인정보처리방침"}</Link>
+              </li>
             </ul>
           </div>
 
