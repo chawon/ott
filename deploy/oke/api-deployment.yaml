@@ -18,7 +18,7 @@ spec:
         - name: ocir-pull-secret
       containers:
         - name: api
-          image: yny.ocir.io/axvqyylkrvmi/ott-api:9d3a619072ea9d533a292441d8f07cd8d5a40e60
+          image: yny.ocir.io/axvqyylkrvmi/ott-api:e4237f5eb9ce5ae68345c3637a90d6c5e2402e86
           ports:
             - containerPort: 8080
           envFrom:
