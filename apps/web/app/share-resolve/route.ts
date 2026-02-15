@@ -45,6 +45,14 @@ function extractTitleFromHtml(html: string): string | null {
   return null;
 }
 
+function withWebOnly(url: URL): URL {
+  const next = new URL(url.toString());
+  if (!next.searchParams.has("$web_only")) {
+    next.searchParams.set("$web_only", "true");
+  }
+  return next;
+}
+
 export async function GET(req: NextRequest) {
   const rawUrl = req.nextUrl.searchParams.get("url")?.trim();
   if (!rawUrl) {
@@ -66,14 +74,20 @@ export async function GET(req: NextRequest) {
   }
 
   try {
+    const requestHeaders = {
+      "user-agent":
+        "Mozilla/5.0 (Linux; Android 14; Pixel 8 Pro) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Mobile Safari/537.36",
+      accept: "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+      "accept-language": "ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7",
+      "cache-control": "no-cache",
+      pragma: "no-cache",
+      "upgrade-insecure-requests": "1",
+    };
+
     const res = await fetch(parsed.toString(), {
       method: "GET",
       redirect: "follow",
-      headers: {
-        "user-agent":
-          "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Mobile Safari/537.36",
-        accept: "text/html,application/xhtml+xml",
-      },
+      headers: requestHeaders,
       cache: "no-store",
     });
 
@@ -87,7 +101,24 @@ export async function GET(req: NextRequest) {
     }
 
     const html = await res.text();
-    const title = extractTitleFromHtml(html);
+    let title = extractTitleFromHtml(html);
+
+    // Branch app.link 계열은 웹 폴백 파라미터 재시도로 제목 추출률 개선
+    if (!title && parsed.hostname.toLowerCase().endsWith("app.link")) {
+      const retryUrl = withWebOnly(parsed);
+      const retry = await fetch(retryUrl.toString(), {
+        method: "GET",
+        redirect: "follow",
+        headers: requestHeaders,
+        cache: "no-store",
+      });
+      if (retry.ok && (retry.headers.get("content-type") ?? "").toLowerCase().includes("text/html")) {
+        const retryHtml = await retry.text();
+        title = extractTitleFromHtml(retryHtml);
+        return NextResponse.json({ title, resolvedUrl: retry.url, status: retry.status });
+      }
+    }
+
     return NextResponse.json({ title, resolvedUrl: res.url, status: res.status });
   } catch {
     return NextResponse.json({ title: null, resolvedUrl: null, status: 500 });

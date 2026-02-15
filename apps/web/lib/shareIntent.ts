@@ -78,6 +78,23 @@ export function inferShareIntentPlatform(sharedText?: string | null, sharedSubje
   return null;
 }
 
+export function sanitizeResolvedTitle(rawTitle?: string | null): string | null {
+  const source = (rawTitle ?? "").trim();
+  if (!source) return null;
+
+  const cleaned = source
+    // 플랫폼 꼬리표 제거
+    .replace(/\s*[|｜]\s*(TVING|티빙|쿠팡플레이|COUPANG PLAY|NETFLIX|DISNEY\+?|APPLE TV|PRIME VIDEO)\s*$/i, "")
+    // 회차 표기 제거 (예: 1화, 12회, EP 3, E03)
+    .replace(/\s*(\d{1,3}\s*(화|회)|EP?\s*\d{1,3}|E\d{1,3})\s*$/i, "")
+    // 시즌 꼬리표 제거 (검색 정확도 향상 목적)
+    .replace(/\s*(시즌|season)\s*\d{1,2}\s*$/i, "")
+    .replace(/[ ]{2,}/g, " ")
+    .trim();
+
+  return cleaned || null;
+}
+
 function pickQuotedTitle(text: string): string | null {
   const quotePatterns = [
     /"([^"\n]{1,80})"/,

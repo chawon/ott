@@ -9,7 +9,12 @@ import ShareBottomSheet from "@/components/ShareBottomSheet";
 import { api } from "@/lib/api";
 import DiscussionList from "@/components/DiscussionList";
 import { listLogsLocal, upsertLogsLocal } from "@/lib/localStore";
-import { extractShareIntentUrls, inferShareIntentPlatform, parseShareIntentText } from "@/lib/shareIntent";
+import {
+    extractShareIntentUrls,
+    inferShareIntentPlatform,
+    parseShareIntentText,
+    sanitizeResolvedTitle,
+} from "@/lib/shareIntent";
 import type { DiscussionListItem, WatchLog } from "@/lib/types";
 import { useRetro } from "@/context/RetroContext";
 
@@ -56,7 +61,7 @@ export default function HomePage() {
                 });
                 if (!r.ok) return;
                 const data = (await r.json()) as { title?: string | null };
-                const title = data.title?.trim();
+                const title = sanitizeResolvedTitle(data.title);
                 if (!title || cancelled) return;
                 setSharedQuery(title.slice(0, 160));
                 setSharedContentType("video");
