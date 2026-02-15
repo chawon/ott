@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { MessageCircle, PencilLine, NotebookPen } from "lucide-react";
+import Link from "next/link";
 import QuickLogCard from "@/components/QuickLogCard";
 import LogCard from "@/components/LogCard";
 import ShareBottomSheet from "@/components/ShareBottomSheet";
@@ -157,9 +158,9 @@ export default function HomePage() {
                     <section className="space-y-4">
                         <div className="flex items-baseline justify-between border-b-4 border-black pb-2">
                             <div className="text-xl font-bold uppercase tracking-tighter">나의 발자취</div>
-                            <a href="/timeline" className="text-xs font-bold text-blue-600 hover:bg-blue-600 hover:text-white px-1 uppercase underline underline-offset-4">
+                            <Link href="/timeline" className="text-xs font-bold text-blue-600 hover:bg-blue-600 hover:text-white px-1 uppercase underline underline-offset-4">
                                 전체 보기
-                            </a>
+                            </Link>
                         </div>
 
                         {loading && logs.length === 0 ? (
@@ -186,9 +187,9 @@ export default function HomePage() {
                     <section className="space-y-4">
                         <div className="flex items-baseline justify-between border-b-4 border-black pb-2">
                             <div className="text-lg font-bold tracking-tighter">수다판</div>
-                            <a href="/public" className="text-xs font-bold text-blue-600 hover:bg-blue-600 hover:text-white px-1 uppercase underline underline-offset-4">
+                            <Link href="/public" className="text-xs font-bold text-blue-600 hover:bg-blue-600 hover:text-white px-1 uppercase underline underline-offset-4">
                                 전체 보기
-                            </a>
+                            </Link>
                         </div>
                         <DiscussionList items={discussions} />
                     </section>
@@ -256,9 +257,9 @@ export default function HomePage() {
                             <NotebookPen className="h-4 w-4" />
                             나의 기록
                         </div>
-                        <a href="/timeline" className="text-sm text-neutral-700 hover:underline">
+                        <Link href="/timeline" className="text-sm text-neutral-700 hover:underline">
                             전체 보기
-                        </a>
+                        </Link>
                     </div>
 
                     {loading && logs.length === 0 ? (
@@ -287,9 +288,9 @@ export default function HomePage() {
                         <MessageCircle className="h-4 w-4" />
                         요즘 함께 하는 기록들
                     </div>
-                    <a href="/public" className="text-sm text-neutral-700 hover:underline">
+                    <Link href="/public" className="text-sm text-neutral-700 hover:underline">
                         전체 보기
-                    </a>
+                    </Link>
                 </div>
                 <DiscussionList items={discussions} />
             </aside>

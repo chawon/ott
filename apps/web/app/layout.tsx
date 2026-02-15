@@ -38,8 +38,29 @@ export const viewport: Viewport = {
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+    const themeInitScript = `
+(() => {
+  try {
+    const root = document.documentElement;
+    const retro = localStorage.getItem("retro-mode") === "true";
+    if (retro) {
+      root.classList.add("retro");
+      root.classList.remove("dark");
+      return;
+    }
+    root.classList.remove("retro");
+    const mode = localStorage.getItem("theme-mode") || "system";
+    const prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+    const isDark = mode === "dark" || (mode === "system" && prefersDark);
+    root.classList.toggle("dark", isDark);
+  } catch (_) {}
+})();
+`;
     return (
-        <html lang="ko">
+        <html lang="ko" suppressHydrationWarning>
+        <head>
+            <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
+        </head>
         <body className="min-h-screen bg-background text-foreground font-sans antialiased transition-colors duration-300">
         <RetroProvider>
             <ThemeProvider>

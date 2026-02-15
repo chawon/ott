@@ -54,7 +54,7 @@ export default function AppHeader() {
 
     return (
         <header className={cn(
-            "sticky top-0 z-50 transition-all duration-300",
+            "sticky top-0 z-50 transition-colors duration-200",
             isRetro 
                 ? "border-b-4 border-black bg-white" 
                 : "border-b border-border bg-card/80 dark:bg-card/90 backdrop-blur-md"
