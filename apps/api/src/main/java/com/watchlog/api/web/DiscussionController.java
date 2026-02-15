@@ -31,8 +31,9 @@ public class DiscussionController {
     @GetMapping("/{id}")
     public DiscussionListItemDto get(@PathVariable UUID id) {
         var discussion = discussionService.require(id);
-        var posterByTitleId = discussionService.findLatestSeasonPosterUrlByTitleIds(List.of(discussion.getTitle().getId()));
-        return DiscussionListItemDto.from(discussion, posterByTitleId.get(discussion.getTitle().getId()));
+        var seasonMetaByTitleId = discussionService.findLatestSeasonMetaByTitleIds(List.of(discussion.getTitle().getId()));
+        var meta = seasonMetaByTitleId.get(discussion.getTitle().getId());
+        return DiscussionListItemDto.from(discussion, meta == null ? null : meta.posterUrl(), meta == null ? null : meta.seasonYear());
     }
 
     @GetMapping("/latest")
@@ -42,22 +43,28 @@ public class DiscussionController {
             @RequestParam(value = "days", required = false) Integer days
     ) {
         var discussions = discussionService.listLatest(limit, minComments, days);
-        var posterByTitleId = discussionService.findLatestSeasonPosterUrlByTitleIds(
+        var seasonMetaByTitleId = discussionService.findLatestSeasonMetaByTitleIds(
                 discussions.stream().map(d -> d.getTitle().getId()).distinct().toList()
         );
         return discussions.stream()
-                .map(d -> DiscussionListItemDto.from(d, posterByTitleId.get(d.getTitle().getId())))
+                .map(d -> {
+                    var meta = seasonMetaByTitleId.get(d.getTitle().getId());
+                    return DiscussionListItemDto.from(d, meta == null ? null : meta.posterUrl(), meta == null ? null : meta.seasonYear());
+                })
                 .toList();
     }
 
     @GetMapping("/all")
     public List<DiscussionListItemDto> all(@RequestParam(value = "limit", defaultValue = "100") int limit) {
         var discussions = discussionService.listLatest(limit);
-        var posterByTitleId = discussionService.findLatestSeasonPosterUrlByTitleIds(
+        var seasonMetaByTitleId = discussionService.findLatestSeasonMetaByTitleIds(
                 discussions.stream().map(d -> d.getTitle().getId()).distinct().toList()
         );
         return discussions.stream()
-                .map(d -> DiscussionListItemDto.from(d, posterByTitleId.get(d.getTitle().getId())))
+                .map(d -> {
+                    var meta = seasonMetaByTitleId.get(d.getTitle().getId());
+                    return DiscussionListItemDto.from(d, meta == null ? null : meta.posterUrl(), meta == null ? null : meta.seasonYear());
+                })
                 .toList();
     }
 

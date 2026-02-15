@@ -4,6 +4,7 @@ import AppHeader from "@/components/AppHeader";
 import AppFooter from "@/components/AppFooter";
 import PwaInstallBanner from "@/components/PwaInstallBanner";
 import SyncWorker from "@/components/SyncWorker";
+import SwipeNav from "@/components/SwipeNav";
 import { RetroProvider } from "@/context/RetroContext";
 import { ThemeProvider } from "@/context/ThemeContext";
 
@@ -65,6 +66,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <RetroProvider>
             <ThemeProvider>
                 <AppHeader />
+                <SwipeNav />
                 <PwaInstallBanner />
                 <SyncWorker />
                 <main className="mx-auto max-w-5xl px-4 py-8">

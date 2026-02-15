@@ -18,20 +18,25 @@ public record DiscussionListItemDto(
         OffsetDateTime createdAt
 ) {
     public static DiscussionListItemDto from(DiscussionEntity d) {
-        return from(d, null);
+        return from(d, null, null);
     }
 
     public static DiscussionListItemDto from(DiscussionEntity d, String preferredPosterUrl) {
+        return from(d, preferredPosterUrl, null);
+    }
+
+    public static DiscussionListItemDto from(DiscussionEntity d, String preferredPosterUrl, Integer preferredYear) {
         TitleEntity t = d.getTitle();
         String poster = (preferredPosterUrl != null && !preferredPosterUrl.isBlank())
                 ? preferredPosterUrl
                 : t.getPosterUrl();
+        Integer year = preferredYear != null ? preferredYear : t.getYear();
         return new DiscussionListItemDto(
                 d.getId(),
                 t.getId(),
                 t.getName(),
                 t.getType(),
-                t.getYear(),
+                year,
                 poster,
                 d.getCommentSeq(),
                 d.getCreatedAt()

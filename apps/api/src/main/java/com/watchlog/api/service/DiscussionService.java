@@ -15,6 +15,7 @@ import java.util.stream.Collectors;
 
 @Service
 public class DiscussionService {
+    public record SeasonMeta(String posterUrl, Integer seasonYear) {}
 
     private final DiscussionRepository discussionRepository;
     private final WatchLogRepository watchLogRepository;
@@ -71,14 +72,17 @@ public class DiscussionService {
     }
 
     @Transactional(readOnly = true)
-    public Map<UUID, String> findLatestSeasonPosterUrlByTitleIds(List<UUID> titleIds) {
+    public Map<UUID, SeasonMeta> findLatestSeasonMetaByTitleIds(List<UUID> titleIds) {
         if (titleIds == null || titleIds.isEmpty()) return Map.of();
-        var rows = watchLogRepository.findLatestSeasonPosterUrlsByTitleIds(titleIds);
+        var rows = watchLogRepository.findLatestSeasonMetaByTitleIds(titleIds);
         return rows.stream()
-                .filter(row -> row.length >= 2 && row[0] instanceof UUID && row[1] instanceof String)
+                .filter(row -> row.length >= 3 && row[0] instanceof UUID)
                 .collect(Collectors.toMap(
                         row -> (UUID) row[0],
-                        row -> (String) row[1],
+                        row -> new SeasonMeta(
+                                row[1] instanceof String ? (String) row[1] : null,
+                                row[2] instanceof Number ? ((Number) row[2]).intValue() : null
+                        ),
                         (a, b) -> a
                 ));
     }
