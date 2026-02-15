@@ -139,10 +139,12 @@ export default function QuickLogCard({
                                          onCreated,
                                          onContentTypeChange,
                                          initialContentType = "video",
+                                         initialSearchQuery,
                                      }: {
     onCreated: (log: WatchLog, options?: { shareCard: boolean }) => void;
     onContentTypeChange?: (type: "video" | "book") => void;
     initialContentType?: "video" | "book";
+    initialSearchQuery?: string;
 }) {
     const { isRetro } = useRetro();
     const [contentType, setContentType] = useState<"video" | "book">(initialContentType);
@@ -572,6 +574,7 @@ export default function QuickLogCard({
                                 placeholder={isBookMode ? "책 검색 (어린 왕자, 불편한 편의점...)" : "작품 검색 (듄, 더 베어...)"}
                                 showRecentDiscussions
                                 contentType={isBookMode ? "book" : "video"}
+                                initialQuery={initialSearchQuery}
                             />
                         </div>
 
@@ -924,6 +927,7 @@ export default function QuickLogCard({
                         placeholder={isBookMode ? "책 검색 (어린 왕자, 불편한 편의점...)" : "작품 검색 (예: 듄, 더 베어)"}
                         showRecentDiscussions
                         contentType={isBookMode ? "book" : "video"}
+                        initialQuery={initialSearchQuery}
                     />
                 </div>
 

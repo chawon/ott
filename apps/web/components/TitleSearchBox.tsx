@@ -11,11 +11,13 @@ export default function TitleSearchBox({
                                            placeholder = "작품 검색 (예: 듄, 더 베어)",
                                            showRecentDiscussions = true,
                                            contentType = "video",
+                                           initialQuery,
                                        }: {
     onSelect: (item: TitleSearchItem) => void;
     placeholder?: string;
     showRecentDiscussions?: boolean;
     contentType?: "video" | "book";
+    initialQuery?: string;
 }) {
     const { isRetro } = useRetro();
     const [q, setQ] = useState("");
@@ -28,8 +30,18 @@ export default function TitleSearchBox({
     const [recentLoading, setRecentLoading] = useState(false);
     const [recentErr, setRecentErr] = useState<string | null>(null);
     const rootRef = useRef<HTMLDivElement | null>(null);
+    const consumedInitialRef = useRef<string | null>(null);
 
     const query = useMemo(() => q.trim(), [q]);
+
+    useEffect(() => {
+        const next = initialQuery?.trim();
+        if (!next) return;
+        if (consumedInitialRef.current === next) return;
+        consumedInitialRef.current = next;
+        setQ(next);
+        setOpen(true);
+    }, [initialQuery]);
 
     useEffect(() => {
         if (!open) return;

@@ -15,6 +15,7 @@
  */
 package kr.pe.preview.ott.twa;
 
+import android.content.Intent;
 import android.content.pm.ActivityInfo;
 import android.net.Uri;
 import android.os.Build;
@@ -46,8 +47,27 @@ public class LauncherActivity
     protected Uri getLaunchingUrl() {
         // Get the original launch Url.
         Uri uri = super.getLaunchingUrl();
+        Intent intent = getIntent();
+        if (intent == null) return uri;
 
-        
+        String action = intent.getAction();
+        if (Intent.ACTION_SEND.equals(action) || Intent.ACTION_SEND_MULTIPLE.equals(action)) {
+            String sharedText = intent.getStringExtra(Intent.EXTRA_TEXT);
+            String sharedSubject = intent.getStringExtra(Intent.EXTRA_SUBJECT);
+            String sharedMime = intent.getType();
+
+            if (sharedText != null && !sharedText.isBlank()) {
+                Uri.Builder builder = uri.buildUpon();
+                builder.appendQueryParameter("shared_text", sharedText);
+                if (sharedSubject != null && !sharedSubject.isBlank()) {
+                    builder.appendQueryParameter("shared_subject", sharedSubject);
+                }
+                if (sharedMime != null && !sharedMime.isBlank()) {
+                    builder.appendQueryParameter("shared_mime", sharedMime);
+                }
+                return builder.build();
+            }
+        }
 
         return uri;
     }

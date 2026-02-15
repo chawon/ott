@@ -8,6 +8,7 @@ import ShareBottomSheet from "@/components/ShareBottomSheet";
 import { api } from "@/lib/api";
 import DiscussionList from "@/components/DiscussionList";
 import { listLogsLocal, upsertLogsLocal } from "@/lib/localStore";
+import { parseShareIntentText } from "@/lib/shareIntent";
 import type { DiscussionListItem, WatchLog } from "@/lib/types";
 import { useRetro } from "@/context/RetroContext";
 
@@ -20,7 +21,21 @@ export default function HomePage() {
     const [quickType, setQuickType] = useState<"video" | "book">("video");
     const [shareOpen, setShareOpen] = useState(false);
     const [shareLog, setShareLog] = useState<WatchLog | null>(null);
+    const [sharedQuery, setSharedQuery] = useState<string>("");
+    const [sharedContentType, setSharedContentType] = useState<"video" | "book">("video");
     const { isRetro } = useRetro();
+
+    useEffect(() => {
+        if (typeof window === "undefined") return;
+        const params = new URLSearchParams(window.location.search);
+        const rawShared = params.get("shared_text");
+        const rawSubject = params.get("shared_subject");
+        const parsed = parseShareIntentText(rawShared, rawSubject);
+        if (!parsed) return;
+        setSharedQuery(parsed.query);
+        setSharedContentType(parsed.contentType);
+        setQuickOpen(true);
+    }, []);
 
     async function loadDiscussions() {
         try {
@@ -99,7 +114,8 @@ export default function HomePage() {
                                     }
                                 }}
                                 onContentTypeChange={setQuickType}
-                                initialContentType={quickType}
+                                initialContentType={sharedQuery ? sharedContentType : quickType}
+                                initialSearchQuery={sharedQuery}
                             />
                         ) : null}
                     </section>
@@ -194,7 +210,8 @@ export default function HomePage() {
                                 }
                             }}
                             onContentTypeChange={setQuickType}
-                            initialContentType={quickType}
+                            initialContentType={sharedQuery ? sharedContentType : quickType}
+                            initialSearchQuery={sharedQuery}
                         />
                     ) : null}
                 </section>
