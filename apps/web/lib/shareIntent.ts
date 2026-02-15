@@ -3,6 +3,15 @@ export type ShareIntentParseResult = {
   contentType: "video" | "book";
 };
 
+type PlatformLabel =
+  | "넷플릭스"
+  | "디즈니플러스"
+  | "애플티비"
+  | "프라임비디오"
+  | "티빙"
+  | "쿠팡플레이"
+  | "왓챠";
+
 function normalizeText(raw: string): string {
   return raw
     .replace(/[\u200B-\u200D\uFEFF]/g, "")
@@ -19,6 +28,54 @@ function stripUrls(text: string): string {
 
 function extractUrls(text: string): string[] {
   return text.match(/https?:\/\/\S+/gi) ?? [];
+}
+
+export function extractShareIntentUrls(sharedText?: string | null, sharedSubject?: string | null): string[] {
+  const merged = normalizeText([sharedSubject ?? "", sharedText ?? ""].filter(Boolean).join("\n"));
+  if (!merged) return [];
+  return extractUrls(merged);
+}
+
+function inferPlatformFromText(text: string): PlatformLabel | null {
+  const t = text.toLowerCase();
+  if (/(넷플릭스|netflix)/i.test(t)) return "넷플릭스";
+  if (/(디즈니\+|디즈니플러스|disney\+)/i.test(t)) return "디즈니플러스";
+  if (/(apple\s*tv|애플\s*tv|애플티비)/i.test(t)) return "애플티비";
+  if (/(prime video|프라임\s*비디오|프라임비디오)/i.test(t)) return "프라임비디오";
+  if (/(tving|티빙)/i.test(t)) return "티빙";
+  if (/(coupang play|coupangplay|쿠팡플레이)/i.test(t)) return "쿠팡플레이";
+  if (/(watcha|왓챠)/i.test(t)) return "왓챠";
+  return null;
+}
+
+function inferPlatformFromUrl(urlRaw: string): PlatformLabel | null {
+  try {
+    const host = new URL(urlRaw).hostname.toLowerCase();
+    if (host.includes("netflix.com")) return "넷플릭스";
+    if (host.includes("disneyplus.com")) return "디즈니플러스";
+    if (host.includes("apple.com")) return "애플티비";
+    if (host.includes("primevideo.com")) return "프라임비디오";
+    if (host.includes("tving.com")) return "티빙";
+    if (host.includes("coupangplay") || host.includes("app.link")) return "쿠팡플레이";
+    if (host.includes("watcha")) return "왓챠";
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+export function inferShareIntentPlatform(sharedText?: string | null, sharedSubject?: string | null): PlatformLabel | null {
+  const merged = normalizeText([sharedSubject ?? "", sharedText ?? ""].filter(Boolean).join("\n"));
+  if (!merged) return null;
+
+  const byText = inferPlatformFromText(merged);
+  if (byText) return byText;
+
+  for (const u of extractUrls(merged)) {
+    const byUrl = inferPlatformFromUrl(u);
+    if (byUrl) return byUrl;
+  }
+  return null;
 }
 
 function pickQuotedTitle(text: string): string | null {
@@ -56,10 +113,11 @@ function pickSeasonStyledTitle(text: string): string | null {
   ];
   for (const pattern of patterns) {
     const m = text.match(pattern);
-    if (!m?.[1] || !m?.[2]) continue;
+    if (!m?.[1]) continue;
     const title = m[1].trim().replace(/[.!?]+$/g, "");
     if (!title) continue;
-    return `${title} 시즌 ${m[2]}`.slice(0, 160);
+    // 작품 검색 정확도를 위해 시즌 정보는 제외하고 제목만 사용
+    return title.slice(0, 160);
   }
   return null;
 }
@@ -89,7 +147,6 @@ function cleanPromotionalText(text: string): string {
 function pickQueryFromUrl(urlRaw: string): string | null {
   try {
     const u = new URL(urlRaw);
-    const host = u.hostname.toLowerCase();
     const segments = u.pathname.split("/").filter(Boolean);
     if (segments.length === 0) return null;
 
@@ -104,10 +161,6 @@ function pickQueryFromUrl(urlRaw: string): string | null {
     // app.link 등 단축 URL의 opaque token은 검색 품질이 낮아 제외
     const opaqueId = /^[A-Za-z0-9]{8,}$/.test(last);
     if (opaqueId) {
-      // TVING ID 패턴은 예외 허용 (예: E004505261)
-      if (host.includes("tving.com") && /^E\d{6,}$/.test(last)) {
-        return last.slice(0, 160);
-      }
       return null;
     }
 
@@ -136,7 +189,6 @@ export function parseShareIntentText(sharedText?: string | null, sharedSubject?:
   const merged = normalizeText([sharedSubject ?? "", sharedText ?? ""].filter(Boolean).join("\n"));
   if (!merged) return null;
 
-  const lower = merged.toLowerCase();
   const looksBook = /(isbn|책|도서|book|author|저자|출판|교보|알라딘|yes24|리디)/i.test(merged);
   const contentType: "video" | "book" = looksBook ? "book" : "video";
 

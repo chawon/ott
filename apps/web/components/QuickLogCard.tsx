@@ -140,11 +140,13 @@ export default function QuickLogCard({
                                          onContentTypeChange,
                                          initialContentType = "video",
                                          initialSearchQuery,
+                                         initialPlatform,
                                      }: {
     onCreated: (log: WatchLog, options?: { shareCard: boolean }) => void;
     onContentTypeChange?: (type: "video" | "book") => void;
     initialContentType?: "video" | "book";
     initialSearchQuery?: string;
+    initialPlatform?: string;
 }) {
     const { isRetro } = useRetro();
     const [contentType, setContentType] = useState<"video" | "book">(initialContentType);
@@ -271,6 +273,13 @@ export default function QuickLogCard({
         if (ottSelect === OTT_CUSTOM_VALUE) return;
         setOttSelect(resolvePlatformSelect(ott, allOttOptions, platformGroups));
     }, [ott, ottSelect, allOttOptions, platformGroups]);
+
+    useEffect(() => {
+        if (isBookMode) return;
+        const next = initialPlatform?.trim();
+        if (!next) return;
+        setOtt(next);
+    }, [initialPlatform, isBookMode]);
 
     useEffect(() => {
         let cancelled = false;

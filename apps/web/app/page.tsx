@@ -8,7 +8,7 @@ import ShareBottomSheet from "@/components/ShareBottomSheet";
 import { api } from "@/lib/api";
 import DiscussionList from "@/components/DiscussionList";
 import { listLogsLocal, upsertLogsLocal } from "@/lib/localStore";
-import { parseShareIntentText } from "@/lib/shareIntent";
+import { extractShareIntentUrls, inferShareIntentPlatform, parseShareIntentText } from "@/lib/shareIntent";
 import type { DiscussionListItem, WatchLog } from "@/lib/types";
 import { useRetro } from "@/context/RetroContext";
 
@@ -23,18 +23,51 @@ export default function HomePage() {
     const [shareLog, setShareLog] = useState<WatchLog | null>(null);
     const [sharedQuery, setSharedQuery] = useState<string>("");
     const [sharedContentType, setSharedContentType] = useState<"video" | "book">("video");
+    const [sharedPlatform, setSharedPlatform] = useState<string>("");
     const { isRetro } = useRetro();
 
     useEffect(() => {
         if (typeof window === "undefined") return;
-        const params = new URLSearchParams(window.location.search);
-        const rawShared = params.get("shared_text");
-        const rawSubject = params.get("shared_subject");
-        const parsed = parseShareIntentText(rawShared, rawSubject);
-        if (!parsed) return;
-        setSharedQuery(parsed.query);
-        setSharedContentType(parsed.contentType);
-        setQuickOpen(true);
+        let cancelled = false;
+
+        (async () => {
+            const params = new URLSearchParams(window.location.search);
+            const rawShared = params.get("shared_text");
+            const rawSubject = params.get("shared_subject");
+            const platform = inferShareIntentPlatform(rawShared, rawSubject);
+            if (platform && !cancelled) setSharedPlatform(platform);
+            const parsed = parseShareIntentText(rawShared, rawSubject);
+            if (parsed) {
+                if (!cancelled) {
+                    setSharedQuery(parsed.query);
+                    setSharedContentType(parsed.contentType);
+                    setQuickOpen(true);
+                }
+                return;
+            }
+
+            const firstUrl = extractShareIntentUrls(rawShared, rawSubject)[0];
+            if (!firstUrl) return;
+            try {
+                const r = await fetch(`/share-resolve?url=${encodeURIComponent(firstUrl)}`, {
+                    method: "GET",
+                    cache: "no-store",
+                });
+                if (!r.ok) return;
+                const data = (await r.json()) as { title?: string | null };
+                const title = data.title?.trim();
+                if (!title || cancelled) return;
+                setSharedQuery(title.slice(0, 160));
+                setSharedContentType("video");
+                setQuickOpen(true);
+            } catch {
+                // ignore resolver failures
+            }
+        })();
+
+        return () => {
+            cancelled = true;
+        };
     }, []);
 
     async function loadDiscussions() {
@@ -116,6 +149,7 @@ export default function HomePage() {
                                 onContentTypeChange={setQuickType}
                                 initialContentType={sharedQuery ? sharedContentType : quickType}
                                 initialSearchQuery={sharedQuery}
+                                initialPlatform={sharedPlatform}
                             />
                         ) : null}
                     </section>
@@ -212,6 +246,7 @@ export default function HomePage() {
                             onContentTypeChange={setQuickType}
                             initialContentType={sharedQuery ? sharedContentType : quickType}
                             initialSearchQuery={sharedQuery}
+                            initialPlatform={sharedPlatform}
                         />
                     ) : null}
                 </section>

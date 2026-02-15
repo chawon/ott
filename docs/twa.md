@@ -8,6 +8,16 @@
 - GitHub Actions에서 디버그 APK 빌드 성공 및 기기 설치 확인 완료
 - 현재 개발 환경(WSL on ARM Linux)에서는 Android Gradle 로컬 빌드 호환 이슈가 있어, APK/AAB 빌드는 GitHub Actions를 기본 경로로 사용
 
+### 진행 업데이트 (2026-02-15)
+- TWA 공유 인텐트 MVP 반영 완료 (main 머지)
+  - Android `LauncherActivity`에서 공유 텍스트(`EXTRA_TEXT`, `EXTRA_SUBJECT`) 수신
+  - 런치 URL 쿼리(`shared_text`, `shared_subject`)로 웹 앱에 전달
+  - 홈 `작품 검색` 입력창 자동 프리필로 빠른 기록 시작
+- 공유 텍스트 파서(`apps/web/lib/shareIntent.ts`) 추가
+  - 인용부호/플랫폼 문구/URL 혼합 텍스트에서 작품명 우선 추출
+  - 넷플릭스, 디즈니+, 프라임 비디오, 애플 TV, 티빙 URL 패턴 대응
+  - 저신뢰 홍보문구(예: 쿠팡플레이 app.link 단독 공유) 오탐 방지
+
 ## 필수 입력 값
 - 도메인: https://ott.preview.pe.kr
 - 패키지명: kr.pe.preview.ott.twa

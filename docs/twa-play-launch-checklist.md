@@ -64,10 +64,23 @@
   - [ ] 앱 실행/스플래시/스탠드얼론 동작
   - [ ] 로그인/로그아웃
   - [ ] 기록 생성/수정/삭제
-  - [ ] 공유 기능
+  - [ ] 공유 기능 (TWA 공유 인텐트 → 작품 검색 프리필)
   - [ ] 딥링크 진입
 - [ ] 이슈 수정 후 내부 테스트 재배포
 - [ ] 클로즈드 테스트(필요 시) 확장
+
+### 진행 업데이트 (2026-02-15)
+- [x] TWA 공유 인텐트 MVP 구현 완료 (`feat/twa-share-intent-mvp` → `main` 머지)
+  - Android: `ACTION_SEND`, `ACTION_SEND_MULTIPLE` 수신
+  - Web: `shared_text`, `shared_subject` 기반 작품 검색 프리필
+  - 파서 보강: 넷플릭스/디즈니+/프라임/애플TV/티빙 URL 케이스 대응
+  - 오탐 방지: 쿠팡플레이 홍보문구 + 단축 URL(app.link) 저신뢰 입력 제외
+- [ ] GitHub Actions 산출물로 실기기 공유 시나리오 QA
+  - [ ] Netflix 공유
+  - [ ] Disney+ 공유
+  - [ ] Prime Video 공유
+  - [ ] Apple TV 공유
+  - [ ] TVING URL 공유
 
 ## 6) 프로덕션 출시
 - [ ] 프로덕션 트랙에 릴리즈 생성
