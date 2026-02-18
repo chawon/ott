@@ -27,6 +27,7 @@ import android.text.TextUtils;
 public class LauncherActivity
         extends com.google.androidbrowserhelper.trusted.LauncherActivity {
     static final String EXTRA_QUICK_TYPE = "quick_type";
+    static final String QUICK_TYPE_RECORD = "record";
     static final String QUICK_TYPE_VIDEO = "video";
     static final String QUICK_TYPE_BOOK = "book";
     static final String QUICK_TYPE_TIMELINE = "timeline";
@@ -57,6 +58,12 @@ public class LauncherActivity
         if (!TextUtils.isEmpty(quickType)) {
             if (QUICK_TYPE_TIMELINE.equals(quickType)) {
                 return uri.buildUpon().path("/timeline").build();
+            }
+            if (QUICK_TYPE_RECORD.equals(quickType)) {
+                return uri.buildUpon()
+                        .appendQueryParameter("quick", "1")
+                        .appendQueryParameter("quick_focus", "1")
+                        .build();
             }
             if (QUICK_TYPE_VIDEO.equals(quickType) || QUICK_TYPE_BOOK.equals(quickType)) {
                 return uri.buildUpon()

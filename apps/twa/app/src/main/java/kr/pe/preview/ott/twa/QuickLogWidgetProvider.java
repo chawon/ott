@@ -20,14 +20,11 @@ public class QuickLogWidgetProvider extends AppWidgetProvider {
         RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.widget_quick_log);
 
         views.setOnClickPendingIntent(
-                R.id.widget_btn_video,
-                buildPendingIntent(context, appWidgetId, LauncherActivity.QUICK_TYPE_VIDEO, 101));
+                R.id.widget_action_record,
+                buildPendingIntent(context, appWidgetId, LauncherActivity.QUICK_TYPE_RECORD, 101));
         views.setOnClickPendingIntent(
-                R.id.widget_btn_book,
-                buildPendingIntent(context, appWidgetId, LauncherActivity.QUICK_TYPE_BOOK, 202));
-        views.setOnClickPendingIntent(
-                R.id.widget_btn_timeline,
-                buildPendingIntent(context, appWidgetId, LauncherActivity.QUICK_TYPE_TIMELINE, 303));
+                R.id.widget_action_timeline,
+                buildPendingIntent(context, appWidgetId, LauncherActivity.QUICK_TYPE_TIMELINE, 202));
 
         appWidgetManager.updateAppWidget(appWidgetId, views);
     }
