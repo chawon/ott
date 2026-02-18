@@ -141,12 +141,14 @@ export default function QuickLogCard({
                                          initialContentType = "video",
                                          initialSearchQuery,
                                          initialPlatform,
+                                         autoFocusSearch = false,
                                      }: {
     onCreated: (log: WatchLog, options?: { shareCard: boolean }) => void;
     onContentTypeChange?: (type: "video" | "book") => void;
     initialContentType?: "video" | "book";
     initialSearchQuery?: string;
     initialPlatform?: string;
+    autoFocusSearch?: boolean;
 }) {
     const { isRetro } = useRetro();
     const [contentType, setContentType] = useState<"video" | "book">(initialContentType);
@@ -584,6 +586,7 @@ export default function QuickLogCard({
                                 showRecentDiscussions
                                 contentType={isBookMode ? "book" : "video"}
                                 initialQuery={initialSearchQuery}
+                                autoFocus={autoFocusSearch}
                             />
                         </div>
 
@@ -937,6 +940,7 @@ export default function QuickLogCard({
                         showRecentDiscussions
                         contentType={isBookMode ? "book" : "video"}
                         initialQuery={initialSearchQuery}
+                        autoFocus={autoFocusSearch}
                     />
                 </div>
 

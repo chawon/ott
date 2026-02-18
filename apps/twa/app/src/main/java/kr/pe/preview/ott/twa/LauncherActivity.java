@@ -20,14 +20,17 @@ import android.content.pm.ActivityInfo;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.text.TextUtils;
 
 
 
 public class LauncherActivity
         extends com.google.androidbrowserhelper.trusted.LauncherActivity {
-    
+    static final String EXTRA_QUICK_TYPE = "quick_type";
+    static final String QUICK_TYPE_VIDEO = "video";
+    static final String QUICK_TYPE_BOOK = "book";
+    static final String QUICK_TYPE_TIMELINE = "timeline";
 
-    
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -49,6 +52,20 @@ public class LauncherActivity
         Uri uri = super.getLaunchingUrl();
         Intent intent = getIntent();
         if (intent == null) return uri;
+
+        String quickType = intent.getStringExtra(EXTRA_QUICK_TYPE);
+        if (!TextUtils.isEmpty(quickType)) {
+            if (QUICK_TYPE_TIMELINE.equals(quickType)) {
+                return uri.buildUpon().path("/timeline").build();
+            }
+            if (QUICK_TYPE_VIDEO.equals(quickType) || QUICK_TYPE_BOOK.equals(quickType)) {
+                return uri.buildUpon()
+                        .appendQueryParameter("quick", "1")
+                        .appendQueryParameter("quick_type", quickType)
+                        .appendQueryParameter("quick_focus", "1")
+                        .build();
+            }
+        }
 
         String action = intent.getAction();
         if (Intent.ACTION_SEND.equals(action) || Intent.ACTION_SEND_MULTIPLE.equals(action)) {

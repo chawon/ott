@@ -39,4 +39,10 @@
     }]
     
   </string>  
+
+  <string name="widget_quick_log_title">빠른 기록</string>
+  <string name="widget_quick_log_description">영상/책 기록을 바로 시작합니다.</string>
+  <string name="widget_action_video">영상</string>
+  <string name="widget_action_book">책</string>
+  <string name="widget_action_timeline">타임라인</string>
 </resources>

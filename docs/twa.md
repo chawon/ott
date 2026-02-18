@@ -43,6 +43,19 @@
   - 시즌 포스터를 쓰는 항목은 `연도`도 시즌 연도로 응답하도록 API 수정
   - `discussions` 응답에서 제목 연도 대신 최신 시즌 연도 우선 반영
 
+### 진행 업데이트 (2026-02-18)
+- Android 홈 화면 위젯 MVP 추가 (`빠른 기록`)
+  - 위치: `apps/twa/app/src/main/java/kr/pe/preview/ott/twa/QuickLogWidgetProvider.java`
+  - 액션: `영상`, `책`, `타임라인`
+  - 동작: 위젯 버튼 탭 시 TWA 실행 후 웹 딥링크 파라미터 전달
+- TWA 런처 URL 라우팅 확장
+  - `LauncherActivity`에서 `quick_type` 처리
+  - `video/book`은 `/?quick=1&quick_type=...&quick_focus=1`로 진입
+  - `timeline`은 `/timeline`으로 직접 이동
+- 웹 빠른 진입 처리
+  - 홈(`apps/web/app/page.tsx`)에서 `quick/quick_type/quick_focus` 파싱
+  - 빠른 기록 카드 자동 오픈 + 타입 자동 선택 + 검색창 오토포커스
+
 ## 필수 입력 값
 - 도메인: https://ott.preview.pe.kr
 - 패키지명: kr.pe.preview.ott.twa
