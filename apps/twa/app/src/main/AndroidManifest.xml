@@ -178,6 +178,8 @@
 
         <receiver
             android:name=".QuickLogWidgetProvider"
+            android:label="@string/widget_quick_log_title"
+            android:permission="android.permission.BIND_APPWIDGET"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />

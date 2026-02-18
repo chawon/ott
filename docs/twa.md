@@ -46,11 +46,11 @@
 ### 진행 업데이트 (2026-02-18)
 - Android 홈 화면 위젯 MVP 추가 (`빠른 기록`)
   - 위치: `apps/twa/app/src/main/java/kr/pe/preview/ott/twa/QuickLogWidgetProvider.java`
-  - 액션: `영상`, `책`, `타임라인`
+  - 액션: `기록하기`, `타임라인` (1x2 위젯)
   - 동작: 위젯 버튼 탭 시 TWA 실행 후 웹 딥링크 파라미터 전달
 - TWA 런처 URL 라우팅 확장
   - `LauncherActivity`에서 `quick_type` 처리
-  - `video/book`은 `/?quick=1&quick_type=...&quick_focus=1`로 진입
+  - `record`는 `/?quick=1&quick_focus=1`로 진입
   - `timeline`은 `/timeline`으로 직접 이동
 - 웹 빠른 진입 처리
   - 홈(`apps/web/app/page.tsx`)에서 `quick/quick_type/quick_focus` 파싱
