@@ -11,6 +11,31 @@ on:
         description: "Android versionName (e.g. 1.0.0)"
         required: true
         type: string
+      track:
+        description: "Google Play track"
+        required: true
+        default: "internal"
+        type: choice
+        options:
+          - internal
+          - alpha
+          - beta
+          - production
+      release_status:
+        description: "Google Play release status"
+        required: true
+        default: "completed"
+        type: choice
+        options:
+          - completed
+          - inProgress
+          - halted
+          - draft
+      rollout:
+        description: "Staged rollout fraction (0.0 - 1.0, ignored for internal)"
+        required: false
+        default: "1.0"
+        type: string
 
 permissions:
   contents: read
@@ -23,6 +48,8 @@ jobs:
       TWA_KEYSTORE_PASSWORD: ${{ secrets.TWA_KEYSTORE_PASSWORD }}
       TWA_KEY_ALIAS: ${{ secrets.TWA_KEY_ALIAS }}
       TWA_KEY_PASSWORD: ${{ secrets.TWA_KEY_PASSWORD }}
+      GPLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.GPLAY_SERVICE_ACCOUNT_JSON }}
+      PLAY_PACKAGE: kr.pe.preview.ott.twa
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -63,6 +90,14 @@ jobs:
             echo "version_name must not be empty."
             exit 1
           fi
+          if ! [[ "${{ github.event.inputs.rollout }}" =~ ^(0(\.[0-9]+)?|1(\.0+)?)$ ]]; then
+            echo "rollout must be between 0.0 and 1.0."
+            exit 1
+          fi
+          if [[ -z "$GPLAY_SERVICE_ACCOUNT_JSON" ]]; then
+            echo "Missing required secret: GPLAY_SERVICE_ACCOUNT_JSON"
+            exit 1
+          fi
 
       - name: Build release AAB
         working-directory: apps/twa
@@ -70,6 +105,38 @@ jobs:
           ./gradlew bundleRelease --no-daemon \
             -PreleaseVersionCode=${{ github.event.inputs.version_code }} \
             -PreleaseVersionName=${{ github.event.inputs.version_name }}
+
+      - name: Install gplay CLI
+        shell: bash
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/tamtom/play-console-cli/main/install.sh | bash
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Authenticate gplay
+        shell: bash
+        run: |
+          SERVICE_ACCOUNT_PATH="$RUNNER_TEMP/gplay-service-account.json"
+          printf '%s' "$GPLAY_SERVICE_ACCOUNT_JSON" > "$SERVICE_ACCOUNT_PATH"
+          gplay auth login --service-account "$SERVICE_ACCOUNT_PATH" --profile ci --set-default
+          gplay auth doctor
+
+      - name: Deploy to Google Play
+        working-directory: apps/twa
+        shell: bash
+        run: |
+          release_args=(
+            --package "$PLAY_PACKAGE"
+            --track "${{ github.event.inputs.track }}"
+            --status "${{ github.event.inputs.release_status }}"
+            --bundle "app/build/outputs/bundle/release/app-release.aab"
+            --pretty
+          )
+
+          if [[ "${{ github.event.inputs.track }}" != "internal" ]]; then
+            release_args+=(--rollout "${{ github.event.inputs.rollout }}")
+          fi
+
+          gplay release "${release_args[@]}"
 
       - name: Upload AAB artifact
         uses: actions/upload-artifact@v4
