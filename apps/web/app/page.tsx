@@ -30,6 +30,7 @@ export default function HomePage() {
     const [sharedQuery, setSharedQuery] = useState<string>("");
     const [sharedContentType, setSharedContentType] = useState<"video" | "book">("video");
     const [sharedPlatform, setSharedPlatform] = useState<string>("");
+    const [autoFocusSearch, setAutoFocusSearch] = useState(false);
     const { isRetro } = useRetro();
 
     useEffect(() => {
@@ -38,6 +39,22 @@ export default function HomePage() {
 
         (async () => {
             const params = new URLSearchParams(window.location.search);
+            const quickEnabled = params.get("quick") === "1";
+            const quickTypeParam = params.get("quick_type");
+            const quickFocus = params.get("quick_focus") === "1";
+
+            if (quickEnabled) {
+                if (!cancelled) {
+                    setQuickOpen(true);
+                    if (quickTypeParam === "book" || quickTypeParam === "video") {
+                        setQuickType(quickTypeParam);
+                    }
+                    if (quickFocus) {
+                        setAutoFocusSearch(true);
+                    }
+                }
+            }
+
             const rawShared = params.get("shared_text");
             const rawSubject = params.get("shared_subject");
             const platform = inferShareIntentPlatform(rawShared, rawSubject);
@@ -156,6 +173,7 @@ export default function HomePage() {
                                 initialContentType={sharedQuery ? sharedContentType : quickType}
                                 initialSearchQuery={sharedQuery}
                                 initialPlatform={sharedPlatform}
+                                autoFocusSearch={autoFocusSearch}
                             />
                         ) : null}
                     </section>
@@ -253,6 +271,7 @@ export default function HomePage() {
                             initialContentType={sharedQuery ? sharedContentType : quickType}
                             initialSearchQuery={sharedQuery}
                             initialPlatform={sharedPlatform}
+                            autoFocusSearch={autoFocusSearch}
                         />
                     ) : null}
                 </section>

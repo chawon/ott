@@ -12,12 +12,14 @@ export default function TitleSearchBox({
                                            showRecentDiscussions = true,
                                            contentType = "video",
                                            initialQuery,
+                                           autoFocus = false,
                                        }: {
     onSelect: (item: TitleSearchItem) => void;
     placeholder?: string;
     showRecentDiscussions?: boolean;
     contentType?: "video" | "book";
     initialQuery?: string;
+    autoFocus?: boolean;
 }) {
     const { isRetro } = useRetro();
     const [q, setQ] = useState("");
@@ -155,6 +157,7 @@ export default function TitleSearchBox({
         <div ref={rootRef} className="relative">
             <input
                 value={q}
+                autoFocus={autoFocus}
                 onChange={(e) => {
                     setQ(e.target.value);
                     setOpen(true);
