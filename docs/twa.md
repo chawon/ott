@@ -130,3 +130,15 @@ adb install -r apps/twa/app/build/outputs/apk/debug/app-debug.apk
 ## CI (GitHub Actions) 빌드 준비
 - Secrets: `TWA_KEYSTORE_BASE64`, `TWA_KEYSTORE_PASSWORD`, `TWA_KEY_ALIAS`, `TWA_KEY_PASSWORD`
 - Base64 디코딩으로 `apps/twa/android.keystore` 생성 후 `apps/twa/keystore.properties` 작성
+
+### 진행 업데이트 (2026-02-18)
+- TWA 릴리즈 워크플로우에 Google Play 자동 배포 추가
+  - 파일: `.github/workflows/twa-release.yml`
+  - 방식: `gplay release` (AAB 빌드 후 내부/알파/베타/프로덕션 트랙 배포 가능)
+  - 입력값: `version_code`, `version_name`, `track`, `release_status`, `rollout`
+- Play 배포용 GitHub Secret 추가
+  - `GPLAY_SERVICE_ACCOUNT_JSON` (서비스 계정 키 JSON 본문)
+- 실행 검증 완료
+  - GitHub Actions Run: `22127449914`
+  - 입력: `version_code=4`, `version_name=1.0.0`, `track=internal`
+  - 결과: `Deploy to Google Play` 단계 포함 성공

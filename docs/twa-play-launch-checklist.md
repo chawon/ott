@@ -30,9 +30,20 @@
     - `0E:25:31:CD:8B:18:6B:F3:5D:7C:10:13:7B:AC:FA:D0:97:42:52:A5:13:0E:43:E6:3C:5F:4B:04:88:66:56:66`
 
 ## 2) 빌드/아티팩트 준비
-- [ ] GitHub Actions `Build TWA Release AAB` 실행
+- [x] GitHub Actions `Build TWA Release AAB` 실행
 - [ ] 결과물 `app-release.aab` 다운로드
 - [ ] AAB 파일명에 버전 식별 정보 추가 보관 (예: 날짜/릴리즈 태그)
+
+### 진행 업데이트 (2026-02-18)
+- [x] GitHub Actions에 Google Play 배포 자동화 반영 (`gplay release`)
+  - 워크플로우: `.github/workflows/twa-release.yml`
+  - 신규 입력값: `track`, `release_status`, `rollout`
+  - 신규 시크릿: `GPLAY_SERVICE_ACCOUNT_JSON` (서비스 계정 JSON 본문)
+  - 처리 단계: AAB 빌드 → gplay 설치 → 인증 → Play 트랙 배포
+- [x] 배포 자동화 워크플로우 실행 성공
+  - Run: `22127449914` (workflow_dispatch, main)
+  - 입력값: `version_code=4`, `version_name=1.0.0`, `track=internal`
+  - 결과: `Deploy to Google Play` 단계 포함 전체 성공
 
 ## 3) Play Console 앱 설정
 - [ ] Play Console에서 앱 생성 (패키지명 일치 확인)
@@ -58,7 +69,7 @@
 - [ ] 최종 카피 리뷰 후 게시용 확정
 
 ## 5) 테스트 트랙 배포 (권장 순서)
-- [ ] 내부 테스트 트랙에 AAB 업로드
+- [x] 내부 테스트 트랙에 AAB 업로드
 - [ ] 테스터 설치 확인 (Play를 통한 설치)
 - [ ] 핵심 시나리오 점검
   - [ ] 앱 실행/스플래시/스탠드얼론 동작
@@ -68,6 +79,13 @@
   - [ ] 딥링크 진입
 - [ ] 이슈 수정 후 내부 테스트 재배포
 - [ ] 클로즈드 테스트(필요 시) 확장
+
+### 진행 업데이트 (2026-02-18, 내부 테스트 배포)
+- [x] 내부 테스트 트랙 릴리즈 반영 확인
+  - 트랙: `internal`
+  - 상태: `completed`
+  - 버전: `1.0.0` (`versionCode=4`)
+- [x] Play Console에서 비공개 출시 적용 완료
 
 ### 진행 업데이트 (2026-02-15)
 - [x] TWA 공유 인텐트 MVP 구현 완료 (`feat/twa-share-intent-mvp` → `main` 머지)
