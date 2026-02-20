@@ -2,7 +2,6 @@
 
 import { useEffect } from "react";
 import { usePathname } from "next/navigation";
-import { ensureAuth } from "@/lib/auth";
 import { syncOutbox } from "@/lib/sync";
 import { trackEvent } from "@/lib/analytics";
 import { useRetro } from "@/context/RetroContext";
@@ -26,7 +25,6 @@ export default function SyncWorker() {
     if (!isRetroReady) return;
 
     (async () => {
-      await ensureAuth();
       await trackEvent("app_open", { isRetro });
       await syncOutbox();
     })();

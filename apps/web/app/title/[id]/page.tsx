@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Clock, MapPin, MessageSquare, MonitorPlay, Star, Users } from "lucide-react";
 import { useParams } from "next/navigation";
-import { api } from "@/lib/api";
+import { api, apiWithAuth } from "@/lib/api";
 import CommentsPanel from "@/components/CommentsPanel";
 import {
     getTitleLocal,
@@ -234,35 +234,41 @@ export default function TitlePage() {
             if (localApplied) hadLocal = true;
 
             const t = await api<Title>(`/titles/${titleId}`);
-            const logs = await api<WatchLog[]>(`/logs?titleId=${encodeURIComponent(titleId)}&limit=1`);
+            const hasUser = !!getUserId();
+            const logs = hasUser
+                ? await apiWithAuth<WatchLog[]>(`/logs?titleId=${encodeURIComponent(titleId)}&limit=1`)
+                : [];
             const current = logs[0] ?? null;
 
             setTitle(t);
-            setLog(current);
             await upsertTitleLocal(t);
+            if (!hasUser) return;
+
+            setLog(current);
             await upsertLogsLocal(logs);
 
-            if (current) {
-                setStatus(current.status);
-                setRating(typeof current.rating === "number" ? current.rating : "");
-                setOtt(current.ott ?? "");
-                setOttSelect(resolvePlatformSelect(current.ott ?? "", allOttOptions, platformGroups));
-                setNote(current.note ?? "");
-                setPlace((current.place ?? "HOME") as Place);
-                setOccasion((current.occasion ?? "ALONE") as Occasion);
-                setSelectedSeason(typeof current.seasonNumber === "number" ? current.seasonNumber : "");
-                setSelectedEpisode(typeof current.episodeNumber === "number" ? current.episodeNumber : "");
-                setSeasonPosterUrl(current.seasonPosterUrl ?? null);
-                setSeasonYear(typeof current.seasonYear === "number" ? current.seasonYear : null);
-                setOrigin(current.origin ?? "LOG");
-                setWatchedDate(toDateInput(new Date(current.watchedAt ?? current.createdAt)));
-
-                const h = await api<WatchLogHistory[]>(`/logs/${current.id}/history?limit=50`);
-                setHistory(h);
-                await upsertHistoryLocal(h);
-            } else {
+            if (!current) {
                 setHistory([]);
+                return;
             }
+
+            setStatus(current.status);
+            setRating(typeof current.rating === "number" ? current.rating : "");
+            setOtt(current.ott ?? "");
+            setOttSelect(resolvePlatformSelect(current.ott ?? "", allOttOptions, platformGroups));
+            setNote(current.note ?? "");
+            setPlace((current.place ?? "HOME") as Place);
+            setOccasion((current.occasion ?? "ALONE") as Occasion);
+            setSelectedSeason(typeof current.seasonNumber === "number" ? current.seasonNumber : "");
+            setSelectedEpisode(typeof current.episodeNumber === "number" ? current.episodeNumber : "");
+            setSeasonPosterUrl(current.seasonPosterUrl ?? null);
+            setSeasonYear(typeof current.seasonYear === "number" ? current.seasonYear : null);
+            setOrigin(current.origin ?? "LOG");
+            setWatchedDate(toDateInput(new Date(current.watchedAt ?? current.createdAt)));
+
+            const h = await apiWithAuth<WatchLogHistory[]>(`/logs/${current.id}/history?limit=50`);
+            setHistory(h);
+            await upsertHistoryLocal(h);
         } catch (e: any) {
             if (!hadLocal) {
                 setErr(e?.message ?? "Failed to load");

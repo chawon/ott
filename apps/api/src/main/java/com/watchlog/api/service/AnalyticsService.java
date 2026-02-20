@@ -54,7 +54,7 @@ public class AnalyticsService {
     }
 
     @Transactional
-    public TrackAnalyticsEventResponse trackEvent(TrackAnalyticsEventRequest req, UUID userId) {
+    public TrackAnalyticsEventResponse trackEvent(TrackAnalyticsEventRequest req, UUID userId, UUID clientId) {
         UUID eventId = req.eventId() == null ? UUID.randomUUID() : req.eventId();
         OffsetDateTime occurredAt = req.occurredAt() == null ? OffsetDateTime.now() : req.occurredAt();
         UUID safeUserId = resolveKnownUserId(userId);
@@ -74,12 +74,13 @@ public class AnalyticsService {
 
         int inserted = jdbcTemplate.update("""
                 insert into analytics_events (
-                    event_id, user_id, session_id, event_name, platform, client_version, properties, occurred_at, created_at
-                ) values (?, ?, ?, ?, ?, ?, cast(? as jsonb), ?, now())
+                    event_id, user_id, client_id, session_id, event_name, platform, client_version, properties, occurred_at, created_at
+                ) values (?, ?, ?, ?, ?, ?, ?, cast(? as jsonb), ?, now())
                 on conflict (event_id) do nothing
                 """,
                 eventId,
                 safeUserId,
+                clientId,
                 sessionId,
                 req.eventName(),
                 req.platform(),
@@ -183,7 +184,7 @@ public class AnalyticsService {
         long funnelLoginUsers = countDistinctActorsByEventSince("login_success", from);
         long funnelLogCreateUsers = countDistinctActorsByEventSince("log_create", from);
         long retroAppOpenUsers = queryLong("""
-                select count(distinct coalesce(user_id::text, session_id))
+                select count(distinct coalesce(client_id::text, user_id::text, session_id))
                 from analytics_events
                 where event_name = 'app_open'
                   and occurred_at >= ?
@@ -196,7 +197,7 @@ public class AnalyticsService {
                 select
                     platform,
                     count(*) as events,
-                    count(distinct coalesce(user_id::text, session_id)) filter (where event_name = 'app_open') as active_users
+                    count(distinct coalesce(client_id::text, user_id::text, session_id)) filter (where event_name = 'app_open') as active_users
                 from analytics_events
                 where occurred_at >= ?
                   and (user_id is null or user_id::text != ?)
@@ -216,7 +217,7 @@ public class AnalyticsService {
                 select
                     event_name,
                     count(*) as events,
-                    count(distinct coalesce(user_id::text, session_id)) as actors
+                    count(distinct coalesce(client_id::text, user_id::text, session_id)) as actors
                 from analytics_events
                 where occurred_at >= ?
                   and (user_id is null or user_id::text != ?)
@@ -236,12 +237,12 @@ public class AnalyticsService {
                 select
                     date_trunc('day', occurred_at at time zone 'Asia/Seoul')::date as day,
                     count(*) as events,
-                    count(distinct coalesce(user_id::text, session_id)) filter (where event_name = 'app_open') as app_open_users,
-                    count(distinct coalesce(user_id::text, session_id)) filter (where event_name = 'app_open' and coalesce(properties->>'isRetro', 'false') = 'true') as retro_app_open_users,
-                    count(distinct coalesce(user_id::text, session_id)) filter (where event_name = 'retro_mode_toggle') as retro_toggle_users,
-                    count(distinct coalesce(user_id::text, session_id)) filter (where event_name = 'login_success') as login_users,
-                    count(distinct coalesce(user_id::text, session_id)) filter (where event_name = 'log_create') as log_create_users,
-                    count(distinct coalesce(user_id::text, session_id)) filter (where event_name = 'share_action') as share_action_users
+                    count(distinct coalesce(client_id::text, user_id::text, session_id)) filter (where event_name = 'app_open') as app_open_users,
+                    count(distinct coalesce(client_id::text, user_id::text, session_id)) filter (where event_name = 'app_open' and coalesce(properties->>'isRetro', 'false') = 'true') as retro_app_open_users,
+                    count(distinct coalesce(client_id::text, user_id::text, session_id)) filter (where event_name = 'retro_mode_toggle') as retro_toggle_users,
+                    count(distinct coalesce(client_id::text, user_id::text, session_id)) filter (where event_name = 'login_success') as login_users,
+                    count(distinct coalesce(client_id::text, user_id::text, session_id)) filter (where event_name = 'log_create') as log_create_users,
+                    count(distinct coalesce(client_id::text, user_id::text, session_id)) filter (where event_name = 'share_action') as share_action_users
                 from analytics_events
                 where occurred_at >= ?
                   and (user_id is null or user_id::text != ?)
@@ -265,10 +266,10 @@ public class AnalyticsService {
         List<AdminWeeklyRetroDto> weeklyRetro = jdbcTemplate.query("""
                 select
                     date_trunc('week', occurred_at at time zone 'Asia/Seoul')::date as week_start,
-                    count(distinct coalesce(user_id::text, session_id)) filter (where event_name = 'app_open') as app_open_users,
-                    count(distinct coalesce(user_id::text, session_id)) filter (where event_name = 'app_open' and coalesce(properties->>'isRetro', 'false') = 'true') as retro_app_open_users,
-                    count(distinct coalesce(user_id::text, session_id)) filter (where event_name = 'retro_mode_toggle') as retro_toggle_users,
-                    count(distinct coalesce(user_id::text, session_id)) filter (where event_name = 'retro_mode_toggle' and coalesce(properties->>'enabled', 'false') = 'true') as retro_toggle_on_users
+                    count(distinct coalesce(client_id::text, user_id::text, session_id)) filter (where event_name = 'app_open') as app_open_users,
+                    count(distinct coalesce(client_id::text, user_id::text, session_id)) filter (where event_name = 'app_open' and coalesce(properties->>'isRetro', 'false') = 'true') as retro_app_open_users,
+                    count(distinct coalesce(client_id::text, user_id::text, session_id)) filter (where event_name = 'retro_mode_toggle') as retro_toggle_users,
+                    count(distinct coalesce(client_id::text, user_id::text, session_id)) filter (where event_name = 'retro_mode_toggle' and coalesce(properties->>'enabled', 'false') = 'true') as retro_toggle_on_users
                 from analytics_events
                 where occurred_at >= ?
                   and (user_id is null or user_id::text != ?)
@@ -368,7 +369,7 @@ public class AnalyticsService {
 
     private long countDistinctActorsByEventSince(String eventName, OffsetDateTime since) {
         return queryLong("""
-                select count(distinct coalesce(user_id::text, session_id))
+                select count(distinct coalesce(client_id::text, user_id::text, session_id))
                 from analytics_events
                 where event_name = ? and occurred_at >= ?
                   and (user_id is null or user_id::text != ?)
@@ -385,7 +386,7 @@ public class AnalyticsService {
                 select
                     coalesce(nullif(properties->>?, ''), 'unknown') as dim_key,
                     count(*) as events,
-                    count(distinct coalesce(user_id::text, session_id)) as active_users
+                    count(distinct coalesce(client_id::text, user_id::text, session_id)) as active_users
                 from analytics_events
                 where event_name = 'app_open'
                   and occurred_at >= ?

@@ -4,8 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import { Clock, Download } from "lucide-react";
 import FiltersBar from "@/components/FiltersBar";
 import LogCard from "@/components/LogCard";
-import { api } from "@/lib/api";
-import { listLogsLocal, upsertLogsLocal } from "@/lib/localStore";
+import { apiWithAuth } from "@/lib/api";
+import { getUserId, listLogsLocal, upsertLogsLocal } from "@/lib/localStore";
 import { Status, WatchLog } from "@/lib/types";
 import { useRetro } from "@/context/RetroContext";
 import { cn, statusOptionsForType } from "@/lib/utils";
@@ -67,16 +67,18 @@ export default function TimelinePage() {
                     ott: ott.trim() ? ott : undefined,
                 });
 
-                const res = await api<WatchLog[]>(`/logs${query}`);
-                await upsertLogsLocal(res);
-                const refreshed = await listLogsLocal({
-                    limit: 50,
-                    contentType: contentType === "ALL" ? undefined : contentType,
-                    status: status === "ALL" ? undefined : status,
-                    origin: origin === "ALL" ? undefined : origin,
-                    ott: ott.trim() ? ott : undefined,
-                });
-                if (!cancelled) setLogs(refreshed);
+                if (getUserId()) {
+                    const res = await apiWithAuth<WatchLog[]>(`/logs${query}`);
+                    await upsertLogsLocal(res);
+                    const refreshed = await listLogsLocal({
+                        limit: 50,
+                        contentType: contentType === "ALL" ? undefined : contentType,
+                        status: status === "ALL" ? undefined : status,
+                        origin: origin === "ALL" ? undefined : origin,
+                        ott: ott.trim() ? ott : undefined,
+                    });
+                    if (!cancelled) setLogs(refreshed);
+                }
             } catch (e: any) {
                 if (!cancelled) {
                     setErr(e?.message ?? "Failed to load logs");

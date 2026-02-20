@@ -22,9 +22,10 @@ public class AnalyticsController {
     @PostMapping("/events")
     public TrackAnalyticsEventResponse trackEvent(
             @Valid @RequestBody TrackAnalyticsEventRequest req,
-            @RequestHeader(value = "X-User-Id", required = false) UUID userId
+            @RequestHeader(value = "X-User-Id", required = false) UUID userId,
+            @RequestHeader(value = "X-Client-Id", required = false) UUID clientId
     ) {
-        return analyticsService.trackEvent(req, userId);
+        return analyticsService.trackEvent(req, userId, clientId);
     }
 
     @GetMapping("/me/report")

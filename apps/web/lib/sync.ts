@@ -1,4 +1,4 @@
-import { api, ensureAuthIds } from "./api";
+import { apiWithAuth, ensureAuthIds } from "./api";
 import {
   getTitleLocal,
   findTitleByProvider,
@@ -15,23 +15,12 @@ import {
 } from "./localStore";
 import { OutboxItem } from "./db";
 import { Title, WatchLog } from "./types";
-import { safeUUID } from "./utils";
 
 let syncing = false;
 
 function emitSyncUpdate() {
   if (typeof window === "undefined") return;
   window.dispatchEvent(new CustomEvent("sync:updated"));
-}
-
-function getDeviceId() {
-  if (typeof localStorage === "undefined") return safeUUID();
-  const key = "watchlog.deviceId";
-  const existing = localStorage.getItem(key);
-  if (existing) return existing;
-  const next = safeUUID();
-  localStorage.setItem(key, next);
-  return next;
 }
 
 function getUserId() {
@@ -49,21 +38,25 @@ function setLastSyncAt(value: string) {
   localStorage.setItem("watchlog.lastSyncAt", value);
 }
 
-async function pushItem(item: OutboxItem) {
+type SyncAuthIds = {
+  userId: string | null;
+  deviceId: string | null;
+};
+
+async function pushItem(item: OutboxItem, auth: SyncAuthIds) {
   const payload = item.payload as any;
   const changes = {
     logs: payload?.log ? [payload.log] : [],
     titles: payload?.title ? [payload.title] : [],
   };
-  const auth = await ensureAuthIds();
 
-  const res = await api<{ accepted: string[]; rejected: { id: string; reason: string }[] }>(
+  const res = await apiWithAuth<{ accepted: string[]; rejected: { id: string; reason: string }[] }>(
     "/sync/push",
     {
       method: "POST",
       body: JSON.stringify({
-        userId: auth.userId ?? getUserId(),
-        deviceId: auth.deviceId ?? getDeviceId(),
+        userId: auth.userId,
+        deviceId: auth.deviceId,
         clientTime: new Date().toISOString(),
         changes,
       }),
@@ -80,7 +73,7 @@ async function pushItem(item: OutboxItem) {
 async function pullChanges() {
   const last = getLastSyncAt();
   const query = last ? `?since=${encodeURIComponent(last)}` : "";
-  const res = await api<{
+  const res = await apiWithAuth<{
     serverTime: string;
     changes: { logs: any[]; titles: any[] };
   }>(`/sync/pull${query}`);
@@ -171,9 +164,15 @@ export async function syncOutbox() {
   syncing = true;
   try {
     const items = await listOutbox();
+    const hasStoredUser = !!getUserId();
+    if (items.length === 0 && !hasStoredUser) return;
+
+    const auth = await ensureAuthIds({ register: items.length > 0 || hasStoredUser });
+    if (!auth.userId || !auth.deviceId) return;
+
     for (const item of items) {
       try {
-        await pushItem(item);
+        await pushItem(item, auth);
         await removeOutboxItem(item.id);
         if (item.type === "create_log") {
           await setLogSyncStatus(item.localLogId, "synced");

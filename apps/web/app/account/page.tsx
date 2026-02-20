@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Settings } from "lucide-react";
-import { ensureAuth, pairWithCode } from "@/lib/auth";
+import { pairWithCode } from "@/lib/auth";
 import { getDeviceId, getPairingCode, getUserId, listAllLogsLocal, resetLocalState } from "@/lib/localStore";
 import { api } from "@/lib/api";
 import { useRetro } from "@/context/RetroContext";
@@ -25,20 +25,32 @@ export default function AccountPage() {
   const [devices, setDevices] = useState<{ id: string; createdAt: string; lastSeenAt: string; os?: string | null; browser?: string | null }[]>([]);
 
   useEffect(() => {
+    let cancelled = false;
     (async () => {
       setInitializing(true);
       setStatus(null);
       try {
-        const res = await ensureAuth();
-        setUserId(res?.userId ?? getUserId());
-        setDeviceId(res?.deviceId ?? getDeviceId());
-        setPairingCode(res?.pairingCode ?? getPairingCode());
-        if (!res) setStatus("페어링 코드 발급에 실패했어요. 다시 시도해 주세요.");
-        await loadDevices();
+        const storedUserId = getUserId();
+        const storedDeviceId = getDeviceId();
+        const storedPairingCode = getPairingCode();
+        if (cancelled) return;
+
+        setUserId(storedUserId);
+        setDeviceId(storedDeviceId);
+        setPairingCode(storedPairingCode);
+
+        if (storedUserId) {
+          await loadDevices();
+        } else {
+          setDevices([]);
+        }
       } finally {
-        setInitializing(false);
+        if (!cancelled) setInitializing(false);
       }
     })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   async function pair() {
@@ -61,6 +73,10 @@ export default function AccountPage() {
   }
 
   async function loadDevices() {
+    if (!getUserId()) {
+      setDevices([]);
+      return [];
+    }
     try {
       const res = await api<{ id: string; createdAt: string; lastSeenAt: string; os?: string | null; browser?: string | null }[]>(
         "/auth/devices"
@@ -75,11 +91,10 @@ export default function AccountPage() {
 
   async function resetIdentity() {
     await resetLocalState();
-    const res = await ensureAuth();
-    setUserId(res?.userId ?? getUserId());
-    setDeviceId(res?.deviceId ?? getDeviceId());
-    setPairingCode(res?.pairingCode ?? getPairingCode());
-    await loadDevices();
+    setUserId(null);
+    setDeviceId(null);
+    setPairingCode(null);
+    setDevices([]);
   }
 
   async function revokeDevice(targetId: string) {
@@ -145,6 +160,10 @@ export default function AccountPage() {
   }
 
   async function exportTimelineCsv() {
+    if (!hasAccount) {
+      setExportStatus("첫 기록(로그/댓글)을 남기면 내보내기가 활성화돼요.");
+      return;
+    }
     setExporting(true);
     setExportStatus(null);
     try {
@@ -172,21 +191,8 @@ export default function AccountPage() {
     return d.toLocaleDateString("ko-KR", { month: "short", day: "numeric" });
   }
 
-  async function retryRegister() {
-    setInitializing(true);
-    setStatus(null);
-    try {
-      const res = await ensureAuth();
-      setUserId(res?.userId ?? getUserId());
-      setDeviceId(res?.deviceId ?? getDeviceId());
-      setPairingCode(res?.pairingCode ?? getPairingCode());
-      if (!res) setStatus("페어링 코드 발급에 실패했어요. 서버 상태를 확인해 주세요.");
-    } finally {
-      setInitializing(false);
-    }
-  }
-
   const headerTitle = isRetro ? "맞춤" : "설정";
+  const hasAccount = !!userId;
   const headerSubtitle = isRetro 
     ? "기기 잇기" 
     : "이메일 없이 페어링 코드로 여러 기기를 연결해요.";
@@ -213,13 +219,27 @@ export default function AccountPage() {
 
       <section className="rounded-2xl border border-border bg-card p-6 shadow-sm space-y-2">
         <div className="text-sm font-semibold">리포트</div>
-        <div className="text-xs text-muted-foreground">내 이용 패턴을 요약해서 확인할 수 있어요.</div>
-        <Link
-          href="/me/report"
-          className="inline-flex rounded-xl border border-border px-3 py-2 text-sm font-semibold text-foreground hover:bg-muted"
-        >
-          내 이용 리포트 보기
-        </Link>
+        <div className="text-xs text-muted-foreground">
+          {hasAccount
+            ? "내 이용 패턴을 요약해서 확인할 수 있어요."
+            : "첫 기록(로그/댓글)을 남기면 이용 리포트가 활성화돼요."}
+        </div>
+        {hasAccount ? (
+          <Link
+            href="/me/report"
+            className="inline-flex rounded-xl border border-border px-3 py-2 text-sm font-semibold text-foreground hover:bg-muted"
+          >
+            내 이용 리포트 보기
+          </Link>
+        ) : (
+          <button
+            type="button"
+            disabled
+            className="inline-flex rounded-xl border border-border px-3 py-2 text-sm font-semibold text-muted-foreground opacity-60"
+          >
+            내 이용 리포트 보기
+          </button>
+        )}
       </section>
 
       <section className="rounded-2xl border border-border bg-card p-6 shadow-sm space-y-2">
@@ -227,16 +247,15 @@ export default function AccountPage() {
         <div className="text-2xl font-semibold tracking-widest">
           {initializing ? "발급 중…" : (pairingCode ?? "—")}
         </div>
-        <div className="text-xs text-muted-foreground">다른 기기에서 이 코드를 입력해 주세요.</div>
+        <div className="text-xs text-muted-foreground">
+          {pairingCode
+            ? "다른 기기에서 이 코드를 입력해 주세요."
+            : "첫 기록(로그/댓글)을 남기면 계정과 페어링 코드가 자동으로 생성돼요."}
+        </div>
         {!pairingCode ? (
-          <button
-            type="button"
-            onClick={retryRegister}
-            disabled={initializing}
-            className="mt-2 w-full rounded-2xl border border-border bg-card px-4 py-2 text-sm font-semibold text-foreground disabled:opacity-40"
-          >
-            다시 발급하기
-          </button>
+          <div className="rounded-xl border border-dashed border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+            기록을 남긴 뒤 다시 오면 코드와 계정 정보를 확인할 수 있어요.
+          </div>
         ) : null}
       </section>
 
@@ -263,6 +282,11 @@ export default function AccountPage() {
         <div className="text-sm text-muted-foreground">내 계정 정보</div>
         <div className="text-xs text-muted-foreground">User: {userId ?? "—"}</div>
         <div className="text-xs text-muted-foreground">Device: {deviceId ?? "—"}</div>
+        {!userId ? (
+          <div className="text-xs text-muted-foreground">
+            첫 기록 전에는 계정 정보가 비어 있을 수 있어요.
+          </div>
+        ) : null}
       </section>
 
       <section className={cn(
@@ -295,16 +319,20 @@ export default function AccountPage() {
       )}>
         <div className="text-sm font-semibold">내 기록 내보내기</div>
         <div className="text-xs text-muted-foreground">
-          이 기기에 저장된 타임라인을 CSV로 저장할 수 있어요.
+          {hasAccount
+            ? "이 기기에 저장된 타임라인을 CSV로 저장할 수 있어요."
+            : "첫 기록(로그/댓글)을 남기면 내보내기를 사용할 수 있어요."}
         </div>
         <div>
           <div className="text-xs text-muted-foreground mb-1">내보내기 범위</div>
           <select
             value={exportContentType}
             onChange={(e) => setExportContentType(e.target.value as "ALL" | "video" | "book")}
+            disabled={!hasAccount}
             className={cn(
               "w-full select-base rounded-xl px-3 py-2 text-sm",
-              isRetro && "border-2 border-black bg-white text-black"
+              isRetro && "border-2 border-black bg-white text-black",
+              !hasAccount && "opacity-60"
             )}
           >
             <option value="ALL">전체</option>
@@ -315,13 +343,13 @@ export default function AccountPage() {
         <button
           type="button"
           onClick={exportTimelineCsv}
-          disabled={exporting}
+          disabled={exporting || !hasAccount}
           className={cn(
             "w-full px-4 py-3 text-sm font-semibold",
             isRetro
               ? "border-2 border-black bg-white text-black hover:bg-yellow-200"
               : "rounded-2xl bg-foreground text-background",
-            exporting && "opacity-40"
+            (exporting || !hasAccount) && "opacity-40"
           )}
         >
           {exporting ? "CSV 만드는 중…" : "CSV 다운로드"}

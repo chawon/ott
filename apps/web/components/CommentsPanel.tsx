@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { api } from "@/lib/api";
+import { ensureAuth } from "@/lib/auth";
+import { getUserId } from "@/lib/localStore";
 import { Comment, CreateCommentRequest, Discussion, MentionRef, Title, TitleSearchItem } from "@/lib/types";
 import { formatNoteInline } from "@/lib/utils";
 import TitleSearchBox from "@/components/TitleSearchBox";
@@ -32,6 +34,7 @@ export default function CommentsPanel({
   const [err, setErr] = useState<string | null>(null);
   const [sort, setSort] = useState<"oldest" | "latest">("oldest");
   const [visibleCount, setVisibleCount] = useState(5);
+  const [effectiveUserId, setEffectiveUserId] = useState<string | null>(userId ?? getUserId());
 
   const canPost = useMemo(() => !!body.trim() && !posting, [body, posting]);
   const sortedComments = useMemo(() => {
@@ -72,6 +75,10 @@ export default function CommentsPanel({
     loadDiscussion();
   }, [titleId]);
 
+  useEffect(() => {
+    setEffectiveUserId(userId ?? getUserId());
+  }, [userId]);
+
   async function ensureDiscussion() {
     if (discussion) return discussion;
     const created = await api<Discussion>("/discussions", {
@@ -85,11 +92,19 @@ export default function CommentsPanel({
   async function postComment() {
     if (!canPost) return;
     setPosting(true);
+    setErr(null);
     try {
+      const auth = await ensureAuth();
+      const currentUserId = auth?.userId ?? getUserId();
+      if (!currentUserId) {
+        throw new Error("댓글을 남기려면 먼저 계정 연결이 필요해요.");
+      }
+      setEffectiveUserId(currentUserId);
+
       const d = await ensureDiscussion();
       const req: CreateCommentRequest = {
         body: body.trim(),
-        userId: userId ?? null,
+        userId: currentUserId,
         mentions,
       };
       const created = await api<Comment>(`/discussions/${d.id}/comments`, {
@@ -213,7 +228,7 @@ export default function CommentsPanel({
               </div>
             </div>
             {visibleComments.map((c) => {
-              const isMine = !!userId && c.userId && c.userId === userId;
+              const isMine = !!effectiveUserId && c.userId && c.userId === effectiveUserId;
               return (
                 <div
                   key={c.id}

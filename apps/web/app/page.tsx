@@ -6,9 +6,9 @@ import Link from "next/link";
 import QuickLogCard from "@/components/QuickLogCard";
 import LogCard from "@/components/LogCard";
 import ShareBottomSheet from "@/components/ShareBottomSheet";
-import { api } from "@/lib/api";
+import { api, apiWithAuth } from "@/lib/api";
 import DiscussionList from "@/components/DiscussionList";
-import { listLogsLocal, upsertLogsLocal } from "@/lib/localStore";
+import { getUserId, listLogsLocal, upsertLogsLocal } from "@/lib/localStore";
 import {
     extractShareIntentUrls,
     inferShareIntentPlatform,
@@ -109,10 +109,12 @@ export default function HomePage() {
                 const cached = await listLogsLocal({ limit: 8 });
                 if (cached.length > 0) setLogs(cached);
 
-                const l = await api<WatchLog[]>("/logs?limit=8");
-                await upsertLogsLocal(l);
-                const refreshed = await listLogsLocal({ limit: 8 });
-                if (refreshed.length > 0) setLogs(refreshed);
+                if (getUserId()) {
+                    const l = await apiWithAuth<WatchLog[]>("/logs?limit=8");
+                    await upsertLogsLocal(l);
+                    const refreshed = await listLogsLocal({ limit: 8 });
+                    if (refreshed.length > 0) setLogs(refreshed);
+                }
             } catch {
                 // keep cached logs if network fails
             } finally {

@@ -223,6 +223,24 @@ export function setPairingCode(code: string) {
   localStorage.setItem("watchlog.pairingCode", code);
 }
 
+export function getAnalyticsClientId() {
+  if (typeof localStorage === "undefined") return null;
+  return localStorage.getItem("watchlog.analytics.clientId");
+}
+
+export function setAnalyticsClientId(clientId: string) {
+  if (typeof localStorage === "undefined") return;
+  localStorage.setItem("watchlog.analytics.clientId", clientId);
+}
+
+export function ensureAnalyticsClientId() {
+  const existing = getAnalyticsClientId();
+  if (existing) return existing;
+  const next = safeUUID();
+  setAnalyticsClientId(next);
+  return next;
+}
+
 export async function resetLocalState() {
   await db.transaction("rw", db.titles, db.logs, db.history, db.outbox, async () => {
     await db.titles.clear();
@@ -234,6 +252,7 @@ export async function resetLocalState() {
   localStorage.removeItem("watchlog.userId");
   localStorage.removeItem("watchlog.deviceId");
   localStorage.removeItem("watchlog.pairingCode");
+  localStorage.removeItem("watchlog.analytics.clientId");
   localStorage.removeItem("watchlog.lastSyncAt");
 }
 

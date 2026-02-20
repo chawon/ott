@@ -1,6 +1,6 @@
 "use client";
 
-import { api } from "@/lib/api";
+import { ensureAnalyticsClientId, getUserId } from "@/lib/localStore";
 import { safeUUID } from "@/lib/utils";
 
 export type AnalyticsPlatform = "web" | "pwa" | "twa";
@@ -99,8 +99,17 @@ export async function trackEvent(
 ) {
   try {
     const platform = detectPlatform();
-    await api("/analytics/events", {
+    const userId = getUserId();
+    const clientId = ensureAnalyticsClientId();
+
+    const res = await fetch("/api/analytics/events", {
       method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(userId ? { "X-User-Id": userId } : {}),
+        ...(clientId ? { "X-Client-Id": clientId } : {}),
+      },
+      cache: "no-store",
       body: JSON.stringify({
         eventId: safeUUID(),
         eventName,
@@ -111,6 +120,10 @@ export async function trackEvent(
         properties: { ...buildContextProperties(platform), ...(properties ?? {}) },
       }),
     });
+
+    if (!res.ok) {
+      throw new Error(`Analytics ${res.status}`);
+    }
   } catch {
     // analytics should not break UX
   }

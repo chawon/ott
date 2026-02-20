@@ -1,4 +1,11 @@
-import { setDeviceId, setPairingCode, setUserId } from "./localStore";
+import {
+  getDeviceId,
+  getPairingCode,
+  getUserId,
+  setDeviceId,
+  setPairingCode,
+  setUserId,
+} from "./localStore";
 
 type AuthRegisterResponse = {
   userId: string;
@@ -8,13 +15,17 @@ type AuthRegisterResponse = {
 
 let authInitPromise: Promise<void> | null = null;
 
-async function ensureClientAuth(path: string) {
-  if (typeof window === "undefined" || typeof localStorage === "undefined") return;
-  if (path.startsWith("/auth/")) return; // auth endpoints should not recurse
+function getStoredAuth() {
+  const userId = getUserId();
+  const deviceId = getDeviceId();
+  const pairingCode = getPairingCode();
+  return { userId, deviceId, pairingCode };
+}
 
-  const userId = localStorage.getItem("watchlog.userId");
-  const deviceId = localStorage.getItem("watchlog.deviceId");
-  const pairingCode = localStorage.getItem("watchlog.pairingCode");
+async function ensureClientAuth() {
+  if (typeof window === "undefined") return;
+
+  const { userId, deviceId, pairingCode } = getStoredAuth();
   if (userId && deviceId && pairingCode) return;
 
   if (authInitPromise) return authInitPromise;
@@ -41,42 +52,61 @@ async function ensureClientAuth(path: string) {
   }
 }
 
-export async function ensureAuthIds() {
-    await ensureClientAuth("/sync/push");
-    const userId = typeof localStorage !== "undefined" ? localStorage.getItem("watchlog.userId") : null;
-    const deviceId = typeof localStorage !== "undefined" ? localStorage.getItem("watchlog.deviceId") : null;
-    return { userId, deviceId };
+function buildHeaders(init?: RequestInit) {
+  const headers = new Headers(init?.headers ?? {});
+  const hasBody = init?.body !== undefined && init?.body !== null;
+  const isFormData = typeof FormData !== "undefined" && init?.body instanceof FormData;
+  if (hasBody && !isFormData && !headers.has("Content-Type")) {
+    headers.set("Content-Type", "application/json");
+  }
+
+  const userId = getUserId();
+  const deviceId = getDeviceId();
+  if (userId) headers.set("X-User-Id", userId);
+  if (deviceId) headers.set("X-Device-Id", deviceId);
+
+  return headers;
+}
+
+async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const res = await fetch(`/api${path}`, {
+    ...init,
+    headers: buildHeaders(init),
+    cache: "no-store",
+  });
+
+  if (!res.ok) {
+    let msg = res.statusText;
+    try {
+      const body = await res.json();
+      msg = body?.message ?? JSON.stringify(body);
+    } catch {
+      const text = await res.text().catch(() => "");
+      if (text) msg = text;
+    }
+    throw new Error(`API ${res.status}: ${msg}`);
+  }
+  const text = await res.text();
+  if (!text) return null as T;
+  return JSON.parse(text) as T;
+}
+
+export async function ensureAuthIds(options?: { register?: boolean }) {
+  if (options?.register === true) {
+    await ensureClientAuth();
+  }
+  const { userId, deviceId } = getStoredAuth();
+  return { userId, deviceId };
 }
 
 export async function api<T>(path: string, init?: RequestInit): Promise<T> {
-    await ensureClientAuth(path);
+  return request<T>(path, init);
+}
 
-    const userId = typeof localStorage !== "undefined" ? localStorage.getItem("watchlog.userId") : null;
-    const deviceId = typeof localStorage !== "undefined" ? localStorage.getItem("watchlog.deviceId") : null;
-
-    const res = await fetch(`/api${path}`, {
-        ...init,
-        headers: {
-            "Content-Type": "application/json",
-            ...(userId ? { "X-User-Id": userId } : {}),
-            ...(deviceId ? { "X-Device-Id": deviceId } : {}),
-            ...(init?.headers ?? {}),
-        },
-        cache: "no-store",
-    });
-
-    if (!res.ok) {
-        let msg = res.statusText;
-        try {
-            const body = await res.json();
-            msg = body?.message ?? JSON.stringify(body);
-        } catch {
-            const text = await res.text().catch(() => "");
-            if (text) msg = text;
-        }
-        throw new Error(`API ${res.status}: ${msg}`);
-    }
-    const text = await res.text();
-    if (!text) return null as T;
-    return JSON.parse(text) as T;
+export async function apiWithAuth<T>(path: string, init?: RequestInit): Promise<T> {
+  const { userId } = await ensureAuthIds({ register: false });
+  if (!userId) {
+    throw new Error("API auth required: missing user identity");
+  }
+  return request<T>(path, init);
 }
