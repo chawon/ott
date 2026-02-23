@@ -27,5 +27,21 @@ export default function manifest(): MetadataRoute.Manifest {
         type: "image/png",
       },
     ],
+    screenshots: [
+      {
+        src: "/pwa/screenshot-desktop-wide.png",
+        sizes: "1280x720",
+        type: "image/png",
+        form_factor: "wide",
+        label: "홈 타임라인과 퀵로그 입력 화면 (데스크톱)",
+      },
+      {
+        src: "/pwa/screenshot-mobile-narrow.png",
+        sizes: "720x1280",
+        type: "image/png",
+        form_factor: "narrow",
+        label: "홈 타임라인과 퀵로그 입력 화면 (모바일)",
+      },
+    ],
   };
 }

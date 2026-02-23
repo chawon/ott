@@ -60,6 +60,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     return (
         <html lang="ko" suppressHydrationWarning>
         <head>
+            <meta name="naver-site-verification" content="a7a2d3521b1bcb813f5e7535f4e46ffb564c113a" />
             <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
         </head>
         <body className="min-h-screen bg-background text-foreground font-sans antialiased transition-colors duration-300">
