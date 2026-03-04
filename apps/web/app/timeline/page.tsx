@@ -166,7 +166,7 @@ export default function TimelinePage() {
         const groups: { year: number; items: WatchLog[] }[] = [];
         const index = new Map<number, number>();
         for (const log of logs) {
-            const base = log.watchedAt ?? log.createdAt;
+            const base = log.updatedAt ?? log.watchedAt ?? log.createdAt;
             const year = new Date(base).getFullYear();
             const existing = index.get(year);
             if (existing === undefined) {
