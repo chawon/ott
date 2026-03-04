@@ -36,7 +36,17 @@ public class LogService {
     }
 
     @Transactional(readOnly = true)
-    public List<WatchLogEntity> list(UUID titleId, Status status, LogOrigin origin, String ott, Place place, Occasion occasion, int limit, UUID userId) {
+    public List<WatchLogEntity> list(
+            UUID titleId,
+            Status status,
+            LogOrigin origin,
+            String ott,
+            Place place,
+            Occasion occasion,
+            int limit,
+            UUID userId,
+            boolean sortByHistory
+    ) {
         int safeLimit = Math.max(1, Math.min(limit, 100));
         String normalizedOtt = (ott == null || ott.isBlank()) ? null : ott.trim();
         String[] ottPatterns = null;
@@ -59,6 +69,7 @@ public class LogService {
                     ottPatterns,
                     place,
                     occasion,
+                    sortByHistory,
                     PageRequest.of(0, safeLimit)
             );
         }
@@ -70,6 +81,7 @@ public class LogService {
                 normalizedOtt,
                 place,
                 occasion,
+                sortByHistory,
                 PageRequest.of(0, safeLimit)
         );
     }

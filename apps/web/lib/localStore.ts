@@ -71,12 +71,14 @@ export async function listLogsLocal(params: {
   place?: WatchLog["place"];
   occasion?: WatchLog["occasion"];
   contentType?: "video" | "book";
+  sortBy?: "watchedAt" | "history";
 }) {
-  const { limit, status, origin, ott, place, occasion, contentType } = params;
+  const { limit, status, origin, ott, place, occasion, contentType, sortBy } = params;
   const ottList = ott && ott.includes(",")
     ? ott.split(",").map((v) => v.trim()).filter(Boolean)
     : null;
-  let coll = db.logs.orderBy("watchedAt").reverse();
+  const orderField = sortBy === "history" ? "updatedAt" : "watchedAt";
+  let coll = db.logs.orderBy(orderField).reverse();
   coll = coll.filter((l) => {
     if (l.deletedAt) return false;
     if (contentType === "book" && l.title?.type !== "book") return false;

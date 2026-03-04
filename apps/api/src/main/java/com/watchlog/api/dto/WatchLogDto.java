@@ -25,7 +25,8 @@ public record WatchLogDto(
         OffsetDateTime watchedAt,
         Place place,
         Occasion occasion,
-        OffsetDateTime createdAt
+        OffsetDateTime createdAt,
+        OffsetDateTime updatedAt
 ) {
     public static WatchLogDto from(WatchLogEntity e) {
         return new WatchLogDto(
@@ -44,7 +45,8 @@ public record WatchLogDto(
                 e.getWatchedAt(),
                 e.getPlace(),
                 e.getOccasion(),
-                e.getCreatedAt()
+                e.getCreatedAt(),
+                e.getUpdatedAt()
         );
     }
 }

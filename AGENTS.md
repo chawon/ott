@@ -104,12 +104,13 @@
    1. 내부 UUID title 스냅샷 반환
 
 ### Logs
-1. `GET /api/logs?limit=&status=&origin=&ott=&place=&occasion=&titleId=`
+1. `GET /api/logs?limit=&status=&origin=&ott=&place=&occasion=&titleId=&sort=`
+   1. `sort=history`면 `updatedAt`(히스토리 반영 순) 기준 정렬, 기본은 `watchedAt`
 2. `POST /api/logs`
 3. `PATCH /api/logs/{id}`
 4. `GET /api/logs/{id}/history?limit=`
 5. 로그 주요 필드
-   1. `status`, `rating`, `note`, `ott`, `watchedAt`, `place`, `occasion`
+   1. `status`, `rating`, `note`, `ott`, `watchedAt`, `place`, `occasion`, `updatedAt`
    2. `seasonNumber`, `episodeNumber`, `seasonPosterUrl`, `seasonYear`
 
 ### TMDB 보조 API

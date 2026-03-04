@@ -34,10 +34,15 @@ public class LogController {
             @RequestParam(value = "ott", required = false) String ott,
             @RequestParam(value = "place", required = false) Place place,
             @RequestParam(value = "occasion", required = false) Occasion occasion,
+            @RequestParam(value = "sort", required = false) String sort,
             @RequestParam(value = "limit", defaultValue = "50") int limit,
             @RequestHeader(value = "X-User-Id", required = false) UUID userId
     ) {
-        return logService.list(titleId, status, origin, ott, place, occasion, limit, userId).stream().map(WatchLogDto::from).toList();
+        boolean sortByHistory = "history".equalsIgnoreCase(sort);
+        return logService.list(titleId, status, origin, ott, place, occasion, limit, userId, sortByHistory)
+                .stream()
+                .map(WatchLogDto::from)
+                .toList();
     }
 
     @PostMapping

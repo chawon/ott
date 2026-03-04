@@ -26,7 +26,9 @@ public interface WatchLogRepository extends JpaRepository<WatchLogEntity, UUID> 
               and (cast(:ott as text) is null or coalesce(w.ott, '') ilike concat('%', cast(:ott as text), '%'))
               and (cast(:place as text) is null or w.place = cast(:place as text))
               and (cast(:occasion as text) is null or w.occasion = cast(:occasion as text))
-            order by w.watched_at desc
+            order by
+              case when cast(:sortByHistory as boolean) then w.updated_at else w.watched_at end desc,
+              w.id desc
             """, nativeQuery = true)
     List<WatchLogEntity> findFiltered(
             @Param("userId") UUID userId,
@@ -36,6 +38,7 @@ public interface WatchLogRepository extends JpaRepository<WatchLogEntity, UUID> 
             @Param("ott") String ott,
             @Param("place") Place place,
             @Param("occasion") Occasion occasion,
+            @Param("sortByHistory") boolean sortByHistory,
             Pageable pageable
     );
 
@@ -48,7 +51,9 @@ public interface WatchLogRepository extends JpaRepository<WatchLogEntity, UUID> 
               and (cast(:ottPatterns as text[]) is null or coalesce(w.ott, '') ilike any (cast(:ottPatterns as text[])))
               and (cast(:place as text) is null or w.place = cast(:place as text))
               and (cast(:occasion as text) is null or w.occasion = cast(:occasion as text))
-            order by w.watched_at desc
+            order by
+              case when cast(:sortByHistory as boolean) then w.updated_at else w.watched_at end desc,
+              w.id desc
             """, nativeQuery = true)
     List<WatchLogEntity> findFilteredWithOttPatterns(
             @Param("userId") UUID userId,
@@ -58,6 +63,7 @@ public interface WatchLogRepository extends JpaRepository<WatchLogEntity, UUID> 
             @Param("ottPatterns") String[] ottPatterns,
             @Param("place") Place place,
             @Param("occasion") Occasion occasion,
+            @Param("sortByHistory") boolean sortByHistory,
             Pageable pageable
     );
 

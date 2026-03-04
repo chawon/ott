@@ -54,6 +54,7 @@ export default function TimelinePage() {
                     status: status === "ALL" ? undefined : status,
                     origin: origin === "ALL" ? undefined : origin,
                     ott: ott.trim() ? ott : undefined,
+                    sortBy: "history",
                 });
                 if (!cancelled) {
                     if (cached.length > 0) hadLocal = true;
@@ -65,6 +66,7 @@ export default function TimelinePage() {
                     status: status === "ALL" ? undefined : status,
                     origin: origin === "ALL" ? undefined : origin,
                     ott: ott.trim() ? ott : undefined,
+                    sort: "history",
                 });
 
                 if (getUserId()) {
@@ -76,6 +78,7 @@ export default function TimelinePage() {
                         status: status === "ALL" ? undefined : status,
                         origin: origin === "ALL" ? undefined : origin,
                         ott: ott.trim() ? ott : undefined,
+                        sortBy: "history",
                     });
                     if (!cancelled) setLogs(refreshed);
                 }
@@ -103,6 +106,7 @@ export default function TimelinePage() {
                 status: status === "ALL" ? undefined : status,
                 origin: origin === "ALL" ? undefined : origin,
                 ott: ott.trim() ? ott : undefined,
+                sortBy: "history",
             }).then((cached) => setLogs(cached));
         }
         window.addEventListener("sync:updated", handleSync);
@@ -141,6 +145,7 @@ export default function TimelinePage() {
                 status: status === "ALL" ? undefined : status,
                 origin: origin === "ALL" ? undefined : origin,
                 ott: ott.trim() ? ott : undefined,
+                sortBy: "history",
             });
             if (filtered.length === 0) {
                 setExportStatus("해당 조건의 기록이 없어요.");
