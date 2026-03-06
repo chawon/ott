@@ -281,5 +281,27 @@
     "titleDefault": "On the Timeline | Fast and simple movie & book logs",
     "titleTemplate": "%s | On the Timeline",
     "description": "Log your movie and book records in 10 seconds without sign-up. Build your own timeline easily."
+  },
+  "About": {
+    "title": "About Service & How to Use",
+    "subtitle": "Movie & Book Timeline without sign-up",
+    "description": "On the Timeline was born to help you log your precious movie and book records as quickly and easily as possible. Without any tedious sign-up, start logging what you are watching or reading right now.",
+    "howToUseTitle": "How to use it?",
+    "step1Title": "Search Title",
+    "step1Desc": "Search for movies, series, or book titles at the top of the home screen.",
+    "step2Title": "Select Status & Rating",
+    "step2Desc": "Choose whether you are watching, reading, or finished, and leave a light rating.",
+    "step3Title": "Save Record",
+    "step3Desc": "Your own timeline is built immediately upon saving. All data is securely stored in your browser first.",
+    "moreTipsTitle": "Tips for better usage",
+    "tip1Title": "Install as an App",
+    "tip1Desc": "On the Timeline can be used like an installed app. Add it to your home screen to open quickly with an icon.",
+    "tip2Title": "Export to CSV",
+    "tip2Desc": "You can download your records as a CSV in Settings and organize them in Excel or Spreadsheet.",
+    "tip3Title": "Share with Share Cards",
+    "tip3Desc": "Select \"Create Share Card\" after saving a record to automatically generate a beautiful card for social media.",
+    "exampleVideo": "Video share card example",
+    "exampleBook": "Book share card example",
+    "closing": "\"Memories fade, but records remain on the timeline.\""
   }
 }

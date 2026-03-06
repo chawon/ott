@@ -1,12 +1,19 @@
 import type { Metadata } from "next";
 
-export const metadata: Metadata = {
-  title: "서비스 소개 및 사용법",
-  description:
-    "로그인 없이 10초 만에 끝내는 영상·책 기록 서비스, On the Timeline 사용법을 알아보세요.",
-};
+import { getTranslations } from "next-intl/server";
 
+export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: "About" });
+
+  return {
+    title: t("title"),
+  };
+}
+
+import { useTranslations } from "next-intl";
 export default function AboutPage() {
+  const tAbout = useTranslations("About");
   return (
     <div className="mx-auto max-w-2xl space-y-10 py-10 text-foreground">
       <section className="space-y-2">
@@ -14,9 +21,7 @@ export default function AboutPage() {
           로그인 없이 기록하는 영상·책 타임라인
         </h1>
         <p className="text-sm leading-relaxed text-muted-foreground">
-          On the Timeline은 당신의 소중한 영상·책 기록을 가장 빠르고 간편하게
-          남기기 위해 태어났습니다. 번거로운 가입 절차 없이, 지금 보고 있거나
-          읽고 있는 작품을 바로 기록해보세요.
+          {tAbout("description")}
         </p>
       </section>
 
@@ -30,7 +35,7 @@ export default function AboutPage() {
               1
             </div>
             <div>
-              <h3 className="font-medium">작품 검색</h3>
+              <h3 className="font-medium">{tAbout("step1Title")}</h3>
               <p className="text-sm text-muted-foreground">
                 홈 화면 상단에서 영화, 시리즈, 책 제목을 검색하세요.
               </p>
@@ -41,7 +46,7 @@ export default function AboutPage() {
               2
             </div>
             <div>
-              <h3 className="font-medium">상태 및 평점 선택</h3>
+              <h3 className="font-medium">{tAbout("step2Title")}</h3>
               <p className="text-sm text-muted-foreground">
                 보고 있거나 읽고 있는 중인지, 완료했는지 선택하고 가벼운 평점을
                 남겨주세요.
@@ -53,7 +58,7 @@ export default function AboutPage() {
               3
             </div>
             <div>
-              <h3 className="font-medium">기록 저장</h3>
+              <h3 className="font-medium">{tAbout("step3Title")}</h3>
               <p className="text-sm text-muted-foreground">
                 저장 즉시 나만의 타임라인이 구축됩니다. 모든 데이터는 브라우저에
                 안전하게 우선 저장됩니다.
@@ -73,7 +78,7 @@ export default function AboutPage() {
               +
             </div>
             <div>
-              <h3 className="font-medium">앱처럼 설치해서 사용</h3>
+              <h3 className="font-medium">{tAbout("tip1Title")}</h3>
               <p className="text-sm text-muted-foreground">
                 On the Timeline은 설치형 앱처럼 사용할 수 있어요. 홈 화면에
                 추가하면 앱 아이콘으로 빠르게 열 수 있습니다.
@@ -85,7 +90,7 @@ export default function AboutPage() {
               +
             </div>
             <div>
-              <h3 className="font-medium">내 기록 CSV로 내보내기</h3>
+              <h3 className="font-medium">{tAbout("tip2Title")}</h3>
               <p className="text-sm text-muted-foreground">
                 설정에서 내 기록을 CSV로 내려받아 엑셀이나 스프레드시트로 정리할
                 수 있어요.
@@ -97,7 +102,7 @@ export default function AboutPage() {
               +
             </div>
             <div>
-              <h3 className="font-medium">공유 카드로 기록 올리기</h3>
+              <h3 className="font-medium">{tAbout("tip3Title")}</h3>
               <p className="text-sm text-muted-foreground">
                 기록 저장 후 “공유 카드 만들기”를 선택하면, SNS에 올릴 수 있는
                 예쁜 카드가 자동으로 만들어집니다.
@@ -106,7 +111,7 @@ export default function AboutPage() {
                 <figure className="space-y-2">
                   <img
                     src="/og/share-card?sample=video"
-                    alt="영상 공유 카드 예시"
+                    alt={tAbout("exampleVideo")}
                     className="w-full rounded-2xl border border-border bg-muted/40"
                     loading="lazy"
                   />
@@ -117,7 +122,7 @@ export default function AboutPage() {
                 <figure className="space-y-2">
                   <img
                     src="/og/share-card?sample=book"
-                    alt="책 공유 카드 예시"
+                    alt={tAbout("exampleBook")}
                     className="w-full rounded-2xl border border-border bg-muted/40"
                     loading="lazy"
                   />
@@ -132,7 +137,7 @@ export default function AboutPage() {
       </section>
 
       <section className="rounded-2xl border border-border bg-muted/60 p-6 italic text-muted-foreground">
-        "기억은 흐릿해지지만, 기록은 타임라인으로 남습니다."
+        tAbout("closing")
       </section>
     </div>
   );
