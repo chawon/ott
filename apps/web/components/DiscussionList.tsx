@@ -3,12 +3,15 @@
 import Link from "next/link";
 import { DiscussionListItem } from "@/lib/types";
 import { useRetro } from "@/context/RetroContext";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { cn, tmdbResize } from "@/lib/utils";
 
-function formatShortDate(iso: string) {
+function formatShortDate(iso: string, locale: string) {
   const d = new Date(iso);
-  return d.toLocaleDateString("ko-KR", { month: "short", day: "numeric" });
+  return d.toLocaleDateString(locale === "ko" ? "ko-KR" : "en-US", {
+    month: "short",
+    day: "numeric",
+  });
 }
 
 export default function DiscussionList({
@@ -22,6 +25,7 @@ export default function DiscussionList({
 }) {
   const tList = useTranslations("DiscussionList");
   const { isRetro } = useRetro();
+  const locale = useLocale();
 
   if (items.length === 0) {
     return (
@@ -79,7 +83,7 @@ export default function DiscussionList({
               </div>
               <div className="shrink-0 text-right text-[10px] font-bold uppercase text-blue-600">
                 <div className="bg-blue-600 text-white px-1 mb-1 inline-block">
-                  {formatShortDate(d.createdAt)}
+                  {formatShortDate(d.createdAt, locale)}
                 </div>
                 <div className="text-black">
                   {tList("commentCountRetro", { count: d.commentCount })}
@@ -129,7 +133,7 @@ export default function DiscussionList({
               </div>
             </div>
             <div className="text-right text-xs text-muted-foreground">
-              <div>{formatShortDate(d.createdAt)}</div>
+              <div>{formatShortDate(d.createdAt, locale)}</div>
               <div>
                 {tList("commentCountModern", { count: d.commentCount })}
               </div>

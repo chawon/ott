@@ -405,8 +405,10 @@ export async function POST(req: Request) {
   return renderShareCard(body);
 }
 
+import { getTranslations } from "next-intl/server";
+
 export async function GET(req: Request) {
-  const { searchParams, origin } = new URL(req.url);
+  const { searchParams, origin, pathname } = new URL(req.url);
   const sample = searchParams.get("sample");
   if (!sample) {
     return new Response("Missing sample parameter", { status: 400 });
@@ -415,20 +417,26 @@ export async function GET(req: Request) {
     return new Response("Unsupported sample", { status: 400 });
   }
 
+  // Extract locale from pathname (e.g., /en/og/share-card -> en)
+  const locale = pathname.split("/")[1] || "ko";
+  const tDetail = await getTranslations({ locale, namespace: "DiscussionDetail" });
+  const tQuick = await getTranslations({ locale, namespace: "QuickLogCard" });
+  const tHeader = await getTranslations({ locale, namespace: "AppHeader" });
+
   const isBookSample = sample === "book";
   const posterUrl = `${origin}/share-cards/${isBookSample ? "sample-book-poster.svg" : "sample-video-poster.svg"}`;
 
   const body: ShareCardPayload = {
-    title: isBookSample ? "불편한 편의점" : "듄: 파트 두",
+    title: isBookSample ? (locale === "ko" ? "불편한 편의점" : "Uncomfortable Convenience Store") : (locale === "ko" ? "듄: 파트 두" : "Dune: Part Two"),
     titleType: isBookSample ? "book" : "movie",
     format: "story",
-    note: isBookSample ? "퇴근 후 한 장씩" : "아이맥스로 다시 한 번",
-    statusLabel: isBookSample ? "읽었어요" : "봤어요",
-    ratingLabel: isBookSample ? "인생책" : "최고예요",
+    note: isBookSample ? (locale === "ko" ? "퇴근 후 한 장씩" : "One page after work") : (locale === "ko" ? "아이맥스로 다시 한 번" : "Once more in IMAX"),
+    statusLabel: isBookSample ? tQuick("actionReadingComplete") : tQuick("actionWatched"),
+    ratingLabel: isBookSample ? tQuick("ratingBestBook") : tQuick("ratingBestVideo"),
     ratingValue: 5,
     date: "2026.01.31",
     posterUrl,
-    watermark: "On the Timeline",
+    watermark: tHeader("titleRetro"),
     theme: "default",
   };
 

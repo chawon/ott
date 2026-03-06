@@ -15,12 +15,12 @@ import {
 import { formatNoteInline } from "@/lib/utils";
 import TitleSearchBox from "@/components/TitleSearchBox";
 import { useRetro } from "@/context/RetroContext";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
 
-function formatTime(iso: string) {
+function formatTime(iso: string, locale: string) {
   const d = new Date(iso);
-  return d.toLocaleString("ko-KR", {
+  return d.toLocaleString(locale === "ko" ? "ko-KR" : "en-US", {
     month: "short",
     day: "numeric",
     hour: "2-digit",
@@ -39,6 +39,7 @@ export default function CommentsPanel({
 }) {
   const tComments = useTranslations("CommentsPanel");
   const { isRetro } = useRetro();
+  const locale = useLocale();
   const [discussion, setDiscussion] = useState<Discussion | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
   const [body, setBody] = useState("");
@@ -325,7 +326,7 @@ export default function CommentsPanel({
                       ) : null}
                     </span>
                     <span className={cn(isRetro && "font-bold text-black")}>
-                      {formatTime(c.createdAt)}
+                      {formatTime(c.createdAt, locale)}
                     </span>
                   </div>
                   <div
@@ -350,7 +351,7 @@ export default function CommentsPanel({
                     : "bg-card text-foreground hover:bg-muted",
                 )}
               >
-                tComments("viewMore")
+                {tComments("viewMore")}
               </button>
             ) : null}
           </>

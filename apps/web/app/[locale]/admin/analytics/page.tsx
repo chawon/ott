@@ -1,6 +1,8 @@
 import { notFound } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 
 type Props = {
+  params: Promise<{ locale: string }>;
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 };
 
@@ -64,12 +66,17 @@ type AdminEventRow = {
   createdAt: string;
 };
 
-export default async function AdminAnalyticsPage({ searchParams }: Props) {
-  const params = searchParams ? await searchParams : {};
-  const token = readToken(params?.token);
+export default async function AdminAnalyticsPage({
+  params,
+  searchParams,
+}: Props) {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: "Admin" });
+  const sParams = searchParams ? await searchParams : {};
+  const token = readToken(sParams?.token);
   const expected = process.env.ADMIN_ANALYTICS_TOKEN ?? null;
   const backendUrl = process.env.BACKEND_URL ?? null;
-  const daysRaw = readToken(params?.days);
+  const daysRaw = readToken(sParams?.days);
   const days = daysRaw ? Number(daysRaw) : 30;
 
   // MVP: dedicated URL + server-side token check.
@@ -80,10 +87,8 @@ export default async function AdminAnalyticsPage({ searchParams }: Props) {
   if (!backendUrl) {
     return (
       <div className="space-y-2">
-        <h1 className="text-2xl font-bold tracking-tight">관리자 통계</h1>
-        <p className="text-sm text-red-500">
-          `BACKEND_URL` 환경변수가 설정되지 않아 통계를 불러올 수 없습니다.
-        </p>
+        <h1 className="text-2xl font-bold tracking-tight">{t("title")}</h1>
+        <p className="text-sm text-red-500">{t("envError")}</p>
       </div>
     );
   }
@@ -112,13 +117,13 @@ export default async function AdminAnalyticsPage({ searchParams }: Props) {
       },
     );
     if (!response.ok || !eventsResponse.ok) {
-      loadError = `통계 API 오류: ${response.status}`;
+      loadError = t("apiError", { status: response.status });
     } else {
       overview = (await response.json()) as AdminOverview;
       recentEvents = (await eventsResponse.json()) as AdminEventRow[];
     }
   } catch (e: any) {
-    loadError = e?.message ?? "통계 API 호출에 실패했습니다.";
+    loadError = e?.message ?? t("callError");
   }
 
   const isOnboardingEvent = (eventName: string) =>
@@ -135,10 +140,11 @@ export default async function AdminAnalyticsPage({ searchParams }: Props) {
   return (
     <div className="space-y-6">
       <section className="space-y-2">
-        <h1 className="text-2xl font-bold tracking-tight">관리자 통계</h1>
+        <h1 className="text-2xl font-bold tracking-tight">{t("title")}</h1>
         <p className="text-sm text-muted-foreground">
-          조회 기간: 최근{" "}
-          {overview?.days ?? (Number.isFinite(days) ? days : 30)}일
+          {t("queryPeriod", {
+            days: overview?.days ?? (Number.isFinite(days) ? days : 30),
+          })}
         </p>
       </section>
 
@@ -150,39 +156,43 @@ export default async function AdminAnalyticsPage({ searchParams }: Props) {
         <>
           <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <article className="rounded-2xl border border-border bg-card p-4">
-              <div className="text-xs text-muted-foreground">총 이벤트</div>
+              <div className="text-xs text-muted-foreground">
+                {t("totalEvents")}
+              </div>
               <div className="mt-1 text-2xl font-semibold">
                 {overview.events}
               </div>
             </article>
             <article className="rounded-2xl border border-border bg-card p-4">
-              <div className="text-xs text-muted-foreground">DAU</div>
+              <div className="text-xs text-muted-foreground">{t("dau")}</div>
               <div className="mt-1 text-2xl font-semibold">{overview.dau}</div>
             </article>
             <article className="rounded-2xl border border-border bg-card p-4">
-              <div className="text-xs text-muted-foreground">WAU</div>
+              <div className="text-xs text-muted-foreground">{t("wau")}</div>
               <div className="mt-1 text-2xl font-semibold">{overview.wau}</div>
             </article>
             <article className="rounded-2xl border border-border bg-card p-4">
-              <div className="text-xs text-muted-foreground">MAU</div>
+              <div className="text-xs text-muted-foreground">{t("mau")}</div>
               <div className="mt-1 text-2xl font-semibold">{overview.mau}</div>
             </article>
           </section>
 
           <section className="rounded-2xl border border-border bg-card p-6">
             <div className="text-sm font-semibold">
-              퍼널 (최근 {overview.days}일)
+              {t("funnelTitle", { days: overview.days })}
             </div>
             <div className="mt-3 grid gap-3 sm:grid-cols-3">
               <div>
-                <div className="text-xs text-muted-foreground">앱 오픈</div>
+                <div className="text-xs text-muted-foreground">
+                  {t("appOpen")}
+                </div>
                 <div className="text-xl font-semibold">
                   {overview.funnelAppOpenUsers}
                 </div>
               </div>
               <div>
                 <div className="text-xs text-muted-foreground">
-                  기기 등록 성공
+                  {t("deviceRegistered")}
                 </div>
                 <div className="text-xl font-semibold">
                   {overview.funnelLoginUsers}
@@ -190,7 +200,7 @@ export default async function AdminAnalyticsPage({ searchParams }: Props) {
               </div>
               <div>
                 <div className="text-xs text-muted-foreground">
-                  첫 기록/기록 생성
+                  {t("logCreated")}
                 </div>
                 <div className="text-xl font-semibold">
                   {overview.funnelLogCreateUsers}
@@ -201,12 +211,12 @@ export default async function AdminAnalyticsPage({ searchParams }: Props) {
 
           <section className="rounded-2xl border border-border bg-card p-6">
             <div className="text-sm font-semibold">
-              레트로 모드 사용 (최근 {overview.days}일)
+              {t("retroTitle", { days: overview.days })}
             </div>
             <div className="mt-3 grid gap-3 sm:grid-cols-2">
               <div>
                 <div className="text-xs text-muted-foreground">
-                  레트로로 앱 오픈한 사용자
+                  {t("retroAppOpen")}
                 </div>
                 <div className="text-xl font-semibold">
                   {overview.retroAppOpenUsers}
@@ -214,7 +224,7 @@ export default async function AdminAnalyticsPage({ searchParams }: Props) {
               </div>
               <div>
                 <div className="text-xs text-muted-foreground">
-                  레트로 토글 사용자
+                  {t("retroToggle")}
                 </div>
                 <div className="text-xl font-semibold">
                   {overview.retroToggleUsers}
@@ -224,7 +234,7 @@ export default async function AdminAnalyticsPage({ searchParams }: Props) {
           </section>
 
           <section className="rounded-2xl border border-border bg-card p-6">
-            <div className="text-sm font-semibold">플랫폼별</div>
+            <div className="text-sm font-semibold">{t("byPlatform")}</div>
             <div className="mt-3 space-y-2">
               {overview.platforms.map((p) => (
                 <div
@@ -241,9 +251,7 @@ export default async function AdminAnalyticsPage({ searchParams }: Props) {
           </section>
 
           <section className="rounded-2xl border border-border bg-card p-6">
-            <div className="text-sm font-semibold">
-              디바이스 세그먼트 (app_open 기준)
-            </div>
+            <div className="text-sm font-semibold">{t("deviceSegments")}</div>
             <div className="mt-3 grid gap-4 lg:grid-cols-2">
               <div className="rounded-xl border border-border p-3">
                 <div className="mb-2 text-xs font-semibold text-muted-foreground">
@@ -321,14 +329,14 @@ export default async function AdminAnalyticsPage({ searchParams }: Props) {
           </section>
 
           <section className="rounded-2xl border border-border bg-card p-6">
-            <div className="text-sm font-semibold">이벤트 종류별 상세</div>
+            <div className="text-sm font-semibold">{t("eventDetails")}</div>
             <div className="mt-3 overflow-x-auto">
               <table className="w-full min-w-[520px] text-sm">
                 <thead>
                   <tr className="border-b border-border text-left text-xs text-muted-foreground">
-                    <th className="py-2 pr-3">event</th>
-                    <th className="py-2 pr-3">count</th>
-                    <th className="py-2 pr-3">actors</th>
+                    <th className="py-2 pr-3">{t("event")}</th>
+                    <th className="py-2 pr-3">{t("count")}</th>
+                    <th className="py-2 pr-3">{t("actors")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -350,7 +358,7 @@ export default async function AdminAnalyticsPage({ searchParams }: Props) {
           </section>
 
           <section className="rounded-2xl border border-border bg-card p-6">
-            <div className="text-sm font-semibold">일자별 상세</div>
+            <div className="text-sm font-semibold">{t("dailyDetails")}</div>
             <div className="mt-3 overflow-x-auto">
               <table className="w-full min-w-[980px] text-sm">
                 <thead>
@@ -384,9 +392,9 @@ export default async function AdminAnalyticsPage({ searchParams }: Props) {
           </section>
 
           <section className="rounded-2xl border border-border bg-card p-6">
-            <div className="text-sm font-semibold">주차별 레트로 추이</div>
+            <div className="text-sm font-semibold">{t("weeklyRetroTrend")}</div>
             <div className="mt-1 text-xs text-muted-foreground">
-              월요일 시작 기준, 최근 {overview.days}일
+              {t("weekStartNotice", { days: overview.days })}
             </div>
             <div className="mt-3 overflow-x-auto">
               <table className="w-full min-w-[760px] text-sm">
@@ -415,15 +423,13 @@ export default async function AdminAnalyticsPage({ searchParams }: Props) {
           </section>
 
           <section className="rounded-2xl border border-border bg-card p-6">
-            <div className="text-sm font-semibold">
-              최근 수집 이벤트 (최대 300)
-            </div>
+            <div className="text-sm font-semibold">{t("recentEvents")}</div>
             <div className="mt-3 overflow-x-auto">
               <table className="w-full min-w-[1100px] text-xs">
                 <thead>
                   <tr className="border-b border-border text-left text-[11px] text-muted-foreground">
                     <th className="py-2 pr-3">occurredAt</th>
-                    <th className="py-2 pr-3">event</th>
+                    <th className="py-2 pr-3">{t("event")}</th>
                     <th className="py-2 pr-3">platform</th>
                     <th className="py-2 pr-3">userId</th>
                     <th className="py-2 pr-3">sessionId</th>
@@ -438,9 +444,12 @@ export default async function AdminAnalyticsPage({ searchParams }: Props) {
                       className="border-b border-border/60 align-top"
                     >
                       <td className="py-2 pr-3 whitespace-nowrap">
-                        {new Date(row.occurredAt).toLocaleString("ko-KR", {
-                          timeZone: "Asia/Seoul",
-                        })}
+                        {new Date(row.occurredAt).toLocaleString(
+                          locale === "ko" ? "ko-KR" : "en-US",
+                          {
+                            timeZone: "Asia/Seoul",
+                          },
+                        )}
                       </td>
                       <td className="py-2 pr-3 font-medium">{row.eventName}</td>
                       <td className="py-2 pr-3">{row.platform}</td>

@@ -46,7 +46,7 @@ export default function PublicDiscussionsPage() {
 
   const headerTitle = tPublic("title");
   const headerSubtitle = loading
-    ? "불러오는 중…"
+    ? tPublic("loading")
     : err
       ? err
       : tPublic("description");
@@ -81,18 +81,18 @@ export default function PublicDiscussionsPage() {
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="제목 검색"
+          placeholder={tPublic("searchPlaceholder")}
           className="w-full rounded-xl border border-border bg-card px-3 py-2 text-sm outline-none md:w-72"
         />
         <div className="flex items-center gap-2">
-          <div className="text-xs text-neutral-500">정렬</div>
+          <div className="text-xs text-neutral-500">{tPublic("sortLabel")}</div>
           <select
             value={sort}
             onChange={(e) => setSort(e.target.value as "latest" | "comments")}
             className="select-base rounded-xl px-3 py-2 text-xs"
           >
-            <option value="latest">최신</option>
-            <option value="comments">댓글 많은 순</option>
+            <option value="latest">{tPublic("sortLatest")}</option>
+            <option value="comments">{tPublic("sortComments")}</option>
           </select>
         </div>
       </div>

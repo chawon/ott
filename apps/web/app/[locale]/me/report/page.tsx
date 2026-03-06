@@ -10,13 +10,14 @@ import {
   occasionLabel,
 } from "@/lib/utils";
 import { api } from "@/lib/api";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { Occasion, Place } from "@/lib/types";
 
 export default function MyReportPage() {
   const t = useTranslations("Report");
   const tCommon = useTranslations("Common");
   const tQuick = useTranslations("QuickLogCard");
+  const locale = useLocale();
   const [report, setReport] = useState<PersonalReport | null>(null);
 
   function typeLabel(type: string) {
@@ -128,9 +129,12 @@ export default function MyReportPage() {
           <div className="text-xs text-muted-foreground">{t("recentDate")}</div>
           <div className="mt-1 text-base font-semibold">
             {report.lastLoggedAt
-              ? new Date(report.lastLoggedAt).toLocaleDateString("ko-KR", {
-                  timeZone: "Asia/Seoul",
-                })
+              ? new Date(report.lastLoggedAt).toLocaleDateString(
+                  locale === "ko" ? "ko-KR" : "en-US",
+                  {
+                    timeZone: "Asia/Seoul",
+                  },
+                )
               : "-"}
           </div>
         </article>

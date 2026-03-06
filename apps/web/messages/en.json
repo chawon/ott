@@ -223,7 +223,12 @@
     "unitBook": " book(s) ",
     "unitVideo": " video(s) ",
     "yearFormat": "In {year}, ",
-    "yearSuffix": ""
+    "yearSuffix": "",
+    "loading": "Loading…",
+    "subtitleRetro": "See all your footprints at a glance",
+    "subtitleModern": "Your records are gathered in chronological order",
+    "emptyRetro": "No footprints yet. Leave a log above!",
+    "emptyModern": "Leave your first log. Your timeline starts here."
   },
   "TitleSearchBox": {
     "defaultPlaceholder": "Search titles (e.g., Dune, The Bear)",
@@ -247,7 +252,12 @@
     "title": "Community Footprints",
     "description": "What are others watching and reading these days?",
     "loadError": "Failed to load the list.",
-    "empty": "No stories shared yet."
+    "empty": "No stories shared yet.",
+    "loading": "Loading…",
+    "searchPlaceholder": "Search title",
+    "sortLabel": "Sort",
+    "sortLatest": "Latest",
+    "sortComments": "Most Comments"
   },
   "DiscussionList": {
     "defaultEmpty": "No shared records yet.",
@@ -267,7 +277,7 @@
     "sectionReport": "Report",
     "reportDescModern": "View a summary of your usage patterns.",
     "reportDescEmpty": "Usage reports will be available after your first log.",
-    "viewReport": "View My Report",
+    "viewReport": "View My Usage Report",
     "pairingCodeLabel": "My Pairing Code",
     "pairingCodeLoading": "Generating...",
     "pairingCodeDescModern": "Enter this code on your other devices.",
@@ -313,7 +323,11 @@
     "statusNoExportData": "Export will be available after your first log.",
     "statusNoMatchingLogs": "No logs found for these criteria.",
     "statusExportSuccess": "CSV file saved.",
-    "statusExportFailed": "Export failed."
+    "statusExportFailed": "Export failed.",
+    "resetLocalAction": "Reset Local",
+    "exportRangeLabel": "Export Range",
+    "noConnectedDevices": "No connected devices.",
+    "currentLabel": "Current"
   },
   "CommentsPanel": {
     "loadError": "Failed to load shared records. Please try again later.",
@@ -520,5 +534,33 @@
     "occasion": "Occasion",
     "platform": "Platform",
     "note": "Note"
+  },
+  "Admin": {
+    "title": "Admin Analytics",
+    "envError": "BACKEND_URL environment variable is not set, cannot load statistics.",
+    "apiError": "Statistics API error: {status}",
+    "callError": "Failed to call statistics API.",
+    "queryPeriod": "Query period: Last {days} days",
+    "totalEvents": "Total Events",
+    "dau": "DAU",
+    "wau": "WAU",
+    "mau": "MAU",
+    "funnelTitle": "Funnel (Last {days} days)",
+    "appOpen": "App Open",
+    "deviceRegistered": "Device Registered",
+    "logCreated": "First Log/Log Created",
+    "retroTitle": "Retro Mode Usage (Last {days} days)",
+    "retroAppOpen": "Users opened app in Retro",
+    "retroToggle": "Retro Toggle users",
+    "byPlatform": "By Platform",
+    "deviceSegments": "Device Segments (based on app_open)",
+    "eventDetails": "Details by Event Type",
+    "dailyDetails": "Daily Details",
+    "weeklyRetroTrend": "Weekly Retro Trend",
+    "weekStartNotice": "Based on Monday start, last {days} days",
+    "recentEvents": "Recent Events (Max 300)",
+    "event": "Event",
+    "count": "Count",
+    "actors": "Actors"
   }
 }

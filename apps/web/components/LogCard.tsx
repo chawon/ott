@@ -10,13 +10,13 @@ import {
 } from "@/lib/utils";
 import { useRetro } from "@/context/RetroContext";
 import { cn } from "@/lib/utils";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 
-function formatDate(iso: string, isRetro: boolean) {
+function formatDate(iso: string, isRetro: boolean, locale: string) {
   const d = new Date(iso);
   if (isRetro) {
     return d
-      .toLocaleDateString("ko-KR", {
+      .toLocaleDateString(locale === "ko" ? "ko-KR" : "en-US", {
         year: "numeric",
         month: "2-digit",
         day: "2-digit",
@@ -24,7 +24,7 @@ function formatDate(iso: string, isRetro: boolean) {
       .replace(/\. /g, "-")
       .replace(".", "");
   }
-  return d.toLocaleDateString("ko-KR", {
+  return d.toLocaleDateString(locale === "ko" ? "ko-KR" : "en-US", {
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
@@ -106,6 +106,7 @@ function seasonYearLabel(log: WatchLog) {
 export default function LogCard({ log }: { log: WatchLog }) {
   const t = log.title;
   const { isRetro } = useRetro();
+  const locale = useLocale();
   const tStatus = useTranslations("Status");
   const tCommon = useTranslations("Common");
 
@@ -180,12 +181,10 @@ export default function LogCard({ log }: { log: WatchLog }) {
                     {seasonLabel}
                   </span>
                 ) : null}
-                <span>{formatDate(log.watchedAt ?? log.createdAt, true)}</span>
-                {log.ott ? (
-                  <span className="text-blue-600">@{log.ott}</span>
-                ) : (
-                  ""
-                )}
+                <span>
+                  {formatDate(log.watchedAt ?? log.createdAt, true, locale)}
+                </span>
+                {log.ott ? <span className="text-blue-600">@{log.ott}</span> : ""}
               </div>
             </div>
             {typeof log.rating === "number" ? (
@@ -297,7 +296,9 @@ export default function LogCard({ log }: { log: WatchLog }) {
                 </>
               ) : null}
               <span className="text-muted-foreground/60">·</span>
-              <span>{formatDate(log.watchedAt ?? log.createdAt, false)}</span>
+              <span>
+                {formatDate(log.watchedAt ?? log.createdAt, false, locale)}
+              </span>
               {log.ott ? (
                 <>
                   <span className="text-muted-foreground/60">·</span>

@@ -10,7 +10,7 @@ import {
   Users,
 } from "lucide-react";
 import { useParams } from "next/navigation";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { api, apiWithAuth } from "@/lib/api";
 import CommentsPanel from "@/components/CommentsPanel";
 import {
@@ -105,9 +105,9 @@ function saveCustomOptions(key: string, options: string[]) {
   localStorage.setItem(key, JSON.stringify(options));
 }
 
-function fmt(iso: string) {
+function fmt(iso: string, locale: string) {
   const d = new Date(iso);
-  return d.toLocaleString("ko-KR", {
+  return d.toLocaleString(locale === "ko" ? "ko-KR" : "en-US", {
     month: "short",
     day: "numeric",
     hour: "2-digit",
@@ -196,6 +196,7 @@ export default function TitlePage() {
   const params = useParams<{ id: string }>();
   const rawId = params?.id;
   const titleId = Array.isArray(rawId) ? rawId[0] : rawId;
+  const locale = useLocale();
   const tQuick = useTranslations("QuickLogCard");
   const tCommon = useTranslations("Common");
   const tStatus = useTranslations("Status");
@@ -1079,7 +1080,7 @@ export default function TitlePage() {
                     className="rounded-xl border border-border bg-card/80 p-4 text-card-foreground"
                   >
                     <div className="text-sm font-semibold text-foreground">
-                      {fmt(h.recordedAt)} · {statusText}
+                      {fmt(h.recordedAt, locale)} · {statusText}
                       {seasonEpisodeLabel(h.seasonNumber, h.episodeNumber)
                         ? ` · ${seasonEpisodeLabel(h.seasonNumber, h.episodeNumber)}`
                         : ""}
@@ -1131,3 +1132,4 @@ export default function TitlePage() {
     </div>
   );
 }
+

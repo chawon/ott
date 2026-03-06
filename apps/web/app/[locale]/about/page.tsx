@@ -18,7 +18,7 @@ export default function AboutPage() {
     <div className="mx-auto max-w-2xl space-y-10 py-10 text-foreground">
       <section className="space-y-2">
         <h1 className="text-xl font-semibold">
-          로그인 없이 기록하는 영상·책 타임라인
+          {tAbout("subtitle")}
         </h1>
         <p className="text-sm leading-relaxed text-muted-foreground">
           {tAbout("description")}
@@ -27,7 +27,7 @@ export default function AboutPage() {
 
       <section className="space-y-6">
         <h2 className="border-b border-border pb-2 text-xl font-semibold">
-          어떻게 사용하나요?
+          {tAbout("howToUseTitle")}
         </h2>
         <div className="grid gap-6">
           <div className="flex gap-4">
@@ -37,7 +37,7 @@ export default function AboutPage() {
             <div>
               <h3 className="font-medium">{tAbout("step1Title")}</h3>
               <p className="text-sm text-muted-foreground">
-                홈 화면 상단에서 영화, 시리즈, 책 제목을 검색하세요.
+                {tAbout("step1Desc")}
               </p>
             </div>
           </div>
@@ -48,8 +48,7 @@ export default function AboutPage() {
             <div>
               <h3 className="font-medium">{tAbout("step2Title")}</h3>
               <p className="text-sm text-muted-foreground">
-                보고 있거나 읽고 있는 중인지, 완료했는지 선택하고 가벼운 평점을
-                남겨주세요.
+                {tAbout("step2Desc")}
               </p>
             </div>
           </div>
@@ -60,8 +59,7 @@ export default function AboutPage() {
             <div>
               <h3 className="font-medium">{tAbout("step3Title")}</h3>
               <p className="text-sm text-muted-foreground">
-                저장 즉시 나만의 타임라인이 구축됩니다. 모든 데이터는 브라우저에
-                안전하게 우선 저장됩니다.
+                {tAbout("step3Desc")}
               </p>
             </div>
           </div>
@@ -70,7 +68,7 @@ export default function AboutPage() {
 
       <section className="space-y-6">
         <h2 className="border-b border-border pb-2 text-xl font-semibold">
-          더 편하게 쓰는 방법
+          {tAbout("moreTipsTitle")}
         </h2>
         <div className="grid gap-6">
           <div className="flex gap-4">
@@ -80,8 +78,7 @@ export default function AboutPage() {
             <div>
               <h3 className="font-medium">{tAbout("tip1Title")}</h3>
               <p className="text-sm text-muted-foreground">
-                On the Timeline은 설치형 앱처럼 사용할 수 있어요. 홈 화면에
-                추가하면 앱 아이콘으로 빠르게 열 수 있습니다.
+                {tAbout("tip1Desc")}
               </p>
             </div>
           </div>
@@ -92,8 +89,7 @@ export default function AboutPage() {
             <div>
               <h3 className="font-medium">{tAbout("tip2Title")}</h3>
               <p className="text-sm text-muted-foreground">
-                설정에서 내 기록을 CSV로 내려받아 엑셀이나 스프레드시트로 정리할
-                수 있어요.
+                {tAbout("tip2Desc")}
               </p>
             </div>
           </div>
@@ -104,8 +100,7 @@ export default function AboutPage() {
             <div>
               <h3 className="font-medium">{tAbout("tip3Title")}</h3>
               <p className="text-sm text-muted-foreground">
-                기록 저장 후 “공유 카드 만들기”를 선택하면, SNS에 올릴 수 있는
-                예쁜 카드가 자동으로 만들어집니다.
+                {tAbout("tip3Desc")}
               </p>
               <div className="mt-4 grid gap-4 sm:grid-cols-2">
                 <figure className="space-y-2">
@@ -116,7 +111,7 @@ export default function AboutPage() {
                     loading="lazy"
                   />
                   <figcaption className="text-xs text-muted-foreground">
-                    영상 공유 카드 예시
+                    {tAbout("exampleVideo")}
                   </figcaption>
                 </figure>
                 <figure className="space-y-2">
@@ -127,7 +122,7 @@ export default function AboutPage() {
                     loading="lazy"
                   />
                   <figcaption className="text-xs text-muted-foreground">
-                    책 공유 카드 예시
+                    {tAbout("exampleBook")}
                   </figcaption>
                 </figure>
               </div>
@@ -137,7 +132,7 @@ export default function AboutPage() {
       </section>
 
       <section className="rounded-2xl border border-border bg-muted/60 p-6 italic text-muted-foreground">
-        tAbout("closing")
+        {tAbout("closing")}
       </section>
     </div>
   );

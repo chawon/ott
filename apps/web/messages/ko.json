@@ -223,7 +223,12 @@
     "unitBook": "권을 ",
     "unitVideo": "편을 ",
     "yearFormat": "{year}년",
-    "yearSuffix": "에는 "
+    "yearSuffix": "에는 ",
+    "loading": "불러오는 중…",
+    "subtitleRetro": "내가 남긴 날적이가 한눈에 보여요",
+    "subtitleModern": "내가 본 것들이 시간 순서로 모여요",
+    "emptyRetro": "아직 발자취가 없어. 위에서 날적이 하나 남겨봐~",
+    "emptyModern": "첫 기록을 남겨보세요. 타임라인이 바로 시작돼요."
   },
   "TitleSearchBox": {
     "defaultPlaceholder": "작품 검색 (예: 듄, 더 베어)",
@@ -247,7 +252,12 @@
     "title": "함께 하는 발자취",
     "description": "다른 사람들은 요즘 무엇을 보고 읽을까요?",
     "loadError": "목록을 불러오지 못했습니다.",
-    "empty": "아직 올라온 이야기가 없어요."
+    "empty": "아직 올라온 이야기가 없어요.",
+    "loading": "불러오는 중…",
+    "searchPlaceholder": "제목 검색",
+    "sortLabel": "정렬",
+    "sortLatest": "최신",
+    "sortComments": "댓글 많은 순"
   },
   "DiscussionList": {
     "defaultEmpty": "아직 함께 기록이 없어요.",
@@ -313,7 +323,11 @@
     "statusNoExportData": "첫 기록(로그/댓글)을 남기면 내보내기가 활성화돼요.",
     "statusNoMatchingLogs": "해당 조건의 기록이 없어요.",
     "statusExportSuccess": "CSV 파일을 저장했어요.",
-    "statusExportFailed": "내보내기에 실패했어요."
+    "statusExportFailed": "내보내기에 실패했어요.",
+    "resetLocalAction": "로컬 초기화",
+    "exportRangeLabel": "내보내기 범위",
+    "noConnectedDevices": "연결된 기기가 없어요.",
+    "currentLabel": "현재"
   },
   "CommentsPanel": {
     "loadError": "함께 기록을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.",
@@ -520,5 +534,33 @@
     "occasion": "누구와",
     "platform": "플랫폼",
     "note": "메모"
+  },
+  "Admin": {
+    "title": "관리자 통계",
+    "envError": "BACKEND_URL 환경변수가 설정되지 않아 통계를 불러올 수 없습니다.",
+    "apiError": "통계 API 오류: {status}",
+    "callError": "통계 API 호출에 실패했습니다.",
+    "queryPeriod": "조회 기간: 최근 {days}일",
+    "totalEvents": "총 이벤트",
+    "dau": "DAU",
+    "wau": "WAU",
+    "mau": "MAU",
+    "funnelTitle": "퍼널 (최근 {days}일)",
+    "appOpen": "앱 오픈",
+    "deviceRegistered": "기기 등록 성공",
+    "logCreated": "첫 기록/기록 생성",
+    "retroTitle": "레트로 모드 사용 (최근 {days}일)",
+    "retroAppOpen": "레트로로 앱 오픈한 사용자",
+    "retroToggle": "레트로 토글 사용자",
+    "byPlatform": "플랫폼별",
+    "deviceSegments": "디바이스 세그먼트 (app_open 기준)",
+    "eventDetails": "이벤트 종류별 상세",
+    "dailyDetails": "일자별 상세",
+    "weeklyRetroTrend": "주차별 레트로 추이",
+    "weekStartNotice": "월요일 시작 기준, 최근 {days}일",
+    "recentEvents": "최근 수집 이벤트 (최대 300)",
+    "event": "이벤트",
+    "count": "개수",
+    "actors": "수행자"
   }
 }

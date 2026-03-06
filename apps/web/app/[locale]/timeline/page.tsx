@@ -126,12 +126,12 @@ export default function TimelinePage() {
     ? tTimeline("titleRetro")
     : tTimeline("titleModern");
   const headerSubtitle = useMemo(() => {
-    if (loading) return "불러오는 중…";
+    if (loading) return tTimeline("loading");
     if (err) return err;
     return isRetro
-      ? "내가 남긴 날적이가 한눈에 보여요"
-      : "내가 본 것들이 시간 순서로 모여요";
-  }, [loading, err, isRetro]);
+      ? tTimeline("subtitleRetro")
+      : tTimeline("subtitleModern");
+  }, [loading, err, isRetro, tTimeline]);
 
   const statusLabel = useMemo(() => {
     if (status === "ALL") return null;
@@ -280,7 +280,7 @@ export default function TimelinePage() {
 
       {loading && logs.length === 0 && (
         <div className="rounded-2xl border border-border bg-card p-5 text-sm text-muted-foreground shadow-sm">
-          불러오는 중…
+          {tTimeline("loading")}
         </div>
       )}
 
@@ -293,9 +293,7 @@ export default function TimelinePage() {
               : "rounded-2xl border border-border bg-card text-muted-foreground",
           )}
         >
-          {isRetro
-            ? "아직 발자취가 없어. 위에서 날적이 하나 남겨봐~"
-            : "첫 기록을 남겨보세요. 타임라인이 바로 시작돼요."}
+          {isRetro ? tTimeline("emptyRetro") : tTimeline("emptyModern")}
         </div>
       )}
 

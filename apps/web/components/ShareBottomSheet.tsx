@@ -27,6 +27,7 @@ export default function ShareBottomSheet({
   const tShare = useTranslations("ShareBottomSheet");
   const tStatus = useTranslations("Status");
   const tQuick = useTranslations("QuickLogCard");
+  const tHeader = useTranslations("AppHeader");
   const [showRatingLabel, setShowRatingLabel] = useState(true);
   const [showNote, setShowNote] = useState(true);
   const [format, setFormat] = useState<"story" | "feed">("story");
@@ -62,10 +63,10 @@ export default function ShareBottomSheet({
       ratingValue: showRatingLabel && rating ? rating.value : null,
       date: `${year}.${month}.${day}`,
       posterUrl: log.seasonPosterUrl ?? log.title.posterUrl ?? null,
-      watermark: isRetro ? "으뜸과 버금" : "On the Timeline",
+      watermark: isRetro ? tHeader("titleRetro") : "On the Timeline",
       theme: (isRetro ? "retro" : "default") as "retro" | "default",
     };
-  }, [format, isRetro, log, showNote, showRatingLabel, tStatus, tQuick]);
+  }, [format, isRetro, log, showNote, showRatingLabel, tStatus, tQuick, tHeader]);
 
   useEffect(() => {
     let active = true;

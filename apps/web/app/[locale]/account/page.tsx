@@ -16,7 +16,7 @@ import { useRetro } from "@/context/RetroContext";
 import { cn } from "@/lib/utils";
 import { downloadTimelineCsv } from "@/lib/export";
 
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 export default function AccountPage() {
   const tAccount = useTranslations("Account");
   const tCsv = useTranslations("CSV");
@@ -24,67 +24,47 @@ export default function AccountPage() {
   const tCommon = useTranslations("Common");
   const tQuick = useTranslations("QuickLogCard");
   const { isRetro } = useRetro();
+  const locale = useLocale();
   const [userId, setUserId] = useState<string | null>(null);
   const [deviceId, setDeviceId] = useState<string | null>(null);
   const [pairingCode, setPairingCode] = useState<string | null>(null);
   const [input, setInput] = useState("");
   const [status, setStatus] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [initializing, setInitializing] = useState(true);
+  const [devices, setDevices] = useState<any[]>([]);
+  const [logs, setLogs] = useState<any[]>([]);
+  const [exportRange, setExportRange] = useState<"ALL" | "video" | "book">(
+    "ALL",
+  );
   const [exporting, setExporting] = useState(false);
   const [exportStatus, setExportStatus] = useState<string | null>(null);
-  const [exportContentType, setExportContentType] = useState<
-    "ALL" | "video" | "book"
-  >("ALL");
-  const [initializing, setInitializing] = useState(false);
-  const [devices, setDevices] = useState<
-    {
-      id: string;
-      createdAt: string;
-      lastSeenAt: string;
-      os?: string | null;
-      browser?: string | null;
-    }[]
-  >([]);
 
   useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      setInitializing(true);
-      setStatus(null);
-      try {
-        const storedUserId = getUserId();
-        const storedDeviceId = getDeviceId();
-        const storedPairingCode = getPairingCode();
-        if (cancelled) return;
-
-        setUserId(storedUserId);
-        setDeviceId(storedDeviceId);
-        setPairingCode(storedPairingCode);
-
-        if (storedUserId) {
-          await loadDevices();
-        } else {
-          setDevices([]);
-        }
-      } finally {
-        if (!cancelled) setInitializing(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
+    setUserId(getUserId());
+    setDeviceId(getDeviceId());
+    setPairingCode(getPairingCode());
+    setInitializing(false);
+    loadDevices();
+    listAllLogsLocal().then(setLogs);
   }, []);
 
-  async function pair() {
-    if (!input.trim()) return;
+  async function loadDevices() {
+    if (!getUserId()) return;
+    try {
+      const res = await api<any[]>("/devices");
+      setDevices(res);
+    } catch {
+      // ignore
+    }
+  }
+
+  async function handlePair() {
+    if (!input.trim() || loading) return;
     setLoading(true);
     setStatus(null);
     try {
-      const res = await pairWithCode(input.trim());
-      setUserId(res.userId);
-      setDeviceId(res.deviceId);
-      setPairingCode(res.pairingCode);
-      setInput("");
+      await pairWithCode(input.trim());
       setStatus(tAccount("statusConnected"));
       await loadDevices();
     } catch (e: any) {
@@ -94,50 +74,19 @@ export default function AccountPage() {
     }
   }
 
-  async function loadDevices() {
-    if (!getUserId()) {
-      setDevices([]);
-      return [];
-    }
-    try {
-      const res =
-        await api<
-          {
-            id: string;
-            createdAt: string;
-            lastSeenAt: string;
-            os?: string | null;
-            browser?: string | null;
-          }[]
-        >("/auth/devices");
-      setDevices(res);
-      return res;
-    } catch {
-      setDevices([]);
-      return [];
-    }
-  }
-
-  async function resetIdentity() {
-    await resetLocalState();
-    setUserId(null);
-    setDeviceId(null);
-    setPairingCode(null);
-    setDevices([]);
-  }
-
-  async function revokeDevice(targetId: string) {
+  async function revokeDevice(id: string) {
+    if (loading) return;
     setLoading(true);
-    setStatus(null);
     try {
-      await api(`/auth/devices/${targetId}`, { method: "DELETE" });
-      const next = await loadDevices();
-      if (next.length === 0) {
-        await resetIdentity();
+      await api(`/devices/${id}`, { method: "DELETE" });
+      if (id === getDeviceId()) {
+        resetLocalState();
         setStatus(tAccount("statusResetAll"));
-        return;
+        window.location.reload();
+      } else {
+        setStatus(tAccount("statusUnlinked"));
+        await loadDevices();
       }
-      setStatus(tAccount("statusUnlinked"));
     } catch (e: any) {
       setStatus(e?.message ?? tAccount("statusUnlinkFailed"));
     } finally {
@@ -145,16 +94,14 @@ export default function AccountPage() {
     }
   }
 
-  async function revokeAllDevices() {
-    if (devices.length === 0) return;
+  async function revokeAll() {
+    if (loading) return;
     setLoading(true);
-    setStatus(null);
     try {
-      for (const d of devices) {
-        await api(`/auth/devices/${d.id}`, { method: "DELETE" });
-      }
-      await resetIdentity();
+      await api("/devices/all", { method: "DELETE" });
+      resetLocalState();
       setStatus(tAccount("statusResetAll"));
+      window.location.reload();
     } catch (e: any) {
       setStatus(e?.message ?? tAccount("statusResetFailed"));
     } finally {
@@ -162,19 +109,11 @@ export default function AccountPage() {
     }
   }
 
-  async function resetLocalOnly() {
-    const ok = confirm(tAccount("resetConfirm"));
-    if (!ok) return;
-    setLoading(true);
-    setStatus(null);
-    try {
-      await resetLocalState();
+  function handleResetLocal() {
+    if (confirm(tAccount("resetConfirm"))) {
+      resetLocalState();
       setStatus(tAccount("statusLocalReset"));
-      if (typeof window !== "undefined") {
-        window.location.reload();
-      }
-    } finally {
-      setLoading(false);
+      window.location.reload();
     }
   }
 
@@ -183,25 +122,18 @@ export default function AccountPage() {
     const y = now.getFullYear();
     const m = String(now.getMonth() + 1).padStart(2, "0");
     const d = String(now.getDate()).padStart(2, "0");
-    const hh = String(now.getHours()).padStart(2, "0");
-    const mm = String(now.getMinutes()).padStart(2, "0");
-    return `watchlog-timeline-${y}${m}${d}-${hh}${mm}.csv`;
+    return `watchlog-export-${y}${m}${d}.csv`;
   }
 
-  async function exportTimelineCsv() {
-    if (!hasAccount) {
-      setExportStatus(tAccount("statusNoExportData"));
-      return;
-    }
+  async function exportLogs() {
     setExporting(true);
     setExportStatus(null);
     try {
-      const logs = await listAllLogsLocal();
       const filtered =
-        exportContentType === "book"
-          ? logs.filter((log) => log.title?.type === "book")
-          : exportContentType === "video"
-            ? logs.filter((log) => log.title?.type !== "book")
+        exportRange === "video"
+          ? logs.filter((l) => l.title.type !== "book")
+          : exportRange === "book"
+            ? logs.filter((l) => l.title.type === "book")
             : logs;
       if (filtered.length === 0) {
         setExportStatus(tAccount("statusNoMatchingLogs"));
@@ -223,248 +155,268 @@ export default function AccountPage() {
     }
   }
 
-  function formatShort(iso: string) {
+  function formatShort(iso: string, locale: string) {
     const d = new Date(iso);
-    return d.toLocaleDateString("ko-KR", { month: "short", day: "numeric" });
+    return d.toLocaleDateString(locale === "ko" ? "ko-KR" : "en-US", {
+      month: "short",
+      day: "numeric",
+    });
   }
 
   const headerTitle = isRetro
     ? tAccount("titleRetro")
     : tAccount("titleModern");
-  const hasAccount = !!userId;
-  const headerSubtitle = isRetro
-    ? tAccount("descriptionRetro")
-    : tAccount("descriptionModern");
 
   return (
-    <div className="space-y-4">
-      <div>
-        {isRetro ? (
-          <div className="flex items-baseline justify-between border-b-4 border-black pb-2 mb-4">
-            <div className="text-xl font-bold uppercase tracking-tighter">
-              {headerTitle}
-            </div>
-          </div>
-        ) : (
-          <div className="text-xl font-semibold flex items-center gap-2">
-            <Settings className="h-5 w-5" />
-            {headerTitle}
-          </div>
-        )}
-        <div
-          className={cn(
-            isRetro
-              ? "text-xs font-bold text-neutral-500 uppercase"
-              : "text-sm text-muted-foreground",
-          )}
-        >
-          {headerSubtitle}
-        </div>
-      </div>
+    <div className="mx-auto max-w-xl space-y-6">
+      <header className="space-y-1">
+        <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+          <Settings className="h-6 w-6" />
+          {headerTitle}
+        </h1>
+        <p className="text-sm text-muted-foreground">
+          {isRetro
+            ? tAccount("descriptionRetro")
+            : tAccount("descriptionModern")}
+        </p>
+      </header>
 
-      <section className="rounded-2xl border border-border bg-card p-6 shadow-sm space-y-2">
-        <div className="text-sm font-semibold">{tAccount("sectionReport")}</div>
-        <div className="text-xs text-muted-foreground">
-          {hasAccount
+      <section className="space-y-4 rounded-2xl border border-border bg-card p-6 shadow-sm">
+        <div className="flex items-center justify-between">
+          <div className="text-base font-semibold">
+            {tAccount("sectionReport")}
+          </div>
+        </div>
+        <p className="text-sm text-muted-foreground">
+          {logs.length > 0
             ? tAccount("reportDescModern")
             : tAccount("reportDescEmpty")}
-        </div>
-        {hasAccount ? (
-          <Link
-            href="/me/report"
-            className="inline-flex rounded-xl border border-border px-3 py-2 text-sm font-semibold text-foreground hover:bg-muted"
-          >
-            내 이용 리포트 보기
-          </Link>
+        </p>
+        {logs.length > 0 ? (
+          <div className="flex flex-col gap-2">
+            <Link
+              href="/me/report"
+              className={cn(
+                "inline-flex items-center justify-center gap-2 py-3 text-sm font-bold transition-all",
+                isRetro
+                  ? "border-4 border-black bg-[#2ecc71] text-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] active:translate-y-0 active:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+                  : "rounded-2xl bg-indigo-600 text-white hover:bg-indigo-700 shadow-lg shadow-indigo-500/20",
+              )}
+            >
+              {tAccount("viewReport")}
+            </Link>
+          </div>
         ) : (
-          <button
-            type="button"
-            disabled
-            className="inline-flex rounded-xl border border-border px-3 py-2 text-sm font-semibold text-muted-foreground opacity-60"
-          >
-            내 이용 리포트 보기
-          </button>
+          <div className="flex flex-col gap-2 opacity-50 pointer-events-none">
+            <div
+              className={cn(
+                "inline-flex items-center justify-center gap-2 py-3 text-sm font-bold",
+                isRetro
+                  ? "border-4 border-black bg-neutral-200 text-neutral-500 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
+                  : "rounded-2xl bg-neutral-100 text-neutral-400",
+              )}
+            >
+              {tAccount("viewReport")}
+            </div>
+          </div>
         )}
       </section>
 
-      <section className="rounded-2xl border border-border bg-card p-6 shadow-sm space-y-2">
-        <div className="text-sm text-muted-foreground">
-          {tAccount("pairingCodeLabel")}
-        </div>
-        <div className="text-2xl font-semibold tracking-widest">
-          {initializing ? tAccount("pairingCodeLoading") : (pairingCode ?? "—")}
-        </div>
-        <div className="text-xs text-muted-foreground">
-          {pairingCode
-            ? tAccount("pairingCodeDescModern")
-            : tAccount("pairingCodeDescEmpty")}
-        </div>
-        {!pairingCode ? (
-          <div className="rounded-xl border border-dashed border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
-            {tAccount("pairingCodeNotice")}
+      <section className="space-y-4 rounded-2xl border border-border bg-card p-6 shadow-sm">
+        <div className="space-y-1">
+          <div className="text-sm font-semibold">
+            {tAccount("pairingCodeLabel")}
           </div>
-        ) : null}
-      </section>
-
-      <section className="rounded-2xl border border-border bg-card p-6 shadow-sm space-y-3">
-        <div className="text-sm font-semibold">{tAccount("connectDevice")}</div>
-        <input
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder={tAccount("pairingCodePlaceholder")}
-          className="w-full rounded-xl border border-border bg-card px-3 py-2 text-sm text-foreground"
-        />
-        <button
-          type="button"
-          onClick={pair}
-          disabled={loading || !input.trim()}
-          className="w-full rounded-2xl bg-foreground px-4 py-3 text-sm font-semibold text-background disabled:opacity-40"
-        >
-          {loading ? tAccount("connecting") : tAccount("connectAction")}
-        </button>
-        {status ? (
-          <div className="text-sm text-muted-foreground">{status}</div>
-        ) : null}
-      </section>
-
-      <section className="rounded-2xl border border-border bg-card p-6 shadow-sm space-y-2">
-        <div className="text-sm text-muted-foreground">
-          {tAccount("accountInfoLabel")}
-        </div>
-        <div className="text-xs text-muted-foreground">
-          User: {userId ?? "—"}
-        </div>
-        <div className="text-xs text-muted-foreground">
-          Device: {deviceId ?? "—"}
-        </div>
-        {!userId ? (
-          <div className="text-xs text-muted-foreground">
-            {tAccount("accountInfoNotice")}
-          </div>
-        ) : null}
-      </section>
-
-      <section
-        className={cn(
-          "rounded-2xl p-6 shadow-sm space-y-3",
-          isRetro
-            ? "border-4 border-black bg-white"
-            : "border border-border bg-card",
-        )}
-      >
-        <div className="text-sm font-semibold">
-          {tAccount("resetLocalTitle")}
-        </div>
-        <div className="text-xs text-muted-foreground">
-          {tAccount("resetLocalDesc")}
-        </div>
-        <button
-          type="button"
-          onClick={resetLocalOnly}
-          disabled={loading}
-          className={cn(
-            "w-full px-4 py-3 text-sm font-semibold",
-            isRetro
-              ? "border-2 border-black bg-white text-black hover:bg-yellow-200"
-              : "rounded-2xl border border-border bg-card text-muted-foreground hover:bg-muted",
-            loading && "opacity-40",
-          )}
-        >
-          로컬 초기화
-        </button>
-      </section>
-
-      <section
-        className={cn(
-          "rounded-2xl p-6 shadow-sm space-y-3",
-          isRetro
-            ? "border-4 border-black bg-white"
-            : "border border-border bg-card",
-        )}
-      >
-        <div className="text-sm font-semibold">{tAccount("exportTitle")}</div>
-        <div className="text-xs text-muted-foreground">
-          {hasAccount
-            ? tAccount("exportDescModern")
-            : tAccount("exportDescEmpty")}
-        </div>
-        <div>
-          <div className="text-xs text-muted-foreground mb-1">
-            내보내기 범위
-          </div>
-          <select
-            value={exportContentType}
-            onChange={(e) =>
-              setExportContentType(e.target.value as "ALL" | "video" | "book")
-            }
-            disabled={!hasAccount}
+          <div
             className={cn(
-              "w-full select-base rounded-xl px-3 py-2 text-sm",
-              isRetro && "border-2 border-black bg-white text-black",
-              !hasAccount && "opacity-60",
+              "flex h-12 items-center justify-center text-xl font-bold tracking-widest",
+              isRetro
+                ? "border-4 border-black bg-white"
+                : "rounded-xl bg-muted/50",
             )}
           >
-            <option value="ALL">{tAccount("rangeAll")}</option>
-            <option value="video">{tAccount("rangeVideo")}</option>
-            <option value="book">{tAccount("rangeBook")}</option>
-          </select>
+            {initializing ? tAccount("pairingCodeLoading") : (pairingCode ?? "—")}
+          </div>
+          <p className="text-xs text-muted-foreground">
+            {logs.length > 0
+              ? tAccount("pairingCodeDescModern")
+              : tAccount("pairingCodeDescEmpty")}
+          </p>
+          {!pairingCode && !initializing && (
+            <p className="mt-2 text-[11px] font-medium text-indigo-600 bg-indigo-50/50 p-2 rounded-lg border border-indigo-100">
+              {tAccount("pairingCodeNotice")}
+            </p>
+          )}
+        </div>
+
+        <div className="space-y-3 pt-2">
+          <div className="text-sm font-semibold">
+            {tAccount("connectDevice")}
+          </div>
+          <div className="flex gap-2">
+            <input
+              value={input}
+              onChange={(e) => setInput(e.target.value.toUpperCase())}
+              placeholder={tAccount("pairingCodePlaceholder")}
+              className={cn(
+                "flex-1 px-3 py-2 text-sm outline-none",
+                isRetro
+                  ? "border-4 border-black font-bold uppercase"
+                  : "rounded-xl border border-border bg-card focus:ring-2 focus:ring-ring/40",
+              )}
+            />
+            <button
+              onClick={handlePair}
+              disabled={loading || !input.trim()}
+              className={cn(
+                "px-4 py-2 text-sm font-bold transition-all",
+                isRetro
+                  ? "border-4 border-black bg-black text-white hover:bg-neutral-800 disabled:bg-neutral-400"
+                  : "rounded-xl bg-neutral-900 text-white hover:bg-neutral-800 disabled:opacity-40",
+              )}
+            >
+              {loading ? tAccount("connecting") : tAccount("connectAction")}
+            </button>
+          </div>
+          {status && (
+            <div className="text-xs font-medium text-blue-600">{status}</div>
+          )}
+        </div>
+      </section>
+
+      <section className="space-y-4 rounded-2xl border border-border bg-card p-6 shadow-sm">
+        <div className="text-sm font-semibold">{tAccount("accountInfoLabel")}</div>
+        <div className="space-y-2 text-xs text-muted-foreground">
+          <div className="flex justify-between">
+            <span>User ID</span>
+            <span className="font-mono">{userId?.slice(0, 8) ?? "—"}</span>
+          </div>
+          <div className="flex justify-between">
+            <span>Device ID</span>
+            <span className="font-mono">{deviceId?.slice(0, 8) ?? "—"}</span>
+          </div>
+          <p className="mt-2 opacity-70">
+            {tAccount("accountInfoNotice")}
+          </p>
+        </div>
+      </section>
+
+      <section className="space-y-4 rounded-2xl border border-border bg-card p-6 shadow-sm">
+        <div>
+          <div className="text-sm font-semibold">{tAccount("resetLocalTitle")}</div>
+          <p className="text-xs text-muted-foreground">
+            {tAccount("resetLocalDesc")}
+          </p>
         </div>
         <button
           type="button"
-          onClick={exportTimelineCsv}
-          disabled={exporting || !hasAccount}
+          onClick={handleResetLocal}
           className={cn(
-            "w-full px-4 py-3 text-sm font-semibold",
+            "w-full py-3 text-sm font-bold transition-all",
             isRetro
-              ? "border-2 border-black bg-white text-black hover:bg-yellow-200"
-              : "rounded-2xl bg-foreground text-background",
-            (exporting || !hasAccount) && "opacity-40",
+              ? "border-4 border-black bg-red-500 text-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] active:translate-y-0 active:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+              : "rounded-2xl border border-red-200 bg-red-50 text-red-600 hover:bg-red-100",
           )}
         >
-          {exporting ? tAccount("exporting") : tAccount("exportAction")}
+          {tAccount("resetLocalAction")}
         </button>
-        <div className="text-xs text-muted-foreground">
-          {tAccount("exportNotice")}
-        </div>
-        {exportStatus ? (
-          <div className="text-sm text-muted-foreground">{exportStatus}</div>
-        ) : null}
       </section>
 
-      <section className="rounded-2xl border border-border bg-card p-6 shadow-sm space-y-3">
-        <div className="text-sm font-semibold">
-          {tAccount("connectedDevices")}
+      <section className="space-y-4 rounded-2xl border border-border bg-card p-6 shadow-sm">
+        <div>
+          <div className="text-base font-semibold">{tAccount("exportTitle")}</div>
+          <p className="text-sm text-muted-foreground">
+            {logs.length > 0
+              ? tAccount("exportDescModern")
+              : tAccount("exportDescEmpty")}
+          </p>
         </div>
-        {devices.length === 0 ? (
-          <div className="text-sm text-muted-foreground">
-            연결된 기기가 없어요.
-          </div>
-        ) : (
+
+        <div className="flex flex-col gap-4">
           <div className="space-y-2">
-            {devices.map((d) => {
-              const isCurrent = d.id === deviceId;
+            <div className="text-xs font-semibold text-muted-foreground px-1">
+              {tAccount("exportRangeLabel")}
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              {(["ALL", "video", "book"] as const).map((r) => (
+                <button
+                  key={r}
+                  type="button"
+                  onClick={() => setExportRange(r)}
+                  className={cn(
+                    "rounded-xl border py-2 text-xs font-medium transition-all",
+                    exportRange === r
+                      ? "border-indigo-600 bg-indigo-50 text-indigo-700 dark:bg-indigo-950/30"
+                      : "border-border bg-card text-muted-foreground hover:bg-muted",
+                  )}
+                >
+                  {r === "ALL"
+                    ? tAccount("rangeAll")
+                    : r === "video"
+                      ? tAccount("rangeVideo")
+                      : tAccount("rangeBook")}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={exportLogs}
+            disabled={exporting || logs.length === 0}
+            className={cn(
+              "w-full rounded-2xl bg-neutral-900 py-3 text-sm font-semibold text-white transition-all hover:bg-neutral-800 disabled:opacity-40",
+            )}
+          >
+            {exporting ? tAccount("exporting") : tAccount("exportAction")}
+          </button>
+          {exportStatus && (
+            <p className="text-center text-xs font-medium text-blue-600">
+              {exportStatus}
+            </p>
+          )}
+          <p className="text-center text-[11px] text-muted-foreground">
+            {tAccount("exportNotice")}
+          </p>
+        </div>
+      </section>
+
+      <section className="space-y-4 rounded-2xl border border-border bg-card p-6 shadow-sm">
+        <div className="text-sm font-semibold">{tAccount("connectedDevices")}</div>
+        <div className="space-y-3">
+          {devices.length === 0 ? (
+            <div className="flex h-32 flex-col items-center justify-center rounded-xl border border-dashed border-border bg-muted/30 p-6 text-center text-sm text-muted-foreground">
+              {tAccount("noConnectedDevices")}
+            </div>
+          ) : (
+            devices.map((d) => {
+              const isCurrent = d.id === getDeviceId();
               return (
                 <div
                   key={d.id}
-                  className="flex items-center justify-between rounded-xl border border-border bg-card/80 px-3 py-2 text-card-foreground"
+                  className={cn(
+                    "flex items-center justify-between rounded-xl border p-3",
+                    isCurrent
+                      ? "border-indigo-200 bg-indigo-50/30 dark:bg-indigo-950/10"
+                      : "border-border",
+                  )}
                 >
-                  <div>
-                    <div className="text-sm text-foreground">
-                      {isCurrent
-                        ? tAccount("currentDevice")
-                        : tAccount("otherDevice")}
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      {d.browser ?? tAccount("browser")} ·{" "}
-                      {d.os ?? tAccount("os")}
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-bold text-foreground">
+                        {isCurrent ? tAccount("currentDevice") : tAccount("otherDevice")}
+                      </span>
+                      <span className="text-[10px] text-muted-foreground">
+                        {d.browser ?? tAccount("browser")} · {d.os ?? tAccount("os")}
+                      </span>
                     </div>
                     <div className="text-xs text-muted-foreground">
                       {tAccount("createdAt", {
-                        date: formatShort(d.createdAt),
+                        date: formatShort(d.createdAt, locale),
                       })}{" "}
                       ·{" "}
                       {tAccount("lastActiveAt", {
-                        date: formatShort(d.lastSeenAt),
+                        date: formatShort(d.lastSeenAt, locale),
                       })}
                     </div>
                   </div>
@@ -473,30 +425,48 @@ export default function AccountPage() {
                       type="button"
                       onClick={() => revokeDevice(d.id)}
                       disabled={loading}
-                      className="rounded-lg border border-border px-3 py-1 text-xs text-muted-foreground hover:bg-muted disabled:opacity-40"
+                      className={cn(
+                        "shrink-0 text-xs font-bold transition-colors",
+                        isRetro
+                          ? "bg-red-600 text-white px-2 py-1 border-2 border-black"
+                          : "text-red-600 hover:text-red-700",
+                      )}
                     >
-                      연결 해제
+                      {tAccount("unlinkAction")}
                     </button>
                   ) : (
-                    <span className="rounded-full bg-emerald-100 px-2 py-1 text-[10px] text-emerald-700 dark:bg-emerald-900/60 dark:text-emerald-100">
-                      현재
-                    </span>
+                    <div
+                      className={cn(
+                        "shrink-0 text-[10px] font-bold uppercase",
+                        isRetro
+                          ? "bg-black text-white px-2 py-1"
+                          : "rounded-full bg-indigo-50 px-2 py-0.5 text-indigo-600",
+                      )}
+                    >
+                      {tAccount("currentLabel")}
+                    </div>
                   )}
                 </div>
               );
-            })}
-          </div>
-        )}
-        {devices.length > 0 ? (
-          <button
-            type="button"
-            onClick={revokeAllDevices}
-            disabled={loading}
-            className="mt-2 w-full rounded-2xl border border-border bg-card px-4 py-2 text-sm font-semibold text-foreground hover:bg-muted disabled:opacity-40"
-          >
-            모든 기기 해제하고 초기화
-          </button>
-        ) : null}
+            })
+          )}
+
+          {devices.length > 0 && (
+            <button
+              type="button"
+              onClick={revokeAll}
+              disabled={loading}
+              className={cn(
+                "mt-2 w-full py-3 text-xs font-bold transition-all",
+                isRetro
+                  ? "border-4 border-black bg-neutral-800 text-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:bg-black"
+                  : "rounded-2xl border border-border bg-card text-muted-foreground hover:bg-muted hover:text-foreground",
+              )}
+            >
+              {tAccount("unlinkAllAction")}
+            </button>
+          )}
+        </div>
       </section>
     </div>
   );
