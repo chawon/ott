@@ -276,5 +276,10 @@
     "preparing": "Preparing...",
     "sizeLabel": "Image size: {size}",
     "shareText": "My log share: {title}"
+  },
+  "Metadata": {
+    "titleDefault": "On the Timeline | Fast and simple movie & book logs",
+    "titleTemplate": "%s | On the Timeline",
+    "description": "Log your movie and book records in 10 seconds without sign-up. Build your own timeline easily."
   }
 }

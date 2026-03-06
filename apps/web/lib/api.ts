@@ -66,6 +66,11 @@ function buildHeaders(init?: RequestInit) {
   if (userId) headers.set("X-User-Id", userId);
   if (deviceId) headers.set("X-Device-Id", deviceId);
 
+  // Add current locale to Accept-Language header
+  if (typeof document !== "undefined" && document.documentElement.lang) {
+    headers.set("Accept-Language", document.documentElement.lang);
+  }
+
   return headers;
 }
 

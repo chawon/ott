@@ -8,34 +8,38 @@ import SwipeNav from "@/components/SwipeNav";
 import { RetroProvider } from "@/context/RetroContext";
 import { ThemeProvider } from "@/context/ThemeContext";
 import { NextIntlClientProvider } from "next-intl";
-import { getMessages } from "next-intl/server";
+import { getMessages, getTranslations } from "next-intl/server";
 
-export const metadata: Metadata = {
-  title: {
-    default: "On the Timeline | 로그인 없이 영상·책 기록",
-    template: "%s | On the Timeline",
-  },
-  description:
-    "가입 없이 영상·책 기록을 10초 만에 남기고 타임라인으로 모아보세요. 영상과 책을 가장 빠르게 기록하는 방법.",
-  manifest: "/manifest.webmanifest",
-  icons: {
-    icon: "/icon.png",
-    apple: "/apple-touch-icon.png",
-  },
-  appleWebApp: {
-    capable: true,
-    title: "On the Timeline",
-    statusBarStyle: "black-translucent",
-  },
-  openGraph: {
-    title: "On the Timeline",
-    description: "로그인 없이 바로 남기는 영상·책 기록",
-    url: "https://ott.preview.pe.kr", // 실제 운영 URL로 변경 필요
-    siteName: "On the Timeline",
-    locale: "ko_KR",
-    type: "website",
-  },
-};
+export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: "Metadata" });
+
+  return {
+    title: {
+      default: t("titleDefault"),
+      template: t("titleTemplate"),
+    },
+    description: t("description"),
+    manifest: "/manifest.webmanifest",
+    icons: {
+      icon: "/icon.png",
+      apple: "/apple-touch-icon.png",
+    },
+    appleWebApp: {
+      capable: true,
+      title: "On the Timeline",
+      statusBarStyle: "black-translucent",
+    },
+    openGraph: {
+      title: "On the Timeline",
+      description: t("description"),
+      url: "https://ott.preview.pe.kr",
+      siteName: "On the Timeline",
+      locale: locale === "ko" ? "ko_KR" : "en_US",
+      type: "website",
+    },
+  };
+}
 
 export const viewport: Viewport = {
   themeColor: "#111827",

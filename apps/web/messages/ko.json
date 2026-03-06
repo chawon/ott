@@ -276,5 +276,10 @@
     "preparing": "준비 중...",
     "sizeLabel": "이미지 크기: {size}",
     "shareText": "내 기록 공유: {title}"
+  },
+  "Metadata": {
+    "titleDefault": "On the Timeline | 로그인 없이 영상·책 기록",
+    "titleTemplate": "%s | On the Timeline",
+    "description": "가입 없이 영상·책 기록을 10초 만에 남기고 타임라인으로 모아보세요. 영상과 책을 가장 빠르게 기록하는 방법."
   }
 }
