@@ -82,7 +82,10 @@
     "detailNote": "Note",
     "detailAddNote": "Add note",
     "saveAction": "Save",
-    "cancelAction": "Cancel"
+    "cancelAction": "Cancel",
+    "notePlaceholder": "Leave a brief review or note.",
+    "errorTitleLoad": "Failed to load title information.",
+    "errorSave": "An error occurred while saving the log."
   },
   "Common": {
     "placeLabels": {

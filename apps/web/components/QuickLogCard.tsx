@@ -33,6 +33,7 @@ import {
   tmdbResize,
 } from "@/lib/utils";
 import { useRetro } from "@/context/RetroContext";
+import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { trackEvent } from "@/lib/analytics";
 import {
