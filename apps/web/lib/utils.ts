@@ -73,18 +73,20 @@ export const OCCASION_LABELS: Record<Occasion, string> = {
 export function statusLabel(
   status: WatchLog["status"],
   titleType?: Title["type"],
+  t?: any,
 ): string {
+  if (t) return titleType === "book" ? t("BOOK_" + status) : t(status);
   return titleType === "book"
     ? BOOK_STATUS_LABELS[status]
     : STATUS_LABELS[status];
 }
 
-export function placeLabel(place: Place): string {
-  return PLACE_LABELS[place];
+export function placeLabel(place: Place, t?: any): string {
+  return t ? t(place) : PLACE_LABELS[place];
 }
 
-export function occasionLabel(occasion: Occasion): string {
-  return OCCASION_LABELS[occasion];
+export function occasionLabel(occasion: Occasion, t?: any): string {
+  return t ? t(occasion) : OCCASION_LABELS[occasion];
 }
 
 export function statusOptionsForType(type?: Title["type"]) {

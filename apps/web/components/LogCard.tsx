@@ -10,6 +10,7 @@ import {
 } from "@/lib/utils";
 import { useRetro } from "@/context/RetroContext";
 import { cn } from "@/lib/utils";
+import { useTranslations } from "next-intl";
 
 function formatDate(iso: string, isRetro: boolean) {
   const d = new Date(iso);
@@ -105,6 +106,9 @@ function seasonYearLabel(log: WatchLog) {
 export default function LogCard({ log }: { log: WatchLog }) {
   const t = log.title;
   const { isRetro } = useRetro();
+  const tStatus = useTranslations("Status");
+  const tCommon = useTranslations("Common");
+
   if (log.deletedAt) return null;
   if (!t?.id) return null;
   const seasonLabel = seasonEpisodeLabel(log);
@@ -169,7 +173,7 @@ export default function LogCard({ log }: { log: WatchLog }) {
                   </span>
                 )}
                 <span className="bg-black text-white px-1">
-                  {statusLabel(log.status, t.type)}
+                  {statusLabel(log.status, t.type, tStatus)}
                 </span>
                 {seasonLabel ? (
                   <span className="bg-white text-black px-1 border border-black">
@@ -192,9 +196,23 @@ export default function LogCard({ log }: { log: WatchLog }) {
           </div>
           {log.place || log.occasion ? (
             <div className="flex flex-wrap gap-2 mb-3">
-              {log.place ? chip(placeLabel(log.place), "place", true) : null}
+              {log.place
+                ? chip(
+                    placeLabel(log.place, (k: any) =>
+                      tCommon(`placeLabels.${k}`),
+                    ),
+                    "place",
+                    true,
+                  )
+                : null}
               {log.occasion
-                ? chip(occasionLabel(log.occasion), "occasion", true)
+                ? chip(
+                    occasionLabel(log.occasion, (k: any) =>
+                      tCommon(`occasionLabels.${k}`),
+                    ),
+                    "occasion",
+                    true,
+                  )
                 : null}
             </div>
           ) : null}
@@ -271,7 +289,7 @@ export default function LogCard({ log }: { log: WatchLog }) {
                   SERIES
                 </span>
               )}
-              <span>{statusLabel(log.status, t.type)}</span>
+              <span>{statusLabel(log.status, t.type, tStatus)}</span>
               {seasonLabel ? (
                 <>
                   <span className="text-muted-foreground/60">·</span>
@@ -296,9 +314,23 @@ export default function LogCard({ log }: { log: WatchLog }) {
         </div>
         {log.place || log.occasion ? (
           <div className="flex flex-wrap gap-1.5 mb-3">
-            {log.place ? chip(placeLabel(log.place), "place", false) : null}
+            {log.place
+              ? chip(
+                  placeLabel(log.place, (k: any) =>
+                    tCommon(`placeLabels.${k}`),
+                  ),
+                  "place",
+                  false,
+                )
+              : null}
             {log.occasion
-              ? chip(occasionLabel(log.occasion), "occasion", false)
+              ? chip(
+                  occasionLabel(log.occasion, (k: any) =>
+                    tCommon(`occasionLabels.${k}`),
+                  ),
+                  "occasion",
+                  false,
+                )
               : null}
           </div>
         ) : null}

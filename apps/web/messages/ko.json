@@ -39,5 +39,81 @@
     "linkPrivacyRetro": "개인정보",
     "linkPrivacyModern": "개인정보처리방침",
     "allRightsReserved": "All rights reserved."
+  },
+  "LogCard": {
+    "actionWatched": "보았어요",
+    "actionReading": "읽는 중",
+    "actionPaused": "잠시 멈춤",
+    "actionDropped": "하차했어요",
+    "actionToWatch": "볼래요",
+    "actionReadingComplete": "다 읽었어요",
+    "typeMovie": "영화",
+    "typeSeries": "시리즈",
+    "typeBook": "책",
+    "deleteConfirmTitle": "정말 삭제할까요?",
+    "deleteConfirmDesc": "삭제한 기록은 복구할 수 없습니다.",
+    "cancel": "취소",
+    "delete": "삭제",
+    "copyLinkSuccess": "링크가 복사되었습니다.",
+    "deleteSuccess": "기록이 삭제되었습니다.",
+    "errorUnknown": "오류가 발생했습니다.",
+    "share": "공유하기",
+    "edit": "수정",
+    "detail": "상세"
+  },
+  "QuickLogCard": {
+    "titleMovieSeries": "어떤 영상인가요?",
+    "titleBook": "어떤 책인가요?",
+    "searchPlaceholder": "제목을 검색해보세요",
+    "searchBookPlaceholder": "책 제목이나 저자를 검색해보세요",
+    "searchResultEmpty": "검색 결과가 없습니다.",
+    "tabVideo": "영상",
+    "tabBook": "책",
+    "actionWatched": "봤어요",
+    "actionReading": "읽는 중",
+    "actionToWatch": "볼래요",
+    "actionReadingComplete": "다 읽었어요",
+    "actionDropped": "하차",
+    "detailStatus": "상태",
+    "detailRating": "평점",
+    "detailDate": "날짜",
+    "detailPlace": "장소",
+    "detailOccasion": "상황",
+    "detailNote": "메모",
+    "detailAddNote": "메모 추가",
+    "saveAction": "기록하기",
+    "cancelAction": "취소"
+  },
+  "Common": {
+    "placeLabels": {
+      "HOME": "집",
+      "THEATER": "극장",
+      "TRANSIT": "이동 중",
+      "CAFE": "카페",
+      "OFFICE": "직장",
+      "LIBRARY": "도서관",
+      "BOOKSTORE": "서점",
+      "SCHOOL": "학교",
+      "PARK": "공원",
+      "OUTDOOR": "야외",
+      "ETC": "기타"
+    },
+    "occasionLabels": {
+      "ALONE": "혼자",
+      "DATE": "데이트",
+      "FAMILY": "가족",
+      "FRIENDS": "친구",
+      "BREAK": "휴식",
+      "ETC": "기타"
+    },
+    "errorUnknown": "알 수 없는 오류가 발생했습니다."
+  },
+  "Status": {
+    "DONE": "봤어요",
+    "IN_PROGRESS": "보는 중",
+    "WISHLIST": "보고 싶어요",
+    "BOOK_DONE": "읽었어요",
+    "BOOK_IN_PROGRESS": "읽는 중",
+    "BOOK_WISHLIST": "읽고 싶어요"
   }
 }

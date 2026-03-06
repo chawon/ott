@@ -39,5 +39,81 @@
     "linkPrivacyRetro": "Privacy",
     "linkPrivacyModern": "Privacy Policy",
     "allRightsReserved": "All rights reserved."
+  },
+  "LogCard": {
+    "actionWatched": "Watched",
+    "actionReading": "Reading",
+    "actionPaused": "Paused",
+    "actionDropped": "Dropped",
+    "actionToWatch": "Want to watch",
+    "actionReadingComplete": "Read",
+    "typeMovie": "Movie",
+    "typeSeries": "Series",
+    "typeBook": "Book",
+    "deleteConfirmTitle": "Are you sure?",
+    "deleteConfirmDesc": "Deleted logs cannot be recovered.",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "copyLinkSuccess": "Link copied.",
+    "deleteSuccess": "Log deleted.",
+    "errorUnknown": "An error occurred.",
+    "share": "Share",
+    "edit": "Edit",
+    "detail": "Detail"
+  },
+  "QuickLogCard": {
+    "titleMovieSeries": "What did you watch?",
+    "titleBook": "What did you read?",
+    "searchPlaceholder": "Search for a title",
+    "searchBookPlaceholder": "Search by title or author",
+    "searchResultEmpty": "No results found.",
+    "tabVideo": "Video",
+    "tabBook": "Book",
+    "actionWatched": "Watched",
+    "actionReading": "Reading",
+    "actionToWatch": "Want to watch",
+    "actionReadingComplete": "Read",
+    "actionDropped": "Dropped",
+    "detailStatus": "Status",
+    "detailRating": "Rating",
+    "detailDate": "Date",
+    "detailPlace": "Place",
+    "detailOccasion": "Occasion",
+    "detailNote": "Note",
+    "detailAddNote": "Add note",
+    "saveAction": "Save",
+    "cancelAction": "Cancel"
+  },
+  "Common": {
+    "placeLabels": {
+      "HOME": "Home",
+      "THEATER": "Theater",
+      "TRANSIT": "Transit",
+      "CAFE": "Cafe",
+      "OFFICE": "Office",
+      "LIBRARY": "Library",
+      "BOOKSTORE": "Bookstore",
+      "SCHOOL": "School",
+      "PARK": "Park",
+      "OUTDOOR": "Outdoor",
+      "ETC": "Etc"
+    },
+    "occasionLabels": {
+      "ALONE": "Alone",
+      "DATE": "Date",
+      "FAMILY": "Family",
+      "FRIENDS": "Friends",
+      "BREAK": "Break",
+      "ETC": "Etc"
+    },
+    "errorUnknown": "An unknown error occurred."
+  },
+  "Status": {
+    "DONE": "Watched",
+    "IN_PROGRESS": "Watching",
+    "WISHLIST": "Want to watch",
+    "BOOK_DONE": "Read",
+    "BOOK_IN_PROGRESS": "Reading",
+    "BOOK_WISHLIST": "Want to read"
   }
 }
