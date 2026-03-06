@@ -4,11 +4,12 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "@/lib/api";
 import { DiscussionListItem, TitleSearchItem } from "@/lib/types";
 import { useRetro } from "@/context/RetroContext";
+import { useTranslations } from "next-intl";
 import { cn, tmdbResize } from "@/lib/utils";
 
 export default function TitleSearchBox({
   onSelect,
-  placeholder = "작품 검색 (예: 듄, 더 베어)",
+  placeholder,
   showRecentDiscussions = true,
   contentType = "video",
   initialQuery,
@@ -21,6 +22,7 @@ export default function TitleSearchBox({
   initialQuery?: string;
   autoFocus?: boolean;
 }) {
+  const tTitleSearch = useTranslations("TitleSearchBox");
   const { isRetro } = useRetro();
   const [q, setQ] = useState("");
   const [open, setOpen] = useState(false);
@@ -159,8 +161,9 @@ export default function TitleSearchBox({
 
   const retroPlaceholder =
     contentType === "book"
-      ? "책을 검색하세요 (어린 왕자, 불편한 편의점...)"
-      : "비디오를 검색하세요 (터미네이터, 투캅스...)";
+      ? tTitleSearch("retroBookPlaceholder")
+      : tTitleSearch("retroVideoPlaceholder");
+  const modernPlaceholder = placeholder || tTitleSearch("defaultPlaceholder");
 
   return (
     <div ref={rootRef} className="relative">
@@ -191,7 +194,7 @@ export default function TitleSearchBox({
             pick(items[Math.max(0, Math.min(activeIndex, items.length - 1))]);
           }
         }}
-        placeholder={isRetro ? retroPlaceholder : placeholder}
+        placeholder={isRetro ? retroPlaceholder : modernPlaceholder}
         className={cn(
           "w-full transition-all outline-none",
           isRetro
@@ -224,9 +227,9 @@ export default function TitleSearchBox({
               >
                 {isRetro
                   ? contentType === "book"
-                    ? "요즘 수다 떠는 책들"
-                    : "요즘 수다 떠는 영상들"
-                  : "요즘 함께 하는 작품들"}
+                    ? tTitleSearch("recentBookRetro")
+                    : tTitleSearch("recentVideoRetro")
+                  : tTitleSearch("recentModern")}
               </div>
               {recentLoading ? (
                 <div className="px-4 py-3 text-sm font-bold">
@@ -248,10 +251,10 @@ export default function TitleSearchBox({
                 filteredRecent.map((d) => {
                   const typeLabel =
                     d.titleType === "movie"
-                      ? "영화"
+                      ? tTitleSearch("typeMovie")
                       : d.titleType === "series"
-                        ? "시리즈"
-                        : "책";
+                        ? tTitleSearch("typeSeries")
+                        : tTitleSearch("typeBook");
                   const meta = `${typeLabel}${d.titleYear ? ` · ${d.titleYear}` : ""}`;
                   const item: TitleSearchItem = {
                     provider: "LOCAL",
@@ -323,7 +326,9 @@ export default function TitleSearchBox({
                             isRetro ? "text-blue-700" : "text-muted-foreground",
                           )}
                         >
-                          댓글 {d.commentCount}
+                          {tTitleSearch("commentCount", {
+                            count: d.commentCount,
+                          })}
                         </div>
                       </div>
                     </button>
@@ -348,10 +353,10 @@ export default function TitleSearchBox({
               const key = `${t.provider}:${t.providerId}`;
               const typeLabel =
                 t.type === "movie"
-                  ? "영화"
+                  ? tTitleSearch("typeMovie")
                   : t.type === "series"
-                    ? "시리즈"
-                    : "책";
+                    ? tTitleSearch("typeSeries")
+                    : tTitleSearch("typeBook");
               const meta =
                 t.type === "book"
                   ? [t.author, t.publisher, t.year ? String(t.year) : null]

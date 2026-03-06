@@ -128,5 +128,21 @@
     "emptyState": "No logs yet.",
     "emptySearch": "No search results.",
     "syncStatus": "Sync Complete"
+  },
+  "TitleSearchBox": {
+    "defaultPlaceholder": "Search titles (e.g., Dune, The Bear)",
+    "retroBookPlaceholder": "Search for a book (The Little Prince...)",
+    "retroVideoPlaceholder": "Search for a video (Terminator...)",
+    "recentBookRetro": "Books people are talking about",
+    "recentVideoRetro": "Videos people are talking about",
+    "recentModern": "Titles people are sharing",
+    "loading": "Loading...",
+    "empty": "Nothing here yet",
+    "searchLoading": "Searching...",
+    "searchEmpty": "No results found",
+    "commentCount": "Comments {count}",
+    "typeMovie": "Movie",
+    "typeSeries": "Series",
+    "typeBook": "Book"
   }
 }

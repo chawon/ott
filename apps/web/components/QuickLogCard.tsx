@@ -197,6 +197,9 @@ export default function QuickLogCard({
   initialPlatform?: string;
   autoFocusSearch?: boolean;
 }) {
+  const tQuick = useTranslations("QuickLogCard");
+  const tCommon = useTranslations("Common");
+  const tStatus = useTranslations("Status");
   const { isRetro } = useRetro();
   const [contentType, setContentType] = useState<"video" | "book">(
     initialContentType,
@@ -609,7 +612,7 @@ export default function QuickLogCard({
           )}
         >
           <div className="absolute -top-4 left-4 bg-white border-2 border-black px-2 text-xs font-bold tracking-wide shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-            {contentType === "book" ? "새로운 책" : "새로운 비디오"}
+            {contentType === "book" ? tQuick("newBook") : tQuick("newVideo")}
           </div>
 
           <div className="space-y-4">
@@ -650,7 +653,7 @@ export default function QuickLogCard({
               className="rounded-md border-4 border-black bg-yellow-100 p-2 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"
             >
               <div className="mb-1 text-sm font-bold text-black">
-                여기부터 시작: 작품 검색
+                {tQuick("searchStartRetro")}
               </div>
               <TitleSearchBox
                 key={contentType}
@@ -760,7 +763,7 @@ export default function QuickLogCard({
                       }
                       className="w-full bg-white px-3 py-2 text-sm font-bold"
                     >
-                      <option value="">선택 안함</option>
+                      <option value="">{tCommon("none")}</option>
                       {seasons.map((s) => (
                         <option key={s.seasonNumber} value={s.seasonNumber}>
                           시즌 {s.seasonNumber}
@@ -790,7 +793,7 @@ export default function QuickLogCard({
                       className="w-full bg-white px-3 py-2 text-sm font-bold"
                       disabled={selectedSeason === "" || episodeLoading}
                     >
-                      <option value="">선택 안함</option>
+                      <option value="">{tCommon("none")}</option>
                       {episodes.map((e) => (
                         <option key={e.episodeNumber} value={e.episodeNumber}>
                           EP {e.episodeNumber}
@@ -824,7 +827,7 @@ export default function QuickLogCard({
                   )}
                   disabled={isWishlist}
                 >
-                  <option value="">선택 안함</option>
+                  <option value="">{tCommon("none")}</option>
                   {ratingOptions.map((o) => (
                     <option key={o.value} value={String(o.value)}>
                       {o.label}
@@ -892,7 +895,7 @@ export default function QuickLogCard({
                   }}
                   className="w-full bg-white px-3 py-2 text-sm font-bold"
                 >
-                  <option value="">선택 안함</option>
+                  <option value="">{tCommon("none")}</option>
                   {platformGroups.map((g) => (
                     <optgroup key={g.label} label={g.label}>
                       {g.options.map((o) => (
@@ -967,7 +970,7 @@ export default function QuickLogCard({
               <div className="space-y-1">
                 <div className="text-xs font-bold text-neutral-800 flex items-center gap-1">
                   <Share2 className="h-3 w-3" />
-                  저장 후 함께 하기
+                  {tQuick("saveAndShare")}
                 </div>
                 <div className="flex flex-wrap items-center gap-4">
                   <label className="flex items-center gap-2 text-sm font-bold whitespace-nowrap">
@@ -977,7 +980,7 @@ export default function QuickLogCard({
                       onChange={(e) => setShareToDiscussion(e.target.checked)}
                       className="h-5 w-5"
                     />
-                    함께 하는 기록 남기기
+                    {tQuick("shareToPublic")}
                   </label>
                   <label className="flex items-center gap-2 text-sm font-bold whitespace-nowrap">
                     <input
@@ -986,7 +989,7 @@ export default function QuickLogCard({
                       onChange={(e) => setShareCard(e.target.checked)}
                       className="h-5 w-5"
                     />
-                    공유 이미지 카드 만들기
+                    {tQuick("createShareCard")}
                   </label>
                 </div>
               </div>
@@ -1007,7 +1010,7 @@ export default function QuickLogCard({
                     저장 중...
                   </span>
                 ) : (
-                  "날적이 남기기"
+                  tQuick("saveActionRetro")
                 )}
               </button>
             </div>
@@ -1087,7 +1090,7 @@ export default function QuickLogCard({
         >
           <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-blue-700">
             <ArrowRight className="h-4 w-4" />
-            먼저 작품을 검색해 보세요
+            {tQuick("searchStartModern")}
           </div>
           <TitleSearchBox
             key={contentType}
@@ -1195,7 +1198,7 @@ export default function QuickLogCard({
                   }
                   className="w-full select-base rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-neutral-900/5 transition-all outline-none"
                 >
-                  <option value="">선택 안함</option>
+                  <option value="">{tCommon("none")}</option>
                   {seasons.map((s) => (
                     <option key={s.seasonNumber} value={s.seasonNumber}>
                       시즌 {s.seasonNumber}
@@ -1227,7 +1230,7 @@ export default function QuickLogCard({
                   className="w-full select-base rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-neutral-900/5 transition-all outline-none"
                   disabled={selectedSeason === "" || episodeLoading}
                 >
-                  <option value="">선택 안함</option>
+                  <option value="">{tCommon("none")}</option>
                   {episodes.map((e) => (
                     <option key={e.episodeNumber} value={e.episodeNumber}>
                       EP {e.episodeNumber}
@@ -1260,7 +1263,7 @@ export default function QuickLogCard({
               )}
               disabled={isWishlist}
             >
-              <option value="">선택 안함</option>
+              <option value="">{tCommon("none")}</option>
               {ratingOptions.map((o) => (
                 <option key={o.value} value={String(o.value)}>
                   {o.label}
@@ -1287,7 +1290,7 @@ export default function QuickLogCard({
               }}
               className="w-full select-base rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-neutral-900/5 transition-all outline-none"
             >
-              <option value="">선택 안함</option>
+              <option value="">{tCommon("none")}</option>
               {platformGroups.map((g) => (
                 <optgroup key={g.label} label={g.label}>
                   {g.options.map((o) => (
@@ -1410,7 +1413,7 @@ export default function QuickLogCard({
           <div className="space-y-1">
             <div className="text-xs font-medium text-neutral-500 ml-1 flex items-center gap-1.5">
               <Share2 className="h-3 w-3" />
-              저장 후 함께 하기
+              {tQuick("saveAndShare")}
             </div>
             <div className="flex flex-wrap items-center gap-4 rounded-xl border border-border bg-muted/30 px-3 py-2">
               <label className="flex items-center gap-2 text-xs font-medium text-neutral-700 whitespace-nowrap">
@@ -1420,7 +1423,7 @@ export default function QuickLogCard({
                   onChange={(e) => setShareToDiscussion(e.target.checked)}
                   className="h-5 w-5"
                 />
-                함께 하는 기록 남기기
+                {tQuick("shareToPublic")}
               </label>
               <label className="flex items-center gap-2 text-xs font-medium text-neutral-700 whitespace-nowrap">
                 <input
@@ -1429,7 +1432,7 @@ export default function QuickLogCard({
                   onChange={(e) => setShareCard(e.target.checked)}
                   className="h-5 w-5"
                 />
-                공유 이미지 카드 만들기
+                {tQuick("createShareCard")}
               </label>
             </div>
           </div>
@@ -1440,7 +1443,7 @@ export default function QuickLogCard({
             onClick={submit}
             className="h-[40px] rounded-2xl bg-neutral-900 px-5 text-sm font-semibold text-white transition-all hover:bg-neutral-800 active:scale-[0.98] disabled:opacity-40 disabled:pointer-events-none whitespace-nowrap"
           >
-            {saving ? "저장 중..." : "기록 저장"}
+            {saving ? tQuick("saving") : tQuick("saveActionModern")}
           </button>
         </div>
       </section>

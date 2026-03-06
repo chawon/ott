@@ -128,5 +128,21 @@
     "emptyState": "아직 남긴 기록이 없습니다.",
     "emptySearch": "검색 결과가 없습니다.",
     "syncStatus": "동기화 완료"
+  },
+  "TitleSearchBox": {
+    "defaultPlaceholder": "작품 검색 (예: 듄, 더 베어)",
+    "retroBookPlaceholder": "책을 검색하세요 (어린 왕자, 불편한 편의점...)",
+    "retroVideoPlaceholder": "비디오를 검색하세요 (터미네이터, 투캅스...)",
+    "recentBookRetro": "요즘 수다 떠는 책들",
+    "recentVideoRetro": "요즘 수다 떠는 영상들",
+    "recentModern": "요즘 함께 하는 작품들",
+    "loading": "불러오는 중...",
+    "empty": "아직 없어요",
+    "searchLoading": "검색 중...",
+    "searchEmpty": "결과가 없어요",
+    "commentCount": "댓글 {count}",
+    "typeMovie": "영화",
+    "typeSeries": "시리즈",
+    "typeBook": "책"
   }
 }
