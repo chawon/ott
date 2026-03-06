@@ -40,7 +40,9 @@ export function RetroProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <RetroContext.Provider value={{ isRetro, isRetroReady: mounted, toggleRetro }}>
+    <RetroContext.Provider
+      value={{ isRetro, isRetroReady: mounted, toggleRetro }}
+    >
       {children}
     </RetroContext.Provider>
   );

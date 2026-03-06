@@ -38,7 +38,7 @@ export async function shareBlob(
   filename: string,
   title: string,
   text?: string,
-  url?: string
+  url?: string,
 ) {
   const file = new File([blob], filename, { type: blob.type || "image/png" });
   const canShare =

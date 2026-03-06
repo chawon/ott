@@ -1,0 +1,361 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import { Clock, Download } from "lucide-react";
+import FiltersBar from "@/components/FiltersBar";
+import LogCard from "@/components/LogCard";
+import { apiWithAuth } from "@/lib/api";
+import { getUserId, listLogsLocal, upsertLogsLocal } from "@/lib/localStore";
+import { Status, WatchLog } from "@/lib/types";
+import { useRetro } from "@/context/RetroContext";
+import { cn, statusOptionsForType } from "@/lib/utils";
+import { downloadTimelineCsv } from "@/lib/export";
+
+function buildQuery(params: Record<string, string | undefined>) {
+  const qs = new URLSearchParams();
+  for (const [k, v] of Object.entries(params)) {
+    if (v && v.trim()) qs.set(k, v.trim());
+  }
+  const s = qs.toString();
+  return s ? `?${s}` : "";
+}
+
+export default function TimelinePage() {
+  const { isRetro } = useRetro();
+  const [status, setStatus] = useState<Status | "ALL">("ALL");
+  const [contentType, setContentType] = useState<"ALL" | "video" | "book">(
+    "ALL",
+  );
+  const [origin, setOrigin] = useState<"ALL" | "LOG" | "COMMENT">("ALL");
+  const [ott, setOtt] = useState("");
+  const [logs, setLogs] = useState<WatchLog[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
+  const [exportStatus, setExportStatus] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (contentType === "ALL") {
+      setStatus("ALL");
+    }
+    setOtt("");
+  }, [contentType]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const timer = setTimeout(async () => {
+      setLoading(true);
+      setErr(null);
+      let hadLocal = false;
+
+      try {
+        const cached = await listLogsLocal({
+          limit: 50,
+          contentType: contentType === "ALL" ? undefined : contentType,
+          status: status === "ALL" ? undefined : status,
+          origin: origin === "ALL" ? undefined : origin,
+          ott: ott.trim() ? ott : undefined,
+          sortBy: "history",
+        });
+        if (!cancelled) {
+          if (cached.length > 0) hadLocal = true;
+          setLogs(cached);
+        }
+
+        const query = buildQuery({
+          limit: "50",
+          status: status === "ALL" ? undefined : status,
+          origin: origin === "ALL" ? undefined : origin,
+          ott: ott.trim() ? ott : undefined,
+          sort: "history",
+        });
+
+        if (getUserId()) {
+          const res = await apiWithAuth<WatchLog[]>(`/logs${query}`);
+          await upsertLogsLocal(res);
+          const refreshed = await listLogsLocal({
+            limit: 50,
+            contentType: contentType === "ALL" ? undefined : contentType,
+            status: status === "ALL" ? undefined : status,
+            origin: origin === "ALL" ? undefined : origin,
+            ott: ott.trim() ? ott : undefined,
+            sortBy: "history",
+          });
+          if (!cancelled) setLogs(refreshed);
+        }
+      } catch (e: any) {
+        if (!cancelled) {
+          setErr(e?.message ?? "Failed to load logs");
+          if (!hadLocal) setLogs([]);
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }, 250);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [status, ott, origin, contentType]);
+
+  useEffect(() => {
+    function handleSync() {
+      listLogsLocal({
+        limit: 50,
+        contentType: contentType === "ALL" ? undefined : contentType,
+        status: status === "ALL" ? undefined : status,
+        origin: origin === "ALL" ? undefined : origin,
+        ott: ott.trim() ? ott : undefined,
+        sortBy: "history",
+      }).then((cached) => setLogs(cached));
+    }
+    window.addEventListener("sync:updated", handleSync);
+    return () => window.removeEventListener("sync:updated", handleSync);
+  }, [status, ott, origin, contentType]);
+
+  const headerTitle = isRetro ? "발자취" : "나의 타임라인";
+  const headerSubtitle = useMemo(() => {
+    if (loading) return "불러오는 중…";
+    if (err) return err;
+    return isRetro
+      ? "내가 남긴 날적이가 한눈에 보여요"
+      : "내가 본 것들이 시간 순서로 모여요";
+  }, [loading, err, isRetro]);
+
+  const statusLabel = useMemo(() => {
+    if (status === "ALL") return null;
+    const labels = statusOptionsForType(
+      contentType === "book" ? "book" : "movie",
+    );
+    return labels.find((s) => s.value === status)?.label ?? null;
+  }, [contentType, status]);
+
+  function exportFileName() {
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, "0");
+    const d = String(now.getDate()).padStart(2, "0");
+    const hh = String(now.getHours()).padStart(2, "0");
+    const mm = String(now.getMinutes()).padStart(2, "0");
+    return `watchlog-timeline-${y}${m}${d}-${hh}${mm}.csv`;
+  }
+
+  async function exportTimelineCsv() {
+    setExporting(true);
+    setExportStatus(null);
+    try {
+      const filtered = await listLogsLocal({
+        contentType: contentType === "ALL" ? undefined : contentType,
+        status: status === "ALL" ? undefined : status,
+        origin: origin === "ALL" ? undefined : origin,
+        ott: ott.trim() ? ott : undefined,
+        sortBy: "history",
+      });
+      if (filtered.length === 0) {
+        setExportStatus("해당 조건의 기록이 없어요.");
+        return;
+      }
+      downloadTimelineCsv(filtered, exportFileName());
+      setExportStatus("CSV 파일을 저장했어요.");
+    } catch (e: any) {
+      setExportStatus(e?.message ?? "내보내기에 실패했어요.");
+    } finally {
+      setExporting(false);
+    }
+  }
+
+  const enableYearGrouping = logs.length > 0;
+  const yearGroups = useMemo(() => {
+    if (!enableYearGrouping) return [];
+    const groups: { year: number; items: WatchLog[] }[] = [];
+    const index = new Map<number, number>();
+    for (const log of logs) {
+      const base = log.updatedAt ?? log.watchedAt ?? log.createdAt;
+      const year = new Date(base).getFullYear();
+      const existing = index.get(year);
+      if (existing === undefined) {
+        index.set(year, groups.length);
+        groups.push({ year, items: [log] });
+      } else {
+        groups[existing].items.push(log);
+      }
+    }
+    return groups;
+  }, [enableYearGrouping, logs]);
+
+  return (
+    <div className="space-y-4">
+      <div>
+        {isRetro ? (
+          <div className="flex items-baseline justify-between border-b-4 border-black pb-2 mb-4">
+            <div className="text-xl font-bold uppercase tracking-tighter">
+              {headerTitle}
+            </div>
+            <button
+              type="button"
+              onClick={exportTimelineCsv}
+              disabled={exporting}
+              title="CSV 다운로드"
+              aria-label="CSV 다운로드"
+              className={cn(
+                "border-2 border-black bg-white px-2 py-1 text-black hover:bg-yellow-200",
+                exporting && "opacity-40",
+              )}
+            >
+              <Download className="h-4 w-4" />
+            </button>
+          </div>
+        ) : (
+          <div className="flex items-center justify-between">
+            <div className="text-xl font-semibold flex items-center gap-2">
+              <Clock className="h-5 w-5" />
+              {headerTitle}
+            </div>
+            <button
+              type="button"
+              onClick={exportTimelineCsv}
+              disabled={exporting}
+              title="CSV 다운로드"
+              aria-label="CSV 다운로드"
+              className={cn(
+                "rounded-lg border border-border bg-card px-2 py-1 text-muted-foreground hover:bg-muted",
+                exporting && "opacity-40",
+              )}
+            >
+              <Download className="h-4 w-4" />
+            </button>
+          </div>
+        )}
+        <div
+          className={cn(
+            isRetro
+              ? "text-xs font-bold text-neutral-500 uppercase"
+              : "text-sm text-muted-foreground",
+          )}
+        >
+          {headerSubtitle}
+        </div>
+        {exportStatus ? (
+          <div
+            className={cn(
+              "text-xs",
+              isRetro
+                ? "font-bold text-neutral-500 uppercase"
+                : "text-sm text-muted-foreground",
+            )}
+          >
+            {exportStatus}
+          </div>
+        ) : null}
+      </div>
+
+      <FiltersBar
+        status={status}
+        setStatus={setStatus}
+        origin={origin}
+        setOrigin={setOrigin}
+        ott={ott}
+        setOtt={setOtt}
+        contentType={contentType}
+        setContentType={setContentType}
+      />
+
+      {loading && logs.length === 0 && (
+        <div className="rounded-2xl border border-border bg-card p-5 text-sm text-muted-foreground shadow-sm">
+          불러오는 중…
+        </div>
+      )}
+
+      {!loading && logs.length === 0 && !err && (
+        <div
+          className={cn(
+            "p-10 text-center text-sm font-bold shadow-sm",
+            isRetro
+              ? "border-4 border-dashed border-neutral-400 bg-neutral-100 text-neutral-500 uppercase"
+              : "rounded-2xl border border-border bg-card text-muted-foreground",
+          )}
+        >
+          {isRetro
+            ? "아직 발자취가 없어. 위에서 날적이 하나 남겨봐~"
+            : "첫 기록을 남겨보세요. 타임라인이 바로 시작돼요."}
+        </div>
+      )}
+
+      {enableYearGrouping ? (
+        <div className="space-y-6">
+          {yearGroups.map((group) => (
+            <div key={group.year} className="space-y-3">
+              <div
+                className={cn(
+                  "text-sm font-semibold",
+                  isRetro
+                    ? "uppercase text-neutral-500"
+                    : "text-muted-foreground",
+                )}
+              >
+                {status === "ALL" ? (
+                  <>
+                    <span
+                      className={cn(
+                        "font-bold",
+                        isRetro ? "text-neutral-700" : "text-slate-700",
+                      )}
+                    >
+                      {group.year}
+                    </span>
+                    <span> </span>
+                    <span
+                      className={cn(
+                        "font-bold",
+                        isRetro ? "text-blue-700" : "text-indigo-600",
+                      )}
+                    >
+                      ({group.items.length})
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <span
+                      className={cn(
+                        "font-bold",
+                        isRetro ? "text-neutral-700" : "text-slate-700",
+                      )}
+                    >
+                      {group.year}년
+                    </span>
+                    <span>에는 </span>
+                    <span
+                      className={cn(
+                        "font-bold",
+                        isRetro ? "text-blue-700" : "text-indigo-600",
+                      )}
+                    >
+                      {group.items.length}
+                    </span>
+                    <span>
+                      {contentType === "book" ? "권을 " : "편을 "}
+                      {statusLabel ?? "봤어요"}
+                    </span>
+                  </>
+                )}
+              </div>
+              <div className="grid grid-cols-1 gap-3">
+                {group.items.map((l) => (
+                  <LogCard key={l.id} log={l} />
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-3">
+          {logs.map((l) => (
+            <LogCard key={l.id} log={l} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}

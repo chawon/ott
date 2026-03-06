@@ -5,7 +5,14 @@ import { safeUUID } from "@/lib/utils";
 
 export type AnalyticsPlatform = "web" | "pwa" | "twa";
 type DeviceType = "mobile" | "tablet" | "desktop";
-type OsFamily = "ios" | "android" | "windows" | "macos" | "linux" | "chromeos" | "unknown";
+type OsFamily =
+  | "ios"
+  | "android"
+  | "windows"
+  | "macos"
+  | "linux"
+  | "chromeos"
+  | "unknown";
 type BrowserFamily =
   | "chrome"
   | "safari"
@@ -95,7 +102,7 @@ export async function trackEvent(
     | "log_create"
     | "share_action"
     | "retro_mode_toggle",
-  properties?: Record<string, unknown>
+  properties?: Record<string, unknown>,
 ) {
   try {
     const platform = detectPlatform();
@@ -117,7 +124,10 @@ export async function trackEvent(
         sessionId: ensureSessionId(),
         clientVersion: "web",
         occurredAt: new Date().toISOString(),
-        properties: { ...buildContextProperties(platform), ...(properties ?? {}) },
+        properties: {
+          ...buildContextProperties(platform),
+          ...(properties ?? {}),
+        },
       }),
     });
 

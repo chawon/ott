@@ -4,7 +4,13 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Settings } from "lucide-react";
 import { pairWithCode } from "@/lib/auth";
-import { getDeviceId, getPairingCode, getUserId, listAllLogsLocal, resetLocalState } from "@/lib/localStore";
+import {
+  getDeviceId,
+  getPairingCode,
+  getUserId,
+  listAllLogsLocal,
+  resetLocalState,
+} from "@/lib/localStore";
 import { api } from "@/lib/api";
 import { useRetro } from "@/context/RetroContext";
 import { cn } from "@/lib/utils";
@@ -20,9 +26,19 @@ export default function AccountPage() {
   const [loading, setLoading] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [exportStatus, setExportStatus] = useState<string | null>(null);
-  const [exportContentType, setExportContentType] = useState<"ALL" | "video" | "book">("ALL");
+  const [exportContentType, setExportContentType] = useState<
+    "ALL" | "video" | "book"
+  >("ALL");
   const [initializing, setInitializing] = useState(false);
-  const [devices, setDevices] = useState<{ id: string; createdAt: string; lastSeenAt: string; os?: string | null; browser?: string | null }[]>([]);
+  const [devices, setDevices] = useState<
+    {
+      id: string;
+      createdAt: string;
+      lastSeenAt: string;
+      os?: string | null;
+      browser?: string | null;
+    }[]
+  >([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -78,9 +94,16 @@ export default function AccountPage() {
       return [];
     }
     try {
-      const res = await api<{ id: string; createdAt: string; lastSeenAt: string; os?: string | null; browser?: string | null }[]>(
-        "/auth/devices"
-      );
+      const res =
+        await api<
+          {
+            id: string;
+            createdAt: string;
+            lastSeenAt: string;
+            os?: string | null;
+            browser?: string | null;
+          }[]
+        >("/auth/devices");
       setDevices(res);
       return res;
     } catch {
@@ -134,7 +157,9 @@ export default function AccountPage() {
   }
 
   async function resetLocalOnly() {
-    const ok = confirm("브라우저에 저장된 모든 데이터가 삭제됩니다. 계속할까요?");
+    const ok = confirm(
+      "브라우저에 저장된 모든 데이터가 삭제됩니다. 계속할까요?",
+    );
     if (!ok) return;
     setLoading(true);
     setStatus(null);
@@ -168,11 +193,12 @@ export default function AccountPage() {
     setExportStatus(null);
     try {
       const logs = await listAllLogsLocal();
-      const filtered = exportContentType === "book"
-        ? logs.filter((log) => log.title?.type === "book")
-        : exportContentType === "video"
-          ? logs.filter((log) => log.title?.type !== "book")
-          : logs;
+      const filtered =
+        exportContentType === "book"
+          ? logs.filter((log) => log.title?.type === "book")
+          : exportContentType === "video"
+            ? logs.filter((log) => log.title?.type !== "book")
+            : logs;
       if (filtered.length === 0) {
         setExportStatus("해당 조건의 기록이 없어요.");
         return;
@@ -193,8 +219,8 @@ export default function AccountPage() {
 
   const headerTitle = isRetro ? "맞춤" : "설정";
   const hasAccount = !!userId;
-  const headerSubtitle = isRetro 
-    ? "기기 잇기" 
+  const headerSubtitle = isRetro
+    ? "기기 잇기"
     : "이메일 없이 페어링 코드로 여러 기기를 연결해요.";
 
   return (
@@ -202,7 +228,9 @@ export default function AccountPage() {
       <div>
         {isRetro ? (
           <div className="flex items-baseline justify-between border-b-4 border-black pb-2 mb-4">
-            <div className="text-xl font-bold uppercase tracking-tighter">{headerTitle}</div>
+            <div className="text-xl font-bold uppercase tracking-tighter">
+              {headerTitle}
+            </div>
           </div>
         ) : (
           <div className="text-xl font-semibold flex items-center gap-2">
@@ -210,9 +238,13 @@ export default function AccountPage() {
             {headerTitle}
           </div>
         )}
-        <div className={cn(
-          isRetro ? "text-xs font-bold text-neutral-500 uppercase" : "text-sm text-muted-foreground"
-        )}>
+        <div
+          className={cn(
+            isRetro
+              ? "text-xs font-bold text-neutral-500 uppercase"
+              : "text-sm text-muted-foreground",
+          )}
+        >
           {headerSubtitle}
         </div>
       </div>
@@ -275,13 +307,19 @@ export default function AccountPage() {
         >
           {loading ? "연결 중…" : "연결하기"}
         </button>
-        {status ? <div className="text-sm text-muted-foreground">{status}</div> : null}
+        {status ? (
+          <div className="text-sm text-muted-foreground">{status}</div>
+        ) : null}
       </section>
 
       <section className="rounded-2xl border border-border bg-card p-6 shadow-sm space-y-2">
         <div className="text-sm text-muted-foreground">내 계정 정보</div>
-        <div className="text-xs text-muted-foreground">User: {userId ?? "—"}</div>
-        <div className="text-xs text-muted-foreground">Device: {deviceId ?? "—"}</div>
+        <div className="text-xs text-muted-foreground">
+          User: {userId ?? "—"}
+        </div>
+        <div className="text-xs text-muted-foreground">
+          Device: {deviceId ?? "—"}
+        </div>
         {!userId ? (
           <div className="text-xs text-muted-foreground">
             첫 기록 전에는 계정 정보가 비어 있을 수 있어요.
@@ -289,13 +327,18 @@ export default function AccountPage() {
         ) : null}
       </section>
 
-      <section className={cn(
-        "rounded-2xl p-6 shadow-sm space-y-3",
-        isRetro ? "border-4 border-black bg-white" : "border border-border bg-card"
-      )}>
+      <section
+        className={cn(
+          "rounded-2xl p-6 shadow-sm space-y-3",
+          isRetro
+            ? "border-4 border-black bg-white"
+            : "border border-border bg-card",
+        )}
+      >
         <div className="text-sm font-semibold">로컬 데이터 초기화</div>
         <div className="text-xs text-muted-foreground">
-          이 기기에 저장된 기록/캐시를 모두 삭제해요. 서버 데이터는 삭제되지 않아요.
+          이 기기에 저장된 기록/캐시를 모두 삭제해요. 서버 데이터는 삭제되지
+          않아요.
         </div>
         <button
           type="button"
@@ -306,17 +349,21 @@ export default function AccountPage() {
             isRetro
               ? "border-2 border-black bg-white text-black hover:bg-yellow-200"
               : "rounded-2xl border border-border bg-card text-muted-foreground hover:bg-muted",
-            loading && "opacity-40"
+            loading && "opacity-40",
           )}
         >
           로컬 초기화
         </button>
       </section>
 
-      <section className={cn(
-        "rounded-2xl p-6 shadow-sm space-y-3",
-        isRetro ? "border-4 border-black bg-white" : "border border-border bg-card"
-      )}>
+      <section
+        className={cn(
+          "rounded-2xl p-6 shadow-sm space-y-3",
+          isRetro
+            ? "border-4 border-black bg-white"
+            : "border border-border bg-card",
+        )}
+      >
         <div className="text-sm font-semibold">내 기록 내보내기</div>
         <div className="text-xs text-muted-foreground">
           {hasAccount
@@ -324,15 +371,19 @@ export default function AccountPage() {
             : "첫 기록(로그/댓글)을 남기면 내보내기를 사용할 수 있어요."}
         </div>
         <div>
-          <div className="text-xs text-muted-foreground mb-1">내보내기 범위</div>
+          <div className="text-xs text-muted-foreground mb-1">
+            내보내기 범위
+          </div>
           <select
             value={exportContentType}
-            onChange={(e) => setExportContentType(e.target.value as "ALL" | "video" | "book")}
+            onChange={(e) =>
+              setExportContentType(e.target.value as "ALL" | "video" | "book")
+            }
             disabled={!hasAccount}
             className={cn(
               "w-full select-base rounded-xl px-3 py-2 text-sm",
               isRetro && "border-2 border-black bg-white text-black",
-              !hasAccount && "opacity-60"
+              !hasAccount && "opacity-60",
             )}
           >
             <option value="ALL">전체</option>
@@ -349,7 +400,7 @@ export default function AccountPage() {
             isRetro
               ? "border-2 border-black bg-white text-black hover:bg-yellow-200"
               : "rounded-2xl bg-foreground text-background",
-            (exporting || !hasAccount) && "opacity-40"
+            (exporting || !hasAccount) && "opacity-40",
           )}
         >
           {exporting ? "CSV 만드는 중…" : "CSV 다운로드"}
@@ -357,19 +408,26 @@ export default function AccountPage() {
         <div className="text-xs text-muted-foreground">
           최신 기록을 포함하려면 동기화가 완료된 상태에서 내보내기 해주세요.
         </div>
-        {exportStatus ? <div className="text-sm text-muted-foreground">{exportStatus}</div> : null}
+        {exportStatus ? (
+          <div className="text-sm text-muted-foreground">{exportStatus}</div>
+        ) : null}
       </section>
 
       <section className="rounded-2xl border border-border bg-card p-6 shadow-sm space-y-3">
         <div className="text-sm font-semibold">연결된 기기</div>
         {devices.length === 0 ? (
-          <div className="text-sm text-muted-foreground">연결된 기기가 없어요.</div>
+          <div className="text-sm text-muted-foreground">
+            연결된 기기가 없어요.
+          </div>
         ) : (
           <div className="space-y-2">
             {devices.map((d) => {
               const isCurrent = d.id === deviceId;
               return (
-                <div key={d.id} className="flex items-center justify-between rounded-xl border border-border bg-card/80 px-3 py-2 text-card-foreground">
+                <div
+                  key={d.id}
+                  className="flex items-center justify-between rounded-xl border border-border bg-card/80 px-3 py-2 text-card-foreground"
+                >
                   <div>
                     <div className="text-sm text-foreground">
                       {isCurrent ? "현재 기기" : "연결된 기기"}
@@ -378,7 +436,8 @@ export default function AccountPage() {
                       {d.browser ?? "브라우저"} · {d.os ?? "OS"}
                     </div>
                     <div className="text-xs text-muted-foreground">
-                      생성 {formatShort(d.createdAt)} · 최근 {formatShort(d.lastSeenAt)}
+                      생성 {formatShort(d.createdAt)} · 최근{" "}
+                      {formatShort(d.lastSeenAt)}
                     </div>
                   </div>
                   {!isCurrent ? (
@@ -391,7 +450,9 @@ export default function AccountPage() {
                       연결 해제
                     </button>
                   ) : (
-                    <span className="rounded-full bg-emerald-100 px-2 py-1 text-[10px] text-emerald-700 dark:bg-emerald-900/60 dark:text-emerald-100">현재</span>
+                    <span className="rounded-full bg-emerald-100 px-2 py-1 text-[10px] text-emerald-700 dark:bg-emerald-900/60 dark:text-emerald-100">
+                      현재
+                    </span>
                   )}
                 </div>
               );

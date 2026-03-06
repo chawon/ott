@@ -2,7 +2,12 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Download, Share2 } from "lucide-react";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { WatchLog } from "@/lib/types";
 import { downloadBlob, fetchShareCardBlob, shareBlob } from "@/lib/share";
 import { cn, ratingDisplay, statusLabel } from "@/lib/utils";
@@ -26,7 +31,8 @@ export default function ShareBottomSheet({
   const [shareCardBlob, setShareCardBlob] = useState<Blob | null>(null);
   const { isRetro } = useRetro();
   const previewAspect = format === "feed" ? "aspect-[4/5]" : "aspect-[9/16]";
-  const sizeLabel = format === "feed" ? "1080×1350 (Feed)" : "1080×1920 (Story)";
+  const sizeLabel =
+    format === "feed" ? "1080×1350 (Feed)" : "1080×1920 (Story)";
 
   useEffect(() => {
     if (!log) return;
@@ -86,7 +92,9 @@ export default function ShareBottomSheet({
   }, [open, payload]);
 
   function filenameFor(log: WatchLog) {
-    const safeTitle = log.title.name.replace(/[^a-zA-Z0-9가-힣_-]+/g, "_").slice(0, 40);
+    const safeTitle = log.title.name
+      .replace(/[^a-zA-Z0-9가-힣_-]+/g, "_")
+      .slice(0, 40);
     const suffix = format === "feed" ? "feed" : "story";
     return `ott-${safeTitle || "share"}-${suffix}.png`;
   }
@@ -142,19 +150,26 @@ export default function ShareBottomSheet({
         side="bottom"
         className={cn(
           "max-h-[90vh] overflow-y-auto rounded-t-3xl border-t border-border bg-card text-card-foreground",
-          "p-0"
+          "p-0",
         )}
       >
         <SheetHeader className="px-6 pt-6">
           <SheetTitle className="text-base">공유 카드 만들기</SheetTitle>
-          <div className="text-xs text-muted-foreground">저장한 기록을 이미지로 공유해보세요.</div>
+          <div className="text-xs text-muted-foreground">
+            저장한 기록을 이미지로 공유해보세요.
+          </div>
         </SheetHeader>
 
         <div className="grid grid-cols-1 gap-6 px-6 pb-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,320px)]">
           <div className="space-y-4">
             <div className="rounded-3xl border border-border bg-muted/60 p-4">
               <div className="mx-auto flex w-full justify-center">
-                <div className={cn("relative w-[280px] overflow-hidden rounded-2xl bg-card shadow-sm", previewAspect)}>
+                <div
+                  className={cn(
+                    "relative w-[280px] overflow-hidden rounded-2xl bg-card shadow-sm",
+                    previewAspect,
+                  )}
+                >
                   {previewUrl ? (
                     <img
                       src={previewUrl}
@@ -198,7 +213,9 @@ export default function ShareBottomSheet({
                   onClick={() => setFormat("story")}
                   className={cn(
                     "rounded-full px-3 py-1 text-xs font-medium transition",
-                    format === "story" ? "bg-foreground text-background" : "text-muted-foreground"
+                    format === "story"
+                      ? "bg-foreground text-background"
+                      : "text-muted-foreground",
                   )}
                 >
                   스토리 9:16
@@ -208,7 +225,9 @@ export default function ShareBottomSheet({
                   onClick={() => setFormat("feed")}
                   className={cn(
                     "rounded-full px-3 py-1 text-xs font-medium transition",
-                    format === "feed" ? "bg-foreground text-background" : "text-muted-foreground"
+                    format === "feed"
+                      ? "bg-foreground text-background"
+                      : "text-muted-foreground",
                   )}
                 >
                   피드 4:5

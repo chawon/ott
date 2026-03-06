@@ -20,14 +20,41 @@ type ShareCardPayload = {
 
 async function renderShareCard(body: ShareCardPayload) {
   try {
-    const fonts: Array<{ name: string; data: ArrayBuffer; weight: 400 | 700; style: "normal" }> = [];
+    const fonts: Array<{
+      name: string;
+      data: ArrayBuffer;
+      weight: 400 | 700;
+      style: "normal";
+    }> = [];
 
     // Try multiple paths for fonts (System path and Project path)
     const fontPaths = [
-      { name: "NanumSquare", weight: 400 as const, paths: ["/usr/share/fonts/truetype/nanum/NanumSquareR.ttf", "./public/fonts/NanumSquareR.ttf"] },
-      { name: "NanumSquare", weight: 700 as const, paths: ["/usr/share/fonts/truetype/nanum/NanumSquareB.ttf", "./public/fonts/NanumSquareB.ttf"] },
-      { name: "Galmuri11", weight: 400 as const, paths: ["./public/fonts/Galmuri11.ttf"] },
-      { name: "Galmuri11", weight: 700 as const, paths: ["./public/fonts/Galmuri11-Bold.ttf"] }
+      {
+        name: "NanumSquare",
+        weight: 400 as const,
+        paths: [
+          "/usr/share/fonts/truetype/nanum/NanumSquareR.ttf",
+          "./public/fonts/NanumSquareR.ttf",
+        ],
+      },
+      {
+        name: "NanumSquare",
+        weight: 700 as const,
+        paths: [
+          "/usr/share/fonts/truetype/nanum/NanumSquareB.ttf",
+          "./public/fonts/NanumSquareB.ttf",
+        ],
+      },
+      {
+        name: "Galmuri11",
+        weight: 400 as const,
+        paths: ["./public/fonts/Galmuri11.ttf"],
+      },
+      {
+        name: "Galmuri11",
+        weight: 700 as const,
+        paths: ["./public/fonts/Galmuri11-Bold.ttf"],
+      },
     ];
 
     for (const fontInfo of fontPaths) {
@@ -36,9 +63,12 @@ async function renderShareCard(body: ShareCardPayload) {
           const data = await fs.readFile(path);
           fonts.push({
             name: fontInfo.name,
-            data: data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength),
+            data: data.buffer.slice(
+              data.byteOffset,
+              data.byteOffset + data.byteLength,
+            ),
             weight: fontInfo.weight,
-            style: "normal"
+            style: "normal",
           });
           break; // Use the first successful one
         } catch {
@@ -55,7 +85,8 @@ async function renderShareCard(body: ShareCardPayload) {
     const s = (value: number) => Math.round(value * scale);
     const width = 1080;
     const height = isFeed ? 1350 : 1920;
-    const cleanedTitle = body.titleType === "book" ? stripBookSubtitle(rawTitle) : rawTitle;
+    const cleanedTitle =
+      body.titleType === "book" ? stripBookSubtitle(rawTitle) : rawTitle;
     const title = clampText(cleanedTitle, 60);
     const formattedTitle = formatTitleForCard(title);
     const note = body.note
@@ -64,9 +95,11 @@ async function renderShareCard(body: ShareCardPayload) {
     let posterUrl = body.posterUrl ?? null;
     const watermark = body.watermark ?? "On the Timeline";
     const isRetro = body.theme === "retro";
-    
+
     // Select font family based on theme
-    const fontFamily = isRetro ? "Galmuri11, sans-serif" : "NanumSquare, sans-serif";
+    const fontFamily = isRetro
+      ? "Galmuri11, sans-serif"
+      : "NanumSquare, sans-serif";
 
     let backgroundColor = isRetro ? "#f8f2e9" : "#0b0c10";
     let contentBgColor = isRetro ? "#fff6dd" : "#0b1224";
@@ -86,7 +119,7 @@ async function renderShareCard(body: ShareCardPayload) {
           if (!isRetro) {
             try {
               const colorData = await getAverageColor(buffer);
-              
+
               if (colorData && colorData.value) {
                 const [r, g, b] = colorData.value;
                 // Darken the color significantly to ensure white text readability
@@ -96,7 +129,7 @@ async function renderShareCard(body: ShareCardPayload) {
                 const dr = Math.floor(r * darken);
                 const dg = Math.floor(g * darken);
                 const db = Math.floor(b * darken);
-                
+
                 // For content area, maybe slightly lighter but still dark
                 const contentDarken = 0.25;
                 const cr = Math.floor(r * contentDarken);
@@ -107,7 +140,7 @@ async function renderShareCard(body: ShareCardPayload) {
                 contentBgColor = `rgb(${cr}, ${cg}, ${cb})`;
               }
             } catch (e) {
-                console.error("Color extraction failed:", e);
+              console.error("Color extraction failed:", e);
             }
           }
 
@@ -121,112 +154,127 @@ async function renderShareCard(body: ShareCardPayload) {
     }
 
     return new ImageResponse(
-      (
+      <div
+        style={{
+          width: "100%",
+          height: "100%",
+          display: "flex",
+          flexDirection: "column",
+          position: "relative",
+          backgroundColor,
+          color: isRetro ? "#111827" : "#ffffff",
+          fontFamily,
+        }}
+      >
         <div
           style={{
             width: "100%",
-            height: "100%",
+            height: "70%",
+            display: "flex",
+            position: "relative",
+            backgroundColor: isRetro ? "#f8f2e9" : backgroundColor, // Use same bg to blend
+            overflow: "hidden",
+          }}
+        >
+          {posterUrl ? (
+            <img
+              src={posterUrl}
+              style={{
+                width: "100%",
+                height: "100%",
+                objectFit: "cover",
+                objectPosition: isBook ? "center top" : "center 12%",
+              }}
+            />
+          ) : null}
+          <div
+            style={{
+              position: "absolute",
+              bottom: 0,
+              left: 0,
+              right: 0,
+              height: "36%",
+              display: "flex",
+              background: `linear-gradient(180deg, rgba(0,0,0,0) 0%, ${contentBgColor} 100%)`, // Fade into content color
+            }}
+          />
+        </div>
+
+        <div
+          style={{
+            width: "100%",
+            height: "30%",
             display: "flex",
             flexDirection: "column",
-            position: "relative",
-            backgroundColor,
-            color: isRetro ? "#111827" : "#ffffff",
-            fontFamily,
+            justifyContent: "flex-start",
+            padding: `${s(64)}px ${s(88)}px ${s(72)}px`,
+            backgroundColor: contentBgColor,
           }}
         >
           <div
             style={{
-              width: "100%",
-              height: "70%",
-              display: "flex",
-              position: "relative",
-              backgroundColor: isRetro ? "#f8f2e9" : backgroundColor, // Use same bg to blend
-              overflow: "hidden",
-            }}
-          >
-            {posterUrl ? (
-              <img
-                src={posterUrl}
-                style={{
-                  width: "100%",
-                  height: "100%",
-                  objectFit: "cover",
-                  objectPosition: isBook ? "center top" : "center 12%",
-                }}
-              />
-            ) : null}
-            <div
-              style={{
-                position: "absolute",
-                bottom: 0,
-                left: 0,
-                right: 0,
-                height: "36%",
-                display: "flex",
-                background:
-                  `linear-gradient(180deg, rgba(0,0,0,0) 0%, ${contentBgColor} 100%)`, // Fade into content color
-              }}
-            />
-          </div>
-
-          <div
-            style={{
-              width: "100%",
-              height: "30%",
               display: "flex",
               flexDirection: "column",
-              justifyContent: "flex-start",
-              padding: `${s(64)}px ${s(88)}px ${s(72)}px`,
-              backgroundColor: contentBgColor,
+              gap: s(18),
             }}
           >
             <div
               style={{
                 display: "flex",
-                flexDirection: "column",
-                gap: s(18),
+                fontSize: s(isBook ? 64 : 84),
+                fontWeight: isRetro ? 700 : 700,
+                lineHeight: isBook ? 1.12 : 1.05,
+                letterSpacing: "-0.02em",
+                textTransform: isRetro ? "uppercase" : "none",
+                color: isRetro ? "#111827" : "#ffffff",
+                whiteSpace: "pre-wrap",
+              }}
+            >
+              {formattedTitle}
+            </div>
+
+            {note ? (
+              <div
+                style={{
+                  display: "flex",
+                  fontSize: s(isBook ? 40 : 38),
+                  fontWeight: isRetro ? 700 : 500,
+                  lineHeight: 1.3,
+                  color: isRetro ? "#1f2937" : "#dbe4ff",
+                  whiteSpace: "pre-wrap",
+                }}
+              >
+                “{note}”
+              </div>
+            ) : null}
+
+            <div
+              style={{
+                display: "flex",
+                gap: s(12),
+                flexWrap: "wrap",
+                fontSize: s(isBook ? 26 : 28),
+                fontWeight: isRetro ? 700 : 600,
+                color: isRetro ? "#374151" : "#cbd5f5",
               }}
             >
               <div
                 style={{
                   display: "flex",
-                  fontSize: s(isBook ? 64 : 84),
-                  fontWeight: isRetro ? 700 : 700,
-                  lineHeight: isBook ? 1.12 : 1.05,
-                  letterSpacing: "-0.02em",
-                  textTransform: isRetro ? "uppercase" : "none",
-                  color: isRetro ? "#111827" : "#ffffff",
-                  whiteSpace: "pre-wrap",
+                  alignItems: "center",
+                  gap: s(8),
+                  padding: `${s(10)}px ${s(16)}px`,
+                  borderRadius: 999,
+                  backgroundColor: isRetro
+                    ? "rgba(17,24,39,0.08)"
+                    : "rgba(255,255,255,0.08)",
+                  height: s(48),
                 }}
               >
-                {formattedTitle}
+                <span>👀</span>
+                <span>{body.statusLabel}</span>
               </div>
-
-              {note ? (
-                <div
-                  style={{
-                    display: "flex",
-                    fontSize: s(isBook ? 40 : 38),
-                    fontWeight: isRetro ? 700 : 500,
-                    lineHeight: 1.3,
-                    color: isRetro ? "#1f2937" : "#dbe4ff",
-                    whiteSpace: "pre-wrap",
-                  }}
-                >
-                  “{note}”
-                </div>
-              ) : null}
-
-              <div
-                style={{
-                  display: "flex",
-                  gap: s(12),
-                  flexWrap: "wrap",
-                  fontSize: s(isBook ? 26 : 28),
-                  fontWeight: isRetro ? 700 : 600,
-                  color: isRetro ? "#374151" : "#cbd5f5",
-                }}
-              >
+              {body.ratingLabel ? (
                 <div
                   style={{
                     display: "flex",
@@ -234,77 +282,70 @@ async function renderShareCard(body: ShareCardPayload) {
                     gap: s(8),
                     padding: `${s(10)}px ${s(16)}px`,
                     borderRadius: 999,
-                    backgroundColor: isRetro ? "rgba(17,24,39,0.08)" : "rgba(255,255,255,0.08)",
-                    height: s(48),
-                  }}
-                >
-                  <span>👀</span>
-                  <span>{body.statusLabel}</span>
-                </div>
-                {body.ratingLabel ? (
-                  <div
-                    style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: s(8),
-                    padding: `${s(10)}px ${s(16)}px`,
-                    borderRadius: 999,
-                    backgroundColor: isRetro ? "rgba(17,24,39,0.08)" : "rgba(255,255,255,0.08)",
+                    backgroundColor: isRetro
+                      ? "rgba(17,24,39,0.08)"
+                      : "rgba(255,255,255,0.08)",
                     height: s(48),
                   }}
                 >
                   <span>⭐</span>
                   <span>
-                      {body.ratingLabel}
-                      {typeof body.ratingValue === "number" ? ` ${body.ratingValue.toFixed(1)}` : ""}
-                    </span>
-                  </div>
-                ) : null}
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: s(8),
-                    padding: `${s(10)}px ${s(16)}px`,
-                    borderRadius: 999,
-                    backgroundColor: isRetro ? "rgba(17,24,39,0.08)" : "rgba(255,255,255,0.08)",
-                    height: s(48),
-                  }}
-                >
-                  <span>🗓</span>
-                  <span>{body.date}</span>
+                    {body.ratingLabel}
+                    {typeof body.ratingValue === "number"
+                      ? ` ${body.ratingValue.toFixed(1)}`
+                      : ""}
+                  </span>
                 </div>
+              ) : null}
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: s(8),
+                  padding: `${s(10)}px ${s(16)}px`,
+                  borderRadius: 999,
+                  backgroundColor: isRetro
+                    ? "rgba(17,24,39,0.08)"
+                    : "rgba(255,255,255,0.08)",
+                  height: s(48),
+                }}
+              >
+                <span>🗓</span>
+                <span>{body.date}</span>
               </div>
             </div>
           </div>
-
-          <div
-            style={{
-              position: "absolute",
-              bottom: s(64),
-              left: s(88),
-              display: "flex",
-              fontSize: s(26),
-              fontWeight: isRetro ? 700 : 500,
-              letterSpacing: isRetro ? "0.06em" : "0.02em",
-              textTransform: isRetro ? "uppercase" : "none",
-              color: isRetro ? "rgba(17,24,39,0.7)" : "rgba(255,255,255,0.75)",
-            }}
-          >
-            {watermark}
-          </div>
         </div>
-      ),
+
+        <div
+          style={{
+            position: "absolute",
+            bottom: s(64),
+            left: s(88),
+            display: "flex",
+            fontSize: s(26),
+            fontWeight: isRetro ? 700 : 500,
+            letterSpacing: isRetro ? "0.06em" : "0.02em",
+            textTransform: isRetro ? "uppercase" : "none",
+            color: isRetro ? "rgba(17,24,39,0.7)" : "rgba(255,255,255,0.75)",
+          }}
+        >
+          {watermark}
+        </div>
+      </div>,
       {
         width,
         height,
         fonts,
-      }
+      },
     );
   } catch (error) {
-    return new Response(`Share card error: ${error instanceof Error ? error.message : "unknown"}`, {
-      status: 500,
-    });
+    return new Response(
+      `Share card error: ${error instanceof Error ? error.message : "unknown"}`,
+      {
+        status: 500,
+      },
+    );
   }
 }
 
@@ -331,8 +372,10 @@ function stripBookSubtitle(title: string) {
   const dashIndex = withoutParens.search(/\s[-–—]\s+/);
   let cutIndex = -1;
   if (colonIndex !== -1) cutIndex = colonIndex;
-  if (dashIndex !== -1) cutIndex = cutIndex === -1 ? dashIndex : Math.min(cutIndex, dashIndex);
-  const trimmed = cutIndex === -1 ? withoutParens : withoutParens.slice(0, cutIndex).trim();
+  if (dashIndex !== -1)
+    cutIndex = cutIndex === -1 ? dashIndex : Math.min(cutIndex, dashIndex);
+  const trimmed =
+    cutIndex === -1 ? withoutParens : withoutParens.slice(0, cutIndex).trim();
   return trimmed.length > 0 ? trimmed : title;
 }
 
@@ -344,7 +387,10 @@ function formatTitleForCard(title: string) {
   return `${before}\n${after}`;
 }
 
-function tmdbResize(url: string | null | undefined, size: string): string | undefined {
+function tmdbResize(
+  url: string | null | undefined,
+  size: string,
+): string | undefined {
   if (!url) return url ?? undefined;
   const marker = "https://image.tmdb.org/t/p/";
   if (!url.startsWith(marker)) return url;

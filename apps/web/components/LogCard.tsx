@@ -1,236 +1,313 @@
 import Link from "next/link";
-import {BookOpen, Film, Tv} from "lucide-react";
-import {WatchLog} from "@/lib/types";
-import {formatNoteInline, occasionLabel, placeLabel, statusLabel, tmdbResize} from "@/lib/utils";
-import {useRetro} from "@/context/RetroContext";
-import {cn} from "@/lib/utils";
+import { BookOpen, Film, Tv } from "lucide-react";
+import { WatchLog } from "@/lib/types";
+import {
+  formatNoteInline,
+  occasionLabel,
+  placeLabel,
+  statusLabel,
+  tmdbResize,
+} from "@/lib/utils";
+import { useRetro } from "@/context/RetroContext";
+import { cn } from "@/lib/utils";
 
 function formatDate(iso: string, isRetro: boolean) {
-    const d = new Date(iso);
-    if (isRetro) {
-        return d
-            .toLocaleDateString("ko-KR", {year: "numeric", month: "2-digit", day: "2-digit"})
-            .replace(/\. /g, "-")
-            .replace(".", "");
-    }
-    return d.toLocaleDateString("ko-KR", {year: "numeric", month: "2-digit", day: "2-digit"});
+  const d = new Date(iso);
+  if (isRetro) {
+    return d
+      .toLocaleDateString("ko-KR", {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+      })
+      .replace(/\. /g, "-")
+      .replace(".", "");
+  }
+  return d.toLocaleDateString("ko-KR", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
 }
 
 function renderBody(text: string, isRetro: boolean) {
-    const parts = text.split(/(@\{[^}]+\})/g);
-    return parts.map((p, idx) => {
-        if (p.startsWith("@{") && p.endsWith("}")) {
-            const name = p.slice(2, -1);
-            return (
-                <span key={idx} className={cn(
-                    isRetro
-                        ? "bg-blue-100 text-blue-800 px-1 border border-blue-800 mx-0.5"
-                        : "rounded-md bg-accent px-1 text-accent-foreground"
-                )}>
-                    @{name}
-                </span>
-            );
-        }
-        if (p.startsWith("@")) {
-            return (
-                <span key={idx} className={cn(
-                    isRetro
-                        ? "bg-blue-100 text-blue-800 px-1 border border-blue-800 mx-0.5"
-                        : "rounded-md bg-accent px-1 text-accent-foreground"
-                )}>
-                    {p}
-                </span>
-            );
-        }
-        return <span key={idx}>{p}</span>;
-    });
+  const parts = text.split(/(@\{[^}]+\})/g);
+  return parts.map((p, idx) => {
+    if (p.startsWith("@{") && p.endsWith("}")) {
+      const name = p.slice(2, -1);
+      return (
+        <span
+          key={idx}
+          className={cn(
+            isRetro
+              ? "bg-blue-100 text-blue-800 px-1 border border-blue-800 mx-0.5"
+              : "rounded-md bg-accent px-1 text-accent-foreground",
+          )}
+        >
+          @{name}
+        </span>
+      );
+    }
+    if (p.startsWith("@")) {
+      return (
+        <span
+          key={idx}
+          className={cn(
+            isRetro
+              ? "bg-blue-100 text-blue-800 px-1 border border-blue-800 mx-0.5"
+              : "rounded-md bg-accent px-1 text-accent-foreground",
+          )}
+        >
+          {p}
+        </span>
+      );
+    }
+    return <span key={idx}>{p}</span>;
+  });
 }
 
 function chip(label: string, tone: "place" | "occasion", isRetro: boolean) {
-    if (isRetro) {
-        const toneClass = tone === "place" ? "bg-[#2ecc71] text-white border-black" : "bg-[#f7d51d] text-black border-black";
-        return <span className={`border-2 px-2 py-0 text-xs font-bold ${toneClass}`}>{label}</span>;
-    }
-    const toneClass = tone === "place" ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-amber-50 text-amber-700 border-amber-200";
-    return <span className={`rounded-full border px-3 py-1 text-xs ${toneClass}`}>{label}</span>;
+  if (isRetro) {
+    const toneClass =
+      tone === "place"
+        ? "bg-[#2ecc71] text-white border-black"
+        : "bg-[#f7d51d] text-black border-black";
+    return (
+      <span className={`border-2 px-2 py-0 text-xs font-bold ${toneClass}`}>
+        {label}
+      </span>
+    );
+  }
+  const toneClass =
+    tone === "place"
+      ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+      : "bg-amber-50 text-amber-700 border-amber-200";
+  return (
+    <span className={`rounded-full border px-3 py-1 text-xs ${toneClass}`}>
+      {label}
+    </span>
+  );
 }
 
 function seasonEpisodeLabel(log: WatchLog) {
-    if (typeof log.seasonNumber !== "number") return null;
-    if (typeof log.episodeNumber === "number") {
-        return `S${log.seasonNumber} · E${log.episodeNumber}`;
-    }
-    return `S${log.seasonNumber}`;
+  if (typeof log.seasonNumber !== "number") return null;
+  if (typeof log.episodeNumber === "number") {
+    return `S${log.seasonNumber} · E${log.episodeNumber}`;
+  }
+  return `S${log.seasonNumber}`;
 }
 
 function seasonYearLabel(log: WatchLog) {
-    if (typeof log.seasonYear === "number") return String(log.seasonYear);
-    return null;
+  if (typeof log.seasonYear === "number") return String(log.seasonYear);
+  return null;
 }
 
-export default function LogCard({log}: { log: WatchLog }) {
-    const t = log.title;
-    const {isRetro} = useRetro();
-    if (log.deletedAt) return null;
-    if (!t?.id) return null;
-    const seasonLabel = seasonEpisodeLabel(log);
-    const isCommentOrigin = log.origin === "COMMENT";
-    const isBook = t.type === "book";
+export default function LogCard({ log }: { log: WatchLog }) {
+  const t = log.title;
+  const { isRetro } = useRetro();
+  if (log.deletedAt) return null;
+  if (!t?.id) return null;
+  const seasonLabel = seasonEpisodeLabel(log);
+  const isCommentOrigin = log.origin === "COMMENT";
+  const isBook = t.type === "book";
 
-    if (isRetro) {
-        return (
-            <article className={cn(
-                "nes-container hover:bg-neutral-50 transition-none flex gap-6",
-                isBook && "bg-[#f1fff2] border-4 border-[#2ecc71]",
-                isCommentOrigin && "bg-[#fff7e6] border-4 border-[#f59e0b]"
-            )}>
-                <div className="shrink-0">
-                    <div className="h-40 w-28 border-4 border-black bg-neutral-200 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] overflow-hidden">
-                        {(log.seasonPosterUrl ?? t.posterUrl) ? (
-                            <img
-                                src={tmdbResize(log.seasonPosterUrl ?? t.posterUrl, "w185") ?? log.seasonPosterUrl ?? t.posterUrl ?? ""}
-                                alt={t.name}
-                                className="h-full w-full object-cover pixelated"
-                                style={{imageRendering: "pixelated"}}
-                                loading="lazy"
-                            />
-                        ) : (
-                            <div className="h-full w-full flex items-center justify-center text-[10px] text-neutral-400 font-bold text-center p-2 uppercase">NO IMAGE</div>
-                        )}
-                    </div>
-                </div>
-                <div className="flex-1 min-w-0 flex flex-col">
-                    <div className="flex items-start justify-between gap-3 mb-2">
-                        <div className="min-w-0">
-                            <Link href={`/title/${t.id}`} className="text-xl font-bold hover:text-red-600 hover:underline decoration-2 underline-offset-4 truncate block">
-                                {t.name}
-                            </Link>
-                            <div className="mt-1 text-sm text-neutral-600 font-bold uppercase flex flex-wrap gap-2">
-                                {isBook ? (
-                                    <span className="inline-flex items-center gap-1 border-2 border-black bg-[#d9f7e8] px-1.5 py-0.5 text-[10px] font-bold text-[#1e7a4f]">
-                                        <BookOpen className="h-3 w-3"/>
-                                        BOOK
-                                    </span>
-                                ) : t.type === "movie" ? (
-                                    <span className="inline-flex items-center gap-1 border-2 border-black bg-[#e9ecff] px-1.5 py-0.5 text-[10px] font-bold text-[#2c3ea8]">
-                                        <Film className="h-3 w-3"/>
-                                        MOVIE
-                                    </span>
-                                ) : (
-                                    <span className="inline-flex items-center gap-1 border-2 border-black bg-[#fff4d9] px-1.5 py-0.5 text-[10px] font-bold text-[#9a5b14]">
-                                        <Tv className="h-3 w-3"/>
-                                        SERIES
-                                    </span>
-                                )}
-                                <span className="bg-black text-white px-1">{statusLabel(log.status, t.type)}</span>
-                                {seasonLabel ? <span className="bg-white text-black px-1 border border-black">{seasonLabel}</span> : null}
-                                <span>{formatDate(log.watchedAt ?? log.createdAt, true)}</span>
-                                {log.ott ? <span className="text-blue-600">@{log.ott}</span> : ""}
-                            </div>
-                        </div>
-                        {typeof log.rating === "number" ? (
-                            <div className="shrink-0 bg-black px-2 py-1 text-sm font-bold text-yellow-400 border-2 border-yellow-400">
-                                ★ {log.rating.toFixed(1)}
-                            </div>
-                        ) : null}
-                    </div>
-                    {(log.place || log.occasion) ? (
-                        <div className="flex flex-wrap gap-2 mb-3">
-                            {log.place ? chip(placeLabel(log.place), "place", true) : null}
-                            {log.occasion ? chip(occasionLabel(log.occasion), "occasion", true) : null}
-                        </div>
-                    ) : null}
-                    {log.note ? (
-                        <div className="border-t-2 border-dashed border-neutral-300 pt-3 mt-auto">
-                            <p className="text-sm leading-relaxed text-neutral-900 line-clamp-3">{renderBody(formatNoteInline(log.note), true)}</p>
-                        </div>
-                    ) : null}
-                </div>
-            </article>
-        );
-    }
-
+  if (isRetro) {
     return (
-        <article className={cn(
-            "rounded-2xl border border-border bg-card p-5 text-card-foreground shadow-sm transition-all flex gap-5",
-            isBook && "bg-emerald-50/30 ring-1 ring-emerald-100/80 dark:bg-emerald-950/25 dark:ring-emerald-900/60",
-            isBook && !isCommentOrigin && "border-emerald-200 dark:border-emerald-900/50",
-            isCommentOrigin
-                ? "border-amber-300 bg-amber-50/40 dark:border-amber-800 dark:bg-amber-950/30"
-                : "hover:border-border/80"
-        )}>
-            <div className="shrink-0">
-                <div className="h-32 w-20 overflow-hidden rounded-xl bg-muted shadow-sm border border-border">
-                    {(log.seasonPosterUrl ?? t.posterUrl) ? (
-                        <img
-                            src={tmdbResize(log.seasonPosterUrl ?? t.posterUrl, "w185") ?? log.seasonPosterUrl ?? t.posterUrl ?? ""}
-                            alt={t.name}
-                            className="h-full w-full object-cover"
-                            loading="lazy"
-                        />
-                    ) : (
-                        <div className="h-full w-full flex items-center justify-center text-[10px] text-muted-foreground font-medium">NO IMAGE</div>
-                    )}
-                </div>
-            </div>
-            <div className="flex-1 min-w-0">
-                <div className="flex items-start justify-between gap-3 mb-1">
-                    <div className="min-w-0">
-                        <Link href={`/title/${t.id}`} className="text-lg font-bold text-foreground hover:underline decoration-muted-foreground underline-offset-4 truncate block">
-                            {t.name}
-                        </Link>
-                        <div className="mt-1 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-                            {isBook ? (
-                                <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200/80 bg-emerald-50/70 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/40 dark:text-emerald-200">
-                                    <BookOpen className="h-3 w-3"/>
-                                    BOOK
-                                </span>
-                            ) : t.type === "movie" ? (
-                                <span className="inline-flex items-center gap-1 rounded-full border border-indigo-200/80 bg-indigo-50/70 px-2 py-0.5 text-[10px] font-semibold text-indigo-700 dark:border-indigo-900/60 dark:bg-indigo-950/40 dark:text-indigo-200">
-                                    <Film className="h-3 w-3"/>
-                                    MOVIE
-                                </span>
-                            ) : (
-                                <span className="inline-flex items-center gap-1 rounded-full border border-amber-200/80 bg-amber-50/70 px-2 py-0.5 text-[10px] font-semibold text-amber-700 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-200">
-                                    <Tv className="h-3 w-3"/>
-                                    SERIES
-                                </span>
-                            )}
-                            <span>{statusLabel(log.status, t.type)}</span>
-                            {seasonLabel ? (
-                                <>
-                                    <span className="text-muted-foreground/60">·</span>
-                                    <span>{seasonLabel}</span>
-                                </>
-                            ) : null}
-                            <span className="text-muted-foreground/60">·</span>
-                            <span>{formatDate(log.watchedAt ?? log.createdAt, false)}</span>
-                            {log.ott ? (
-                                <>
-                                    <span className="text-muted-foreground/60">·</span>
-                                    <span className="text-indigo-600/80">{log.ott}</span>
-                                </>
-                            ) : null}
-                        </div>
-                    </div>
-                    {typeof log.rating === "number" ? (
-                        <div className="shrink-0 rounded-xl bg-foreground px-2.5 py-1 text-xs font-bold text-background shadow-sm">
-                            {log.rating.toFixed(1)}
-                        </div>
-                    ) : null}
-                </div>
-                {(log.place || log.occasion) ? (
-                    <div className="flex flex-wrap gap-1.5 mb-3">
-                        {log.place ? chip(placeLabel(log.place), "place", false) : null}
-                        {log.occasion ? chip(occasionLabel(log.occasion), "occasion", false) : null}
-                    </div>
+      <article
+        className={cn(
+          "nes-container hover:bg-neutral-50 transition-none flex gap-6",
+          isBook && "bg-[#f1fff2] border-4 border-[#2ecc71]",
+          isCommentOrigin && "bg-[#fff7e6] border-4 border-[#f59e0b]",
+        )}
+      >
+        <div className="shrink-0">
+          <div className="h-40 w-28 border-4 border-black bg-neutral-200 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] overflow-hidden">
+            {(log.seasonPosterUrl ?? t.posterUrl) ? (
+              <img
+                src={
+                  tmdbResize(log.seasonPosterUrl ?? t.posterUrl, "w185") ??
+                  log.seasonPosterUrl ??
+                  t.posterUrl ??
+                  ""
+                }
+                alt={t.name}
+                className="h-full w-full object-cover pixelated"
+                style={{ imageRendering: "pixelated" }}
+                loading="lazy"
+              />
+            ) : (
+              <div className="h-full w-full flex items-center justify-center text-[10px] text-neutral-400 font-bold text-center p-2 uppercase">
+                NO IMAGE
+              </div>
+            )}
+          </div>
+        </div>
+        <div className="flex-1 min-w-0 flex flex-col">
+          <div className="flex items-start justify-between gap-3 mb-2">
+            <div className="min-w-0">
+              <Link
+                href={`/title/${t.id}`}
+                className="text-xl font-bold hover:text-red-600 hover:underline decoration-2 underline-offset-4 truncate block"
+              >
+                {t.name}
+              </Link>
+              <div className="mt-1 text-sm text-neutral-600 font-bold uppercase flex flex-wrap gap-2">
+                {isBook ? (
+                  <span className="inline-flex items-center gap-1 border-2 border-black bg-[#d9f7e8] px-1.5 py-0.5 text-[10px] font-bold text-[#1e7a4f]">
+                    <BookOpen className="h-3 w-3" />
+                    BOOK
+                  </span>
+                ) : t.type === "movie" ? (
+                  <span className="inline-flex items-center gap-1 border-2 border-black bg-[#e9ecff] px-1.5 py-0.5 text-[10px] font-bold text-[#2c3ea8]">
+                    <Film className="h-3 w-3" />
+                    MOVIE
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 border-2 border-black bg-[#fff4d9] px-1.5 py-0.5 text-[10px] font-bold text-[#9a5b14]">
+                    <Tv className="h-3 w-3" />
+                    SERIES
+                  </span>
+                )}
+                <span className="bg-black text-white px-1">
+                  {statusLabel(log.status, t.type)}
+                </span>
+                {seasonLabel ? (
+                  <span className="bg-white text-black px-1 border border-black">
+                    {seasonLabel}
+                  </span>
                 ) : null}
-                {log.note ? (
-                    <p className="text-sm leading-relaxed text-muted-foreground line-clamp-2">
-                        {renderBody(formatNoteInline(log.note), false)}
-                    </p>
-                ) : null}
+                <span>{formatDate(log.watchedAt ?? log.createdAt, true)}</span>
+                {log.ott ? (
+                  <span className="text-blue-600">@{log.ott}</span>
+                ) : (
+                  ""
+                )}
+              </div>
             </div>
-        </article>
+            {typeof log.rating === "number" ? (
+              <div className="shrink-0 bg-black px-2 py-1 text-sm font-bold text-yellow-400 border-2 border-yellow-400">
+                ★ {log.rating.toFixed(1)}
+              </div>
+            ) : null}
+          </div>
+          {log.place || log.occasion ? (
+            <div className="flex flex-wrap gap-2 mb-3">
+              {log.place ? chip(placeLabel(log.place), "place", true) : null}
+              {log.occasion
+                ? chip(occasionLabel(log.occasion), "occasion", true)
+                : null}
+            </div>
+          ) : null}
+          {log.note ? (
+            <div className="border-t-2 border-dashed border-neutral-300 pt-3 mt-auto">
+              <p className="text-sm leading-relaxed text-neutral-900 line-clamp-3">
+                {renderBody(formatNoteInline(log.note), true)}
+              </p>
+            </div>
+          ) : null}
+        </div>
+      </article>
     );
+  }
+
+  return (
+    <article
+      className={cn(
+        "rounded-2xl border border-border bg-card p-5 text-card-foreground shadow-sm transition-all flex gap-5",
+        isBook &&
+          "bg-emerald-50/30 ring-1 ring-emerald-100/80 dark:bg-emerald-950/25 dark:ring-emerald-900/60",
+        isBook &&
+          !isCommentOrigin &&
+          "border-emerald-200 dark:border-emerald-900/50",
+        isCommentOrigin
+          ? "border-amber-300 bg-amber-50/40 dark:border-amber-800 dark:bg-amber-950/30"
+          : "hover:border-border/80",
+      )}
+    >
+      <div className="shrink-0">
+        <div className="h-32 w-20 overflow-hidden rounded-xl bg-muted shadow-sm border border-border">
+          {(log.seasonPosterUrl ?? t.posterUrl) ? (
+            <img
+              src={
+                tmdbResize(log.seasonPosterUrl ?? t.posterUrl, "w185") ??
+                log.seasonPosterUrl ??
+                t.posterUrl ??
+                ""
+              }
+              alt={t.name}
+              className="h-full w-full object-cover"
+              loading="lazy"
+            />
+          ) : (
+            <div className="h-full w-full flex items-center justify-center text-[10px] text-muted-foreground font-medium">
+              NO IMAGE
+            </div>
+          )}
+        </div>
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-start justify-between gap-3 mb-1">
+          <div className="min-w-0">
+            <Link
+              href={`/title/${t.id}`}
+              className="text-lg font-bold text-foreground hover:underline decoration-muted-foreground underline-offset-4 truncate block"
+            >
+              {t.name}
+            </Link>
+            <div className="mt-1 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+              {isBook ? (
+                <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200/80 bg-emerald-50/70 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/40 dark:text-emerald-200">
+                  <BookOpen className="h-3 w-3" />
+                  BOOK
+                </span>
+              ) : t.type === "movie" ? (
+                <span className="inline-flex items-center gap-1 rounded-full border border-indigo-200/80 bg-indigo-50/70 px-2 py-0.5 text-[10px] font-semibold text-indigo-700 dark:border-indigo-900/60 dark:bg-indigo-950/40 dark:text-indigo-200">
+                  <Film className="h-3 w-3" />
+                  MOVIE
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 rounded-full border border-amber-200/80 bg-amber-50/70 px-2 py-0.5 text-[10px] font-semibold text-amber-700 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-200">
+                  <Tv className="h-3 w-3" />
+                  SERIES
+                </span>
+              )}
+              <span>{statusLabel(log.status, t.type)}</span>
+              {seasonLabel ? (
+                <>
+                  <span className="text-muted-foreground/60">·</span>
+                  <span>{seasonLabel}</span>
+                </>
+              ) : null}
+              <span className="text-muted-foreground/60">·</span>
+              <span>{formatDate(log.watchedAt ?? log.createdAt, false)}</span>
+              {log.ott ? (
+                <>
+                  <span className="text-muted-foreground/60">·</span>
+                  <span className="text-indigo-600/80">{log.ott}</span>
+                </>
+              ) : null}
+            </div>
+          </div>
+          {typeof log.rating === "number" ? (
+            <div className="shrink-0 rounded-xl bg-foreground px-2.5 py-1 text-xs font-bold text-background shadow-sm">
+              {log.rating.toFixed(1)}
+            </div>
+          ) : null}
+        </div>
+        {log.place || log.occasion ? (
+          <div className="flex flex-wrap gap-1.5 mb-3">
+            {log.place ? chip(placeLabel(log.place), "place", false) : null}
+            {log.occasion
+              ? chip(occasionLabel(log.occasion), "occasion", false)
+              : null}
+          </div>
+        ) : null}
+        {log.note ? (
+          <p className="text-sm leading-relaxed text-muted-foreground line-clamp-2">
+            {renderBody(formatNoteInline(log.note), false)}
+          </p>
+        ) : null}
+      </div>
+    </article>
+  );
 }

@@ -38,7 +38,7 @@ function formatDateOnly(iso?: string | null) {
 function escapeCsv(value: string) {
   const needsQuote = /[",\n\r]/.test(value);
   if (!needsQuote) return value;
-  return `"${value.replace(/"/g, "\"\"")}"`;
+  return `"${value.replace(/"/g, '""')}"`;
 }
 
 function typeLabel(type?: WatchLog["title"]["type"]) {
@@ -56,7 +56,10 @@ export function buildExportRows(logs: WatchLog[]): TimelineExportRow[] {
       title: title?.name ?? "",
       type: typeLabel(title?.type),
       status: log.status ? statusLabel(log.status, title?.type) : "",
-      rating: log.rating === null || log.rating === undefined ? "" : String(log.rating),
+      rating:
+        log.rating === null || log.rating === undefined
+          ? ""
+          : String(log.rating),
       note: log.note ?? "",
       place: log.place ? placeLabel(log.place) : "",
       occasion: log.occasion ? occasionLabel(log.occasion) : "",
@@ -68,7 +71,7 @@ export function buildExportRows(logs: WatchLog[]): TimelineExportRow[] {
 export function rowsToCsv(rows: TimelineExportRow[]) {
   const header = CSV_COLUMNS.map((col) => col.label).join(",");
   const lines = rows.map((row) =>
-    CSV_COLUMNS.map((col) => escapeCsv(String(row[col.key] ?? ""))).join(",")
+    CSV_COLUMNS.map((col) => escapeCsv(String(row[col.key] ?? ""))).join(","),
   );
   return [header, ...lines].join("\r\n");
 }

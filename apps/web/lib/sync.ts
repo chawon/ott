@@ -50,18 +50,18 @@ async function pushItem(item: OutboxItem, auth: SyncAuthIds) {
     titles: payload?.title ? [payload.title] : [],
   };
 
-  const res = await apiWithAuth<{ accepted: string[]; rejected: { id: string; reason: string }[] }>(
-    "/sync/push",
-    {
-      method: "POST",
-      body: JSON.stringify({
-        userId: auth.userId,
-        deviceId: auth.deviceId,
-        clientTime: new Date().toISOString(),
-        changes,
-      }),
-    }
-  );
+  const res = await apiWithAuth<{
+    accepted: string[];
+    rejected: { id: string; reason: string }[];
+  }>("/sync/push", {
+    method: "POST",
+    body: JSON.stringify({
+      userId: auth.userId,
+      deviceId: auth.deviceId,
+      clientTime: new Date().toISOString(),
+      changes,
+    }),
+  });
 
   const rejectedIds = new Set((res.rejected ?? []).map((r) => r.id));
   const logId = payload?.log?.id;
@@ -103,7 +103,10 @@ async function pullChanges() {
       };
       titleMap.set(title.id, title);
       if (title.provider && title.providerId) {
-        const local = await findTitleByProvider(title.provider, title.providerId);
+        const local = await findTitleByProvider(
+          title.provider,
+          title.providerId,
+        );
         if (local && local.id !== title.id) {
           await remapLogsForTitle(local.id, title);
           await removeTitleLocal(local.id);
@@ -167,7 +170,9 @@ export async function syncOutbox() {
     const hasStoredUser = !!getUserId();
     if (items.length === 0 && !hasStoredUser) return;
 
-    const auth = await ensureAuthIds({ register: items.length > 0 || hasStoredUser });
+    const auth = await ensureAuthIds({
+      register: items.length > 0 || hasStoredUser,
+    });
     if (!auth.userId || !auth.deviceId) return;
 
     for (const item of items) {

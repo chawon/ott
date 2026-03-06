@@ -40,7 +40,14 @@ export const PLACE_LABELS: Record<Place, string> = {
   ETC: "기타",
 };
 
-export const VIDEO_PLACE_VALUES: Place[] = ["HOME", "THEATER", "TRANSIT", "CAFE", "OFFICE", "ETC"];
+export const VIDEO_PLACE_VALUES: Place[] = [
+  "HOME",
+  "THEATER",
+  "TRANSIT",
+  "CAFE",
+  "OFFICE",
+  "ETC",
+];
 export const BOOK_PLACE_VALUES: Place[] = [
   "HOME",
   "LIBRARY",
@@ -63,8 +70,13 @@ export const OCCASION_LABELS: Record<Occasion, string> = {
   ETC: "기타",
 };
 
-export function statusLabel(status: WatchLog["status"], titleType?: Title["type"]): string {
-  return titleType === "book" ? BOOK_STATUS_LABELS[status] : STATUS_LABELS[status];
+export function statusLabel(
+  status: WatchLog["status"],
+  titleType?: Title["type"],
+): string {
+  return titleType === "book"
+    ? BOOK_STATUS_LABELS[status]
+    : STATUS_LABELS[status];
 }
 
 export function placeLabel(place: Place): string {
@@ -90,7 +102,10 @@ export function formatNoteInline(note: string): string {
 }
 
 export function safeUUID(): string {
-  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+  if (
+    typeof crypto !== "undefined" &&
+    typeof crypto.randomUUID === "function"
+  ) {
     return crypto.randomUUID();
   }
   const hex = Array.from({ length: 16 }, () => Math.floor(Math.random() * 256));
@@ -101,7 +116,10 @@ export function safeUUID(): string {
   return `${b.slice(0, 8)}-${b.slice(8, 12)}-${b.slice(12, 16)}-${b.slice(16, 20)}-${b.slice(20)}`;
 }
 
-export function tmdbResize(url: string | null | undefined, size: string): string | undefined {
+export function tmdbResize(
+  url: string | null | undefined,
+  size: string,
+): string | undefined {
   if (!url) return url ?? undefined;
   const marker = "https://image.tmdb.org/t/p/";
   if (!url.startsWith(marker)) return url;
@@ -127,7 +145,10 @@ export function ratingOptionsForType(type?: Title["type"]) {
   return type === "book" ? BOOK_RATING_OPTIONS : VIDEO_RATING_OPTIONS;
 }
 
-export function ratingDisplay(rating?: number | null, titleType?: Title["type"]) {
+export function ratingDisplay(
+  rating?: number | null,
+  titleType?: Title["type"],
+) {
   if (typeof rating !== "number") return null;
   if (titleType === "book") {
     if (rating >= 5) return { emoji: "📚", label: "인생책", value: 5 };

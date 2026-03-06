@@ -36,7 +36,10 @@ function dayKey(iso: string): string {
   return `${y}-${m}-${day}`;
 }
 
-function calcStreak(days: string[], today = new Date()): { current: number; longest: number } {
+function calcStreak(
+  days: string[],
+  today = new Date(),
+): { current: number; longest: number } {
   if (!days.length) return { current: 0, longest: 0 };
   const sortedUnique = Array.from(new Set(days)).sort();
 
@@ -60,7 +63,11 @@ function calcStreak(days: string[], today = new Date()): { current: number; long
   yesterday.setDate(yesterday.getDate() - 1);
   const yesterdayKey = dayKey(yesterday.toISOString());
 
-  const activeStartKey = sortedUnique.includes(todayKey) ? todayKey : sortedUnique.includes(yesterdayKey) ? yesterdayKey : null;
+  const activeStartKey = sortedUnique.includes(todayKey)
+    ? todayKey
+    : sortedUnique.includes(yesterdayKey)
+      ? yesterdayKey
+      : null;
   if (!activeStartKey) return { current: 0, longest };
 
   current = 1;
@@ -74,7 +81,10 @@ function calcStreak(days: string[], today = new Date()): { current: number; long
   return { current, longest };
 }
 
-export function buildPersonalReport(logs: WatchLog[], now = new Date()): PersonalReport {
+export function buildPersonalReport(
+  logs: WatchLog[],
+  now = new Date(),
+): PersonalReport {
   if (!logs.length) {
     return {
       totalLogs: 0,
@@ -105,17 +115,22 @@ export function buildPersonalReport(logs: WatchLog[], now = new Date()): Persona
 
   for (const log of logs) {
     const watchedDate = new Date(log.watchedAt);
-    if (watchedDate.getFullYear() === currentYear && watchedDate.getMonth() === currentMonth) {
+    if (
+      watchedDate.getFullYear() === currentYear &&
+      watchedDate.getMonth() === currentMonth
+    ) {
       thisMonthLogs += 1;
     }
     if (log.status === "DONE") doneCount += 1;
     if (typeof log.rating === "number") ratingCount += 1;
-    if (typeof log.note === "string" && log.note.trim().length > 0) noteCount += 1;
+    if (typeof log.note === "string" && log.note.trim().length > 0)
+      noteCount += 1;
 
     const typeKey = log.title?.type ?? "unknown";
     types[typeKey] = (types[typeKey] ?? 0) + 1;
     if (log.place) places[log.place] = (places[log.place] ?? 0) + 1;
-    if (log.occasion) occasions[log.occasion] = (occasions[log.occasion] ?? 0) + 1;
+    if (log.occasion)
+      occasions[log.occasion] = (occasions[log.occasion] ?? 0) + 1;
 
     days.push(dayKey(log.watchedAt));
     if (new Date(lastLoggedAt).getTime() < watchedDate.getTime()) {

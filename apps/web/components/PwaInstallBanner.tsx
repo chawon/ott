@@ -17,12 +17,16 @@ function isIos() {
 function isStandaloneMode() {
   if (typeof window === "undefined") return false;
   const nav = window.navigator as { standalone?: boolean };
-  return Boolean(nav.standalone) || window.matchMedia("(display-mode: standalone)").matches;
+  return (
+    Boolean(nav.standalone) ||
+    window.matchMedia("(display-mode: standalone)").matches
+  );
 }
 
 export default function PwaInstallBanner() {
   const [visible, setVisible] = useState(false);
-  const [promptEvent, setPromptEvent] = useState<BeforeInstallPromptEvent | null>(null);
+  const [promptEvent, setPromptEvent] =
+    useState<BeforeInstallPromptEvent | null>(null);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -31,7 +35,11 @@ export default function PwaInstallBanner() {
       setPromptEvent(e as BeforeInstallPromptEvent);
     }
     window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
-    return () => window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+    return () =>
+      window.removeEventListener(
+        "beforeinstallprompt",
+        handleBeforeInstallPrompt,
+      );
   }, []);
 
   useEffect(() => {

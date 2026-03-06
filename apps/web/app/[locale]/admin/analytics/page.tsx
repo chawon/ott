@@ -23,7 +23,11 @@ type AdminOverview = {
   funnelLogCreateUsers: number;
   retroAppOpenUsers: number;
   retroToggleUsers: number;
-  platforms: Array<{ platform: "web" | "pwa" | "twa"; events: number; activeUsers: number }>;
+  platforms: Array<{
+    platform: "web" | "pwa" | "twa";
+    events: number;
+    activeUsers: number;
+  }>;
   deviceTypes: Array<{ key: string; events: number; activeUsers: number }>;
   osFamilies: Array<{ key: string; events: number; activeUsers: number }>;
   browserFamilies: Array<{ key: string; events: number; activeUsers: number }>;
@@ -77,7 +81,9 @@ export default async function AdminAnalyticsPage({ searchParams }: Props) {
     return (
       <div className="space-y-2">
         <h1 className="text-2xl font-bold tracking-tight">관리자 통계</h1>
-        <p className="text-sm text-red-500">`BACKEND_URL` 환경변수가 설정되지 않아 통계를 불러올 수 없습니다.</p>
+        <p className="text-sm text-red-500">
+          `BACKEND_URL` 환경변수가 설정되지 않아 통계를 불러올 수 없습니다.
+        </p>
       </div>
     );
   }
@@ -87,18 +93,24 @@ export default async function AdminAnalyticsPage({ searchParams }: Props) {
   let loadError: string | null = null;
   try {
     const safeDays = Number.isFinite(days) ? days : 30;
-    const response = await fetch(`${backendUrl}/api/admin/analytics/overview?days=${safeDays}`, {
-      headers: {
-        "X-Admin-Token": expected,
+    const response = await fetch(
+      `${backendUrl}/api/admin/analytics/overview?days=${safeDays}`,
+      {
+        headers: {
+          "X-Admin-Token": expected,
+        },
+        cache: "no-store",
       },
-      cache: "no-store",
-    });
-    const eventsResponse = await fetch(`${backendUrl}/api/admin/analytics/events?days=${safeDays}&limit=300`, {
-      headers: {
-        "X-Admin-Token": expected,
+    );
+    const eventsResponse = await fetch(
+      `${backendUrl}/api/admin/analytics/events?days=${safeDays}&limit=300`,
+      {
+        headers: {
+          "X-Admin-Token": expected,
+        },
+        cache: "no-store",
       },
-      cache: "no-store",
-    });
+    );
     if (!response.ok || !eventsResponse.ok) {
       loadError = `통계 API 오류: ${response.status}`;
     } else {
@@ -109,25 +121,39 @@ export default async function AdminAnalyticsPage({ searchParams }: Props) {
     loadError = e?.message ?? "통계 API 호출에 실패했습니다.";
   }
 
-  const isOnboardingEvent = (eventName: string) => eventName.startsWith("onboarding_first_log_");
-  const visibleEventBreakdown = overview ? overview.eventBreakdown.filter((item) => !isOnboardingEvent(item.eventName)) : [];
-  const visibleRecentEvents = recentEvents.filter((row) => !isOnboardingEvent(row.eventName));
+  const isOnboardingEvent = (eventName: string) =>
+    eventName.startsWith("onboarding_first_log_");
+  const visibleEventBreakdown = overview
+    ? overview.eventBreakdown.filter(
+        (item) => !isOnboardingEvent(item.eventName),
+      )
+    : [];
+  const visibleRecentEvents = recentEvents.filter(
+    (row) => !isOnboardingEvent(row.eventName),
+  );
 
   return (
     <div className="space-y-6">
       <section className="space-y-2">
         <h1 className="text-2xl font-bold tracking-tight">관리자 통계</h1>
-        <p className="text-sm text-muted-foreground">조회 기간: 최근 {overview?.days ?? (Number.isFinite(days) ? days : 30)}일</p>
+        <p className="text-sm text-muted-foreground">
+          조회 기간: 최근{" "}
+          {overview?.days ?? (Number.isFinite(days) ? days : 30)}일
+        </p>
       </section>
 
       {loadError ? (
-        <section className="rounded-2xl border border-border bg-card p-6 text-sm text-red-500">{loadError}</section>
+        <section className="rounded-2xl border border-border bg-card p-6 text-sm text-red-500">
+          {loadError}
+        </section>
       ) : overview ? (
         <>
           <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <article className="rounded-2xl border border-border bg-card p-4">
               <div className="text-xs text-muted-foreground">총 이벤트</div>
-              <div className="mt-1 text-2xl font-semibold">{overview.events}</div>
+              <div className="mt-1 text-2xl font-semibold">
+                {overview.events}
+              </div>
             </article>
             <article className="rounded-2xl border border-border bg-card p-4">
               <div className="text-xs text-muted-foreground">DAU</div>
@@ -144,33 +170,55 @@ export default async function AdminAnalyticsPage({ searchParams }: Props) {
           </section>
 
           <section className="rounded-2xl border border-border bg-card p-6">
-            <div className="text-sm font-semibold">퍼널 (최근 {overview.days}일)</div>
+            <div className="text-sm font-semibold">
+              퍼널 (최근 {overview.days}일)
+            </div>
             <div className="mt-3 grid gap-3 sm:grid-cols-3">
               <div>
                 <div className="text-xs text-muted-foreground">앱 오픈</div>
-                <div className="text-xl font-semibold">{overview.funnelAppOpenUsers}</div>
+                <div className="text-xl font-semibold">
+                  {overview.funnelAppOpenUsers}
+                </div>
               </div>
               <div>
-                <div className="text-xs text-muted-foreground">기기 등록 성공</div>
-                <div className="text-xl font-semibold">{overview.funnelLoginUsers}</div>
+                <div className="text-xs text-muted-foreground">
+                  기기 등록 성공
+                </div>
+                <div className="text-xl font-semibold">
+                  {overview.funnelLoginUsers}
+                </div>
               </div>
               <div>
-                <div className="text-xs text-muted-foreground">첫 기록/기록 생성</div>
-                <div className="text-xl font-semibold">{overview.funnelLogCreateUsers}</div>
+                <div className="text-xs text-muted-foreground">
+                  첫 기록/기록 생성
+                </div>
+                <div className="text-xl font-semibold">
+                  {overview.funnelLogCreateUsers}
+                </div>
               </div>
             </div>
           </section>
 
           <section className="rounded-2xl border border-border bg-card p-6">
-            <div className="text-sm font-semibold">레트로 모드 사용 (최근 {overview.days}일)</div>
+            <div className="text-sm font-semibold">
+              레트로 모드 사용 (최근 {overview.days}일)
+            </div>
             <div className="mt-3 grid gap-3 sm:grid-cols-2">
               <div>
-                <div className="text-xs text-muted-foreground">레트로로 앱 오픈한 사용자</div>
-                <div className="text-xl font-semibold">{overview.retroAppOpenUsers}</div>
+                <div className="text-xs text-muted-foreground">
+                  레트로로 앱 오픈한 사용자
+                </div>
+                <div className="text-xl font-semibold">
+                  {overview.retroAppOpenUsers}
+                </div>
               </div>
               <div>
-                <div className="text-xs text-muted-foreground">레트로 토글 사용자</div>
-                <div className="text-xl font-semibold">{overview.retroToggleUsers}</div>
+                <div className="text-xs text-muted-foreground">
+                  레트로 토글 사용자
+                </div>
+                <div className="text-xl font-semibold">
+                  {overview.retroToggleUsers}
+                </div>
               </div>
             </div>
           </section>
@@ -179,57 +227,92 @@ export default async function AdminAnalyticsPage({ searchParams }: Props) {
             <div className="text-sm font-semibold">플랫폼별</div>
             <div className="mt-3 space-y-2">
               {overview.platforms.map((p) => (
-                <div key={p.platform} className="flex items-center justify-between rounded-xl border border-border px-3 py-2 text-sm">
+                <div
+                  key={p.platform}
+                  className="flex items-center justify-between rounded-xl border border-border px-3 py-2 text-sm"
+                >
                   <span className="font-medium">{p.platform}</span>
-                  <span className="text-muted-foreground">events {p.events} · active {p.activeUsers}</span>
+                  <span className="text-muted-foreground">
+                    events {p.events} · active {p.activeUsers}
+                  </span>
                 </div>
               ))}
             </div>
           </section>
 
           <section className="rounded-2xl border border-border bg-card p-6">
-            <div className="text-sm font-semibold">디바이스 세그먼트 (app_open 기준)</div>
+            <div className="text-sm font-semibold">
+              디바이스 세그먼트 (app_open 기준)
+            </div>
             <div className="mt-3 grid gap-4 lg:grid-cols-2">
               <div className="rounded-xl border border-border p-3">
-                <div className="mb-2 text-xs font-semibold text-muted-foreground">device_type</div>
+                <div className="mb-2 text-xs font-semibold text-muted-foreground">
+                  device_type
+                </div>
                 <div className="space-y-1.5 text-sm">
                   {overview.deviceTypes.map((row) => (
-                    <div key={row.key} className="flex items-center justify-between">
+                    <div
+                      key={row.key}
+                      className="flex items-center justify-between"
+                    >
                       <span className="font-medium">{row.key}</span>
-                      <span className="text-muted-foreground">events {row.events} · active {row.activeUsers}</span>
+                      <span className="text-muted-foreground">
+                        events {row.events} · active {row.activeUsers}
+                      </span>
                     </div>
                   ))}
                 </div>
               </div>
               <div className="rounded-xl border border-border p-3">
-                <div className="mb-2 text-xs font-semibold text-muted-foreground">os_family</div>
+                <div className="mb-2 text-xs font-semibold text-muted-foreground">
+                  os_family
+                </div>
                 <div className="space-y-1.5 text-sm">
                   {overview.osFamilies.map((row) => (
-                    <div key={row.key} className="flex items-center justify-between">
+                    <div
+                      key={row.key}
+                      className="flex items-center justify-between"
+                    >
                       <span className="font-medium">{row.key}</span>
-                      <span className="text-muted-foreground">events {row.events} · active {row.activeUsers}</span>
+                      <span className="text-muted-foreground">
+                        events {row.events} · active {row.activeUsers}
+                      </span>
                     </div>
                   ))}
                 </div>
               </div>
               <div className="rounded-xl border border-border p-3">
-                <div className="mb-2 text-xs font-semibold text-muted-foreground">browser_family</div>
+                <div className="mb-2 text-xs font-semibold text-muted-foreground">
+                  browser_family
+                </div>
                 <div className="space-y-1.5 text-sm">
                   {overview.browserFamilies.map((row) => (
-                    <div key={row.key} className="flex items-center justify-between">
+                    <div
+                      key={row.key}
+                      className="flex items-center justify-between"
+                    >
                       <span className="font-medium">{row.key}</span>
-                      <span className="text-muted-foreground">events {row.events} · active {row.activeUsers}</span>
+                      <span className="text-muted-foreground">
+                        events {row.events} · active {row.activeUsers}
+                      </span>
                     </div>
                   ))}
                 </div>
               </div>
               <div className="rounded-xl border border-border p-3">
-                <div className="mb-2 text-xs font-semibold text-muted-foreground">install_state</div>
+                <div className="mb-2 text-xs font-semibold text-muted-foreground">
+                  install_state
+                </div>
                 <div className="space-y-1.5 text-sm">
                   {overview.installStates.map((row) => (
-                    <div key={row.key} className="flex items-center justify-between">
+                    <div
+                      key={row.key}
+                      className="flex items-center justify-between"
+                    >
                       <span className="font-medium">{row.key}</span>
-                      <span className="text-muted-foreground">events {row.events} · active {row.activeUsers}</span>
+                      <span className="text-muted-foreground">
+                        events {row.events} · active {row.activeUsers}
+                      </span>
                     </div>
                   ))}
                 </div>
@@ -250,8 +333,13 @@ export default async function AdminAnalyticsPage({ searchParams }: Props) {
                 </thead>
                 <tbody>
                   {visibleEventBreakdown.map((item) => (
-                    <tr key={item.eventName} className="border-b border-border/60">
-                      <td className="py-2 pr-3 font-medium">{item.eventName}</td>
+                    <tr
+                      key={item.eventName}
+                      className="border-b border-border/60"
+                    >
+                      <td className="py-2 pr-3 font-medium">
+                        {item.eventName}
+                      </td>
                       <td className="py-2 pr-3">{item.events}</td>
                       <td className="py-2 pr-3">{item.actors}</td>
                     </tr>
@@ -297,7 +385,9 @@ export default async function AdminAnalyticsPage({ searchParams }: Props) {
 
           <section className="rounded-2xl border border-border bg-card p-6">
             <div className="text-sm font-semibold">주차별 레트로 추이</div>
-            <div className="mt-1 text-xs text-muted-foreground">월요일 시작 기준, 최근 {overview.days}일</div>
+            <div className="mt-1 text-xs text-muted-foreground">
+              월요일 시작 기준, 최근 {overview.days}일
+            </div>
             <div className="mt-3 overflow-x-auto">
               <table className="w-full min-w-[760px] text-sm">
                 <thead>
@@ -325,7 +415,9 @@ export default async function AdminAnalyticsPage({ searchParams }: Props) {
           </section>
 
           <section className="rounded-2xl border border-border bg-card p-6">
-            <div className="text-sm font-semibold">최근 수집 이벤트 (최대 300)</div>
+            <div className="text-sm font-semibold">
+              최근 수집 이벤트 (최대 300)
+            </div>
             <div className="mt-3 overflow-x-auto">
               <table className="w-full min-w-[1100px] text-xs">
                 <thead>
@@ -341,14 +433,23 @@ export default async function AdminAnalyticsPage({ searchParams }: Props) {
                 </thead>
                 <tbody>
                   {visibleRecentEvents.map((row) => (
-                    <tr key={row.eventId} className="border-b border-border/60 align-top">
-                      <td className="py-2 pr-3 whitespace-nowrap">{new Date(row.occurredAt).toLocaleString("ko-KR", { timeZone: "Asia/Seoul" })}</td>
+                    <tr
+                      key={row.eventId}
+                      className="border-b border-border/60 align-top"
+                    >
+                      <td className="py-2 pr-3 whitespace-nowrap">
+                        {new Date(row.occurredAt).toLocaleString("ko-KR", {
+                          timeZone: "Asia/Seoul",
+                        })}
+                      </td>
                       <td className="py-2 pr-3 font-medium">{row.eventName}</td>
                       <td className="py-2 pr-3">{row.platform}</td>
                       <td className="py-2 pr-3">{row.userId ?? "-"}</td>
                       <td className="py-2 pr-3">{row.sessionId}</td>
                       <td className="py-2 pr-3">{row.clientVersion ?? "-"}</td>
-                      <td className="py-2 pr-3 max-w-[440px] break-all text-muted-foreground">{row.properties}</td>
+                      <td className="py-2 pr-3 max-w-[440px] break-all text-muted-foreground">
+                        {row.properties}
+                      </td>
                     </tr>
                   ))}
                 </tbody>

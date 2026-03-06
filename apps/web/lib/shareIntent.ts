@@ -23,15 +23,23 @@ function normalizeText(raw: string): string {
 }
 
 function stripUrls(text: string): string {
-  return text.replace(/https?:\/\/\S+/gi, " ").replace(/[ ]{2,}/g, " ").trim();
+  return text
+    .replace(/https?:\/\/\S+/gi, " ")
+    .replace(/[ ]{2,}/g, " ")
+    .trim();
 }
 
 function extractUrls(text: string): string[] {
   return text.match(/https?:\/\/\S+/gi) ?? [];
 }
 
-export function extractShareIntentUrls(sharedText?: string | null, sharedSubject?: string | null): string[] {
-  const merged = normalizeText([sharedSubject ?? "", sharedText ?? ""].filter(Boolean).join("\n"));
+export function extractShareIntentUrls(
+  sharedText?: string | null,
+  sharedSubject?: string | null,
+): string[] {
+  const merged = normalizeText(
+    [sharedSubject ?? "", sharedText ?? ""].filter(Boolean).join("\n"),
+  );
   if (!merged) return [];
   return extractUrls(merged);
 }
@@ -41,7 +49,8 @@ function inferPlatformFromText(text: string): PlatformLabel | null {
   if (/(넷플릭스|netflix)/i.test(t)) return "넷플릭스";
   if (/(디즈니\+|디즈니플러스|disney\+)/i.test(t)) return "디즈니플러스";
   if (/(apple\s*tv|애플\s*tv|애플티비)/i.test(t)) return "애플티비";
-  if (/(prime video|프라임\s*비디오|프라임비디오)/i.test(t)) return "프라임비디오";
+  if (/(prime video|프라임\s*비디오|프라임비디오)/i.test(t))
+    return "프라임비디오";
   if (/(tving|티빙)/i.test(t)) return "티빙";
   if (/(coupang play|coupangplay|쿠팡플레이)/i.test(t)) return "쿠팡플레이";
   if (/(watcha|왓챠)/i.test(t)) return "왓챠";
@@ -56,7 +65,8 @@ function inferPlatformFromUrl(urlRaw: string): PlatformLabel | null {
     if (host.includes("apple.com")) return "애플티비";
     if (host.includes("primevideo.com")) return "프라임비디오";
     if (host.includes("tving.com")) return "티빙";
-    if (host.includes("coupangplay") || host.includes("app.link")) return "쿠팡플레이";
+    if (host.includes("coupangplay") || host.includes("app.link"))
+      return "쿠팡플레이";
     if (host.includes("watcha")) return "왓챠";
     return null;
   } catch {
@@ -64,8 +74,13 @@ function inferPlatformFromUrl(urlRaw: string): PlatformLabel | null {
   }
 }
 
-export function inferShareIntentPlatform(sharedText?: string | null, sharedSubject?: string | null): PlatformLabel | null {
-  const merged = normalizeText([sharedSubject ?? "", sharedText ?? ""].filter(Boolean).join("\n"));
+export function inferShareIntentPlatform(
+  sharedText?: string | null,
+  sharedSubject?: string | null,
+): PlatformLabel | null {
+  const merged = normalizeText(
+    [sharedSubject ?? "", sharedText ?? ""].filter(Boolean).join("\n"),
+  );
   if (!merged) return null;
 
   const byText = inferPlatformFromText(merged);
@@ -84,7 +99,10 @@ export function sanitizeResolvedTitle(rawTitle?: string | null): string | null {
 
   const cleaned = source
     // 플랫폼 꼬리표 제거
-    .replace(/\s*[|｜]\s*(TVING|티빙|쿠팡플레이|COUPANG PLAY|NETFLIX|DISNEY\+?|APPLE TV|PRIME VIDEO)\s*$/i, "")
+    .replace(
+      /\s*[|｜]\s*(TVING|티빙|쿠팡플레이|COUPANG PLAY|NETFLIX|DISNEY\+?|APPLE TV|PRIME VIDEO)\s*$/i,
+      "",
+    )
     // 회차 표기 제거 (예: 1화, 12회, EP 3, E03)
     .replace(/\s*(\d{1,3}\s*(화|회)|EP?\s*\d{1,3}|E\d{1,3})\s*$/i, "")
     // 시즌 꼬리표 제거 (검색 정확도 향상 목적)
@@ -140,7 +158,9 @@ function pickSeasonStyledTitle(text: string): string | null {
 }
 
 function pickPlatformTaggedTitle(text: string): string | null {
-  const m = text.match(/(.+?)\s*[-–—]\s*.+?\((apple\s*tv|disney\+?|prime video|netflix|tving|watcha|coupang play)\)/i);
+  const m = text.match(
+    /(.+?)\s*[-–—]\s*.+?\((apple\s*tv|disney\+?|prime video|netflix|tving|watcha|coupang play)\)/i,
+  );
   if (!m?.[1]) return null;
   const base = m[1].trim().replace(/^['"“‘《〈「『]+|['"”’》〉」』]+$/g, "");
   if (!base) return null;
@@ -197,16 +217,25 @@ function isLowSignalQuery(query: string): boolean {
       query,
     ) && !/[《〈「『"“][^"”》〉」』\n]+["”》〉」』]/.test(query);
 
-  const platformOnly = /^(쿠팡플레이|넷플릭스|디즈니\+?|프라임 비디오|티빙|왓챠|youtube|유튜브)$/i.test(q);
+  const platformOnly =
+    /^(쿠팡플레이|넷플릭스|디즈니\+?|프라임 비디오|티빙|왓챠|youtube|유튜브)$/i.test(
+      q,
+    );
 
   return onlyPromo || platformOnly;
 }
 
-export function parseShareIntentText(sharedText?: string | null, sharedSubject?: string | null): ShareIntentParseResult | null {
-  const merged = normalizeText([sharedSubject ?? "", sharedText ?? ""].filter(Boolean).join("\n"));
+export function parseShareIntentText(
+  sharedText?: string | null,
+  sharedSubject?: string | null,
+): ShareIntentParseResult | null {
+  const merged = normalizeText(
+    [sharedSubject ?? "", sharedText ?? ""].filter(Boolean).join("\n"),
+  );
   if (!merged) return null;
 
-  const looksBook = /(isbn|책|도서|book|author|저자|출판|교보|알라딘|yes24|리디)/i.test(merged);
+  const looksBook =
+    /(isbn|책|도서|book|author|저자|출판|교보|알라딘|yes24|리디)/i.test(merged);
   const contentType: "video" | "book" = looksBook ? "book" : "video";
 
   const quoted = pickQuotedTitle(merged);
@@ -226,10 +255,10 @@ export function parseShareIntentText(sharedText?: string | null, sharedSubject?:
 
   const cleaned = cleanPromotionalText(
     stripUrls(merged)
-    .replace(/혹시 .*에서 /i, "")
-    .replace(/보셨나요\??/i, "")
-    .replace(/읽어보셨나요\??/i, "")
-    .trim(),
+      .replace(/혹시 .*에서 /i, "")
+      .replace(/보셨나요\??/i, "")
+      .replace(/읽어보셨나요\??/i, "")
+      .trim(),
   );
   const query = (cleaned || pickFallbackLine(merged)).slice(0, 160);
   if (!query) {

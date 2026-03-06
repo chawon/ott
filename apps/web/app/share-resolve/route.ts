@@ -77,7 +77,8 @@ export async function GET(req: NextRequest) {
     const requestHeaders = {
       "user-agent":
         "Mozilla/5.0 (Linux; Android 14; Pixel 8 Pro) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Mobile Safari/537.36",
-      accept: "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+      accept:
+        "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
       "accept-language": "ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7",
       "cache-control": "no-cache",
       pragma: "no-cache",
@@ -92,12 +93,20 @@ export async function GET(req: NextRequest) {
     });
 
     if (!res.ok) {
-      return NextResponse.json({ title: null, resolvedUrl: res.url, status: res.status });
+      return NextResponse.json({
+        title: null,
+        resolvedUrl: res.url,
+        status: res.status,
+      });
     }
 
     const contentType = res.headers.get("content-type") ?? "";
     if (!contentType.toLowerCase().includes("text/html")) {
-      return NextResponse.json({ title: null, resolvedUrl: res.url, status: res.status });
+      return NextResponse.json({
+        title: null,
+        resolvedUrl: res.url,
+        status: res.status,
+      });
     }
 
     const html = await res.text();
@@ -112,14 +121,27 @@ export async function GET(req: NextRequest) {
         headers: requestHeaders,
         cache: "no-store",
       });
-      if (retry.ok && (retry.headers.get("content-type") ?? "").toLowerCase().includes("text/html")) {
+      if (
+        retry.ok &&
+        (retry.headers.get("content-type") ?? "")
+          .toLowerCase()
+          .includes("text/html")
+      ) {
         const retryHtml = await retry.text();
         title = extractTitleFromHtml(retryHtml);
-        return NextResponse.json({ title, resolvedUrl: retry.url, status: retry.status });
+        return NextResponse.json({
+          title,
+          resolvedUrl: retry.url,
+          status: retry.status,
+        });
       }
     }
 
-    return NextResponse.json({ title, resolvedUrl: res.url, status: res.status });
+    return NextResponse.json({
+      title,
+      resolvedUrl: res.url,
+      status: res.status,
+    });
   } catch {
     return NextResponse.json({ title: null, resolvedUrl: null, status: 500 });
   }

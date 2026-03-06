@@ -73,7 +73,12 @@ export default function SwipeNav() {
       startYRef.current = null;
       startTimeRef.current = null;
 
-      if (ignoreRef.current || startX == null || startY == null || startTime == null)
+      if (
+        ignoreRef.current ||
+        startX == null ||
+        startY == null ||
+        startTime == null
+      )
         return;
 
       const touch = e.changedTouches[0];

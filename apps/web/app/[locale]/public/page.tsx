@@ -17,7 +17,7 @@ export default function PublicDiscussionsPage() {
   const [err, setErr] = useState<string | null>(null);
 
   const filtered = items.filter((i) =>
-    i.titleName.toLowerCase().includes(query.trim().toLowerCase())
+    i.titleName.toLowerCase().includes(query.trim().toLowerCase()),
   );
   const sorted = [...filtered].sort((a, b) => {
     if (sort === "comments") return b.commentCount - a.commentCount;
@@ -29,7 +29,9 @@ export default function PublicDiscussionsPage() {
       setLoading(true);
       setErr(null);
       try {
-        const res = await api<DiscussionListItem[]>("/discussions/all?limit=100");
+        const res = await api<DiscussionListItem[]>(
+          "/discussions/all?limit=100",
+        );
         setItems(res);
       } catch (e: any) {
         setErr(e?.message ?? "Failed to load discussions");
@@ -41,12 +43,12 @@ export default function PublicDiscussionsPage() {
   }, []);
 
   const headerTitle = isRetro ? "수다판" : "함께 기록";
-  const headerSubtitle = loading 
-    ? "불러오는 중…" 
-    : err 
-      ? err 
-      : isRetro 
-        ? "요즘 올라온 기록과 댓글 구경하기" 
+  const headerSubtitle = loading
+    ? "불러오는 중…"
+    : err
+      ? err
+      : isRetro
+        ? "요즘 올라온 기록과 댓글 구경하기"
         : "공개로 남긴 기록을 둘러보고 영감을 얻어요.";
 
   return (
@@ -54,7 +56,9 @@ export default function PublicDiscussionsPage() {
       <div>
         {isRetro ? (
           <div className="flex items-baseline justify-between border-b-4 border-black pb-2 mb-4">
-            <div className="text-xl font-bold uppercase tracking-tighter">{headerTitle}</div>
+            <div className="text-xl font-bold uppercase tracking-tighter">
+              {headerTitle}
+            </div>
           </div>
         ) : (
           <div className="text-xl font-semibold flex items-center gap-2">
@@ -62,9 +66,13 @@ export default function PublicDiscussionsPage() {
             {headerTitle}
           </div>
         )}
-        <div className={cn(
-          isRetro ? "text-xs font-bold text-neutral-500 uppercase" : "text-sm text-muted-foreground"
-        )}>
+        <div
+          className={cn(
+            isRetro
+              ? "text-xs font-bold text-neutral-500 uppercase"
+              : "text-sm text-muted-foreground",
+          )}
+        >
           {headerSubtitle}
         </div>
       </div>

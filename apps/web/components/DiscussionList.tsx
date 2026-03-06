@@ -23,11 +23,13 @@ export default function DiscussionList({
 
   if (items.length === 0) {
     return (
-      <div className={cn(
-        isRetro 
-          ? "border-4 border-black bg-white p-5 text-sm font-bold uppercase shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]" 
-          : "rounded-2xl border border-border bg-card p-5 text-sm text-muted-foreground shadow-sm"
-      )}>
+      <div
+        className={cn(
+          isRetro
+            ? "border-4 border-black bg-white p-5 text-sm font-bold uppercase shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
+            : "rounded-2xl border border-border bg-card p-5 text-sm text-muted-foreground shadow-sm",
+        )}
+      >
         {emptyText}
       </div>
     );
@@ -40,7 +42,11 @@ export default function DiscussionList({
           {items.map((d) => (
             <Link
               key={d.id}
-              href={linkMode === "discussion" ? `/public/${d.id}` : `/title/${d.titleId}`}
+              href={
+                linkMode === "discussion"
+                  ? `/public/${d.id}`
+                  : `/title/${d.titleId}`
+              }
               className="flex items-center gap-3 border-b-2 border-dashed border-neutral-300 px-2 py-3 transition-none hover:bg-yellow-100 last:border-b-0"
             >
               <div className="h-20 w-14 shrink-0 border-2 border-black bg-neutral-200">
@@ -60,13 +66,19 @@ export default function DiscussionList({
                 </div>
                 <div className="mt-1 flex items-center gap-2 text-xs font-bold text-neutral-500 uppercase">
                   <span className="bg-black text-white px-1">
-                    {d.titleType === "movie" ? "영화" : d.titleType === "series" ? "연속극" : "책"}
+                    {d.titleType === "movie"
+                      ? "영화"
+                      : d.titleType === "series"
+                        ? "연속극"
+                        : "책"}
                   </span>
                   {d.titleYear ? <span>{d.titleYear}</span> : ""}
                 </div>
               </div>
               <div className="shrink-0 text-right text-[10px] font-bold uppercase text-blue-600">
-                <div className="bg-blue-600 text-white px-1 mb-1 inline-block">{formatShortDate(d.createdAt)}</div>
+                <div className="bg-blue-600 text-white px-1 mb-1 inline-block">
+                  {formatShortDate(d.createdAt)}
+                </div>
                 <div className="text-black">댓글 {d.commentCount}</div>
               </div>
             </Link>
@@ -82,7 +94,11 @@ export default function DiscussionList({
         {items.map((d) => (
           <Link
             key={d.id}
-            href={linkMode === "discussion" ? `/public/${d.id}` : `/title/${d.titleId}`}
+            href={
+              linkMode === "discussion"
+                ? `/public/${d.id}`
+                : `/title/${d.titleId}`
+            }
             className="flex items-center gap-4 rounded-xl px-2 py-2 transition hover:bg-muted"
           >
             <div className="h-16 w-12 shrink-0 overflow-hidden rounded-lg bg-muted border border-border">
@@ -100,7 +116,11 @@ export default function DiscussionList({
                 {d.titleName}
               </div>
               <div className="mt-0.5 text-xs text-muted-foreground">
-                {d.titleType === "movie" ? "영화" : d.titleType === "series" ? "시리즈" : "책"}
+                {d.titleType === "movie"
+                  ? "영화"
+                  : d.titleType === "series"
+                    ? "시리즈"
+                    : "책"}
                 {d.titleYear ? ` · ${d.titleYear}` : ""}
               </div>
             </div>
