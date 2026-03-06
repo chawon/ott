@@ -17,7 +17,8 @@
     "navPublicRetro": "Chatter",
     "navPublicModern": "Community",
     "navAccountRetro": "Custom",
-    "navAccountModern": "Settings"
+    "navAccountModern": "Settings",
+    "titleRetro": "The Best & The Second"
   },
   "AppFooter": {
     "descriptionRetro": "Watched it? Read it? Let's log it~ Keep your footprints clear.",
@@ -151,7 +152,12 @@
     "dateSelecting": "Selecting date...",
     "successLike": "Great!",
     "successCount": "Timeline #{count} added.",
-    "viewTimeline": "View Timeline"
+    "viewTimeline": "View Timeline",
+    "ratingBestModern": "Excellent",
+    "ratingSosoModern": "Worth watching",
+    "ratingBadModern": "Disappointing",
+    "ratingBestBookModern": "Life-changing",
+    "ratingSosoBookModern": "Not bad"
   },
   "Common": {
     "placeLabels": {
@@ -194,7 +200,11 @@
     "exportCsv": "Download CSV",
     "emptyState": "No logs yet.",
     "emptySearch": "No search results.",
-    "syncStatus": "Sync Complete"
+    "syncStatus": "Sync Complete",
+    "unitBook": " book(s) ",
+    "unitVideo": " video(s) ",
+    "yearFormat": "In {year}, ",
+    "yearSuffix": ""
   },
   "TitleSearchBox": {
     "defaultPlaceholder": "Search titles (e.g., Dune, The Bear)",
@@ -358,5 +368,135 @@
     "exampleVideo": "Video share card example",
     "exampleBook": "Book share card example",
     "closing": "\"Memories fade, but records remain on the timeline.\""
+  },
+  "TitleDetail": {
+    "loading": "Loading…",
+    "errorTitle": "Something went wrong",
+    "notFound": "Title not found",
+    "director": "Director",
+    "cast": "Cast",
+    "myRecordTitle": "My Record",
+    "myRecordDesc": "History builds up as you add content.",
+    "myRecordEmpty": "No records for this title yet. Save it from home first.",
+    "historyTitle": "History",
+    "historyDesc": "Snapshots are saved every time you update.",
+    "historyEmpty": "No history yet.",
+    "updateAction": "Update",
+    "updating": "Updating…",
+    "changeDate": "Change Date"
+  },
+  "FiltersBar": {
+    "contentLabel": "Content",
+    "all": "All",
+    "video": "Video",
+    "book": "Book",
+    "filterLabel": "Filter",
+    "categoryLabel": "Category",
+    "myLog": "My Log",
+    "comment": "Comment",
+    "platformLabel": "Platform",
+    "groupAll": "All {group}"
+  },
+  "HomePage": {
+    "heroRetro": "Welcome, traveler. \nFind your videos in The Best & The Second!",
+    "heroModernBook": "Read it? Let's log it~",
+    "heroModernVideo": "Watched it? Let's log it~",
+    "heroModernDesc": "Log once, and your footprints stay clear",
+    "heroTimelineBook": "My Book Logs",
+    "heroTimelineVideo": "My Video Logs",
+    "heroTimelineDesc": "Just one line, and your timeline grows",
+    "viewAll": "View All",
+    "myFootprints": "My Footprints",
+    "myRecords": "My Records",
+    "loading": "Loading...",
+    "emptyFootprints": "No footprints yet. Leave a log above!",
+    "emptyRecords": "Leave your first log. Your timeline starts here.",
+    "publicTitleRetro": "Chatter Board",
+    "publicTitleModern": "Records Shared Recently",
+    "toggleFold": "Fold",
+    "toggleExpand": "Expand"
+  },
+  "DiscussionDetail": {
+    "loadError": "Failed to load shared record. Please try again later.",
+    "invalidPath": "Invalid path",
+    "loading": "Loading…",
+    "errorTitle": "Load failed.",
+    "notFound": "Not found.",
+    "viewTitleDetail": "View Title Detail →"
+  },
+  "Offline": {
+    "title": "You are offline",
+    "description": "Will automatically reconnect when network is restored."
+  },
+  "FAQ": {
+    "title": "Frequently Asked Questions (FAQ)",
+    "heading": "FAQ",
+    "description": "Find answers about data storage and sign-up free usage of On the Timeline.",
+    "q1": "Q. How is data kept without sign-up?",
+    "a1": "On the Timeline uses <strong>Local-first</strong> technology. All records are first stored in your browser's internal storage (IndexedDB). Your data remains safe as long as you use the same device, even without an account.",
+    "q2": "Q. Can I see my records on a different device?",
+    "a2": "Yes! By entering the <strong>Pairing Code</strong> issued in the [Account] menu into a new device, you can continue to see your records. Data from multiple devices will be merged into one.",
+    "q3": "Q. How is data merged after pairing?",
+    "a3": "If there are records for the same title on both sides, the <strong>most recently updated content</strong> remains. This naturally keeps your timeline up to date without losing records.",
+    "q4": "Q. How do I delete records?",
+    "a4": "Instead of individual deletion, you can wipe them at once in <strong>Settings > Reset Local</strong>. This only deletes data on the current device; server data remains untouched.",
+    "q5": "Q. Can I download my records?",
+    "a5": "Yes. You can download a CSV file in <strong>Settings > Export My Logs</strong> and organize it in Excel or Spreadsheets.",
+    "q6": "Q. Is there a usage fee?",
+    "a6": "On the Timeline provides all features for free. Just focus on the joy of logging!"
+  },
+  "Report": {
+    "title": "My Usage Report",
+    "loadError": "Failed to load report.",
+    "calculating": "Calculating report...",
+    "noData": "No report data available.",
+    "syncNotice": "This report is based on records synced to the server.",
+    "localNotice": "This report is temporarily based on local records.",
+    "totalRecords": "Total Records",
+    "monthlyRecords": "Records this month",
+    "completionRate": "Completion Rate",
+    "ratingRate": "Rating Entry Rate",
+    "memoRate": "Memo Entry Rate",
+    "recentDate": "Latest Record",
+    "mostLoggedType": "Most Logged Type",
+    "frequentPlace": "Top Place",
+    "frequentOccasion": "Top Occasion",
+    "streak": "Logging Streak",
+    "streakDesc": "Current {current} days · Best {longest} days"
+  },
+  "PwaInstall": {
+    "title": "Add to Home Screen",
+    "iosDesc": "Tap the Safari share button and select \"Add to Home Screen\" to use it like an app.",
+    "androidDesc": "Install to open quickly from your home screen.",
+    "installAction": "Install",
+    "closeAction": "Close"
+  },
+  "Privacy": {
+    "title": "Privacy Policy",
+    "lastUpdated": "Last Updated: 2026-02-14",
+    "intro": "On the Timeline (\"the Service\") values your privacy and complies with relevant laws. This policy guides you through the items of information processed, purposes, storage methods, and user rights.",
+    "section1Title": "1. Information Collected",
+    "section1List": "<li>Log Data: Title, status, rating, note, timestamp</li><li>Service Operation: Device type, browser, OS, PWA installation status</li><li>Identifiers: Internal identifiers for sync and pairing</li>",
+    "section2Title": "2. Purpose of Usage",
+    "section2List": "<li>Storing/viewing records, building timelines, providing sync</li><li>Error analysis and service stability improvement</li><li>UX improvement through usage analysis</li>",
+    "section3Title": "3. Retention and Destruction",
+    "section3List": "<li>Information is destroyed without delay when purposes are achieved or upon user request.</li><li>In case of legal retention obligations, it is kept only for the required period.</li>",
+    "section4Title": "4. Third-party Disclosure",
+    "section4Desc": "The Service does not sell user information to third parties and does not disclose it except when required by law.",
+    "section5Title": "5. User Rights",
+    "section5Desc": "Users may request access, correction, or deletion of their data. This can be done through service features or by contacting the operator.",
+    "section6Title": "6. Inquiry",
+    "section6Desc": "Please submit privacy-related inquiries through our service channels. We will process them without delay after verification."
+  },
+  "CSV": {
+    "date": "Date",
+    "category": "Category",
+    "title": "Title",
+    "status": "Status",
+    "rating": "Rating",
+    "place": "Place",
+    "occasion": "Occasion",
+    "platform": "Platform",
+    "note": "Note"
   }
 }

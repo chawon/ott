@@ -1,103 +1,119 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { X, Smartphone, Download, Share } from "lucide-react";
+import { useTranslations } from "next-intl";
 
-const DISMISS_KEY = "watchlog.pwa.install.dismissed";
-
-type BeforeInstallPromptEvent = Event & {
-  prompt: () => Promise<void>;
-  userChoice: Promise<{ outcome: "accepted" | "dismissed"; platform: string }>;
-};
-
-function isIos() {
-  if (typeof navigator === "undefined") return false;
-  return /iphone|ipad|ipod/i.test(navigator.userAgent);
-}
-
-function isStandaloneMode() {
-  if (typeof window === "undefined") return false;
-  const nav = window.navigator as { standalone?: boolean };
-  return (
-    Boolean(nav.standalone) ||
-    window.matchMedia("(display-mode: standalone)").matches
-  );
+interface BeforeInstallPromptEvent extends Event {
+  readonly platforms: string[];
+  readonly userChoice: Promise<{
+    outcome: "accepted" | "dismissed";
+    platform: string;
+  }>;
+  prompt(): Promise<void>;
 }
 
 export default function PwaInstallBanner() {
-  const [visible, setVisible] = useState(false);
-  const [promptEvent, setPromptEvent] =
+  const t = useTranslations("PwaInstall");
+  const [isVisible, setIsVisible] = useState(false);
+  const [deferredPrompt, setDeferredPrompt] =
     useState<BeforeInstallPromptEvent | null>(null);
+  const [platform, setPlatform] = useState<"ios" | "android" | "other">(
+    "other",
+  );
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    function handleBeforeInstallPrompt(e: Event) {
-      e.preventDefault();
-      setPromptEvent(e as BeforeInstallPromptEvent);
+    // Detect platform
+    const ua = window.navigator.userAgent.toLowerCase();
+    const isIos = /iphone|ipad|ipod/.test(ua);
+    const isAndroid = /android/.test(ua);
+
+    if (isIos) setPlatform("ios");
+    else if (isAndroid) setPlatform("android");
+
+    // Check if already installed
+    const isStandalone =
+      window.matchMedia("(display-mode: standalone)").matches ||
+      (window.navigator as any).standalone;
+    const isPwaHidden = localStorage.getItem("pwa-banner-hidden") === "true";
+
+    if (!isStandalone && !isPwaHidden) {
+      // Show for iOS immediately (since there's no event)
+      if (isIos) {
+        setIsVisible(true);
+      }
     }
-    window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
-    return () =>
-      window.removeEventListener(
-        "beforeinstallprompt",
-        handleBeforeInstallPrompt,
-      );
+
+    const handler = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e as BeforeInstallPromptEvent);
+      if (!isStandalone && !isPwaHidden) {
+        setIsVisible(true);
+      }
+    };
+
+    window.addEventListener("beforeinstallprompt", handler);
+    return () => window.removeEventListener("beforeinstallprompt", handler);
   }, []);
 
-  useEffect(() => {
-    if (isStandaloneMode()) return;
-    if (typeof localStorage === "undefined") return;
-    if (localStorage.getItem(DISMISS_KEY) === "1") return;
-    if (isIos() || promptEvent) {
-      setVisible(true);
+  const handleInstall = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === "accepted") {
+      setIsVisible(false);
     }
-  }, [promptEvent]);
+    setDeferredPrompt(null);
+  };
 
-  if (!visible) return null;
+  const handleClose = () => {
+    setIsVisible(false);
+    localStorage.setItem("pwa-banner-hidden", "true");
+  };
 
-  const isIosBanner = isIos() && !promptEvent;
+  if (!isVisible) return null;
 
   return (
-    <div className="mx-auto w-full max-w-5xl px-4">
-      <div className="mb-4 rounded-xl border border-border bg-card px-4 py-3 text-sm text-neutral-700 shadow-sm">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <div className="font-semibold text-neutral-900">홈 화면에 추가</div>
-            <div className="mt-1 text-xs text-neutral-600">
-              {isIosBanner
-                ? "Safari 공유 버튼에서 “홈 화면에 추가”를 선택하면 앱처럼 사용할 수 있어요."
-                : "설치하면 홈 화면에서 바로 열 수 있어요."}
+    <div className="fixed bottom-24 left-4 right-4 z-[100] animate-in fade-in slide-in-from-bottom-4 sm:bottom-6 sm:left-auto sm:right-6 sm:w-96">
+      <div className="relative overflow-hidden rounded-2xl border border-border bg-card p-4 shadow-2xl backdrop-blur-md">
+        <div className="flex items-start gap-4">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-indigo-500 text-white shadow-lg shadow-indigo-500/20">
+            <Smartphone className="h-6 w-6" />
+          </div>
+          <div className="flex-1 pr-6">
+            <div className="font-semibold text-neutral-900">{t("title")}</div>
+            <p className="mt-1 text-xs leading-relaxed text-neutral-500">
+              {platform === "ios" ? t("iosDesc") : t("androidDesc")}
+            </p>
+            <div className="mt-4 flex items-center gap-3">
+              {platform === "android" || deferredPrompt ? (
+                <button
+                  onClick={handleInstall}
+                  className="flex items-center gap-2 rounded-lg bg-neutral-900 px-4 py-2 text-xs font-bold text-white transition-all hover:bg-neutral-800 active:scale-95"
+                >
+                  <Download className="h-3.5 w-3.5" />
+                  {t("installAction")}
+                </button>
+              ) : platform === "ios" ? (
+                <div className="flex items-center gap-1.5 rounded-lg bg-indigo-50 px-3 py-2 text-[10px] font-bold text-indigo-600">
+                  <Share className="h-3.5 w-3.5" />
+                  <span>Safari &gt; Add to Home Screen</span>
+                </div>
+              ) : null}
+              <button
+                onClick={handleClose}
+                className="text-xs font-medium text-neutral-400 hover:text-neutral-600"
+              >
+                {t("closeAction")}
+              </button>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            {promptEvent ? (
-              <button
-                type="button"
-                onClick={async () => {
-                  try {
-                    await promptEvent.prompt();
-                    await promptEvent.userChoice;
-                  } finally {
-                    setPromptEvent(null);
-                    setVisible(false);
-                  }
-                }}
-                className="rounded-md border border-neutral-900 bg-neutral-900 px-2 py-1 text-xs text-white"
-              >
-                설치
-              </button>
-            ) : null}
-            <button
-              type="button"
-              onClick={() => {
-                setVisible(false);
-                if (typeof localStorage !== "undefined") {
-                  localStorage.setItem(DISMISS_KEY, "1");
-                }
-              }}
-              className="rounded-md border border-neutral-200 px-2 py-1 text-xs text-neutral-500 hover:text-neutral-700"
-            >
-              닫기
-            </button>
-          </div>
+          <button
+            onClick={handleClose}
+            className="absolute right-3 top-3 rounded-full p-1 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-600"
+          >
+            <X className="h-4 w-4" />
+          </button>
         </div>
       </div>
     </div>

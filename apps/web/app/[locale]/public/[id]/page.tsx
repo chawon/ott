@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { api } from "@/lib/api";
 import CommentsPanel from "@/components/CommentsPanel";
@@ -15,6 +16,8 @@ export default function PublicDiscussionDetailPage() {
   const rawId = params?.id;
   const discussionId = Array.isArray(rawId) ? rawId[0] : rawId;
   const { isRetro } = useRetro();
+  const tQuick = useTranslations("QuickLogCard");
+  const tDetail = useTranslations("DiscussionDetail");
 
   const [detail, setDetail] = useState<DiscussionListItem | null>(null);
   const [loading, setLoading] = useState(false);
@@ -38,13 +41,13 @@ export default function PublicDiscussionDetailPage() {
       } catch (e: any) {
         setErr(
           e?.message ??
-            "함께 기록을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.",
+            tDetail("loadError"),
         );
       } finally {
         setLoading(false);
       }
     })();
-  }, [discussionId]);
+  }, [discussionId, tDetail]);
 
   if (!discussionId) {
     return (
@@ -56,7 +59,7 @@ export default function PublicDiscussionDetailPage() {
         )}
       >
         <div className="text-base font-semibold">
-          {isRetro ? "유효하지 않은 경로예요" : "유효하지 않은 경로예요."}
+          {tDetail("invalidPath")}
         </div>
       </div>
     );
@@ -71,7 +74,7 @@ export default function PublicDiscussionDetailPage() {
             : "rounded-2xl border border-border bg-card p-6 shadow-sm",
         )}
       >
-        <div className="text-sm text-neutral-600">불러오는 중…</div>
+        <div className="text-sm text-neutral-600">{tDetail("loading")}</div>
       </div>
     );
   }
@@ -86,7 +89,7 @@ export default function PublicDiscussionDetailPage() {
         )}
       >
         <div className="text-base font-semibold text-red-600">
-          불러오지 못했어요.
+          {tDetail("errorTitle")}
         </div>
         <div className="mt-2 text-sm text-neutral-700">{err}</div>
       </div>
@@ -102,10 +105,17 @@ export default function PublicDiscussionDetailPage() {
             : "rounded-2xl border border-border bg-card p-6 shadow-sm",
         )}
       >
-        <div className="text-base font-semibold">찾을 수 없어요.</div>
+        <div className="text-base font-semibold">{tDetail("notFound")}</div>
       </div>
     );
   }
+
+  const typeLabel =
+    detail.titleType === "movie"
+      ? tQuick("typeMovie")
+      : detail.titleType === "series"
+        ? tQuick("typeSeriesModern")
+        : tQuick("typeBook");
 
   return (
     <div className="space-y-6">
@@ -150,11 +160,7 @@ export default function PublicDiscussionDetailPage() {
                 isRetro ? "text-black uppercase" : "text-muted-foreground",
               )}
             >
-              {detail.titleType === "movie"
-                ? "영화"
-                : detail.titleType === "series"
-                  ? "시리즈"
-                  : "책"}
+              {typeLabel}
               {detail.titleYear ? ` · ${detail.titleYear}` : ""}
             </div>
             <div className="mt-4 text-sm">
@@ -167,7 +173,7 @@ export default function PublicDiscussionDetailPage() {
                     : "text-neutral-700 hover:text-black hover:underline",
                 )}
               >
-                작품 상세 보기 →
+                {tDetail("viewTitleDetail")}
               </Link>
             </div>
           </div>

@@ -26,6 +26,7 @@ export default function ShareBottomSheet({
 }) {
   const tShare = useTranslations("ShareBottomSheet");
   const tStatus = useTranslations("Status");
+  const tQuick = useTranslations("QuickLogCard");
   const [showRatingLabel, setShowRatingLabel] = useState(true);
   const [showNote, setShowNote] = useState(true);
   const [format, setFormat] = useState<"story" | "feed">("story");
@@ -49,7 +50,7 @@ export default function ShareBottomSheet({
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, "0");
     const day = String(date.getDate()).padStart(2, "0");
-    const rating = ratingDisplay(log.rating, log.title?.type);
+    const rating = ratingDisplay(log.rating, log.title?.type, tQuick);
     const note = log.note ? log.note : null;
     return {
       title: log.title.name,
@@ -64,7 +65,7 @@ export default function ShareBottomSheet({
       watermark: isRetro ? "으뜸과 버금" : "On the Timeline",
       theme: (isRetro ? "retro" : "default") as "retro" | "default",
     };
-  }, [format, isRetro, log, showNote, showRatingLabel, tStatus]);
+  }, [format, isRetro, log, showNote, showRatingLabel, tStatus, tQuick]);
 
   useEffect(() => {
     let active = true;

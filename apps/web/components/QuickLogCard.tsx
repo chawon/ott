@@ -61,10 +61,6 @@ type EpisodeOption = {
   name: string;
 };
 
-const OCCASION_OPTIONS: { value: Occasion; label: string }[] = (
-  Object.keys(OCCASION_LABELS) as Occasion[]
-).map((value) => ({ value, label: OCCASION_LABELS[value] }));
-
 const OTT_CUSTOM_VALUE = "__custom__";
 const VIDEO_CUSTOM_KEY = "watchlog.ott.custom";
 const BOOK_CUSTOM_KEY = "watchlog.book.platform.custom";
@@ -256,18 +252,24 @@ export default function QuickLogCard({
     [isBookMode, bookPlatformGroups, videoPlatformGroups],
   );
 
-  const platformGroups = isBookMode ? bookPlatformGroups : videoPlatformGroups;
-  const platformCustomKey = isBookMode ? BOOK_CUSTOM_KEY : VIDEO_CUSTOM_KEY;
+  const occasionOptions = useMemo(
+    () =>
+      (Object.keys(OCCASION_LABELS) as Occasion[]).map((value) => ({
+        value,
+        label: tCommon("occasionLabels." + value),
+      })),
+    [tCommon],
+  );
 
   const canSave = useMemo(() => !!selected && !saving, [selected, saving]);
   const isWishlist = status === "WISHLIST";
   const statusOptions = useMemo(
-    () => statusOptionsForType(isBookMode ? "book" : "movie"),
-    [isBookMode],
+    () => statusOptionsForType(isBookMode ? "book" : "movie", tStatus),
+    [isBookMode, tStatus],
   );
   const placeOptions = useMemo(
-    () => placeOptionsForType(isBookMode ? "book" : "movie"),
-    [isBookMode],
+    () => placeOptionsForType(isBookMode ? "book" : "movie", tCommon),
+    [isBookMode, tCommon],
   );
   const ratingOptions = useMemo(() => {
     if (isRetro) {
@@ -283,8 +285,11 @@ export default function QuickLogCard({
             { value: 1, label: "★ " + tQuick("ratingBadVideo") },
           ];
     }
-    return ratingOptionsForType(isBookMode ? "book" : "movie");
+    return ratingOptionsForType(isBookMode ? "book" : "movie", tQuick);
   }, [isRetro, isBookMode, tQuick]);
+
+  const platformGroups = isBookMode ? bookPlatformGroups : videoPlatformGroups;
+  const platformCustomKey = isBookMode ? BOOK_CUSTOM_KEY : VIDEO_CUSTOM_KEY;
 
   function toDateInput(d: Date) {
     const y = d.getFullYear();
@@ -902,7 +907,7 @@ export default function QuickLogCard({
                   )}
                   disabled={isWishlist}
                 >
-                  {OCCASION_OPTIONS.map((o) => (
+                  {occasionOptions.map((o) => (
                     <option key={o.value} value={o.value}>
                       {o.label}
                     </option>
@@ -1406,7 +1411,7 @@ export default function QuickLogCard({
                 )}
                 disabled={isWishlist}
               >
-                {OCCASION_OPTIONS.map((o) => (
+                {occasionOptions.map((o) => (
                   <option key={o.value} value={o.value}>
                     {o.label}
                   </option>

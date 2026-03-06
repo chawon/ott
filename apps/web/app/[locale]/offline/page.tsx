@@ -1,11 +1,20 @@
+"use client";
+
+import { WifiOff } from "lucide-react";
+import { useTranslations } from "next-intl";
+
 export default function OfflinePage() {
+  const t = useTranslations("Offline");
   return (
-    <div className="mx-auto max-w-2xl rounded-2xl border border-border bg-card p-8 text-center shadow-sm">
-      <div className="text-lg font-semibold text-neutral-900">
-        오프라인 상태입니다
+    <div className="flex min-h-[60vh] flex-col items-center justify-center p-6 text-center">
+      <div className="mb-6 rounded-full bg-muted p-6">
+        <WifiOff className="h-12 w-12 text-muted-foreground" />
       </div>
-      <p className="mt-2 text-sm text-neutral-600">
-        네트워크가 복구되면 자동으로 다시 연결됩니다.
+      <h1 className="mb-2 text-2xl font-bold text-foreground">
+        {t("title")}
+      </h1>
+      <p className="max-w-xs text-muted-foreground">
+        {t("description")}
       </p>
     </div>
   );

@@ -13,17 +13,19 @@ export type TimelineExportRow = {
   ott_or_platform: string;
 };
 
-const CSV_COLUMNS: { key: keyof TimelineExportRow; label: string }[] = [
-  { key: "watchedAt", label: "날짜" },
-  { key: "type", label: "구분" },
-  { key: "title", label: "제목" },
-  { key: "status", label: "상태" },
-  { key: "rating", label: "평점" },
-  { key: "place", label: "장소" },
-  { key: "occasion", label: "누구와" },
-  { key: "ott_or_platform", label: "플랫폼" },
-  { key: "note", label: "메모" },
-];
+export function getCsvColumns(t: any): { key: keyof TimelineExportRow; label: string }[] {
+  return [
+    { key: "watchedAt", label: t("date") },
+    { key: "type", label: t("category") },
+    { key: "title", label: t("title") },
+    { key: "status", label: t("status") },
+    { key: "rating", label: t("rating") },
+    { key: "place", label: t("place") },
+    { key: "occasion", label: t("occasion") },
+    { key: "ott_or_platform", label: t("platform") },
+    { key: "note", label: t("note") },
+  ];
+}
 
 function formatDateOnly(iso?: string | null) {
   if (!iso) return "";
@@ -41,37 +43,47 @@ function escapeCsv(value: string) {
   return `"${value.replace(/"/g, '""')}"`;
 }
 
-function typeLabel(type?: WatchLog["title"]["type"]) {
-  if (type === "movie") return "영화";
-  if (type === "series") return "시리즈";
-  if (type === "book") return "책";
+function typeLabel(type?: WatchLog["title"]["type"], tQuick?: any) {
+  if (type === "movie") return tQuick ? tQuick("typeMovie") : "Movie";
+  if (type === "series") return tQuick ? tQuick("typeSeriesModern") : "Series";
+  if (type === "book") return tQuick ? tQuick("typeBook") : "Book";
   return "";
 }
 
-export function buildExportRows(logs: WatchLog[]): TimelineExportRow[] {
+export function buildExportRows(
+  logs: WatchLog[],
+  tStatus?: any,
+  tCommon?: any,
+  tQuick?: any,
+): TimelineExportRow[] {
   return logs.map((log) => {
     const title = log.title;
     return {
       watchedAt: formatDateOnly(log.watchedAt),
       title: title?.name ?? "",
-      type: typeLabel(title?.type),
-      status: log.status ? statusLabel(log.status, title?.type) : "",
+      type: typeLabel(title?.type, tQuick),
+      status: log.status ? statusLabel(log.status, title?.type, tStatus) : "",
       rating:
         log.rating === null || log.rating === undefined
           ? ""
           : String(log.rating),
       note: log.note ?? "",
-      place: log.place ? placeLabel(log.place) : "",
-      occasion: log.occasion ? occasionLabel(log.occasion) : "",
+      place: log.place
+        ? placeLabel(log.place, tCommon ? (k: any) => tCommon("placeLabels." + k) : undefined)
+        : "",
+      occasion: log.occasion
+        ? occasionLabel(log.occasion, tCommon ? (k: any) => tCommon("occasionLabels." + k) : undefined)
+        : "",
       ott_or_platform: log.ott ?? "",
     };
   });
 }
 
-export function rowsToCsv(rows: TimelineExportRow[]) {
-  const header = CSV_COLUMNS.map((col) => col.label).join(",");
+export function rowsToCsv(rows: TimelineExportRow[], tCsv: any) {
+  const columns = getCsvColumns(tCsv);
+  const header = columns.map((col) => col.label).join(",");
   const lines = rows.map((row) =>
-    CSV_COLUMNS.map((col) => escapeCsv(String(row[col.key] ?? ""))).join(","),
+    columns.map((col) => escapeCsv(String(row[col.key] ?? ""))).join(","),
   );
   return [header, ...lines].join("\r\n");
 }
@@ -88,8 +100,15 @@ export function downloadCsv(content: string, filename: string) {
   URL.revokeObjectURL(url);
 }
 
-export function downloadTimelineCsv(logs: WatchLog[], filename: string) {
-  const rows = buildExportRows(logs);
-  const csv = rowsToCsv(rows);
+export function downloadTimelineCsv(
+  logs: WatchLog[],
+  filename: string,
+  tCsv: any,
+  tStatus: any,
+  tCommon: any,
+  tQuick: any,
+) {
+  const rows = buildExportRows(logs, tStatus, tCommon, tQuick);
+  const csv = rowsToCsv(rows, tCsv);
   downloadCsv(csv, filename);
 }

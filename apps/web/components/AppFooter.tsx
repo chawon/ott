@@ -29,7 +29,7 @@ export default function AppFooter() {
                 isRetro ? "text-black uppercase" : "text-foreground",
               )}
             >
-              {isRetro ? "으뜸과 버금" : "On the Timeline"}
+              {isRetro ? t("titleRetro") : "On the Timeline"}
             </div>
             <p
               className={cn(
@@ -120,8 +120,7 @@ export default function AppFooter() {
             )}
           >
             <p>
-              © {currentYear} {isRetro ? "으뜸과 버금" : "On the Timeline"}.{" "}
-              {t("allRightsReserved")}
+              © {currentYear} {isRetro ? t("titleRetro") : "On the Timeline"}. {t("allRightsReserved")}
             </p>
           </div>
         </div>

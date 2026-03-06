@@ -23,6 +23,11 @@ function buildQuery(params: Record<string, string | undefined>) {
 import { useTranslations } from "next-intl";
 export default function TimelinePage() {
   const tTimeline = useTranslations("Timeline");
+  const tStatus = useTranslations("Status");
+  const tCommon = useTranslations("Common");
+  const tCsv = useTranslations("CSV");
+  const tQuick = useTranslations("QuickLogCard");
+  const tAccount = useTranslations("Account");
   const { isRetro } = useRetro();
   const [status, setStatus] = useState<Status | "ALL">("ALL");
   const [contentType, setContentType] = useState<"ALL" | "video" | "book">(
@@ -158,13 +163,20 @@ export default function TimelinePage() {
         sortBy: "history",
       });
       if (filtered.length === 0) {
-        setExportStatus("해당 조건의 기록이 없어요.");
+        setExportStatus(tAccount("statusNoMatchingLogs"));
         return;
       }
-      downloadTimelineCsv(filtered, exportFileName());
-      setExportStatus("CSV 파일을 저장했어요.");
+      downloadTimelineCsv(
+        filtered,
+        exportFileName(),
+        tCsv,
+        tStatus,
+        tCommon,
+        tQuick,
+      );
+      setExportStatus(tAccount("statusExportSuccess"));
     } catch (e: any) {
-      setExportStatus(e?.message ?? "내보내기에 실패했어요.");
+      setExportStatus(e?.message ?? tAccount("statusExportFailed"));
     } finally {
       setExporting(false);
     }
@@ -327,9 +339,9 @@ export default function TimelinePage() {
                         isRetro ? "text-neutral-700" : "text-slate-700",
                       )}
                     >
-                      {group.year}년
+                      {tTimeline("yearFormat", { year: group.year })}
                     </span>
-                    <span>에는 </span>
+                    <span>{tTimeline("yearSuffix")}</span>
                     <span
                       className={cn(
                         "font-bold",
@@ -339,8 +351,8 @@ export default function TimelinePage() {
                       {group.items.length}
                     </span>
                     <span>
-                      {contentType === "book" ? "권을 " : "편을 "}
-                      {statusLabel ?? "봤어요"}
+                      {contentType === "book" ? tTimeline("unitBook") : tTimeline("unitVideo")}
+                      {statusLabel || tStatus("DONE")}
                     </span>
                   </>
                 )}

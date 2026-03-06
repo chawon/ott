@@ -122,7 +122,7 @@ export default function AppHeader() {
                 : "text-foreground text-lg",
             )}
           >
-            {isRetro ? "으뜸과 버금" : "On the Timeline"}
+            {isRetro ? t("titleRetro") : "On the Timeline"}
           </IntlLink>
 
           {!isRetro ? (

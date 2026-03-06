@@ -17,7 +17,8 @@
     "navPublicRetro": "수다판",
     "navPublicModern": "함께",
     "navAccountRetro": "맞춤",
-    "navAccountModern": "설정"
+    "navAccountModern": "설정",
+    "titleRetro": "으뜸과 버금"
   },
   "AppFooter": {
     "descriptionRetro": "봤니? 읽었니? 그럼 날적이 해보자~ 한 번 적어 두면 발자취가 또렷해져요.",
@@ -151,7 +152,12 @@
     "dateSelecting": "날짜 직접 선택 중",
     "successLike": "좋아요!",
     "successCount": "{count}번째 타임라인이 쌓였어요.",
-    "viewTimeline": "타임라인 보기"
+    "viewTimeline": "타임라인 보기",
+    "ratingBestModern": "최고예요",
+    "ratingSosoModern": "볼만해요",
+    "ratingBadModern": "아쉬워요",
+    "ratingBestBookModern": "인생책",
+    "ratingSosoBookModern": "무난해요"
   },
   "Common": {
     "placeLabels": {
@@ -194,7 +200,11 @@
     "exportCsv": "CSV 다운로드",
     "emptyState": "아직 남긴 기록이 없습니다.",
     "emptySearch": "검색 결과가 없습니다.",
-    "syncStatus": "동기화 완료"
+    "syncStatus": "동기화 완료",
+    "unitBook": "권을 ",
+    "unitVideo": "편을 ",
+    "yearFormat": "{year}년",
+    "yearSuffix": "에는 "
   },
   "TitleSearchBox": {
     "defaultPlaceholder": "작품 검색 (예: 듄, 더 베어)",
@@ -358,5 +368,135 @@
     "exampleVideo": "영상 공유 카드 예시",
     "exampleBook": "책 공유 카드 예시",
     "closing": "\"기억은 흐릿해지지만, 기록은 타임라인으로 남습니다.\""
+  },
+  "TitleDetail": {
+    "loading": "불러오는 중…",
+    "errorTitle": "문제가 발생했어요",
+    "notFound": "작품을 찾을 수 없어요",
+    "director": "감독",
+    "cast": "주연",
+    "myRecordTitle": "나의 기록",
+    "myRecordDesc": "내용을 추가하면 히스토리가 자동으로 쌓여요.",
+    "myRecordEmpty": "아직 이 작품에 대한 기록이 없어요. 홈에서 먼저 저장해 주세요.",
+    "historyTitle": "히스토리",
+    "historyDesc": "업데이트할 때마다 스냅샷이 쌓여요.",
+    "historyEmpty": "아직 히스토리가 없어요.",
+    "updateAction": "수정하기",
+    "updating": "수정 중…",
+    "changeDate": "날짜 변경"
+  },
+  "FiltersBar": {
+    "contentLabel": "콘텐츠",
+    "all": "전체",
+    "video": "영상",
+    "book": "책",
+    "filterLabel": "필터",
+    "categoryLabel": "구분",
+    "myLog": "내 기록",
+    "comment": "코멘트",
+    "platformLabel": "플랫폼",
+    "groupAll": "{group} 전체"
+  },
+  "HomePage": {
+    "heroRetro": "환영합니다, 그대여. \n으뜸과 버금에서 당신의 비디오를 찾아보세요!",
+    "heroModernBook": "읽었니? 그럼 날적이 해보자~",
+    "heroModernVideo": "봤니? 그럼 날적이 해보자~",
+    "heroModernDesc": "한 번 적어 두면 발자취가 또렷해져요",
+    "heroTimelineBook": "나의 책 기록",
+    "heroTimelineVideo": "나의 영상 기록",
+    "heroTimelineDesc": "한 줄만 적어두면 타임라인이 쌓여요",
+    "viewAll": "전체 보기",
+    "myFootprints": "나의 발자취",
+    "myRecords": "나의 기록",
+    "loading": "로딩 중...",
+    "emptyFootprints": "아직 발자취가 없어. 위에서 날적이 하나 남겨봐~",
+    "emptyRecords": "첫 기록을 남겨보세요. 타임라인이 바로 시작돼요.",
+    "publicTitleRetro": "수다 판",
+    "publicTitleModern": "요즘 함께 하는 기록들",
+    "toggleFold": "접기",
+    "toggleExpand": "펼치기"
+  },
+  "DiscussionDetail": {
+    "loadError": "함께 기록을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.",
+    "invalidPath": "유효하지 않은 경로예요",
+    "loading": "불러오는 중…",
+    "errorTitle": "불러오지 못했어요.",
+    "notFound": "찾을 수 없어요.",
+    "viewTitleDetail": "작품 상세 보기 →"
+  },
+  "Offline": {
+    "title": "오프라인 상태입니다",
+    "description": "네트워크가 복구되면 자동으로 다시 연결됩니다."
+  },
+  "FAQ": {
+    "title": "자주 묻는 질문 (FAQ)",
+    "heading": "자주 묻는 질문",
+    "description": "On the Timeline의 데이터 저장 방식과 로그인 없는 서비스 이용에 대해 궁금한 점을 해결해 드립니다.",
+    "q1": "Q. 로그인 없이 어떻게 데이터가 유지되나요?",
+    "a1": "On the Timeline은 <strong>로컬 퍼스트(Local-first)</strong> 기술을 사용합니다. 사용자가 입력한 모든 기록은 먼저 브라우저 내부 저장소(IndexedDB)에 저장됩니다. 따라서 로그인을 하지 않아도 기기를 바꾸지 않는 한 기록이 안전하게 유지됩니다.",
+    "q2": "Q. 기기를 변경해도 기록을 볼 수 있나요?",
+    "a2": "네, 가능합니다! [계정] 메뉴에서 발급받은 <strong>페어링 코드</strong>를 새 기기에 입력하면 지금까지의 기록을 그대로 이어서 볼 수 있어요. 여러 기기에서 각각 쌓아둔 기록도 하나로 모아집니다.",
+    "q3": "Q. 페어링을 하면 기록은 어떻게 합쳐지나요?",
+    "a3": "같은 작품에 대한 기록이 양쪽에 모두 있으면, <strong>더 최근에 수정된 내용</strong>이 남아요. 그래서 최신 상태로 자연스럽게 정리됩니다. 기존 기록이 사라지는 것이 아니라, 더 최신 기록으로 정리된다고 보면 됩니다.",
+    "q4": "Q. 기록을 삭제하고 싶으면 어떻게 하나요?",
+    "a4": "기록은 개별 삭제 대신 <strong>설정 > 로컬 초기화</strong>에서 한 번에 지울 수 있어요. 이 기능은 현재 기기에 저장된 데이터만 삭제하며, 서버 데이터는 삭제되지 않습니다.",
+    "q5": "Q. 내 기록을 파일로 내려받을 수 있나요?",
+    "a5": "네. <strong>설정 > 내 기록 내보내기</strong>에서 CSV 파일로 내려받아 엑셀이나 스프레드시트로 정리할 수 있어요.",
+    "q6": "Q. 서비스 이용료가 있나요?",
+    "a6": "On the Timeline은 모든 기능을 무료로 제공합니다. 기록을 남기는 즐거움에만 집중하세요!"
+  },
+  "Report": {
+    "title": "내 이용 리포트",
+    "loadError": "리포트를 불러오지 못했어요.",
+    "calculating": "리포트를 계산하고 있어요...",
+    "noData": "리포트 데이터가 없습니다.",
+    "syncNotice": "서버에 동기화된 기록을 기준으로 집계한 개인 리포트입니다.",
+    "localNotice": "로컬 기록 기준으로 임시 집계한 리포트입니다.",
+    "totalRecords": "총 기록",
+    "monthlyRecords": "이번 달 기록",
+    "completionRate": "완료율",
+    "ratingRate": "평점 입력률",
+    "memoRate": "메모 입력률",
+    "recentDate": "최근 기록일",
+    "mostLoggedType": "가장 많이 기록한 타입",
+    "frequentPlace": "자주 기록한 장소",
+    "frequentOccasion": "자주 함께한 방식",
+    "streak": "연속 기록",
+    "streakDesc": "현재 {current}일 · 최장 {longest}일"
+  },
+  "PwaInstall": {
+    "title": "홈 화면에 추가",
+    "iosDesc": "Safari 공유 버튼에서 “홈 화면에 추가”를 선택하면 앱처럼 사용할 수 있어요.",
+    "androidDesc": "설치하면 홈 화면에서 바로 열 수 있어요.",
+    "installAction": "설치",
+    "closeAction": "닫기"
+  },
+  "Privacy": {
+    "title": "개인정보처리방침",
+    "lastUpdated": "최종 업데이트: 2026-02-14",
+    "intro": "On the Timeline(이하 \"서비스\")는 이용자의 개인정보를 소중히 여기며, 관련 법령을 준수합니다. 본 방침은 서비스 이용 중 처리되는 정보의 항목, 목적, 보관 방식, 이용자 권리를 안내합니다.",
+    "section1Title": "1. 수집하는 정보",
+    "section1List": "<li>기록 데이터: 작품명, 감상/독서 상태, 평점, 메모, 기록 시각</li><li>서비스 운영 정보: 기기 유형, 브라우저 유형, OS 계열, 설치 상태(PWA 여부)</li><li>기기 식별용 정보: 서비스 동기화 및 기기 연결을 위한 내부 식별자</li>",
+    "section2Title": "2. 정보 이용 목적",
+    "section2List": "<li>기록 저장/조회, 타임라인 구성, 기기 간 동기화 제공</li><li>오류 분석 및 서비스 안정성 개선</li><li>기능 사용 현황 분석을 통한 UX 개선</li>",
+    "section3Title": "3. 보관 및 파기",
+    "section3List": "<li>이용 목적 달성 또는 이용자 요청 시 지체 없이 파기합니다.</li><li>법령상 보관 의무가 있는 경우 해당 기간 동안만 보관합니다.</li>",
+    "section4Title": "4. 제3자 제공 및 처리 위탁",
+    "section4Desc": "서비스는 원칙적으로 이용자 정보를 외부에 판매하지 않으며, 법령에 따른 경우를 제외하고 제3자에게 제공하지 않습니다.",
+    "section5Title": "5. 이용자 권리",
+    "section5Desc": "이용자는 자신의 기록 데이터에 대해 열람, 정정, 삭제를 요청할 수 있습니다. 서비스 내 기능 또는 운영자 문의를 통해 요청할 수 있습니다.",
+    "section6Title": "6. 문의",
+    "section6Desc": "개인정보 관련 문의는 서비스 운영 채널을 통해 접수해 주세요. 접수된 문의는 확인 후 지체 없이 처리합니다."
+  },
+  "CSV": {
+    "date": "날짜",
+    "category": "구분",
+    "title": "제목",
+    "status": "상태",
+    "rating": "평점",
+    "place": "장소",
+    "occasion": "누구와",
+    "platform": "플랫폼",
+    "note": "메모"
   }
 }

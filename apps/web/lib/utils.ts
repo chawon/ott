@@ -89,14 +89,20 @@ export function occasionLabel(occasion: Occasion, t?: any): string {
   return t ? t(occasion) : OCCASION_LABELS[occasion];
 }
 
-export function statusOptionsForType(type?: Title["type"]) {
+export function statusOptionsForType(type?: Title["type"], t?: any) {
   const labels = type === "book" ? BOOK_STATUS_LABELS : STATUS_LABELS;
-  return STATUS_VALUES.map((value) => ({ value, label: labels[value] }));
+  return STATUS_VALUES.map((value) => ({
+    value,
+    label: t ? (type === "book" ? t("BOOK_" + value) : t(value)) : labels[value],
+  }));
 }
 
-export function placeOptionsForType(type?: Title["type"]) {
+export function placeOptionsForType(type?: Title["type"], t?: any) {
   const values = type === "book" ? BOOK_PLACE_VALUES : VIDEO_PLACE_VALUES;
-  return values.map((value) => ({ value, label: PLACE_LABELS[value] }));
+  return values.map((value) => ({
+    value,
+    label: t ? t(value) : PLACE_LABELS[value],
+  }));
 }
 
 export function formatNoteInline(note: string): string {
@@ -143,15 +149,43 @@ export const BOOK_RATING_OPTIONS = [
   { value: 1, label: "😕 아쉬워요" },
 ];
 
-export function ratingOptionsForType(type?: Title["type"]) {
+export function ratingOptionsForType(type?: Title["type"], t?: any) {
+  if (t) {
+    return type === "book"
+      ? [
+          { value: 5, label: "📚 " + t("ratingBestBookModern") },
+          { value: 3, label: "🙂 " + t("ratingSosoBookModern") },
+          { value: 1, label: "😕 " + t("ratingBadBook") },
+        ]
+      : [
+          { value: 5, label: "😍 " + t("ratingBestModern") },
+          { value: 3, label: "🙂 " + t("ratingSosoModern") },
+          { value: 1, label: "😕 " + t("ratingBadModern") },
+        ];
+  }
   return type === "book" ? BOOK_RATING_OPTIONS : VIDEO_RATING_OPTIONS;
 }
 
 export function ratingDisplay(
   rating?: number | null,
   titleType?: Title["type"],
+  t?: any,
 ) {
   if (typeof rating !== "number") return null;
+  if (t) {
+    if (titleType === "book") {
+      if (rating >= 5)
+        return { emoji: "📚", label: t("ratingBestBookModern"), value: 5 };
+      if (rating >= 3)
+        return { emoji: "🙂", label: t("ratingSosoBookModern"), value: 3 };
+      return { emoji: "😕", label: t("ratingBadBook"), value: 1 };
+    }
+    if (rating >= 5)
+      return { emoji: "😍", label: t("ratingBestModern"), value: 5 };
+    if (rating >= 3)
+      return { emoji: "🙂", label: t("ratingSosoModern"), value: 3 };
+    return { emoji: "😕", label: t("ratingBadModern"), value: 1 };
+  }
   if (titleType === "book") {
     if (rating >= 5) return { emoji: "📚", label: "인생책", value: 5 };
     if (rating >= 3) return { emoji: "🙂", label: "무난해요", value: 3 };

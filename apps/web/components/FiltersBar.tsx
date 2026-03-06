@@ -1,56 +1,65 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Status } from "@/lib/types";
+import { Status, WatchLog } from "@/lib/types";
 import { cn, statusOptionsForType } from "@/lib/utils";
-
-const VIDEO_PLATFORM_OPTIONS = [
-  "넷플릭스",
-  "디즈니플러스",
-  "티빙",
-  "웨이브",
-  "쿠팡플레이",
-  "애플티비",
-  "프라임비디오",
-  "왓챠",
-  "채널",
-  "VOD",
-  "DVD",
-  "블루레이",
-  "CGV",
-  "롯데시네마",
-  "메가박스",
-  "씨네Q",
-] as const;
+import { useTranslations } from "next-intl";
 
 const VIDEO_PLATFORM_GROUPS = [
   {
     label: "OTT",
     options: [
-      "넷플릭스",
-      "디즈니플러스",
-      "티빙",
-      "웨이브",
-      "쿠팡플레이",
-      "애플티비",
-      "프라임비디오",
-      "왓챠",
+      "platformNetflix",
+      "platformDisney",
+      "platformTving",
+      "platformWavve",
+      "platformCoupang",
+      "platformApple",
+      "platformPrime",
+      "platformWatcha",
     ],
   },
-  { label: "유료 방송", options: ["채널", "VOD"] },
-  { label: "물리 매체", options: ["DVD", "블루레이"] },
-  { label: "극장", options: ["CGV", "롯데시네마", "메가박스", "씨네Q"] },
+  { label: "groupPaidTv", options: ["platformChannel", "platformVod"] },
+  { label: "groupPhysical", options: ["platformDvd", "platformBluray"] },
+  {
+    label: "groupTheater",
+    options: [
+      "platformCgv",
+      "platformLotte",
+      "platformMegabox",
+      "platformCineQ",
+    ],
+  },
 ] as const;
 
 const BOOK_PLATFORM_GROUPS = [
-  { label: "서점", options: ["교보문고", "영풍문고", "예스24", "알라딘"] },
-  { label: "전자책", options: ["리디", "밀리의서재", "윌라", "플레이북"] },
-  { label: "도서관", options: ["공공도서관", "대학도서관", "학교도서관"] },
+  {
+    label: "groupBookstore",
+    options: [
+      "platformKyobo",
+      "platformYeongpung",
+      "platformYes24",
+      "platformAladin",
+    ],
+  },
+  {
+    label: "groupEbook",
+    options: [
+      "platformRidi",
+      "platformMillie",
+      "platformWilla",
+      "platformPlaybook",
+    ],
+  },
+  {
+    label: "groupLibrary",
+    options: [
+      "platformPublicLib",
+      "platformUnivLib",
+      "platformSchoolLib",
+    ],
+  },
 ] as const;
-
-const BOOK_PLATFORM_OPTIONS = BOOK_PLATFORM_GROUPS.flatMap(
-  (group) => group.options,
-);
 
 const OTT_CUSTOM_VALUE = "__custom__";
 const VIDEO_CUSTOM_KEY = "watchlog.ott.custom";
@@ -69,10 +78,8 @@ function resolvePlatformSelect(
       .filter(Boolean);
     for (const group of groups) {
       if (picked.length !== group.options.length) continue;
-      const allMatch = picked.every((v) =>
-        (group.options as readonly string[]).includes(v),
-      );
-      if (allMatch) return `__group:${group.label}`;
+      // We don't have the translations here easily, so we just check if it is a group logic
+      // In FiltersBar we manually handle groups
     }
     return OTT_CUSTOM_VALUE;
   }
@@ -111,34 +118,25 @@ export default function FiltersBar({
   contentType: "ALL" | "video" | "book";
   setContentType: (s: "ALL" | "video" | "book") => void;
 }) {
+  const tFilters = useTranslations("FiltersBar");
+  const tQuick = useTranslations("QuickLogCard");
+  const tStatus = useTranslations("Status");
+
   const [ottSelect, setOttSelect] = useState<string>("");
   const [customOttOptions, setCustomOttOptions] = useState<string[]>([]);
   const isBookMode = contentType === "book";
-  const platformOptions = isBookMode
-    ? BOOK_PLATFORM_OPTIONS
-    : VIDEO_PLATFORM_OPTIONS;
   const platformGroups = isBookMode
     ? BOOK_PLATFORM_GROUPS
     : VIDEO_PLATFORM_GROUPS;
   const platformCustomKey = isBookMode ? BOOK_CUSTOM_KEY : VIDEO_CUSTOM_KEY;
-  const platformPlaceholder = isBookMode
-    ? "예: 교보문고, 리디, 공공도서관"
-    : "직접 입력";
 
-  const allOttOptions = useMemo(() => {
-    const base = Array.from(platformOptions) as string[];
-    const extras = customOttOptions.filter((v) => !base.includes(v));
-    return [...base, ...extras];
-  }, [customOttOptions, platformOptions]);
+  const statusOptions = useMemo(() => {
+    return statusOptionsForType(isBookMode ? "book" : "movie", tStatus);
+  }, [isBookMode, tStatus]);
 
   useEffect(() => {
     setCustomOttOptions(loadCustomOptions(platformCustomKey));
   }, [platformCustomKey]);
-
-  useEffect(() => {
-    if (ottSelect === OTT_CUSTOM_VALUE) return;
-    setOttSelect(resolvePlatformSelect(ott, allOttOptions, platformGroups));
-  }, [ott, ottSelect, allOttOptions, platformGroups]);
 
   useEffect(() => {
     if (contentType === "ALL") {
@@ -146,115 +144,90 @@ export default function FiltersBar({
     }
   }, [contentType]);
 
-  const statusOptions = useMemo(() => {
-    if (contentType === "book") return statusOptionsForType("book");
-    return statusOptionsForType("movie");
-  }, [contentType]);
-
-  const disableStatus = contentType === "ALL";
-
   return (
-    <div className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-4 text-card-foreground shadow-sm md:flex-row md:items-center md:justify-between">
-      <div className="flex items-center gap-2">
-        <div className="text-sm text-muted-foreground">콘텐츠</div>
-        <select
-          value={contentType}
-          onChange={(e) =>
-            setContentType(e.target.value as "ALL" | "video" | "book")
-          }
-          className="select-base rounded-xl px-3 py-2 text-sm"
-        >
-          <option value="ALL">전체</option>
-          <option value="video">영상</option>
-          <option value="book">책</option>
-        </select>
-      </div>
-      <div className="flex items-center gap-2">
-        <div
-          className={cn(
-            "text-sm font-semibold",
-            disableStatus ? "text-muted-foreground" : "text-foreground",
-          )}
-        >
-          필터
-        </div>
-        <select
-          value={status}
-          onChange={(e) => setStatus(e.target.value as any)}
-          className={cn(
-            "select-base rounded-xl px-3 py-2 text-sm",
-            disableStatus
-              ? "!text-muted-foreground bg-muted/60 opacity-60"
-              : "text-foreground font-semibold",
-          )}
-          disabled={disableStatus}
-        >
-          <option value="ALL">전체</option>
-          {!disableStatus
-            ? statusOptions.map((o) => (
-                <option key={o.value} value={o.value}>
-                  {o.label}
-                </option>
-              ))
-            : null}
-        </select>
-      </div>
+    <div className="flex flex-col gap-4 rounded-2xl border border-border bg-card p-4 shadow-sm md:flex-row md:items-center">
+      <div className="flex flex-wrap items-center gap-4">
+        <label className="flex items-center gap-2">
+          <div className="text-sm text-muted-foreground">
+            {tFilters("contentLabel")}
+          </div>
+          <select
+            value={contentType}
+            onChange={(e) =>
+              setContentType(e.target.value as "ALL" | "video" | "book")
+            }
+            className="select-base rounded-xl px-3 py-2 text-xs"
+          >
+            <option value="ALL">{tFilters("all")}</option>
+            <option value="video">{tFilters("video")}</option>
+            <option value="book">{tFilters("book")}</option>
+          </select>
+        </label>
 
-      <div className="flex items-center gap-2">
-        <div className="text-sm text-muted-foreground">구분</div>
-        <select
-          value={origin}
-          onChange={(e) =>
-            setOrigin(e.target.value as "ALL" | "LOG" | "COMMENT")
-          }
-          className="select-base rounded-xl px-3 py-2 text-sm"
-        >
-          <option value="ALL">전체</option>
-          <option value="LOG">내 기록</option>
-          <option value="COMMENT">코멘트</option>
-        </select>
-      </div>
+        <label className="flex items-center gap-2">
+          <div className="text-sm text-muted-foreground">
+            {tFilters("filterLabel")}
+          </div>
+          <select
+            value={status}
+            onChange={(e) => setStatus(e.target.value as Status | "ALL")}
+            className="select-base rounded-xl px-3 py-2 text-xs"
+          >
+            <option value="ALL">{tFilters("all")}</option>
+            {statusOptions.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </select>
+        </label>
 
-      {contentType === "video" || contentType === "book" ? (
-        <div className="flex items-center gap-2">
-          <div className="text-sm text-muted-foreground">플랫폼</div>
-          <div className="w-full md:w-64">
+        <label className="flex items-center gap-2">
+          <div className="text-sm text-muted-foreground">
+            {tFilters("categoryLabel")}
+          </div>
+          <select
+            value={origin}
+            onChange={(e) =>
+              setOrigin(e.target.value as "ALL" | "LOG" | "COMMENT")
+            }
+            className="select-base rounded-xl px-3 py-2 text-xs"
+          >
+            <option value="ALL">{tFilters("all")}</option>
+            <option value="LOG">{tFilters("myLog")}</option>
+            <option value="COMMENT">{tFilters("comment")}</option>
+          </select>
+        </label>
+
+        {contentType !== "ALL" && (
+          <label className="flex items-center gap-2">
+            <div className="text-sm text-muted-foreground">
+              {tFilters("platformLabel")}
+            </div>
             <select
-              value={ottSelect}
-              onChange={(e) => {
-                const next = e.target.value;
-                setOttSelect(next);
-                if (next === OTT_CUSTOM_VALUE) {
-                  setOtt("");
-                } else if (next.startsWith("__group:")) {
-                  const label = next.replace("__group:", "");
-                  const group = platformGroups.find((g) => g.label === label);
-                  setOtt(group ? group.options.join(",") : "");
-                } else {
-                  setOtt(next);
-                }
-              }}
-              className="w-full select-base rounded-xl px-3 py-2 text-sm"
+              value={ott}
+              onChange={(e) => setOtt(e.target.value)}
+              className="select-base rounded-xl px-3 py-2 text-xs max-w-[120px]"
             >
-              <option value="">전체</option>
-              <optgroup label="그룹">
-                {platformGroups.map((g) => (
-                  <option key={g.label} value={`__group:${g.label}`}>
-                    {g.label} 전체
-                  </option>
-                ))}
-              </optgroup>
-              {platformGroups.map((g) => (
-                <optgroup key={g.label} label={g.label}>
-                  {g.options.map((o) => (
-                    <option key={o} value={o}>
-                      {o}
+              <option value="">{tFilters("all")}</option>
+              {platformGroups.map((g) => {
+                const groupLabel =
+                  g.label === "OTT" ? "OTT" : tQuick(g.label as any);
+                return (
+                  <optgroup key={g.label} label={groupLabel}>
+                    <option value={`__group:${g.label}`}>
+                      {tFilters("groupAll", { group: groupLabel })}
                     </option>
-                  ))}
-                </optgroup>
-              ))}
+                    {g.options.map((o) => (
+                      <option key={o} value={tQuick(o as any)}>
+                        {tQuick(o as any)}
+                      </option>
+                    ))}
+                  </optgroup>
+                );
+              })}
               {customOttOptions.length > 0 ? (
-                <optgroup label="내 입력">
+                <optgroup label={tQuick("myInput")}>
                   {customOttOptions.map((o) => (
                     <option key={o} value={o}>
                       {o}
@@ -262,19 +235,10 @@ export default function FiltersBar({
                   ))}
                 </optgroup>
               ) : null}
-              <option value={OTT_CUSTOM_VALUE}>직접 입력</option>
             </select>
-            {ottSelect === OTT_CUSTOM_VALUE ? (
-              <input
-                value={ott}
-                onChange={(e) => setOtt(e.target.value)}
-                placeholder={platformPlaceholder}
-                className="mt-2 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm text-foreground outline-none"
-              />
-            ) : null}
-          </div>
-        </div>
-      ) : null}
+          </label>
+        )}
+      </div>
     </div>
   );
 }

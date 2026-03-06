@@ -17,8 +17,10 @@ import {
 } from "@/lib/shareIntent";
 import type { DiscussionListItem, WatchLog } from "@/lib/types";
 import { useRetro } from "@/context/RetroContext";
+import { useTranslations } from "next-intl";
 
 export default function HomePage() {
+  const tHome = useTranslations("HomePage");
   const [logs, setLogs] = useState<WatchLog[]>([]);
   const [loading, setLoading] = useState(false);
   const [bootstrapped, setBootstrapped] = useState(false);
@@ -153,11 +155,11 @@ export default function HomePage() {
               <div className="space-y-1">
                 <h1 className="bg-black inline-block px-3 py-1 text-sm font-bold uppercase tracking-widest text-white shadow-[4px_4px_0px_0px_rgba(0,0,0,0.2)]">
                   {quickType === "book"
-                    ? "읽었니? 그럼 날적이 해보자~"
-                    : "봤니? 그럼 날적이 해보자~"}
+                    ? tHome("heroModernBook")
+                    : tHome("heroModernVideo")}
                 </h1>
                 <p className="text-[10px] font-bold text-neutral-500 uppercase tracking-tight">
-                  한 번 적어 두면 발자취가 또렷해져요
+                  {tHome("heroModernDesc")}
                 </p>
               </div>
               <button
@@ -166,7 +168,7 @@ export default function HomePage() {
                 className="border-2 border-black px-2 py-1 text-xs font-bold uppercase"
                 aria-expanded={quickOpen}
               >
-                {quickOpen ? "접기" : "펼치기"}
+                {quickOpen ? tHome("toggleFold") : tHome("toggleExpand")}
               </button>
             </div>
             {quickOpen ? (
@@ -192,25 +194,25 @@ export default function HomePage() {
           <section className="space-y-4">
             <div className="flex items-baseline justify-between border-b-4 border-black pb-2">
               <div className="text-xl font-bold uppercase tracking-tighter">
-                나의 발자취
+                {tHome("myFootprints")}
               </div>
               <Link
                 href="/timeline"
                 className="text-xs font-bold text-blue-600 hover:bg-blue-600 hover:text-white px-1 uppercase underline underline-offset-4"
               >
-                전체 보기
+                {tHome("viewAll")}
               </Link>
             </div>
 
             {loading && logs.length === 0 ? (
               <div className="border-4 border-black bg-white p-5 text-sm font-bold uppercase">
-                로딩 중...
+                {tHome("loading")}
               </div>
             ) : null}
 
             {!loading && logs.length === 0 ? (
               <div className="border-4 border-dashed border-neutral-400 bg-neutral-100 p-10 text-center text-sm font-bold uppercase text-neutral-500">
-                아직 발자취가 없어. 위에서 날적이 하나 남겨봐~
+                {tHome("emptyFootprints")}
               </div>
             ) : null}
 
@@ -225,21 +227,21 @@ export default function HomePage() {
         <aside className="space-y-6">
           <section className="space-y-4">
             <div className="flex items-baseline justify-between border-b-4 border-black pb-2">
-              <div className="text-lg font-bold tracking-tighter">수다판</div>
+              <div className="text-lg font-bold tracking-tighter">
+                {tHome("publicTitleRetro")}
+              </div>
               <Link
                 href="/public"
                 className="text-xs font-bold text-blue-600 hover:bg-blue-600 hover:text-white px-1 uppercase underline underline-offset-4"
               >
-                전체 보기
+                {tHome("viewAll")}
               </Link>
             </div>
             <DiscussionList items={discussions} />
           </section>
           <div className="nes-container is-dark p-4 mt-8">
-            <p className="text-[12px] font-bold leading-relaxed uppercase">
-              환영합니다, 그대여. <br />
-              <br />
-              으뜸과 버금에서 당신의 비디오를 찾아보세요!
+            <p className="text-[12px] font-bold leading-relaxed uppercase whitespace-pre-line">
+              {tHome("heroRetro")}
             </p>
           </div>{" "}
         </aside>
@@ -260,10 +262,12 @@ export default function HomePage() {
             <div className="space-y-1">
               <h1 className="text-xl font-semibold flex items-center gap-2">
                 <PencilLine className="h-4 w-4" />
-                {quickType === "book" ? "나의 책 기록" : "나의 영상 기록"}
+                {quickType === "book"
+                  ? tHome("heroTimelineBook")
+                  : tHome("heroTimelineVideo")}
               </h1>
               <p className="text-sm text-muted-foreground ml-6">
-                한 줄만 적어두면 타임라인이 쌓여요
+                {tHome("heroTimelineDesc")}
               </p>
             </div>
             <button
@@ -272,7 +276,7 @@ export default function HomePage() {
               className="text-sm font-medium text-muted-foreground hover:text-foreground"
               aria-expanded={quickOpen}
             >
-              {quickOpen ? "접기" : "펼치기"}
+              {quickOpen ? tHome("toggleFold") : tHome("toggleExpand")}
             </button>
           </div>
           {quickOpen ? (
@@ -298,25 +302,25 @@ export default function HomePage() {
           <div className="flex items-baseline justify-between">
             <div className="text-base font-semibold flex items-center gap-2">
               <NotebookPen className="h-4 w-4" />
-              나의 기록
+              {tHome("myRecords")}
             </div>
             <Link
               href="/timeline"
               className="text-sm text-neutral-700 hover:underline"
             >
-              전체 보기
+              {tHome("viewAll")}
             </Link>
           </div>
 
           {loading && logs.length === 0 ? (
             <div className="rounded-2xl border border-border bg-card p-5 text-sm text-muted-foreground shadow-sm">
-              불러오는 중…
+              {tHome("loading")}
             </div>
           ) : null}
 
           {!loading && logs.length === 0 ? (
             <div className="rounded-2xl border border-border bg-card p-5 text-sm text-muted-foreground shadow-sm">
-              첫 기록을 남겨보세요. 타임라인이 바로 시작돼요.
+              {tHome("emptyRecords")}
             </div>
           ) : null}
 
@@ -332,13 +336,13 @@ export default function HomePage() {
         <div className="flex items-end justify-between min-h-[52px]">
           <div className="text-base font-semibold flex items-center gap-2">
             <MessageCircle className="h-4 w-4" />
-            요즘 함께 하는 기록들
+            {tHome("publicTitleModern")}
           </div>
           <Link
             href="/public"
             className="text-sm text-neutral-700 hover:underline"
           >
-            전체 보기
+            {tHome("viewAll")}
           </Link>
         </div>
         <DiscussionList items={discussions} />

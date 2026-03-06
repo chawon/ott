@@ -19,6 +19,10 @@ import { downloadTimelineCsv } from "@/lib/export";
 import { useTranslations } from "next-intl";
 export default function AccountPage() {
   const tAccount = useTranslations("Account");
+  const tCsv = useTranslations("CSV");
+  const tStatus = useTranslations("Status");
+  const tCommon = useTranslations("Common");
+  const tQuick = useTranslations("QuickLogCard");
   const { isRetro } = useRetro();
   const [userId, setUserId] = useState<string | null>(null);
   const [deviceId, setDeviceId] = useState<string | null>(null);
@@ -203,7 +207,14 @@ export default function AccountPage() {
         setExportStatus(tAccount("statusNoMatchingLogs"));
         return;
       }
-      downloadTimelineCsv(filtered, exportFileName());
+      downloadTimelineCsv(
+        filtered,
+        exportFileName(),
+        tCsv,
+        tStatus,
+        tCommon,
+        tQuick,
+      );
       setExportStatus(tAccount("statusExportSuccess"));
     } catch (e: any) {
       setExportStatus(e?.message ?? tAccount("statusExportFailed"));

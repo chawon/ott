@@ -10,6 +10,7 @@ import {
   Users,
 } from "lucide-react";
 import { useParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { api, apiWithAuth } from "@/lib/api";
 import CommentsPanel from "@/components/CommentsPanel";
 import {
@@ -38,6 +39,8 @@ import {
   OCCASION_LABELS,
   PLACE_LABELS,
   placeOptionsForType,
+  placeLabel,
+  occasionLabel,
   ratingDisplay,
   ratingOptionsForType,
   safeUUID,
@@ -56,58 +59,6 @@ type EpisodeOption = {
   episodeNumber: number;
   name: string;
 };
-
-const OCCASION_OPTIONS: { value: Occasion; label: string }[] = (
-  Object.keys(OCCASION_LABELS) as Occasion[]
-).map((value) => ({ value, label: OCCASION_LABELS[value] }));
-
-const VIDEO_PLATFORM_OPTIONS = [
-  "넷플릭스",
-  "디즈니플러스",
-  "티빙",
-  "웨이브",
-  "쿠팡플레이",
-  "애플티비",
-  "프라임비디오",
-  "왓챠",
-  "채널",
-  "VOD",
-  "DVD",
-  "블루레이",
-  "CGV",
-  "롯데시네마",
-  "메가박스",
-  "씨네Q",
-] as const;
-
-const VIDEO_PLATFORM_GROUPS = [
-  {
-    label: "OTT",
-    options: [
-      "넷플릭스",
-      "디즈니플러스",
-      "티빙",
-      "웨이브",
-      "쿠팡플레이",
-      "애플티비",
-      "프라임비디오",
-      "왓챠",
-    ],
-  },
-  { label: "유료 방송", options: ["채널", "VOD"] },
-  { label: "물리 매체", options: ["DVD", "블루레이"] },
-  { label: "극장", options: ["CGV", "롯데시네마", "메가박스", "씨네Q"] },
-] as const;
-
-const BOOK_PLATFORM_GROUPS = [
-  { label: "서점", options: ["교보문고", "영풍문고", "예스24", "알라딘"] },
-  { label: "전자책", options: ["리디", "밀리의서재", "윌라", "플레이북"] },
-  { label: "도서관", options: ["공공도서관", "대학도서관", "학교도서관"] },
-] as const;
-
-const BOOK_PLATFORM_OPTIONS = BOOK_PLATFORM_GROUPS.flatMap(
-  (group) => group.options,
-);
 
 const OTT_CUSTOM_VALUE = "__custom__";
 const VIDEO_CUSTOM_KEY = "watchlog.ott.custom";
@@ -225,10 +176,30 @@ function seasonEpisodeLabel(
   return `S${seasonNumber}`;
 }
 
+function titleTypeLabel(type: Title["type"], t: any) {
+  return type === "movie"
+    ? t("typeMovie")
+    : type === "series"
+      ? t("typeSeriesModern")
+      : t("typeBook");
+}
+
+function bookMeta(
+  item: Pick<Title, "author" | "publisher" | "year">,
+) {
+  return [item.author, item.publisher, item.year ? String(item.year) : null]
+    .filter(Boolean)
+    .join(" · ");
+}
+
 export default function TitlePage() {
   const params = useParams<{ id: string }>();
   const rawId = params?.id;
   const titleId = Array.isArray(rawId) ? rawId[0] : rawId;
+  const tQuick = useTranslations("QuickLogCard");
+  const tCommon = useTranslations("Common");
+  const tStatus = useTranslations("Status");
+  const tDetail = useTranslations("TitleDetail");
 
   const [title, setTitle] = useState<Title | null>(null);
   const [log, setLog] = useState<WatchLog | null>(null);
@@ -260,30 +231,117 @@ export default function TitlePage() {
   const [userId, setUserId] = useState<string | null>(null);
 
   const isBook = title?.type === "book";
-  const platformOptions = isBook
-    ? BOOK_PLATFORM_OPTIONS
-    : VIDEO_PLATFORM_OPTIONS;
-  const platformGroups = isBook ? BOOK_PLATFORM_GROUPS : VIDEO_PLATFORM_GROUPS;
+
+  const videoPlatformGroups = useMemo(
+    () =>
+      [
+        {
+          label: "OTT",
+          options: [
+            tQuick("platformNetflix"),
+            tQuick("platformDisney"),
+            tQuick("platformTving"),
+            tQuick("platformWavve"),
+            tQuick("platformCoupang"),
+            tQuick("platformApple"),
+            tQuick("platformPrime"),
+            tQuick("platformWatcha"),
+          ],
+        },
+        {
+          label: tQuick("groupPaidTv"),
+          options: [tQuick("platformChannel"), tQuick("platformVod")],
+        },
+        {
+          label: tQuick("groupPhysical"),
+          options: [tQuick("platformDvd"), tQuick("platformBluray")],
+        },
+        {
+          label: tQuick("groupTheater"),
+          options: [
+            tQuick("platformCgv"),
+            tQuick("platformLotte"),
+            tQuick("platformMegabox"),
+            tQuick("platformCineQ"),
+          ],
+        },
+      ] as const,
+    [tQuick],
+  );
+
+  const bookPlatformGroups = useMemo(
+    () =>
+      [
+        {
+          label: tQuick("groupBookstore"),
+          options: [
+            tQuick("platformKyobo"),
+            tQuick("platformYeongpung"),
+            tQuick("platformYes24"),
+            tQuick("platformAladin"),
+          ],
+        },
+        {
+          label: tQuick("groupEbook"),
+          options: [
+            tQuick("platformRidi"),
+            tQuick("platformMillie"),
+            tQuick("platformWilla"),
+            tQuick("platformPlaybook"),
+          ],
+        },
+        {
+          label: tQuick("groupLibrary"),
+          options: [
+            tQuick("platformPublicLib"),
+            tQuick("platformUnivLib"),
+            tQuick("platformSchoolLib"),
+          ],
+        },
+      ] as const,
+    [tQuick],
+  );
+
+  const platformOptions = useMemo(
+    () =>
+      isBook
+        ? bookPlatformGroups.flatMap((group) => group.options)
+        : videoPlatformGroups.flatMap((group) => group.options),
+    [isBook, bookPlatformGroups, videoPlatformGroups],
+  );
+
+  const platformGroups = isBook ? bookPlatformGroups : videoPlatformGroups;
   const platformCustomKey = isBook ? BOOK_CUSTOM_KEY : VIDEO_CUSTOM_KEY;
   const platformPlaceholder = isBook
-    ? "예: 교보문고, 리디, 공공도서관"
-    : "직접 입력";
+    ? tQuick("customInputPlaceholder")
+    : tQuick("customInput");
+
   const allOttOptions = useMemo(() => {
     const base = Array.from(platformOptions) as string[];
     const extras = customOttOptions.filter((v) => !base.includes(v));
     return [...base, ...extras];
   }, [customOttOptions, platformOptions]);
+
   const statusOptions = useMemo(
-    () => statusOptionsForType(title?.type),
-    [title?.type],
+    () => statusOptionsForType(title?.type, tStatus),
+    [title?.type, tStatus],
   );
   const placeOptions = useMemo(
-    () => placeOptionsForType(title?.type),
-    [title?.type],
+    () => placeOptionsForType(title?.type, tCommon),
+    [title?.type, tCommon],
   );
   const ratingOptions = useMemo(
-    () => ratingOptionsForType(title?.type),
-    [title?.type],
+    () => ratingOptionsForType(title?.type, tQuick),
+    [title?.type, tQuick],
+  );
+
+  const occasionOptions = useMemo(
+    () =>
+      (Object.keys(OCCASION_LABELS) as Occasion[]).map((value) => ({
+        value,
+        label: tCommon("occasionLabels." + value),
+      })),
+    [tCommon],
   );
 
   async function reloadAll() {
@@ -348,7 +406,7 @@ export default function TitlePage() {
       await upsertHistoryLocal(h);
     } catch (e: any) {
       if (!hadLocal) {
-        setErr(e?.message ?? "Failed to load");
+        setErr(e?.message ?? tDetail("errorTitle"));
       }
     } finally {
       setLoading(false);
@@ -444,7 +502,7 @@ export default function TitlePage() {
       } catch (e: any) {
         if (!cancelled) {
           setSeasons([]);
-          setSeasonError(e?.message ?? "Failed to load seasons");
+          setSeasonError(e?.message ?? tQuick("loadingSeasons"));
         }
       } finally {
         if (!cancelled) setSeasonLoading(false);
@@ -665,7 +723,7 @@ export default function TitlePage() {
   if (loading && !title) {
     return (
       <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
-        <div className="text-sm text-neutral-600">불러오는 중…</div>
+        <div className="text-sm text-neutral-600">{tDetail("loading")}</div>
       </div>
     );
   }
@@ -673,7 +731,7 @@ export default function TitlePage() {
   if (err) {
     return (
       <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
-        <div className="text-base font-semibold">문제가 발생했어요</div>
+        <div className="text-base font-semibold">{tDetail("errorTitle")}</div>
         <div className="mt-2 text-sm text-neutral-700">{err}</div>
       </div>
     );
@@ -682,7 +740,7 @@ export default function TitlePage() {
   if (!title) {
     return (
       <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
-        <div className="text-base font-semibold">작품을 찾을 수 없어요</div>
+        <div className="text-base font-semibold">{tDetail("notFound")}</div>
       </div>
     );
   }
@@ -704,11 +762,7 @@ export default function TitlePage() {
           <div className="min-w-0 flex-1">
             <div className="text-xl font-semibold">{title.name}</div>
             <div className="mt-1 text-sm text-muted-foreground">
-              {title.type === "movie"
-                ? "영화"
-                : title.type === "series"
-                  ? "시리즈"
-                  : "책"}
+              {titleTypeLabel(title.type, tQuick)}
               {(seasonYear ?? title.year)
                 ? ` · ${seasonYear ?? title.year}`
                 : ""}
@@ -727,12 +781,12 @@ export default function TitlePage() {
             ) : null}
             {title.directors && title.directors.length > 0 ? (
               <div className="mt-3 text-xs text-neutral-600">
-                감독 · {title.directors.join(", ")}
+                {tDetail("director")} · {title.directors.join(", ")}
               </div>
             ) : null}
             {title.cast && title.cast.length > 0 ? (
               <div className="mt-1 text-xs text-neutral-600">
-                주연 · {title.cast.join(", ")}
+                {tDetail("cast")} · {title.cast.join(", ")}
               </div>
             ) : null}
           </div>
@@ -742,11 +796,11 @@ export default function TitlePage() {
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1.1fr_0.9fr]">
         <section className="rounded-2xl border border-border bg-card p-6 shadow-sm space-y-4">
           <div>
-            <div className="text-base font-semibold">나의 기록</div>
+            <div className="text-base font-semibold">
+              {tDetail("myRecordTitle")}
+            </div>
             <div className="text-sm text-neutral-600">
-              {log
-                ? "내용을 추가하면 히스토리가 자동으로 쌓여요."
-                : "아직 이 작품에 대한 기록이 없어요. 홈에서 먼저 저장해 주세요."}
+              {log ? tDetail("myRecordDesc") : tDetail("myRecordEmpty")}
             </div>
           </div>
 
@@ -756,7 +810,7 @@ export default function TitlePage() {
                 <label className="space-y-1">
                   <div className="text-xs text-neutral-600 flex items-center gap-1.5">
                     <Clock className="h-3 w-3" />
-                    상태
+                    {tQuick("detailStatus")}
                   </div>
                   <select
                     value={status}
@@ -773,7 +827,9 @@ export default function TitlePage() {
 
                 {title.type === "series" ? (
                   <label className="space-y-1">
-                    <div className="text-xs text-neutral-600">시즌</div>
+                    <div className="text-xs text-neutral-600">
+                      {tQuick("seasonLabel")}
+                    </div>
                     <select
                       value={selectedSeason}
                       onChange={(e) =>
@@ -783,17 +839,17 @@ export default function TitlePage() {
                       }
                       className="w-full select-base rounded-xl px-3 py-2 text-sm"
                     >
-                      <option value="">선택 안함</option>
+                      <option value="">{tCommon("none")}</option>
                       {seasons.map((s) => (
                         <option key={s.seasonNumber} value={s.seasonNumber}>
-                          시즌 {s.seasonNumber}
+                          {tQuick("seasonValue", { number: s.seasonNumber })}
                           {s.name ? ` · ${s.name}` : ""}
                         </option>
                       ))}
                     </select>
                     {seasonLoading ? (
                       <div className="text-[11px] text-neutral-400">
-                        시즌 불러오는 중...
+                        {tQuick("loadingSeasons")}
                       </div>
                     ) : null}
                     {seasonError ? (
@@ -806,7 +862,9 @@ export default function TitlePage() {
 
                 {title.type === "series" ? (
                   <label className="space-y-1">
-                    <div className="text-xs text-neutral-600">에피소드</div>
+                    <div className="text-xs text-neutral-600">
+                      {tQuick("episodeLabel")}
+                    </div>
                     <select
                       value={selectedEpisode}
                       onChange={(e) =>
@@ -817,7 +875,7 @@ export default function TitlePage() {
                       className="w-full select-base rounded-xl px-3 py-2 text-sm"
                       disabled={selectedSeason === "" || episodeLoading}
                     >
-                      <option value="">선택 안함</option>
+                      <option value="">{tCommon("none")}</option>
                       {episodes.map((e) => (
                         <option key={e.episodeNumber} value={e.episodeNumber}>
                           EP {e.episodeNumber}
@@ -827,7 +885,7 @@ export default function TitlePage() {
                     </select>
                     {episodeLoading ? (
                       <div className="text-[11px] text-neutral-400">
-                        에피소드 불러오는 중...
+                        {tQuick("loadingEpisodes")}
                       </div>
                     ) : null}
                   </label>
@@ -836,7 +894,7 @@ export default function TitlePage() {
                 <label className="space-y-1">
                   <div className="text-xs text-neutral-600 flex items-center gap-1.5">
                     <Star className="h-3 w-3" />
-                    평점
+                    {tQuick("detailRating")}
                   </div>
                   <select
                     value={rating === "" ? "" : String(rating)}
@@ -847,7 +905,7 @@ export default function TitlePage() {
                     }
                     className="w-full select-base rounded-xl px-3 py-2 text-sm"
                   >
-                    <option value="">선택 안함</option>
+                    <option value="">{tCommon("none")}</option>
                     {ratingOptions.map((o) => (
                       <option key={o.value} value={String(o.value)}>
                         {o.label}
@@ -859,7 +917,7 @@ export default function TitlePage() {
                 <label className="space-y-1">
                   <div className="text-xs text-neutral-600 flex items-center gap-1.5">
                     <MapPin className="h-3 w-3" />
-                    장소
+                    {tQuick("detailPlace")}
                   </div>
                   <select
                     value={place}
@@ -877,14 +935,14 @@ export default function TitlePage() {
                 <label className="space-y-1">
                   <div className="text-xs text-neutral-600 flex items-center gap-1.5">
                     <Users className="h-3 w-3" />
-                    누구와
+                    {tQuick("detailOccasion")}
                   </div>
                   <select
                     value={occasion}
                     onChange={(e) => setOccasion(e.target.value as Occasion)}
                     className="w-full select-base rounded-xl px-3 py-2 text-sm"
                   >
-                    {OCCASION_OPTIONS.map((o) => (
+                    {occasionOptions.map((o) => (
                       <option key={o.value} value={o.value}>
                         {o.label}
                       </option>
@@ -895,7 +953,7 @@ export default function TitlePage() {
                 <label className="space-y-1 md:col-span-2">
                   <div className="text-xs text-neutral-600 flex items-center gap-1.5">
                     <MonitorPlay className="h-3 w-3" />
-                    플랫폼
+                    {tQuick("detailPlatform")}
                   </div>
                   <>
                     <select
@@ -911,7 +969,7 @@ export default function TitlePage() {
                       }}
                       className="w-full select-base rounded-xl px-3 py-2 text-sm"
                     >
-                      <option value="">선택 안함</option>
+                      <option value="">{tCommon("none")}</option>
                       {platformGroups.map((g) => (
                         <optgroup key={g.label} label={g.label}>
                           {g.options.map((o) => (
@@ -922,7 +980,7 @@ export default function TitlePage() {
                         </optgroup>
                       ))}
                       {customOttOptions.length > 0 ? (
-                        <optgroup label="내 입력">
+                        <optgroup label={tQuick("myInput")}>
                           {customOttOptions.map((o) => (
                             <option key={o} value={o}>
                               {o}
@@ -930,7 +988,9 @@ export default function TitlePage() {
                           ))}
                         </optgroup>
                       ) : null}
-                      <option value={OTT_CUSTOM_VALUE}>직접 입력</option>
+                      <option value={OTT_CUSTOM_VALUE}>
+                        {tQuick("customInput")}
+                      </option>
                     </select>
                     {ottSelect === OTT_CUSTOM_VALUE ? (
                       <input
@@ -950,7 +1010,7 @@ export default function TitlePage() {
                       checked={useWatchedAt}
                       onChange={(e) => setUseWatchedAt(e.target.checked)}
                     />
-                    날짜 변경
+                    {tDetail("changeDate")}
                   </label>
                   {useWatchedAt ? (
                     <input
@@ -965,7 +1025,7 @@ export default function TitlePage() {
                 <label className="space-y-1 md:col-span-2">
                   <div className="text-xs text-muted-foreground flex items-center gap-1.5">
                     <MessageSquare className="h-3 w-3" />
-                    메모
+                    {tQuick("detailNote")}
                   </div>
                   <textarea
                     value={note}
@@ -982,7 +1042,7 @@ export default function TitlePage() {
                 onClick={updateLog}
                 className="w-full rounded-2xl bg-neutral-900 px-4 py-3 text-sm font-semibold text-white disabled:opacity-40"
               >
-                {saving ? "Updating…" : "Update"}
+                {saving ? tDetail("updating") : tDetail("updateAction")}
               </button>
             </>
           ) : null}
@@ -990,24 +1050,26 @@ export default function TitlePage() {
 
         <section className="rounded-2xl border border-border bg-card p-6 shadow-sm space-y-3">
           <div>
-            <div className="text-base font-semibold">히스토리</div>
+            <div className="text-base font-semibold">
+              {tDetail("historyTitle")}
+            </div>
             <div className="text-sm text-muted-foreground">
-              업데이트할 때마다 스냅샷이 쌓여요.
+              {tDetail("historyDesc")}
             </div>
           </div>
 
           {!log ? (
             <div className="text-sm text-muted-foreground">
-              아직 히스토리가 없어요.
+              {tDetail("historyEmpty")}
             </div>
           ) : history.length === 0 ? (
             <div className="text-sm text-muted-foreground">
-              아직 히스토리가 없어요.
+              {tDetail("historyEmpty")}
             </div>
           ) : (
             <div className="space-y-2">
               {history.map((h) => {
-                const ratingInfo = ratingDisplay(h.rating, title?.type);
+                const ratingInfo = ratingDisplay(h.rating, title?.type, tQuick);
                 const statusText =
                   statusOptions.find((s) => s.value === h.status)?.label ??
                   h.status;
@@ -1026,9 +1088,21 @@ export default function TitlePage() {
                         : ""}
                     </div>
                     <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
-                      {h.place ? chip(PLACE_LABELS[h.place], "place") : null}
+                      {h.place
+                        ? chip(
+                            placeLabel(h.place, (k: any) =>
+                              tCommon("placeLabels." + k),
+                            ),
+                            "place",
+                          )
+                        : null}
                       {h.occasion
-                        ? chip(OCCASION_LABELS[h.occasion], "occasion")
+                        ? chip(
+                            occasionLabel(h.occasion, (k: any) =>
+                              tCommon("occasionLabels." + k),
+                            ),
+                            "occasion",
+                          )
                         : null}
                       {h.ott ? (
                         <span className="rounded-full border border-border bg-muted px-3 py-1 text-muted-foreground">
