@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useTranslations } from "next-intl";
 import { Download, Share2 } from "lucide-react";
 import {
   Sheet,
@@ -23,6 +24,8 @@ export default function ShareBottomSheet({
   log: WatchLog | null;
   onClose: () => void;
 }) {
+  const tShare = useTranslations("ShareBottomSheet");
+  const tStatus = useTranslations("Status");
   const [showRatingLabel, setShowRatingLabel] = useState(true);
   const [showNote, setShowNote] = useState(true);
   const [format, setFormat] = useState<"story" | "feed">("story");
@@ -53,7 +56,7 @@ export default function ShareBottomSheet({
       titleType: log.title?.type,
       format,
       note: showNote ? note : null,
-      statusLabel: statusLabel(log.status, log.title?.type),
+      statusLabel: statusLabel(log.status, log.title?.type, tStatus),
       ratingLabel: showRatingLabel && rating ? rating.label : null,
       ratingValue: showRatingLabel && rating ? rating.value : null,
       date: `${year}.${month}.${day}`,
@@ -61,7 +64,7 @@ export default function ShareBottomSheet({
       watermark: isRetro ? "으뜸과 버금" : "On the Timeline",
       theme: (isRetro ? "retro" : "default") as "retro" | "default",
     };
-  }, [format, isRetro, log, showNote, showRatingLabel]);
+  }, [format, isRetro, log, showNote, showRatingLabel, tStatus]);
 
   useEffect(() => {
     let active = true;
@@ -129,7 +132,7 @@ export default function ShareBottomSheet({
       setBusy(true);
       const blob = await buildBlob();
       const filename = filenameFor(log);
-      const text = `내 기록 공유: ${log.title.name}`;
+      const text = tShare("shareText", { title: log.title.name });
       const shared = await shareBlob(blob, filename, log.title.name, text);
       await trackEvent("share_action", {
         action: shared ? "share" : "fallback_download",
@@ -154,9 +157,9 @@ export default function ShareBottomSheet({
         )}
       >
         <SheetHeader className="px-6 pt-6">
-          <SheetTitle className="text-base">공유 카드 만들기</SheetTitle>
+          <SheetTitle className="text-base">{tShare("title")}</SheetTitle>
           <div className="text-xs text-muted-foreground">
-            저장한 기록을 이미지로 공유해보세요.
+            {tShare("description")}
           </div>
         </SheetHeader>
 
@@ -173,12 +176,12 @@ export default function ShareBottomSheet({
                   {previewUrl ? (
                     <img
                       src={previewUrl}
-                      alt="공유 카드 미리보기"
+                      alt={tShare("previewAlt")}
                       className="h-full w-full object-cover"
                     />
                   ) : (
                     <div className="flex h-full w-full items-center justify-center text-xs text-muted-foreground">
-                      미리보기 준비 중...
+                      {tShare("previewLoading")}
                     </div>
                   )}
                 </div>
@@ -192,7 +195,7 @@ export default function ShareBottomSheet({
                   onChange={(e) => setShowRatingLabel(e.target.checked)}
                   className="h-4 w-4 rounded border-border"
                 />
-                평점 문구 포함
+                {tShare("toggleRating")}
               </label>
               <label className="flex items-center gap-2 text-xs text-muted-foreground">
                 <input
@@ -202,11 +205,11 @@ export default function ShareBottomSheet({
                   className="h-4 w-4 rounded border-border"
                   disabled={!log?.note}
                 />
-                한 줄 메모 포함
+                {tShare("toggleNote")}
               </label>
             </div>
             <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-              <span>이미지 비율</span>
+              <span>{tShare("ratioLabel")}</span>
               <div className="flex items-center rounded-full border border-border bg-muted/40 p-0.5">
                 <button
                   type="button"
@@ -218,7 +221,7 @@ export default function ShareBottomSheet({
                       : "text-muted-foreground",
                   )}
                 >
-                  스토리 9:16
+                  {tShare("ratioStory")}
                 </button>
                 <button
                   type="button"
@@ -230,7 +233,7 @@ export default function ShareBottomSheet({
                       : "text-muted-foreground",
                   )}
                 >
-                  피드 4:5
+                  {tShare("ratioFeed")}
                 </button>
               </div>
             </div>
@@ -244,7 +247,7 @@ export default function ShareBottomSheet({
               className="flex w-full items-center justify-center gap-2 rounded-2xl border border-border bg-card px-4 py-3 text-sm font-medium text-foreground hover:bg-muted disabled:opacity-50"
             >
               <Download className="h-4 w-4" />
-              이미지 저장
+              {tShare("downloadAction")}
             </button>
             <button
               type="button"
@@ -253,10 +256,10 @@ export default function ShareBottomSheet({
               className="flex w-full items-center justify-center gap-2 rounded-2xl bg-foreground px-4 py-3 text-sm font-semibold text-background hover:bg-foreground/90 disabled:opacity-50"
             >
               <Share2 className="h-4 w-4" />
-              {shareCardBlob ? "공유하기" : "준비 중..."}
+              {shareCardBlob ? tShare("shareAction") : tShare("preparing")}
             </button>
             <div className="text-[11px] text-muted-foreground">
-              이미지 크기: {sizeLabel}
+              {tShare("sizeLabel", { size: sizeLabel })}
             </div>
           </div>
         </div>

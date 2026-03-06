@@ -16,7 +16,9 @@ import { useRetro } from "@/context/RetroContext";
 import { cn } from "@/lib/utils";
 import { downloadTimelineCsv } from "@/lib/export";
 
+import { useTranslations } from "next-intl";
 export default function AccountPage() {
+  const tAccount = useTranslations("Account");
   const { isRetro } = useRetro();
   const [userId, setUserId] = useState<string | null>(null);
   const [deviceId, setDeviceId] = useState<string | null>(null);
@@ -79,10 +81,10 @@ export default function AccountPage() {
       setDeviceId(res.deviceId);
       setPairingCode(res.pairingCode);
       setInput("");
-      setStatus("연결 완료");
+      setStatus(tAccount("statusConnected"));
       await loadDevices();
     } catch (e: any) {
-      setStatus(e?.message ?? "연결 실패");
+      setStatus(e?.message ?? tAccount("statusConnectFailed"));
     } finally {
       setLoading(false);
     }
@@ -128,12 +130,12 @@ export default function AccountPage() {
       const next = await loadDevices();
       if (next.length === 0) {
         await resetIdentity();
-        setStatus("모든 기기를 해제해서 계정을 초기화했어요.");
+        setStatus(tAccount("statusResetAll"));
         return;
       }
-      setStatus("기기 연결을 해제했어요.");
+      setStatus(tAccount("statusUnlinked"));
     } catch (e: any) {
-      setStatus(e?.message ?? "해제 실패");
+      setStatus(e?.message ?? tAccount("statusUnlinkFailed"));
     } finally {
       setLoading(false);
     }
@@ -148,24 +150,22 @@ export default function AccountPage() {
         await api(`/auth/devices/${d.id}`, { method: "DELETE" });
       }
       await resetIdentity();
-      setStatus("모든 기기를 해제해서 계정을 초기화했어요.");
+      setStatus(tAccount("statusResetAll"));
     } catch (e: any) {
-      setStatus(e?.message ?? "초기화 실패");
+      setStatus(e?.message ?? tAccount("statusResetFailed"));
     } finally {
       setLoading(false);
     }
   }
 
   async function resetLocalOnly() {
-    const ok = confirm(
-      "브라우저에 저장된 모든 데이터가 삭제됩니다. 계속할까요?",
-    );
+    const ok = confirm(tAccount("resetConfirm"));
     if (!ok) return;
     setLoading(true);
     setStatus(null);
     try {
       await resetLocalState();
-      setStatus("로컬 데이터가 초기화되었어요. 새로고침할게요.");
+      setStatus(tAccount("statusLocalReset"));
       if (typeof window !== "undefined") {
         window.location.reload();
       }
@@ -186,7 +186,7 @@ export default function AccountPage() {
 
   async function exportTimelineCsv() {
     if (!hasAccount) {
-      setExportStatus("첫 기록(로그/댓글)을 남기면 내보내기가 활성화돼요.");
+      setExportStatus(tAccount("statusNoExportData"));
       return;
     }
     setExporting(true);
@@ -200,13 +200,13 @@ export default function AccountPage() {
             ? logs.filter((log) => log.title?.type !== "book")
             : logs;
       if (filtered.length === 0) {
-        setExportStatus("해당 조건의 기록이 없어요.");
+        setExportStatus(tAccount("statusNoMatchingLogs"));
         return;
       }
       downloadTimelineCsv(filtered, exportFileName());
-      setExportStatus("CSV 파일을 저장했어요.");
+      setExportStatus(tAccount("statusExportSuccess"));
     } catch (e: any) {
-      setExportStatus(e?.message ?? "내보내기에 실패했어요.");
+      setExportStatus(e?.message ?? tAccount("statusExportFailed"));
     } finally {
       setExporting(false);
     }
@@ -217,11 +217,13 @@ export default function AccountPage() {
     return d.toLocaleDateString("ko-KR", { month: "short", day: "numeric" });
   }
 
-  const headerTitle = isRetro ? "맞춤" : "설정";
+  const headerTitle = isRetro
+    ? tAccount("titleRetro")
+    : tAccount("titleModern");
   const hasAccount = !!userId;
   const headerSubtitle = isRetro
-    ? "기기 잇기"
-    : "이메일 없이 페어링 코드로 여러 기기를 연결해요.";
+    ? tAccount("descriptionRetro")
+    : tAccount("descriptionModern");
 
   return (
     <div className="space-y-4">
@@ -250,11 +252,11 @@ export default function AccountPage() {
       </div>
 
       <section className="rounded-2xl border border-border bg-card p-6 shadow-sm space-y-2">
-        <div className="text-sm font-semibold">리포트</div>
+        <div className="text-sm font-semibold">{tAccount("sectionReport")}</div>
         <div className="text-xs text-muted-foreground">
           {hasAccount
-            ? "내 이용 패턴을 요약해서 확인할 수 있어요."
-            : "첫 기록(로그/댓글)을 남기면 이용 리포트가 활성화돼요."}
+            ? tAccount("reportDescModern")
+            : tAccount("reportDescEmpty")}
         </div>
         {hasAccount ? (
           <Link
@@ -275,28 +277,30 @@ export default function AccountPage() {
       </section>
 
       <section className="rounded-2xl border border-border bg-card p-6 shadow-sm space-y-2">
-        <div className="text-sm text-muted-foreground">내 페어링 코드</div>
+        <div className="text-sm text-muted-foreground">
+          {tAccount("pairingCodeLabel")}
+        </div>
         <div className="text-2xl font-semibold tracking-widest">
-          {initializing ? "발급 중…" : (pairingCode ?? "—")}
+          {initializing ? tAccount("pairingCodeLoading") : (pairingCode ?? "—")}
         </div>
         <div className="text-xs text-muted-foreground">
           {pairingCode
-            ? "다른 기기에서 이 코드를 입력해 주세요."
-            : "첫 기록(로그/댓글)을 남기면 계정과 페어링 코드가 자동으로 생성돼요."}
+            ? tAccount("pairingCodeDescModern")
+            : tAccount("pairingCodeDescEmpty")}
         </div>
         {!pairingCode ? (
           <div className="rounded-xl border border-dashed border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
-            기록을 남긴 뒤 다시 오면 코드와 계정 정보를 확인할 수 있어요.
+            {tAccount("pairingCodeNotice")}
           </div>
         ) : null}
       </section>
 
       <section className="rounded-2xl border border-border bg-card p-6 shadow-sm space-y-3">
-        <div className="text-sm font-semibold">다른 기기와 연결</div>
+        <div className="text-sm font-semibold">{tAccount("connectDevice")}</div>
         <input
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="페어링 코드 입력"
+          placeholder={tAccount("pairingCodePlaceholder")}
           className="w-full rounded-xl border border-border bg-card px-3 py-2 text-sm text-foreground"
         />
         <button
@@ -305,7 +309,7 @@ export default function AccountPage() {
           disabled={loading || !input.trim()}
           className="w-full rounded-2xl bg-foreground px-4 py-3 text-sm font-semibold text-background disabled:opacity-40"
         >
-          {loading ? "연결 중…" : "연결하기"}
+          {loading ? tAccount("connecting") : tAccount("connectAction")}
         </button>
         {status ? (
           <div className="text-sm text-muted-foreground">{status}</div>
@@ -313,7 +317,9 @@ export default function AccountPage() {
       </section>
 
       <section className="rounded-2xl border border-border bg-card p-6 shadow-sm space-y-2">
-        <div className="text-sm text-muted-foreground">내 계정 정보</div>
+        <div className="text-sm text-muted-foreground">
+          {tAccount("accountInfoLabel")}
+        </div>
         <div className="text-xs text-muted-foreground">
           User: {userId ?? "—"}
         </div>
@@ -322,7 +328,7 @@ export default function AccountPage() {
         </div>
         {!userId ? (
           <div className="text-xs text-muted-foreground">
-            첫 기록 전에는 계정 정보가 비어 있을 수 있어요.
+            {tAccount("accountInfoNotice")}
           </div>
         ) : null}
       </section>
@@ -335,10 +341,11 @@ export default function AccountPage() {
             : "border border-border bg-card",
         )}
       >
-        <div className="text-sm font-semibold">로컬 데이터 초기화</div>
+        <div className="text-sm font-semibold">
+          {tAccount("resetLocalTitle")}
+        </div>
         <div className="text-xs text-muted-foreground">
-          이 기기에 저장된 기록/캐시를 모두 삭제해요. 서버 데이터는 삭제되지
-          않아요.
+          {tAccount("resetLocalDesc")}
         </div>
         <button
           type="button"
@@ -364,11 +371,11 @@ export default function AccountPage() {
             : "border border-border bg-card",
         )}
       >
-        <div className="text-sm font-semibold">내 기록 내보내기</div>
+        <div className="text-sm font-semibold">{tAccount("exportTitle")}</div>
         <div className="text-xs text-muted-foreground">
           {hasAccount
-            ? "이 기기에 저장된 타임라인을 CSV로 저장할 수 있어요."
-            : "첫 기록(로그/댓글)을 남기면 내보내기를 사용할 수 있어요."}
+            ? tAccount("exportDescModern")
+            : tAccount("exportDescEmpty")}
         </div>
         <div>
           <div className="text-xs text-muted-foreground mb-1">
@@ -386,9 +393,9 @@ export default function AccountPage() {
               !hasAccount && "opacity-60",
             )}
           >
-            <option value="ALL">전체</option>
-            <option value="video">영상(영화/시리즈)</option>
-            <option value="book">책</option>
+            <option value="ALL">{tAccount("rangeAll")}</option>
+            <option value="video">{tAccount("rangeVideo")}</option>
+            <option value="book">{tAccount("rangeBook")}</option>
           </select>
         </div>
         <button
@@ -403,10 +410,10 @@ export default function AccountPage() {
             (exporting || !hasAccount) && "opacity-40",
           )}
         >
-          {exporting ? "CSV 만드는 중…" : "CSV 다운로드"}
+          {exporting ? tAccount("exporting") : tAccount("exportAction")}
         </button>
         <div className="text-xs text-muted-foreground">
-          최신 기록을 포함하려면 동기화가 완료된 상태에서 내보내기 해주세요.
+          {tAccount("exportNotice")}
         </div>
         {exportStatus ? (
           <div className="text-sm text-muted-foreground">{exportStatus}</div>
@@ -414,7 +421,9 @@ export default function AccountPage() {
       </section>
 
       <section className="rounded-2xl border border-border bg-card p-6 shadow-sm space-y-3">
-        <div className="text-sm font-semibold">연결된 기기</div>
+        <div className="text-sm font-semibold">
+          {tAccount("connectedDevices")}
+        </div>
         {devices.length === 0 ? (
           <div className="text-sm text-muted-foreground">
             연결된 기기가 없어요.
@@ -430,13 +439,22 @@ export default function AccountPage() {
                 >
                   <div>
                     <div className="text-sm text-foreground">
-                      {isCurrent ? "현재 기기" : "연결된 기기"}
+                      {isCurrent
+                        ? tAccount("currentDevice")
+                        : tAccount("otherDevice")}
                     </div>
                     <div className="text-xs text-muted-foreground">
-                      {d.browser ?? "브라우저"} · {d.os ?? "OS"}
+                      {d.browser ?? tAccount("browser")} ·{" "}
+                      {d.os ?? tAccount("os")}
                     </div>
                     <div className="text-xs text-muted-foreground">
-                      생성 {formatShort(d.createdAt)} · 최근{" "}
+                      {tAccount("createdAt", {
+                        date: formatShort(d.createdAt),
+                      })}{" "}
+                      ·{" "}
+                      {tAccount("lastActiveAt", {
+                        date: formatShort(d.lastActiveAt),
+                      })}
                       {formatShort(d.lastSeenAt)}
                     </div>
                   </div>

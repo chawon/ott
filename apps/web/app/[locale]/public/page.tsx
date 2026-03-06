@@ -34,7 +34,7 @@ export default function PublicDiscussionsPage() {
         );
         setItems(res);
       } catch (e: any) {
-        setErr(e?.message ?? "Failed to load discussions");
+        setErr(e?.message ?? tPublic("loadError"));
         setItems([]);
       } finally {
         setLoading(false);

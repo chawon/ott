@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { DiscussionListItem } from "@/lib/types";
 import { useRetro } from "@/context/RetroContext";
+import { useTranslations } from "next-intl";
 import { cn, tmdbResize } from "@/lib/utils";
 
 function formatShortDate(iso: string) {
@@ -12,13 +13,14 @@ function formatShortDate(iso: string) {
 
 export default function DiscussionList({
   items,
-  emptyText = "아직 함께 기록이 없어요.",
+  emptyText,
   linkMode = "title",
 }: {
   items: DiscussionListItem[];
   emptyText?: string;
   linkMode?: "title" | "discussion";
 }) {
+  const tList = useTranslations("DiscussionList");
   const { isRetro } = useRetro();
 
   if (items.length === 0) {
@@ -30,7 +32,7 @@ export default function DiscussionList({
             : "rounded-2xl border border-border bg-card p-5 text-sm text-muted-foreground shadow-sm",
         )}
       >
-        {emptyText}
+        {emptyText || tList("defaultEmpty")}
       </div>
     );
   }
@@ -67,10 +69,10 @@ export default function DiscussionList({
                 <div className="mt-1 flex items-center gap-2 text-xs font-bold text-neutral-500 uppercase">
                   <span className="bg-black text-white px-1">
                     {d.titleType === "movie"
-                      ? "영화"
+                      ? tList("typeMovie")
                       : d.titleType === "series"
-                        ? "연속극"
-                        : "책"}
+                        ? tList("typeSeriesRetro")
+                        : tList("typeBook")}
                   </span>
                   {d.titleYear ? <span>{d.titleYear}</span> : ""}
                 </div>
@@ -79,7 +81,9 @@ export default function DiscussionList({
                 <div className="bg-blue-600 text-white px-1 mb-1 inline-block">
                   {formatShortDate(d.createdAt)}
                 </div>
-                <div className="text-black">댓글 {d.commentCount}</div>
+                <div className="text-black">
+                  {tList("commentCountRetro", { count: d.commentCount })}
+                </div>
               </div>
             </Link>
           ))}
@@ -117,16 +121,18 @@ export default function DiscussionList({
               </div>
               <div className="mt-0.5 text-xs text-muted-foreground">
                 {d.titleType === "movie"
-                  ? "영화"
+                  ? tList("typeMovie")
                   : d.titleType === "series"
-                    ? "시리즈"
-                    : "책"}
+                    ? tList("typeSeriesModern")
+                    : tList("typeBook")}
                 {d.titleYear ? ` · ${d.titleYear}` : ""}
               </div>
             </div>
             <div className="text-right text-xs text-muted-foreground">
               <div>{formatShortDate(d.createdAt)}</div>
-              <div>{d.commentCount}개의 이야기들</div>
+              <div>
+                {tList("commentCountModern", { count: d.commentCount })}
+              </div>
             </div>
           </Link>
         ))}

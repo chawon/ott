@@ -15,6 +15,7 @@ import {
 import { formatNoteInline } from "@/lib/utils";
 import TitleSearchBox from "@/components/TitleSearchBox";
 import { useRetro } from "@/context/RetroContext";
+import { useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
 
 function formatTime(iso: string) {
@@ -36,6 +37,7 @@ export default function CommentsPanel({
   userId?: string | null;
   titleType?: Title["type"];
 }) {
+  const tComments = useTranslations("CommentsPanel");
   const { isRetro } = useRetro();
   const [discussion, setDiscussion] = useState<Discussion | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
@@ -82,10 +84,7 @@ export default function CommentsPanel({
         setComments([]);
       }
     } catch (e: any) {
-      setErr(
-        e?.message ??
-          "함께 기록을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.",
-      );
+      setErr(e?.message ?? tComments("loadError"));
     } finally {
       setLoading(false);
     }
@@ -118,7 +117,7 @@ export default function CommentsPanel({
       const auth = await ensureAuth();
       const currentUserId = auth?.userId ?? getUserId();
       if (!currentUserId) {
-        throw new Error("댓글을 남기려면 먼저 계정 연결이 필요해요.");
+        throw new Error(tComments("loginRequired"));
       }
       setEffectiveUserId(currentUserId);
 
@@ -136,7 +135,7 @@ export default function CommentsPanel({
       setBody("");
       setMentions([]);
     } catch (e: any) {
-      setErr(e?.message ?? "댓글을 남기지 못했어요. 다시 시도해 주세요.");
+      setErr(e?.message ?? tComments("postError"));
     } finally {
       setPosting(false);
     }
@@ -213,7 +212,7 @@ export default function CommentsPanel({
             : "rounded-2xl border border-border bg-card p-6 shadow-sm",
         )}
       >
-        <div className="text-sm text-neutral-600">불러오는 중…</div>
+        <div className="text-sm text-neutral-600">{tComments("loading")}</div>
       </section>
     );
   }
@@ -229,16 +228,18 @@ export default function CommentsPanel({
     >
       <div>
         <div className={cn("text-base font-semibold", isRetro && "text-lg")}>
-          {isRetro ? "수다판" : "함께 기록"}
+          {isRetro
+            ? tComments("sectionTitleRetro")
+            : tComments("sectionTitleModern")}
         </div>
         <div className="text-sm text-muted-foreground">
           {discussion
             ? isRetro
-              ? "이 작품 수다판에 한 줄 남겨보세요."
-              : "노트를 남기면 같이 기록으로 쌓여요."
+              ? tComments("descRetro")
+              : tComments("descModern")
             : isRetro
-              ? "아직 수다판 기록이 없어요. 첫 기록자가 되어보세요!"
-              : "아직 같이 기록이 없어요. 댓글을 남기면 생성돼요."}
+              ? tComments("emptyRetro")
+              : tComments("emptyModern")}
         </div>
       </div>
 
@@ -255,16 +256,20 @@ export default function CommentsPanel({
       >
         {comments.length === 0 ? (
           <div className="flex h-32 items-center justify-center text-sm text-muted-foreground">
-            {isRetro ? "아직 조용해요" : "아직 댓글이 없어요."}
+            {isRetro
+              ? tComments("commentsEmptyRetro")
+              : tComments("commentsEmptyModern")}
           </div>
         ) : (
           <>
             <div className="flex items-center justify-between text-xs text-muted-foreground mb-4 border-b border-border pb-2">
               <span className={cn(isRetro && "font-bold")}>
-                {comments.length} {isRetro ? "개의 수다" : "개의 이야기들"}
+                {isRetro
+                  ? tComments("commentCountRetro", { count: comments.length })
+                  : tComments("commentCountModern", { count: comments.length })}
               </span>
               <div className="flex items-center gap-2">
-                <span>정렬</span>
+                <span>{tComments("sortLabel")}</span>
                 <select
                   value={sort}
                   onChange={(e) =>
@@ -277,8 +282,8 @@ export default function CommentsPanel({
                       : "select-base rounded-lg px-2 py-1 text-foreground",
                   )}
                 >
-                  <option value="oldest">오래된 순</option>
-                  <option value="latest">최신 순</option>
+                  <option value="oldest">{tComments("sortOldest")}</option>
+                  <option value="latest">{tComments("sortLatest")}</option>
                 </select>
               </div>
             </div>
@@ -310,11 +315,11 @@ export default function CommentsPanel({
                       {isMine ? (
                         isRetro ? (
                           <span className="ml-2 bg-black text-white px-1 text-[10px]">
-                            나
+                            {tComments("meLabel")}
                           </span>
                         ) : (
                           <span className="ml-2 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] text-emerald-700 dark:bg-emerald-900/60 dark:text-emerald-100">
-                            내 댓글
+                            {tComments("myCommentLabel")}
                           </span>
                         )
                       ) : null}
@@ -345,7 +350,7 @@ export default function CommentsPanel({
                     : "bg-card text-foreground hover:bg-muted",
                 )}
               >
-                {isRetro ? "더 보기" : "더 보기"}
+                tComments("viewMore")
               </button>
             ) : null}
           </>
@@ -366,7 +371,9 @@ export default function CommentsPanel({
               isRetro ? "text-black" : "text-muted-foreground",
             )}
           >
-            {isRetro ? "하하호호" : "의견 남기기"}
+            {isRetro
+              ? tComments("inputTitleRetro")
+              : tComments("inputTitleModern")}
           </label>
           <textarea
             value={body}
@@ -380,8 +387,8 @@ export default function CommentsPanel({
             )}
             placeholder={
               isRetro
-                ? "넌 이 비디오 어땠니?..."
-                : "이 작품에 대한 한 줄을 남겨주세요."
+                ? tComments("placeholderRetro")
+                : tComments("placeholderModern")
             }
           />
         </div>
@@ -400,7 +407,9 @@ export default function CommentsPanel({
               isRetro ? "font-bold text-black" : "text-muted-foreground",
             )}
           >
-            {isRetro ? "다른 비디오" : "작품 멘션"}
+            {isRetro
+              ? tComments("mentionTitleRetro")
+              : tComments("mentionTitleModern")}
           </div>
           <TitleSearchBox
             onSelect={addMention}
@@ -408,8 +417,8 @@ export default function CommentsPanel({
               isRetro
                 ? "@ TITLE SEARCH"
                 : titleType === "book"
-                  ? "@로 추가할 책을 검색"
-                  : "@로 추가할 작품을 검색"
+                  ? tComments("mentionPlaceholderBook")
+                  : tComments("mentionPlaceholderVideo")
             }
             showRecentDiscussions={false}
             contentType={titleType === "book" ? "book" : "video"}
@@ -455,7 +464,11 @@ export default function CommentsPanel({
               : "rounded-2xl bg-neutral-900 text-white hover:bg-neutral-800 active:scale-[0.98] disabled:opacity-40",
           )}
         >
-          {posting ? "등록 중..." : isRetro ? "나의 수다 올리기" : "댓글 등록"}
+          {posting
+            ? tComments("posting")
+            : isRetro
+              ? tComments("submitActionRetro")
+              : tComments("submitActionModern")}
         </button>
       </div>
     </section>
