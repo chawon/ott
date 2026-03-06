@@ -3,10 +3,13 @@
 import Link from "next/link";
 import { useRetro } from "@/context/RetroContext";
 import { cn } from "@/lib/utils";
+import { useTranslations } from "next-intl";
+import { Link as IntlLink } from "@/i18n/routing";
 
 export default function AppFooter() {
   const currentYear = new Date().getFullYear();
   const { isRetro } = useRetro();
+  const t = useTranslations("AppFooter");
 
   return (
     <footer
@@ -36,9 +39,7 @@ export default function AppFooter() {
                   : "text-muted-foreground",
               )}
             >
-              {isRetro
-                ? "봤니? 읽었니? 그럼 날적이 해보자~ 한 번 적어 두면 발자취가 또렷해져요."
-                : "바로 남기는 영상·책 기록. 나의 기록 타임라인을 만들어 보세요."}
+              {isRetro ? t("descriptionRetro") : t("descriptionModern")}
             </p>
           </div>
 
@@ -49,7 +50,7 @@ export default function AppFooter() {
                 isRetro ? "text-black" : "text-foreground",
               )}
             >
-              {isRetro ? "둘러보기" : "서비스"}
+              {isRetro ? t("sectionServiceRetro") : t("sectionServiceModern")}
             </h3>
             <ul
               className={cn(
@@ -60,19 +61,19 @@ export default function AppFooter() {
               )}
             >
               <li>
-                <Link href="/" className="hover:underline">
-                  {isRetro ? "날적이" : "기록하기"}
-                </Link>
+                <IntlLink href="/" className="hover:underline">
+                  {isRetro ? t("linkLogRetro") : t("linkLogModern")}
+                </IntlLink>
               </li>
               <li>
-                <Link href="/timeline" className="hover:underline">
-                  {isRetro ? "발자취" : "타임라인"}
-                </Link>
+                <IntlLink href="/timeline" className="hover:underline">
+                  {isRetro ? t("linkTimelineRetro") : t("linkTimelineModern")}
+                </IntlLink>
               </li>
               <li>
-                <Link href="/public" className="hover:underline">
-                  {isRetro ? "수다판" : "함께"}
-                </Link>
+                <IntlLink href="/public" className="hover:underline">
+                  {isRetro ? t("linkPublicRetro") : t("linkPublicModern")}
+                </IntlLink>
               </li>
             </ul>
           </div>
@@ -84,7 +85,7 @@ export default function AppFooter() {
                 isRetro ? "text-black" : "text-foreground",
               )}
             >
-              {isRetro ? "도움말" : "안내"}
+              {isRetro ? t("sectionGuideRetro") : t("sectionGuideModern")}
             </h3>
             <ul
               className={cn(
@@ -95,19 +96,19 @@ export default function AppFooter() {
               )}
             >
               <li>
-                <Link href="/about" className="hover:underline">
-                  {isRetro ? "소개" : "서비스 소개"}
-                </Link>
+                <IntlLink href="/about" className="hover:underline">
+                  {isRetro ? t("linkAboutRetro") : t("linkAboutModern")}
+                </IntlLink>
               </li>
               <li>
-                <Link href="/faq" className="hover:underline">
-                  {isRetro ? "물음방" : "자주 묻는 질문"}
-                </Link>
+                <IntlLink href="/faq" className="hover:underline">
+                  {isRetro ? t("linkFaqRetro") : t("linkFaqModern")}
+                </IntlLink>
               </li>
               <li>
-                <Link href="/privacy" className="hover:underline">
-                  {isRetro ? "개인정보" : "개인정보처리방침"}
-                </Link>
+                <IntlLink href="/privacy" className="hover:underline">
+                  {isRetro ? t("linkPrivacyRetro") : t("linkPrivacyModern")}
+                </IntlLink>
               </li>
             </ul>
           </div>
@@ -119,8 +120,8 @@ export default function AppFooter() {
             )}
           >
             <p>
-              © {currentYear} {isRetro ? "으뜸과 버금" : "On the Timeline"}. All
-              rights reserved.
+              © {currentYear} {isRetro ? "으뜸과 버금" : "On the Timeline"}.{" "}
+              {t("allRightsReserved")}
             </p>
           </div>
         </div>

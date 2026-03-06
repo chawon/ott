@@ -18,5 +18,26 @@
     "navPublicModern": "Community",
     "navAccountRetro": "Custom",
     "navAccountModern": "Settings"
+  },
+  "AppFooter": {
+    "descriptionRetro": "Watched it? Read it? Let's log it~ Keep your footprints clear.",
+    "descriptionModern": "Fast and simple movie & book logs. Build your own timeline.",
+    "sectionServiceRetro": "Explore",
+    "sectionServiceModern": "Service",
+    "sectionGuideRetro": "Help",
+    "sectionGuideModern": "Guide",
+    "linkLogRetro": "Logbook",
+    "linkLogModern": "Log",
+    "linkTimelineRetro": "Footprints",
+    "linkTimelineModern": "Timeline",
+    "linkPublicRetro": "Chatter",
+    "linkPublicModern": "Community",
+    "linkAboutRetro": "About",
+    "linkAboutModern": "About Service",
+    "linkFaqRetro": "Q&A",
+    "linkFaqModern": "FAQ",
+    "linkPrivacyRetro": "Privacy",
+    "linkPrivacyModern": "Privacy Policy",
+    "allRightsReserved": "All rights reserved."
   }
 }
