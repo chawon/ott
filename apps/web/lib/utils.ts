@@ -101,7 +101,7 @@ export function placeOptionsForType(type?: Title["type"], t?: any) {
   const values = type === "book" ? BOOK_PLACE_VALUES : VIDEO_PLACE_VALUES;
   return values.map((value) => ({
     value,
-    label: t ? t(value) : PLACE_LABELS[value],
+    label: t ? t("placeLabels." + value) : PLACE_LABELS[value],
   }));
 }
 
