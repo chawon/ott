@@ -31,14 +31,19 @@
 7. 페어링 코드 기반 로그인 및 계정 연결
 8. 공유 카드(OG 서버 렌더 + 공유/다운로드)
 9. PWA(설치 배너, SW, manifest)
+10. 다국어 지원(i18n): ko, en 전면 지원 및 TMDB 데이터 연동
 
 ### 제품 방향
 1. 추천 기능은 현재 범위에서 제외한다.
 2. 기록 가치(회상, 공유, 재방문)를 높이는 기능에 집중한다.
+3. 글로벌 서비스 확장을 위해 모든 UI/데이터는 다국어 대응을 기본으로 한다.
 
 ---
 
 ## 3) 이번 사이클 목표 (우선순위 고정)
+
+### 완료
+1. **다국어(i18n) 및 글로벌 서비스화**: `next-intl` 적용, 전체 UI 번역, 백엔드 데이터 연동 완료.
 
 ### P0
 1. 삭제 동기화(tombstone) + 복구 UX
@@ -96,9 +101,11 @@
 
 ## 5) 활성 API 계약 (현재 기준)
 
+*모든 API는 `Accept-Language` 헤더를 통해 요청자의 언어 선호도를 수신하며, TMDB 등 외부 연동 시 이를 활용한다.*
+
 ### Titles
-1. `GET /api/titles/search?q=...`
-   1. TMDB 기반 검색
+1. `GET /api/titles/search?q=...&type=`
+   1. TMDB 기반 검색 (헤더에 따른 다국어 검색 결과 반환)
    2. 응답: `provider`, `providerId`, `type(movie|series)`, `name`, `year`, `posterUrl`, `overview`
 2. `GET /api/titles/{id}`
    1. 내부 UUID title 스냅샷 반환
@@ -106,7 +113,7 @@
 ### Logs
 1. `GET /api/logs?limit=&status=&origin=&ott=&place=&occasion=&titleId=&sort=`
    1. `sort=history`면 `updatedAt`(히스토리 반영 순) 기준 정렬, 기본은 `watchedAt`
-2. `POST /api/logs`
+2. `POST /api/logs` (헤더에 따른 다국어 타이틀 정보 자동 생성)
 3. `PATCH /api/logs/{id}`
 4. `GET /api/logs/{id}/history?limit=`
 5. 로그 주요 필드
@@ -116,6 +123,7 @@
 ### TMDB 보조 API
 1. `GET /api/tmdb/tv/{providerId}/seasons`
 2. `GET /api/tmdb/tv/{providerId}/seasons/{seasonNumber}`
+   * (`Accept-Language` 헤더 대응)
 
 ### Discussions / Comments
 1. `GET /api/discussions?titleId=...`
@@ -124,7 +132,7 @@
 4. `GET /api/discussions/all?limit=`
 5. `GET /api/discussions/{id}`
 6. `GET /api/discussions/{id}/comments?limit=`
-7. `POST /api/discussions/{id}/comments`
+7. `POST /api/discussions/{id}/comments` (멘션된 타이틀 자동 생성 시 다국어 대응)
 
 ### Auth
 1. `POST /api/auth/register`
@@ -187,8 +195,9 @@
 4. 로컬 저장소: `apps/web/lib/localStore.ts`
 5. 동기화: `apps/web/lib/sync.ts`
 6. 핵심 입력 UI: `apps/web/components/QuickLogCard.tsx`
-7. 타임라인: `apps/web/app/timeline/page.tsx`
-8. 상세: `apps/web/app/title/[id]/page.tsx`
+7. 타임라인: `apps/web/app/[locale]/timeline/page.tsx`
+8. 상세: `apps/web/app/[locale]/title/[id]/page.tsx`
+9. 번역 사전: `apps/web/messages/`
 
 ### 백엔드
 1. 로그 API: `apps/api/src/main/java/com/watchlog/api/web/LogController.java`
