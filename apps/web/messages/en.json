@@ -85,7 +85,18 @@
     "cancelAction": "Cancel",
     "notePlaceholder": "Leave a brief review or note.",
     "errorTitleLoad": "Failed to load title information.",
-    "errorSave": "An error occurred while saving the log."
+    "errorSave": "An error occurred while saving the log.",
+    "searchStartRetro": "Start here: Search title",
+    "searchStartModern": "Search for a title first",
+    "detailPlatform": "Platform",
+    "saveAndShare": "Save and Share",
+    "shareToPublic": "Share to public timeline",
+    "createShareCard": "Create Share Card",
+    "saving": "Saving...",
+    "saveActionRetro": "Leave Logbook",
+    "saveActionModern": "Save Log",
+    "newBook": "New Book",
+    "newVideo": "New Video"
   },
   "Common": {
     "placeLabels": {
@@ -109,7 +120,8 @@
       "BREAK": "Break",
       "ETC": "Etc"
     },
-    "errorUnknown": "An unknown error occurred."
+    "errorUnknown": "An unknown error occurred.",
+    "none": "None"
   },
   "Status": {
     "DONE": "Watched",
