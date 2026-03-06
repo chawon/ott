@@ -117,7 +117,9 @@ export default function TimelinePage() {
     return () => window.removeEventListener("sync:updated", handleSync);
   }, [status, ott, origin, contentType]);
 
-  const headerTitle = isRetro ? "발자취" : "나의 타임라인";
+  const headerTitle = isRetro
+    ? tTimeline("titleRetro")
+    : tTimeline("titleModern");
   const headerSubtitle = useMemo(() => {
     if (loading) return "불러오는 중…";
     if (err) return err;
@@ -199,8 +201,8 @@ export default function TimelinePage() {
               type="button"
               onClick={exportTimelineCsv}
               disabled={exporting}
-              title="CSV 다운로드"
-              aria-label="CSV 다운로드"
+              title={tTimeline("exportCsv")}
+              aria-label={tTimeline("exportCsv")}
               className={cn(
                 "border-2 border-black bg-white px-2 py-1 text-black hover:bg-yellow-200",
                 exporting && "opacity-40",
@@ -219,8 +221,8 @@ export default function TimelinePage() {
               type="button"
               onClick={exportTimelineCsv}
               disabled={exporting}
-              title="CSV 다운로드"
-              aria-label="CSV 다운로드"
+              title={tTimeline("exportCsv")}
+              aria-label={tTimeline("exportCsv")}
               className={cn(
                 "rounded-lg border border-border bg-card px-2 py-1 text-muted-foreground hover:bg-muted",
                 exporting && "opacity-40",

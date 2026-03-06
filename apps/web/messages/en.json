@@ -120,10 +120,11 @@
     "BOOK_WISHLIST": "Want to read"
   },
   "Timeline": {
-    "title": "My Footprints",
+    "titleRetro": "Footprints",
+    "titleModern": "My Timeline",
     "description": "See all the logs you have left so far at a glance.",
     "searchPlaceholder": "Search by title, note...",
-    "exportCsv": "Export CSV",
+    "exportCsv": "Download CSV",
     "emptyState": "No logs yet.",
     "emptySearch": "No search results.",
     "syncStatus": "Sync Complete"
