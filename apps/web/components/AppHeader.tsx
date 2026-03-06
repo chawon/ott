@@ -122,7 +122,7 @@ export default function AppHeader() {
                 : "text-foreground text-lg",
             )}
           >
-            {isRetro ? t("titleRetro") : "On the Timeline"}
+            {isRetro ? t("titleRetro") : t("titleModern")}
           </IntlLink>
 
           {!isRetro ? (

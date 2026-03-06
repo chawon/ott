@@ -18,7 +18,8 @@
     "navPublicModern": "Community",
     "navAccountRetro": "Custom",
     "navAccountModern": "Settings",
-    "titleRetro": "The Best & The Second"
+    "titleRetro": "The Best & The Second",
+    "titleModern": "On the Timeline"
   },
   "AppFooter": {
     "descriptionRetro": "Watched it? Read it? Let's log it~ Keep your footprints clear.",
@@ -39,7 +40,9 @@
     "linkFaqModern": "FAQ",
     "linkPrivacyRetro": "Privacy",
     "linkPrivacyModern": "Privacy Policy",
-    "allRightsReserved": "All rights reserved."
+    "allRightsReserved": "All rights reserved.",
+    "titleRetro": "The Best & The Second",
+    "titleModern": "On the Timeline"
   },
   "LogCard": {
     "actionWatched": "Watched",

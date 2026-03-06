@@ -18,7 +18,8 @@
     "navPublicModern": "함께",
     "navAccountRetro": "맞춤",
     "navAccountModern": "설정",
-    "titleRetro": "으뜸과 버금"
+    "titleRetro": "으뜸과 버금",
+    "titleModern": "On the Timeline"
   },
   "AppFooter": {
     "descriptionRetro": "봤니? 읽었니? 그럼 날적이 해보자~ 한 번 적어 두면 발자취가 또렷해져요.",
@@ -39,7 +40,9 @@
     "linkFaqModern": "자주 묻는 질문",
     "linkPrivacyRetro": "개인정보",
     "linkPrivacyModern": "개인정보처리방침",
-    "allRightsReserved": "All rights reserved."
+    "allRightsReserved": "All rights reserved.",
+    "titleRetro": "으뜸과 버금",
+    "titleModern": "On the Timeline"
   },
   "LogCard": {
     "actionWatched": "보았어요",
