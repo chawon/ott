@@ -14,6 +14,8 @@ import {
 import { useRetro } from "@/context/RetroContext";
 import { useTheme } from "@/context/ThemeContext";
 import { cn } from "@/lib/utils";
+import { useTranslations } from "next-intl";
+import { Link as IntlLink } from "@/i18n/routing";
 
 function NavLink({
   href,
@@ -25,13 +27,17 @@ function NavLink({
   icon?: React.ComponentType<{ className?: string }>;
 }) {
   const pathname = usePathname();
-  const active = pathname === href;
+  // Simple check to see if current path starts with the href, adjusting for locale prefix if needed
+  // Note: For more robust matching with next-intl, you might use 'usePathname' from next-intl/navigation
+  const active =
+    pathname.endsWith(href) ||
+    (href === "/" && pathname.split("/").length <= 2);
   const { isRetro } = useRetro();
 
   if (isRetro) {
     return (
-      <Link
-        href={href}
+      <IntlLink
+        href={href as any}
         className={cn(
           "w-full px-2 py-2 text-sm font-bold border-2 border-transparent hover:border-black transition-none sm:w-auto sm:px-4",
           active
@@ -43,13 +49,13 @@ function NavLink({
           {Icon ? <Icon className="h-4 w-4" /> : null}
           {label}
         </span>
-      </Link>
+      </IntlLink>
     );
   }
 
   return (
-    <Link
-      href={href}
+    <IntlLink
+      href={href as any}
       className={cn(
         "w-full rounded-lg px-2 py-2 text-xs transition sm:w-auto sm:px-3 sm:text-sm",
         active
@@ -61,17 +67,22 @@ function NavLink({
         {Icon ? <Icon className="h-4 w-4" /> : null}
         {label}
       </span>
-    </Link>
+    </IntlLink>
   );
 }
 
 export default function AppHeader() {
   const { isRetro, toggleRetro } = useRetro();
   const { mode, toggleTheme } = useTheme();
+  const t = useTranslations("AppHeader");
 
   const ThemeIcon = mode === "system" ? Monitor : mode === "dark" ? Moon : Sun;
   const themeLabel =
-    mode === "system" ? "시스템" : mode === "dark" ? "다크" : "라이트";
+    mode === "system"
+      ? t("themeSystem")
+      : mode === "dark"
+        ? t("themeDark")
+        : t("themeLight");
 
   return (
     <header
@@ -92,7 +103,7 @@ export default function AppHeader() {
                 ? "border-2 border-black p-1 bg-neutral-100 hover:bg-red-500"
                 : "hover:opacity-80",
             )}
-            title={isRetro ? "현대 모드로 돌아가기" : "레트로 모드로 보기"}
+            title={isRetro ? t("backToModern") : t("viewInRetro")}
           >
             <img
               src="/icon.png"
@@ -102,7 +113,7 @@ export default function AppHeader() {
             />
           </button>
 
-          <Link
+          <IntlLink
             href="/"
             className={cn(
               "font-bold tracking-tight transition-colors",
@@ -112,15 +123,15 @@ export default function AppHeader() {
             )}
           >
             {isRetro ? "으뜸과 버금" : "On the Timeline"}
-          </Link>
+          </IntlLink>
 
           {!isRetro ? (
             <button
               type="button"
               onClick={toggleTheme}
               className="rounded-md p-2 text-foreground/70 transition hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              title={`테마: ${themeLabel} (클릭해서 변경)`}
-              aria-label={`테마 변경: 현재 ${themeLabel}`}
+              title={t("themeClickToChange", { theme: themeLabel })}
+              aria-label={t("themeChangeCurrent", { theme: themeLabel })}
             >
               <ThemeIcon className="h-4 w-4" />
             </button>
@@ -130,22 +141,22 @@ export default function AppHeader() {
         <nav className="grid w-full grid-cols-4 items-center gap-1 sm:w-auto sm:flex sm:flex-nowrap sm:gap-2">
           <NavLink
             href="/"
-            label={isRetro ? "날적이" : "기록하기"}
+            label={isRetro ? t("navLogRetro") : t("navLogModern")}
             icon={PencilLine}
           />
           <NavLink
             href="/timeline"
-            label={isRetro ? "발자취" : "타임라인"}
+            label={isRetro ? t("navTimelineRetro") : t("navTimelineModern")}
             icon={Clock}
           />
           <NavLink
             href="/public"
-            label={isRetro ? "수다판" : "함께"}
+            label={isRetro ? t("navPublicRetro") : t("navPublicModern")}
             icon={MessageCircle}
           />
           <NavLink
             href="/account"
-            label={isRetro ? "맞춤" : "설정"}
+            label={isRetro ? t("navAccountRetro") : t("navAccountModern")}
             icon={Settings}
           />
         </nav>

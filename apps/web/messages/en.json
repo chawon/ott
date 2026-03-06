@@ -1,5 +1,22 @@
 {
   "Index": {
     "title": "Welcome"
+  },
+  "AppHeader": {
+    "themeSystem": "System",
+    "themeDark": "Dark",
+    "themeLight": "Light",
+    "themeChangeCurrent": "Change theme: currently {theme}",
+    "themeClickToChange": "Theme: {theme} (Click to change)",
+    "backToModern": "Back to Modern",
+    "viewInRetro": "View in Retro",
+    "navLogRetro": "Logbook",
+    "navLogModern": "Log",
+    "navTimelineRetro": "Footprints",
+    "navTimelineModern": "Timeline",
+    "navPublicRetro": "Chatter",
+    "navPublicModern": "Community",
+    "navAccountRetro": "Custom",
+    "navAccountModern": "Settings"
   }
 }

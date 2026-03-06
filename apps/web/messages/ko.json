@@ -1,5 +1,22 @@
 {
   "Index": {
     "title": "환영합니다"
+  },
+  "AppHeader": {
+    "themeSystem": "시스템",
+    "themeDark": "다크",
+    "themeLight": "라이트",
+    "themeChangeCurrent": "테마 변경: 현재 {theme}",
+    "themeClickToChange": "테마: {theme} (클릭해서 변경)",
+    "backToModern": "현대 모드로 돌아가기",
+    "viewInRetro": "레트로 모드로 보기",
+    "navLogRetro": "날적이",
+    "navLogModern": "기록하기",
+    "navTimelineRetro": "발자취",
+    "navTimelineModern": "타임라인",
+    "navPublicRetro": "수다판",
+    "navPublicModern": "함께",
+    "navAccountRetro": "맞춤",
+    "navAccountModern": "설정"
   }
 }
