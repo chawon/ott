@@ -4,6 +4,7 @@ import com.watchlog.api.dto.SyncPullResponse;
 import com.watchlog.api.dto.SyncPushRequest;
 import com.watchlog.api.dto.SyncPushResponse;
 import com.watchlog.api.service.SyncService;
+import org.springframework.http.HttpHeaders;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.OffsetDateTime;
@@ -19,8 +20,11 @@ public class SyncController {
     }
 
     @PostMapping("/push")
-    public SyncPushResponse push(@RequestBody SyncPushRequest request) {
-        return syncService.push(request);
+    public SyncPushResponse push(
+            @RequestBody SyncPushRequest request,
+            @RequestHeader(value = HttpHeaders.ACCEPT_LANGUAGE, required = false) String language
+    ) {
+        return syncService.push(request, language);
     }
 
     @GetMapping("/pull")

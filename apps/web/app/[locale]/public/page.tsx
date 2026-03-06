@@ -7,9 +7,11 @@ import { api } from "@/lib/api";
 import { DiscussionListItem } from "@/lib/types";
 import { useRetro } from "@/context/RetroContext";
 import { cn } from "@/lib/utils";
+import { useTranslations } from "next-intl";
 
 export default function PublicDiscussionsPage() {
   const { isRetro } = useRetro();
+  const tPublic = useTranslations("Public");
   const [items, setItems] = useState<DiscussionListItem[]>([]);
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<"latest" | "comments">("latest");
@@ -40,16 +42,14 @@ export default function PublicDiscussionsPage() {
         setLoading(false);
       }
     })();
-  }, []);
+  }, [tPublic]);
 
-  const headerTitle = isRetro ? "수다판" : "함께 기록";
+  const headerTitle = tPublic("title");
   const headerSubtitle = loading
     ? "불러오는 중…"
     : err
       ? err
-      : isRetro
-        ? "요즘 올라온 기록과 댓글 구경하기"
-        : "공개로 남긴 기록을 둘러보고 영감을 얻어요.";
+      : tPublic("description");
 
   return (
     <div className="space-y-4">
@@ -99,7 +99,7 @@ export default function PublicDiscussionsPage() {
 
       <DiscussionList
         items={sorted}
-        emptyText="함께 기록이 아직 없어요."
+        emptyText={tPublic("empty")}
         linkMode="discussion"
       />
     </div>

@@ -46,7 +46,7 @@ public class CommentService {
     }
 
     @Transactional
-    public CommentEntity create(UUID discussionId, String body, UUID userId, List<com.watchlog.api.dto.MentionRef> mentions, boolean syncLog) {
+    public CommentEntity create(UUID discussionId, String body, UUID userId, List<com.watchlog.api.dto.MentionRef> mentions, boolean syncLog, String language) {
         if (body == null || body.trim().isEmpty()) {
             throw new IllegalArgumentException("Comment body is required");
         }
@@ -62,7 +62,7 @@ public class CommentService {
                 if (m == null || m.provider() == null || m.providerId() == null) continue;
                 String key = m.provider() + ":" + m.providerId();
                 if (!seen.add(key)) continue;
-                var title = titleService.upsertFromTmdb(m.providerId(), m.titleType());
+                var title = titleService.upsertFromTmdb(m.providerId(), m.titleType(), language);
                 if (title.getId().equals(baseTitleId)) continue;
                 var target = discussionService.ensureForTitle(title);
                 createForDiscussion(discussionService.lock(target.getId()), body.trim(), userId, false, originBaseName);

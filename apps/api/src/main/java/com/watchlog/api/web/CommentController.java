@@ -3,6 +3,7 @@ package com.watchlog.api.web;
 import com.watchlog.api.dto.CommentDto;
 import com.watchlog.api.dto.CreateCommentRequest;
 import com.watchlog.api.service.CommentService;
+import org.springframework.http.HttpHeaders;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -31,9 +32,10 @@ public class CommentController {
     @PostMapping
     public CommentDto create(
             @PathVariable UUID discussionId,
-            @RequestBody CreateCommentRequest req
+            @RequestBody CreateCommentRequest req,
+            @RequestHeader(value = HttpHeaders.ACCEPT_LANGUAGE, required = false) String language
     ) {
         boolean syncLog = req.syncLog() == null || req.syncLog();
-        return CommentDto.from(commentService.create(discussionId, req.body(), req.userId(), req.mentions(), syncLog));
+        return CommentDto.from(commentService.create(discussionId, req.body(), req.userId(), req.mentions(), syncLog, language));
     }
 }

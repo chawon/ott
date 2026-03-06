@@ -23,13 +23,13 @@ public class TmdbClient {
         this.props = props;
     }
 
-    public List<SearchItem> searchMulti(String q) {
+    public List<SearchItem> searchMulti(String q, String language) {
         requireToken();
 
         var uri = UriComponentsBuilder.fromPath("/search/multi")
                 .queryParam("query", q)
                 .queryParam("include_adult", "false")
-                .queryParam("language", props.language())
+                .queryParam("language", language != null ? language : props.language())
                 .queryParam("page", 1)
                 .build()
                 .toUriString();
@@ -44,19 +44,20 @@ public class TmdbClient {
                 .toList();
     }
 
-    public Snapshot fetchDetails(TitleType type, String providerId) {
+    public Snapshot fetchDetails(TitleType type, String providerId, String language) {
         requireToken();
         long id = Long.parseLong(providerId);
+        String lang = language != null ? language : props.language();
 
         if (type == TitleType.movie) {
             var uri = UriComponentsBuilder.fromPath("/movie/{id}")
-                    .queryParam("language", props.language())
+                    .queryParam("language", lang)
                     .buildAndExpand(id)
                     .toUriString();
 
             var m = rest.get().uri(uri).retrieve().body(MovieDetails.class);
             if (m == null) throw new IllegalArgumentException("TMDB movie not found: " + providerId);
-            var credits = fetchCredits(TitleType.movie, id);
+            var credits = fetchCredits(TitleType.movie, id, lang);
 
             return new Snapshot(
                     TitleType.movie,
@@ -71,13 +72,13 @@ public class TmdbClient {
         }
 
         var uri = UriComponentsBuilder.fromPath("/tv/{id}")
-                .queryParam("language", props.language())
+                .queryParam("language", lang)
                 .buildAndExpand(id)
                 .toUriString();
 
         var tv = rest.get().uri(uri).retrieve().body(TvDetails.class);
         if (tv == null) throw new IllegalArgumentException("TMDB tv not found: " + providerId);
-        var credits = fetchCredits(TitleType.series, id);
+        var credits = fetchCredits(TitleType.series, id, lang);
 
         return new Snapshot(
                 TitleType.series,
@@ -91,12 +92,12 @@ public class TmdbClient {
         );
     }
 
-    public List<SeasonItem> listSeasons(String providerId) {
+    public List<SeasonItem> listSeasons(String providerId, String language) {
         requireToken();
         long id = Long.parseLong(providerId);
 
         var uri = UriComponentsBuilder.fromPath("/tv/{id}")
-                .queryParam("language", props.language())
+                .queryParam("language", language != null ? language : props.language())
                 .buildAndExpand(id)
                 .toUriString();
 
@@ -116,12 +117,12 @@ public class TmdbClient {
                 .toList();
     }
 
-    public List<EpisodeItem> listEpisodes(String providerId, int seasonNumber) {
+    public List<EpisodeItem> listEpisodes(String providerId, int seasonNumber, String language) {
         requireToken();
         long id = Long.parseLong(providerId);
 
         var uri = UriComponentsBuilder.fromPath("/tv/{id}/season/{season}")
-                .queryParam("language", props.language())
+                .queryParam("language", language != null ? language : props.language())
                 .buildAndExpand(id, seasonNumber)
                 .toUriString();
 
@@ -148,16 +149,16 @@ public class TmdbClient {
 
     private String posterUrl(String posterPath) {
         if (posterPath == null || posterPath.isBlank()) return null;
-        // 이미지 URL은 base_url + size + file_path 조합이 공식 가이드 :contentReference[oaicite:5]{index=5}
+        // 이미지 URL은 base_url + size + file_path 조합이 공식 가이드 :contentReference[oaicite:20]{index=20}
         return "https://image.tmdb.org/t/p/" + props.imageSize() + posterPath;
     }
 
-    private Credits fetchCredits(TitleType type, long id) {
+    private Credits fetchCredits(TitleType type, long id, String language) {
         var builder = (type == TitleType.movie)
                 ? UriComponentsBuilder.fromPath("/movie/{id}/credits")
                 : UriComponentsBuilder.fromPath("/tv/{id}/credits");
         var uri = builder
-                .queryParam("language", props.language())
+                .queryParam("language", language)
                 .buildAndExpand(id)
                 .toUriString();
 

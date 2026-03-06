@@ -87,11 +87,11 @@ public class LogService {
     }
 
     @Transactional
-    public WatchLogEntity create(CreateWatchLogRequest req, UUID userId) {
+    public WatchLogEntity create(CreateWatchLogRequest req, UUID userId, String language) {
         var title = (req.titleId() != null)
                 ? titleService.require(req.titleId())
                 : (req.provider() != null && req.providerId() != null && "TMDB".equalsIgnoreCase(req.provider()))
-                ? titleService.upsertFromTmdb(req.providerId(), req.titleType())
+                ? titleService.upsertFromTmdb(req.providerId(), req.titleType(), language)
                 : (req.provider() != null && req.providerId() != null)
                 ? titleService.upsertFromSnapshot(
                         req.provider(),

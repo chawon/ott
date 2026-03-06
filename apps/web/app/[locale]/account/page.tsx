@@ -453,9 +453,8 @@ export default function AccountPage() {
                       })}{" "}
                       ·{" "}
                       {tAccount("lastActiveAt", {
-                        date: formatShort(d.lastActiveAt),
+                        date: formatShort(d.lastSeenAt),
                       })}
-                      {formatShort(d.lastSeenAt)}
                     </div>
                   </div>
                   {!isCurrent ? (

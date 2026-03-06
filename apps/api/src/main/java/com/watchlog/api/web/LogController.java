@@ -9,6 +9,7 @@ import com.watchlog.api.dto.WatchLogDto;
 import com.watchlog.api.service.LogService;
 import com.watchlog.api.service.WatchLogHistoryService;
 import jakarta.validation.Valid;
+import org.springframework.http.HttpHeaders;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -48,9 +49,10 @@ public class LogController {
     @PostMapping
     public WatchLogDto create(
             @Valid @RequestBody CreateWatchLogRequest req,
-            @RequestHeader(value = "X-User-Id", required = false) UUID userId
+            @RequestHeader(value = "X-User-Id", required = false) UUID userId,
+            @RequestHeader(value = HttpHeaders.ACCEPT_LANGUAGE, required = false) String language
     ) {
-        return WatchLogDto.from(logService.create(req, userId));
+        return WatchLogDto.from(logService.create(req, userId, language));
     }
 
     @PatchMapping("/{id}")

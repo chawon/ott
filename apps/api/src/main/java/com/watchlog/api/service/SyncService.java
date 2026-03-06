@@ -38,7 +38,7 @@ public class SyncService {
     }
 
     @Transactional
-    public SyncPushResponse push(SyncPushRequest req) {
+    public SyncPushResponse push(SyncPushRequest req, String language) {
         List<UUID> accepted = new ArrayList<>();
         List<SyncReject> rejected = new ArrayList<>();
         Map<UUID, UUID> titleIdMap = new HashMap<>();
@@ -48,7 +48,7 @@ public class SyncService {
             var changes = req.changes();
             if (changes.titles() != null) {
                 for (var c : changes.titles()) {
-                    applyTitleChange(c, accepted, rejected, titleIdMap);
+                    applyTitleChange(c, accepted, rejected, titleIdMap, language);
                 }
             }
             if (changes.logs() != null) {
@@ -77,7 +77,8 @@ public class SyncService {
     private void applyTitleChange(SyncChange<SyncTitlePayload> change,
                                   List<UUID> accepted,
                                   List<SyncReject> rejected,
-                                  Map<UUID, UUID> titleIdMap) {
+                                  Map<UUID, UUID> titleIdMap,
+                                  String language) {
         if (change == null || change.id() == null || change.updatedAt() == null) return;
         String op = change.op() == null ? "upsert" : change.op();
         var payload = change.payload();
@@ -118,7 +119,7 @@ public class SyncService {
                 }
                 if (payload.type() != null) existing.setType(payload.type());
                 if (payload.name() != null && !payload.name().isBlank()) existing.setName(payload.name().trim());
-                hydrateFromTmdbIfNeeded(existing, payload);
+                hydrateFromTmdbIfNeeded(existing, payload, language);
                 accepted.add(change.id());
                 return;
             }
@@ -162,7 +163,7 @@ public class SyncService {
                 if (payload.providerId() != null) existing.setProviderId(payload.providerId());
                 if (payload.type() != null) existing.setType(payload.type());
                 if (payload.name() != null && !payload.name().isBlank()) existing.setName(payload.name().trim());
-                hydrateFromTmdbIfNeeded(existing, payload);
+                hydrateFromTmdbIfNeeded(existing, payload, language);
             }
             accepted.add(existing.getId());
             return;
@@ -182,7 +183,7 @@ public class SyncService {
                     && "TMDB".equalsIgnoreCase(payload.provider())
                     && payload.type() != null) {
                 try {
-                    var snapshot = tmdbClient.fetchDetails(payload.type(), payload.providerId());
+                    var snapshot = tmdbClient.fetchDetails(payload.type(), payload.providerId(), language);
                     payload = new SyncTitlePayload(
                             snapshot.type(),
                             snapshot.name(),
@@ -231,7 +232,7 @@ public class SyncService {
         if (payload.provider() != null) created.setProvider(payload.provider());
         if (payload.providerId() != null) created.setProviderId(payload.providerId());
         created.setUpdatedAt(change.updatedAt());
-        hydrateFromTmdbIfNeeded(created, payload);
+        hydrateFromTmdbIfNeeded(created, payload, language);
         titleRepository.save(created);
         accepted.add(created.getId());
     }
@@ -354,7 +355,7 @@ public class SyncService {
         return updatedAt != null && updatedAt.isAfter(incoming);
     }
 
-    private void hydrateFromTmdbIfNeeded(TitleEntity entity, SyncTitlePayload payload) {
+    private void hydrateFromTmdbIfNeeded(TitleEntity entity, SyncTitlePayload payload, String language) {
         if (payload == null) return;
         if (payload.provider() == null || payload.providerId() == null) return;
         if (!"TMDB".equalsIgnoreCase(payload.provider())) return;
@@ -369,7 +370,7 @@ public class SyncService {
         if (type == null) return;
 
         try {
-            var snapshot = tmdbClient.fetchDetails(type, payload.providerId());
+            var snapshot = tmdbClient.fetchDetails(type, payload.providerId(), language);
             entity.setType(snapshot.type());
             entity.setName(snapshot.name());
             entity.setYear(snapshot.year());

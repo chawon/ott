@@ -46,14 +46,15 @@ public class TitleService {
     }
 
     @Transactional
-    public TitleEntity upsertFromTmdb(String providerId, com.watchlog.api.domain.TitleType type) {
-        var snapshot = tmdbClient.fetchDetails(type, providerId);
+    public TitleEntity upsertFromTmdb(String providerId, com.watchlog.api.domain.TitleType type, String language) {
+        var snapshot = tmdbClient.fetchDetails(type, providerId, language);
 
         var existing = titleRepository.findByProviderAndProviderId("TMDB", providerId);
         if (existing.isPresent()) {
             var t = existing.get();
             t.setProvider("TMDB");
             t.setProviderId(providerId);
+            t.setName(snapshot.name()); // Name might change based on language if we allow it
             t.setYear(snapshot.year());
             t.setOverview(snapshot.overview());
             t.setPosterUrl(snapshot.posterUrl());

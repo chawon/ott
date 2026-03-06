@@ -6,6 +6,7 @@ import com.watchlog.api.domain.TitleType;
 import com.watchlog.api.naver.NaverBookClient;
 import com.watchlog.api.service.TitleService;
 import com.watchlog.api.tmdb.TmdbClient;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
@@ -30,11 +31,12 @@ public class TitleController {
     @GetMapping("/search")
     public List<TitleSearchItemDto> search(
             @RequestParam("q") String q,
-            @RequestParam(value = "type", required = false) String type
+            @RequestParam(value = "type", required = false) String type,
+            @RequestHeader(value = HttpHeaders.ACCEPT_LANGUAGE, required = false) String language
     ) {
         String normalized = type == null ? null : type.trim().toLowerCase();
         if (normalized == null || normalized.isBlank()) {
-            return tmdbClient.searchMulti(q).stream()
+            return tmdbClient.searchMulti(q, language).stream()
                     .map(r -> new TitleSearchItemDto(
                             "TMDB",
                             String.valueOf(r.idValue()),
@@ -77,7 +79,7 @@ public class TitleController {
         }
 
         if ("movie".equals(normalized) || "series".equals(normalized)) {
-            return tmdbClient.searchMulti(q).stream()
+            return tmdbClient.searchMulti(q, language).stream()
                     .filter(r -> normalized.equals("movie") ? "movie".equals(r.mediaTypeValue()) : "tv".equals(r.mediaTypeValue()))
                     .map(r -> new TitleSearchItemDto(
                             "TMDB",
