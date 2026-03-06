@@ -233,7 +233,7 @@ export default function TitleSearchBox({
               </div>
               {recentLoading ? (
                 <div className="px-4 py-3 text-sm font-bold">
-                  불러오는 중...
+                  {tTitleSearch("loading")}
                 </div>
               ) : null}
               {!recentLoading && recentErr ? (
@@ -243,7 +243,7 @@ export default function TitleSearchBox({
               ) : null}
               {!recentLoading && !recentErr && recent.length === 0 ? (
                 <div className="px-4 py-3 text-sm font-bold text-muted-foreground">
-                  아직 없어요
+                  {tTitleSearch("empty")}
                 </div>
               ) : null}
               {!recentLoading &&
@@ -338,7 +338,7 @@ export default function TitleSearchBox({
           ) : null}
 
           {loading && (
-            <div className="px-4 py-3 text-sm font-bold">검색 중...</div>
+            <div className="px-4 py-3 text-sm font-bold">{tTitleSearch("searchLoading")}</div>
           )}
 
           {!loading && err && (
@@ -427,7 +427,7 @@ export default function TitleSearchBox({
                       )}
                     >
                       {t.type === "book"
-                        ? `책${meta ? ` · ${meta}` : ""}`
+                        ? tTitleSearch("typeBook") + (meta ? ` · ${meta}` : "")
                         : meta}
                     </div>
                     {detailLine ? (
@@ -447,9 +447,9 @@ export default function TitleSearchBox({
               );
             })}
 
-          {!loading && !err && items.length === 0 && query && (
+          {!loading && !err && items.length === 0 && (
             <div className="px-4 py-3 text-sm font-bold text-muted-foreground">
-              결과가 없어요
+              {tTitleSearch("searchEmpty")}
             </div>
           )}
 

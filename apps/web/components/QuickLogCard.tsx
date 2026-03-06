@@ -65,66 +65,6 @@ const OCCASION_OPTIONS: { value: Occasion; label: string }[] = (
   Object.keys(OCCASION_LABELS) as Occasion[]
 ).map((value) => ({ value, label: OCCASION_LABELS[value] }));
 
-const RETRO_VIDEO_RATING_OPTIONS = [
-  { value: 5, label: "★★★★★ 최고!" },
-  { value: 3, label: "★★★ 그럭저럭" },
-  { value: 1, label: "★ 별로..." },
-];
-
-const RETRO_BOOK_RATING_OPTIONS = [
-  { value: 5, label: "★★★★★ 인생책" },
-  { value: 3, label: "★★★ 무난해요" },
-  { value: 1, label: "★ 아쉬워요" },
-];
-
-const VIDEO_PLATFORM_OPTIONS = [
-  "넷플릭스",
-  "디즈니플러스",
-  "티빙",
-  "웨이브",
-  "쿠팡플레이",
-  "애플티비",
-  "프라임비디오",
-  "왓챠",
-  "채널",
-  "VOD",
-  "DVD",
-  "블루레이",
-  "CGV",
-  "롯데시네마",
-  "메가박스",
-  "씨네Q",
-] as const;
-
-const VIDEO_PLATFORM_GROUPS = [
-  {
-    label: "OTT",
-    options: [
-      "넷플릭스",
-      "디즈니플러스",
-      "티빙",
-      "웨이브",
-      "쿠팡플레이",
-      "애플티비",
-      "프라임비디오",
-      "왓챠",
-    ],
-  },
-  { label: "유료 방송", options: ["채널", "VOD"] },
-  { label: "물리 매체", options: ["DVD", "블루레이"] },
-  { label: "극장", options: ["CGV", "롯데시네마", "메가박스", "씨네Q"] },
-] as const;
-
-const BOOK_PLATFORM_GROUPS = [
-  { label: "서점", options: ["교보문고", "영풍문고", "예스24", "알라딘"] },
-  { label: "전자책", options: ["리디", "밀리의서재", "윌라", "플레이북"] },
-  { label: "도서관", options: ["공공도서관", "대학도서관", "학교도서관"] },
-] as const;
-
-const BOOK_PLATFORM_OPTIONS = BOOK_PLATFORM_GROUPS.flatMap(
-  (group) => group.options,
-);
-
 const OTT_CUSTOM_VALUE = "__custom__";
 const VIDEO_CUSTOM_KEY = "watchlog.ott.custom";
 const BOOK_CUSTOM_KEY = "watchlog.book.platform.custom";
@@ -170,8 +110,12 @@ function saveCustomOptions(key: string, options: string[]) {
   localStorage.setItem(key, JSON.stringify(options));
 }
 
-function titleTypeLabel(type: Title["type"]) {
-  return type === "movie" ? "영화" : type === "series" ? "시리즈" : "책";
+function titleTypeLabel(type: Title["type"], t: any) {
+  return type === "movie"
+    ? t("typeMovie")
+    : type === "series"
+      ? t("typeSeriesModern")
+      : t("typeBook");
 }
 
 function bookMeta(
@@ -233,16 +177,88 @@ export default function QuickLogCard({
   } | null>(null);
 
   const isBookMode = contentType === "book";
-  const platformOptions = isBookMode
-    ? BOOK_PLATFORM_OPTIONS
-    : VIDEO_PLATFORM_OPTIONS;
-  const platformGroups = isBookMode
-    ? BOOK_PLATFORM_GROUPS
-    : VIDEO_PLATFORM_GROUPS;
+
+  const videoPlatformGroups = useMemo(
+    () =>
+      [
+        {
+          label: "OTT",
+          options: [
+            tQuick("platformNetflix"),
+            tQuick("platformDisney"),
+            tQuick("platformTving"),
+            tQuick("platformWavve"),
+            tQuick("platformCoupang"),
+            tQuick("platformApple"),
+            tQuick("platformPrime"),
+            tQuick("platformWatcha"),
+          ],
+        },
+        {
+          label: tQuick("groupPaidTv"),
+          options: [tQuick("platformChannel"), tQuick("platformVod")],
+        },
+        {
+          label: tQuick("groupPhysical"),
+          options: [tQuick("platformDvd"), tQuick("platformBluray")],
+        },
+        {
+          label: tQuick("groupTheater"),
+          options: [
+            tQuick("platformCgv"),
+            tQuick("platformLotte"),
+            tQuick("platformMegabox"),
+            tQuick("platformCineQ"),
+          ],
+        },
+      ] as const,
+    [tQuick],
+  );
+
+  const bookPlatformGroups = useMemo(
+    () =>
+      [
+        {
+          label: tQuick("groupBookstore"),
+          options: [
+            tQuick("platformKyobo"),
+            tQuick("platformYeongpung"),
+            tQuick("platformYes24"),
+            tQuick("platformAladin"),
+          ],
+        },
+        {
+          label: tQuick("groupEbook"),
+          options: [
+            tQuick("platformRidi"),
+            tQuick("platformMillie"),
+            tQuick("platformWilla"),
+            tQuick("platformPlaybook"),
+          ],
+        },
+        {
+          label: tQuick("groupLibrary"),
+          options: [
+            tQuick("platformPublicLib"),
+            tQuick("platformUnivLib"),
+            tQuick("platformSchoolLib"),
+          ],
+        },
+      ] as const,
+    [tQuick],
+  );
+
+  const platformOptions = useMemo(
+    () =>
+      isBookMode
+        ? bookPlatformGroups.flatMap((group) => group.options)
+        : videoPlatformGroups.flatMap((group) => group.options),
+    [isBookMode, bookPlatformGroups, videoPlatformGroups],
+  );
+
+  const platformGroups = isBookMode ? bookPlatformGroups : videoPlatformGroups;
   const platformCustomKey = isBookMode ? BOOK_CUSTOM_KEY : VIDEO_CUSTOM_KEY;
-  const platformPlaceholder = isBookMode
-    ? "예: 교보문고, 리디, 공공도서관"
-    : "직접 입력";
+
   const canSave = useMemo(() => !!selected && !saving, [selected, saving]);
   const isWishlist = status === "WISHLIST";
   const statusOptions = useMemo(
@@ -253,11 +269,22 @@ export default function QuickLogCard({
     () => placeOptionsForType(isBookMode ? "book" : "movie"),
     [isBookMode],
   );
-  const ratingOptions = isRetro
-    ? isBookMode
-      ? RETRO_BOOK_RATING_OPTIONS
-      : RETRO_VIDEO_RATING_OPTIONS
-    : ratingOptionsForType(isBookMode ? "book" : "movie");
+  const ratingOptions = useMemo(() => {
+    if (isRetro) {
+      return isBookMode
+        ? [
+            { value: 5, label: "★★★★★ " + tQuick("ratingBestBook") },
+            { value: 3, label: "★★★ " + tQuick("ratingSosoBook") },
+            { value: 1, label: "★ " + tQuick("ratingBadBook") },
+          ]
+        : [
+            { value: 5, label: "★★★★★ " + tQuick("ratingBestVideo") },
+            { value: 3, label: "★★★ " + tQuick("ratingSosoVideo") },
+            { value: 1, label: "★ " + tQuick("ratingBadVideo") },
+          ];
+    }
+    return ratingOptionsForType(isBookMode ? "book" : "movie");
+  }, [isRetro, isBookMode, tQuick]);
 
   function toDateInput(d: Date) {
     const y = d.getFullYear();
@@ -631,7 +658,7 @@ export default function QuickLogCard({
                   contentType === "book" && "is-success",
                 )}
               >
-                영상
+                {tQuick("tabVideo")}
               </button>
               <button
                 type="button"
@@ -644,7 +671,7 @@ export default function QuickLogCard({
                   contentType === "book" && "is-success",
                 )}
               >
-                책
+                {tQuick("tabBook")}
               </button>
             </div>
 
@@ -660,8 +687,8 @@ export default function QuickLogCard({
                 onSelect={(item) => setSelected(item)}
                 placeholder={
                   isBookMode
-                    ? "책 검색 (어린 왕자, 불편한 편의점...)"
-                    : "작품 검색 (듄, 더 베어...)"
+                    ? tQuick("searchPlaceholderBook")
+                    : tQuick("searchPlaceholderVideo")
                 }
                 showRecentDiscussions
                 contentType={isBookMode ? "book" : "video"}
@@ -700,7 +727,7 @@ export default function QuickLogCard({
                       {selected.name}
                     </div>
                     <div className="mt-1 text-xs text-neutral-400">
-                      {titleTypeLabel(selected.type)}
+                      {titleTypeLabel(selected.type, tQuick)}
                       {selected.type === "book" ? (
                         bookMeta(selected) ? (
                           ` · ${bookMeta(selected)}`
@@ -713,7 +740,8 @@ export default function QuickLogCard({
                             ? ` · ${seasonYear ?? selected.year}`
                             : ""}
                           {selectedSeason !== ""
-                            ? ` · 시즌 ${selectedSeason}`
+                            ? " · " +
+                              tQuick("seasonValue", { number: selectedSeason })
                             : ""}
                           {selectedEpisode !== ""
                             ? ` · EP ${selectedEpisode}`
@@ -735,7 +763,7 @@ export default function QuickLogCard({
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-1">
                 <label className="text-sm font-bold flex items-center gap-1">
-                  <Clock className="h-3 w-3" /> 상태
+                  <Clock className="h-3 w-3" /> {tQuick("detailStatus")}
                 </label>
                 <select
                   value={status}
@@ -753,7 +781,9 @@ export default function QuickLogCard({
               {selected?.type === "series" ? (
                 <>
                   <div className="space-y-1">
-                    <label className="text-sm font-bold">시즌</label>
+                    <label className="text-sm font-bold">
+                      {tQuick("seasonLabel")}
+                    </label>
                     <select
                       value={selectedSeason}
                       onChange={(e) =>
@@ -766,14 +796,14 @@ export default function QuickLogCard({
                       <option value="">{tCommon("none")}</option>
                       {seasons.map((s) => (
                         <option key={s.seasonNumber} value={s.seasonNumber}>
-                          시즌 {s.seasonNumber}
+                          {tQuick("seasonValue", { number: s.seasonNumber })}
                           {s.name ? ` · ${s.name}` : ""}
                         </option>
                       ))}
                     </select>
                     {seasonLoading ? (
                       <div className="text-xs text-neutral-500">
-                        시즌 불러오는 중...
+                        {tQuick("loadingSeasons")}
                       </div>
                     ) : null}
                     {seasonError ? (
@@ -782,7 +812,9 @@ export default function QuickLogCard({
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-sm font-bold">에피소드</label>
+                    <label className="text-sm font-bold">
+                      {tQuick("episodeLabel")}
+                    </label>
                     <select
                       value={selectedEpisode}
                       onChange={(e) =>
@@ -803,7 +835,7 @@ export default function QuickLogCard({
                     </select>
                     {episodeLoading ? (
                       <div className="text-xs text-neutral-500">
-                        에피소드 불러오는 중...
+                        {tQuick("loadingEpisodes")}
                       </div>
                     ) : null}
                   </div>
@@ -812,7 +844,7 @@ export default function QuickLogCard({
 
               <div className="space-y-1">
                 <label className="text-sm font-bold flex items-center gap-1">
-                  <Star className="h-3 w-3" /> 평점
+                  <Star className="h-3 w-3" /> {tQuick("detailRating")}
                 </label>
                 <select
                   value={rating === "" ? "" : String(rating)}
@@ -838,7 +870,7 @@ export default function QuickLogCard({
 
               <div className="space-y-1">
                 <label className="text-sm font-bold flex items-center gap-1">
-                  <MapPin className="h-3 w-3" /> 장소
+                  <MapPin className="h-3 w-3" /> {tQuick("detailPlace")}
                 </label>
                 <select
                   value={place}
@@ -859,7 +891,7 @@ export default function QuickLogCard({
 
               <div className="space-y-1">
                 <label className="text-sm font-bold flex items-center gap-1">
-                  <Users className="h-3 w-3" /> 누구와
+                  <Users className="h-3 w-3" /> {tQuick("detailOccasion")}
                 </label>
                 <select
                   value={occasion}
@@ -880,7 +912,7 @@ export default function QuickLogCard({
 
               <div className="sm:col-span-2 space-y-1">
                 <label className="text-sm font-bold flex items-center gap-1">
-                  <MonitorPlay className="h-3 w-3" /> 플랫폼
+                  <MonitorPlay className="h-3 w-3" /> {tQuick("detailPlatform")}
                 </label>
                 <select
                   value={ottSelect}
@@ -906,7 +938,7 @@ export default function QuickLogCard({
                     </optgroup>
                   ))}
                   {customOttOptions.length > 0 ? (
-                    <optgroup label="내 입력">
+                    <optgroup label={tQuick("myInput")}>
                       {customOttOptions.map((o) => (
                         <option key={o} value={o}>
                           {o}
@@ -914,14 +946,20 @@ export default function QuickLogCard({
                       ))}
                     </optgroup>
                   ) : null}
-                  <option value={OTT_CUSTOM_VALUE}>직접 입력</option>
+                  <option value={OTT_CUSTOM_VALUE}>
+                    {tQuick("customInput")}
+                  </option>
                 </select>
                 {ottSelect === OTT_CUSTOM_VALUE ? (
                   <input
                     value={ott}
                     onChange={(e) => setOtt(e.target.value)}
                     className="mt-2 w-full bg-white px-3 py-2 text-sm font-bold placeholder:text-neutral-400"
-                    placeholder={platformPlaceholder}
+                    placeholder={
+                      isBookMode
+                        ? tQuick("customInputPlaceholder")
+                        : tQuick("customInput")
+                    }
                   />
                 ) : null}
               </div>
@@ -938,7 +976,7 @@ export default function QuickLogCard({
                   )}
                 >
                   <Calendar className="h-3.5 w-3.5" />
-                  {useWatchedAt ? "날짜 직접 입력" : "다른 날짜로 기록하기"}
+                  {useWatchedAt ? tQuick("dateDirect") : tQuick("dateOther")}
                 </button>
                 {useWatchedAt && (
                   <input
@@ -952,13 +990,13 @@ export default function QuickLogCard({
 
               <div className="sm:col-span-2 space-y-1">
                 <label className="text-sm font-bold flex items-center gap-1">
-                  <MessageSquare className="h-3 w-3" /> 메모
+                  <MessageSquare className="h-3 w-3" /> {tQuick("detailNote")}
                 </label>
                 <textarea
                   value={note}
                   onChange={(e) => setNote(e.target.value)}
                   className="w-full min-h-[80px] bg-white px-3 py-2 text-sm font-bold placeholder:text-neutral-400 resize-none"
-                  placeholder="짧은 감상을 남겨보세요..."
+                  placeholder={tQuick("notePlaceholder")}
                 />
               </div>
             </div>
@@ -1007,7 +1045,7 @@ export default function QuickLogCard({
                 {saving ? (
                   <span className="flex items-center justify-center gap-2">
                     <Loader2 className="h-4 w-4 animate-spin" />
-                    저장 중...
+                    {tQuick("saving")}
                   </span>
                 ) : (
                   tQuick("saveActionRetro")
@@ -1021,14 +1059,15 @@ export default function QuickLogCard({
           <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[100] w-[90%] max-w-md animate-bounce">
             <div className="border-4 border-black bg-[#f7d51d] p-4 text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex items-center justify-between gap-4">
               <div className="text-sm font-bold">
-                좋아요! {banner.count}번째 타임라인이 쌓였어요.
+                {tQuick("successLike")}{" "}
+                {tQuick("successCount", { count: banner.count })}
               </div>
               <Link
                 href="/timeline"
                 data-onboarding-target="timeline-confirm"
                 className="flex-shrink-0 border-2 border-black bg-white px-2 py-1 text-xs font-bold hover:bg-neutral-100"
               >
-                타임라인 보기
+                {tQuick("viewTimeline")}
               </Link>
             </div>
           </div>
@@ -1064,7 +1103,7 @@ export default function QuickLogCard({
                 "border border-emerald-200/70 bg-emerald-50/60 text-emerald-700 hover:bg-emerald-50",
             )}
           >
-            영상
+            {tQuick("tabVideo")}
           </button>
           <button
             type="button"
@@ -1080,7 +1119,7 @@ export default function QuickLogCard({
                 "border border-emerald-200/70 bg-emerald-50/60 text-emerald-700 hover:bg-emerald-50",
             )}
           >
-            책
+            {tQuick("tabBook")}
           </button>
         </div>
 
@@ -1097,8 +1136,8 @@ export default function QuickLogCard({
             onSelect={(item) => setSelected(item)}
             placeholder={
               isBookMode
-                ? "책 검색 (어린 왕자, 불편한 편의점...)"
-                : "작품 검색 (예: 듄, 더 베어)"
+                ? tQuick("searchPlaceholderBook")
+                : tQuick("searchPlaceholderVideo")
             }
             showRecentDiscussions
             contentType={isBookMode ? "book" : "video"}
@@ -1136,7 +1175,7 @@ export default function QuickLogCard({
                   {selected.name}
                 </div>
                 <div className="mt-1 text-sm text-muted-foreground font-medium">
-                  {titleTypeLabel(selected.type)}
+                  {titleTypeLabel(selected.type, tQuick)}
                   {selected.type === "book" ? (
                     bookMeta(selected) ? (
                       ` · ${bookMeta(selected)}`
@@ -1148,8 +1187,13 @@ export default function QuickLogCard({
                       {(seasonYear ?? selected.year)
                         ? ` · ${seasonYear ?? selected.year}`
                         : ""}
-                      {selectedSeason !== "" ? ` · 시즌 ${selectedSeason}` : ""}
-                      {selectedEpisode !== "" ? ` · EP ${selectedEpisode}` : ""}
+                      {selectedSeason !== ""
+                        ? " · " +
+                          tQuick("seasonValue", { number: selectedSeason })
+                        : ""}
+                      {selectedEpisode !== ""
+                        ? ` · EP ${selectedEpisode}`
+                        : ""}
                     </>
                   )}
                 </div>
@@ -1168,7 +1212,7 @@ export default function QuickLogCard({
           <div className="space-y-1.5">
             <div className="text-xs font-medium text-neutral-500 ml-1 flex items-center gap-1.5">
               <Clock className="h-3 w-3" />
-              상태
+              {tQuick("detailStatus")}
             </div>
             <select
               value={status}
@@ -1187,7 +1231,7 @@ export default function QuickLogCard({
             <>
               <div className="space-y-1.5">
                 <div className="text-xs font-medium text-neutral-500 ml-1">
-                  시즌
+                  {tQuick("seasonLabel")}
                 </div>
                 <select
                   value={selectedSeason}
@@ -1201,14 +1245,14 @@ export default function QuickLogCard({
                   <option value="">{tCommon("none")}</option>
                   {seasons.map((s) => (
                     <option key={s.seasonNumber} value={s.seasonNumber}>
-                      시즌 {s.seasonNumber}
+                      {tQuick("seasonValue", { number: s.seasonNumber })}
                       {s.name ? ` · ${s.name}` : ""}
                     </option>
                   ))}
                 </select>
                 {seasonLoading ? (
                   <div className="text-[11px] text-neutral-400">
-                    시즌 불러오는 중...
+                    {tQuick("loadingSeasons")}
                   </div>
                 ) : null}
                 {seasonError ? (
@@ -1218,7 +1262,7 @@ export default function QuickLogCard({
 
               <div className="space-y-1.5">
                 <div className="text-xs font-medium text-neutral-500 ml-1">
-                  에피소드
+                  {tQuick("episodeLabel")}
                 </div>
                 <select
                   value={selectedEpisode}
@@ -1240,7 +1284,7 @@ export default function QuickLogCard({
                 </select>
                 {episodeLoading ? (
                   <div className="text-[11px] text-neutral-400">
-                    에피소드 불러오는 중...
+                    {tQuick("loadingEpisodes")}
                   </div>
                 ) : null}
               </div>
@@ -1250,7 +1294,7 @@ export default function QuickLogCard({
           <div className="space-y-1.5">
             <div className="text-xs font-medium text-neutral-500 ml-1 flex items-center gap-1.5">
               <Star className="h-3 w-3" />
-              평점
+              {tQuick("detailRating")}
             </div>
             <select
               value={rating === "" ? "" : String(rating)}
@@ -1275,7 +1319,7 @@ export default function QuickLogCard({
           <div className="md:col-span-2 space-y-1.5">
             <div className="text-xs font-medium text-neutral-500 ml-1 flex items-center gap-1.5">
               <MonitorPlay className="h-3 w-3" />
-              플랫폼
+              {tQuick("detailPlatform")}
             </div>
             <select
               value={ottSelect}
@@ -1301,7 +1345,7 @@ export default function QuickLogCard({
                 </optgroup>
               ))}
               {customOttOptions.length > 0 ? (
-                <optgroup label="내 입력">
+                <optgroup label={tQuick("myInput")}>
                   {customOttOptions.map((o) => (
                     <option key={o} value={o}>
                       {o}
@@ -1309,14 +1353,18 @@ export default function QuickLogCard({
                   ))}
                 </optgroup>
               ) : null}
-              <option value={OTT_CUSTOM_VALUE}>직접 입력</option>
+              <option value={OTT_CUSTOM_VALUE}>{tQuick("customInput")}</option>
             </select>
             {ottSelect === OTT_CUSTOM_VALUE ? (
               <input
                 value={ott}
                 onChange={(e) => setOtt(e.target.value)}
                 className="mt-2 w-full select-base rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-neutral-900/5 transition-all outline-none"
-                placeholder={platformPlaceholder}
+                placeholder={
+                  isBookMode
+                    ? tQuick("customInputPlaceholder")
+                    : tQuick("customInput")
+                }
               />
             ) : null}
           </div>
@@ -1325,7 +1373,7 @@ export default function QuickLogCard({
             <div className="space-y-1.5">
               <div className="text-xs font-medium text-neutral-500 ml-1 flex items-center gap-1.5">
                 <MapPin className="h-3 w-3" />
-                장소
+                {tQuick("detailPlace")}
               </div>
               <select
                 value={place}
@@ -1347,7 +1395,7 @@ export default function QuickLogCard({
             <div className="space-y-1.5">
               <div className="text-xs font-medium text-neutral-500 ml-1 flex items-center gap-1.5">
                 <Users className="h-3 w-3" />
-                누구와
+                {tQuick("detailOccasion")}
               </div>
               <select
                 value={occasion}
@@ -1378,7 +1426,7 @@ export default function QuickLogCard({
                 )}
               >
                 <Calendar className="h-3.5 w-3.5" />
-                {useWatchedAt ? "날짜 직접 선택 중" : "다른 날짜로 기록하기"}
+                {useWatchedAt ? tQuick("dateSelecting") : tQuick("dateOther")}
               </button>
               {useWatchedAt ? (
                 <input
@@ -1394,13 +1442,13 @@ export default function QuickLogCard({
           <div className="md:col-span-2 space-y-1.5">
             <div className="text-xs font-medium text-neutral-500 ml-1 flex items-center gap-1.5">
               <MessageSquare className="h-3 w-3" />
-              메모
+              {tQuick("detailNote")}
             </div>
             <textarea
               value={note}
               onChange={(e) => setNote(e.target.value)}
               className="w-full select-base rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-neutral-900/5 transition-all outline-none resize-none"
-              placeholder="짧은 감상을 남겨보세요."
+              placeholder={tQuick("notePlaceholder")}
               rows={3}
             />
           </div>
@@ -1452,16 +1500,17 @@ export default function QuickLogCard({
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[100] w-full max-w-sm px-4 animate-in fade-in slide-in-from-bottom-4 duration-300">
           <div className="flex items-center justify-between gap-4 rounded-2xl border border-border bg-card/90 p-4 shadow-xl backdrop-blur-md">
             <div className="text-sm font-medium text-foreground">
-              좋아요,{" "}
-              <span className="font-bold text-blue-600">{banner.count}</span>
-              번째 타임라인이 쌓였어요.
+              {tQuick("successLike")}{" "}
+              <span className="font-bold text-blue-600">
+                {tQuick("successCount", { count: banner.count })}
+              </span>
             </div>
             <Link
               href="/timeline"
               data-onboarding-target="timeline-confirm"
               className="flex items-center gap-1 text-xs font-bold text-blue-600 hover:underline"
             >
-              타임라인 보기 <ArrowRight className="h-3 w-3" />
+              {tQuick("viewTimeline")} <ArrowRight className="h-3 w-3" />
             </Link>
           </div>
         </div>
