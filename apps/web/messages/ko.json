@@ -118,5 +118,14 @@
     "BOOK_DONE": "읽었어요",
     "BOOK_IN_PROGRESS": "읽는 중",
     "BOOK_WISHLIST": "읽고 싶어요"
+  },
+  "Timeline": {
+    "title": "나의 기록 발자취",
+    "description": "지금까지 남긴 모든 기록을 한눈에 모아보세요.",
+    "searchPlaceholder": "작품 제목, 메모 등으로 검색...",
+    "exportCsv": "CSV 내보내기",
+    "emptyState": "아직 남긴 기록이 없습니다.",
+    "emptySearch": "검색 결과가 없습니다.",
+    "syncStatus": "동기화 완료"
   }
 }

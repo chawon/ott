@@ -118,5 +118,14 @@
     "BOOK_DONE": "Read",
     "BOOK_IN_PROGRESS": "Reading",
     "BOOK_WISHLIST": "Want to read"
+  },
+  "Timeline": {
+    "title": "My Footprints",
+    "description": "See all the logs you have left so far at a glance.",
+    "searchPlaceholder": "Search by title, note...",
+    "exportCsv": "Export CSV",
+    "emptyState": "No logs yet.",
+    "emptySearch": "No search results.",
+    "syncStatus": "Sync Complete"
   }
 }

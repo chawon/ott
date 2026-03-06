@@ -20,7 +20,9 @@ function buildQuery(params: Record<string, string | undefined>) {
   return s ? `?${s}` : "";
 }
 
+import { useTranslations } from "next-intl";
 export default function TimelinePage() {
+  const tTimeline = useTranslations("Timeline");
   const { isRetro } = useRetro();
   const [status, setStatus] = useState<Status | "ALL">("ALL");
   const [contentType, setContentType] = useState<"ALL" | "video" | "book">(
