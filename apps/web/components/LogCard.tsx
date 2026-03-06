@@ -129,7 +129,7 @@ export default function LogCard({ log }: { log: WatchLog }) {
             {(log.seasonPosterUrl ?? t.posterUrl) ? (
               <img
                 src={
-                  tmdbResize(log.seasonPosterUrl ?? t.posterUrl, "w185") ??
+                  tmdbResize((log.seasonPosterUrl ?? t.posterUrl) || "", "w185") ??
                   log.seasonPosterUrl ??
                   t.posterUrl ??
                   ""
@@ -247,7 +247,7 @@ export default function LogCard({ log }: { log: WatchLog }) {
           {(log.seasonPosterUrl ?? t.posterUrl) ? (
             <img
               src={
-                tmdbResize(log.seasonPosterUrl ?? t.posterUrl, "w185") ??
+                tmdbResize((log.seasonPosterUrl ?? t.posterUrl) || "", "w185") ??
                 log.seasonPosterUrl ??
                 t.posterUrl ??
                 ""

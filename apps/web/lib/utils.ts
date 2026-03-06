@@ -9,35 +9,39 @@ export function findTitle(titleId: string): Title | undefined {
 
 export function formatDate(iso: string): string {
   const d = new Date(iso);
-  return d.toLocaleDateString("ko-KR", { month: "short", day: "numeric" });
+  return d.toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
 }
 
 export const STATUS_LABELS: Record<Status, string> = {
-  DONE: "봤어요",
-  IN_PROGRESS: "보는 중",
-  WISHLIST: "보고 싶어요",
+  DONE: "Watched",
+  IN_PROGRESS: "Watching",
+  WISHLIST: "Want to watch",
 };
 
 export const BOOK_STATUS_LABELS: Record<Status, string> = {
-  DONE: "읽었어요",
-  IN_PROGRESS: "읽는 중",
-  WISHLIST: "읽고 싶어요",
+  DONE: "Read",
+  IN_PROGRESS: "Reading",
+  WISHLIST: "Want to read",
 };
 
 export const STATUS_VALUES: Status[] = ["DONE", "IN_PROGRESS", "WISHLIST"];
 
 export const PLACE_LABELS: Record<Place, string> = {
-  HOME: "집",
-  THEATER: "극장",
-  TRANSIT: "이동 중",
-  CAFE: "카페",
-  OFFICE: "직장",
-  LIBRARY: "도서관",
-  BOOKSTORE: "서점",
-  SCHOOL: "학교",
-  PARK: "공원",
-  OUTDOOR: "야외",
-  ETC: "기타",
+  HOME: "Home",
+  THEATER: "Theater",
+  TRANSIT: "Transit",
+  CAFE: "Cafe",
+  OFFICE: "Office",
+  LIBRARY: "Library",
+  BOOKSTORE: "Bookstore",
+  SCHOOL: "School",
+  PARK: "Park",
+  OUTDOOR: "Outdoor",
+  ETC: "Etc",
 };
 
 export const VIDEO_PLACE_VALUES: Place[] = [
@@ -48,26 +52,26 @@ export const VIDEO_PLACE_VALUES: Place[] = [
   "OFFICE",
   "ETC",
 ];
+
 export const BOOK_PLACE_VALUES: Place[] = [
   "HOME",
-  "LIBRARY",
   "CAFE",
+  "LIBRARY",
   "BOOKSTORE",
-  "TRANSIT",
   "SCHOOL",
-  "OFFICE",
   "PARK",
   "OUTDOOR",
+  "TRANSIT",
   "ETC",
 ];
 
 export const OCCASION_LABELS: Record<Occasion, string> = {
-  ALONE: "혼자",
-  DATE: "데이트",
-  FAMILY: "가족",
-  FRIENDS: "친구",
-  BREAK: "휴식",
-  ETC: "기타",
+  ALONE: "Alone",
+  DATE: "Date",
+  FAMILY: "Family",
+  FRIENDS: "Friends",
+  BREAK: "Break",
+  ETC: "Etc",
 };
 
 export function statusLabel(
@@ -109,44 +113,28 @@ export function formatNoteInline(note: string): string {
   return note.replace(/\s*\r?\n\s*/g, " ⏎ ");
 }
 
-export function safeUUID(): string {
-  if (
-    typeof crypto !== "undefined" &&
-    typeof crypto.randomUUID === "function"
-  ) {
-    return crypto.randomUUID();
+export function safeUUID() {
+  return crypto.randomUUID();
+}
+
+export function tmdbResize(url: string, size = "w185") {
+  if (!url) return url;
+  if (url.includes("image.tmdb.org")) {
+    return url.replace(/\/w\d+/, `/${size}`);
   }
-  const hex = Array.from({ length: 16 }, () => Math.floor(Math.random() * 256));
-  hex[6] = (hex[6] & 0x0f) | 0x40;
-  hex[8] = (hex[8] & 0x3f) | 0x80;
-  const toHex = (n: number) => n.toString(16).padStart(2, "0");
-  const b = hex.map(toHex).join("");
-  return `${b.slice(0, 8)}-${b.slice(8, 12)}-${b.slice(12, 16)}-${b.slice(16, 20)}-${b.slice(20)}`;
+  return url;
 }
 
-export function tmdbResize(
-  url: string | null | undefined,
-  size: string,
-): string | undefined {
-  if (!url) return url ?? undefined;
-  const marker = "https://image.tmdb.org/t/p/";
-  if (!url.startsWith(marker)) return url;
-  const rest = url.slice(marker.length);
-  const slash = rest.indexOf("/");
-  if (slash <= 0) return url;
-  return `${marker}${size}${rest.slice(slash)}`;
-}
-
-export const VIDEO_RATING_OPTIONS = [
-  { value: 5, label: "😍 최고예요" },
-  { value: 3, label: "🙂 볼만해요" },
-  { value: 1, label: "😕 아쉬워요" },
+const VIDEO_RATING_OPTIONS = [
+  { value: 5, label: "😍 Amazing!" },
+  { value: 3, label: "🙂 Good" },
+  { value: 1, label: "😕 Disappointing" },
 ];
 
-export const BOOK_RATING_OPTIONS = [
-  { value: 5, label: "📚 인생책" },
-  { value: 3, label: "🙂 무난해요" },
-  { value: 1, label: "😕 아쉬워요" },
+const BOOK_RATING_OPTIONS = [
+  { value: 5, label: "📚 Life-changing" },
+  { value: 3, label: "🙂 Worth reading" },
+  { value: 1, label: "😕 Disappointing" },
 ];
 
 export function ratingOptionsForType(type?: Title["type"], t?: any) {
@@ -187,11 +175,11 @@ export function ratingDisplay(
     return { emoji: "😕", label: t("ratingBadModern"), value: 1 };
   }
   if (titleType === "book") {
-    if (rating >= 5) return { emoji: "📚", label: "인생책", value: 5 };
-    if (rating >= 3) return { emoji: "🙂", label: "무난해요", value: 3 };
-    return { emoji: "😕", label: "아쉬워요", value: 1 };
+    if (rating >= 5) return { emoji: "📚", label: "Life-changing", value: 5 };
+    if (rating >= 3) return { emoji: "🙂", label: "Worth reading", value: 3 };
+    return { emoji: "😕", label: "Disappointing", value: 1 };
   }
-  if (rating >= 5) return { emoji: "😍", label: "나에게 최고", value: 5 };
-  if (rating >= 3) return { emoji: "🙂", label: "그럭저럭", value: 3 };
-  return { emoji: "😕", label: "나는 실망", value: 1 };
+  if (rating >= 5) return { emoji: "😍", label: "Amazing!", value: 5 };
+  if (rating >= 3) return { emoji: "🙂", label: "Good", value: 3 };
+  return { emoji: "😕", label: "Disappointing", value: 1 };
 }

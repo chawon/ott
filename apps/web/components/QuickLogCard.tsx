@@ -713,7 +713,7 @@ export default function QuickLogCard({
                       <img
                         src={
                           tmdbResize(
-                            seasonPosterUrl ?? selected.posterUrl,
+                            (seasonPosterUrl ?? selected.posterUrl) || "",
                             "w185",
                           ) ??
                           seasonPosterUrl ??
@@ -1162,7 +1162,7 @@ export default function QuickLogCard({
                   <img
                     src={
                       tmdbResize(
-                        seasonPosterUrl ?? selected.posterUrl,
+                        (seasonPosterUrl ?? selected.posterUrl) || "",
                         "w185",
                       ) ??
                       seasonPosterUrl ??

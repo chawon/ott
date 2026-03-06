@@ -60,7 +60,9 @@
     "errorUnknown": "An error occurred.",
     "share": "Share",
     "edit": "Edit",
-    "detail": "Detail"
+    "detail": "Detail",
+    "typeSeriesModern": "Series",
+    "typeSeriesRetro": "Series"
   },
   "QuickLogCard": {
     "titleMovieSeries": "What did you watch?",
@@ -157,7 +159,12 @@
     "ratingSosoModern": "Worth watching",
     "ratingBadModern": "Disappointing",
     "ratingBestBookModern": "Life-changing",
-    "ratingSosoBookModern": "Not bad"
+    "ratingSosoBookModern": "Not bad",
+    "typeMovie": "Movie",
+    "typeSeriesModern": "Series",
+    "typeBook": "Book",
+    "typeSeries": "Series",
+    "typeSeriesRetro": "Series"
   },
   "Common": {
     "placeLabels": {
@@ -182,7 +189,19 @@
       "ETC": "Etc"
     },
     "errorUnknown": "An unknown error occurred.",
-    "none": "None"
+    "none": "None",
+    "typeLabels": {
+      "movie": "Movie",
+      "series": "Series",
+      "seriesRetro": "Series",
+      "book": "Book"
+    },
+    "loading": "Loading…",
+    "typeMovie": "Movie",
+    "typeSeries": "Series",
+    "typeSeriesModern": "Series",
+    "typeSeriesRetro": "Series",
+    "typeBook": "Book"
   },
   "Status": {
     "DONE": "Watched",
@@ -220,7 +239,9 @@
     "commentCount": "Comments {count}",
     "typeMovie": "Movie",
     "typeSeries": "Series",
-    "typeBook": "Book"
+    "typeBook": "Book",
+    "typeSeriesModern": "Series",
+    "typeSeriesRetro": "Series"
   },
   "Public": {
     "title": "Community Footprints",
@@ -235,7 +256,8 @@
     "typeSeriesModern": "Series",
     "typeBook": "Book",
     "commentCountRetro": "Comments {count}",
-    "commentCountModern": "{count} comments"
+    "commentCountModern": "{count} comments",
+    "typeSeries": "Series"
   },
   "Account": {
     "titleRetro": "Customize",
