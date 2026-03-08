@@ -6,6 +6,7 @@ import com.watchlog.api.domain.Status;
 import com.watchlog.api.dto.CreateWatchLogRequest;
 import com.watchlog.api.dto.UpdateWatchLogRequest;
 import com.watchlog.api.dto.WatchLogDto;
+import com.watchlog.api.service.AuthService;
 import com.watchlog.api.service.LogService;
 import com.watchlog.api.service.WatchLogHistoryService;
 import jakarta.validation.Valid;
@@ -21,10 +22,12 @@ public class LogController {
 
     private final LogService logService;
     private final WatchLogHistoryService historyService;
+    private final AuthService authService;
 
-    public LogController(LogService logService, WatchLogHistoryService historyService) {
+    public LogController(LogService logService, WatchLogHistoryService historyService, AuthService authService) {
         this.logService = logService;
         this.historyService = historyService;
+        this.authService = authService;
     }
 
     @GetMapping
@@ -37,8 +40,10 @@ public class LogController {
             @RequestParam(value = "occasion", required = false) Occasion occasion,
             @RequestParam(value = "sort", required = false) String sort,
             @RequestParam(value = "limit", defaultValue = "50") int limit,
-            @RequestHeader(value = "X-User-Id", required = false) UUID userId
+            @RequestHeader(value = "X-User-Id", required = false) UUID userId,
+            @RequestHeader(value = "X-Device-Id", required = false) UUID deviceId
     ) {
+        authService.requireActiveDevice(userId, deviceId);
         boolean sortByHistory = "history".equalsIgnoreCase(sort);
         return logService.list(titleId, status, origin, ott, place, occasion, limit, userId, sortByHistory)
                 .stream()
@@ -50,8 +55,10 @@ public class LogController {
     public WatchLogDto create(
             @Valid @RequestBody CreateWatchLogRequest req,
             @RequestHeader(value = "X-User-Id", required = false) UUID userId,
+            @RequestHeader(value = "X-Device-Id", required = false) UUID deviceId,
             @RequestHeader(value = HttpHeaders.ACCEPT_LANGUAGE, required = false) String language
     ) {
+        authService.requireActiveDevice(userId, deviceId);
         return WatchLogDto.from(logService.create(req, userId, language));
     }
 
@@ -59,8 +66,10 @@ public class LogController {
     public WatchLogDto update(
             @PathVariable UUID id,
             @RequestBody UpdateWatchLogRequest req,
-            @RequestHeader(value = "X-User-Id", required = false) UUID userId
+            @RequestHeader(value = "X-User-Id", required = false) UUID userId,
+            @RequestHeader(value = "X-Device-Id", required = false) UUID deviceId
     ) {
+        authService.requireActiveDevice(userId, deviceId);
         return WatchLogDto.from(logService.update(id, req, userId));
     }
 

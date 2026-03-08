@@ -53,7 +53,7 @@ export default function AccountPage() {
   async function loadDevices() {
     if (!getUserId()) return;
     try {
-      const res = await api<any[]>("/devices");
+      const res = await api<any[]>("/auth/devices");
       setDevices(res);
     } catch {
       // ignore
@@ -79,7 +79,7 @@ export default function AccountPage() {
     if (loading) return;
     setLoading(true);
     try {
-      await api(`/devices/${id}`, { method: "DELETE" });
+      await api(`/auth/devices/${id}`, { method: "DELETE" });
       if (id === getDeviceId()) {
         resetLocalState();
         setStatus(tAccount("statusResetAll"));
@@ -99,7 +99,7 @@ export default function AccountPage() {
     if (loading) return;
     setLoading(true);
     try {
-      await api("/devices/all", { method: "DELETE" });
+      await api("/auth/devices/all", { method: "DELETE" });
       resetLocalState();
       setStatus(tAccount("statusResetAll"));
       window.location.reload();

@@ -34,6 +34,8 @@
 10. 다국어 지원(i18n): ko, en 전면 지원 및 TMDB 데이터 연동
 11. 사용자 문의함 + 관리자 문의 답변 화면 기본 흐름 구현
 12. 신규 문의 등록 시 Telegram 알림 전송(환경변수 설정 시 활성화)
+13. 기기 unlink 후 서버 API 차단 + 로컬 캐시 초기화 적용
+14. Next.js 16 대응 `middleware` -> `proxy` 전환 완료
 
 ### 제품 방향
 1. 추천 기능은 현재 범위에서 제외한다.
@@ -54,7 +56,8 @@
 ### P1
 1. 사용자 기기 목록/해제 UX 마무리
    1. 백엔드 API는 존재 (`GET /api/auth/devices`, `DELETE /api/auth/devices/{id}`)
-   2. 프론트 관리 화면 완성 및 검증 필요
+   2. 프론트 관리 화면 완성
+   3. unlink 후 서버 접근 차단/로컬 초기화까지 반영
 
 ### P1
 1. 복구 코드(페어링 코드) 입력 UX + 보안 정책 확정
@@ -148,6 +151,10 @@
 2. `POST /api/auth/pair`
 3. `GET /api/auth/devices`
 4. `DELETE /api/auth/devices/{id}`
+5. `DELETE /api/auth/devices/all`
+6. 활성 기기 검증
+   1. `X-User-Id` + `X-Device-Id` 조합이 유효하지 않으면 `401`
+   2. `logs`, `sync`, `feedback`, `analytics`, `auth/devices` 조회에 적용
 
 ### Feedback
 1. `GET /api/feedback/threads`

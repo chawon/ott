@@ -12,5 +12,7 @@ public interface UserDeviceRepository extends JpaRepository<UserDeviceEntity, UU
 
     Optional<UserDeviceEntity> findByIdAndUser_Id(UUID id, UUID userId);
 
+    boolean existsByIdAndUser_Id(UUID id, UUID userId);
+
     int deleteByUser_Id(UUID userId);
 }

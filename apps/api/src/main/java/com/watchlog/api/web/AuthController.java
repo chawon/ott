@@ -38,6 +38,7 @@ public class AuthController {
             @RequestHeader(value = "X-Device-Id", required = false) java.util.UUID deviceId
     ) {
         if (userId == null) return List.of();
+        authService.requireActiveDevice(userId, deviceId);
         authService.touchDevice(userId, deviceId);
         return authService.listDevices(userId).stream().map(DeviceDto::from).toList();
     }
@@ -45,9 +46,21 @@ public class AuthController {
     @DeleteMapping("/devices/{id}")
     public void revoke(
             @PathVariable java.util.UUID id,
-            @RequestHeader(value = "X-User-Id", required = false) java.util.UUID userId
+            @RequestHeader(value = "X-User-Id", required = false) java.util.UUID userId,
+            @RequestHeader(value = "X-Device-Id", required = false) java.util.UUID deviceId
     ) {
         if (userId == null) return;
+        authService.requireActiveDevice(userId, deviceId);
         authService.revokeDevice(userId, id);
+    }
+
+    @DeleteMapping("/devices/all")
+    public void revokeAll(
+            @RequestHeader(value = "X-User-Id", required = false) java.util.UUID userId,
+            @RequestHeader(value = "X-Device-Id", required = false) java.util.UUID deviceId
+    ) {
+        if (userId == null) return;
+        authService.requireActiveDevice(userId, deviceId);
+        authService.revokeAllDevices(userId);
     }
 }

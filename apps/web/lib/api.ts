@@ -2,6 +2,7 @@ import {
   getDeviceId,
   getPairingCode,
   getUserId,
+  resetLocalState,
   setDeviceId,
   setPairingCode,
   setUserId,
@@ -82,6 +83,14 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   });
 
   if (!res.ok) {
+    if (res.status === 401 || res.status === 403) {
+      await resetLocalState();
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("auth:revoked"));
+        window.location.reload();
+      }
+      throw new Error("Device access has been revoked");
+    }
     let msg = res.statusText;
     try {
       const body = await res.json();

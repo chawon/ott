@@ -10,9 +10,12 @@ import com.watchlog.api.repo.UserRepository;
 import com.watchlog.api.repo.WatchLogRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.security.SecureRandom;
 import java.util.UUID;
+
+import static org.springframework.http.HttpStatus.UNAUTHORIZED;
 
 @Service
 public class AuthService {
@@ -88,11 +91,27 @@ public class AuthService {
     }
 
     @Transactional
+    public void revokeAllDevices(java.util.UUID userId) {
+        if (userId == null) return;
+        userDeviceRepository.deleteByUser_Id(userId);
+    }
+
+    @Transactional
     public void touchDevice(java.util.UUID userId, java.util.UUID deviceId) {
         if (userId == null || deviceId == null) return;
         userDeviceRepository.findByIdAndUser_Id(deviceId, userId).ifPresent(d -> {
             d.touch();
         });
+    }
+
+    @Transactional(readOnly = true)
+    public void requireActiveDevice(java.util.UUID userId, java.util.UUID deviceId) {
+        if (userId == null || deviceId == null) {
+            throw new ResponseStatusException(UNAUTHORIZED, "Active device is required");
+        }
+        if (!userDeviceRepository.existsByIdAndUser_Id(deviceId, userId)) {
+            throw new ResponseStatusException(UNAUTHORIZED, "Device has been unlinked");
+        }
     }
 
     private void mergeUsers(java.util.UUID fromUserId, java.util.UUID toUserId) {
