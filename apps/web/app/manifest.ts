@@ -7,6 +7,7 @@ export default async function manifest(): Promise<MetadataRoute.Manifest> {
   const isEn = acceptLanguage.toLowerCase().startsWith("en");
 
   return {
+    id: "/",
     name: isEn ? "On the Timeline" : "On the Timeline | 로그인 없이 영상·책 기록",
     short_name: isEn ? "Timeline" : "발자취",
     description: isEn 
@@ -14,9 +15,13 @@ export default async function manifest(): Promise<MetadataRoute.Manifest> {
       : "가입 없이 남기는 영상과 책의 기록. 나의 타임라인을 만들어보세요.",
     start_url: "/",
     display: "standalone",
+    orientation: "portrait",
     background_color: "#ffffff",
     theme_color: "#111827",
     lang: isEn ? "en" : "ko",
+    categories: isEn
+      ? ["entertainment", "books", "lifestyle", "productivity"]
+      : ["entertainment", "books", "lifestyle", "productivity"],
     icons: [
       {
         src: "/icon-192.png",

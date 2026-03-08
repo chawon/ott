@@ -73,6 +73,13 @@
    2. 운영 응답 SLA 정리
    3. 관리자 답변 알림 여부 결정
 
+### P1
+1. Microsoft Store용 PWA 패키징 준비
+2. 현재 기준
+   1. 당분간 `On the Timeline` 브랜드로 진행
+   2. `manifest`의 `id`, `orientation`, `categories` 반영 완료
+   3. PWABuilder fresh scan, Store listing copy, 운영 도메인 정합성 확인 필요
+
 ---
 
 ## 4) Codex 개발 룰
