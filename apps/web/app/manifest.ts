@@ -9,7 +9,7 @@ export default async function manifest(): Promise<MetadataRoute.Manifest> {
   return {
     id: "/",
     name: "On the Timeline",
-    short_name: isEn ? "On the Timeline" : "온더타임라인",
+    short_name: "On the Timeline",
     description: isEn 
       ? "Watch and read log timeline without sign-up. Build your own footprints."
       : "가입 없이 남기는 영상과 책의 기록. 나의 타임라인을 만들어보세요.",
