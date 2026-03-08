@@ -8,7 +8,7 @@ export default async function manifest(): Promise<MetadataRoute.Manifest> {
 
   return {
     id: "/",
-    name: isEn ? "On the Timeline" : "On the Timeline | 로그인 없이 영상·책 기록",
+    name: "On the Timeline",
     short_name: isEn ? "On the Timeline" : "온더타임라인",
     description: isEn 
       ? "Watch and read log timeline without sign-up. Build your own footprints."
