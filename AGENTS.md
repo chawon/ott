@@ -77,8 +77,9 @@
 1. Microsoft Store용 PWA 패키징 준비
 2. 현재 기준
    1. 당분간 `On the Timeline` 브랜드로 진행
-   2. `manifest`의 `id`, `orientation`, `categories` 반영 완료
-   3. PWABuilder fresh scan, Store listing copy, 운영 도메인 정합성 확인 필요
+   2. `manifest`의 `id`, `orientation`, `categories`, `name`, `short_name` 반영 완료
+   3. PWABuilder 패키지 생성 및 Microsoft 인증 심사 신청 완료
+   4. 남은 작업은 심사 질의 대응, Store URL/카테고리 최종 확정
 
 ---
 

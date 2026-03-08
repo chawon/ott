@@ -9,7 +9,8 @@
 - 저장소에는 PWA/TWA 관련 문서는 있으나 Microsoft Store 전용 문서는 없었다.
 - 현재 웹 앱은 PWA 기본 요건(manifest, icons, screenshots, install banner, service worker)을 이미 갖추고 있다.
 - 현재 Microsoft Store 준비는 당분간 `On the Timeline` 브랜드 기준으로 진행한다.
-- 다만 Store 제출 전 메타데이터와 운영 자산 정합성은 추가 점검이 필요하다.
+- PWABuilder 기준 `service worker` 감지는 해결됐고, 최신 패키지 생성 및 인증 심사 신청까지 진행했다.
+- 다만 Store 메타데이터와 운영 자산 정합성은 추가 점검이 필요하다.
 
 ## 3. 현재 코드 기준 준비 상태
 
@@ -17,6 +18,7 @@
 1. Web App Manifest
    - `apps/web/app/manifest.ts`
    - PWABuilder 권고 항목 중 `id`, `orientation`, `categories` 반영 완료
+   - `name`, `short_name` 모두 `On the Timeline`으로 통일 완료
 2. 설치 아이콘
    - `apps/web/public/icon-192.png`
    - `apps/web/public/icon.png`
@@ -27,19 +29,27 @@
 4. 오프라인 페이지/서비스워커
    - `apps/web/public/sw.js`
    - `apps/web/app/[locale]/offline/page.tsx`
+   - production 초기 스크립트에서 서비스워커 등록하도록 조정해 PWABuilder 감지 확인
 5. 설치 유도 UI
    - `apps/web/components/PwaInstallBanner.tsx`
+6. Store 제출용 추가 자산
+   - `apps/web/public/store/store-poster-720x1080.png`
+   - `apps/web/public/store/store-poster-1440x2160.png`
+   - `apps/web/public/store/store-box-1080x1080.png`
+   - `apps/web/public/store/store-box-2160x2160.png`
+7. Store listing 문구 초안
+   - `docs/ms-store-listing-copy.md`
 
 ### Store 제출 전 수정 필요
 1. 도메인 정합성
    - 현재 검사/패키징 대상은 `https://ott.preview.pe.kr`
    - Store 실제 제출 시 사용할 운영 도메인과 일치시키는지 결정 필요
 2. 스크린샷/아이콘 재검토
-   - 기존 자산이 현재 `On the Timeline` 브랜드와 최신 UI에 맞는지 확인 필요
+   - 기존 앱 스크린샷과 새 Store 포스터/박스 아트의 최종 채택본 확정 필요
 3. 정책 문서 링크 검토
    - Privacy / support URL을 Store listing에 넣을 최종 운영 주소 확정 필요
-4. PWABuilder 재검사
-   - 저장한 리포트 HTML 기준 권고 항목은 반영했으므로 fresh scan으로 결과 갱신 필요
+4. 인증 심사 후속 대응
+   - Microsoft 추가 질문 또는 자산 수정 요청 시 응답 필요
 
 ## 4. Microsoft Store 제출 절차
 공식 문서 기준 현재 흐름은 아래와 같다.
@@ -59,8 +69,8 @@
 
 ### P0
 1. 운영 도메인을 Store 제출 기준과 일치시킴
-2. 스크린샷이 현재 브랜드/UI와 맞는지 재촬영 또는 교체
-3. PWABuilder fresh report 기준 필수/권고 항목 재확인
+2. 스크린샷/포스터/박스 아트 최종본 확정
+3. 인증 심사 피드백 대응
 
 ### P1
 1. Store listing 초안 작성
@@ -77,20 +87,22 @@
 
 ### 웹/PWA
 - [x] `manifest.ts`에 `id`, `orientation`, `categories` 반영
-- [ ] `manifest.ts` 이름/설명/아이콘/스크린샷 최종 반영
+- [x] `manifest.ts` 이름/short name을 `On the Timeline`으로 통일
+- [ ] `manifest.ts` 설명/아이콘/스크린샷 최종 반영
 - [ ] `layout.tsx` metadata / siteName / domain 정리
 - [ ] 설치 후 standalone 실행 확인
-- [ ] 서비스워커 최신 버전 확인
-- [ ] `npm run build` 통과
+- [x] 서비스워커 최신 버전 확인
+- [x] `npm run build` 통과
 
 ### Store 메타데이터
-- [ ] 앱 이름 예약
+- [x] 앱 이름 예약
 - [ ] 카테고리 확정
-- [ ] 한국어/영어 설명문
-- [ ] 앱 아이콘/hero image
-- [ ] 스크린샷
+- [x] 한국어/영어 설명문 초안
+- [x] 앱 아이콘/hero image 초안
+- [x] 스크린샷 기본 자산 준비
 - [ ] 개인정보처리방침 URL
 - [ ] 지원 URL 또는 문의 URL
+- [x] 인증 심사 신청
 
 ### QA
 - [ ] Windows 설치 후 첫 실행
@@ -117,12 +129,13 @@
 2. 하지만 manifest 내용이 바뀌면 Windows 패키지에 복사되는 정보가 달라지므로 재패키징/재제출이 필요하다.
 3. 현재는 `On the Timeline` 기준으로 진행하므로, Store 자산과 listing copy도 같은 기준으로 맞춰야 한다.
 4. PWABuilder 저장 리포트에는 service worker 권고가 남아 있었지만 현재 코드에는 `apps/web/public/sw.js`가 있으므로, 재검사 결과를 다시 기준으로 삼는다.
+5. 최신 패키지의 `runFullTrust`는 앱 자체의 네이티브 권한 사용이 아니라 PWABuilder/Edge 기반 데스크톱 PWA 패키징 모델 때문에 선언된 것으로 확인했다.
 
 ## 9. 추천 다음 단계
-1. PWABuilder fresh scan 재실행
-2. Store listing 카피 문서 초안 추가
-3. PWABuilder 패키징용 입력값 목록 문서화
-4. 실제 Partner Center 제출 전 QA 체크리스트 실행
+1. Microsoft 인증 심사 결과 확인
+2. 추가 질의 오면 `runFullTrust` 및 PWA 패키징 구조 기준으로 답변
+3. Store listing 최종 카테고리/URL 확정
+4. 승인 후 실제 설치 QA 체크리스트 실행
 
 ## 10. 참고 자료
 - Microsoft Learn: Test and publish Progressive Web Apps (PWAs) for Microsoft Store
