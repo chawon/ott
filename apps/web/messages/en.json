@@ -40,6 +40,8 @@
     "linkFaqModern": "FAQ",
     "linkPrivacyRetro": "Privacy",
     "linkPrivacyModern": "Privacy Policy",
+    "linkFeedbackRetro": "Inbox",
+    "linkFeedbackModern": "Contact",
     "allRightsReserved": "All rights reserved.",
     "titleRetro": "The Best & The Second",
     "titleModern": "On the Timeline"
@@ -330,7 +332,10 @@
     "resetLocalAction": "Reset Local",
     "exportRangeLabel": "Export Range",
     "noConnectedDevices": "No connected devices.",
-    "currentLabel": "Current"
+    "currentLabel": "Current",
+    "feedbackTitle": "Contact Inbox",
+    "feedbackDesc": "Leave questions or issues in your personal inbox and check replies there.",
+    "feedbackAction": "Open My Inbox"
   },
   "CommentsPanel": {
     "loadError": "Failed to load shared records. Please try again later.",
@@ -537,6 +542,74 @@
     "occasion": "Occasion",
     "platform": "Platform",
     "note": "Note"
+  },
+  "Feedback": {
+    "title": "My Inbox",
+    "description": "Leave questions, bug reports, or ideas and check admin replies here.",
+    "newThreadTitle": "New Inquiry",
+    "categoryLabel": "Category",
+    "subjectLabel": "Subject",
+    "subjectPlaceholder": "Example: My pairing code does not appear",
+    "bodyLabel": "Message",
+    "bodyPlaceholder": "Tell us what you are trying to do and what went wrong.",
+    "createNotice": "Replies will appear in this inbox.",
+    "submitAction": "Send Inquiry",
+    "submitting": "Sending…",
+    "createSuccess": "Inquiry sent.",
+    "createError": "Failed to send inquiry.",
+    "myThreadsTitle": "My Threads",
+    "loading": "Loading…",
+    "empty": "No inquiries yet.",
+    "emptyDetail": "Select a thread from the left to view the conversation.",
+    "loadError": "Failed to load your inquiries.",
+    "loadDetailError": "Failed to load inquiry detail.",
+    "messageRoleUser": "My Message",
+    "messageRoleAdmin": "Admin Reply",
+    "untitled": "Untitled",
+    "noMessages": "No messages yet.",
+    "updatedAt": "Updated {date}",
+    "category": {
+      "QUESTION": "Question",
+      "BUG": "Bug",
+      "IDEA": "Idea",
+      "OTHER": "Other"
+    },
+    "status": {
+      "OPEN": "Open",
+      "ANSWERED": "Answered",
+      "CLOSED": "Closed"
+    }
+  },
+  "AdminFeedback": {
+    "title": "Admin Feedback Inbox",
+    "description": "Review all user inquiries and reply from one place.",
+    "allThreads": "All Threads",
+    "loading": "Loading…",
+    "empty": "No inquiries yet.",
+    "emptyDetail": "Select a thread from the left.",
+    "loadError": "Failed to load feedback threads.",
+    "loadDetailError": "Failed to load thread details.",
+    "replyTitle": "Write Reply",
+    "replyPlaceholder": "Write a reply for the user.",
+    "replyAction": "Send Reply",
+    "replying": "Sending reply…",
+    "replySuccess": "Reply saved.",
+    "replyError": "Failed to save reply.",
+    "messageRoleUser": "User",
+    "messageRoleAdmin": "Admin",
+    "untitled": "Untitled",
+    "noMessages": "No messages yet.",
+    "category": {
+      "QUESTION": "Question",
+      "BUG": "Bug",
+      "IDEA": "Idea",
+      "OTHER": "Other"
+    },
+    "status": {
+      "OPEN": "Open",
+      "ANSWERED": "Answered",
+      "CLOSED": "Closed"
+    }
   },
   "Admin": {
     "title": "Admin Analytics",

@@ -1,10 +1,9 @@
 "use client";
 
-import Link from "next/link";
-import { useRetro } from "@/context/RetroContext";
-import { cn } from "@/lib/utils";
 import { useTranslations } from "next-intl";
+import { useRetro } from "@/context/RetroContext";
 import { Link as IntlLink } from "@/i18n/routing";
+import { cn } from "@/lib/utils";
 
 export default function AppFooter() {
   const currentYear = new Date().getFullYear();
@@ -110,6 +109,11 @@ export default function AppFooter() {
                   {isRetro ? t("linkPrivacyRetro") : t("linkPrivacyModern")}
                 </IntlLink>
               </li>
+              <li>
+                <IntlLink href="/feedback" className="hover:underline">
+                  {isRetro ? t("linkFeedbackRetro") : t("linkFeedbackModern")}
+                </IntlLink>
+              </li>
             </ul>
           </div>
 
@@ -120,7 +124,8 @@ export default function AppFooter() {
             )}
           >
             <p>
-              © {currentYear} {isRetro ? t("titleRetro") : t("titleModern")}. {t("allRightsReserved")}
+              © {currentYear} {isRetro ? t("titleRetro") : t("titleModern")}.{" "}
+              {t("allRightsReserved")}
             </p>
           </div>
         </div>

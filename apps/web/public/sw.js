@@ -1,4 +1,4 @@
-const CACHE_NAME = "ott-pwa-v1";
+const CACHE_NAME = "ott-pwa-v2";
 const PRECACHE_URLS = [
   "/",
   "/timeline",
@@ -45,6 +45,10 @@ self.addEventListener("fetch", (event) => {
   }
 
   if (url.pathname.startsWith("/og/")) {
+    return;
+  }
+
+  if (url.pathname.startsWith("/_next/")) {
     return;
   }
 

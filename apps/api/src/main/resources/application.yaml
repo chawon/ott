@@ -32,6 +32,16 @@ naver:
   client-id: ${NAVER_CLIENT_ID:}
   client-secret: ${NAVER_CLIENT_SECRET:}
 
+notify:
+  telegram:
+    enabled: ${TELEGRAM_NOTIFY_ENABLED:false}
+    bot-token: ${TELEGRAM_BOT_TOKEN:}
+    chat-id: ${TELEGRAM_CHAT_ID:}
+    base-url: ${TELEGRAM_BASE_URL:https://api.telegram.org}
+    service-name: ${TELEGRAM_SERVICE_NAME:ottline}
+
 admin:
   analytics:
     token: ${ADMIN_ANALYTICS_TOKEN:}
+  feedback:
+    token: ${ADMIN_FEEDBACK_TOKEN:${ADMIN_ANALYTICS_TOKEN:}}

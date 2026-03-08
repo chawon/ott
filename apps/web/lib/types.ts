@@ -84,6 +84,51 @@ export interface MentionRef {
   name: string;
 }
 
+export type FeedbackCategory = "QUESTION" | "BUG" | "IDEA" | "OTHER";
+export type FeedbackStatus = "OPEN" | "ANSWERED" | "CLOSED";
+export type FeedbackAuthorRole = "USER" | "ADMIN";
+
+export interface FeedbackMessage {
+  id: string;
+  authorRole: FeedbackAuthorRole;
+  body: string;
+  createdAt: string;
+}
+
+export interface FeedbackThreadSummary {
+  id: string;
+  userId: string;
+  category: FeedbackCategory;
+  status: FeedbackStatus;
+  subject?: string | null;
+  messageCount: number;
+  lastMessagePreview?: string | null;
+  lastAuthorRole?: FeedbackAuthorRole | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface FeedbackThreadDetail {
+  id: string;
+  userId: string;
+  category: FeedbackCategory;
+  status: FeedbackStatus;
+  subject?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  messages: FeedbackMessage[];
+}
+
+export interface CreateFeedbackThreadRequest {
+  category: FeedbackCategory;
+  subject?: string | null;
+  body: string;
+}
+
+export interface CreateFeedbackMessageRequest {
+  body: string;
+}
+
 export interface TitleSearchItem {
   provider: Provider;
   providerId: string;

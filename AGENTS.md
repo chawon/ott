@@ -32,6 +32,8 @@
 8. 공유 카드(OG 서버 렌더 + 공유/다운로드)
 9. PWA(설치 배너, SW, manifest)
 10. 다국어 지원(i18n): ko, en 전면 지원 및 TMDB 데이터 연동
+11. 사용자 문의함 + 관리자 문의 답변 화면 기본 흐름 구현
+12. 신규 문의 등록 시 Telegram 알림 전송(환경변수 설정 시 활성화)
 
 ### 제품 방향
 1. 추천 기능은 현재 범위에서 제외한다.
@@ -60,6 +62,13 @@
    1. 코드 길이/만료
    2. 재발급 규칙
    3. 신규 기기 승인/해제 흐름
+
+### P1
+1. 문의함 운영 알림 추가
+2. 우선 검토
+   1. 미답변 필터/카운트
+   2. 운영 응답 SLA 정리
+   3. 관리자 답변 알림 여부 결정
 
 ---
 
@@ -140,6 +149,29 @@
 3. `GET /api/auth/devices`
 4. `DELETE /api/auth/devices/{id}`
 
+### Feedback
+1. `GET /api/feedback/threads`
+   1. 헤더: `X-User-Id` 필요
+   2. 현재 사용자 본인 문의 목록만 반환
+2. `POST /api/feedback/threads`
+   1. 헤더: `X-User-Id` 필요
+   2. 새 문의 스레드 + 첫 메시지 생성
+3. `GET /api/feedback/threads/{id}`
+   1. 헤더: `X-User-Id` 필요
+   2. 본인 문의 상세만 반환
+4. `GET /api/admin/feedback/threads?limit=`
+   1. 헤더: `X-Admin-Token` 필요
+   2. 전체 문의 목록 반환
+5. `GET /api/admin/feedback/threads/{id}`
+   1. 헤더: `X-Admin-Token` 필요
+   2. 관리자용 문의 상세 반환
+6. `POST /api/admin/feedback/threads/{id}/reply`
+   1. 헤더: `X-Admin-Token` 필요
+   2. 관리자 답변 메시지 생성 + 상태를 `ANSWERED`로 변경
+7. Telegram 운영 알림
+   1. 신규 문의 등록 시만 전송
+   2. 설정: `TELEGRAM_NOTIFY_ENABLED`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `TELEGRAM_SERVICE_NAME`
+
 ### Analytics
 1. `POST /api/analytics/events`
    1. 익명 방문도 수집 가능
@@ -163,6 +195,12 @@
 3. `watch_log_history`
    1. create/update 시점 스냅샷 누적
    2. 상세 화면 타임라인의 진실 원천
+4. `feedback_threads`
+   1. 사용자별 문의 스레드
+   2. `category`, `status`, `subject`, `updated_at` 관리
+5. `feedback_messages`
+   1. 문의 스레드 하위 메시지
+   2. `author_role(USER|ADMIN)` 기준으로 작성자 구분
 
 ---
 

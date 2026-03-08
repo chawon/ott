@@ -40,6 +40,8 @@
     "linkFaqModern": "자주 묻는 질문",
     "linkPrivacyRetro": "개인정보",
     "linkPrivacyModern": "개인정보처리방침",
+    "linkFeedbackRetro": "문의함",
+    "linkFeedbackModern": "문의하기",
     "allRightsReserved": "All rights reserved.",
     "titleRetro": "으뜸과 버금",
     "titleModern": "On the Timeline"
@@ -330,7 +332,10 @@
     "resetLocalAction": "로컬 초기화",
     "exportRangeLabel": "내보내기 범위",
     "noConnectedDevices": "연결된 기기가 없어요.",
-    "currentLabel": "현재"
+    "currentLabel": "현재",
+    "feedbackTitle": "문의함",
+    "feedbackDesc": "사용 중 질문이나 불편한 점이 있으면 내 문의함에 남겨주세요.",
+    "feedbackAction": "내 문의함 열기"
   },
   "CommentsPanel": {
     "loadError": "함께 기록을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.",
@@ -537,6 +542,74 @@
     "occasion": "누구와",
     "platform": "플랫폼",
     "note": "메모"
+  },
+  "Feedback": {
+    "title": "내 문의함",
+    "description": "질문, 버그 제보, 기능 제안을 남기고 답변을 확인할 수 있어요.",
+    "newThreadTitle": "새 문의 작성",
+    "categoryLabel": "문의 유형",
+    "subjectLabel": "제목",
+    "subjectPlaceholder": "예: 페어링 코드가 보이지 않아요",
+    "bodyLabel": "내용",
+    "bodyPlaceholder": "무엇이 궁금한지, 어떤 상황에서 문제가 발생했는지 자세히 남겨주세요.",
+    "createNotice": "답변은 이 문의함에서 확인할 수 있어요.",
+    "submitAction": "문의 등록",
+    "submitting": "등록 중…",
+    "createSuccess": "문의가 등록되었어요.",
+    "createError": "문의 등록에 실패했어요.",
+    "myThreadsTitle": "내 문의 목록",
+    "loading": "불러오는 중…",
+    "empty": "아직 등록한 문의가 없어요.",
+    "emptyDetail": "왼쪽에서 문의를 선택하면 대화 내용을 볼 수 있어요.",
+    "loadError": "문의 목록을 불러오지 못했어요.",
+    "loadDetailError": "문의 상세를 불러오지 못했어요.",
+    "messageRoleUser": "내 문의",
+    "messageRoleAdmin": "관리자 답변",
+    "untitled": "제목 없음",
+    "noMessages": "메시지가 없어요.",
+    "updatedAt": "최근 업데이트 {date}",
+    "category": {
+      "QUESTION": "질문",
+      "BUG": "버그",
+      "IDEA": "제안",
+      "OTHER": "기타"
+    },
+    "status": {
+      "OPEN": "확인 대기",
+      "ANSWERED": "답변 완료",
+      "CLOSED": "종료"
+    }
+  },
+  "AdminFeedback": {
+    "title": "관리자 문의함",
+    "description": "전체 문의를 확인하고 답변을 남길 수 있습니다.",
+    "allThreads": "전체 문의",
+    "loading": "불러오는 중…",
+    "empty": "아직 문의가 없어요.",
+    "emptyDetail": "왼쪽에서 문의를 선택해 주세요.",
+    "loadError": "문의 목록을 불러오지 못했어요.",
+    "loadDetailError": "문의 상세를 불러오지 못했어요.",
+    "replyTitle": "답변 작성",
+    "replyPlaceholder": "사용자에게 보낼 답변을 작성해 주세요.",
+    "replyAction": "답변 보내기",
+    "replying": "답변 등록 중…",
+    "replySuccess": "답변을 저장했어요.",
+    "replyError": "답변 저장에 실패했어요.",
+    "messageRoleUser": "사용자",
+    "messageRoleAdmin": "관리자",
+    "untitled": "제목 없음",
+    "noMessages": "메시지가 없어요.",
+    "category": {
+      "QUESTION": "질문",
+      "BUG": "버그",
+      "IDEA": "제안",
+      "OTHER": "기타"
+    },
+    "status": {
+      "OPEN": "확인 대기",
+      "ANSWERED": "답변 완료",
+      "CLOSED": "종료"
+    }
   },
   "Admin": {
     "title": "관리자 통계",

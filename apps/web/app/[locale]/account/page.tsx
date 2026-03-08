@@ -15,6 +15,7 @@ import { api } from "@/lib/api";
 import { useRetro } from "@/context/RetroContext";
 import { cn } from "@/lib/utils";
 import { downloadTimelineCsv } from "@/lib/export";
+import { Link as IntlLink } from "@/i18n/routing";
 
 import { useLocale, useTranslations } from "next-intl";
 export default function AccountPage() {
@@ -282,6 +283,26 @@ export default function AccountPage() {
             <div className="text-xs font-medium text-blue-600">{status}</div>
           )}
         </div>
+      </section>
+
+      <section className="space-y-4 rounded-2xl border border-border bg-card p-6 shadow-sm">
+        <div>
+          <div className="text-base font-semibold">{tAccount("feedbackTitle")}</div>
+          <p className="text-sm text-muted-foreground">
+            {tAccount("feedbackDesc")}
+          </p>
+        </div>
+        <IntlLink
+          href="/feedback"
+          className={cn(
+            "flex w-full items-center justify-center gap-2 px-4 py-3 text-center text-sm font-bold transition-all break-keep",
+            isRetro
+              ? "border-4 border-black bg-white text-black hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
+              : "rounded-2xl border border-border bg-card text-foreground hover:bg-muted",
+          )}
+        >
+          {tAccount("feedbackAction")}
+        </IntlLink>
       </section>
 
       <section className="space-y-4 rounded-2xl border border-border bg-card p-6 shadow-sm">
