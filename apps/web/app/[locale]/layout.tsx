@@ -73,6 +73,17 @@ export default async function RootLayout({
   } catch (_) {}
 })();
 `;
+  const serviceWorkerInitScript = `
+(() => {
+  if (!("serviceWorker" in navigator)) return;
+  if (!window.isSecureContext) return;
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/sw.js").catch(() => {
+      // Ignore registration errors to avoid blocking runtime flows.
+    });
+  }, { once: true });
+})();
+`;
   return (
     <html lang={locale} suppressHydrationWarning>
       <head>
@@ -81,6 +92,9 @@ export default async function RootLayout({
           content="a7a2d3521b1bcb813f5e7535f4e46ffb564c113a"
         />
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
+        {process.env.NODE_ENV === "production" ? (
+          <script dangerouslySetInnerHTML={{ __html: serviceWorkerInitScript }} />
+        ) : null}
       </head>
       <body className="min-h-screen bg-background text-foreground font-sans antialiased transition-colors duration-300">
         <NextIntlClientProvider messages={messages}>

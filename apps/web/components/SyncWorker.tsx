@@ -32,10 +32,6 @@ export default function SyncWorker() {
       }
       return;
     }
-
-    navigator.serviceWorker.register("/sw.js").catch(() => {
-      // Ignore registration errors to avoid blocking runtime flows.
-    });
   }, []);
 
   useEffect(() => {
