@@ -74,13 +74,15 @@ export default async function AdminAnalyticsPage({
   const t = await getTranslations({ locale, namespace: "Admin" });
   const sParams = searchParams ? await searchParams : {};
   const token = readToken(sParams?.token);
-  const expected = process.env.ADMIN_ANALYTICS_TOKEN ?? null;
+  const expected = process.env.ADMIN_ANALYTICS_TOKEN?.trim() || null;
   const backendUrl = process.env.BACKEND_URL ?? null;
   const daysRaw = readToken(sParams?.days);
   const days = daysRaw ? Number(daysRaw) : 30;
+  const adminToken = token;
 
-  // MVP: dedicated URL + server-side token check.
-  if (!expected || token !== expected) {
+  // Require an explicit token in the URL. If the frontend also knows the
+  // expected token, fail closed here; otherwise let the backend verify it.
+  if (!adminToken || (expected && adminToken !== expected)) {
     notFound();
   }
 
@@ -102,7 +104,7 @@ export default async function AdminAnalyticsPage({
       `${backendUrl}/api/admin/analytics/overview?days=${safeDays}`,
       {
         headers: {
-          "X-Admin-Token": expected,
+          "X-Admin-Token": adminToken,
         },
         cache: "no-store",
       },
@@ -111,19 +113,21 @@ export default async function AdminAnalyticsPage({
       `${backendUrl}/api/admin/analytics/events?days=${safeDays}&limit=300`,
       {
         headers: {
-          "X-Admin-Token": expected,
+          "X-Admin-Token": adminToken,
         },
         cache: "no-store",
       },
     );
     if (!response.ok || !eventsResponse.ok) {
-      loadError = t("apiError", { status: response.status });
+      loadError = t("apiError", {
+        status: response.ok ? eventsResponse.status : response.status,
+      });
     } else {
       overview = (await response.json()) as AdminOverview;
       recentEvents = (await eventsResponse.json()) as AdminEventRow[];
     }
-  } catch (e: any) {
-    loadError = e?.message ?? t("callError");
+  } catch (e: unknown) {
+    loadError = e instanceof Error ? e.message : t("callError");
   }
 
   const isOnboardingEvent = (eventName: string) =>
