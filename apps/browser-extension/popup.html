@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>On the Timeline</title>
+    <link rel="stylesheet" href="./popup.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <p class="eyebrow">On the Timeline</p>
+      <h1 class="title">현재 페이지를 기록으로 보내기</h1>
+      <p class="description" id="description">
+        지원하는 OTT 작품 페이지에서 제목을 읽어와 QuickLog 검색어로 채웁니다.
+      </p>
+
+      <section class="card" id="card">
+        <p class="label">상태</p>
+        <p class="value" id="status">현재 탭을 확인하는 중…</p>
+      </section>
+
+      <button class="cta" id="openButton" type="button" disabled>
+        On the Timeline에서 기록 시작
+      </button>
+    </main>
+    <script src="./popup.js"></script>
+  </body>
+  </html>

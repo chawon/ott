@@ -81,6 +81,15 @@
    3. PWABuilder 패키지 생성 및 Microsoft 인증 심사 신청 완료
    4. 남은 작업은 심사 질의 대응, Store URL/카테고리 최종 확정
 
+### P1
+1. PC 브라우저 확장 MVP
+2. 현재 기준
+   1. `apps/browser-extension`에 Chrome extension MVP 추가
+   2. 지원 사이트 OTT 상세 페이지에서 제목을 읽고 QuickLog로 전달
+   3. 웹앱 홈은 `capture_*` query param을 읽어 QuickLog 초기값 주입
+   4. GitHub Actions로 제출용 zip artifact 생성
+   5. 남은 작업은 실제 사이트 검증과 페이지 내 CTA 여부 판단
+
 ---
 
 ## 4) Codex 개발 룰

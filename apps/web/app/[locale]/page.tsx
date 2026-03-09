@@ -46,6 +46,9 @@ export default function HomePage() {
       const quickEnabled = params.get("quick") === "1";
       const quickTypeParam = params.get("quick_type");
       const quickFocus = params.get("quick_focus") === "1";
+      const captureTitle = params.get("capture_title")?.trim();
+      const captureType = params.get("capture_type");
+      const capturePlatform = params.get("capture_platform")?.trim();
 
       if (quickEnabled) {
         if (!cancelled) {
@@ -56,6 +59,19 @@ export default function HomePage() {
           if (quickFocus) {
             setAutoFocusSearch(true);
           }
+        }
+      }
+
+      if (captureTitle && !cancelled) {
+        setSharedQuery(captureTitle);
+        setQuickOpen(true);
+        setAutoFocusSearch(true);
+        if (captureType === "book" || captureType === "video") {
+          setSharedContentType(captureType);
+          setQuickType(captureType);
+        }
+        if (capturePlatform) {
+          setSharedPlatform(capturePlatform);
         }
       }
 

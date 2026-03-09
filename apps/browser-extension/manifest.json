@@ -1,0 +1,50 @@
+{
+  "manifest_version": 3,
+  "name": "On the Timeline Helper",
+  "version": "0.1.0",
+  "description": "Capture supported OTT title pages and open On the Timeline with a prefilled log search.",
+  "action": {
+    "default_title": "On the Timeline",
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon-16.png",
+      "32": "icons/icon-32.png",
+      "48": "icons/icon-48.png",
+      "128": "icons/icon-128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon-16.png",
+    "32": "icons/icon-32.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  },
+  "permissions": [
+    "activeTab",
+    "tabs"
+  ],
+  "host_permissions": [
+    "https://www.netflix.com/*",
+    "https://www.disneyplus.com/*",
+    "https://www.tving.com/*",
+    "https://www.wavve.com/*",
+    "https://www.coupangplay.com/*",
+    "https://watcha.com/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "https://www.netflix.com/*",
+        "https://www.disneyplus.com/*",
+        "https://www.tving.com/*",
+        "https://www.wavve.com/*",
+        "https://www.coupangplay.com/*",
+        "https://watcha.com/*"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ]
+}

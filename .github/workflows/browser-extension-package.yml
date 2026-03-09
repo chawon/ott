@@ -1,0 +1,60 @@
+name: Package Browser Extension
+
+on:
+  push:
+    branches:
+      - main
+      - feat/browser-extension-mvp
+    paths:
+      - "apps/browser-extension/**"
+      - "apps/web/app/[locale]/page.tsx"
+      - "docs/browser-extension-mvp.md"
+      - ".github/workflows/browser-extension-package.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package-extension:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Verify extension files
+        run: |
+          test -f apps/browser-extension/manifest.json
+          test -f apps/browser-extension/content.js
+          test -f apps/browser-extension/popup.html
+          test -f apps/browser-extension/popup.css
+          test -f apps/browser-extension/popup.js
+
+      - name: Compute package metadata
+        id: meta
+        shell: bash
+        run: |
+          VERSION=$(node -p "require('./apps/browser-extension/manifest.json').version")
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "zip_name=on-the-timeline-helper-${VERSION}.zip" >> "$GITHUB_OUTPUT"
+
+      - name: Create extension zip
+        shell: bash
+        run: |
+          cd apps/browser-extension
+          zip -r "../../${{ steps.meta.outputs.zip_name }}" \
+            manifest.json \
+            content.js \
+            popup.html \
+            popup.css \
+            popup.js \
+            icons \
+            README.md
+
+      - name: Upload extension artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: on-the-timeline-helper-${{ steps.meta.outputs.version }}
+          path: ${{ steps.meta.outputs.zip_name }}
+          if-no-files-found: error
