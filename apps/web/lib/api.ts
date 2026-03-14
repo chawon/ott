@@ -23,6 +23,56 @@ function getStoredAuth() {
   return { userId, deviceId, pairingCode };
 }
 
+const OLD_DOMAIN = "https://ott.preview.pe.kr";
+const NEW_HOSTNAME = "ottline.app";
+const MIGRATION_TIMEOUT_MS = 4000;
+
+async function tryMigrateFromOldDomain(): Promise<boolean> {
+  if (window.location.hostname !== NEW_HOSTNAME) return false;
+
+  return new Promise((resolve) => {
+    const iframe = document.createElement("iframe");
+    iframe.src = `${OLD_DOMAIN}/ko/migration-helper`;
+    iframe.style.cssText = "display:none;position:fixed;width:0;height:0;";
+    document.body.appendChild(iframe);
+
+    const timer = setTimeout(() => {
+      cleanup();
+      resolve(false);
+    }, MIGRATION_TIMEOUT_MS);
+
+    function handleMessage(event: MessageEvent) {
+      if (event.origin !== OLD_DOMAIN) return;
+      if (event.data?.type !== "MIGRATION_DATA") return;
+      cleanup();
+      const { userId, deviceId, pairingCode } = event.data.payload ?? {};
+      if (userId && deviceId && pairingCode) {
+        setUserId(userId);
+        setDeviceId(deviceId);
+        setPairingCode(pairingCode);
+        resolve(true);
+      } else {
+        resolve(false);
+      }
+    }
+
+    function cleanup() {
+      clearTimeout(timer);
+      window.removeEventListener("message", handleMessage);
+      document.body.removeChild(iframe);
+    }
+
+    window.addEventListener("message", handleMessage);
+
+    iframe.onload = () => {
+      iframe.contentWindow?.postMessage(
+        { type: "REQUEST_MIGRATION_DATA" },
+        OLD_DOMAIN
+      );
+    };
+  });
+}
+
 async function ensureClientAuth() {
   if (typeof window === "undefined") return;
 
@@ -32,6 +82,9 @@ async function ensureClientAuth() {
   if (authInitPromise) return authInitPromise;
 
   const promise = (async () => {
+    const migrated = await tryMigrateFromOldDomain();
+    if (migrated) return;
+
     const res = await fetch("/api/auth/register", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
