@@ -25,7 +25,7 @@ async function tryMigrateFromOldDomain(): Promise<AuthInfo | null> {
 
   return new Promise((resolve) => {
     const iframe = document.createElement("iframe");
-    iframe.src = `${OLD_DOMAIN}/migration-helper`;
+    iframe.src = `${OLD_DOMAIN}/ko/migration-helper`;
     iframe.style.cssText = "display:none;position:fixed;width:0;height:0;";
     document.body.appendChild(iframe);
 
