@@ -3,10 +3,8 @@ import {
   getPairingCode,
   getUserId,
   resetLocalState,
-  setDeviceId,
-  setPairingCode,
-  setUserId,
 } from "./localStore";
+import { ensureAuth } from "./auth"; // Import migration-aware auth
 
 type AuthRegisterResponse = {
   userId: string;
@@ -14,96 +12,11 @@ type AuthRegisterResponse = {
   pairingCode: string;
 };
 
-let authInitPromise: Promise<void> | null = null;
-
 function getStoredAuth() {
   const userId = getUserId();
   const deviceId = getDeviceId();
   const pairingCode = getPairingCode();
   return { userId, deviceId, pairingCode };
-}
-
-const OLD_DOMAIN = "https://ott.preview.pe.kr";
-const NEW_HOSTNAME = "ottline.app";
-const MIGRATION_TIMEOUT_MS = 4000;
-
-async function tryMigrateFromOldDomain(): Promise<boolean> {
-  if (window.location.hostname !== NEW_HOSTNAME) return false;
-
-  return new Promise((resolve) => {
-    const iframe = document.createElement("iframe");
-    iframe.src = `${OLD_DOMAIN}/ko/migration-helper`;
-    iframe.style.cssText = "display:none;position:fixed;width:0;height:0;";
-    document.body.appendChild(iframe);
-
-    const timer = setTimeout(() => {
-      cleanup();
-      resolve(false);
-    }, MIGRATION_TIMEOUT_MS);
-
-    function handleMessage(event: MessageEvent) {
-      if (event.origin !== OLD_DOMAIN) return;
-      if (event.data?.type !== "MIGRATION_DATA") return;
-      cleanup();
-      const { userId, deviceId, pairingCode } = event.data.payload ?? {};
-      if (userId && deviceId && pairingCode) {
-        setUserId(userId);
-        setDeviceId(deviceId);
-        setPairingCode(pairingCode);
-        resolve(true);
-      } else {
-        resolve(false);
-      }
-    }
-
-    function cleanup() {
-      clearTimeout(timer);
-      window.removeEventListener("message", handleMessage);
-      document.body.removeChild(iframe);
-    }
-
-    window.addEventListener("message", handleMessage);
-
-    iframe.onload = () => {
-      iframe.contentWindow?.postMessage(
-        { type: "REQUEST_MIGRATION_DATA" },
-        OLD_DOMAIN
-      );
-    };
-  });
-}
-
-async function ensureClientAuth() {
-  if (typeof window === "undefined") return;
-
-  const { userId, deviceId, pairingCode } = getStoredAuth();
-  if (userId && deviceId && pairingCode) return;
-
-  if (authInitPromise) return authInitPromise;
-
-  const promise = (async () => {
-    const migrated = await tryMigrateFromOldDomain();
-    if (migrated) return;
-
-    const res = await fetch("/api/auth/register", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-    });
-    if (!res.ok) {
-      throw new Error(`Auth register failed: ${res.statusText}`);
-    }
-    const body = (await res.json()) as AuthRegisterResponse;
-    setUserId(body.userId);
-    setDeviceId(body.deviceId);
-    setPairingCode(body.pairingCode);
-  })();
-
-  authInitPromise = promise;
-  try {
-    await promise;
-  } finally {
-    authInitPromise = null;
-  }
 }
 
 function buildHeaders(init?: RequestInit) {
@@ -159,12 +72,16 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return JSON.parse(text) as T;
 }
 
+// Now delegating to migration-aware ensureAuth in auth.ts
 export async function ensureAuthIds(options?: { register?: boolean }) {
-  if (options?.register === true) {
-    await ensureClientAuth();
+  const auth = await ensureAuth();
+  if (!auth && options?.register) {
+    throw new Error("Failed to ensure authentication");
   }
-  const { userId, deviceId } = getStoredAuth();
-  return { userId, deviceId };
+  return {
+    userId: auth?.userId ?? null,
+    deviceId: auth?.deviceId ?? null,
+  };
 }
 
 export async function api<T>(path: string, init?: RequestInit): Promise<T> {
@@ -175,7 +92,7 @@ export async function apiWithAuth<T>(
   path: string,
   init?: RequestInit,
 ): Promise<T> {
-  const { userId } = await ensureAuthIds({ register: false });
+  const { userId } = await ensureAuthIds({ register: true });
   if (!userId) {
     throw new Error("API auth required: missing user identity");
   }
