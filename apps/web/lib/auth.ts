@@ -16,23 +16,33 @@ export type AuthInfo = {
 
 const OLD_DOMAIN = "https://ott.preview.pe.kr";
 const NEW_HOSTNAME = process.env.NEXT_PUBLIC_NEW_HOSTNAME || "ottline.app";
-const MIGRATION_TIMEOUT_MS = 3000;
+const MIGRATION_TIMEOUT_MS = 5000;
 
 async function tryMigrateFromOldDomain(): Promise<AuthInfo | null> {
   if (typeof window === "undefined") return null;
   
-  // Allow migration only on NEW_HOSTNAME or localhost for testing
-  const isLocal = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
-  if (window.location.hostname !== NEW_HOSTNAME && !isLocal) return null;
+  const isLocal = 
+    window.location.hostname === "localhost" || 
+    window.location.hostname === "127.0.0.1" ||
+    window.location.hostname === "172.24.75.199" ||
+    window.location.hostname.startsWith("172.");
+  if (window.location.hostname !== NEW_HOSTNAME && !isLocal) {
+    console.log("[AuthMigration] Domain check failed:", window.location.hostname);
+    return null;
+  }
+
+  // If we already have auth info locally, don't migrate
+  if (getUserId()) return null;
+
+  console.log("[AuthMigration] No local auth info. Trying migration from:", OLD_DOMAIN);
 
   return new Promise((resolve) => {
     const iframe = document.createElement("iframe");
-    // Use fixed locale for migration helper to ensure path exists
     iframe.src = `${OLD_DOMAIN}/ko/migration-helper`;
     iframe.style.cssText = "display:none;position:fixed;width:0;height:0;z-index:-1;";
-    document.body.appendChild(iframe);
-
+    
     const timer = setTimeout(() => {
+      console.warn("[AuthMigration] Timed out waiting for migration data.");
       cleanup();
       resolve(null);
     }, MIGRATION_TIMEOUT_MS);
@@ -41,8 +51,10 @@ async function tryMigrateFromOldDomain(): Promise<AuthInfo | null> {
       if (event.origin !== OLD_DOMAIN) return;
       if (event.data?.type !== "MIGRATION_DATA") return;
       
-      cleanup();
       const { userId, deviceId, pairingCode } = event.data.payload ?? {};
+      console.log("[AuthMigration] Received data:", { userId: !!userId, deviceId: !!deviceId });
+      
+      cleanup();
       if (userId && deviceId && pairingCode) {
         resolve({ userId, deviceId, pairingCode });
       } else {
@@ -60,7 +72,23 @@ async function tryMigrateFromOldDomain(): Promise<AuthInfo | null> {
 
     window.addEventListener("message", handleMessage);
 
+    const appendIframe = () => {
+      if (!document.body) {
+        setTimeout(appendIframe, 100);
+        return;
+      }
+      document.body.appendChild(iframe);
+      console.log("[AuthMigration] Iframe appended to body.");
+    };
+
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", appendIframe);
+    } else {
+      appendIframe();
+    }
+
     iframe.onload = () => {
+      console.log("[AuthMigration] Iframe loaded, requesting data...");
       iframe.contentWindow?.postMessage(
         { type: "REQUEST_MIGRATION_DATA" },
         OLD_DOMAIN
@@ -74,22 +102,22 @@ export async function ensureAuth(): Promise<AuthInfo | null> {
   const deviceId = getDeviceId();
   const pairingCode = getPairingCode();
   
-  // 1. If we already have auth info, return it
   if (userId && deviceId && pairingCode) {
     return { userId, deviceId, pairingCode };
   }
 
-  // 2. Try migration from old domain (only if we have no local auth info)
+  console.log("[Auth] Starting migration/registration flow...");
   const migrated = await tryMigrateFromOldDomain();
   if (migrated) {
     setUserId(migrated.userId);
     setDeviceId(migrated.deviceId);
     setPairingCode(migrated.pairingCode);
     await trackEvent("login_success", { method: "migration" });
+    console.log("[Auth] Migration successful.");
     return migrated;
   }
 
-  // 3. Fallback to registration
+  console.log("[Auth] No migration data found. Registering new account...");
   try {
     const res = await fetch("/api/auth/register", {
       method: "POST",
@@ -103,7 +131,8 @@ export async function ensureAuth(): Promise<AuthInfo | null> {
     setPairingCode(body.pairingCode);
     await trackEvent("login_success", { method: "register" });
     return body;
-  } catch {
+  } catch (e) {
+    console.error("[Auth] Registration failed:", e);
     return null;
   }
 }
