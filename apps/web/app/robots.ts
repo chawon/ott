@@ -7,6 +7,6 @@ export default function robots(): MetadataRoute.Robots {
       allow: "/",
       disallow: ["/api/", "/og/"],
     },
-    sitemap: "https://ott.preview.pe.kr/sitemap.xml",
+    sitemap: "https://ottline.app/sitemap.xml",
   };
 }

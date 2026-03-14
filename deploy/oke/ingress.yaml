@@ -9,10 +9,8 @@ spec:
   tls:
     - hosts:
         - ott.preview.pe.kr
-      secretName: ott-preview-tls
-    - hosts:
         - ottline.app
-      secretName: ottline-app-tls
+      secretName: ott-preview-tls # Note: This needs to be updated with a valid cert for ottline.app later
   rules:
     - host: ott.preview.pe.kr
       http:

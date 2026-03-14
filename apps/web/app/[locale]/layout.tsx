@@ -34,7 +34,7 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
     openGraph: {
       title: "On the Timeline",
       description: t("description"),
-      url: "https://ott.preview.pe.kr",
+      url: "https://ottline.app",
       siteName: "On the Timeline",
       locale: locale === "ko" ? "ko_KR" : "en_US",
       type: "website",

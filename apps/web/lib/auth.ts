@@ -15,26 +15,24 @@ export type AuthInfo = {
 };
 
 const OLD_DOMAIN = "https://ott.preview.pe.kr";
-const NEW_HOSTNAME = process.env.NEXT_PUBLIC_NEW_HOSTNAME || "ottline.app";
+const NEW_HOSTNAME = "ottline.app";
 const MIGRATION_TIMEOUT_MS = 5000;
 
 async function tryMigrateFromOldDomain(): Promise<AuthInfo | null> {
   if (typeof window === "undefined") return null;
   
+  // Allow migration on the new production domain or during local testing
   const isLocal = 
     window.location.hostname === "localhost" || 
     window.location.hostname === "127.0.0.1" ||
-    window.location.hostname === "172.24.75.199" ||
     window.location.hostname.startsWith("172.");
+    
   if (window.location.hostname !== NEW_HOSTNAME && !isLocal) {
-    console.log("[AuthMigration] Domain check failed:", window.location.hostname);
     return null;
   }
 
   // If we already have auth info locally, don't migrate
   if (getUserId()) return null;
-
-  console.log("[AuthMigration] No local auth info. Trying migration from:", OLD_DOMAIN);
 
   return new Promise((resolve) => {
     const iframe = document.createElement("iframe");
@@ -52,8 +50,6 @@ async function tryMigrateFromOldDomain(): Promise<AuthInfo | null> {
       if (event.data?.type !== "MIGRATION_DATA") return;
       
       const { userId, deviceId, pairingCode } = event.data.payload ?? {};
-      console.log("[AuthMigration] Received data:", { userId: !!userId, deviceId: !!deviceId });
-      
       cleanup();
       if (userId && deviceId && pairingCode) {
         resolve({ userId, deviceId, pairingCode });
@@ -78,7 +74,6 @@ async function tryMigrateFromOldDomain(): Promise<AuthInfo | null> {
         return;
       }
       document.body.appendChild(iframe);
-      console.log("[AuthMigration] Iframe appended to body.");
     };
 
     if (document.readyState === "loading") {
@@ -88,7 +83,6 @@ async function tryMigrateFromOldDomain(): Promise<AuthInfo | null> {
     }
 
     iframe.onload = () => {
-      console.log("[AuthMigration] Iframe loaded, requesting data...");
       iframe.contentWindow?.postMessage(
         { type: "REQUEST_MIGRATION_DATA" },
         OLD_DOMAIN
@@ -106,18 +100,15 @@ export async function ensureAuth(): Promise<AuthInfo | null> {
     return { userId, deviceId, pairingCode };
   }
 
-  console.log("[Auth] Starting migration/registration flow...");
   const migrated = await tryMigrateFromOldDomain();
   if (migrated) {
     setUserId(migrated.userId);
     setDeviceId(migrated.deviceId);
     setPairingCode(migrated.pairingCode);
     await trackEvent("login_success", { method: "migration" });
-    console.log("[Auth] Migration successful.");
     return migrated;
   }
 
-  console.log("[Auth] No migration data found. Registering new account...");
   try {
     const res = await fetch("/api/auth/register", {
       method: "POST",
