@@ -8,10 +8,10 @@ metadata:
 spec:
   tls:
     - hosts:
-        - ottline.app
-      secretName: ottline-app-tls
+        - ott.preview.pe.kr
+      secretName: ott-preview-tls
   rules:
-    - host: ottline.app
+    - host: ott.preview.pe.kr
       http:
         paths:
           - path: /api
