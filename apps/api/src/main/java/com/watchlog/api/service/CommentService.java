@@ -39,6 +39,11 @@ public class CommentService {
         this.historyService = historyService;
     }
 
+    private String normalizeLocale(String language) {
+        if (language == null || language.isBlank()) return "ko";
+        return language.split(",")[0].split("-")[0].toLowerCase();
+    }
+
     @Transactional(readOnly = true)
     public List<CommentEntity> list(UUID discussionId, int limit) {
         int safeLimit = Math.max(1, Math.min(limit, 200));
@@ -56,6 +61,7 @@ public class CommentService {
         CommentEntity saved = createForDiscussion(discussion, body.trim(), userId, syncLog, originBaseName);
 
         if (mentions != null && !mentions.isEmpty()) {
+            String locale = normalizeLocale(language);
             var baseTitleId = discussion.getTitle().getId();
             var seen = new java.util.HashSet<String>();
             for (var m : mentions) {
@@ -64,7 +70,7 @@ public class CommentService {
                 if (!seen.add(key)) continue;
                 var title = titleService.upsertFromTmdb(m.providerId(), m.titleType(), language);
                 if (title.getId().equals(baseTitleId)) continue;
-                var target = discussionService.ensureForTitle(title);
+                var target = discussionService.ensureForTitle(title, locale);
                 createForDiscussion(discussionService.lock(target.getId()), body.trim(), userId, false, originBaseName);
             }
         }

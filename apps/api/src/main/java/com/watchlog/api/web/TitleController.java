@@ -13,6 +13,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/titles")
@@ -22,7 +23,11 @@ public class TitleController {
     private final TmdbClient tmdbClient;
     private final NaverBookClient naverBookClient;
 
-    public TitleController(TitleService titleService, TmdbClient tmdbClient, NaverBookClient naverBookClient) {
+    public TitleController(
+            TitleService titleService,
+            TmdbClient tmdbClient,
+            NaverBookClient naverBookClient
+    ) {
         this.titleService = titleService;
         this.tmdbClient = tmdbClient;
         this.naverBookClient = naverBookClient;
@@ -35,25 +40,6 @@ public class TitleController {
             @RequestHeader(value = HttpHeaders.ACCEPT_LANGUAGE, required = false) String language
     ) {
         String normalized = type == null ? null : type.trim().toLowerCase();
-        if (normalized == null || normalized.isBlank()) {
-            return tmdbClient.searchMulti(q, language).stream()
-                    .map(r -> new TitleSearchItemDto(
-                            "TMDB",
-                            String.valueOf(r.idValue()),
-                            "tv".equals(r.mediaTypeValue()) ? com.watchlog.api.domain.TitleType.series : com.watchlog.api.domain.TitleType.movie,
-                            r.displayName(),
-                            r.displayYear(),
-                            (r.posterPathValue() == null) ? null
-                                    : "https://image.tmdb.org/t/p/w342" + r.posterPathValue(),
-                            r.overviewValue(),
-                            null,
-                            null,
-                            null,
-                            null,
-                            null
-                    ))
-                    .toList();
-        }
 
         if ("book".equals(normalized)) {
             return naverBookClient.search(q).stream()
@@ -75,31 +61,36 @@ public class TitleController {
                                 item.pubdateValue()
                         );
                     })
-                    .toList();
+                    .collect(Collectors.toList());
         }
 
-        if ("movie".equals(normalized) || "series".equals(normalized)) {
-            return tmdbClient.searchMulti(q, language).stream()
-                    .filter(r -> normalized.equals("movie") ? "movie".equals(r.mediaTypeValue()) : "tv".equals(r.mediaTypeValue()))
-                    .map(r -> new TitleSearchItemDto(
+        return tmdbClient.searchMulti(q, language).stream()
+                .filter(item -> {
+                    String mType = item.mediaTypeValue();
+                    if (normalized != null && !normalized.isBlank()) {
+                        return normalized.equals(mType);
+                    }
+                    return "movie".equals(mType) || "tv".equals(mType);
+                })
+                .map(item -> {
+                    String mType = item.mediaTypeValue();
+                    boolean isTv = "tv".equals(mType);
+                    return new TitleSearchItemDto(
                             "TMDB",
-                            String.valueOf(r.idValue()),
-                            "tv".equals(r.mediaTypeValue()) ? com.watchlog.api.domain.TitleType.series : com.watchlog.api.domain.TitleType.movie,
-                            r.displayName(),
-                            r.displayYear(),
-                            (r.posterPathValue() == null) ? null
-                                    : "https://image.tmdb.org/t/p/w342" + r.posterPathValue(),
-                            r.overviewValue(),
+                            String.valueOf(item.idValue()),
+                            isTv ? TitleType.series : TitleType.movie,
+                            item.displayName(),
+                            item.displayYear(),
+                            tmdbPosterUrl(item.posterPathValue()),
+                            item.overviewValue(),
                             null,
                             null,
                             null,
                             null,
                             null
-                    ))
-                    .toList();
-        }
-
-        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Unsupported type: " + type);
+                    );
+                })
+                .collect(Collectors.toList());
     }
 
     @GetMapping("/{id}")
@@ -107,12 +98,21 @@ public class TitleController {
         return TitleDto.from(titleService.require(id));
     }
 
-    private Integer yearFromPubdate(String pubdate) {
-        if (pubdate == null || pubdate.length() < 4) return null;
+    private String tmdbPosterUrl(String path) {
+        if (path == null || path.isBlank()) return null;
+        return "https://image.tmdb.org/t/p/w342" + path;
+    }
+
+    private Integer yearFromDate(String date) {
+        if (date == null || date.length() < 4) return null;
         try {
-            return Integer.parseInt(pubdate.substring(0, 4));
+            return Integer.parseInt(date.substring(0, 4));
         } catch (Exception e) {
             return null;
         }
+    }
+
+    private Integer yearFromPubdate(String pubdate) {
+        return yearFromDate(pubdate);
     }
 }

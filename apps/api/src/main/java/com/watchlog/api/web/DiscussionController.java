@@ -22,6 +22,11 @@ public class DiscussionController {
         this.titleService = titleService;
     }
 
+    private String normalizeLocale(String language) {
+        if (language == null || language.isBlank()) return "ko";
+        return language.split(",")[0].split("-")[0].toLowerCase();
+    }
+
     @GetMapping
     public DiscussionDto getByTitle(@RequestParam("titleId") UUID titleId) {
         var discussion = discussionService.findByTitle(titleId);
@@ -38,11 +43,13 @@ public class DiscussionController {
 
     @GetMapping("/latest")
     public List<DiscussionListItemDto> latest(
+            @RequestHeader(value = "Accept-Language", defaultValue = "ko") String language,
             @RequestParam(value = "limit", defaultValue = "6") int limit,
             @RequestParam(value = "minComments", required = false) Integer minComments,
             @RequestParam(value = "days", required = false) Integer days
     ) {
-        var discussions = discussionService.listLatest(limit, minComments, days);
+        String locale = normalizeLocale(language);
+        var discussions = discussionService.listLatest(locale, limit, minComments, days);
         var seasonMetaByTitleId = discussionService.findLatestSeasonMetaByTitleIds(
                 discussions.stream().map(d -> d.getTitle().getId()).distinct().toList()
         );
@@ -55,8 +62,12 @@ public class DiscussionController {
     }
 
     @GetMapping("/all")
-    public List<DiscussionListItemDto> all(@RequestParam(value = "limit", defaultValue = "100") int limit) {
-        var discussions = discussionService.listLatest(limit);
+    public List<DiscussionListItemDto> all(
+            @RequestHeader(value = "Accept-Language", defaultValue = "ko") String language,
+            @RequestParam(value = "limit", defaultValue = "100") int limit
+    ) {
+        String locale = normalizeLocale(language);
+        var discussions = discussionService.listLatest(locale, limit);
         var seasonMetaByTitleId = discussionService.findLatestSeasonMetaByTitleIds(
                 discussions.stream().map(d -> d.getTitle().getId()).distinct().toList()
         );
@@ -69,8 +80,12 @@ public class DiscussionController {
     }
 
     @PostMapping
-    public DiscussionDto create(@RequestBody CreateDiscussionRequest req) {
+    public DiscussionDto create(
+            @RequestHeader(value = "Accept-Language", defaultValue = "ko") String language,
+            @RequestBody CreateDiscussionRequest req
+    ) {
+        String locale = normalizeLocale(language);
         var title = titleService.require(req.titleId());
-        return DiscussionDto.from(discussionService.ensureForTitle(title));
+        return DiscussionDto.from(discussionService.ensureForTitle(title, locale));
     }
 }

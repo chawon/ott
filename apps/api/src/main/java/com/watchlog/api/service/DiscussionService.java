@@ -26,9 +26,9 @@ public class DiscussionService {
     }
 
     @Transactional
-    public DiscussionEntity ensureForTitle(TitleEntity title) {
+    public DiscussionEntity ensureForTitle(TitleEntity title, String locale) {
         return discussionRepository.findByTitle_Id(title.getId())
-                .orElseGet(() -> discussionRepository.save(new DiscussionEntity(UUID.randomUUID(), title)));
+                .orElseGet(() -> discussionRepository.save(new DiscussionEntity(UUID.randomUUID(), title, locale)));
     }
 
     @Transactional(readOnly = true)
@@ -42,19 +42,18 @@ public class DiscussionService {
         return discussionRepository.findByTitle_Id(titleId).orElse(null);
     }
 
-
     @Transactional(readOnly = true)
-    public List<DiscussionEntity> listLatest(int limit) {
-        return listLatest(limit, null, null);
+    public List<DiscussionEntity> listLatest(String locale, int limit) {
+        return listLatest(locale, limit, null, null);
     }
 
     @Transactional(readOnly = true)
-    public List<DiscussionEntity> listLatest(int limit, Integer minComments, Integer days) {
+    public List<DiscussionEntity> listLatest(String locale, int limit, Integer minComments, Integer days) {
         int safeLimit = Math.max(1, Math.min(limit, 100));
         Integer safeMin = (minComments == null) ? null : Math.max(0, minComments);
         Integer safeDays = (days == null) ? null : Math.max(1, days);
         var since = (safeDays == null) ? null : java.time.OffsetDateTime.now().minusDays(safeDays);
-        var ids = discussionRepository.findLatestIds(since, safeMin, PageRequest.of(0, safeLimit));
+        var ids = discussionRepository.findLatestIds(locale, since, safeMin, PageRequest.of(0, safeLimit));
         if (ids.isEmpty()) return List.of();
         var items = discussionRepository.findByIdInWithTitle(ids);
         var index = new java.util.HashMap<java.util.UUID, Integer>();

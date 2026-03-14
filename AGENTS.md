@@ -135,7 +135,8 @@
 ### Titles
 1. `GET /api/titles/search?q=...&type=`
    1. TMDB 기반 검색 (헤더에 따른 다국어 검색 결과 반환)
-   2. 응답: `provider`, `providerId`, `type(movie|series)`, `name`, `year`, `posterUrl`, `overview`
+   2. 도서 검색: Naver 도서 API 사용
+   3. 응답: `provider(TMDB|NAVER)`, `providerId`, `type(movie|series|book)`, `name`, `year`, `posterUrl`, `overview`, `author`, `publisher`, `isbn10`, `isbn13`
 2. `GET /api/titles/{id}`
    1. 내부 UUID title 스냅샷 반환
 
