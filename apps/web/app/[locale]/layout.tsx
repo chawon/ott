@@ -5,7 +5,7 @@ import AppFooter from "@/components/AppFooter";
 import PwaInstallBanner from "@/components/PwaInstallBanner";
 import SyncWorker from "@/components/SyncWorker";
 import SwipeNav from "@/components/SwipeNav";
-import AuthMigrator from "@/components/AuthMigrator";
+import MigrationBanner from "@/components/MigrationBanner";
 import { RetroProvider } from "@/context/RetroContext";
 import { ThemeProvider } from "@/context/ThemeContext";
 import { NextIntlClientProvider } from "next-intl";
@@ -101,7 +101,7 @@ export default async function RootLayout({
         <NextIntlClientProvider messages={messages}>
           <RetroProvider>
             <ThemeProvider>
-              <AuthMigrator />
+              <MigrationBanner />
               <AppHeader />
               <SwipeNav />
               <PwaInstallBanner />

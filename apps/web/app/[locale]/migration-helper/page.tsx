@@ -1,26 +1,34 @@
 "use client";
-import { useEffect } from "react";
+import { useEffect, Suspense } from "react";
+import { setUserId, setDeviceId, setPairingCode, getUserId } from "@/lib/localStore";
+import { useSearchParams } from "next/navigation";
 
-// Domains allowed to request and receive migration data
-const ALLOWED_ORIGINS = [
-  "https://ottline.app",
-  "http://localhost:3000",
-  "http://127.0.0.1:3000",
-  "http://172.24.75.199:3000"
-];
+function MigrationHelperContent() {
+  const searchParams = useSearchParams();
 
-export default function MigrationHelperPage() {
   useEffect(() => {
-    function handleMessage(event: MessageEvent) {
-      // Security: Check if the requester is in our allowed list
-      if (!ALLOWED_ORIGINS.includes(event.origin)) {
-        console.warn("[MigrationHelper] Unauthorized origin:", event.origin);
-        return;
-      }
-      
-      if (event.data?.type !== "REQUEST_MIGRATION_DATA") return;
+    // 1. URL parameters based migration (Redirect Flow)
+    const u = searchParams.get("u");
+    const d = searchParams.get("d");
+    const p = searchParams.get("p");
 
-      console.log("[MigrationHelper] Request received from:", event.origin);
+    if (u && d && p) {
+      console.log("[Migration] Data received via URL. Saving...");
+      setUserId(u);
+      setDeviceId(d);
+      setPairingCode(p);
+      // Redirect to home after a short delay to ensure storage is committed
+      setTimeout(() => {
+        window.location.href = "/";
+      }, 500);
+      return;
+    }
+
+    // 2. Legacy postMessage handler (if needed for other flows, but disabled for main migration)
+    function handleMessage(event: MessageEvent) {
+      const ALLOWED_ORIGINS = ["https://ottline.app", "http://localhost:3000"];
+      if (!ALLOWED_ORIGINS.includes(event.origin)) return;
+      if (event.data?.type !== "REQUEST_MIGRATION_DATA") return;
 
       const userId = localStorage.getItem("watchlog.userId");
       const deviceId = localStorage.getItem("watchlog.deviceId");
@@ -28,23 +36,37 @@ export default function MigrationHelperPage() {
 
       if (event.source) {
         (event.source as Window).postMessage(
-          { 
-            type: "MIGRATION_DATA", 
-            payload: { userId, deviceId, pairingCode } 
-          },
-          { targetOrigin: event.origin } // Respond exactly back to the requester
+          { type: "MIGRATION_DATA", payload: { userId, deviceId, pairingCode } },
+          { targetOrigin: event.origin }
         );
-        console.log("[MigrationHelper] Data sent back to parent.");
       }
     }
 
     window.addEventListener("message", handleMessage);
     return () => window.removeEventListener("message", handleMessage);
-  }, []);
+  }, [searchParams]);
+
+  const hasParams = searchParams.get("u");
 
   return (
-    <div style={{ padding: "20px", fontSize: "12px", color: "#666" }}>
-      Migration Helper Active
+    <div className="min-h-[60vh] flex flex-col items-center justify-center p-6 text-center">
+      {hasParams ? (
+        <>
+          <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4"></div>
+          <h2 className="text-xl font-bold mb-2">기록 옮기는 중...</h2>
+          <p className="opacity-70">잠시만 기다려주세요. 안전하게 이전하고 있습니다.</p>
+        </>
+      ) : (
+        <div className="opacity-50 text-sm">Migration Helper Active</div>
+      )}
     </div>
+  );
+}
+
+export default function MigrationHelperPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <MigrationHelperContent />
+    </Suspense>
   );
 }

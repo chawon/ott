@@ -14,91 +14,6 @@ export type AuthInfo = {
   pairingCode: string;
 };
 
-const OLD_DOMAIN = "https://ott.preview.pe.kr";
-const NEW_HOSTNAME = "ottline.app";
-const MIGRATION_TIMEOUT_MS = 5000;
-
-async function tryMigrateFromOldDomain(): Promise<AuthInfo | null> {
-  if (typeof window === "undefined") return null;
-
-  // Allow migration on the new production domain or during local testing
-  const isLocal =
-    window.location.hostname === "localhost" ||
-    window.location.hostname === "127.0.0.1" ||
-    window.location.hostname.startsWith("172.");
-
-  if (window.location.hostname !== NEW_HOSTNAME && !isLocal) {
-    console.log("[AuthMigration] Skipped: hostname is", window.location.hostname);
-    return null;
-  }
-
-  // If we already have auth info locally, don't migrate
-  if (getUserId()) return null;
-
-  console.log("[AuthMigration] Starting migration from", OLD_DOMAIN);
-
-  return new Promise((resolve) => {
-    const iframe = document.createElement("iframe");
-    iframe.src = `${OLD_DOMAIN}/ko/migration-helper`;
-    iframe.style.cssText = "display:none;position:fixed;width:0;height:0;z-index:-1;";
-
-    const timer = setTimeout(() => {
-      console.warn("[AuthMigration] Timed out waiting for migration data.");
-      cleanup();
-      resolve(null);
-    }, MIGRATION_TIMEOUT_MS);
-
-    function handleMessage(event: MessageEvent) {
-      console.log("[AuthMigration] Message received from", event.origin, event.data?.type);
-      if (event.origin !== OLD_DOMAIN) return;
-      if (event.data?.type !== "MIGRATION_DATA") return;
-
-      const { userId, deviceId, pairingCode } = event.data.payload ?? {};
-      cleanup();
-      if (userId && deviceId && pairingCode) {
-        console.log("[AuthMigration] Success: data received");
-        resolve({ userId, deviceId, pairingCode });
-      } else {
-        console.log("[AuthMigration] Old domain has no auth data");
-        resolve(null);
-      }
-    }
-
-    function cleanup() {
-      clearTimeout(timer);
-      window.removeEventListener("message", handleMessage);
-      if (document.body.contains(iframe)) {
-        document.body.removeChild(iframe);
-      }
-    }
-
-    window.addEventListener("message", handleMessage);
-
-    const appendIframe = () => {
-      if (!document.body) {
-        setTimeout(appendIframe, 100);
-        return;
-      }
-      console.log("[AuthMigration] Iframe appended to body");
-      document.body.appendChild(iframe);
-    };
-
-    if (document.readyState === "loading") {
-      document.addEventListener("DOMContentLoaded", appendIframe);
-    } else {
-      appendIframe();
-    }
-
-    iframe.onload = () => {
-      console.log("[AuthMigration] Iframe loaded, sending REQUEST_MIGRATION_DATA");
-      iframe.contentWindow?.postMessage(
-        { type: "REQUEST_MIGRATION_DATA" },
-        OLD_DOMAIN
-      );
-    };
-  });
-}
-
 export async function ensureAuth(): Promise<AuthInfo | null> {
   const userId = getUserId();
   const deviceId = getDeviceId();
@@ -108,15 +23,7 @@ export async function ensureAuth(): Promise<AuthInfo | null> {
     return { userId, deviceId, pairingCode };
   }
 
-  const migrated = await tryMigrateFromOldDomain();
-  if (migrated) {
-    setUserId(migrated.userId);
-    setDeviceId(migrated.deviceId);
-    setPairingCode(migrated.pairingCode);
-    await trackEvent("login_success", { method: "migration" });
-    return migrated;
-  }
-
+  // Fallback to registration (Silent migration is no longer possible via iframe)
   try {
     const res = await fetch("/api/auth/register", {
       method: "POST",
