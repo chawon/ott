@@ -17,6 +17,7 @@ function MigrationHelperContent() {
       setUserId(u);
       setDeviceId(d);
       setPairingCode(p);
+      localStorage.setItem("watchlog.migration-success", "true"); // 성공 플래그 저장
       // Redirect to home after a short delay to ensure storage is committed
       setTimeout(() => {
         window.location.href = "/";

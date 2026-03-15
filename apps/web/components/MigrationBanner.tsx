@@ -1,17 +1,29 @@
 "use client";
 import { useEffect, useState } from "react";
 import { getUserId, getDeviceId, getPairingCode } from "@/lib/localStore";
+import { CheckCircle2, X } from "lucide-react";
 
 export default function MigrationBanner() {
   const [isOldDomain, setIsOldDomain] = useState(false);
   const [isStandalone, setIsStandalone] = useState(false);
+  const [isSuccessMode, setIsSuccessSuccessMode] = useState(false);
+  const [showBanner, setShowBanner] = useState(true);
 
   useEffect(() => {
-    setIsOldDomain(window.location.hostname === "ott.preview.pe.kr");
+    const hostname = window.location.hostname;
+    setIsOldDomain(hostname === "ott.preview.pe.kr");
     setIsStandalone(window.matchMedia("(display-mode: standalone)").matches);
+    
+    // Check if we just migrated successfully
+    if (localStorage.getItem("watchlog.migration-success") === "true") {
+      setIsSuccessSuccessMode(true);
+    }
   }, []);
 
-  if (!isOldDomain) return null;
+  if (!showBanner) return null;
+
+  // Show banner only on old domain OR after a successful migration on the new domain
+  if (!isOldDomain && !isSuccessMode) return null;
 
   const handleMigrate = () => {
     const u = getUserId() || "";
@@ -26,6 +38,36 @@ export default function MigrationBanner() {
       window.location.href = targetUrl;
     }
   };
+
+  const handleDismissSuccess = () => {
+    localStorage.removeItem("watchlog.migration-success");
+    setIsSuccessSuccessMode(false);
+    setShowBanner(false);
+  };
+
+  if (isSuccessMode) {
+    return (
+      <div className="fixed top-0 left-0 right-0 z-[100] bg-green-600 p-4 shadow-lg animate-in slide-in-from-top duration-500">
+        <div className="mx-auto max-w-5xl flex flex-col sm:flex-row items-center justify-between gap-4 text-white">
+          <div className="flex items-center gap-3 text-center sm:text-left">
+            <CheckCircle2 className="h-6 w-6 shrink-0" />
+            <div>
+              <p className="font-bold text-lg">기록 이사를 완료했습니다! 🎉</p>
+              <p className="text-sm opacity-90">
+                이제 새로운 주소에서 계속 이용해 주세요. 이전 앱은 삭제하고 다시 설치해 주시면 더 좋습니다.
+              </p>
+            </div>
+          </div>
+          <button 
+            onClick={handleDismissSuccess}
+            className="whitespace-nowrap bg-white text-green-700 px-6 py-2 rounded-full font-bold hover:bg-gray-100 transition-colors shadow-sm"
+          >
+            알겠어요
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed top-0 left-0 right-0 z-[100] bg-blue-600 p-4 shadow-lg animate-in slide-in-from-top duration-500">
