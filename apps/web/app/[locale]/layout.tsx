@@ -6,7 +6,6 @@ import PwaInstallBanner from "@/components/PwaInstallBanner";
 import SyncWorker from "@/components/SyncWorker";
 import SwipeNav from "@/components/SwipeNav";
 import MigrationBanner from "@/components/MigrationBanner";
-import { RetroProvider } from "@/context/RetroContext";
 import { ThemeProvider } from "@/context/ThemeContext";
 import { NextIntlClientProvider } from "next-intl";
 import { getMessages, getTranslations } from "next-intl/server";
@@ -28,22 +27,29 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
     },
     appleWebApp: {
       capable: true,
-      title: "On the Timeline",
+      title: "ottline",
       statusBarStyle: "black-translucent",
     },
     openGraph: {
-      title: "On the Timeline",
+      title: "ottline",
       description: t("description"),
-      url: "https://ott.preview.pe.kr",
-      siteName: "On the Timeline",
+      url: "https://ottline.app",
+      siteName: "ottline",
       locale: locale === "ko" ? "ko_KR" : "en_US",
       type: "website",
+      images: [{ url: "https://ottline.app/og-image.png", width: 1200, height: 630 }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: "ottline",
+      description: t("description"),
+      images: ["https://ottline.app/og-image.png"],
     },
   };
 }
 
 export const viewport: Viewport = {
-  themeColor: "#111827",
+  themeColor: "#1E4D8C",
 };
 
 export default async function RootLayout({
@@ -60,13 +66,6 @@ export default async function RootLayout({
 (() => {
   try {
     const root = document.documentElement;
-    const retro = localStorage.getItem("retro-mode") === "true";
-    if (retro) {
-      root.classList.add("retro");
-      root.classList.remove("dark");
-      return;
-    }
-    root.classList.remove("retro");
     const mode = localStorage.getItem("theme-mode") || "system";
     const prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
     const isDark = mode === "dark" || (mode === "system" && prefersDark);
@@ -99,17 +98,15 @@ export default async function RootLayout({
       </head>
       <body className="min-h-screen bg-background text-foreground font-sans antialiased transition-colors duration-300">
         <NextIntlClientProvider messages={messages}>
-          <RetroProvider>
-            <ThemeProvider>
-              <MigrationBanner />
-              <AppHeader />
-              <SwipeNav />
-              <PwaInstallBanner />
-              <SyncWorker />
-              <main className="mx-auto max-w-5xl px-4 py-8">{children}</main>
-              <AppFooter />
-            </ThemeProvider>
-          </RetroProvider>
+          <ThemeProvider>
+            <MigrationBanner />
+            <AppHeader />
+            <SwipeNav />
+            <PwaInstallBanner />
+            <SyncWorker />
+            <main className="mx-auto max-w-5xl px-4 py-8">{children}</main>
+            <AppFooter />
+          </ThemeProvider>
         </NextIntlClientProvider>
       </body>
     </html>

@@ -19,7 +19,7 @@
     "navAccountRetro": "맞춤",
     "navAccountModern": "설정",
     "titleRetro": "으뜸과 버금",
-    "titleModern": "On the Timeline"
+    "titleModern": "ottline"
   },
   "AppFooter": {
     "descriptionRetro": "봤니? 읽었니? 그럼 날적이 해보자~ 한 번 적어 두면 발자취가 또렷해져요.",
@@ -44,7 +44,7 @@
     "linkFeedbackModern": "문의하기",
     "allRightsReserved": "All rights reserved.",
     "titleRetro": "으뜸과 버금",
-    "titleModern": "On the Timeline"
+    "titleModern": "ottline"
   },
   "LogCard": {
     "actionWatched": "보았어요",
@@ -387,14 +387,14 @@
     "shareText": "내 기록 공유: {title}"
   },
   "Metadata": {
-    "titleDefault": "On the Timeline | 로그인 없이 영상·책 기록",
-    "titleTemplate": "%s | On the Timeline",
+    "titleDefault": "ottline | 보고, 읽고, 남기다. 나만의 타임라인",
+    "titleTemplate": "%s | ottline",
     "description": "가입 없이 영상·책 기록을 10초 만에 남기고 타임라인으로 모아보세요. 영상과 책을 가장 빠르게 기록하는 방법."
   },
   "About": {
     "title": "서비스 소개 및 사용법",
     "subtitle": "로그인 없이 기록하는 영상·책 타임라인",
-    "description": "On the Timeline은 당신의 소중한 영상·책 기록을 가장 빠르고 간편하게 남기기 위해 태어났습니다. 번거로운 가입 절차 없이, 지금 보고 있거나 읽고 있는 작품을 바로 기록해보세요.",
+    "description": "ottline은 당신의 소중한 영상·책 기록을 가장 빠르고 간편하게 남기기 위해 태어났습니다. 번거로운 가입 절차 없이, 지금 보고 있거나 읽고 있는 작품을 바로 기록해보세요.",
     "howToUseTitle": "어떻게 사용하나요?",
     "step1Title": "작품 검색",
     "step1Desc": "홈 화면 상단에서 영화, 시리즈, 책 제목을 검색하세요.",
@@ -404,7 +404,7 @@
     "step3Desc": "저장 즉시 나만의 타임라인이 구축됩니다. 모든 데이터는 브라우저에 안전하게 우선 저장됩니다.",
     "moreTipsTitle": "더 편하게 쓰는 방법",
     "tip1Title": "앱처럼 설치해서 사용",
-    "tip1Desc": "On the Timeline은 설치형 앱처럼 사용할 수 있어요. 홈 화면에 추가하면 앱 아이콘으로 빠르게 열 수 있습니다.",
+    "tip1Desc": "ottline은 설치형 앱처럼 사용할 수 있어요. 홈 화면에 추가하면 앱 아이콘으로 빠르게 열 수 있습니다.",
     "tip2Title": "내 기록 CSV로 내보내기",
     "tip2Desc": "설정에서 내 기록을 CSV로 내려받아 엑셀이나 스프레드시트로 정리할 수 있어요.",
     "tip3Title": "공유 카드로 기록 올리기",
@@ -443,9 +443,9 @@
   },
   "HomePage": {
     "heroRetro": "환영합니다, 그대여. \n으뜸과 버금에서 당신의 비디오를 찾아보세요!",
-    "heroModernBook": "읽었니? 그럼 날적이 해보자~",
-    "heroModernVideo": "봤니? 그럼 날적이 해보자~",
-    "heroModernDesc": "한 번 적어 두면 발자취가 또렷해져요",
+    "heroModernBook": "보고, 읽고, 남기다.",
+    "heroModernVideo": "보고, 읽고, 남기다.",
+    "heroModernDesc": "나만의 타임라인",
     "heroTimelineBook": "나의 책 기록",
     "heroTimelineVideo": "나의 영상 기록",
     "heroTimelineDesc": "한 줄만 적어두면 타임라인이 쌓여요",
@@ -475,9 +475,9 @@
   "FAQ": {
     "title": "자주 묻는 질문 (FAQ)",
     "heading": "자주 묻는 질문",
-    "description": "On the Timeline의 데이터 저장 방식과 로그인 없는 서비스 이용에 대해 궁금한 점을 해결해 드립니다.",
+    "description": "ottline의 데이터 저장 방식과 로그인 없는 서비스 이용에 대해 궁금한 점을 해결해 드립니다.",
     "q1": "Q. 로그인 없이 어떻게 데이터가 유지되나요?",
-    "a1": "On the Timeline은 <strong>로컬 퍼스트(Local-first)</strong> 기술을 사용합니다. 사용자가 입력한 모든 기록은 먼저 브라우저 내부 저장소(IndexedDB)에 저장됩니다. 따라서 로그인을 하지 않아도 기기를 바꾸지 않는 한 기록이 안전하게 유지됩니다.",
+    "a1": "ottline은 <strong>로컬 퍼스트(Local-first)</strong> 기술을 사용합니다. 사용자가 입력한 모든 기록은 먼저 브라우저 내부 저장소(IndexedDB)에 저장됩니다. 따라서 로그인을 하지 않아도 기기를 바꾸지 않는 한 기록이 안전하게 유지됩니다.",
     "q2": "Q. 기기를 변경해도 기록을 볼 수 있나요?",
     "a2": "네, 가능합니다! [계정] 메뉴에서 발급받은 <strong>페어링 코드</strong>를 새 기기에 입력하면 지금까지의 기록을 그대로 이어서 볼 수 있어요. 여러 기기에서 각각 쌓아둔 기록도 하나로 모아집니다.",
     "q3": "Q. 페어링을 하면 기록은 어떻게 합쳐지나요?",
@@ -487,7 +487,7 @@
     "q5": "Q. 내 기록을 파일로 내려받을 수 있나요?",
     "a5": "네. <strong>설정 > 내 기록 내보내기</strong>에서 CSV 파일로 내려받아 엑셀이나 스프레드시트로 정리할 수 있어요.",
     "q6": "Q. 서비스 이용료가 있나요?",
-    "a6": "On the Timeline은 모든 기능을 무료로 제공합니다. 기록을 남기는 즐거움에만 집중하세요!"
+    "a6": "ottline은 모든 기능을 무료로 제공합니다. 기록을 남기는 즐거움에만 집중하세요!"
   },
   "Report": {
     "title": "내 이용 리포트",
@@ -518,7 +518,7 @@
   "Privacy": {
     "title": "개인정보처리방침",
     "lastUpdated": "최종 업데이트: 2026-02-14",
-    "intro": "On the Timeline(이하 \"서비스\")는 이용자의 개인정보를 소중히 여기며, 관련 법령을 준수합니다. 본 방침은 서비스 이용 중 처리되는 정보의 항목, 목적, 보관 방식, 이용자 권리를 안내합니다.",
+    "intro": "ottline(이하 \"서비스\")는 이용자의 개인정보를 소중히 여기며, 관련 법령을 준수합니다. 본 방침은 서비스 이용 중 처리되는 정보의 항목, 목적, 보관 방식, 이용자 권리를 안내합니다.",
     "section1Title": "1. 수집하는 정보",
     "section1List": "<li>기록 데이터: 작품명, 감상/독서 상태, 평점, 메모, 기록 시각</li><li>서비스 운영 정보: 기기 유형, 브라우저 유형, OS 계열, 설치 상태(PWA 여부)</li><li>기기 식별용 정보: 서비스 동기화 및 기기 연결을 위한 내부 식별자</li>",
     "section2Title": "2. 정보 이용 목적",

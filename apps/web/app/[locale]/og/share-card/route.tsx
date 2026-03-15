@@ -93,7 +93,7 @@ async function renderShareCard(body: ShareCardPayload) {
       ? clampText(normalizeNote(body.note, isBook ? 3 : 2), isBook ? 120 : 80)
       : null;
     let posterUrl = body.posterUrl ?? null;
-    const watermark = body.watermark ?? "On the Timeline";
+    const watermark = body.watermark ?? "ottline.app";
     const isRetro = body.theme === "retro";
 
     // Select font family based on theme
@@ -436,7 +436,7 @@ export async function GET(req: Request) {
     ratingValue: 5,
     date: "2026.01.31",
     posterUrl,
-    watermark: tHeader("titleRetro"),
+    watermark: "ottline.app",
     theme: "default",
   };
 

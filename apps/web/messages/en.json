@@ -19,7 +19,7 @@
     "navAccountRetro": "Custom",
     "navAccountModern": "Settings",
     "titleRetro": "The Best & The Second",
-    "titleModern": "On the Timeline"
+    "titleModern": "ottline"
   },
   "AppFooter": {
     "descriptionRetro": "Watched it? Read it? Let's log it~ Keep your footprints clear.",
@@ -44,7 +44,7 @@
     "linkFeedbackModern": "Contact",
     "allRightsReserved": "All rights reserved.",
     "titleRetro": "The Best & The Second",
-    "titleModern": "On the Timeline"
+    "titleModern": "ottline"
   },
   "LogCard": {
     "actionWatched": "Watched",
@@ -387,14 +387,14 @@
     "shareText": "My log share: {title}"
   },
   "Metadata": {
-    "titleDefault": "On the Timeline | Fast and simple movie & book logs",
-    "titleTemplate": "%s | On the Timeline",
+    "titleDefault": "ottline | Stream. Read. Remember.",
+    "titleTemplate": "%s | ottline",
     "description": "Log your movie and book records in 10 seconds without sign-up. Build your own timeline easily."
   },
   "About": {
     "title": "About Service & How to Use",
     "subtitle": "Movie & Book Timeline without sign-up",
-    "description": "On the Timeline was born to help you log your precious movie and book records as quickly and easily as possible. Without any tedious sign-up, start logging what you are watching or reading right now.",
+    "description": "ottline was born to help you log your precious movie and book records as quickly and easily as possible. Without any tedious sign-up, start logging what you are watching or reading right now.",
     "howToUseTitle": "How to use it?",
     "step1Title": "Search Title",
     "step1Desc": "Search for movies, series, or book titles at the top of the home screen.",
@@ -404,7 +404,7 @@
     "step3Desc": "Your own timeline is built immediately upon saving. All data is securely stored in your browser first.",
     "moreTipsTitle": "Tips for better usage",
     "tip1Title": "Install as an App",
-    "tip1Desc": "On the Timeline can be used like an installed app. Add it to your home screen to open quickly with an icon.",
+    "tip1Desc": "ottline can be used like an installed app. Add it to your home screen to open quickly with an icon.",
     "tip2Title": "Export to CSV",
     "tip2Desc": "You can download your records as a CSV in Settings and organize them in Excel or Spreadsheet.",
     "tip3Title": "Share with Share Cards",
@@ -443,9 +443,9 @@
   },
   "HomePage": {
     "heroRetro": "Welcome, traveler. \nFind your videos in The Best & The Second!",
-    "heroModernBook": "Read it? Let's log it~",
-    "heroModernVideo": "Watched it? Let's log it~",
-    "heroModernDesc": "Log once, and your footprints stay clear",
+    "heroModernBook": "Stream. Read. Remember.",
+    "heroModernVideo": "Stream. Read. Remember.",
+    "heroModernDesc": "Your personal content timeline",
     "heroTimelineBook": "My Book Logs",
     "heroTimelineVideo": "My Video Logs",
     "heroTimelineDesc": "Just one line, and your timeline grows",
@@ -475,9 +475,9 @@
   "FAQ": {
     "title": "Frequently Asked Questions (FAQ)",
     "heading": "FAQ",
-    "description": "Find answers about data storage and sign-up free usage of On the Timeline.",
+    "description": "Find answers about data storage and sign-up free usage of ottline.",
     "q1": "Q. How is data kept without sign-up?",
-    "a1": "On the Timeline uses <strong>Local-first</strong> technology. All records are first stored in your browser's internal storage (IndexedDB). Your data remains safe as long as you use the same device, even without an account.",
+    "a1": "ottline uses <strong>Local-first</strong> technology. All records are first stored in your browser's internal storage (IndexedDB). Your data remains safe as long as you use the same device, even without an account.",
     "q2": "Q. Can I see my records on a different device?",
     "a2": "Yes! By entering the <strong>Pairing Code</strong> issued in the [Account] menu into a new device, you can continue to see your records. Data from multiple devices will be merged into one.",
     "q3": "Q. How is data merged after pairing?",
@@ -487,7 +487,7 @@
     "q5": "Q. Can I download my records?",
     "a5": "Yes. You can download a CSV file in <strong>Settings > Export My Logs</strong> and organize it in Excel or Spreadsheets.",
     "q6": "Q. Is there a usage fee?",
-    "a6": "On the Timeline provides all features for free. Just focus on the joy of logging!"
+    "a6": "ottline provides all features for free. Just focus on the joy of logging!"
   },
   "Report": {
     "title": "My Usage Report",
@@ -518,7 +518,7 @@
   "Privacy": {
     "title": "Privacy Policy",
     "lastUpdated": "Last Updated: 2026-02-14",
-    "intro": "On the Timeline (\"the Service\") values your privacy and complies with relevant laws. This policy guides you through the items of information processed, purposes, storage methods, and user rights.",
+    "intro": "ottline (\"the Service\") values your privacy and complies with relevant laws. This policy guides you through the items of information processed, purposes, storage methods, and user rights.",
     "section1Title": "1. Information Collected",
     "section1List": "<li>Log Data: Title, status, rating, note, timestamp</li><li>Service Operation: Device type, browser, OS, PWA installation status</li><li>Identifiers: Internal identifiers for sync and pairing</li>",
     "section2Title": "2. Purpose of Usage",

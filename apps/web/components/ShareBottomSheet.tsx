@@ -63,7 +63,7 @@ export default function ShareBottomSheet({
       ratingValue: showRatingLabel && rating ? rating.value : null,
       date: `${year}.${month}.${day}`,
       posterUrl: log.seasonPosterUrl ?? log.title.posterUrl ?? null,
-      watermark: isRetro ? tHeader("titleRetro") : "On the Timeline",
+      watermark: isRetro ? tHeader("titleRetro") : "ottline.app",
       theme: (isRetro ? "retro" : "default") as "retro" | "default",
     };
   }, [format, isRetro, log, showNote, showRatingLabel, tStatus, tQuick, tHeader]);

@@ -1,7 +1,6 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState } from "react";
-import { useRetro } from "@/context/RetroContext";
 
 type ThemeMode = "system" | "light" | "dark";
 type ResolvedTheme = "light" | "dark";
@@ -18,7 +17,6 @@ const STORAGE_KEY = "theme-mode";
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const { isRetro } = useRetro();
   const [mode, setModeState] = useState<ThemeMode>("system");
   const [resolvedTheme, setResolvedTheme] = useState<ResolvedTheme>("light");
 
@@ -35,20 +33,11 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     const root = document.documentElement;
     const apply = (isDark: boolean) => {
       setResolvedTheme(isDark ? "dark" : "light");
-      if (isRetro) {
-        root.classList.remove("dark");
-        return;
-      }
       root.classList.toggle("dark", isDark);
     };
 
     let mediaQuery: MediaQueryList | null = null;
     let handler: ((event: MediaQueryListEvent) => void) | null = null;
-
-    if (isRetro) {
-      root.classList.remove("dark");
-      return;
-    }
 
     if (mode === "system") {
       mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
@@ -70,7 +59,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     }
 
     apply(mode === "dark");
-  }, [mode, isRetro]);
+  }, [mode]);
 
   const setMode = (next: ThemeMode) => {
     setModeState(next);
