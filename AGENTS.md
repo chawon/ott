@@ -51,6 +51,10 @@
 1. **다국어(i18n) 및 글로벌 서비스화**: `next-intl` 적용, 전체 UI 번역, 백엔드 데이터 연동 완료.
 2. **도메인 이전 및 마이그레이션**: `ottline.app` 신규 도메인 연결 및 리다이렉트 기반 인증 정보 이식 완료.
 3. **ottline 브랜딩 적용 (Phase 2)**: 아이콘/파비콘 교체, 헤더 로고(텍스트 조합), 레트로 모드 제거, 브랜드명·슬로건·OG이미지·공유카드 watermark 전면 반영 완료.
+4. **마이그레이션 현황 추적**: `migration_complete` 이벤트 서버 적재, `/api/admin/analytics/migration-status` 엔드포인트 추가, admin 페이지 마이그레이션 현황 섹션 표시.
+5. **도메인별 접속 분석**: `app_open` 이벤트에 `hostname` 프로퍼티 추가, admin 통계에 domain(hostname) 세그먼트 표시.
+6. **마이그레이션 배너 문구 개선**: `ott.preview.pe.kr` 접속 시 팝업에 `ottline.app`으로 주소 변경 안내 명시.
+7. **레트로 모드 통계 제거**: admin analytics에서 retro 관련 섹션(레트로 현황, 주간 레트로 트렌드) 제거. `SyncWorker`의 `app_open` 이벤트에서 `isRetro` 프로퍼티 제거.
 
 ### P0
 1. **삭제 동기화(tombstone) + 복구 UX**
@@ -204,8 +208,17 @@
 1. `POST /api/analytics/events`
    1. 익명 방문도 수집 가능
    2. 헤더: `X-Client-Id`(optional), `X-User-Id`(optional)
+   3. 이벤트 종류: `app_open`, `login_success`, `log_create`, `share_action`, `migration_complete`
+   4. `app_open` properties: `hostname`, `deviceType`, `osFamily`, `browserFamily`, `installState`
 2. `GET /api/analytics/me/report`
    1. 헤더: `X-User-Id` 필요
+3. `GET /api/admin/analytics/overview?days=`
+   1. 헤더: `X-Admin-Token` 필요
+4. `GET /api/admin/analytics/events?days=&limit=&eventName=&platform=`
+   1. 헤더: `X-Admin-Token` 필요
+5. `GET /api/admin/analytics/migration-status`
+   1. 헤더: `X-Admin-Token` 필요
+   2. 응답: `totalActiveUsers`, `migratedUsers`, `notMigratedUsers`, `migrationRate`, `recentMigrations`
 
 ### Sync
 1. `POST /api/sync/push`
