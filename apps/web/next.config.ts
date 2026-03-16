@@ -18,6 +18,12 @@ const nextConfig: NextConfig = {
           },
         ],
       },
+      {
+        source: "/:locale(ko|en)/(account|timeline)",
+        headers: [
+          { key: "X-Robots-Tag", value: "noindex, nofollow" },
+        ],
+      },
     ];
   },
   async rewrites() {

@@ -12,6 +12,12 @@ export async function generateMetadata({
   return {
     title: t("title"),
     description: t("description"),
+    alternates: { canonical: "https://ottline.app/faq" },
+    openGraph: {
+      title: `${t("title")} | ottline`,
+      description: t("description"),
+      url: "https://ottline.app/faq",
+    },
   };
 }
 
