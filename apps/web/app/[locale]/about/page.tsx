@@ -2,12 +2,19 @@ import type { Metadata } from "next";
 
 import { getTranslations } from "next-intl/server";
 
-export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
+export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: "About" });
 
   return {
     title: t("title"),
+    description: t("description"),
+    alternates: { canonical: "https://ottline.app/about" },
+    openGraph: {
+      title: `${t("title")} | ottline`,
+      description: t("description"),
+      url: "https://ottline.app/about",
+    },
   };
 }
 

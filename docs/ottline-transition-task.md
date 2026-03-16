@@ -110,16 +110,17 @@ Title 태그 형식: ottline | On The Timeline
 ## Phase 3. PWA 설정 업데이트
 
 ### manifest.ts
-- [ ] `name` → `"ottline"` (현재: "On the Timeline")
-- [ ] `short_name` → `"ottline"` (현재: "On the Timeline")
-- [ ] `background_color` → `"#F0F6FF"` (현재: "#ffffff")
-- [ ] `theme_color` → `"#1E4D8C"` (현재: "#111827")
+- [x] `name` → `"ottline"`
+- [x] `short_name` → `"ottline"`
+- [x] `background_color` → `"#F0F6FF"`
+- [x] `theme_color` → `"#1E4D8C"`
+- [x] `description` → 브랜드 슬로건 적용 (ko: "보고, 읽고, 남기다. 나만의 타임라인" / en: "Stream. Read. Remember. Your personal content timeline")
 - [x] `icons` 배열 → 새 ottline 아이콘으로 교체 완료 (icon-192.png, icon.png)
 
 > `start_url`, `scope`는 상대경로(`"/"`) 유지 중. 도메인 고정 필요 시 변경.
 
 ### Service Worker
-- [ ] 캐시 키 이름 업데이트 (현재: `"ott-pwa-v2"` → `"ottline-cache-v1"` 등)
+- [x] 캐시 키 이름 업데이트 (`"ott-pwa-v2"` → `"ottline-cache-v1"`)
 - [ ] 구 도메인 캐시 정리 로직 추가 (선택)
 
 ### 메타태그 (`layout.tsx`)
@@ -176,7 +177,7 @@ Title 태그 형식: ottline | On The Timeline
 ☑ 파비콘 새 아이콘(ottline_logo)으로 표시
 ☑ 링크 공유 시 OG 이미지(ottline 브랜드) 노출
 ☑ 서비스 내 브랜드명 ottline 통일
-□ PWA manifest name/short_name "ottline"으로 표시
+☑ PWA manifest name/short_name "ottline"으로 표시
 □ 구글 서치 콘솔 ottline.app 색인 요청 완료
 □ TWA 앱 실행 시 브라우저 UI 없이 정상 표시
 □ 플레이스토어 앱 이름 / 아이콘 새 버전으로 업데이트

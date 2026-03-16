@@ -1,0 +1,16 @@
+# ottline
+
+> 로그인 없이 영상과 책을 기록하는 무료 타임라인 서비스.
+> A free, login-free video and book logging timeline. Data is stored locally in the browser using IndexedDB. No account required.
+
+## Core Pages
+
+- [Home](https://ottline.app): Start logging videos and books instantly without creating an account.
+- [About](https://ottline.app/about): How ottline works — three-step workflow and key features.
+- [FAQ](https://ottline.app/faq): Data persistence, cross-device pairing, CSV export, and pricing answers.
+- [Privacy Policy](https://ottline.app/privacy): Data handling and local-first storage policy.
+
+## Optional
+
+- [Timeline](https://ottline.app/timeline): Personal viewing and reading timeline view.
+- [Public](https://ottline.app/public): Publicly shared records from all users.

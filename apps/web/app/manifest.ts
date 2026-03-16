@@ -8,16 +8,16 @@ export default async function manifest(): Promise<MetadataRoute.Manifest> {
 
   return {
     id: "/",
-    name: "On the Timeline",
-    short_name: "On the Timeline",
-    description: isEn 
-      ? "Watch and read log timeline without sign-up. Build your own footprints."
-      : "가입 없이 남기는 영상과 책의 기록. 나의 타임라인을 만들어보세요.",
+    name: "ottline",
+    short_name: "ottline",
+    description: isEn
+      ? "Stream. Read. Remember. Your personal content timeline"
+      : "보고, 읽고, 남기다. 나만의 타임라인",
     start_url: "/",
     display: "standalone",
     orientation: "portrait",
-    background_color: "#ffffff",
-    theme_color: "#111827",
+    background_color: "#F0F6FF",
+    theme_color: "#1E4D8C",
     lang: isEn ? "en" : "ko",
     categories: isEn
       ? ["entertainment", "books", "lifestyle", "productivity"]

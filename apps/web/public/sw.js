@@ -1,4 +1,4 @@
-const CACHE_NAME = "ott-pwa-v2";
+const CACHE_NAME = "ottline-cache-v1";
 const PRECACHE_URLS = [
   "/",
   "/timeline",
