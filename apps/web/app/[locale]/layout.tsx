@@ -89,7 +89,7 @@ export default async function RootLayout({
       <head>
         <meta
           name="naver-site-verification"
-          content="a7a2d3521b1bcb813f5e7535f4e46ffb564c113a"
+          content="d48c8e320c660f8e8f1291f6cad71bc39e268d10"
         />
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
         {process.env.NODE_ENV === "production" ? (
