@@ -78,6 +78,7 @@ function detectInstallState(platform: AnalyticsPlatform): InstallState {
 
 function buildContextProperties(platform: AnalyticsPlatform) {
   return {
+    hostname: typeof window !== "undefined" ? window.location.hostname : "unknown",
     deviceType: detectDeviceType(),
     osFamily: detectOsFamily(),
     browserFamily: detectBrowserFamily(),

@@ -32,6 +32,7 @@ type AdminOverview = {
   osFamilies: Array<{ key: string; events: number; activeUsers: number }>;
   browserFamilies: Array<{ key: string; events: number; activeUsers: number }>;
   installStates: Array<{ key: string; events: number; activeUsers: number }>;
+  domains: Array<{ key: string; events: number; activeUsers: number }>;
   eventBreakdown: Array<{ eventName: string; events: number; actors: number }>;
   daily: Array<{
     day: string;
@@ -339,6 +340,24 @@ export default async function AdminAnalyticsPage({
                 </div>
                 <div className="space-y-1.5 text-sm">
                   {overview.installStates.map((row) => (
+                    <div
+                      key={row.key}
+                      className="flex items-center justify-between"
+                    >
+                      <span className="font-medium">{row.key}</span>
+                      <span className="text-muted-foreground">
+                        events {row.events} · active {row.activeUsers}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="rounded-xl border border-border p-3">
+                <div className="mb-2 text-xs font-semibold text-muted-foreground">
+                  domain (hostname)
+                </div>
+                <div className="space-y-1.5 text-sm">
+                  {overview.domains.map((row) => (
                     <div
                       key={row.key}
                       className="flex items-center justify-between"

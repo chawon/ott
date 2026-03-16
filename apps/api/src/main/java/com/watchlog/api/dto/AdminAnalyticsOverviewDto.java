@@ -21,6 +21,7 @@ public record AdminAnalyticsOverviewDto(
         List<AdminDimensionSummaryDto> osFamilies,
         List<AdminDimensionSummaryDto> browserFamilies,
         List<AdminDimensionSummaryDto> installStates,
+        List<AdminDimensionSummaryDto> domains,
         List<AdminEventBreakdownDto> eventBreakdown,
         List<AdminDailyAnalyticsDto> daily,
         List<AdminWeeklyRetroDto> weeklyRetro

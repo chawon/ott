@@ -213,6 +213,7 @@ public class AnalyticsService {
         List<AdminDimensionSummaryDto> osFamilies = queryAppOpenDimensionSummary("osFamily", from);
         List<AdminDimensionSummaryDto> browserFamilies = queryAppOpenDimensionSummary("browserFamily", from);
         List<AdminDimensionSummaryDto> installStates = queryAppOpenDimensionSummary("installState", from);
+        List<AdminDimensionSummaryDto> domains = queryAppOpenDimensionSummary("hostname", from);
 
         List<AdminEventBreakdownDto> eventBreakdown = jdbcTemplate.query("""
                 select
@@ -306,6 +307,7 @@ public class AnalyticsService {
                 osFamilies,
                 browserFamilies,
                 installStates,
+                domains,
                 eventBreakdown,
                 daily,
                 weeklyRetro
