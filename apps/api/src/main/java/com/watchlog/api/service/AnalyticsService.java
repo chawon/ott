@@ -9,6 +9,7 @@ import com.watchlog.api.dto.AdminDimensionSummaryDto;
 import com.watchlog.api.dto.AdminEventBreakdownDto;
 import com.watchlog.api.dto.AdminEventRowDto;
 import com.watchlog.api.dto.AdminPlatformSummaryDto;
+import com.watchlog.api.dto.AdminMigrationStatusDto;
 import com.watchlog.api.dto.AdminWeeklyRetroDto;
 import com.watchlog.api.dto.PersonalAnalyticsReportDto;
 import com.watchlog.api.dto.TrackAnalyticsEventRequest;
@@ -470,4 +471,43 @@ public class AnalyticsService {
     }
 
     private record Streak(int currentDays, int longestDays) {}
+    public AdminMigrationStatusDto adminMigrationStatus(String token) {
+        verifyAdminToken(token);
+
+        long totalActiveUsers = queryLong("""
+                select count(*) from (
+                    select user_id from watch_logs
+                    where user_id is not null
+                    group by user_id having count(*) >= 2
+                ) t
+                """);
+
+        long migratedUsers = queryLong("""
+                select count(distinct user_id) from analytics_events
+                where event_name = 'migration_complete'
+                  and user_id is not null
+                """);
+
+        long notMigratedUsers = Math.max(0, totalActiveUsers - migratedUsers);
+        double migrationRate = totalActiveUsers == 0 ? 0.0
+                : Math.round(migratedUsers * 1000.0 / totalActiveUsers) / 10.0;
+
+        List<AdminMigrationStatusDto.DailyCount> recentMigrations = jdbcTemplate.query("""
+                select date(occurred_at) as day, count(*) as cnt
+                from analytics_events
+                where event_name = 'migration_complete'
+                group by date(occurred_at)
+                order by day desc
+                limit 14
+                """,
+                (rs, i) -> new AdminMigrationStatusDto.DailyCount(
+                        rs.getDate("day").toLocalDate(),
+                        rs.getLong("cnt")
+                ));
+
+        return new AdminMigrationStatusDto(totalActiveUsers, migratedUsers, notMigratedUsers, migrationRate, recentMigrations);
+    }
+
 }
+
+    // Temporarily appending - will be inserted before closing brace

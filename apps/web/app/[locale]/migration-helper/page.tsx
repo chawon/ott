@@ -2,6 +2,7 @@
 import { useEffect, Suspense } from "react";
 import { setUserId, setDeviceId, setPairingCode, getUserId } from "@/lib/localStore";
 import { useSearchParams } from "next/navigation";
+import { trackEvent } from "@/lib/analytics";
 
 function MigrationHelperContent() {
   const searchParams = useSearchParams();
@@ -17,8 +18,8 @@ function MigrationHelperContent() {
       setUserId(u);
       setDeviceId(d);
       setPairingCode(p);
-      localStorage.setItem("watchlog.migration-success", "true"); // 성공 플래그 저장
-      // Redirect to home after a short delay to ensure storage is committed
+      localStorage.setItem("watchlog.migration-success", "true");
+      void trackEvent("migration_complete", { from_domain: "ott.preview.pe.kr" });
       setTimeout(() => {
         window.location.href = "/";
       }, 500);

@@ -23,8 +23,6 @@ type AdminOverview = {
   funnelAppOpenUsers: number;
   funnelLoginUsers: number;
   funnelLogCreateUsers: number;
-  retroAppOpenUsers: number;
-  retroToggleUsers: number;
   platforms: Array<{
     platform: "web" | "pwa" | "twa";
     events: number;
@@ -39,19 +37,18 @@ type AdminOverview = {
     day: string;
     events: number;
     appOpenUsers: number;
-    retroAppOpenUsers: number;
-    retroToggleUsers: number;
     loginUsers: number;
     logCreateUsers: number;
     shareActionUsers: number;
   }>;
-  weeklyRetro: Array<{
-    weekStart: string;
-    appOpenUsers: number;
-    retroAppOpenUsers: number;
-    retroToggleUsers: number;
-    retroToggleOnUsers: number;
-  }>;
+};
+
+type MigrationStatus = {
+  totalActiveUsers: number;
+  migratedUsers: number;
+  notMigratedUsers: number;
+  migrationRate: number;
+  recentMigrations: Array<{ date: string; count: number }>;
 };
 
 type AdminEventRow = {
@@ -97,6 +94,7 @@ export default async function AdminAnalyticsPage({
 
   let overview: AdminOverview | null = null;
   let recentEvents: AdminEventRow[] = [];
+  let migrationStatus: MigrationStatus | null = null;
   let loadError: string | null = null;
   try {
     const safeDays = Number.isFinite(days) ? days : 30;
@@ -118,6 +116,10 @@ export default async function AdminAnalyticsPage({
         cache: "no-store",
       },
     );
+    const migrationResponse = await fetch(
+      `${backendUrl}/api/admin/analytics/migration-status`,
+      { headers: { "X-Admin-Token": adminToken }, cache: "no-store" },
+    );
     if (!response.ok || !eventsResponse.ok) {
       loadError = t("apiError", {
         status: response.ok ? eventsResponse.status : response.status,
@@ -125,6 +127,9 @@ export default async function AdminAnalyticsPage({
     } else {
       overview = (await response.json()) as AdminOverview;
       recentEvents = (await eventsResponse.json()) as AdminEventRow[];
+      if (migrationResponse.ok) {
+        migrationStatus = (await migrationResponse.json()) as MigrationStatus;
+      }
     }
   } catch (e: unknown) {
     loadError = e instanceof Error ? e.message : t("callError");
@@ -181,6 +186,47 @@ export default async function AdminAnalyticsPage({
             </article>
           </section>
 
+          {migrationStatus && (
+            <section className="rounded-2xl border border-border bg-card p-6 space-y-4">
+              <div className="text-sm font-semibold">마이그레이션 현황</div>
+              <div className="grid gap-3 sm:grid-cols-4">
+                <div>
+                  <div className="text-xs text-muted-foreground">활성 유저 (기록 2개+)</div>
+                  <div className="mt-1 text-2xl font-semibold">{migrationStatus.totalActiveUsers}</div>
+                </div>
+                <div>
+                  <div className="text-xs text-muted-foreground">이전 완료</div>
+                  <div className="mt-1 text-2xl font-semibold text-green-600">{migrationStatus.migratedUsers}</div>
+                </div>
+                <div>
+                  <div className="text-xs text-muted-foreground">미이전</div>
+                  <div className="mt-1 text-2xl font-semibold text-orange-500">{migrationStatus.notMigratedUsers}</div>
+                </div>
+                <div>
+                  <div className="text-xs text-muted-foreground">이전율</div>
+                  <div className="mt-1 text-2xl font-semibold">{migrationStatus.migrationRate}%</div>
+                </div>
+              </div>
+              {migrationStatus.recentMigrations.length > 0 && (
+                <div>
+                  <div className="text-xs font-semibold text-muted-foreground mb-2">최근 이전 현황 (일별)</div>
+                  <div className="space-y-1">
+                    {migrationStatus.recentMigrations.map((row) => (
+                      <div key={row.date} className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">{row.date}</span>
+                        <span className="font-medium">{row.count}건</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              <p className="text-xs text-muted-foreground border-t border-border pt-3">
+                ℹ 신규 이전이 3일 이상 0건이면 301 리다이렉트 전환을 검토하세요.
+                배포 이전 마이그레이션 완료 사용자는 집계되지 않습니다.
+              </p>
+            </section>
+          )}
+
           <section className="rounded-2xl border border-border bg-card p-6">
             <div className="text-sm font-semibold">
               {t("funnelTitle", { days: overview.days })}
@@ -208,30 +254,6 @@ export default async function AdminAnalyticsPage({
                 </div>
                 <div className="text-xl font-semibold">
                   {overview.funnelLogCreateUsers}
-                </div>
-              </div>
-            </div>
-          </section>
-
-          <section className="rounded-2xl border border-border bg-card p-6">
-            <div className="text-sm font-semibold">
-              {t("retroTitle", { days: overview.days })}
-            </div>
-            <div className="mt-3 grid gap-3 sm:grid-cols-2">
-              <div>
-                <div className="text-xs text-muted-foreground">
-                  {t("retroAppOpen")}
-                </div>
-                <div className="text-xl font-semibold">
-                  {overview.retroAppOpenUsers}
-                </div>
-              </div>
-              <div>
-                <div className="text-xs text-muted-foreground">
-                  {t("retroToggle")}
-                </div>
-                <div className="text-xl font-semibold">
-                  {overview.retroToggleUsers}
                 </div>
               </div>
             </div>
@@ -370,8 +392,6 @@ export default async function AdminAnalyticsPage({
                     <th className="py-2 pr-3">day</th>
                     <th className="py-2 pr-3">events</th>
                     <th className="py-2 pr-3">app_open</th>
-                    <th className="py-2 pr-3">retro_app_open</th>
-                    <th className="py-2 pr-3">retro_toggle</th>
                     <th className="py-2 pr-3">login_success</th>
                     <th className="py-2 pr-3">log_create</th>
                     <th className="py-2 pr-3">share_action</th>
@@ -383,42 +403,9 @@ export default async function AdminAnalyticsPage({
                       <td className="py-2 pr-3 font-medium">{d.day}</td>
                       <td className="py-2 pr-3">{d.events}</td>
                       <td className="py-2 pr-3">{d.appOpenUsers}</td>
-                      <td className="py-2 pr-3">{d.retroAppOpenUsers}</td>
-                      <td className="py-2 pr-3">{d.retroToggleUsers}</td>
                       <td className="py-2 pr-3">{d.loginUsers}</td>
                       <td className="py-2 pr-3">{d.logCreateUsers}</td>
                       <td className="py-2 pr-3">{d.shareActionUsers}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </section>
-
-          <section className="rounded-2xl border border-border bg-card p-6">
-            <div className="text-sm font-semibold">{t("weeklyRetroTrend")}</div>
-            <div className="mt-1 text-xs text-muted-foreground">
-              {t("weekStartNotice", { days: overview.days })}
-            </div>
-            <div className="mt-3 overflow-x-auto">
-              <table className="w-full min-w-[760px] text-sm">
-                <thead>
-                  <tr className="border-b border-border text-left text-xs text-muted-foreground">
-                    <th className="py-2 pr-3">week_start</th>
-                    <th className="py-2 pr-3">app_open_users</th>
-                    <th className="py-2 pr-3">retro_app_open_users</th>
-                    <th className="py-2 pr-3">retro_toggle_users</th>
-                    <th className="py-2 pr-3">retro_toggle_on_users</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {overview.weeklyRetro.map((w) => (
-                    <tr key={w.weekStart} className="border-b border-border/60">
-                      <td className="py-2 pr-3 font-medium">{w.weekStart}</td>
-                      <td className="py-2 pr-3">{w.appOpenUsers}</td>
-                      <td className="py-2 pr-3">{w.retroAppOpenUsers}</td>
-                      <td className="py-2 pr-3">{w.retroToggleUsers}</td>
-                      <td className="py-2 pr-3">{w.retroToggleOnUsers}</td>
                     </tr>
                   ))}
                 </tbody>

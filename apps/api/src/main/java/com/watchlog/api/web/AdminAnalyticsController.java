@@ -2,6 +2,7 @@ package com.watchlog.api.web;
 
 import com.watchlog.api.dto.AdminAnalyticsOverviewDto;
 import com.watchlog.api.dto.AdminEventRowDto;
+import com.watchlog.api.dto.AdminMigrationStatusDto;
 import com.watchlog.api.service.AnalyticsService;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -38,5 +39,12 @@ public class AdminAnalyticsController {
             @RequestParam(value = "platform", required = false) String platform
     ) {
         return analyticsService.adminRecentEvents(token, days, limit, eventName, platform);
+    }
+
+    @GetMapping("/migration-status")
+    public AdminMigrationStatusDto migrationStatus(
+            @RequestHeader(value = "X-Admin-Token", required = false) String token
+    ) {
+        return analyticsService.adminMigrationStatus(token);
     }
 }
