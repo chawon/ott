@@ -1,7 +1,7 @@
 import type { MetadataRoute } from "next";
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = "https://ott.preview.pe.kr"; // 실제 운영 URL
+  const baseUrl = "https://ottline.app";
 
   const routes = [
     "",
