@@ -136,9 +136,9 @@ Title 태그 형식: ottline | On The Timeline
 ### SEO 기본
 - [x] `robots.txt` 확인 — sitemap 경로 ottline.app 기준 확인
 - [x] `sitemap.xml` — ottline.app 기준, 실제 날짜 적용, /account·/timeline 제거
-- [ ] 구글 서치 콘솔 `ottline.app` 신규 속성 등록 및 sitemap 제출
+- [x] 구글 서치 콘솔 `ottline.app` 신규 속성 등록 및 sitemap 제출
 - [ ] 구글 서치 콘솔 기존 속성(`ott.preview.pe.kr`)에서 "주소 변경" 제출
-- [ ] 네이버 서치어드바이저 `ottline.app` 등록 및 사이트맵 제출
+- [x] 네이버 서치어드바이저 `ottline.app` 등록 및 사이트맵 제출
 
 ### GEO (AI 검색 최적화) — 감사 결과 30/100, 상세 내용: `GEO-AUDIT-REPORT.md`
 
@@ -207,7 +207,7 @@ Title 태그 형식: ottline | On The Timeline
 ☑ FAQ/Privacy 페이지 AI 크롤러 접근 가능 (RSC 전환 완료)
 ☑ JSON-LD 스키마 적용 (Organization, SoftwareApplication, FAQPage)
 ☑ Bing Webmaster Tools 인증 완료
-□ 구글 서치 콘솔 ottline.app 색인 요청 완료
+☑ 구글 서치 콘솔 ottline.app 색인 요청 완료
 □ TWA 앱 실행 시 브라우저 UI 없이 정상 표시
 □ 플레이스토어 앱 이름 / 아이콘 새 버전으로 업데이트
 ```
