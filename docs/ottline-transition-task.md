@@ -127,18 +127,44 @@ Title 태그 형식: ottline | On The Timeline
 - [x] `<title>` → `ottline | ...` (titleDefault/titleTemplate 반영)
 - [x] `<meta name="theme-color">` → `#1E4D8C`
 - [x] OG/Twitter 태그 → ottline.app 기준 완료
-- [ ] `<link rel="canonical">` → `https://ottline.app/` 추가 검토
+- [x] `<link rel="canonical">` → about/faq/privacy 페이지별 적용 완료
 
 ---
 
-## Phase 4. SEO 설정
+## Phase 4. SEO / GEO 설정
 
-### 체크리스트
-- [ ] `robots.txt` 확인 — sitemap 경로 `ottline.app` 기준인지 점검
-- [ ] `sitemap.xml` 도메인 `ottline.app` 기준으로 업데이트
+### SEO 기본
+- [x] `robots.txt` 확인 — sitemap 경로 ottline.app 기준 확인
+- [x] `sitemap.xml` — ottline.app 기준, 실제 날짜 적용, /account·/timeline 제거
 - [ ] 구글 서치 콘솔 `ottline.app` 신규 속성 등록 및 sitemap 제출
 - [ ] 구글 서치 콘솔 기존 속성(`ott.preview.pe.kr`)에서 "주소 변경" 제출
 - [ ] 네이버 서치어드바이저 `ottline.app` 등록 및 사이트맵 제출
+
+### GEO (AI 검색 최적화) — 감사 결과 30/100, 상세 내용: `GEO-AUDIT-REPORT.md`
+
+#### Week 1 완료 (2026-03-17)
+- [x] `faq/page.tsx` → RSC 전환 (`"use client"` 제거, `getTranslations` 서버 적용)
+- [x] `privacy/page.tsx` → RSC 전환
+- [x] FAQPage JSON-LD 스키마 추가 (`/faq`)
+- [x] Organization + SoftwareApplication JSON-LD 추가 (layout.tsx `<head>`)
+- [x] 보안 헤더 추가 (X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy)
+- [x] `public/llms.txt` 생성 — AI 크롤러 사이트 구조 안내
+
+#### Week 2 완료 (2026-03-17)
+- [x] about/faq/privacy `generateMetadata`에 `alternates.canonical` 추가
+- [x] about/faq/privacy og:url, og:title 페이지별 개별 적용
+- [x] sitemap lastmod `new Date()` → 실제 날짜로 수정
+- [x] `/account`, `/timeline` X-Robots-Tag noindex 적용
+- [x] Bing Webmaster Tools 인증 완료 (Google Search Console 연동)
+- [x] IndexNow 구현 (`scripts/ping-indexnow.mjs`, `npm run indexnow`)
+
+#### 남은 GEO 작업 (코드 외 — 직접 진행)
+- [ ] 나무위키 ottline 문서 등록 (한국 AI 모델 브랜드 인식에 가장 큰 영향)
+- [ ] alternativeto.net 등록 (Media Tracker / Book Tracker 카테고리)
+- [ ] Product Hunt 런칭 (영문 엔티티 앵커 생성)
+- [ ] About/FAQ 페이지에 연락처(이메일 또는 피드백 링크) 노출
+- [ ] hreflang 태그 추가 (ko/en 언어 신호)
+- [ ] About 페이지에 영문 설명 단락 추가 (크로스링귀얼 AI 인식)
 
 ---
 
@@ -178,6 +204,9 @@ Title 태그 형식: ottline | On The Timeline
 ☑ 링크 공유 시 OG 이미지(ottline 브랜드) 노출
 ☑ 서비스 내 브랜드명 ottline 통일
 ☑ PWA manifest name/short_name "ottline"으로 표시
+☑ FAQ/Privacy 페이지 AI 크롤러 접근 가능 (RSC 전환 완료)
+☑ JSON-LD 스키마 적용 (Organization, SoftwareApplication, FAQPage)
+☑ Bing Webmaster Tools 인증 완료
 □ 구글 서치 콘솔 ottline.app 색인 요청 완료
 □ TWA 앱 실행 시 브라우저 UI 없이 정상 표시
 □ 플레이스토어 앱 이름 / 아이콘 새 버전으로 업데이트
