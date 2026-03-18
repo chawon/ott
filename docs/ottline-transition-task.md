@@ -168,21 +168,81 @@ Title 태그 형식: ottline | On The Timeline
 
 ---
 
-## Phase 5. TWA / 스토어 업데이트
+## Phase 5. 모바일 앱 (Capacitor) — Android + iOS
 
-### assetlinks.json
-- [ ] `https://ottline.app/.well-known/assetlinks.json` 생성/업데이트
-- [ ] `/.well-known/` 경로 서버 접근 가능 여부 확인
+> **결정 (2026-03-17):** TWA(bubblewrap) 방식 폐기 → Capacitor로 Android/iOS 통합
+>
+> **이유:**
+> - iOS App Store는 단순 PWA 래퍼(WKWebView만) 심사 거부 위험 높음
+> - TWA는 아직 정식 런칭 전 (app.ottline 패키지, Play Store 미등록) → 전환 비용 없음
+> - Capacitor: 단일 코드베이스로 Android + iOS 동시 대응, 네이티브 플러그인 통합 용이
+> - `apps/twa` 는 Capacitor 작업 완료 후 삭제 예정
 
-### 플레이스토어
-- [ ] TWA `assetLinkUrl` → `https://ottline.app` 변경
-- [ ] 앱 아이콘 교체 (ottline_logo.png 기반)
-- [ ] 스토어 등록 정보 업데이트 (앱 이름, 설명, 스크린샷)
-- [ ] 업데이트 버전 빌드 및 제출
+### 사전 준비
+- [ ] Apple Developer 계정 등록 ($99/년) — iOS 배포 필수
+- [ ] `apps/twa` 디렉토리 삭제 (Capacitor 프로젝트 구성 후 진행)
 
-### 기타 스토어
-- [ ] Microsoft Store — PWABuilder에서 `ottline.app` URL로 재패키징 후 제출
-- [ ] Galaxy Store, 원스토어 — 해당 시 URL 및 브랜딩 소재 변경
+### Capacitor 프로젝트 구성
+- [ ] `apps/cap` 디렉토리 생성 — Next.js 빌드 출력(`apps/web/out`)을 Capacitor로 서빙
+- [ ] `npx cap init` — appId: `app.ottline`, appName: `ottline`
+- [ ] Android 플랫폼 추가 (`npx cap add android`)
+- [ ] iOS 플랫폼 추가 (`npx cap add ios`)
+- [ ] `capacitor.config.ts` — webDir: `../web/out` (Next.js static export)
+
+### Digital Asset Links / AASA
+- [ ] `apps/web/public/.well-known/assetlinks.json` — Capacitor Android SHA256 핑거프린트로 업데이트
+- [ ] `apps/web/public/.well-known/apple-app-site-association` 생성
+  ```json
+  {
+    "applinks": {
+      "details": [{ "appIDs": ["TEAMID.app.ottline"], "components": [{"/" : "/*"}] }]
+    },
+    "webcredentials": { "apps": ["TEAMID.app.ottline"] }
+  }
+  ```
+
+### Play Store (Android)
+- [ ] Google Play Console에서 `app.ottline` 신규 앱 등록
+- [ ] 앱 아이콘, 스크린샷, 설명 등록 (ottline 브랜드 기준)
+- [ ] 서명 키스토어 생성 및 GitHub Secrets 등록
+- [ ] `.github/workflows/android-release.yml` 작성 — Capacitor AAB 빌드 + Play Store 배포
+- [ ] Privacy policy URL: `https://ottline.app/privacy`
+- [ ] 내부 테스트 트랙 → 프로덕션 순서로 제출
+
+### App Store (iOS)
+- [ ] App Store Connect에서 `app.ottline` 신규 앱 등록
+- [ ] 앱 아이콘 (1024x1024), 스크린샷 등록
+- [ ] 프로비저닝 프로파일, 서명 인증서 설정
+- [ ] `.github/workflows/ios-release.yml` 작성 — Capacitor IPA 빌드 + TestFlight 배포
+- [ ] TestFlight 내부 테스트 후 심사 제출
+
+### Microsoft Store (PWABuilder)
+> iOS App Store와 달리 MS Store는 PWA 래퍼 앱을 정책적으로 허용함
+
+- [ ] [PWABuilder](https://www.pwabuilder.com)에서 `ottline.app` 입력 → Windows 패키지 생성
+- [ ] 패키지 ID: `app.ottline` (또는 `OttlineApp.ottline`)
+- [ ] Microsoft Partner Center에서 신규 앱 등록
+- [x] 앱 아이콘, 스크린샷 등록 (Windows 직접 캡처본으로 교체)
+- [x] 설명 등록 (ko/en 모두)
+- [x] Age Ratings 설문 재작성 (User Content Sharing: Yes)
+- [x] PWABuilder 생성 `.msix` 패키지 제출
+- [ ] 심사 통과 확인 (재제출 2026-03-18)
+
+> **⚠️ 심사 거부 이력 (0.1.1.3 Inaccurate Representation — 스크린샷):**
+> "Screenshots must be direct captures of the **Windows product**"
+> → 모바일 스크린샷이나 일반 이미지 사용 불가
+> → Windows 데스크톱에서 ottline.app 실행한 화면을 직접 캡처해야 함 (Windows chrome 포함)
+> → 언어별 스크린샷 각각 준비 필요 (ko, en)
+> → 참고: https://go.microsoft.com/fwlink/?linkid=2281637
+>
+> **⚠️ 심사 거부 이력 (11.11.1 Age Ratings):**
+> "Chat products, even those with AI, should answer yes to **User Content Sharing**"
+> → Age Ratings 설문에서 **"User Content Sharing" = Yes** 로 답해야 함
+> → 퍼블릭 기록(타임라인 공개, 감상 공유 등 UGC 성격) 기능이 있으므로 해당됨
+> → 참고: https://learn.microsoft.com/en-us/windows/apps/publish/publish-your-app/age-ratings
+
+### Galaxy Store / 원스토어
+- [ ] 해당 시 Capacitor Android 빌드 APK/AAB 재활용하여 등록
 
 ---
 
@@ -208,6 +268,6 @@ Title 태그 형식: ottline | On The Timeline
 ☑ JSON-LD 스키마 적용 (Organization, SoftwareApplication, FAQPage)
 ☑ Bing Webmaster Tools 인증 완료
 ☑ 구글 서치 콘솔 ottline.app 색인 요청 완료
-□ TWA 앱 실행 시 브라우저 UI 없이 정상 표시
-□ 플레이스토어 앱 이름 / 아이콘 새 버전으로 업데이트
+□ Capacitor Android 앱 Play Store 등록 및 내부 테스트 통과
+□ Capacitor iOS 앱 TestFlight 업로드 및 App Store 심사 통과
 ```
