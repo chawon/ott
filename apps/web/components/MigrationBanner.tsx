@@ -73,14 +73,28 @@ export default function MigrationBanner() {
     <div className="fixed top-0 left-0 right-0 z-[100] bg-blue-600 p-4 shadow-lg animate-in slide-in-from-top duration-500">
       <div className="mx-auto max-w-5xl flex flex-col sm:flex-row items-center justify-between gap-4 text-white">
         <div className="text-center sm:text-left">
-          <p className="font-bold text-lg">서비스 주소가 <span className="underline">ottline.app</span>으로 바뀌었습니다</p>
+          <p className="font-bold text-lg">
+            서비스 주소가{" "}
+            <a
+              href="https://ottline.app"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline hover:opacity-80"
+            >
+              ottline.app
+            </a>
+            으로 바뀌었습니다
+          </p>
           <p className="text-sm opacity-90">
             {isStandalone
               ? "기록 이사 후에는 새 주소(ottline.app)에서 앱을 다시 설치해 주세요."
               : "클릭 한 번으로 기존 기록을 안전하게 새 주소로 옮길 수 있습니다."}
           </p>
+          <p className="text-xs opacity-75 mt-1">
+            이관이 잘 안 되시나요? 설정 &gt; 문의함에 문의를 남겨 주세요.
+          </p>
         </div>
-        <button 
+        <button
           onClick={handleMigrate}
           className="whitespace-nowrap bg-white text-blue-600 px-6 py-2 rounded-full font-bold hover:bg-gray-100 transition-colors shadow-sm"
         >
