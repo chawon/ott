@@ -55,6 +55,7 @@
 5. **도메인별 접속 분석**: `app_open` 이벤트에 `hostname` 프로퍼티 추가, admin 통계에 domain(hostname) 세그먼트 표시.
 6. **마이그레이션 배너 문구 개선**: `ott.preview.pe.kr` 접속 시 팝업에 `ottline.app`으로 주소 변경 안내 명시.
 7. **레트로 모드 통계 제거**: admin analytics에서 retro 관련 섹션(레트로 현황, 주간 레트로 트렌드) 제거. `SyncWorker`의 `app_open` 이벤트에서 `isRetro` 프로퍼티 제거.
+8. **Microsoft Store PWA 출시**: PWABuilder 패키지 심사 통과 및 배포 완료 (2026-03-20).
 
 ### P0
 1. **삭제 동기화(tombstone) + 복구 UX**
@@ -81,12 +82,12 @@
    3. 관리자 답변 알림 여부 결정
 
 ### P1
-1. Microsoft Store용 PWA 패키징 준비
-2. 현재 기준
-   1. 당분간 `On the Timeline` 브랜드로 진행
-   2. `manifest`의 `id`, `orientation`, `categories`, `name`, `short_name` 반영 완료
-   3. PWABuilder 패키지 생성 및 Microsoft 인증 심사 신청 완료
-   4. 남은 작업은 심사 질의 대응, Store URL/카테고리 최종 확정
+1. iOS App Store 출시 (Capacitor)
+2. 현재 기준 (브랜치: `feat/capacitor-ios`)
+   1. `apps/cap` Capacitor 프로젝트 구성 완료 (Swift Package Manager 기반)
+   2. `server.url: https://ottline.app` Live URL 방식 — 시뮬레이터 빌드 성공
+   3. `PwaInstallBanner` 네이티브 환경 감지 시 숨김 처리 완료
+   4. 남은 작업: Apple Developer 계정 등록(신청 예정) → 실기기 테스트 → TestFlight → 심사
 
 ### P1
 1. PC 브라우저 확장 MVP
