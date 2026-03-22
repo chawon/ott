@@ -55,6 +55,7 @@
 5. **도메인별 접속 분석**: `app_open` 이벤트에 `hostname` 프로퍼티 추가, admin 통계에 domain(hostname) 세그먼트 표시.
 6. **마이그레이션 배너 문구 개선**: `ott.preview.pe.kr` 접속 시 팝업에 `ottline.app`으로 주소 변경 안내 명시.
 7. **레트로 모드 통계 제거**: admin analytics에서 retro 관련 섹션(레트로 현황, 주간 레트로 트렌드) 제거. `SyncWorker`의 `app_open` 이벤트에서 `isRetro` 프로퍼티 제거.
+8. **Chrome 확장 ottline 브랜딩 및 Chrome Web Store 제출**: `manifest.json`, `popup.html`, `popup.js` 브랜드명·URL을 ottline으로 전환, 아이콘 교체(512px 원본 리사이즈), `ottline-helper-0.1.0.zip` 패키징 후 스토어 제출 완료.
 
 ### P0
 1. **삭제 동기화(tombstone) + 복구 UX**
@@ -89,13 +90,10 @@
    4. 남은 작업은 심사 질의 대응, Store URL/카테고리 최종 확정
 
 ### P1
-1. PC 브라우저 확장 MVP
+1. PC 브라우저 확장 — 스토어 제출 후 후속 작업
 2. 현재 기준
-   1. `apps/browser-extension`에 Chrome extension MVP 추가
-   2. 지원 사이트 OTT 상세 페이지에서 제목을 읽고 QuickLog로 전달
-   3. 웹앱 홈은 `capture_*` query param을 읽어 QuickLog 초기값 주입
-   4. GitHub Actions로 제출용 zip artifact 생성
-   5. 남은 작업은 실제 사이트 검증과 페이지 내 CTA 여부 판단
+   1. Chrome Web Store 제출 완료 (`ottline-helper-0.1.0`)
+   2. 남은 작업은 심사 통과 후 실제 사이트 검증과 페이지 내 CTA 여부 판단
 
 ---
 

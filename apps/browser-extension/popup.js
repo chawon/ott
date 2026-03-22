@@ -1,4 +1,4 @@
-const APP_BASE_URL = "https://ott.preview.pe.kr/ko";
+const APP_BASE_URL = "https://ottline.app/ko";
 
 const statusEl = document.getElementById("status");
 const descriptionEl = document.getElementById("description");

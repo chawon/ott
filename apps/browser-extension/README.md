@@ -1,6 +1,6 @@
 # Browser Extension MVP
 
-Chrome extension MVP for opening `On the Timeline` with a prefilled QuickLog search from supported OTT title pages.
+Chrome extension MVP for opening `ottline` with a prefilled QuickLog search from supported OTT title pages.
 
 ## Supported sites
 - Netflix
@@ -21,7 +21,7 @@ Chrome extension MVP for opening `On the Timeline` with a prefilled QuickLog sea
 
 ## Current behavior
 - Reads the current page title from supported OTT pages
-- Opens `https://ott.preview.pe.kr/ko` with query params
+- Opens `https://ottline.app/ko` with query params
 - Prefills QuickLog search query and platform
 - Final save still happens in the web app
 

@@ -1,10 +1,10 @@
 {
   "manifest_version": 3,
-  "name": "On the Timeline Helper",
+  "name": "ottline Helper",
   "version": "0.1.0",
-  "description": "Capture supported OTT title pages and open On the Timeline with a prefilled log search.",
+  "description": "Capture supported OTT title pages and open ottline with a prefilled log search.",
   "action": {
-    "default_title": "On the Timeline",
+    "default_title": "ottline",
     "default_popup": "popup.html",
     "default_icon": {
       "16": "icons/icon-16.png",
