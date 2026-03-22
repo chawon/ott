@@ -1,0 +1,45 @@
+{
+  "expo": {
+    "name": "ottline",
+    "slug": "ottline-native",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "scheme": "ottline",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0b1326"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "app.ottline.native"
+    },
+    "android": {
+      "package": "app.ottline.native",
+      "adaptiveIcon": {
+        "backgroundColor": "#0b1326",
+        "foregroundImage": "./assets/adaptive-icon.png"
+      }
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-font",
+      "expo-secure-store",
+      [
+        "expo-notifications",
+        {
+          "color": "#1e4d8c"
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
