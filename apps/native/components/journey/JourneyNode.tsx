@@ -4,16 +4,27 @@ import { WatchLog } from '../../lib/types';
 import { Colors } from '../../constants/colors';
 import { Typography } from '../../constants/typography';
 
-const PLACE_LABEL: Record<string, string> = {
-  HOME: '🏠 집', THEATER: '🎭 극장', TRANSIT: '🚇 이동중',
-  CAFE: '☕ 카페', OFFICE: '💼 사무실', LIBRARY: '📖 도서관',
-  BOOKSTORE: '📚 서점', SCHOOL: '🏫 학교', PARK: '🌿 공원',
-  OUTDOOR: '🌳 야외', ETC: '📍 기타',
+const PLACE_ICON: Record<string, string> = {
+  HOME: '🏠', THEATER: '🎭', TRANSIT: '🚇', CAFE: '☕',
+  OFFICE: '💼', LIBRARY: '📖', BOOKSTORE: '📚', SCHOOL: '🏫',
+  PARK: '🌿', OUTDOOR: '🌳', ETC: '📍',
 };
 
-const OCCASION_LABEL: Record<string, string> = {
-  ALONE: '혼자', DATE: '데이트', FAMILY: '가족',
-  FRIENDS: '친구와', BREAK: '휴식중', ETC: '기타',
+const PLACE_SHORT: Record<string, string> = {
+  HOME: '집', THEATER: '극장', TRANSIT: '이동중', CAFE: '카페',
+  OFFICE: '사무실', LIBRARY: '도서관', BOOKSTORE: '서점', SCHOOL: '학교',
+  PARK: '공원', OUTDOOR: '야외', ETC: '기타',
+};
+
+const OCCASION_ICON: Record<string, string> = {
+  ALONE: '🎧', DATE: '💑', FAMILY: '👨‍👩‍👧', FRIENDS: '👥', BREAK: '🛋️', ETC: '✨',
+};
+
+const OTT_COLOR: Record<string, string> = {
+  'Netflix': '#E50914', '왓챠': '#FF153C', '티빙': '#FF0558',
+  '웨이브': '#0090F5', '시즌': '#7B2FBE', '애플 TV+': '#A2AAAD',
+  'Apple TV+': '#A2AAAD', '디즈니+': '#113CCF', '쿠팡플레이': '#1ABAF4',
+  'Watcha': '#FF153C', 'Tving': '#FF0558', 'Wavve': '#0090F5',
 };
 
 const TYPE_LABEL: Record<string, string> = {
@@ -98,6 +109,30 @@ export function JourneyNode({ log, index, onPress }: JourneyNodeProps) {
               <Text style={styles.ratingText}>{'★'.repeat(Math.round(log.rating / 2))}</Text>
             </View>
           )}
+          {/* 플랫폼 도트 — 좌상단 */}
+          {log.ott && (
+            <View style={[styles.ottDot, { backgroundColor: OTT_COLOR[log.ott] ?? Colors.primaryContainer }]}>
+              <Text style={styles.ottDotText}>{log.ott.slice(0, 1).toUpperCase()}</Text>
+            </View>
+          )}
+          {/* 장소+상황 — 포스터 하단 frosted strip */}
+          {(log.place || log.occasion) && (
+            <View style={styles.contextStrip}>
+              {log.place && (
+                <Text style={styles.contextStripText}>
+                  {PLACE_ICON[log.place]} {PLACE_SHORT[log.place]}
+                </Text>
+              )}
+              {log.place && log.occasion && (
+                <Text style={styles.contextDivider}>·</Text>
+              )}
+              {log.occasion && (
+                <Text style={styles.contextStripText}>
+                  {OCCASION_ICON[log.occasion]}
+                </Text>
+              )}
+            </View>
+          )}
         </View>
 
         {/* 제목 */}
@@ -111,14 +146,6 @@ export function JourneyNode({ log, index, onPress }: JourneyNodeProps) {
         {/* 날짜 */}
         <Text style={styles.date}>{date}</Text>
 
-        {/* 장소/상황 */}
-        {(log.place || log.occasion) && (
-          <Text style={styles.context} numberOfLines={1}>
-            {log.place ? PLACE_LABEL[log.place] : ''}
-            {log.place && log.occasion ? ' · ' : ''}
-            {log.occasion ? OCCASION_LABEL[log.occasion] : ''}
-          </Text>
-        )}
       </TouchableOpacity>
     </View>
   );
@@ -257,9 +284,39 @@ const styles = StyleSheet.create({
     color: Colors.onSurfaceVariant,
     marginBottom: 4,
   },
-  context: {
-    ...Typography.labelSm,
-    color: Colors.outlineVariant,
+  ottDot: {
+    position: 'absolute',
+    top: 8,
+    left: 8,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  ottDotText: {
+    color: '#fff',
     fontSize: 10,
+    fontWeight: '700',
+  },
+  contextStrip: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingVertical: 5,
+    paddingHorizontal: 8,
+    backgroundColor: 'rgba(8,14,28,0.72)',
+  },
+  contextStripText: {
+    fontSize: 10,
+    color: 'rgba(221,229,255,0.85)',
+  },
+  contextDivider: {
+    fontSize: 10,
+    color: 'rgba(221,229,255,0.3)',
   },
 });
