@@ -128,3 +128,28 @@ export interface GamificationState {
   badges: Badge[];
   newlyUnlocked: Badge[];
 }
+
+// DNA 특질 타입
+export type TraitKey =
+  // 콘텐츠 타입
+  | 'book_maniac' | 'movie_lover' | 'series_lover' | 'omnivore'
+  // 장소
+  | 'homebody' | 'theater_maniac' | 'cafe_type' | 'transit_type' | 'outdoor_type'
+  // 상황
+  | 'solo_viewer' | 'social_viewer'
+  // 패턴
+  | 'binge_watcher' | 'completionist' | 'collector' | 'note_taker'
+  | 'generous_rater' | 'picky_rater'
+  // 플랫폼
+  | 'netflix_loyal' | 'tving_loyal' | 'wavve_loyal' | 'watcha_loyal'
+  | 'disney_loyal' | 'appletv_loyal' | 'global_ott' | 'k_ott' | 'platform_explorer';
+
+export interface DnaTraitMap {
+  traits: Partial<Record<TraitKey, number>>; // 각 특질 점수 0~1
+  topTraits: TraitKey[];                     // 점수 내림차순 상위 최대 3개
+}
+
+export interface AuraResult {
+  score: number;             // 0~1
+  matchedTrait: TraitKey | null;
+}
