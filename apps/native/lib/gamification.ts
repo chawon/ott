@@ -1,4 +1,4 @@
-import { WatchLog, LevelInfo, Badge, GamificationState } from './types';
+import { WatchLog, LevelInfo, Badge, GamificationState, DnaTraitMap, TraitKey, AuraResult } from './types';
 
 // 레벨 정의
 const LEVELS = [
@@ -140,4 +140,150 @@ export function calcGamification(logs: WatchLog[]): GamificationState {
     badges,
     newlyUnlocked: [],
   };
+}
+
+// ─── 특질 판정 헬퍼 ───────────────────────────────────────────────
+
+function ratio(logs: WatchLog[], predicate: (l: WatchLog) => boolean): number {
+  if (logs.length === 0) return 0;
+  return logs.filter(predicate).length / logs.length;
+}
+
+function avgRating(logs: WatchLog[]): number {
+  const rated = logs.filter((l) => l.rating != null);
+  if (rated.length === 0) return 0;
+  return rated.reduce((s, l) => s + (l.rating ?? 0), 0) / rated.length;
+}
+
+// ─── 특질별 점수 계산 ─────────────────────────────────────────────
+
+export function calcDnaTraits(logs: WatchLog[]): DnaTraitMap {
+  const active = logs.filter((l) => !l.deletedAt);
+  if (active.length === 0) return { traits: {}, topTraits: [] };
+
+  const scores: Partial<Record<TraitKey, number>> = {};
+
+  // 콘텐츠 타입
+  const bookR   = ratio(active, (l) => l.title.type === 'book');
+  const movieR  = ratio(active, (l) => l.title.type === 'movie');
+  const seriesR = ratio(active, (l) => l.title.type === 'series');
+  if (bookR >= 0.3)   scores['book_maniac']  = bookR;
+  if (movieR >= 0.5)  scores['movie_lover']  = movieR;
+  if (seriesR >= 0.5) scores['series_lover'] = seriesR;
+  if (bookR >= 0.2 && movieR >= 0.2 && seriesR >= 0.2)
+    scores['omnivore'] = Math.min(bookR, movieR, seriesR);
+
+  // 장소
+  const homeR    = ratio(active, (l) => l.place === 'HOME');
+  const theaterR = ratio(active, (l) => l.place === 'THEATER');
+  const cafeR    = ratio(active, (l) => l.place === 'CAFE');
+  const transitR = ratio(active, (l) => l.place === 'TRANSIT');
+  const outdoorR = ratio(active, (l) => l.place === 'PARK' || l.place === 'OUTDOOR');
+  if (homeR >= 0.5)     scores['homebody']       = homeR;
+  if (theaterR >= 0.2)  scores['theater_maniac'] = theaterR;
+  if (cafeR >= 0.2)     scores['cafe_type']      = cafeR;
+  if (transitR >= 0.2)  scores['transit_type']   = transitR;
+  if (outdoorR >= 0.15) scores['outdoor_type']   = outdoorR;
+
+  // 상황
+  const aloneR  = ratio(active, (l) => l.occasion === 'ALONE');
+  const socialR = ratio(active, (l) => ['DATE', 'FRIENDS', 'FAMILY'].includes(l.occasion ?? ''));
+  if (aloneR >= 0.5)  scores['solo_viewer']   = aloneR;
+  if (socialR >= 0.4) scores['social_viewer'] = socialR;
+
+  // 패턴
+  const bingeR      = ratio(active, (l) => l.title.type === 'series' && l.episodeNumber != null);
+  const completionR = ratio(active, (l) => l.status === 'DONE');
+  const collectorR  = ratio(active, (l) => l.status === 'WISHLIST');
+  const noteTakerR  = ratio(active, (l) => !!l.note && l.note.trim().length > 0);
+  const avg         = avgRating(active);
+  if (bingeR >= 0.3)      scores['binge_watcher']  = bingeR;
+  if (completionR >= 0.8) scores['completionist']  = completionR;
+  if (collectorR >= 0.4)  scores['collector']      = collectorR;
+  if (noteTakerR >= 0.5)  scores['note_taker']     = noteTakerR;
+  if (avg >= 4.0)         scores['generous_rater'] = avg / 5;
+  if (avg > 0 && avg <= 2.5) scores['picky_rater'] = 1 - avg / 5;
+
+  // 플랫폼
+  const nfR      = ratio(active, (l) => l.ott === 'Netflix');
+  const tvingR   = ratio(active, (l) => l.ott === '티빙');
+  const wavveR   = ratio(active, (l) => l.ott === '웨이브');
+  const watchaR  = ratio(active, (l) => l.ott === '왓챠');
+  const disneyR  = ratio(active, (l) => l.ott === '디즈니+');
+  const appleR   = ratio(active, (l) => l.ott === 'Apple TV+' || l.ott === '애플 TV+');
+  const globalR  = nfR + disneyR + appleR;
+  const kOttR    = tvingR + wavveR + watchaR;
+
+  if (nfR >= 0.5)     scores['netflix_loyal']     = nfR;
+  if (tvingR >= 0.5)  scores['tving_loyal']        = tvingR;
+  if (wavveR >= 0.5)  scores['wavve_loyal']         = wavveR;
+  if (watchaR >= 0.5) scores['watcha_loyal']        = watchaR;
+  if (disneyR >= 0.5) scores['disney_loyal']        = disneyR;
+  if (appleR >= 0.5)  scores['appletv_loyal']       = appleR;
+  if (globalR >= 0.5) scores['global_ott']          = globalR;
+  if (kOttR >= 0.5)   scores['k_ott']               = kOttR;
+
+  const platforms = [nfR, tvingR, wavveR, watchaR, disneyR, appleR];
+  const diversePlatforms = platforms.filter((r) => r >= 0.15).length;
+  if (diversePlatforms >= 3) scores['platform_explorer'] = diversePlatforms / platforms.length;
+
+  // 상위 3개 추출
+  const topTraits = (Object.entries(scores) as [TraitKey, number][])
+    .sort(([, a], [, b]) => b - a)
+    .slice(0, 3)
+    .map(([k]) => k);
+
+  return { traits: scores, topTraits };
+}
+
+// ─── 개별 로그 나다움 점수 ────────────────────────────────────────
+
+/**
+ * topTraits(최대 3개) 중 해당 로그와 매칭되는 수 ÷ 3 → score(0~1)
+ * 첫 번째 매칭 특질을 matchedTrait으로 반환 (aura 색상 결정에 사용)
+ */
+export function calcAuraScore(log: WatchLog, topTraits: TraitKey[]): AuraResult {
+  if (topTraits.length === 0) return { score: 0, matchedTrait: null };
+
+  let matches = 0;
+  let matchedTrait: TraitKey | null = null;
+  for (const trait of topTraits) {
+    if (logMatchesTrait(log, trait)) {
+      matches++;
+      if (!matchedTrait) matchedTrait = trait;
+    }
+  }
+  return { score: matches / 3, matchedTrait };
+}
+
+function logMatchesTrait(log: WatchLog, trait: TraitKey): boolean {
+  switch (trait) {
+    case 'book_maniac':    return log.title.type === 'book';
+    case 'movie_lover':    return log.title.type === 'movie';
+    case 'series_lover':   return log.title.type === 'series';
+    case 'omnivore':       return true;
+    case 'homebody':       return log.place === 'HOME';
+    case 'theater_maniac': return log.place === 'THEATER';
+    case 'cafe_type':      return log.place === 'CAFE';
+    case 'transit_type':   return log.place === 'TRANSIT';
+    case 'outdoor_type':   return log.place === 'PARK' || log.place === 'OUTDOOR';
+    case 'solo_viewer':    return log.occasion === 'ALONE';
+    case 'social_viewer':  return ['DATE', 'FRIENDS', 'FAMILY'].includes(log.occasion ?? '');
+    case 'binge_watcher':  return log.title.type === 'series' && log.episodeNumber != null;
+    case 'completionist':  return log.status === 'DONE';
+    case 'collector':      return log.status === 'WISHLIST';
+    case 'note_taker':     return !!log.note && log.note.trim().length > 0;
+    case 'generous_rater': return (log.rating ?? 0) >= 4;
+    case 'picky_rater':    return (log.rating ?? 0) > 0 && (log.rating ?? 0) <= 2.5;
+    case 'netflix_loyal':     return log.ott === 'Netflix';
+    case 'tving_loyal':       return log.ott === '티빙';
+    case 'wavve_loyal':       return log.ott === '웨이브';
+    case 'watcha_loyal':      return log.ott === '왓챠';
+    case 'disney_loyal':      return log.ott === '디즈니+';
+    case 'appletv_loyal':     return log.ott === 'Apple TV+' || log.ott === '애플 TV+';
+    case 'global_ott':        return ['Netflix', '디즈니+', 'Apple TV+', '애플 TV+'].includes(log.ott ?? '');
+    case 'k_ott':             return ['티빙', '웨이브', '왓챠'].includes(log.ott ?? '');
+    case 'platform_explorer': return !!log.ott;
+    default: return false;
+  }
 }
