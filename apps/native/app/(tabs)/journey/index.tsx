@@ -12,7 +12,8 @@ import Svg, { Path, Defs, LinearGradient, Stop } from 'react-native-svg';
 import { useQuery } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { syncPull } from '../../../lib/api';
-import { calcGamification } from '../../../lib/gamification';
+import { calcGamification, calcDnaTraits, calcAuraScore } from '../../../lib/gamification';
+import { getAuraColor } from '../../../lib/traits';
 import { WatchLog } from '../../../lib/types';
 import { Colors } from '../../../constants/colors';
 import { Typography } from '../../../constants/typography';
@@ -69,6 +70,7 @@ export default function JourneyScreen() {
     .sort((a, b) => new Date(b.watchedAt).getTime() - new Date(a.watchedAt).getTime());
 
   const gami = calcGamification(logs);
+  const { topTraits } = calcDnaTraits(logs);
   const movieCount = logs.filter((l) => l.title.type === 'movie' && l.status === 'DONE' && !l.deletedAt).length;
   const seriesCount = logs.filter((l) => l.title.type === 'series' && l.status === 'DONE' && !l.deletedAt).length;
   const bookCount = logs.filter((l) => l.title.type === 'book' && l.status === 'DONE' && !l.deletedAt).length;
@@ -109,6 +111,7 @@ export default function JourneyScreen() {
         bookCount={bookCount}
         badgeCount={unlockedBadges}
         totalBadges={gami.badges.length}
+        topTraits={topTraits}
       />
 
       {isLoading && (
@@ -168,12 +171,16 @@ export default function JourneyScreen() {
               </View>
             );
           }
+          const { score: auraScore, matchedTrait } = calcAuraScore(item.log, topTraits);
+          const auraColor = getAuraColor(matchedTrait);
           return (
             <JourneyNode
               key={item.log.id}
               log={item.log}
               index={item.globalIdx}
               onPress={() => router.push(`/log/${item.log.id}` as any)}
+              auraScore={auraScore}
+              auraColor={auraColor}
             />
           );
         })}
