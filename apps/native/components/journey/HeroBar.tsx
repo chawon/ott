@@ -3,7 +3,8 @@ import { View, Text, StyleSheet } from 'react-native';
 import Animated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 import { Colors } from '../../constants/colors';
 import { Typography } from '../../constants/typography';
-import { LevelInfo } from '../../lib/types';
+import { LevelInfo, TraitKey } from '../../lib/types';
+import { TRAIT_META } from '../../lib/traits';
 
 interface HeroBarProps {
   level: LevelInfo;
@@ -13,9 +14,10 @@ interface HeroBarProps {
   bookCount: number;
   badgeCount: number;
   totalBadges: number;
+  topTraits: TraitKey[];
 }
 
-export function HeroBar({ level, streak, movieCount, seriesCount, bookCount, badgeCount, totalBadges }: HeroBarProps) {
+export function HeroBar({ level, streak, movieCount, seriesCount, bookCount, badgeCount, totalBadges, topTraits }: HeroBarProps) {
   const progress = useSharedValue(0);
 
   useEffect(() => {
@@ -50,6 +52,26 @@ export function HeroBar({ level, streak, movieCount, seriesCount, bookCount, bad
       <Text style={styles.xpLabel}>
         {level.currentXP} / {level.nextXP} XP
       </Text>
+
+      {/* DNA 특질 칩 */}
+      {topTraits.length > 0 && (
+        <View style={styles.dnaRow}>
+          {topTraits.map((trait) => {
+            const meta = TRAIT_META[trait];
+            return (
+              <View
+                key={trait}
+                style={[styles.dnaChip, { borderColor: `${meta.color}55` }]}
+              >
+                <Text style={styles.dnaChipIcon}>{meta.icon}</Text>
+                <Text style={[styles.dnaChipLabel, { color: meta.color }]}>
+                  {meta.label}
+                </Text>
+              </View>
+            );
+          })}
+        </View>
+      )}
 
       {/* 통계 */}
       <View style={styles.statsRow}>
@@ -160,5 +182,29 @@ const styles = StyleSheet.create({
   badgeCount: {
     ...Typography.labelSm,
     color: Colors.onSurfaceVariant,
+  },
+  dnaRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginBottom: 10,
+  },
+  dnaChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 999,
+    borderWidth: 1,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+  },
+  dnaChipIcon: {
+    fontSize: 11,
+  },
+  dnaChipLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    letterSpacing: 0.2,
   },
 });
