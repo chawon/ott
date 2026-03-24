@@ -41,10 +41,20 @@ interface JourneyNodeProps {
   log: WatchLog;
   index: number;
   onPress: () => void;
+  auraScore: number;   // 0~1
+  auraColor: string;   // hex color
 }
 
-export function JourneyNode({ log, index, onPress }: JourneyNodeProps) {
+export function JourneyNode({ log, index, onPress, auraScore, auraColor }: JourneyNodeProps) {
   const isRight = index % 2 === 0;
+
+  // auraScore 기반 시각 강도 계산
+  const cardWidth = auraScore >= 0.7 ? 230 : auraScore >= 0.3 ? 220 : 200;
+  const shadowRadius = auraScore >= 0.7 ? 32 : auraScore >= 0.3 ? 20 : 8;
+  const shadowOpacity = auraScore >= 0.7 ? 0.5 : auraScore >= 0.3 ? 0.25 : 0.08;
+  const cardOpacity = auraScore < 0.3 ? 0.72 : 1;
+  const borderAlpha = auraScore >= 0.7 ? 'cc' : auraScore >= 0.3 ? '66' : '22';
+
   const pulse = useSharedValue(1);
 
   if (log.status === 'IN_PROGRESS') {
@@ -82,12 +92,26 @@ export function JourneyNode({ log, index, onPress }: JourneyNodeProps) {
 
       {/* 카드 */}
       <TouchableOpacity
-        style={[styles.card, log.status === 'WISHLIST' && styles.cardWishlist]}
+        style={[
+          styles.card,
+          log.status === 'WISHLIST' && styles.cardWishlist,
+          {
+            width: cardWidth,
+            opacity: cardOpacity,
+            shadowColor: auraColor,
+            shadowRadius,
+            shadowOpacity,
+            borderColor: `${auraColor}${borderAlpha}`,
+          },
+        ]}
         onPress={onPress}
         activeOpacity={0.85}
       >
         {/* 포스터 */}
-        <View style={styles.posterWrapper}>
+        <View style={[
+          styles.posterWrapper,
+          auraScore >= 0.7 && { borderWidth: 1.5, borderColor: `${auraColor}88` },
+        ]}>
           {posterUrl ? (
             <Image source={{ uri: posterUrl }} style={styles.poster} resizeMode="cover" />
           ) : (
