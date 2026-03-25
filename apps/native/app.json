@@ -20,7 +20,7 @@
       "package": "app.ottline.native",
       "adaptiveIcon": {
         "backgroundColor": "#0b1326",
-        "foregroundImage": "./assets/adaptive-icon.png"
+        "foregroundImage": "./assets/android-icon-foreground.png"
       }
     },
     "web": {

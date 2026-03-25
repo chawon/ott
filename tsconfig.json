@@ -4,5 +4,7 @@
     {
       "path": "./apps/web"
     }
-  ]
+  ],
+  "compilerOptions": {},
+  "extends": "expo/tsconfig.base"
 }
