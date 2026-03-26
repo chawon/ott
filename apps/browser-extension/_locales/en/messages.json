@@ -1,0 +1,8 @@
+{
+  "extensionName": {
+    "message": "ottline Helper"
+  },
+  "extensionDescription": {
+    "message": "Capture OTT title pages and open ottline with a prefilled QuickLog search."
+  }
+}

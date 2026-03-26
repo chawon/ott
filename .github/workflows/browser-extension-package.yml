@@ -50,6 +50,7 @@ jobs:
             popup.css \
             popup.js \
             icons \
+            _locales \
             README.md
 
       - name: Upload extension artifact
