@@ -103,11 +103,12 @@
 ### 브랜치 구조
 
 ```
-feature/* ──→ main ──→ 자동 배포 → staging.ottline.app
-                              ↓
-                         수동 승인 (workflow_dispatch)
-                              ↓
-                         ottline.app (프로덕션)
+feature/* ──PR──→ main ──→ [자동] staging.ottline.app
+                                  ↓
+                         GitHub Actions workflow_dispatch
+                         (SHA 입력)
+                                  ↓
+                            ottline.app (프로덕션)
 ```
 
 | 브랜치 | 용도 | 직접 푸시 |
@@ -121,16 +122,33 @@ feature/* ──→ main ──→ 자동 배포 → staging.ottline.app
 
 1. **새 작업은 반드시 브랜치 먼저**: 작업 시작 전 `feature/작업명` 또는 `fix/작업명` 브랜치를 만든다.
 2. **main 직접 커밋 금지**: main에는 PR(머지)로만 반영한다. 단, 문서·설정 소규모 수정은 예외로 사용자가 명시적으로 허용할 때만 허용.
-3. **스테이징 먼저, 프로덕션은 수동**: main 머지 = 스테이징 배포. 프로덕션은 사용자가 GitHub Actions `workflow_dispatch`로 수동 트리거.
+3. **스테이징 먼저, 프로덕션은 수동**: main 머지 = 스테이징 자동 배포. 프로덕션은 사용자가 직접 `workflow_dispatch`로 수동 트리거.
 4. **hotfix 예외**: 긴급 수정은 `hotfix/*` 브랜치에서 main으로 직접 PR 가능. 이때 사용자에게 스테이징 생략 여부를 먼저 확인한다.
+
+### 프로덕션 배포 방법
+
+1. staging 배포 워크플로우 완료 후 **Summary 탭**에서 SHA 복사
+2. GitHub Actions → **Deploy Web to Production** / **Deploy API to Production** → `Run workflow`
+3. `sha` 입력란에 복사한 SHA 붙여넣기
+
+> SHA를 모를 때: `deploy/oke-staging/{web,api}-deployment.yaml`의 이미지 태그에서 `staging-` 뒤 값이 SHA
+
+### 이미지 태그 규칙
+
+| 환경 | 태그 형식 | 워크플로우 |
+|---|---|---|
+| 스테이징 | `staging-{full-sha}` | `deploy-web.yml` / `deploy-api.yml` (main push 자동) |
+| 프로덕션 | `{full-sha}` | `deploy-web-production.yml` / `deploy-api-production.yml` (수동) |
 
 ### 인프라 구성 요약
 
 - **스테이징**: `ott-staging` 네임스페이스, `staging.ottline.app`, Cloudflare Access로 접근 제한
 - **프로덕션**: `ott` 네임스페이스, `ottline.app`
+- **GitOps**: ArgoCD가 `deploy/oke/`, `deploy/oke-staging/` 디렉토리를 main HEAD에 자동 동기화
 - **시크릿 관리**: OCI Vault → ESO (git에 시크릿 실제 값 커밋 절대 금지)
 - **TLS**: Cloudflare Origin Certificate (cert-manager/Let's Encrypt 아님)
-- **세부 계획**: `docs/staging-environment-plan.md` 참조
+- **버전 표시**: Footer에 `web {sha} · api {sha}` 형식으로 현재 배포 버전 표시
+- **세부 운영 가이드**: `docs/staging-environment-plan.md` 참조
 
 ---
 
