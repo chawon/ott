@@ -1,16 +1,36 @@
 # ottline
 
-> 로그인 없이 영상과 책을 기록하는 무료 타임라인 서비스.
-> A free, login-free video and book logging timeline. Data is stored locally in the browser using IndexedDB. No account required.
+> ottline은 로그인 없이 영상과 책을 기록하는 무료 한국어 타임라인 서비스입니다.
+> A free, login-free timeline service for logging videos and books. All records are stored locally in the browser via IndexedDB — no data is transmitted to a server unless cross-device pairing is used. No account required.
+
+ottline은 Web, Android PWA, iOS PWA에서 무료로 이용 가능합니다.
+
+## Key Features
+
+- 로그인 없는 기록: 계정 생성 없이 즉시 영상·책 기록 시작
+- 로컬 퍼스트 저장: 모든 데이터는 기기의 브라우저(IndexedDB)에 저장되며 서버로 전송되지 않음
+- 타임라인 뷰: 기록된 콘텐츠를 시간순으로 모아보는 개인 타임라인
+- 페어링 코드 동기화: 기기 간 기록 이전 시 페어링 코드 사용 (최신 수정 내용 우선)
+- CSV 내보내기: 설정 > 내 기록 내보내기에서 기록 파일 다운로드
+- PWA 설치: Android·iOS 홈 화면에 앱처럼 설치 가능
+- 함께 보기: 다른 사용자의 공개 기록 열람 가능
 
 ## Core Pages
 
-- [Home](https://ottline.app): Start logging videos and books instantly without creating an account.
-- [About](https://ottline.app/about): How ottline works — three-step workflow and key features.
-- [FAQ](https://ottline.app/faq): Data persistence, cross-device pairing, CSV export, and pricing answers.
-- [Privacy Policy](https://ottline.app/privacy): Data handling and local-first storage policy.
+- [Home](https://ottline.app): 로그인 없이 영상·책 기록 시작
+- [About](https://ottline.app/about): ottline 사용법 — 3단계 워크플로우 및 주요 기능 소개
+- [FAQ](https://ottline.app/faq): 데이터 저장 방식, 기기 변경, CSV 내보내기, 요금제 안내
+- [Privacy Policy](https://ottline.app/privacy): 데이터 처리 방침 및 로컬 퍼스트 저장 정책
 
-## Optional
+## Optional Pages
 
-- [Timeline](https://ottline.app/timeline): Personal viewing and reading timeline view.
-- [Public](https://ottline.app/public): Publicly shared records from all users.
+- [Timeline](https://ottline.app/timeline): 나의 영상·책 기록 타임라인
+- [Public](https://ottline.app/public): 사용자들의 공개 기록 모아보기
+
+## Notes
+
+- 서비스 이용료 없음 — 모든 기능 무료 제공
+- 개인 기록 데이터는 서버에 저장되지 않음 (페어링 동기화 제외)
+- 브라우저 저장소(IndexedDB) 초기화 시 로컬 기록 삭제됨 (서버 백업 없음)
+- 지원 언어: 한국어 (ko-KR)
+- 지원 플랫폼: Web, Android PWA, iOS PWA

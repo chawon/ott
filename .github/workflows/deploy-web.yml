@@ -62,3 +62,20 @@ jobs:
           else
             echo "No changes to manifests."
           fi
+
+      - name: Notify IndexNow (Bing)
+        run: |
+          curl -s -o /dev/null -w "%{http_code}" -X POST "https://api.indexnow.org/indexnow" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "host": "ottline.app",
+              "key": "9cdd845a2cc74943a9c950e5de656b48",
+              "keyLocation": "https://ottline.app/9cdd845a2cc74943a9c950e5de656b48.txt",
+              "urlList": [
+                "https://ottline.app",
+                "https://ottline.app/about",
+                "https://ottline.app/faq",
+                "https://ottline.app/public",
+                "https://ottline.app/privacy"
+              ]
+            }'

@@ -108,6 +108,7 @@ export default async function RootLayout({
               description:
                 "가입 없이 영상·책 기록을 10초 만에 남기고 타임라인으로 모아보세요. 영상과 책을 가장 빠르게 기록하는 방법.",
               inLanguage: "ko-KR",
+              sameAs: ["https://www.wikidata.org/wiki/Q138822579"],
             }),
           }}
         />
