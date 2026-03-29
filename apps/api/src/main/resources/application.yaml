@@ -45,3 +45,16 @@ admin:
     token: ${ADMIN_ANALYTICS_TOKEN:}
   feedback:
     token: ${ADMIN_FEEDBACK_TOKEN:${ADMIN_ANALYTICS_TOKEN:}}
+
+cloudflare:
+  api-token: ${CF_API_TOKEN:}
+  zone-id: ${CF_ZONE_ID:}
+  account-tag: ${CF_ACCOUNT_TAG:}
+  request-host: ${CF_REQUEST_HOST:}
+
+google-analytics:
+  property-id: ${GA4_PROPERTY_ID:}
+  credentials-json: ${GA4_CREDENTIALS_JSON:}
+
+report:
+  schedule: "0 0 0 * * *"

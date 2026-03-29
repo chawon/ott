@@ -35,6 +35,9 @@ dependencies {
 	testImplementation("org.springframework.boot:spring-boot-starter-validation-test")
 	testImplementation("org.springframework.boot:spring-boot-starter-webmvc-test")
 	testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+
+	// Google Auth (GA4 service account)
+	implementation("com.google.auth:google-auth-library-oauth2-http:1.23.0")
 }
 
 hibernate {

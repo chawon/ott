@@ -24,3 +24,6 @@ apps/web/next-env.d.ts
 deploy/.gemini/
 apps/api/bootrun.log
 *.tsbuildinfo
+
+# GCP service account credentials
+gen-lang-client-*.json

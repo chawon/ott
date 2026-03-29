@@ -14,6 +14,7 @@ spec:
       labels:
         app: ott-api
     spec:
+      serviceAccountName: ott-api
       imagePullSecrets:
         - name: ocir-pull-secret
       containers:
