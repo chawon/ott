@@ -65,3 +65,12 @@ jobs:
           else
             echo "No changes to manifests."
           fi
+
+      - name: Print production deploy SHA
+        run: |
+          echo "### Production Deploy SHA" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Use this SHA to deploy api to production:" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY

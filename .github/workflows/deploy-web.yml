@@ -66,6 +66,15 @@ jobs:
             echo "No changes to manifests."
           fi
 
+      - name: Print production deploy SHA
+        run: |
+          echo "### Production Deploy SHA" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Use this SHA to deploy web to production:" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
       - name: Notify IndexNow (Bing)
         run: |
           curl -s -o /dev/null -w "%{http_code}" -X POST "https://api.indexnow.org/indexnow" \
