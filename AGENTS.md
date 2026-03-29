@@ -98,7 +98,43 @@
 
 ---
 
-## 4) Codex 개발 룰
+## 4) 배포 전략
+
+### 브랜치 구조
+
+```
+feature/* ──→ main ──→ 자동 배포 → staging.ottline.app
+                              ↓
+                         수동 승인 (workflow_dispatch)
+                              ↓
+                         ottline.app (프로덕션)
+```
+
+| 브랜치 | 용도 | 직접 푸시 |
+|---|---|---|
+| `main` | 스테이징 자동 배포 트리거 | PR만 |
+| `feature/*` | 기능 개발 | ✅ |
+| `fix/*` | 버그 수정 | ✅ |
+| `hotfix/*` | 긴급 수정 (스테이징 생략 가능) | ✅ |
+
+### 에이전트 작업 규칙
+
+1. **새 작업은 반드시 브랜치 먼저**: 작업 시작 전 `feature/작업명` 또는 `fix/작업명` 브랜치를 만든다.
+2. **main 직접 커밋 금지**: main에는 PR(머지)로만 반영한다. 단, 문서·설정 소규모 수정은 예외로 사용자가 명시적으로 허용할 때만 허용.
+3. **스테이징 먼저, 프로덕션은 수동**: main 머지 = 스테이징 배포. 프로덕션은 사용자가 GitHub Actions `workflow_dispatch`로 수동 트리거.
+4. **hotfix 예외**: 긴급 수정은 `hotfix/*` 브랜치에서 main으로 직접 PR 가능. 이때 사용자에게 스테이징 생략 여부를 먼저 확인한다.
+
+### 인프라 구성 요약
+
+- **스테이징**: `ott-staging` 네임스페이스, `staging.ottline.app`, Cloudflare Access로 접근 제한
+- **프로덕션**: `ott` 네임스페이스, `ottline.app`
+- **시크릿 관리**: OCI Vault → ESO (git에 시크릿 실제 값 커밋 절대 금지)
+- **TLS**: Cloudflare Origin Certificate (cert-manager/Let's Encrypt 아님)
+- **세부 계획**: `docs/staging-environment-plan.md` 참조
+
+---
+
+## 5) Codex 개발 룰
 
 ### 공통 원칙
 1. 탐색 후 수정: 먼저 코드/스키마/계약을 확인하고 편집한다.
@@ -134,7 +170,7 @@
 
 ---
 
-## 5) 활성 API 계약 (현재 기준)
+## 6) 활성 API 계약 (현재 기준)
 
 *모든 API는 `Accept-Language` 헤더를 통해 요청자의 언어 선호도를 수신하며, TMDB 등 외부 연동 시 이를 활용한다.*
 
@@ -225,7 +261,7 @@
 
 ---
 
-## 6) 데이터 모델 핵심 합의
+## 7) 데이터 모델 핵심 합의
 1. `titles`
    1. `provider`, `provider_id` 기반 upsert
    2. `unique(provider, provider_id)`
@@ -244,14 +280,14 @@
 
 ---
 
-## 7) 작업 시작 전 빠른 체크
+## 8) 작업 시작 전 빠른 체크
 1. 이번 작업이 P0/P1 어디에 속하는지 확인
 2. 영향 범위가 API/DB/Sync/UI 중 어디까지인지 먼저 선언
 3. 변경 후 검증 시나리오를 최소 3개 이상 준비
 
 ---
 
-## 8) 작업 완료 기준 (Definition of Done)
+## 9) 작업 완료 기준 (Definition of Done)
 1. 기능이 목표 시나리오에서 실제 동작
 2. 관련 API/타입/로컬캐시/동기화 경로 정합성 확보
 3. 기존 기능 회귀 없음(특히 QuickLog, Timeline, Title detail, Sync)
@@ -264,7 +300,7 @@
 
 ---
 
-## 9) 진실 원천 경로 (Source of Truth)
+## 10) 진실 원천 경로 (Source of Truth)
 
 ### 프론트
 1. API 유틸: `apps/web/lib/api.ts`
@@ -287,7 +323,7 @@
 
 ---
 
-## 10) 문서 운영 룰
+## 11) 문서 운영 룰
 1. "완료"와 "다음 작업"을 같은 항목에 동시에 적지 않는다.
 2. 폐기된 제안/중복 이력은 본문에서 제거하고 필요하면 `docs/archive/`로 이동한다.
 3. 우선순위는 P0/P1/P2로만 관리한다.

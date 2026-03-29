@@ -1,0 +1,25 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: ott-staging-app
+  namespace: argocd
+  annotations:
+    notifications.argoproj.io/subscribe.on-sync-failed.telegram: "8470328903"
+    notifications.argoproj.io/subscribe.on-sync-succeeded.telegram: "8470328903"
+spec:
+  project: default
+  source:
+    repoURL: git@github.com:chawon/ott.git
+    targetRevision: HEAD
+    path: deploy/oke-staging
+    directory:
+      exclude: argocd-app.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: ott-staging
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
