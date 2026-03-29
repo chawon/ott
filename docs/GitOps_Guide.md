@@ -93,9 +93,15 @@ graph TD
 
 ### B. 환경 설정 변경 (Config/Secret)
 
-1.  **ConfigMap/Secret 변경:**
-    *   `deploy/oke/web-config.yaml` 또는 `api-secret.yaml`을 수정하고 푸시하면 ArgoCD가 반영합니다.
-    *   **Secret 주의:** `api-secret.yaml`에는 실제 DB 접속 정보가 포함되어야 합니다. (플레이스홀더 `<DB_HOST>` 등이 있으면 안 됨)
+1.  **Secret 변경 (OCI Vault + ESO):**
+    *   API 서버의 시크릿은 **OCI Vault**에서 관리되며, **External Secrets Operator(ESO)**가 주기적으로 동기화합니다.
+    *   시크릿 값 변경 시: OCI Console 또는 OCI CLI에서 해당 시크릿을 업데이트하면 ESO가 최대 1시간 내 자동 반영합니다.
+    *   즉시 반영이 필요한 경우: `kubectl annotate externalsecret ott-api-secrets -n ott force-sync=$(date +%s) --overwrite`
+    *   비밀이 아닌 설정값(`TELEGRAM_NOTIFY_ENABLED`, `TELEGRAM_SERVICE_NAME`, `CF_REQUEST_HOST`)은 `deploy/oke/api-deployment.yaml`에 직접 env로 관리합니다.
+    *   **ESO 관련 파일:** `deploy/oke/external-secret.yaml` (SecretStore + ExternalSecret)
+
+2.  **ConfigMap 변경:**
+    *   `deploy/oke/web-config.yaml`을 수정하고 푸시하면 ArgoCD가 반영합니다.
 
 ### C. 문제 발생 시 대응
 
@@ -109,6 +115,6 @@ graph TD
 
 ### D. 접속 정보
 
-*   **서비스 주소:** `https://ott.preview.pe.kr`
+*   **서비스 주소:** `https://ottline.app`
 *   **ArgoCD 대시보드:** `https://argocd.preview.pe.kr`
     *   계정: `admin` / `FZU-8L2G9Thq2nUC`

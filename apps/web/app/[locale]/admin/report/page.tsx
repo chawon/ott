@@ -142,7 +142,10 @@ export default async function AdminReportPage({ params, searchParams }: Props) {
           {/* K8s */}
           <section className="rounded-2xl border border-border bg-card p-6 space-y-4">
             <div className="flex items-center justify-between">
-              <div className="text-sm font-semibold">☸️ 인프라 (Kubernetes / ott)</div>
+              <div className="text-sm font-semibold">
+                ☸️ 인프라 (Kubernetes / ott)
+                <span className="ml-2 text-xs font-normal text-muted-foreground">실시간</span>
+              </div>
               <a
                 href="https://clarity.microsoft.com"
                 target="_blank"

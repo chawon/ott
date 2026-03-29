@@ -17,7 +17,7 @@ ottline 웹서비스 운영 현황을 매일 한 곳에서 확인하고 싶음.
 | Cloudflare | 요청수, 방문자, 대역폭, 위협 차단 | CF GraphQL Analytics API |
 | GA4 | 세션, 활성 사용자, 페이지뷰, 신규 사용자 | GA4 Data API (서비스 계정) |
 | 내부 analytics | DAU, 로그 생성, 신규 등록 | 기존 `AnalyticsService` 재사용 |
-| Kubernetes | Pod 상태, Deployment 이미지, CPU/Memory | K8s API (in-cluster config) |
+| Kubernetes | Pod 상태, Deployment 이미지, CPU/Memory (실시간) | K8s API (in-cluster config) + Metrics Server |
 
 ---
 
@@ -65,11 +65,19 @@ ottline 웹서비스 운영 현황을 매일 한 곳에서 확인하고 싶음.
 **신규 파일:**
 - `deploy/oke/report-rbac.yaml`
   - ott-api ServiceAccount에 pods, nodes, metrics.k8s.io 읽기 권한 부여
+- `deploy/oke/external-secret.yaml`
+  - OCI Vault + ESO(External Secrets Operator) 연동
+  - SecretStore: InstancePrincipal 인증 (auth 블록 생략)
+  - ExternalSecret: OCI Vault 시크릿 → K8s Secret `ott-api-secrets` 생성
 
 **수정 파일:**
-- `deploy/oke/api-secret.yaml` - 시크릿 키 추가
-  - `CF_API_TOKEN`, `CF_ZONE_ID`
+- `deploy/oke/external-secret.yaml` - ESO ExternalSecret에 키 추가
+  - `CF_API_TOKEN`, `CF_ZONE_ID`, `CF_ACCOUNT_TAG`
   - `GA4_PROPERTY_ID`, `GA4_CREDENTIALS_JSON`
+  - `ADMIN_ANALYTICS_TOKEN`, `TMDB_ACCESS_TOKEN`
+  - `NAVER_CLIENT_ID`, `NAVER_CLIENT_SECRET`
+  - `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`
+  - 비밀이 아닌 값(`TELEGRAM_NOTIFY_ENABLED`, `TELEGRAM_SERVICE_NAME`, `CF_REQUEST_HOST`)은 api-deployment.yaml에 직접 env로 관리
 
 ### Frontend (Next.js)
 
