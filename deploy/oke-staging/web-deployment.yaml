@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ott-web
+  namespace: ott-staging
+spec:
+  replicas: 1
+  revisionHistoryLimit: 2
+  selector:
+    matchLabels:
+      app: ott-web
+  template:
+    metadata:
+      labels:
+        app: ott-web
+    spec:
+      imagePullSecrets:
+        - name: ocir-pull-secret
+      containers:
+        - name: web
+          image: yny.ocir.io/axvqyylkrvmi/ott-web:f88a9f22aaba379d5d05962eb768381176ef6633
+          ports:
+            - containerPort: 3000
+          envFrom:
+            - configMapRef:
+                name: ott-web-config
+            - secretRef:
+                name: ott-api-secrets
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ott-web
+  namespace: ott-staging
+spec:
+  selector:
+    app: ott-web
+  ports:
+    - name: http
+      port: 3000
+      targetPort: 3000

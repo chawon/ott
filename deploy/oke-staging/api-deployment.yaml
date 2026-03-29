@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ott-api
+  namespace: ott-staging
+spec:
+  replicas: 1
+  revisionHistoryLimit: 2
+  selector:
+    matchLabels:
+      app: ott-api
+  template:
+    metadata:
+      labels:
+        app: ott-api
+    spec:
+      serviceAccountName: ott-api
+      imagePullSecrets:
+        - name: ocir-pull-secret
+      containers:
+        - name: api
+          image: yny.ocir.io/axvqyylkrvmi/ott-api:e13e96498db4cad8dcde765c9e63ef0587183b67
+          ports:
+            - containerPort: 8080
+          env:
+            - name: TELEGRAM_NOTIFY_ENABLED
+              value: "false"
+            - name: TELEGRAM_SERVICE_NAME
+              value: "ottline-staging"
+            - name: CF_REQUEST_HOST
+              value: "staging.ottline.app"
+          envFrom:
+            - secretRef:
+                name: ott-api-secrets
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ott-api
+  namespace: ott-staging
+spec:
+  selector:
+    app: ott-api
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
