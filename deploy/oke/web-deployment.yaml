@@ -18,7 +18,7 @@ spec:
         - name: ocir-pull-secret
       containers:
         - name: web
-          image: yny.ocir.io/axvqyylkrvmi/ott-web:f88a9f22aaba379d5d05962eb768381176ef6633
+          image: yny.ocir.io/axvqyylkrvmi/ott-web:a1e202e6fa5e4400f1081bec4250174892094e24
           ports:
             - containerPort: 3000
           envFrom:
