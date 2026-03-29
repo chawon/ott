@@ -5,3 +5,4 @@ metadata:
   namespace: ott-staging
 data:
   BACKEND_URL: http://ott-api:8080
+  NEXT_PUBLIC_APP_ENV: staging

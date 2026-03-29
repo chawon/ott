@@ -152,6 +152,11 @@ export default async function RootLayout({
       <body className="min-h-screen bg-background text-foreground font-sans antialiased transition-colors duration-300">
         <NextIntlClientProvider messages={messages}>
           <ThemeProvider>
+            {process.env.NEXT_PUBLIC_APP_ENV === "staging" && (
+              <div className="fixed top-0 left-0 right-0 z-50 bg-amber-400 text-amber-900 text-center text-xs font-bold py-1 tracking-widest">
+                STAGING
+              </div>
+            )}
             <MigrationBanner />
             <AppHeader />
             <SwipeNav />
