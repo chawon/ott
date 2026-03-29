@@ -1,4 +1,4 @@
-name: Deploy Web to OKE
+name: Deploy Web to Staging
 
 on:
   push:
@@ -28,7 +28,7 @@ jobs:
           username: ${{ secrets.OCIR_USERNAME }}
           password: ${{ secrets.OCIR_PASSWORD }}
 
-      - name: Build and push Web image
+      - name: Build and push Web image (staging)
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -36,9 +36,9 @@ jobs:
           platforms: linux/arm64
           push: true
           tags: |
-            ${{ secrets.OCIR_REGISTRY }}/${{ secrets.OCIR_NAMESPACE }}/ott-web:${{ github.sha }}
+            ${{ secrets.OCIR_REGISTRY }}/${{ secrets.OCIR_NAMESPACE }}/ott-web:staging-${{ github.sha }}
 
-      - name: Update Web Manifest
+      - name: Update Staging Web Manifest
         run: |
           git config --global user.name "GitHub Actions"
           git config --global user.email "actions@github.com"
@@ -48,15 +48,15 @@ jobs:
           wget https://github.com/mikefarah/yq/releases/download/v4.44.3/yq_linux_${YQ_ARCH} -O /usr/local/bin/yq
           chmod +x /usr/local/bin/yq
 
-          NEW_TAG="${{ github.sha }}"
+          NEW_TAG="staging-${{ github.sha }}"
           WEB_IMAGE="${{ secrets.OCIR_REGISTRY }}/${{ secrets.OCIR_NAMESPACE }}/ott-web:$NEW_TAG"
 
-          echo "Updating Web image to: $WEB_IMAGE"
-          yq -i "select(.kind == \"Deployment\").spec.template.spec.containers[0].image = \"$WEB_IMAGE\"" deploy/oke/web-deployment.yaml
+          echo "Updating Staging Web image to: $WEB_IMAGE"
+          yq -i "select(.kind == \"Deployment\").spec.template.spec.containers[0].image = \"$WEB_IMAGE\"" deploy/oke-staging/web-deployment.yaml
 
           if [[ -n $(git status -s) ]]; then
-            git add deploy/oke/web-deployment.yaml
-            git commit -m "chore(web): update image tag to ${{ github.sha }}"
+            git add deploy/oke-staging/web-deployment.yaml
+            git commit -m "chore(web): update staging image tag to ${{ github.sha }}"
             git pull --rebase origin main
             git push
           else
