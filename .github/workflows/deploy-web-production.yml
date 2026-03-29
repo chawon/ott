@@ -1,22 +1,24 @@
-name: Deploy API to Staging
+name: Deploy Web to Production
 
 on:
-  push:
-    branches: ["main"]
-    paths:
-      - 'apps/api/**'
-      - 'shared/**'
-      - '.github/workflows/deploy-api.yml'
+  workflow_dispatch:
+    inputs:
+      sha:
+        description: 'Git SHA to deploy (must already be deployed to staging)'
+        required: true
+        type: string
 
 permissions:
   contents: write
 
 jobs:
-  build-and-push-api:
+  build-and-push-web:
     runs-on: ubuntu-24.04-arm
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.sha }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -28,35 +30,36 @@ jobs:
           username: ${{ secrets.OCIR_USERNAME }}
           password: ${{ secrets.OCIR_PASSWORD }}
 
-      - name: Build and push API image (staging)
+      - name: Build and push Web image (production)
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: ./apps/api/Dockerfile
+          file: ./apps/web/Dockerfile
           platforms: linux/arm64
           push: true
           tags: |
-            ${{ secrets.OCIR_REGISTRY }}/${{ secrets.OCIR_NAMESPACE }}/ott-api:staging-${{ github.sha }}
+            ${{ secrets.OCIR_REGISTRY }}/${{ secrets.OCIR_NAMESPACE }}/ott-web:${{ inputs.sha }}
 
-      - name: Update Staging API Manifest
+      - name: Update Production Web Manifest
         run: |
           git config --global user.name "GitHub Actions"
           git config --global user.email "actions@github.com"
+          git fetch origin main
+          git checkout main
 
           ARCH=$(uname -m)
           if [[ "$ARCH" == "x86_64" ]]; then YQ_ARCH="amd64"; elif [[ "$ARCH" == "aarch64" || "$ARCH" == "arm64" ]]; then YQ_ARCH="arm64"; else YQ_ARCH="$ARCH"; fi
           wget https://github.com/mikefarah/yq/releases/download/v4.44.3/yq_linux_${YQ_ARCH} -O /usr/local/bin/yq
           chmod +x /usr/local/bin/yq
 
-          NEW_TAG="staging-${{ github.sha }}"
-          API_IMAGE="${{ secrets.OCIR_REGISTRY }}/${{ secrets.OCIR_NAMESPACE }}/ott-api:$NEW_TAG"
+          WEB_IMAGE="${{ secrets.OCIR_REGISTRY }}/${{ secrets.OCIR_NAMESPACE }}/ott-web:${{ inputs.sha }}"
 
-          echo "Updating Staging API image to: $API_IMAGE"
-          yq -i "select(.kind == \"Deployment\").spec.template.spec.containers[0].image = \"$API_IMAGE\"" deploy/oke-staging/api-deployment.yaml
+          echo "Updating Production Web image to: $WEB_IMAGE"
+          yq -i "select(.kind == \"Deployment\").spec.template.spec.containers[0].image = \"$WEB_IMAGE\"" deploy/oke/web-deployment.yaml
 
           if [[ -n $(git status -s) ]]; then
-            git add deploy/oke-staging/api-deployment.yaml
-            git commit -m "chore(api): update staging image tag to ${{ github.sha }}"
+            git add deploy/oke/web-deployment.yaml
+            git commit -m "chore(web): update production image tag to ${{ inputs.sha }}"
             git pull --rebase origin main
             git push
           else
