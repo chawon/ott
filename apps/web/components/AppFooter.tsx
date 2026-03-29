@@ -1,12 +1,25 @@
-"use client";
-
-import { useTranslations } from "next-intl";
+import { getTranslations } from "next-intl/server";
 import { Link as IntlLink } from "@/i18n/routing";
 import { cn } from "@/lib/utils";
 
-export default function AppFooter() {
+async function getApiVersion(): Promise<string> {
+  try {
+    const res = await fetch(`${process.env.BACKEND_URL}/actuator/info`, {
+      next: { revalidate: 3600 },
+    });
+    if (!res.ok) return "unknown";
+    const data = await res.json();
+    return data?.app?.version ?? "unknown";
+  } catch {
+    return "unknown";
+  }
+}
+
+export default async function AppFooter() {
+  const t = await getTranslations("AppFooter");
   const currentYear = new Date().getFullYear();
-  const t = useTranslations("AppFooter");
+  const webVersion = process.env.APP_VERSION ?? "dev";
+  const apiVersion = await getApiVersion();
 
   return (
     <footer
@@ -116,6 +129,9 @@ export default function AppFooter() {
             <p>
               © {currentYear} {t("titleModern")}.{" "}
               {t("allRightsReserved")}
+            </p>
+            <p className="font-mono text-[10px] opacity-50">
+              web {webVersion} · api {apiVersion}
             </p>
           </div>
         </div>

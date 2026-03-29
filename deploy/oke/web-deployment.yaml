@@ -21,6 +21,9 @@ spec:
           image: yny.ocir.io/axvqyylkrvmi/ott-web:56fb503e23700be0baf6b6ff72268c1deef4b9c8
           ports:
             - containerPort: 3000
+          env:
+            - name: APP_VERSION
+              value: "dev"
           envFrom:
             - configMapRef:
                 name: ott-web-config
