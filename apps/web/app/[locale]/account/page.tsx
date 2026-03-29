@@ -12,19 +12,18 @@ import {
   resetLocalState,
 } from "@/lib/localStore";
 import { api } from "@/lib/api";
-import { useRetro } from "@/context/RetroContext";
 import { cn } from "@/lib/utils";
 import { downloadTimelineCsv } from "@/lib/export";
 import { Link as IntlLink } from "@/i18n/routing";
 
 import { useLocale, useTranslations } from "next-intl";
+
 export default function AccountPage() {
   const tAccount = useTranslations("Account");
   const tCsv = useTranslations("CSV");
   const tStatus = useTranslations("Status");
   const tCommon = useTranslations("Common");
   const tQuick = useTranslations("QuickLogCard");
-  const { isRetro } = useRetro();
   const locale = useLocale();
   const [userId, setUserId] = useState<string | null>(null);
   const [deviceId, setDeviceId] = useState<string | null>(null);
@@ -164,9 +163,7 @@ export default function AccountPage() {
     });
   }
 
-  const headerTitle = isRetro
-    ? tAccount("titleRetro")
-    : tAccount("titleModern");
+  const headerTitle = tAccount("titleModern");
 
   return (
     <div className="mx-auto max-w-xl space-y-6">
@@ -176,9 +173,7 @@ export default function AccountPage() {
           {headerTitle}
         </h1>
         <p className="text-sm text-muted-foreground">
-          {isRetro
-            ? tAccount("descriptionRetro")
-            : tAccount("descriptionModern")}
+          {tAccount("descriptionModern")}
         </p>
       </header>
 
@@ -199,9 +194,7 @@ export default function AccountPage() {
               href="/me/report"
               className={cn(
                 "inline-flex items-center justify-center gap-2 py-3 text-sm font-bold transition-all",
-                isRetro
-                  ? "border-4 border-black bg-[#2ecc71] text-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] active:translate-y-0 active:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
-                  : "rounded-2xl bg-indigo-600 text-white hover:bg-indigo-700 shadow-lg shadow-indigo-500/20",
+                "rounded-2xl bg-indigo-600 text-white hover:bg-indigo-700 shadow-lg shadow-indigo-500/20",
               )}
             >
               {tAccount("viewReport")}
@@ -212,9 +205,7 @@ export default function AccountPage() {
             <div
               className={cn(
                 "inline-flex items-center justify-center gap-2 py-3 text-sm font-bold",
-                isRetro
-                  ? "border-4 border-black bg-neutral-200 text-neutral-500 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
-                  : "rounded-2xl bg-neutral-100 text-neutral-400",
+                "rounded-2xl bg-neutral-100 text-neutral-400",
               )}
             >
               {tAccount("viewReport")}
@@ -231,9 +222,7 @@ export default function AccountPage() {
           <div
             className={cn(
               "flex h-12 items-center justify-center text-xl font-bold tracking-widest",
-              isRetro
-                ? "border-4 border-black bg-white"
-                : "rounded-xl bg-muted/50",
+              "rounded-xl bg-muted/50",
             )}
           >
             {initializing ? tAccount("pairingCodeLoading") : (pairingCode ?? "—")}
@@ -261,9 +250,7 @@ export default function AccountPage() {
               placeholder={tAccount("pairingCodePlaceholder")}
               className={cn(
                 "flex-1 px-3 py-2 text-sm outline-none",
-                isRetro
-                  ? "border-4 border-black font-bold uppercase"
-                  : "rounded-xl border border-border bg-card focus:ring-2 focus:ring-ring/40",
+                "rounded-xl border border-border bg-card focus:ring-2 focus:ring-ring/40",
               )}
             />
             <button
@@ -271,9 +258,7 @@ export default function AccountPage() {
               disabled={loading || !input.trim()}
               className={cn(
                 "px-4 py-2 text-sm font-bold transition-all",
-                isRetro
-                  ? "border-4 border-black bg-black text-white hover:bg-neutral-800 disabled:bg-neutral-400"
-                  : "rounded-xl bg-neutral-900 text-white hover:bg-neutral-800 disabled:opacity-40",
+                "rounded-xl bg-neutral-900 text-white hover:bg-neutral-800 disabled:opacity-40",
               )}
             >
               {loading ? tAccount("connecting") : tAccount("connectAction")}
@@ -296,9 +281,7 @@ export default function AccountPage() {
           href="/feedback"
           className={cn(
             "flex w-full items-center justify-center gap-2 px-4 py-3 text-center text-sm font-bold transition-all break-keep",
-            isRetro
-              ? "border-4 border-black bg-white text-black hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
-              : "rounded-2xl border border-border bg-card text-foreground hover:bg-muted",
+            "rounded-2xl border border-border bg-card text-foreground hover:bg-muted",
           )}
         >
           {tAccount("feedbackAction")}
@@ -333,10 +316,7 @@ export default function AccountPage() {
           type="button"
           onClick={handleResetLocal}
           className={cn(
-            "w-full py-3 text-sm font-bold transition-all",
-            isRetro
-              ? "border-4 border-black bg-red-500 text-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] active:translate-y-0 active:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
-              : "rounded-2xl border border-red-200 bg-red-50 text-red-600 hover:bg-red-100",
+            "w-full py-3 text-sm font-bold transition-all rounded-2xl border border-red-200 bg-red-50 text-red-600 hover:bg-red-100",
           )}
         >
           {tAccount("resetLocalAction")}
@@ -446,24 +426,12 @@ export default function AccountPage() {
                       type="button"
                       onClick={() => revokeDevice(d.id)}
                       disabled={loading}
-                      className={cn(
-                        "shrink-0 text-xs font-bold transition-colors",
-                        isRetro
-                          ? "bg-red-600 text-white px-2 py-1 border-2 border-black"
-                          : "text-red-600 hover:text-red-700",
-                      )}
+                      className="shrink-0 text-xs font-bold transition-colors text-red-600 hover:text-red-700"
                     >
                       {tAccount("unlinkAction")}
                     </button>
                   ) : (
-                    <div
-                      className={cn(
-                        "shrink-0 text-[10px] font-bold uppercase",
-                        isRetro
-                          ? "bg-black text-white px-2 py-1"
-                          : "rounded-full bg-indigo-50 px-2 py-0.5 text-indigo-600",
-                      )}
-                    >
+                    <div className="shrink-0 text-[10px] font-bold uppercase rounded-full bg-indigo-50 px-2 py-0.5 text-indigo-600">
                       {tAccount("currentLabel")}
                     </div>
                   )}
@@ -477,12 +445,7 @@ export default function AccountPage() {
               type="button"
               onClick={revokeAll}
               disabled={loading}
-              className={cn(
-                "mt-2 w-full py-3 text-xs font-bold transition-all",
-                isRetro
-                  ? "border-4 border-black bg-neutral-800 text-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:bg-black"
-                  : "rounded-2xl border border-border bg-card text-muted-foreground hover:bg-muted hover:text-foreground",
-              )}
+              className="mt-2 w-full py-3 text-xs font-bold transition-all rounded-2xl border border-border bg-card text-muted-foreground hover:bg-muted hover:text-foreground"
             >
               {tAccount("unlinkAllAction")}
             </button>

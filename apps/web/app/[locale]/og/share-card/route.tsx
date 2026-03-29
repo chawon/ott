@@ -15,7 +15,7 @@ type ShareCardPayload = {
   date: string;
   posterUrl?: string | null;
   watermark: string;
-  theme: "default" | "retro";
+  theme: "default";
 };
 
 async function renderShareCard(body: ShareCardPayload) {
@@ -44,16 +44,6 @@ async function renderShareCard(body: ShareCardPayload) {
           "/usr/share/fonts/truetype/nanum/NanumSquareB.ttf",
           "./public/fonts/NanumSquareB.ttf",
         ],
-      },
-      {
-        name: "Galmuri11",
-        weight: 400 as const,
-        paths: ["./public/fonts/Galmuri11.ttf"],
-      },
-      {
-        name: "Galmuri11",
-        weight: 700 as const,
-        paths: ["./public/fonts/Galmuri11-Bold.ttf"],
       },
     ];
 
@@ -94,15 +84,12 @@ async function renderShareCard(body: ShareCardPayload) {
       : null;
     let posterUrl = body.posterUrl ?? null;
     const watermark = body.watermark ?? "ottline.app";
-    const isRetro = body.theme === "retro";
 
-    // Select font family based on theme
-    const fontFamily = isRetro
-      ? "Galmuri11, sans-serif"
-      : "NanumSquare, sans-serif";
+    // Select font family
+    const fontFamily = "NanumSquare, sans-serif";
 
-    let backgroundColor = isRetro ? "#f8f2e9" : "#0b0c10";
-    let contentBgColor = isRetro ? "#fff6dd" : "#0b1224";
+    let backgroundColor = "#0b0c10";
+    let contentBgColor = "#0b1224";
 
     if (posterUrl) {
       posterUrl = tmdbResize(posterUrl, "w780") ?? posterUrl;
@@ -115,33 +102,29 @@ async function renderShareCard(body: ShareCardPayload) {
           const contentType = res.headers.get("content-type") || "image/jpeg";
           const finalPosterUrl = `data:${contentType};base64,${base64}`;
 
-          // Extract color if not retro and using a real image
-          if (!isRetro) {
-            try {
-              const colorData = await getAverageColor(buffer);
+          // Extract color
+          try {
+            const colorData = await getAverageColor(buffer);
 
-              if (colorData && colorData.value) {
-                const [r, g, b] = colorData.value;
-                // Darken the color significantly to ensure white text readability
-                // Mix with black (70% black, 30% color) for the main background
-                // Or just use it as a base for a gradient
-                const darken = 0.2;
-                const dr = Math.floor(r * darken);
-                const dg = Math.floor(g * darken);
-                const db = Math.floor(b * darken);
+            if (colorData && colorData.value) {
+              const [r, g, b] = colorData.value;
+              // Darken the color significantly to ensure white text readability
+              const darken = 0.2;
+              const dr = Math.floor(r * darken);
+              const dg = Math.floor(g * darken);
+              const db = Math.floor(b * darken);
 
-                // For content area, maybe slightly lighter but still dark
-                const contentDarken = 0.25;
-                const cr = Math.floor(r * contentDarken);
-                const cg = Math.floor(g * contentDarken);
-                const cb = Math.floor(b * contentDarken);
+              // For content area, maybe slightly lighter but still dark
+              const contentDarken = 0.25;
+              const cr = Math.floor(r * contentDarken);
+              const cg = Math.floor(g * contentDarken);
+              const cb = Math.floor(b * contentDarken);
 
-                backgroundColor = `rgb(${dr}, ${dg}, ${db})`;
-                contentBgColor = `rgb(${cr}, ${cg}, ${cb})`;
-              }
-            } catch (e) {
-              console.error("Color extraction failed:", e);
+              backgroundColor = `rgb(${dr}, ${dg}, ${db})`;
+              contentBgColor = `rgb(${cr}, ${cg}, ${cb})`;
             }
+          } catch (e) {
+            console.error("Color extraction failed:", e);
           }
 
           posterUrl = finalPosterUrl;
@@ -162,7 +145,7 @@ async function renderShareCard(body: ShareCardPayload) {
           flexDirection: "column",
           position: "relative",
           backgroundColor,
-          color: isRetro ? "#111827" : "#ffffff",
+          color: "#ffffff",
           fontFamily,
         }}
       >
@@ -172,7 +155,7 @@ async function renderShareCard(body: ShareCardPayload) {
             height: "70%",
             display: "flex",
             position: "relative",
-            backgroundColor: isRetro ? "#f8f2e9" : backgroundColor, // Use same bg to blend
+            backgroundColor: backgroundColor,
             overflow: "hidden",
           }}
         >
@@ -195,7 +178,7 @@ async function renderShareCard(body: ShareCardPayload) {
               right: 0,
               height: "36%",
               display: "flex",
-              background: `linear-gradient(180deg, rgba(0,0,0,0) 0%, ${contentBgColor} 100%)`, // Fade into content color
+              background: `linear-gradient(180deg, rgba(0,0,0,0) 0%, ${contentBgColor} 100%)`,
             }}
           />
         </div>
@@ -222,11 +205,10 @@ async function renderShareCard(body: ShareCardPayload) {
               style={{
                 display: "flex",
                 fontSize: s(isBook ? 64 : 84),
-                fontWeight: isRetro ? 700 : 700,
+                fontWeight: 700,
                 lineHeight: isBook ? 1.12 : 1.05,
                 letterSpacing: "-0.02em",
-                textTransform: isRetro ? "uppercase" : "none",
-                color: isRetro ? "#111827" : "#ffffff",
+                color: "#ffffff",
                 whiteSpace: "pre-wrap",
               }}
             >
@@ -238,9 +220,9 @@ async function renderShareCard(body: ShareCardPayload) {
                 style={{
                   display: "flex",
                   fontSize: s(isBook ? 40 : 38),
-                  fontWeight: isRetro ? 700 : 500,
+                  fontWeight: 500,
                   lineHeight: 1.3,
-                  color: isRetro ? "#1f2937" : "#dbe4ff",
+                  color: "#dbe4ff",
                   whiteSpace: "pre-wrap",
                 }}
               >
@@ -254,8 +236,8 @@ async function renderShareCard(body: ShareCardPayload) {
                 gap: s(12),
                 flexWrap: "wrap",
                 fontSize: s(isBook ? 26 : 28),
-                fontWeight: isRetro ? 700 : 600,
-                color: isRetro ? "#374151" : "#cbd5f5",
+                fontWeight: 600,
+                color: "#cbd5f5",
               }}
             >
               <div
@@ -265,9 +247,7 @@ async function renderShareCard(body: ShareCardPayload) {
                   gap: s(8),
                   padding: `${s(10)}px ${s(16)}px`,
                   borderRadius: 999,
-                  backgroundColor: isRetro
-                    ? "rgba(17,24,39,0.08)"
-                    : "rgba(255,255,255,0.08)",
+                  backgroundColor: "rgba(255,255,255,0.08)",
                   height: s(48),
                 }}
               >
@@ -282,9 +262,7 @@ async function renderShareCard(body: ShareCardPayload) {
                     gap: s(8),
                     padding: `${s(10)}px ${s(16)}px`,
                     borderRadius: 999,
-                    backgroundColor: isRetro
-                      ? "rgba(17,24,39,0.08)"
-                      : "rgba(255,255,255,0.08)",
+                    backgroundColor: "rgba(255,255,255,0.08)",
                     height: s(48),
                   }}
                 >
@@ -304,9 +282,7 @@ async function renderShareCard(body: ShareCardPayload) {
                   gap: s(8),
                   padding: `${s(10)}px ${s(16)}px`,
                   borderRadius: 999,
-                  backgroundColor: isRetro
-                    ? "rgba(17,24,39,0.08)"
-                    : "rgba(255,255,255,0.08)",
+                  backgroundColor: "rgba(255,255,255,0.08)",
                   height: s(48),
                 }}
               >
@@ -324,10 +300,9 @@ async function renderShareCard(body: ShareCardPayload) {
             left: s(88),
             display: "flex",
             fontSize: s(26),
-            fontWeight: isRetro ? 700 : 500,
-            letterSpacing: isRetro ? "0.06em" : "0.02em",
-            textTransform: isRetro ? "uppercase" : "none",
-            color: isRetro ? "rgba(17,24,39,0.7)" : "rgba(255,255,255,0.75)",
+            fontWeight: 500,
+            letterSpacing: "0.02em",
+            color: "rgba(255,255,255,0.75)",
           }}
         >
           {watermark}
@@ -419,11 +394,8 @@ export async function GET(req: Request) {
 
   // Extract locale from pathname (e.g., /en/og/share-card -> en)
   const locale = pathname.split("/")[1] || "ko";
-  const tDetail = await getTranslations({ locale, namespace: "DiscussionDetail" });
-  const tQuick = await getTranslations({ locale, namespace: "QuickLogCard" });
-  const tHeader = await getTranslations({ locale, namespace: "AppHeader" });
-
   const isBookSample = sample === "book";
+  const tQuick = await getTranslations({ locale, namespace: "QuickLogCard" });
   const posterUrl = `${origin}/share-cards/${isBookSample ? "sample-book-poster.svg" : "sample-video-poster.svg"}`;
 
   const body: ShareCardPayload = {

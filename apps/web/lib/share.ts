@@ -9,7 +9,7 @@ export type ShareCardPayload = {
   date: string;
   posterUrl?: string | null;
   watermark: string;
-  theme: "default" | "retro";
+  theme: "default";
 };
 
 export async function fetchShareCardBlob(payload: ShareCardPayload) {

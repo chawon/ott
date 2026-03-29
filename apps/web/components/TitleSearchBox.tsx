@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "@/lib/api";
 import { DiscussionListItem, TitleSearchItem } from "@/lib/types";
-import { useRetro } from "@/context/RetroContext";
 import { useTranslations } from "next-intl";
 import { cn, tmdbResize } from "@/lib/utils";
 
@@ -23,7 +22,6 @@ export default function TitleSearchBox({
   autoFocus?: boolean;
 }) {
   const tTitleSearch = useTranslations("TitleSearchBox");
-  const { isRetro } = useRetro();
   const [q, setQ] = useState("");
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState<TitleSearchItem[]>([]);
@@ -159,10 +157,6 @@ export default function TitleSearchBox({
     setActiveIndex(0);
   }, [items]);
 
-  const retroPlaceholder =
-    contentType === "book"
-      ? tTitleSearch("retroBookPlaceholder")
-      : tTitleSearch("retroVideoPlaceholder");
   const modernPlaceholder = placeholder || tTitleSearch("defaultPlaceholder");
 
   return (
@@ -194,12 +188,10 @@ export default function TitleSearchBox({
             pick(items[Math.max(0, Math.min(activeIndex, items.length - 1))]);
           }
         }}
-        placeholder={isRetro ? retroPlaceholder : modernPlaceholder}
+        placeholder={modernPlaceholder}
         className={cn(
           "w-full transition-all outline-none",
-          isRetro
-            ? "border-4 border-black bg-white px-4 py-3 text-base font-semibold shadow-[inset_4px_4px_0px_0px_#e0e0e0] focus:ring-4 focus:ring-yellow-400 focus:border-black placeholder:text-neutral-600"
-            : "rounded-xl border border-border bg-card px-4 py-3 text-sm text-foreground focus:ring-2 focus:ring-ring/40 focus:border-border placeholder:text-muted-foreground",
+          "rounded-xl border border-border bg-card px-4 py-3 text-sm text-foreground focus:ring-2 focus:ring-ring/40 focus:border-border placeholder:text-muted-foreground",
         )}
       />
 
@@ -207,29 +199,23 @@ export default function TitleSearchBox({
         <div
           className={cn(
             "absolute z-50 mt-2 w-full max-h-[70vh] overflow-auto bg-card text-card-foreground",
-            isRetro
-              ? "border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]"
-              : "rounded-xl border border-border shadow-xl",
+            "rounded-xl border border-border shadow-xl",
           )}
           data-onboarding-target="title-search-panel"
         >
           {showRecentPanel ? (
             <div
               className={cn(
-                isRetro ? "border-b-4 border-black" : "border-b border-border",
+                "border-b border-border",
               )}
             >
               <div
                 className={cn(
                   "px-4 py-2 text-[10px] font-bold uppercase tracking-widest",
-                  isRetro ? "bg-black text-white" : "text-muted-foreground",
+                  "text-muted-foreground",
                 )}
               >
-                {isRetro
-                  ? contentType === "book"
-                    ? tTitleSearch("recentBookRetro")
-                    : tTitleSearch("recentVideoRetro")
-                  : tTitleSearch("recentModern")}
+                {tTitleSearch("recentModern")}
               </div>
               {recentLoading ? (
                 <div className="px-4 py-3 text-sm font-bold">
@@ -273,17 +259,13 @@ export default function TitleSearchBox({
                       onClick={() => pick(item)}
                       className={cn(
                         "flex w-full items-center gap-4 px-4 py-3 text-left transition-colors",
-                        isRetro
-                          ? "border-b-2 border-black hover:bg-yellow-100 last:border-b-0"
-                          : "hover:bg-muted",
+                        "hover:bg-muted",
                       )}
                     >
                       <div
                         className={cn(
                           "h-20 w-14 shrink-0 overflow-hidden bg-muted",
-                          isRetro
-                            ? "border-2 border-black"
-                            : "rounded-lg shadow-sm border border-border",
+                          "rounded-lg shadow-sm border border-border",
                         )}
                       >
                         {d.posterUrl ? (
@@ -292,11 +274,7 @@ export default function TitleSearchBox({
                             alt={d.titleName}
                             className={cn(
                               "h-full w-full object-cover",
-                              isRetro && "pixelated",
                             )}
-                            style={
-                              isRetro ? { imageRendering: "pixelated" } : {}
-                            }
                             loading="lazy"
                           />
                         ) : null}
@@ -304,8 +282,7 @@ export default function TitleSearchBox({
                       <div className="min-w-0 flex-1">
                         <div
                           className={cn(
-                            "truncate text-sm font-bold uppercase",
-                            !isRetro && "normal-case",
+                            "truncate text-sm font-bold",
                           )}
                         >
                           {d.titleName}
@@ -313,9 +290,7 @@ export default function TitleSearchBox({
                         <div
                           className={cn(
                             "mt-0.5",
-                            isRetro
-                              ? "text-xs font-semibold text-neutral-700"
-                              : "text-[10px] font-bold text-muted-foreground",
+                            "text-[10px] font-bold text-muted-foreground",
                           )}
                         >
                           {meta}
@@ -323,7 +298,7 @@ export default function TitleSearchBox({
                         <div
                           className={cn(
                             "mt-1 text-xs font-semibold",
-                            isRetro ? "text-blue-700" : "text-muted-foreground",
+                            "text-muted-foreground",
                           )}
                         >
                           {tTitleSearch("commentCount", {
@@ -378,21 +353,15 @@ export default function TitleSearchBox({
                   onMouseEnter={() => setActiveIndex(idx)}
                   className={cn(
                     "flex w-full items-center gap-4 px-4 py-3 text-left transition-colors",
-                    isRetro
-                      ? idx === activeIndex
-                        ? "bg-yellow-100 border-b-2 border-black last:border-b-0"
-                        : "border-b-2 border-black hover:bg-neutral-50 last:border-b-0"
-                      : idx === activeIndex
-                        ? "bg-muted"
-                        : "hover:bg-muted",
+                    idx === activeIndex
+                      ? "bg-muted"
+                      : "hover:bg-muted",
                   )}
                 >
                   <div
                     className={cn(
                       "h-24 w-16 shrink-0 overflow-hidden bg-muted",
-                      isRetro
-                        ? "border-2 border-black"
-                        : "rounded-lg shadow-sm border border-border",
+                      "rounded-lg shadow-sm border border-border",
                     )}
                   >
                     {t.posterUrl ? (
@@ -401,9 +370,7 @@ export default function TitleSearchBox({
                         alt={t.name}
                         className={cn(
                           "h-full w-full object-cover",
-                          isRetro && "pixelated",
                         )}
-                        style={isRetro ? { imageRendering: "pixelated" } : {}}
                         loading="lazy"
                       />
                     ) : null}
@@ -412,8 +379,7 @@ export default function TitleSearchBox({
                   <div className="min-w-0 flex-1">
                     <div
                       className={cn(
-                        "truncate text-sm font-bold uppercase",
-                        !isRetro && "normal-case",
+                        "truncate text-sm font-bold",
                       )}
                     >
                       {t.name}
@@ -421,9 +387,7 @@ export default function TitleSearchBox({
                     <div
                       className={cn(
                         "mt-0.5",
-                        isRetro
-                          ? "text-xs font-semibold text-neutral-700"
-                          : "text-[10px] font-bold text-muted-foreground",
+                        "text-[10px] font-bold text-muted-foreground",
                       )}
                     >
                       {t.type === "book"
@@ -434,9 +398,7 @@ export default function TitleSearchBox({
                       <div
                         className={cn(
                           "mt-1 line-clamp-1",
-                          isRetro
-                            ? "text-xs text-neutral-700"
-                            : "text-[10px] font-bold text-muted-foreground",
+                          "text-[10px] font-bold text-muted-foreground",
                         )}
                       >
                         {detailLine}
@@ -457,9 +419,7 @@ export default function TitleSearchBox({
             <div
               className={cn(
                 "px-4 py-2 text-[8px] font-bold text-muted-foreground",
-                isRetro
-                  ? "border-t-4 border-black bg-neutral-100"
-                  : "border-t border-border",
+                "border-t border-border",
               )}
             >
               THIS PRODUCT USES THE TMDB API BUT IS NOT ENDORSED OR CERTIFIED BY

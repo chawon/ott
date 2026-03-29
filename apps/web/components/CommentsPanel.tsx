@@ -14,7 +14,6 @@ import {
 } from "@/lib/types";
 import { formatNoteInline } from "@/lib/utils";
 import TitleSearchBox from "@/components/TitleSearchBox";
-import { useRetro } from "@/context/RetroContext";
 import { useLocale, useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
 
@@ -38,7 +37,6 @@ export default function CommentsPanel({
   titleType?: Title["type"];
 }) {
   const tComments = useTranslations("CommentsPanel");
-  const { isRetro } = useRetro();
   const locale = useLocale();
   const [discussion, setDiscussion] = useState<Discussion | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
@@ -176,11 +174,7 @@ export default function CommentsPanel({
         return (
           <span
             key={idx}
-            className={cn(
-              isRetro
-                ? "bg-blue-100 text-blue-800 px-1 border border-blue-800 mx-0.5"
-                : "rounded-md bg-accent px-1 text-accent-foreground",
-            )}
+            className="rounded-md bg-accent px-1 text-accent-foreground"
           >
             @{name}
           </span>
@@ -190,11 +184,7 @@ export default function CommentsPanel({
         return (
           <span
             key={idx}
-            className={cn(
-              isRetro
-                ? "bg-blue-100 text-blue-800 px-1 border border-blue-800 mx-0.5"
-                : "rounded-md bg-accent px-1 text-accent-foreground",
-            )}
+            className="rounded-md bg-accent px-1 text-accent-foreground"
           >
             {p}
           </span>
@@ -206,68 +196,36 @@ export default function CommentsPanel({
 
   if (loading && !discussion && comments.length === 0) {
     return (
-      <section
-        className={cn(
-          isRetro
-            ? "nes-container border-4 border-black p-6"
-            : "rounded-2xl border border-border bg-card p-6 shadow-sm",
-        )}
-      >
+      <section className="rounded-2xl border border-border bg-card p-6 shadow-sm">
         <div className="text-sm text-neutral-600">{tComments("loading")}</div>
       </section>
     );
   }
 
   return (
-    <section
-      className={cn(
-        "space-y-4",
-        isRetro
-          ? "nes-container border-4 border-black p-6"
-          : "rounded-2xl border border-border bg-card p-6 shadow-sm",
-      )}
-    >
+    <section className="space-y-4 rounded-2xl border border-border bg-card p-6 shadow-sm">
       <div>
-        <div className={cn("text-base font-semibold", isRetro && "text-lg")}>
-          {isRetro
-            ? tComments("sectionTitleRetro")
-            : tComments("sectionTitleModern")}
+        <div className="text-base font-semibold">
+          {tComments("sectionTitleModern")}
         </div>
         <div className="text-sm text-muted-foreground">
-          {discussion
-            ? isRetro
-              ? tComments("descRetro")
-              : tComments("descModern")
-            : isRetro
-              ? tComments("emptyRetro")
-              : tComments("emptyModern")}
+          {discussion ? tComments("descModern") : tComments("emptyModern")}
         </div>
       </div>
 
       {err ? <div className="text-sm text-red-600 font-bold">{err}</div> : null}
 
       {/* 댓글 목록 영역 */}
-      <div
-        className={cn(
-          "min-h-[200px] space-y-4",
-          isRetro
-            ? "border-4 border-black bg-[#f0f0f0] p-4 shadow-[inset_4px_4px_0px_0px_#e0e0e0]"
-            : "rounded-xl border border-border bg-muted/60 p-4",
-        )}
-      >
+      <div className="min-h-[200px] space-y-4 rounded-xl border border-border bg-muted/60 p-4">
         {comments.length === 0 ? (
           <div className="flex h-32 items-center justify-center text-sm text-muted-foreground">
-            {isRetro
-              ? tComments("commentsEmptyRetro")
-              : tComments("commentsEmptyModern")}
+            {tComments("commentsEmptyModern")}
           </div>
         ) : (
           <>
             <div className="flex items-center justify-between text-xs text-muted-foreground mb-4 border-b border-border pb-2">
-              <span className={cn(isRetro && "font-bold")}>
-                {isRetro
-                  ? tComments("commentCountRetro", { count: comments.length })
-                  : tComments("commentCountModern", { count: comments.length })}
+              <span>
+                {tComments("commentCountModern", { count: comments.length })}
               </span>
               <div className="flex items-center gap-2">
                 <span>{tComments("sortLabel")}</span>
@@ -276,12 +234,7 @@ export default function CommentsPanel({
                   onChange={(e) =>
                     setSort(e.target.value as "oldest" | "latest")
                   }
-                  className={cn(
-                    "text-xs",
-                    isRetro
-                      ? "bg-white border-2 border-black"
-                      : "select-base rounded-lg px-2 py-1 text-foreground",
-                  )}
+                  className="text-xs select-base rounded-lg px-2 py-1 text-foreground"
                 >
                   <option value="oldest">{tComments("sortOldest")}</option>
                   <option value="latest">{tComments("sortLatest")}</option>
@@ -296,45 +249,23 @@ export default function CommentsPanel({
                   key={c.id}
                   className={cn(
                     "p-4 transition-all",
-                    isRetro
-                      ? isMine
-                        ? "border-4 border-black bg-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
-                        : "border-2 border-dashed border-neutral-400 bg-white"
-                      : isMine
-                        ? "rounded-xl border border-emerald-300/60 bg-emerald-50/40 dark:border-emerald-900/60 dark:bg-emerald-950/40"
-                        : "rounded-xl border border-border bg-card shadow-sm",
+                    isMine
+                      ? "rounded-xl border border-emerald-300/60 bg-emerald-50/40 dark:border-emerald-900/60 dark:bg-emerald-950/40"
+                      : "rounded-xl border border-border bg-card shadow-sm",
                   )}
                 >
                   <div className="flex items-center justify-between text-xs text-muted-foreground mb-2">
-                    <span
-                      className={cn(
-                        "font-semibold text-foreground",
-                        isRetro && "text-black",
-                      )}
-                    >
+                    <span className="font-semibold text-foreground">
                       {c.authorName}
                       {isMine ? (
-                        isRetro ? (
-                          <span className="ml-2 bg-black text-white px-1 text-[10px]">
-                            {tComments("meLabel")}
-                          </span>
-                        ) : (
-                          <span className="ml-2 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] text-emerald-700 dark:bg-emerald-900/60 dark:text-emerald-100">
-                            {tComments("myCommentLabel")}
-                          </span>
-                        )
+                        <span className="ml-2 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] text-emerald-700 dark:bg-emerald-900/60 dark:text-emerald-100">
+                          {tComments("myCommentLabel")}
+                        </span>
                       ) : null}
                     </span>
-                    <span className={cn(isRetro && "font-bold text-black")}>
-                      {formatTime(c.createdAt, locale)}
-                    </span>
+                    <span>{formatTime(c.createdAt, locale)}</span>
                   </div>
-                  <div
-                    className={cn(
-                      "text-sm leading-relaxed",
-                      isRetro ? "text-black" : "text-foreground",
-                    )}
-                  >
+                  <div className="text-sm leading-relaxed text-foreground">
                     {renderBody(formatNoteInline(c.body))}
                   </div>
                 </div>
@@ -344,12 +275,7 @@ export default function CommentsPanel({
               <button
                 type="button"
                 onClick={() => setVisibleCount((prev) => prev + 5)}
-                className={cn(
-                  "w-full rounded-xl border border-border px-3 py-2 text-xs font-semibold",
-                  isRetro
-                    ? "border-2 border-black bg-white text-black"
-                    : "bg-card text-foreground hover:bg-muted",
-                )}
+                className="w-full rounded-xl border border-border bg-card px-3 py-2 text-xs font-semibold text-foreground hover:bg-muted"
               >
                 {tComments("viewMore")}
               </button>
@@ -359,67 +285,30 @@ export default function CommentsPanel({
       </div>
 
       {/* 댓글 입력 영역 (하단 이동) */}
-      <div
-        className={cn(
-          "space-y-3 pt-4",
-          isRetro ? "border-t-4 border-black" : "border-t border-border",
-        )}
-      >
+      <div className="space-y-3 pt-4 border-t border-border">
         <div className="space-y-2">
-          <label
-            className={cn(
-              "text-sm font-bold block",
-              isRetro ? "text-black" : "text-muted-foreground",
-            )}
-          >
-            {isRetro
-              ? tComments("inputTitleRetro")
-              : tComments("inputTitleModern")}
+          <label className="text-sm font-bold block text-muted-foreground">
+            {tComments("inputTitleModern")}
           </label>
           <textarea
             value={body}
             onChange={(e) => setBody(e.target.value)}
             rows={3}
-            className={cn(
-              "w-full text-sm resize-none transition-all",
-              isRetro
-                ? "border-4 border-black bg-white px-3 py-2 font-bold shadow-[inset_4px_4px_0px_0px_#e0e0e0] focus:ring-0"
-                : "rounded-xl border border-border bg-card px-3 py-2 text-foreground focus:ring-2 focus:ring-ring/40 focus:border-border",
-            )}
-            placeholder={
-              isRetro
-                ? tComments("placeholderRetro")
-                : tComments("placeholderModern")
-            }
+            className="w-full text-sm resize-none transition-all rounded-xl border border-border bg-card px-3 py-2 text-foreground focus:ring-2 focus:ring-ring/40 focus:border-border"
+            placeholder={tComments("placeholderModern")}
           />
         </div>
 
-        <div
-          className={cn(
-            "space-y-2",
-            isRetro
-              ? "border-2 border-dashed border-neutral-400 p-2 bg-[#f0f0f0]"
-              : "rounded-xl border border-border bg-muted/60 p-3",
-          )}
-        >
-          <div
-            className={cn(
-              "text-sm",
-              isRetro ? "font-bold text-black" : "text-muted-foreground",
-            )}
-          >
-            {isRetro
-              ? tComments("mentionTitleRetro")
-              : tComments("mentionTitleModern")}
+        <div className="space-y-2 rounded-xl border border-border bg-muted/60 p-3">
+          <div className="text-sm text-muted-foreground">
+            {tComments("mentionTitleModern")}
           </div>
           <TitleSearchBox
             onSelect={addMention}
             placeholder={
-              isRetro
-                ? "@ TITLE SEARCH"
-                : titleType === "book"
-                  ? tComments("mentionPlaceholderBook")
-                  : tComments("mentionPlaceholderVideo")
+              titleType === "book"
+                ? tComments("mentionPlaceholderBook")
+                : tComments("mentionPlaceholderVideo")
             }
             showRecentDiscussions={false}
             contentType={titleType === "book" ? "book" : "video"}
@@ -429,22 +318,13 @@ export default function CommentsPanel({
               {mentions.map((m) => (
                 <span
                   key={`${m.provider}:${m.providerId}`}
-                  className={cn(
-                    "inline-flex items-center gap-2 px-3 py-1 text-xs",
-                    isRetro
-                      ? "border-2 border-black bg-yellow-300 text-black font-bold shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
-                      : "rounded-full border border-border bg-card text-foreground",
-                  )}
+                  className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1 text-xs text-foreground"
                 >
                   @{m.name}
                   <button
                     type="button"
                     onClick={() => removeMention(m.provider, m.providerId)}
-                    className={cn(
-                      isRetro
-                        ? "text-black hover:text-red-600 font-black"
-                        : "text-muted-foreground hover:text-foreground",
-                    )}
+                    className="text-muted-foreground hover:text-foreground"
                   >
                     ×
                   </button>
@@ -458,18 +338,9 @@ export default function CommentsPanel({
           type="button"
           disabled={!canPost}
           onClick={postComment}
-          className={cn(
-            "w-full py-3 text-sm font-semibold transition-all",
-            isRetro
-              ? "nes-btn is-primary border-4 border-black text-white uppercase disabled:opacity-50 disabled:bg-gray-400 disabled:border-gray-600"
-              : "rounded-2xl bg-neutral-900 text-white hover:bg-neutral-800 active:scale-[0.98] disabled:opacity-40",
-          )}
+          className="w-full py-3 text-sm font-semibold transition-all rounded-2xl bg-neutral-900 text-white hover:bg-neutral-800 active:scale-[0.98] disabled:opacity-40"
         >
-          {posting
-            ? tComments("posting")
-            : isRetro
-              ? tComments("submitActionRetro")
-              : tComments("submitActionModern")}
+          {posting ? tComments("posting") : tComments("submitActionModern")}
         </button>
       </div>
     </section>

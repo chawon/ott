@@ -9,41 +9,24 @@
     "themeChangeCurrent": "Change theme: currently {theme}",
     "themeClickToChange": "Theme: {theme} (Click to change)",
     "backToModern": "Back to Modern",
-    "viewInRetro": "View in Retro",
-    "navLogRetro": "Logbook",
     "navLogModern": "Log",
-    "navTimelineRetro": "Footprints",
     "navTimelineModern": "Timeline",
-    "navPublicRetro": "Chatter",
     "navPublicModern": "Together",
-    "navAccountRetro": "Custom",
     "navAccountModern": "Settings",
-    "titleRetro": "The Best & The Second",
     "titleModern": "ottline"
   },
   "AppFooter": {
-    "descriptionRetro": "Watched it? Read it? Let's log it~ Keep your footprints clear.",
     "descriptionModern": "Fast and simple movie & book logs. Build your own timeline.",
-    "sectionServiceRetro": "Explore",
     "sectionServiceModern": "Service",
-    "sectionGuideRetro": "Help",
     "sectionGuideModern": "Guide",
-    "linkLogRetro": "Logbook",
     "linkLogModern": "Log",
-    "linkTimelineRetro": "Footprints",
     "linkTimelineModern": "Timeline",
-    "linkPublicRetro": "Chatter",
     "linkPublicModern": "Together",
-    "linkAboutRetro": "About",
     "linkAboutModern": "About Service",
-    "linkFaqRetro": "Q&A",
     "linkFaqModern": "FAQ",
-    "linkPrivacyRetro": "Privacy",
     "linkPrivacyModern": "Privacy Policy",
-    "linkFeedbackRetro": "Inbox",
     "linkFeedbackModern": "Contact",
     "allRightsReserved": "All rights reserved.",
-    "titleRetro": "The Best & The Second",
     "titleModern": "ottline"
   },
   "LogCard": {
@@ -66,8 +49,7 @@
     "share": "Share",
     "edit": "Edit",
     "detail": "Detail",
-    "typeSeriesModern": "Series",
-    "typeSeriesRetro": "Series"
+    "typeSeriesModern": "Series"
   },
   "QuickLogCard": {
     "titleMovieSeries": "What did you watch?",
@@ -94,14 +76,12 @@
     "notePlaceholder": "Leave a brief review...",
     "errorTitleLoad": "Failed to load title information.",
     "errorSave": "An error occurred while saving the log.",
-    "searchStartRetro": "Start here: Search title",
     "searchStartModern": "Search for a title first",
     "detailPlatform": "Platform",
     "saveAndShare": "Save and Share",
     "shareToPublic": "Share to public timeline",
     "createShareCard": "Create Share Card",
     "saving": "Saving...",
-    "saveActionRetro": "Leave Logbook",
     "saveActionModern": "Save Log",
     "newBook": "New Book",
     "newVideo": "New Video",
@@ -168,8 +148,7 @@
     "typeMovie": "Movie",
     "typeSeriesModern": "Series",
     "typeBook": "Book",
-    "typeSeries": "Series",
-    "typeSeriesRetro": "Series"
+    "typeSeries": "Series"
   },
   "Common": {
     "placeLabels": {
@@ -198,14 +177,12 @@
     "typeLabels": {
       "movie": "Movie",
       "series": "Series",
-      "seriesRetro": "Series",
       "book": "Book"
     },
     "loading": "Loading…",
     "typeMovie": "Movie",
     "typeSeries": "Series",
     "typeSeriesModern": "Series",
-    "typeSeriesRetro": "Series",
     "typeBook": "Book"
   },
   "Status": {
@@ -217,7 +194,6 @@
     "BOOK_WISHLIST": "Want to read"
   },
   "Timeline": {
-    "titleRetro": "Footprints",
     "titleModern": "My Timeline",
     "description": "See all the logs you have left so far at a glance.",
     "searchPlaceholder": "Search by title, note...",
@@ -230,17 +206,11 @@
     "yearFormat": "In {year}, ",
     "yearSuffix": "",
     "loading": "Loading…",
-    "subtitleRetro": "See all your footprints at a glance",
     "subtitleModern": "Your records are gathered in chronological order",
-    "emptyRetro": "No footprints yet. Leave a log above!",
     "emptyModern": "Leave your first log. Your timeline starts here."
   },
   "TitleSearchBox": {
     "defaultPlaceholder": "Search titles (e.g., Dune, The Bear)",
-    "retroBookPlaceholder": "Search for a book (The Little Prince...)",
-    "retroVideoPlaceholder": "Search for a video (Terminator...)",
-    "recentBookRetro": "Books people are talking about",
-    "recentVideoRetro": "Videos people are talking about",
     "recentModern": "Titles shared together",
     "loading": "Loading...",
     "empty": "Nothing here yet",
@@ -250,8 +220,7 @@
     "typeMovie": "Movie",
     "typeSeries": "Series",
     "typeBook": "Book",
-    "typeSeriesModern": "Series",
-    "typeSeriesRetro": "Series"
+    "typeSeriesModern": "Series"
   },
   "Public": {
     "title": "Together Footprints",
@@ -267,17 +236,13 @@
   "DiscussionList": {
     "defaultEmpty": "No shared records yet.",
     "typeMovie": "Movie",
-    "typeSeriesRetro": "Series",
     "typeSeriesModern": "Series",
     "typeBook": "Book",
-    "commentCountRetro": "Comments {count}",
     "commentCountModern": "{count} comments",
     "typeSeries": "Series"
   },
   "Account": {
-    "titleRetro": "Customize",
     "titleModern": "Settings",
-    "descriptionRetro": "Link Devices",
     "descriptionModern": "Connect multiple devices with pairing codes, no email needed.",
     "sectionReport": "Report",
     "reportDescModern": "View a summary of your usage patterns.",
@@ -342,15 +307,10 @@
     "loginRequired": "You need to link your account to leave a comment.",
     "postError": "Failed to post comment. Please try again.",
     "loading": "Loading…",
-    "sectionTitleRetro": "Chatter",
     "sectionTitleModern": "Together Records",
-    "descRetro": "Leave a line on this Chatter board.",
     "descModern": "Notes will be saved as shared records.",
-    "emptyRetro": "No records yet. Be the first one!",
     "emptyModern": "No shared records yet. They appear when comments are left.",
-    "commentsEmptyRetro": "Quiet here...",
     "commentsEmptyModern": "No comments yet.",
-    "commentCountRetro": "{count} chatter(s)",
     "commentCountModern": "{count} stories",
     "sortLabel": "Sort",
     "sortOldest": "Oldest",
@@ -358,16 +318,12 @@
     "meLabel": "Me",
     "myCommentLabel": "My Comment",
     "viewMore": "View More",
-    "inputTitleRetro": "HahaHoho",
     "inputTitleModern": "Leave Opinion",
-    "placeholderRetro": "What did you think of this video?...",
     "placeholderModern": "Leave a line about this title.",
-    "mentionTitleRetro": "Mention",
     "mentionTitleModern": "Mention Title",
     "mentionPlaceholderBook": "Search book with @",
     "mentionPlaceholderVideo": "Search title with @",
     "posting": "Posting...",
-    "submitActionRetro": "Post My Chatter",
     "submitActionModern": "Post Comment"
   },
   "ShareBottomSheet": {
@@ -442,7 +398,6 @@
     "groupAll": "All {group}"
   },
   "HomePage": {
-    "heroRetro": "Welcome, traveler. \nFind your videos in The Best & The Second!",
     "heroModernBook": "Stream. Read. Remember.",
     "heroModernVideo": "Stream. Read. Remember.",
     "heroModernDesc": "Your personal content timeline",
@@ -455,7 +410,6 @@
     "loading": "Loading...",
     "emptyFootprints": "No footprints yet. Leave a log above!",
     "emptyRecords": "Leave your first log. Your timeline starts here.",
-    "publicTitleRetro": "Chatter Board",
     "publicTitleModern": "Records shared together",
     "toggleFold": "Fold",
     "toggleExpand": "Expand"
@@ -625,14 +579,10 @@
     "appOpen": "App Open",
     "deviceRegistered": "Device Registered",
     "logCreated": "First Log/Log Created",
-    "retroTitle": "Retro Mode Usage (Last {days} days)",
-    "retroAppOpen": "Users opened app in Retro",
-    "retroToggle": "Retro Toggle users",
     "byPlatform": "By Platform",
     "deviceSegments": "Device Segments (based on app_open)",
     "eventDetails": "Details by Event Type",
     "dailyDetails": "Daily Details",
-    "weeklyRetroTrend": "Weekly Retro Trend",
     "weekStartNotice": "Based on Monday start, last {days} days",
     "recentEvents": "Recent Events (Max 300)",
     "event": "Event",

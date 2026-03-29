@@ -5,12 +5,9 @@ import { MessageCircle } from "lucide-react";
 import DiscussionList from "@/components/DiscussionList";
 import { api } from "@/lib/api";
 import { DiscussionListItem } from "@/lib/types";
-import { useRetro } from "@/context/RetroContext";
-import { cn } from "@/lib/utils";
 import { useTranslations } from "next-intl";
 
 export default function PublicDiscussionsPage() {
-  const { isRetro } = useRetro();
   const tPublic = useTranslations("Public");
   const [items, setItems] = useState<DiscussionListItem[]>([]);
   const [query, setQuery] = useState("");
@@ -54,25 +51,11 @@ export default function PublicDiscussionsPage() {
   return (
     <div className="space-y-4">
       <div>
-        {isRetro ? (
-          <div className="flex items-baseline justify-between border-b-4 border-black pb-2 mb-4">
-            <div className="text-xl font-bold uppercase tracking-tighter">
-              {headerTitle}
-            </div>
-          </div>
-        ) : (
-          <div className="text-xl font-semibold flex items-center gap-2">
-            <MessageCircle className="h-5 w-5" />
-            {headerTitle}
-          </div>
-        )}
-        <div
-          className={cn(
-            isRetro
-              ? "text-xs font-bold text-neutral-500 uppercase"
-              : "text-sm text-muted-foreground",
-          )}
-        >
+        <div className="text-xl font-semibold flex items-center gap-2">
+          <MessageCircle className="h-5 w-5" />
+          {headerTitle}
+        </div>
+        <div className="text-sm text-muted-foreground">
           {headerSubtitle}
         </div>
       </div>

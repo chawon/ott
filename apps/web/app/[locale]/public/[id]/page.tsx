@@ -8,14 +8,11 @@ import { api } from "@/lib/api";
 import CommentsPanel from "@/components/CommentsPanel";
 import { DiscussionListItem } from "@/lib/types";
 import { getUserId } from "@/lib/localStore";
-import { useRetro } from "@/context/RetroContext";
-import { cn } from "@/lib/utils";
 
 export default function PublicDiscussionDetailPage() {
   const params = useParams<{ id: string }>();
   const rawId = params?.id;
   const discussionId = Array.isArray(rawId) ? rawId[0] : rawId;
-  const { isRetro } = useRetro();
   const tQuick = useTranslations("QuickLogCard");
   const tDetail = useTranslations("DiscussionDetail");
 
@@ -51,13 +48,7 @@ export default function PublicDiscussionDetailPage() {
 
   if (!discussionId) {
     return (
-      <div
-        className={cn(
-          isRetro
-            ? "nes-container border-4 border-black p-6 font-bold"
-            : "rounded-2xl border border-border bg-card p-6 shadow-sm",
-        )}
-      >
+      <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
         <div className="text-base font-semibold">
           {tDetail("invalidPath")}
         </div>
@@ -67,13 +58,7 @@ export default function PublicDiscussionDetailPage() {
 
   if (loading && !detail) {
     return (
-      <div
-        className={cn(
-          isRetro
-            ? "nes-container border-4 border-black p-6 font-bold"
-            : "rounded-2xl border border-border bg-card p-6 shadow-sm",
-        )}
-      >
+      <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
         <div className="text-sm text-neutral-600">{tDetail("loading")}</div>
       </div>
     );
@@ -81,13 +66,7 @@ export default function PublicDiscussionDetailPage() {
 
   if (err) {
     return (
-      <div
-        className={cn(
-          isRetro
-            ? "nes-container border-4 border-black p-6 font-bold"
-            : "rounded-2xl border border-border bg-card p-6 shadow-sm",
-        )}
-      >
+      <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
         <div className="text-base font-semibold text-red-600">
           {tDetail("errorTitle")}
         </div>
@@ -98,13 +77,7 @@ export default function PublicDiscussionDetailPage() {
 
   if (!detail) {
     return (
-      <div
-        className={cn(
-          isRetro
-            ? "nes-container border-4 border-black p-6 font-bold"
-            : "rounded-2xl border border-border bg-card p-6 shadow-sm",
-        )}
-      >
+      <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
         <div className="text-base font-semibold">{tDetail("notFound")}</div>
       </div>
     );
@@ -119,59 +92,30 @@ export default function PublicDiscussionDetailPage() {
 
   return (
     <div className="space-y-6">
-      <section
-        className={cn(
-          isRetro
-            ? "nes-container border-4 border-black bg-white p-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
-            : "rounded-2xl border border-border bg-card p-6 shadow-sm",
-        )}
-      >
+      <section className="rounded-2xl border border-border bg-card p-6 shadow-sm">
         <div className="flex items-start gap-6">
-          <div
-            className={cn(
-              "shrink-0 overflow-hidden bg-neutral-100",
-              isRetro
-                ? "h-32 w-24 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
-                : "h-24 w-16 rounded-xl",
-            )}
-          >
+          <div className="shrink-0 overflow-hidden bg-neutral-100 h-24 w-16 rounded-xl">
             {detail.posterUrl ? (
               <img
                 src={detail.posterUrl}
                 alt={detail.titleName}
-                className={cn(
-                  "h-full w-full object-cover",
-                  isRetro && "pixelated",
-                )}
-                style={isRetro ? { imageRendering: "pixelated" } : {}}
+                className="h-full w-full object-cover"
                 loading="lazy"
               />
             ) : null}
           </div>
           <div className="min-w-0 flex-1">
-            <div
-              className={cn("text-xl font-semibold", isRetro && "uppercase")}
-            >
+            <div className="text-xl font-semibold">
               {detail.titleName}
             </div>
-            <div
-              className={cn(
-                "mt-1 text-sm font-medium",
-                isRetro ? "text-black uppercase" : "text-muted-foreground",
-              )}
-            >
+            <div className="mt-1 text-sm font-medium text-muted-foreground">
               {typeLabel}
               {detail.titleYear ? ` · ${detail.titleYear}` : ""}
             </div>
             <div className="mt-4 text-sm">
               <Link
                 href={`/title/${detail.titleId}`}
-                className={cn(
-                  "inline-block transition-colors",
-                  isRetro
-                    ? "bg-blue-600 text-white px-2 py-1 font-bold uppercase hover:bg-blue-700"
-                    : "text-neutral-700 hover:text-black hover:underline",
-                )}
+                className="inline-block transition-colors text-neutral-700 hover:text-black hover:underline"
               >
                 {tDetail("viewTitleDetail")}
               </Link>

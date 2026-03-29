@@ -3,7 +3,6 @@
 import { MailQuestion, MessagesSquare } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
-import { useRetro } from "@/context/RetroContext";
 import { api, ensureAuthIds } from "@/lib/api";
 import type {
   CreateFeedbackThreadRequest,
@@ -31,7 +30,6 @@ function errorMessage(error: unknown, fallback: string) {
 export default function FeedbackInbox() {
   const t = useTranslations("Feedback");
   const locale = useLocale();
-  const { isRetro } = useRetro();
   const [threads, setThreads] = useState<FeedbackThreadSummary[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [detail, setDetail] = useState<FeedbackThreadDetail | null>(null);
@@ -194,9 +192,7 @@ export default function FeedbackInbox() {
             disabled={submitting || !body.trim()}
             className={cn(
               "inline-flex items-center justify-center rounded-2xl px-4 py-3 text-sm font-semibold transition-all",
-              isRetro
-                ? "border-4 border-black bg-black text-white hover:bg-neutral-800 disabled:bg-neutral-400"
-                : "bg-neutral-900 text-white hover:bg-neutral-800 disabled:opacity-40",
+              "bg-neutral-900 text-white hover:bg-neutral-800 disabled:opacity-40",
             )}
           >
             {submitting ? t("submitting") : t("submitAction")}

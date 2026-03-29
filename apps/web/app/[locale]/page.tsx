@@ -16,7 +16,6 @@ import {
   sanitizeResolvedTitle,
 } from "@/lib/shareIntent";
 import type { DiscussionListItem, WatchLog } from "@/lib/types";
-import { useRetro } from "@/context/RetroContext";
 import { useTranslations } from "next-intl";
 
 export default function HomePage() {
@@ -35,7 +34,6 @@ export default function HomePage() {
   );
   const [sharedPlatform, setSharedPlatform] = useState<string>("");
   const [autoFocusSearch, setAutoFocusSearch] = useState(false);
-  const { isRetro } = useRetro();
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -161,114 +159,6 @@ export default function HomePage() {
     window.addEventListener("sync:updated", handleSync);
     return () => window.removeEventListener("sync:updated", handleSync);
   }, []);
-
-  if (isRetro) {
-    return (
-      <div className="grid grid-cols-1 gap-10 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
-        <div className="space-y-10">
-          <section className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="space-y-1">
-                <h1 className="bg-black inline-block px-3 py-1 text-sm font-bold uppercase tracking-widest text-white shadow-[4px_4px_0px_0px_rgba(0,0,0,0.2)]">
-                  {quickType === "book"
-                    ? tHome("heroModernBook")
-                    : tHome("heroModernVideo")}
-                </h1>
-                <p className="text-[10px] font-bold text-neutral-500 uppercase tracking-tight">
-                  {tHome("heroModernDesc")}
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setQuickOpen((v) => !v)}
-                className="border-2 border-black px-2 py-1 text-xs font-bold uppercase"
-                aria-expanded={quickOpen}
-              >
-                {quickOpen ? tHome("toggleFold") : tHome("toggleExpand")}
-              </button>
-            </div>
-            {quickOpen ? (
-              <QuickLogCard
-                onCreated={async (created, options) => {
-                  setLogs((prev) => [created, ...prev].slice(0, 8));
-                  await upsertLogsLocal([created]);
-                  await loadDiscussions();
-                  if (options?.shareCard) {
-                    setShareLog(created);
-                    setShareOpen(true);
-                  }
-                }}
-                onContentTypeChange={setQuickType}
-                initialContentType={sharedQuery ? sharedContentType : quickType}
-                initialSearchQuery={sharedQuery}
-                initialPlatform={sharedPlatform}
-                autoFocusSearch={autoFocusSearch}
-              />
-            ) : null}
-          </section>
-
-          <section className="space-y-4">
-            <div className="flex items-baseline justify-between border-b-4 border-black pb-2">
-              <div className="text-xl font-bold uppercase tracking-tighter">
-                {tHome("myFootprints")}
-              </div>
-              <Link
-                href="/timeline"
-                className="text-xs font-bold text-blue-600 hover:bg-blue-600 hover:text-white px-1 uppercase underline underline-offset-4"
-              >
-                {tHome("viewAll")}
-              </Link>
-            </div>
-
-            {loading && logs.length === 0 ? (
-              <div className="border-4 border-black bg-white p-5 text-sm font-bold uppercase">
-                {tHome("loading")}
-              </div>
-            ) : null}
-
-            {!loading && logs.length === 0 ? (
-              <div className="border-4 border-dashed border-neutral-400 bg-neutral-100 p-10 text-center text-sm font-bold uppercase text-neutral-500">
-                {tHome("emptyFootprints")}
-              </div>
-            ) : null}
-
-            <div className="grid grid-cols-1 gap-6">
-              {logs.map((l) => (
-                <LogCard key={l.id} log={l} />
-              ))}
-            </div>
-          </section>
-        </div>
-
-        <aside className="space-y-6">
-          <section className="space-y-4">
-            <div className="flex items-baseline justify-between border-b-4 border-black pb-2">
-              <div className="text-lg font-bold tracking-tighter">
-                {tHome("publicTitleRetro")}
-              </div>
-              <Link
-                href="/public"
-                className="text-xs font-bold text-blue-600 hover:bg-blue-600 hover:text-white px-1 uppercase underline underline-offset-4"
-              >
-                {tHome("viewAll")}
-              </Link>
-            </div>
-            <DiscussionList items={discussions} />
-          </section>
-          <div className="nes-container is-dark p-4 mt-8">
-            <p className="text-[12px] font-bold leading-relaxed uppercase whitespace-pre-line">
-              {tHome("heroRetro")}
-            </p>
-          </div>{" "}
-        </aside>
-        <ShareBottomSheet
-          open={shareOpen}
-          log={shareLog}
-          onClose={() => setShareOpen(false)}
-        />
-      </div>
-    );
-  }
 
   return (
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">

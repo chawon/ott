@@ -9,41 +9,24 @@
     "themeChangeCurrent": "테마 변경: 현재 {theme}",
     "themeClickToChange": "테마: {theme} (클릭해서 변경)",
     "backToModern": "현대 모드로 돌아가기",
-    "viewInRetro": "레트로 모드로 보기",
-    "navLogRetro": "날적이",
     "navLogModern": "기록하기",
-    "navTimelineRetro": "발자취",
     "navTimelineModern": "타임라인",
-    "navPublicRetro": "수다판",
     "navPublicModern": "함께",
-    "navAccountRetro": "맞춤",
     "navAccountModern": "설정",
-    "titleRetro": "으뜸과 버금",
     "titleModern": "ottline"
   },
   "AppFooter": {
-    "descriptionRetro": "봤니? 읽었니? 그럼 날적이 해보자~ 한 번 적어 두면 발자취가 또렷해져요.",
     "descriptionModern": "바로 남기는 영상·책 기록. 나의 기록 타임라인을 만들어 보세요.",
-    "sectionServiceRetro": "둘러보기",
     "sectionServiceModern": "서비스",
-    "sectionGuideRetro": "도움말",
     "sectionGuideModern": "안내",
-    "linkLogRetro": "날적이",
     "linkLogModern": "기록하기",
-    "linkTimelineRetro": "발자취",
     "linkTimelineModern": "타임라인",
-    "linkPublicRetro": "수다판",
     "linkPublicModern": "함께",
-    "linkAboutRetro": "소개",
     "linkAboutModern": "서비스 소개",
-    "linkFaqRetro": "물음방",
     "linkFaqModern": "자주 묻는 질문",
-    "linkPrivacyRetro": "개인정보",
     "linkPrivacyModern": "개인정보처리방침",
-    "linkFeedbackRetro": "문의함",
     "linkFeedbackModern": "문의하기",
     "allRightsReserved": "All rights reserved.",
-    "titleRetro": "으뜸과 버금",
     "titleModern": "ottline"
   },
   "LogCard": {
@@ -66,8 +49,7 @@
     "share": "공유하기",
     "edit": "수정",
     "detail": "상세",
-    "typeSeriesModern": "시리즈",
-    "typeSeriesRetro": "연속극"
+    "typeSeriesModern": "시리즈"
   },
   "QuickLogCard": {
     "titleMovieSeries": "어떤 영상인가요?",
@@ -94,14 +76,12 @@
     "notePlaceholder": "짧은 감상을 남겨보세요...",
     "errorTitleLoad": "타이틀 정보를 불러오는데 실패했습니다.",
     "errorSave": "기록 저장 중 오류가 발생했습니다.",
-    "searchStartRetro": "여기부터 시작: 작품 검색",
     "searchStartModern": "먼저 작품을 검색해 보세요",
     "detailPlatform": "플랫폼",
     "saveAndShare": "저장 후 함께 하기",
     "shareToPublic": "함께 하는 기록 남기기",
     "createShareCard": "공유 이미지 카드 만들기",
     "saving": "저장 중...",
-    "saveActionRetro": "날적이 남기기",
     "saveActionModern": "기록 저장",
     "newBook": "새로운 책",
     "newVideo": "새로운 비디오",
@@ -168,8 +148,7 @@
     "typeMovie": "영화",
     "typeSeriesModern": "시리즈",
     "typeBook": "책",
-    "typeSeries": "시리즈",
-    "typeSeriesRetro": "연속극"
+    "typeSeries": "시리즈"
   },
   "Common": {
     "placeLabels": {
@@ -198,14 +177,12 @@
     "typeLabels": {
       "movie": "영화",
       "series": "시리즈",
-      "seriesRetro": "연속극",
       "book": "책"
     },
     "loading": "불러오는 중…",
     "typeMovie": "영화",
     "typeSeries": "시리즈",
     "typeSeriesModern": "시리즈",
-    "typeSeriesRetro": "연속극",
     "typeBook": "책"
   },
   "Status": {
@@ -217,7 +194,6 @@
     "BOOK_WISHLIST": "읽고 싶어요"
   },
   "Timeline": {
-    "titleRetro": "발자취",
     "titleModern": "나의 타임라인",
     "description": "지금까지 남긴 모든 기록을 한눈에 모아보세요.",
     "searchPlaceholder": "작품 제목, 메모 등으로 검색...",
@@ -230,17 +206,11 @@
     "yearFormat": "{year}년",
     "yearSuffix": "에는 ",
     "loading": "불러오는 중…",
-    "subtitleRetro": "내가 남긴 날적이가 한눈에 보여요",
     "subtitleModern": "내가 본 것들이 시간 순서로 모여요",
-    "emptyRetro": "아직 발자취가 없어. 위에서 날적이 하나 남겨봐~",
     "emptyModern": "첫 기록을 남겨보세요. 타임라인이 바로 시작돼요."
   },
   "TitleSearchBox": {
     "defaultPlaceholder": "작품 검색 (예: 듄, 더 베어)",
-    "retroBookPlaceholder": "책을 검색하세요 (어린 왕자, 불편한 편의점...)",
-    "retroVideoPlaceholder": "비디오를 검색하세요 (터미네이터, 투캅스...)",
-    "recentBookRetro": "요즘 수다 떠는 책들",
-    "recentVideoRetro": "요즘 수다 떠는 영상들",
     "recentModern": "요즘 함께 하는 작품들",
     "loading": "불러오는 중...",
     "empty": "아직 없어요",
@@ -250,8 +220,7 @@
     "typeMovie": "영화",
     "typeSeries": "시리즈",
     "typeBook": "책",
-    "typeSeriesModern": "시리즈",
-    "typeSeriesRetro": "연속극"
+    "typeSeriesModern": "시리즈"
   },
   "Public": {
     "title": "함께 하는 발자취",
@@ -267,17 +236,13 @@
   "DiscussionList": {
     "defaultEmpty": "아직 함께 기록이 없어요.",
     "typeMovie": "영화",
-    "typeSeriesRetro": "연속극",
     "typeSeriesModern": "시리즈",
     "typeBook": "책",
-    "commentCountRetro": "댓글 {count}",
     "commentCountModern": "{count}개의 이야기들",
     "typeSeries": "시리즈"
   },
   "Account": {
-    "titleRetro": "맞춤",
     "titleModern": "설정",
-    "descriptionRetro": "기기 잇기",
     "descriptionModern": "이메일 없이 페어링 코드로 여러 기기를 연결해요.",
     "sectionReport": "리포트",
     "reportDescModern": "내 이용 패턴을 요약해서 확인할 수 있어요.",
@@ -342,15 +307,10 @@
     "loginRequired": "댓글을 남기려면 먼저 계정 연결이 필요해요.",
     "postError": "댓글을 남기지 못했어요. 다시 시도해 주세요.",
     "loading": "불러오는 중…",
-    "sectionTitleRetro": "수다판",
     "sectionTitleModern": "함께 기록",
-    "descRetro": "이 작품 수다판에 한 줄 남겨보세요.",
     "descModern": "노트를 남기면 같이 기록으로 쌓여요.",
-    "emptyRetro": "아직 수다판 기록이 없어요. 첫 기록자가 되어보세요!",
     "emptyModern": "아직 같이 기록이 없어요. 댓글을 남기면 생성돼요.",
-    "commentsEmptyRetro": "아직 조용해요",
     "commentsEmptyModern": "아직 댓글이 없어요.",
-    "commentCountRetro": "{count} 개의 수다",
     "commentCountModern": "{count} 개의 이야기들",
     "sortLabel": "정렬",
     "sortOldest": "오래된 순",
@@ -358,16 +318,12 @@
     "meLabel": "나",
     "myCommentLabel": "내 댓글",
     "viewMore": "더 보기",
-    "inputTitleRetro": "하하호호",
     "inputTitleModern": "의견 남기기",
-    "placeholderRetro": "넌 이 비디오 어땠니?...",
     "placeholderModern": "이 작품에 대한 한 줄을 남겨주세요.",
-    "mentionTitleRetro": "다른 비디오",
     "mentionTitleModern": "작품 멘션",
     "mentionPlaceholderBook": "@로 추가할 책을 검색",
     "mentionPlaceholderVideo": "@로 추가할 작품을 검색",
     "posting": "등록 중...",
-    "submitActionRetro": "나의 수다 올리기",
     "submitActionModern": "댓글 등록"
   },
   "ShareBottomSheet": {
@@ -442,7 +398,6 @@
     "groupAll": "{group} 전체"
   },
   "HomePage": {
-    "heroRetro": "환영합니다, 그대여. \n으뜸과 버금에서 당신의 비디오를 찾아보세요!",
     "heroModernBook": "보고, 읽고, 남기다.",
     "heroModernVideo": "보고, 읽고, 남기다.",
     "heroModernDesc": "나만의 타임라인",
@@ -455,7 +410,6 @@
     "loading": "로딩 중...",
     "emptyFootprints": "아직 발자취가 없어. 위에서 날적이 하나 남겨봐~",
     "emptyRecords": "첫 기록을 남겨보세요. 타임라인이 바로 시작돼요.",
-    "publicTitleRetro": "수다 판",
     "publicTitleModern": "요즘 함께 하는 기록들",
     "toggleFold": "접기",
     "toggleExpand": "펼치기"
@@ -625,14 +579,10 @@
     "appOpen": "앱 오픈",
     "deviceRegistered": "기기 등록 성공",
     "logCreated": "첫 기록/기록 생성",
-    "retroTitle": "레트로 모드 사용 (최근 {days}일)",
-    "retroAppOpen": "레트로로 앱 오픈한 사용자",
-    "retroToggle": "레트로 토글 사용자",
     "byPlatform": "플랫폼별",
     "deviceSegments": "디바이스 세그먼트 (app_open 기준)",
     "eventDetails": "이벤트 종류별 상세",
     "dailyDetails": "일자별 상세",
-    "weeklyRetroTrend": "주차별 레트로 추이",
     "weekStartNotice": "월요일 시작 기준, 최근 {days}일",
     "recentEvents": "최근 수집 이벤트 (최대 300)",
     "event": "이벤트",

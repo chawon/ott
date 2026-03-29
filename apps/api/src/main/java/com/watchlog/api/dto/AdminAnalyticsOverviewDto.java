@@ -14,8 +14,6 @@ public record AdminAnalyticsOverviewDto(
         long funnelAppOpenUsers,
         long funnelLoginUsers,
         long funnelLogCreateUsers,
-        long retroAppOpenUsers,
-        long retroToggleUsers,
         List<AdminPlatformSummaryDto> platforms,
         List<AdminDimensionSummaryDto> deviceTypes,
         List<AdminDimensionSummaryDto> osFamilies,
@@ -23,6 +21,5 @@ public record AdminAnalyticsOverviewDto(
         List<AdminDimensionSummaryDto> installStates,
         List<AdminDimensionSummaryDto> domains,
         List<AdminEventBreakdownDto> eventBreakdown,
-        List<AdminDailyAnalyticsDto> daily,
-        List<AdminWeeklyRetroDto> weeklyRetro
+        List<AdminDailyAnalyticsDto> daily
 ) {}

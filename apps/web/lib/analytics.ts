@@ -102,7 +102,6 @@ export async function trackEvent(
     | "login_success"
     | "log_create"
     | "share_action"
-    | "retro_mode_toggle"
     | "migration_complete",
   properties?: Record<string, unknown>,
 ) {

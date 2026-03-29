@@ -8,22 +8,11 @@ import {
   statusLabel,
   tmdbResize,
 } from "@/lib/utils";
-import { useRetro } from "@/context/RetroContext";
 import { cn } from "@/lib/utils";
 import { useLocale, useTranslations } from "next-intl";
 
-function formatDate(iso: string, isRetro: boolean, locale: string) {
+function formatDate(iso: string, locale: string) {
   const d = new Date(iso);
-  if (isRetro) {
-    return d
-      .toLocaleDateString(locale === "ko" ? "ko-KR" : "en-US", {
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit",
-      })
-      .replace(/\. /g, "-")
-      .replace(".", "");
-  }
   return d.toLocaleDateString(locale === "ko" ? "ko-KR" : "en-US", {
     year: "numeric",
     month: "2-digit",
@@ -31,7 +20,7 @@ function formatDate(iso: string, isRetro: boolean, locale: string) {
   });
 }
 
-function renderBody(text: string, isRetro: boolean) {
+function renderBody(text: string) {
   const parts = text.split(/(@\{[^}]+\})/g);
   return parts.map((p, idx) => {
     if (p.startsWith("@{") && p.endsWith("}")) {
@@ -39,11 +28,7 @@ function renderBody(text: string, isRetro: boolean) {
       return (
         <span
           key={idx}
-          className={cn(
-            isRetro
-              ? "bg-blue-100 text-blue-800 px-1 border border-blue-800 mx-0.5"
-              : "rounded-md bg-accent px-1 text-accent-foreground",
-          )}
+          className="rounded-md bg-accent px-1 text-accent-foreground"
         >
           @{name}
         </span>
@@ -53,11 +38,7 @@ function renderBody(text: string, isRetro: boolean) {
       return (
         <span
           key={idx}
-          className={cn(
-            isRetro
-              ? "bg-blue-100 text-blue-800 px-1 border border-blue-800 mx-0.5"
-              : "rounded-md bg-accent px-1 text-accent-foreground",
-          )}
+          className="rounded-md bg-accent px-1 text-accent-foreground"
         >
           {p}
         </span>
@@ -67,18 +48,7 @@ function renderBody(text: string, isRetro: boolean) {
   });
 }
 
-function chip(label: string, tone: "place" | "occasion", isRetro: boolean) {
-  if (isRetro) {
-    const toneClass =
-      tone === "place"
-        ? "bg-[#2ecc71] text-white border-black"
-        : "bg-[#f7d51d] text-black border-black";
-    return (
-      <span className={`border-2 px-2 py-0 text-xs font-bold ${toneClass}`}>
-        {label}
-      </span>
-    );
-  }
+function chip(label: string, tone: "place" | "occasion") {
   const toneClass =
     tone === "place"
       ? "bg-emerald-50 text-emerald-700 border-emerald-200"
@@ -98,14 +68,8 @@ function seasonEpisodeLabel(log: WatchLog) {
   return `S${log.seasonNumber}`;
 }
 
-function seasonYearLabel(log: WatchLog) {
-  if (typeof log.seasonYear === "number") return String(log.seasonYear);
-  return null;
-}
-
 export default function LogCard({ log }: { log: WatchLog }) {
   const t = log.title;
-  const { isRetro } = useRetro();
   const locale = useLocale();
   const tStatus = useTranslations("Status");
   const tCommon = useTranslations("Common");
@@ -115,117 +79,6 @@ export default function LogCard({ log }: { log: WatchLog }) {
   const seasonLabel = seasonEpisodeLabel(log);
   const isCommentOrigin = log.origin === "COMMENT";
   const isBook = t.type === "book";
-
-  if (isRetro) {
-    return (
-      <article
-        className={cn(
-          "nes-container hover:bg-neutral-50 transition-none flex gap-6",
-          isBook && "bg-[#f1fff2] border-4 border-[#2ecc71]",
-          isCommentOrigin && "bg-[#fff7e6] border-4 border-[#f59e0b]",
-        )}
-      >
-        <div className="shrink-0">
-          <div className="h-40 w-28 border-4 border-black bg-neutral-200 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] overflow-hidden">
-            {(log.seasonPosterUrl ?? t.posterUrl) ? (
-              <img
-                src={
-                  tmdbResize((log.seasonPosterUrl ?? t.posterUrl) || "", "w185") ??
-                  log.seasonPosterUrl ??
-                  t.posterUrl ??
-                  ""
-                }
-                alt={t.name}
-                className="h-full w-full object-cover pixelated"
-                style={{ imageRendering: "pixelated" }}
-                loading="lazy"
-              />
-            ) : (
-              <div className="h-full w-full flex items-center justify-center text-[10px] text-neutral-400 font-bold text-center p-2 uppercase">
-                NO IMAGE
-              </div>
-            )}
-          </div>
-        </div>
-        <div className="flex-1 min-w-0 flex flex-col">
-          <div className="flex items-start justify-between gap-3 mb-2">
-            <div className="min-w-0">
-              <Link
-                href={`/title/${t.id}`}
-                className="text-xl font-bold hover:text-red-600 hover:underline decoration-2 underline-offset-4 truncate block"
-              >
-                {t.name}
-              </Link>
-              <div className="mt-1 text-sm text-neutral-600 font-bold uppercase flex flex-wrap gap-2">
-                {isBook ? (
-                  <span className="inline-flex items-center gap-1 border-2 border-black bg-[#d9f7e8] px-1.5 py-0.5 text-[10px] font-bold text-[#1e7a4f]">
-                    <BookOpen className="h-3 w-3" />
-                    BOOK
-                  </span>
-                ) : t.type === "movie" ? (
-                  <span className="inline-flex items-center gap-1 border-2 border-black bg-[#e9ecff] px-1.5 py-0.5 text-[10px] font-bold text-[#2c3ea8]">
-                    <Film className="h-3 w-3" />
-                    MOVIE
-                  </span>
-                ) : (
-                  <span className="inline-flex items-center gap-1 border-2 border-black bg-[#fff4d9] px-1.5 py-0.5 text-[10px] font-bold text-[#9a5b14]">
-                    <Tv className="h-3 w-3" />
-                    SERIES
-                  </span>
-                )}
-                <span className="bg-black text-white px-1">
-                  {statusLabel(log.status, t.type, tStatus)}
-                </span>
-                {seasonLabel ? (
-                  <span className="bg-white text-black px-1 border border-black">
-                    {seasonLabel}
-                  </span>
-                ) : null}
-                <span>
-                  {formatDate(log.watchedAt ?? log.createdAt, true, locale)}
-                </span>
-                {log.ott ? <span className="text-blue-600">@{log.ott}</span> : ""}
-              </div>
-            </div>
-            {typeof log.rating === "number" ? (
-              <div className="shrink-0 bg-black px-2 py-1 text-sm font-bold text-yellow-400 border-2 border-yellow-400">
-                ★ {log.rating.toFixed(1)}
-              </div>
-            ) : null}
-          </div>
-          {log.place || log.occasion ? (
-            <div className="flex flex-wrap gap-2 mb-3">
-              {log.place
-                ? chip(
-                    placeLabel(log.place, (k: any) =>
-                      tCommon(`placeLabels.${k}`),
-                    ),
-                    "place",
-                    true,
-                  )
-                : null}
-              {log.occasion
-                ? chip(
-                    occasionLabel(log.occasion, (k: any) =>
-                      tCommon(`occasionLabels.${k}`),
-                    ),
-                    "occasion",
-                    true,
-                  )
-                : null}
-            </div>
-          ) : null}
-          {log.note ? (
-            <div className="border-t-2 border-dashed border-neutral-300 pt-3 mt-auto">
-              <p className="text-sm leading-relaxed text-neutral-900 line-clamp-3">
-                {renderBody(formatNoteInline(log.note), true)}
-              </p>
-            </div>
-          ) : null}
-        </div>
-      </article>
-    );
-  }
 
   return (
     <article
@@ -296,9 +149,7 @@ export default function LogCard({ log }: { log: WatchLog }) {
                 </>
               ) : null}
               <span className="text-muted-foreground/60">·</span>
-              <span>
-                {formatDate(log.watchedAt ?? log.createdAt, false, locale)}
-              </span>
+              <span>{formatDate(log.watchedAt ?? log.createdAt, locale)}</span>
               {log.ott ? (
                 <>
                   <span className="text-muted-foreground/60">·</span>
@@ -321,7 +172,6 @@ export default function LogCard({ log }: { log: WatchLog }) {
                     tCommon(`placeLabels.${k}`),
                   ),
                   "place",
-                  false,
                 )
               : null}
             {log.occasion
@@ -330,14 +180,13 @@ export default function LogCard({ log }: { log: WatchLog }) {
                     tCommon(`occasionLabels.${k}`),
                   ),
                   "occasion",
-                  false,
                 )
               : null}
           </div>
         ) : null}
         {log.note ? (
           <p className="text-sm leading-relaxed text-muted-foreground line-clamp-2">
-            {renderBody(formatNoteInline(log.note), false)}
+            {renderBody(formatNoteInline(log.note))}
           </p>
         ) : null}
       </div>

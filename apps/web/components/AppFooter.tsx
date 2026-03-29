@@ -1,22 +1,18 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useRetro } from "@/context/RetroContext";
 import { Link as IntlLink } from "@/i18n/routing";
 import { cn } from "@/lib/utils";
 
 export default function AppFooter() {
   const currentYear = new Date().getFullYear();
-  const { isRetro } = useRetro();
   const t = useTranslations("AppFooter");
 
   return (
     <footer
       className={cn(
         "mt-20 border-t py-12",
-        isRetro
-          ? "border-black bg-white"
-          : "border-border bg-muted/60 dark:bg-card/80",
+        "border-border bg-muted/60 dark:bg-card/80",
       )}
     >
       <div className="mx-auto max-w-5xl px-4">
@@ -25,20 +21,18 @@ export default function AppFooter() {
             <div
               className={cn(
                 "text-sm font-bold tracking-tighter",
-                isRetro ? "text-black uppercase" : "text-foreground",
+                "text-foreground",
               )}
             >
-              {isRetro ? t("titleRetro") : t("titleModern")}
+              {t("titleModern")}
             </div>
             <p
               className={cn(
                 "text-xs leading-relaxed",
-                isRetro
-                  ? "font-bold text-neutral-600"
-                  : "text-muted-foreground",
+                "text-muted-foreground",
               )}
             >
-              {isRetro ? t("descriptionRetro") : t("descriptionModern")}
+              {t("descriptionModern")}
             </p>
           </div>
 
@@ -46,32 +40,30 @@ export default function AppFooter() {
             <h3
               className={cn(
                 "text-xs font-bold uppercase tracking-widest",
-                isRetro ? "text-black" : "text-foreground",
+                "text-foreground",
               )}
             >
-              {isRetro ? t("sectionServiceRetro") : t("sectionServiceModern")}
+              {t("sectionServiceModern")}
             </h3>
             <ul
               className={cn(
                 "space-y-2 text-xs",
-                isRetro
-                  ? "font-bold text-neutral-800"
-                  : "text-muted-foreground",
+                "text-muted-foreground",
               )}
             >
               <li>
                 <IntlLink href="/" className="hover:underline">
-                  {isRetro ? t("linkLogRetro") : t("linkLogModern")}
+                  {t("linkLogModern")}
                 </IntlLink>
               </li>
               <li>
                 <IntlLink href="/timeline" className="hover:underline">
-                  {isRetro ? t("linkTimelineRetro") : t("linkTimelineModern")}
+                  {t("linkTimelineModern")}
                 </IntlLink>
               </li>
               <li>
                 <IntlLink href="/public" className="hover:underline">
-                  {isRetro ? t("linkPublicRetro") : t("linkPublicModern")}
+                  {t("linkPublicModern")}
                 </IntlLink>
               </li>
             </ul>
@@ -81,37 +73,35 @@ export default function AppFooter() {
             <h3
               className={cn(
                 "text-xs font-bold uppercase tracking-widest",
-                isRetro ? "text-black" : "text-foreground",
+                "text-foreground",
               )}
             >
-              {isRetro ? t("sectionGuideRetro") : t("sectionGuideModern")}
+              {t("sectionGuideModern")}
             </h3>
             <ul
               className={cn(
                 "space-y-2 text-xs",
-                isRetro
-                  ? "font-bold text-neutral-800"
-                  : "text-muted-foreground",
+                "text-muted-foreground",
               )}
             >
               <li>
                 <IntlLink href="/about" className="hover:underline">
-                  {isRetro ? t("linkAboutRetro") : t("linkAboutModern")}
+                  {t("linkAboutModern")}
                 </IntlLink>
               </li>
               <li>
                 <IntlLink href="/faq" className="hover:underline">
-                  {isRetro ? t("linkFaqRetro") : t("linkFaqModern")}
+                  {t("linkFaqModern")}
                 </IntlLink>
               </li>
               <li>
                 <IntlLink href="/privacy" className="hover:underline">
-                  {isRetro ? t("linkPrivacyRetro") : t("linkPrivacyModern")}
+                  {t("linkPrivacyModern")}
                 </IntlLink>
               </li>
               <li>
                 <IntlLink href="/feedback" className="hover:underline">
-                  {isRetro ? t("linkFeedbackRetro") : t("linkFeedbackModern")}
+                  {t("linkFeedbackModern")}
                 </IntlLink>
               </li>
             </ul>
@@ -120,11 +110,11 @@ export default function AppFooter() {
           <div
             className={cn(
               "space-y-4 text-xs",
-              isRetro ? "font-bold text-neutral-400" : "text-muted-foreground",
+              "text-muted-foreground",
             )}
           >
             <p>
-              © {currentYear} {isRetro ? t("titleRetro") : t("titleModern")}.{" "}
+              © {currentYear} {t("titleModern")}.{" "}
               {t("allRightsReserved")}
             </p>
           </div>

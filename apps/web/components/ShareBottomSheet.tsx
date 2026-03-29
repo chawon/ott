@@ -12,7 +12,6 @@ import {
 import { WatchLog } from "@/lib/types";
 import { downloadBlob, fetchShareCardBlob, shareBlob } from "@/lib/share";
 import { cn, ratingDisplay, statusLabel } from "@/lib/utils";
-import { useRetro } from "@/context/RetroContext";
 import { trackEvent } from "@/lib/analytics";
 
 export default function ShareBottomSheet({
@@ -27,14 +26,12 @@ export default function ShareBottomSheet({
   const tShare = useTranslations("ShareBottomSheet");
   const tStatus = useTranslations("Status");
   const tQuick = useTranslations("QuickLogCard");
-  const tHeader = useTranslations("AppHeader");
   const [showRatingLabel, setShowRatingLabel] = useState(true);
   const [showNote, setShowNote] = useState(true);
   const [format, setFormat] = useState<"story" | "feed">("story");
   const [busy, setBusy] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [shareCardBlob, setShareCardBlob] = useState<Blob | null>(null);
-  const { isRetro } = useRetro();
   const previewAspect = format === "feed" ? "aspect-[4/5]" : "aspect-[9/16]";
   const sizeLabel =
     format === "feed" ? "1080×1350 (Feed)" : "1080×1920 (Story)";
@@ -63,10 +60,10 @@ export default function ShareBottomSheet({
       ratingValue: showRatingLabel && rating ? rating.value : null,
       date: `${year}.${month}.${day}`,
       posterUrl: log.seasonPosterUrl ?? log.title.posterUrl ?? null,
-      watermark: isRetro ? tHeader("titleRetro") : "ottline.app",
-      theme: (isRetro ? "retro" : "default") as "retro" | "default",
+      watermark: "ottline.app",
+      theme: "default" as const,
     };
-  }, [format, isRetro, log, showNote, showRatingLabel, tStatus, tQuick, tHeader]);
+  }, [format, log, showNote, showRatingLabel, tStatus, tQuick]);
 
   useEffect(() => {
     let active = true;
