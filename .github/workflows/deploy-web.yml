@@ -49,10 +49,13 @@ jobs:
           chmod +x /usr/local/bin/yq
 
           NEW_TAG="staging-${{ github.sha }}"
+          SHORT_SHA="${{ github.sha }}"
+          SHORT_SHA="${SHORT_SHA:0:7}"
           WEB_IMAGE="${{ secrets.OCIR_REGISTRY }}/${{ secrets.OCIR_NAMESPACE }}/ott-web:$NEW_TAG"
 
           echo "Updating Staging Web image to: $WEB_IMAGE"
           yq -i "select(.kind == \"Deployment\").spec.template.spec.containers[0].image = \"$WEB_IMAGE\"" deploy/oke-staging/web-deployment.yaml
+          yq -i "(select(.kind == \"Deployment\").spec.template.spec.containers[0].env[] | select(.name == \"APP_VERSION\")).value = \"staging-$SHORT_SHA\"" deploy/oke-staging/web-deployment.yaml
 
           if [[ -n $(git status -s) ]]; then
             git add deploy/oke-staging/web-deployment.yaml

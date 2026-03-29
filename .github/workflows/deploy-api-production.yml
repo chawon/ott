@@ -52,10 +52,13 @@ jobs:
           wget https://github.com/mikefarah/yq/releases/download/v4.44.3/yq_linux_${YQ_ARCH} -O /usr/local/bin/yq
           chmod +x /usr/local/bin/yq
 
+          SHORT_SHA="${{ inputs.sha }}"
+          SHORT_SHA="${SHORT_SHA:0:7}"
           API_IMAGE="${{ secrets.OCIR_REGISTRY }}/${{ secrets.OCIR_NAMESPACE }}/ott-api:${{ inputs.sha }}"
 
           echo "Updating Production API image to: $API_IMAGE"
           yq -i "select(.kind == \"Deployment\").spec.template.spec.containers[0].image = \"$API_IMAGE\"" deploy/oke/api-deployment.yaml
+          yq -i "(select(.kind == \"Deployment\").spec.template.spec.containers[0].env[] | select(.name == \"APP_VERSION\")).value = \"$SHORT_SHA\"" deploy/oke/api-deployment.yaml
 
           if [[ -n $(git status -s) ]]; then
             git add deploy/oke/api-deployment.yaml

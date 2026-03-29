@@ -23,6 +23,8 @@ spec:
           ports:
             - containerPort: 8080
           env:
+            - name: APP_VERSION
+              value: "dev"
             - name: TELEGRAM_NOTIFY_ENABLED
               value: "false"
             - name: TELEGRAM_SERVICE_NAME
