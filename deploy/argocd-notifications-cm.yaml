@@ -1,0 +1,41 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: argocd-notifications-cm
+  namespace: argocd
+  labels:
+    app.kubernetes.io/component: notifications-controller
+    app.kubernetes.io/name: argocd-notifications-controller
+    app.kubernetes.io/part-of: argocd
+data:
+  service.webhook.telegram: |
+    url: https://api.telegram.org/bot8534035669:AAEPytmEGna90BdUCDQs6aIhKniOl4jXF0U/sendMessage
+    headers:
+    - name: Content-Type
+      value: application/json
+  template.app-sync-succeeded-webhook: |
+    webhook:
+      telegram:
+        method: POST
+        body: |
+          {
+            "chat_id": "8470328903",
+            "text": "✅ [{{.app.metadata.name}}] 배포 성공\n\n🔄 컴포넌트:{{range .app.status.operationState.syncResult.resources}}{{if eq .kind "Deployment"}}\n• {{.name}}: {{if contains "unchanged" .message}}unchanged{{else}}✨ updated{{end}}{{end}}{{end}}\n\n🕐 {{dateInZone "2006-01-02 15:04:05 KST" (toDate "2006-01-02T15:04:05Z" .app.status.operationState.finishedAt) "Asia/Seoul"}}"
+          }
+  template.app-sync-failed-webhook: |
+    webhook:
+      telegram:
+        method: POST
+        body: |
+          {
+            "chat_id": "8470328903",
+            "text": "❌ [{{.app.metadata.name}}] 배포 실패\n\n🔄 컴포넌트:{{range .app.status.operationState.syncResult.resources}}{{if eq .kind "Deployment"}}\n• {{.name}}: {{if contains "unchanged" .message}}unchanged{{else}}❌ failed{{end}}{{end}}{{end}}\n\n오류: {{.app.status.operationState.message}}\n🕐 {{dateInZone "2006-01-02 15:04:05 KST" (toDate "2006-01-02T15:04:05Z" .app.status.operationState.finishedAt) "Asia/Seoul"}}"
+          }
+  trigger.on-sync-succeeded: |
+    - description: Application syncing has succeeded
+      send: [app-sync-succeeded-webhook]
+      when: app.status.operationState.phase in ["Succeeded"]
+  trigger.on-sync-failed: |
+    - description: Application syncing has failed
+      send: [app-sync-failed-webhook]
+      when: app.status.operationState.phase in ["Error", "Failed"]
