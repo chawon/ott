@@ -9,7 +9,13 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
   return {
     title: t("title"),
     description: t("description"),
-    alternates: { canonical: "https://ottline.app/about" },
+    alternates: {
+      canonical: "https://ottline.app/about",
+      languages: {
+        ko: "https://ottline.app/ko/about",
+        en: "https://ottline.app/en/about",
+      },
+    },
     openGraph: {
       title: `${t("title")} | ottline`,
       description: t("description"),
