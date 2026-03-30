@@ -20,7 +20,7 @@ data:
         body: |
           {
             "chat_id": "8470328903",
-            "text": "✅ [{{.app.metadata.name}}] 배포 성공\n\n🔄 컴포넌트:{{range .app.status.operationState.syncResult.resources}}{{if eq .kind "Deployment"}}\n• {{.name}}: {{if contains "unchanged" .message}}unchanged{{else}}✨ updated{{end}}{{end}}{{end}}\n\n🕐 {{dateInZone "2006-01-02 15:04:05 KST" (toDate "2006-01-02T15:04:05Z" .app.status.operationState.finishedAt) "Asia/Seoul"}}"
+            "text": "✅ [{{.app.metadata.name}}] 배포 성공\n\n🔄 컴포넌트:{{range .app.status.operationState.syncResult.resources}}{{if eq .kind "Deployment"}}\n• {{.name}}: {{if contains "unchanged" .message}}unchanged{{else}}✨ updated{{end}}{{end}}{{end}}\n\n🏷️ 앱 ID:{{range .app.status.summary.images}}\n• {{. | splitList "/" | last | splitList ":" | first}}: {{. | splitList ":" | last | substr 0 7}}{{end}}\n\n🕐 {{dateInZone "2006-01-02 15:04:05 KST" (toDate "2006-01-02T15:04:05Z" .app.status.operationState.finishedAt) "Asia/Seoul"}}"
           }
   template.app-sync-failed-webhook: |
     webhook:
