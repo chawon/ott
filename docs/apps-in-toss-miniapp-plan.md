@@ -57,19 +57,20 @@ npx ait init  # appName은 앱인토스 콘솔 앱명과 일치해야 함
 
 ### Phase 0 — 사전 준비 (비개발)
 
-- [ ] 앱인토스 파트너사 신청 (콘솔 워크스페이스 생성)
-- [ ] 미니앱 appName 확정 (`ottline` 등)
+- [x] 앱인토스 파트너사 신청 (콘솔 워크스페이스 생성)
+- [x] 미니앱 appName 확정 (`ottline`)
+- [x] 앱 등록 및 검토 신청 완료 (2026-04-03, 검토 중)
 
-### Phase 1 — WebView SDK 연동 (1~2일)
+### Phase 1 — WebView SDK 연동
 
-- [ ] `@apps-in-toss/web-framework` 설치
-- [ ] `ait init` 실행 및 설정 구성
-- [ ] 샌드박스 앱에서 `intoss://ottline` 접근 테스트
+- [x] `@apps-in-toss/web-framework` 설치
+- [x] `ait init` 실행 및 `granite.config.ts` 설정 (appName, 브랜드 색상, 아이콘)
+- [x] PWA 설치 배너 미니앱 환경에서 비활성화 (`window.__appsInToss` 감지)
+- [x] Service Worker 미니앱 환경에서 등록 스킵
+- [ ] 샌드박스 앱에서 `intoss://ottline` 접근 테스트 ← **앱 검토 승인 후 진행**
 
-### Phase 2 — 정책 준수 작업 (1~2일)
+### Phase 2 — 정책 준수 검토
 
-- [ ] PWA 설치 배너 미니앱 환경에서 비활성화
-- [ ] Service Worker 미니앱 내 동작 여부 확인
 - [ ] 공유카드 외부 링크 앱인토스 정책 범위 확인
 - [ ] [비게임 출시 가이드 체크리스트](https://developers-apps-in-toss.toss.im/checklist/app-nongame.md) 전수 검토
 
