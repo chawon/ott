@@ -23,6 +23,9 @@ export default function PwaInstallBanner() {
   );
 
   useEffect(() => {
+    // 앱인토스 미니앱 환경에서는 PWA 설치 배너를 표시하지 않음
+    if ((window as any).__appsInToss) return;
+
     // Detect platform
     const ua = window.navigator.userAgent.toLowerCase();
     const isIos = /iphone|ipad|ipod/.test(ua);

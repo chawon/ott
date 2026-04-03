@@ -77,6 +77,7 @@ export default async function RootLayout({
 (() => {
   if (!("serviceWorker" in navigator)) return;
   if (!window.isSecureContext) return;
+  if (window.__appsInToss) return;
   window.addEventListener("load", () => {
     navigator.serviceWorker.register("/sw.js").catch(() => {
       // Ignore registration errors to avoid blocking runtime flows.

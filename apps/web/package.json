@@ -3,14 +3,16 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
+    "dev": "granite dev",
+    "build": "ait build",
     "start": "next start",
     "lint": "biome check",
     "format": "biome format --write",
-    "indexnow": "node scripts/ping-indexnow.mjs"
+    "indexnow": "node scripts/ping-indexnow.mjs",
+    "deploy": "ait deploy"
   },
   "dependencies": {
+    "@apps-in-toss/web-framework": "^2.4.1",
     "@radix-ui/react-dialog": "^1.1.15",
     "@radix-ui/react-dropdown-menu": "^2.1.16",
     "@radix-ui/react-slot": "^1.2.4",
