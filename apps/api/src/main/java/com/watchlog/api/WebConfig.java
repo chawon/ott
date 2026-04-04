@@ -10,12 +10,14 @@ public class WebConfig implements WebMvcConfigurer {
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/api/**")
-                .allowedOrigins(
+                .allowedOriginPatterns(
                         "https://ottline.app",
+                        "https://staging.ottline.app",
                         "https://ott.preview.pe.kr",
                         "http://localhost:3000",
                         "http://127.0.0.1:3000",
-                        "http://172.24.75.199:3000"
+                        "http://172.24.75.199:3000",
+                        "null"
                 )
                 .allowedMethods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
                 .allowedHeaders("*")
