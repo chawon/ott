@@ -17,7 +17,8 @@ public class WebConfig implements WebMvcConfigurer {
                         "http://localhost:3000",
                         "http://127.0.0.1:3000",
                         "http://172.24.75.199:3000",
-                        "null"
+                        "https://ottline.apps.tossmini.com",
+                        "https://ottline.private-apps.tossmini.com"
                 )
                 .allowedMethods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
                 .allowedHeaders("*")
