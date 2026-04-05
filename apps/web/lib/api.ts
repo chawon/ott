@@ -41,8 +41,10 @@ function buildHeaders(init?: RequestInit) {
   return headers;
 }
 
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "";
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`/api${path}`, {
+  const res = await fetch(`${API_BASE}/api${path}`, {
     ...init,
     headers: buildHeaders(init),
     cache: "no-store",

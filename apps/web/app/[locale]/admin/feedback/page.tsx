@@ -12,6 +12,7 @@ function readToken(value: string | string[] | undefined): string | null {
 }
 
 export default async function AdminFeedbackPage({ searchParams }: Props) {
+  if (process.env.AIT_BUILD === "true") notFound();
   const sParams = searchParams ? await searchParams : {};
   const token = readToken(sParams?.token);
   const expected =

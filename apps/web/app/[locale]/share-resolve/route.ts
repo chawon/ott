@@ -1,5 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 
+export const dynamic = "force-static";
+
+export function generateStaticParams() {
+  return [{ locale: "ko" }, { locale: "en" }];
+}
+
 function isAllowedHost(hostname: string): boolean {
   const h = hostname.toLowerCase();
   const exact = new Set([
@@ -54,6 +60,9 @@ function withWebOnly(url: URL): URL {
 }
 
 export async function GET(req: NextRequest) {
+  if (process.env.AIT_BUILD === "true") {
+    return NextResponse.json({ error: "not available" }, { status: 400 });
+  }
   const rawUrl = req.nextUrl.searchParams.get("url")?.trim();
   if (!rawUrl) {
     return NextResponse.json({ error: "url is required" }, { status: 400 });

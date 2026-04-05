@@ -8,10 +8,15 @@ import SwipeNav from "@/components/SwipeNav";
 import MigrationBanner from "@/components/MigrationBanner";
 import { ThemeProvider } from "@/context/ThemeContext";
 import { NextIntlClientProvider } from "next-intl";
-import { getMessages, getTranslations } from "next-intl/server";
+import { getMessages, getTranslations, setRequestLocale } from "next-intl/server";
+
+export function generateStaticParams() {
+  return [{ locale: "ko" }, { locale: "en" }];
+}
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
+  setRequestLocale(locale);
   const t = await getTranslations({ locale, namespace: "Metadata" });
 
   return {
@@ -60,6 +65,7 @@ export default async function RootLayout({
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
+  setRequestLocale(locale);
   const messages = await getMessages();
 
   const themeInitScript = `

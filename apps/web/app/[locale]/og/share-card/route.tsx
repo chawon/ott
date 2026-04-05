@@ -2,7 +2,12 @@ import { ImageResponse } from "next/og";
 import fs from "node:fs/promises";
 import { getAverageColor } from "fast-average-color-node";
 
+export const dynamic = "force-static";
 export const runtime = "nodejs";
+
+export function generateStaticParams() {
+  return [{ locale: "ko" }, { locale: "en" }];
+}
 
 type ShareCardPayload = {
   title: string;

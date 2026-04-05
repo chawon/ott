@@ -9,10 +9,10 @@ export default defineConfig({
   },
   web: {
     host: 'localhost',
-    port: 5173,
+    port: 3000,
     commands: {
       dev: 'next dev',
-      build: 'next build',
+      build: 'npm run build:next-ait',
     },
   },
   permissions: [],

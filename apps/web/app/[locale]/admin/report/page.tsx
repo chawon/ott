@@ -47,6 +47,7 @@ type DailyReport = {
 
 
 export default async function AdminReportPage({ params, searchParams }: Props) {
+  if (process.env.AIT_BUILD === "true") notFound();
   await params;
   const sp = searchParams ? await searchParams : {};
   const token = readToken(sp?.token);

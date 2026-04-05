@@ -5,6 +5,8 @@
   "scripts": {
     "dev": "granite dev",
     "build": "ait build",
+    "build:next-ait": "rm -rf .next dist && AIT_BUILD=true NEXT_PUBLIC_API_BASE_URL=https://ottline.app next build --webpack && cp dist/web/ko.html dist/web/index.html",
+
     "start": "next start",
     "lint": "biome check",
     "format": "biome format --write",

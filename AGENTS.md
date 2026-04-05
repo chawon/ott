@@ -94,7 +94,8 @@
 2. 현재 기준
    1. Chrome Web Store 배포 완료 (`ottline-helper-0.1.0`, 2026-03-26)
    2. Microsoft Edge Add-ons Store 제출 완료 (`ottline-helper-0.1.0`, 2026-03-26), 심사 중
-   3. 남은 작업: Edge 심사 통과 확인, 실제 사이트 검증, 페이지 내 CTA 여부 판단
+   3. Edge Add-ons Store 배포 완료 (`ottline-helper-0.1.0`, 2026-04-02) — `https://microsoftedge.microsoft.com/addons/detail/egghbkekjopgknhggoeiekgdooofihbo`
+   4. 남은 작업: 실제 사이트 검증, 페이지 내 CTA 여부 판단
 
 ---
 
