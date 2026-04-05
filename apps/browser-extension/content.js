@@ -163,6 +163,7 @@ function scanNetflixModalTitle() {
         value.length <= 80 &&
         !/총\s*\d+\s*분\s*중\s*\d+\s*분\s*재생/i.test(value) &&
         !/^\d+\s*분\s*재생/i.test(value) &&
+        !/^\d{4}년\s*\d{1,2}월\s*\d{1,2}일/.test(value) &&
         !/^(재생|저장|찜|내가 찜한 리스트|상세 정보|예고편|회차 정보|에피소드|시즌 \d+|모두 재생|홈|Netflix 홈)$/i.test(
           value,
         ),
@@ -188,6 +189,7 @@ function scanNetflixModalTitle() {
         !/총\s*\d+\s*분\s*중\s*\d+\s*분\s*재생/i.test(value) &&
         !/^\d+\s*분\s*재생/i.test(value) &&
         !/^\d+\s*화$/i.test(value) &&
+        !/^\d{4}년\s*\d{1,2}월\s*\d{1,2}일/.test(value) &&
         !/^(재생|저장|찜|내가 찜한 리스트|상세 정보|예고편|회차 정보|에피소드|시즌 \d+|모두 재생|홈|Netflix 홈)$/i.test(
           value,
         ),
@@ -265,6 +267,12 @@ function normalizeTitle(rawTitle, site) {
     .replace(/^\s*(넷플릭스|Netflix|디즈니\+|Disney\+)\s*[:|-]\s*/i, "")
     .trim();
   if (/^(Netflix 홈|넷플릭스 홈|Netflix 대한민국|넷플릭스 대한민국)$/i.test(title)) {
+    return "";
+  }
+  if (/^넷플릭스\s*[·•]/.test(title)) {
+    return "";
+  }
+  if (/^\d{4}년\s*\d{1,2}월\s*\d{1,2}일/.test(title)) {
     return "";
   }
   if (/^(Wavve\(웨이브\)|웨이브|Wavve)$/i.test(title)) {

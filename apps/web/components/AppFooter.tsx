@@ -130,6 +130,12 @@ export default async function AppFooter() {
               © {currentYear} {t("titleModern")}.{" "}
               {t("allRightsReserved")}
             </p>
+            <a
+              href="mailto:contact@ottline.app"
+              className="block hover:underline"
+            >
+              contact@ottline.app
+            </a>
             <p className="font-mono text-[10px] opacity-50">
               web {webVersion} · api {apiVersion}
             </p>
