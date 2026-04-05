@@ -6,6 +6,7 @@ import PwaInstallBanner from "@/components/PwaInstallBanner";
 import SyncWorker from "@/components/SyncWorker";
 import SwipeNav from "@/components/SwipeNav";
 import MigrationBanner from "@/components/MigrationBanner";
+import ChunkErrorHandler from "@/components/ChunkErrorHandler";
 import { ThemeProvider } from "@/context/ThemeContext";
 import { NextIntlClientProvider } from "next-intl";
 import { getMessages, getTranslations } from "next-intl/server";
@@ -157,6 +158,7 @@ export default async function RootLayout({
                 STAGING
               </div>
             )}
+            <ChunkErrorHandler />
             <MigrationBanner />
             <AppHeader />
             <SwipeNav />
