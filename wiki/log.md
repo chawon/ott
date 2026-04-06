@@ -1,5 +1,13 @@
 # Wiki Log
 
+## [2026-04-07] ingest: 토스 인앱 2차 검수 재제출
+- 대상: 검수 피드백 대응 완료
+- 생성/수정: platforms/toss-inapp.md
+- 노트:
+  - icon-600.png 투명 모서리 → #F0F6FF 채움, thumbnail-1932x828.png 레터박스 바 제거
+  - granite.config.ts icon CDN URL 갱신, ait 재빌드 (deploymentId: 019d6065-ee4e-707a-b250-f43807c77f59)
+  - 2026-04-07 2차 검수 재제출 완료
+
 ## [2026-04-06] ingest: feat/native-mobile-app 브랜치 작업 내용
 - 대상: `feat/native-mobile-app` 브랜치 (12 커밋, main 미머지)
 - 생성/수정:
@@ -10,6 +18,15 @@
   - `apps/native/` 디렉토리 전체 신규 (브랜치에만 존재)
   - DEVELOPMENT.md에 구현 완료 기능 문서화 잘 되어 있음
   - kmp.md와 twa.md 크로스링크 업데이트 별도 필요
+
+## [2026-04-06] ingest: feature/apps-in-toss-miniapp 브랜치 문서 및 피드백
+- 대상: docs/apps-in-toss-miniapp-plan.md, apps/web/public/icon-600.png, apps/web/public/thumbnail-1932x828.png, apps/web/ottline.ait
+- 생성/수정: platforms/toss-inapp.md (전면 재작성), index.md
+- 노트:
+  - Phase 0·1 완료, Phase 2 미완료, 검수 결과 대기 중 (요청일 2026-04-05)
+  - icon-600.png: 라운드 코너 pre-apply → full-bleed 사각형으로 재제작 필요
+  - thumbnail-1932x828.png: 가로형 배너, 양쪽 레터박스 바 → full-bleed 재제작 필요
+  - .ait 설정 icon 참조는 icon-192.png (icon-600.png와 별개)
 
 ## [2026-04-05] ingest: docs/ 전체 문서 위키 페이지화
 - 대상: docs/ 내 34개 문서 (assetlinks.template.json 제외)
