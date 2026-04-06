@@ -1,5 +1,16 @@
 # Wiki Log
 
+## [2026-04-06] ingest: feat/native-mobile-app 브랜치 작업 내용
+- 대상: `feat/native-mobile-app` 브랜치 (12 커밋, main 미머지)
+- 생성/수정:
+  - platforms/native.md (신규) — React Native + Expo 앱 구조, 실행법, 구현 현황
+  - features/dna-aura.md (신규) — 26종 특질 계산, Aura 글로우 시각화
+  - index.md 갱신 (native, dna-aura 추가)
+- 노트:
+  - `apps/native/` 디렉토리 전체 신규 (브랜치에만 존재)
+  - DEVELOPMENT.md에 구현 완료 기능 문서화 잘 되어 있음
+  - kmp.md와 twa.md 크로스링크 업데이트 별도 필요
+
 ## [2026-04-05] ingest: docs/ 전체 문서 위키 페이지화
 - 대상: docs/ 내 34개 문서 (assetlinks.template.json 제외)
 - 생성/수정:

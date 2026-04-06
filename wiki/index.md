@@ -5,6 +5,7 @@
 | 페이지 | 요약 |
 |---|---|
 | [[analytics]] | 플랫폼별(Web/PWA/TWA) 사용 지표 수집, 개인 리포트, 관리자 대시보드 |
+| [[dna-aura]] | 시청 기록 26종 특질 추출 → Journey 화면 Aura 글로우 시각화 (native 앱) |
 | [[book-log]] | 네이버 책 검색 API 연동으로 영상 기록 흐름에 책 기록 통합 |
 | [[daily-report]] | 매일 오전 9시 Telegram으로 Cloudflare·GA4·내부 분석·K8s 통합 현황 발송 |
 | [[dark-mode]] | 기본 모드에서만 적용되는 라이트/다크/시스템 테마 전환 |
@@ -30,6 +31,7 @@
 | [[browser-extension]] | PC OTT 페이지에서 ottline 기록 화면으로 연결하는 Chrome/Edge 확장 |
 | [[ms-store]] | PWABuilder 기반 Windows PWA 패키지 생성 및 Microsoft Store 제출 |
 | [[pwa]] | 로컬 우선 아키텍처 기반 설치형 웹앱, Service Worker 및 오프라인 지원 포함 |
+| [[native]] | React Native + Expo 기반 네이티브 앱 (feat/native-mobile-app 브랜치, 개발 중) |
 | [[twa]] | Android TWA, Play 내부 테스트 완료 — Capacitor 통합 전환 예정 |
 
 ## Processes
