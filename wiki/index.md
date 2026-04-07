@@ -46,3 +46,4 @@
 | [[staging]] | OKE 별도 namespace + Cloudflare Access 접근 제한 스테이징 환경 |
 | [[ux-copy]] | 서비스 전반 사용자 노출 문구 톤/용어/형식 표준화 가이드 |
 | [[ux-reviews]] | 서비스 UX 검토 및 개선 사항 통합 (2026-02-06, 2026-02-10) |
+| [[design-review]] | ui-ux-pro-max 기반 디자인 점검 — primary 컬러 미연결, cursor-pointer 누락 등 (2026-04-07) |

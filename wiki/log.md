@@ -1,5 +1,13 @@
 # Wiki Log
 
+## [2026-04-07] ingest: ui-ux-pro-max 디자인 점검
+- 대상: apps/web (main 브랜치 기준)
+- 생성/수정: processes/design-review.md (신규), index.md
+- 노트:
+  - --primary가 브랜드 네이비 미연결 → shadcn 밋밋한 주요 원인
+  - cursor-pointer 전체 누락
+  - 수정은 feature/shadcn-migration 브랜치에서 진행 예정
+
 ## [2026-04-07] ingest: 토스 인앱 2차 검수 재제출
 - 대상: 검수 피드백 대응 완료
 - 생성/수정: platforms/toss-inapp.md
