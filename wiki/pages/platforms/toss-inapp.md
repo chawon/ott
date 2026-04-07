@@ -46,12 +46,11 @@
 | 광고 | ✅ 해당 없음 | 광고 없음 |
 | 다크패턴 | ✅ 준수 | 온보딩 오버레이 현재 비활성화 상태 |
 | 서비스 카테고리 | ✅ 출시 가능 | 금융·가상자산·의료 등 제한 카테고리 아님 |
-| 앱 내 기능 등록 (비게임 필수 1개↑) | ❓ 확인 필요 | 콘솔에서 등록 여부 직접 확인 필요 |
+| 앱 내 기능 등록 (비게임 필수 1개↑) | ✅ 완료 | 콘솔 등록 확인, 미니앱 재진입으로 동작 검증 완료 (2026-04-07) |
 
-### 조치 필요 항목
+### 보류 항목
 
-- [ ] **공유카드**: `ShareBottomSheet`에서 `window.__appsInToss` 감지 시 `ottline.app으로 열기` 버튼 숨김 처리
-- [ ] **앱 내 기능**: 콘솔에서 최소 1개 등록 확인
+- [ ] **공유카드**: 심사 결과 확인 후 판단. 반려 시 `ShareBottomSheet`에서 `window.__appsInToss` 감지 시 `ottline.app으로 열기` 버튼 숨김 처리
 
 참고: [자사 앱 설치/외부 링크 가이드라인](https://developers-apps-in-toss.toss.im/checklist/miniapp-external-link.md), [서비스 오픈 정책](https://developers-apps-in-toss.toss.im/intro/guide.md)
 
