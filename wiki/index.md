@@ -32,7 +32,7 @@
 | [[ms-store]] | PWABuilder 기반 Windows PWA 패키지 생성 및 Microsoft Store 제출 |
 | [[pwa]] | 로컬 우선 아키텍처 기반 설치형 웹앱, Service Worker 및 오프라인 지원 포함 |
 | [[native]] | React Native + Expo 기반 네이티브 앱 (feat/native-mobile-app 브랜치, 개발 중) |
-| [[toss-inapp]] | 토스 인앱 등록 채널 — 아이콘/썸네일 배경 포함 꽉 찬 사각형 제출 필요 |
+| [[toss-inapp]] | 앱인토스 WebView 미니앱 — 2차 검수 재제출 완료 (2026-04-07), 결과 대기 중 |
 | [[twa]] | Android TWA, Play 내부 테스트 완료 — Capacitor 통합 전환 예정 |
 
 ## Processes
