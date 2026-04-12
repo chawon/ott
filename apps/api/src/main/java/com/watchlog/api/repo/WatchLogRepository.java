@@ -99,4 +99,14 @@ public interface WatchLogRepository extends JpaRepository<WatchLogEntity, UUID> 
     @Modifying
     @Query(value = "update watch_logs set user_id = cast(:userId as uuid) where user_id is null", nativeQuery = true)
     int assignUserToOrphanLogs(@Param("userId") UUID userId);
+
+    @Query("""
+            select w from WatchLogEntity w
+            join fetch w.title t
+            where w.userId = :userId
+              and w.status = 'DONE'
+              and w.deletedAt is null
+            order by w.watchedAt desc
+            """)
+    List<WatchLogEntity> findTop50ForRecommendation(@Param("userId") UUID userId, Pageable pageable);
 }
