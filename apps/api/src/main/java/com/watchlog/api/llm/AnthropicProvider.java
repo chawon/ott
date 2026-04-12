@@ -34,7 +34,7 @@ public class AnthropicProvider implements LlmProvider {
     public List<RecommendationItem> recommend(String prompt) {
         var body = Map.of(
                 "model", props.anthropicModel() != null ? props.anthropicModel() : "claude-opus-4-5",
-                "max_tokens", 1024,
+                "max_tokens", 2048,
                 "messages", List.of(Map.of("role", "user", "content", prompt))
         );
 
