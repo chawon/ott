@@ -136,6 +136,22 @@ public class TmdbClient {
                 .toList();
     }
 
+    public String findPosterUrl(String name, String type, String language) {
+        if (props.accessToken() == null || props.accessToken().isBlank()) return null;
+        try {
+            String tmdbMediaType = "series".equals(type) ? "tv" : type;
+            var results = searchMulti(name, language);
+            return results.stream()
+                    .filter(r -> tmdbMediaType.equals(r.mediaType))
+                    .filter(r -> r.posterPath != null && !r.posterPath.isBlank())
+                    .findFirst()
+                    .map(r -> posterUrl(r.posterPath))
+                    .orElse(null);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
     private void requireToken() {
         if (props.accessToken() == null || props.accessToken().isBlank()) {
             throw new IllegalStateException("TMDB_ACCESS_TOKEN is missing");

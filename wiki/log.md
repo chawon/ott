@@ -1,5 +1,10 @@
 # Wiki Log
 
+## [2026-04-12] ingest: 미래의 타임라인 (LLM 추천) 기능 추가
+- 대상: feature/future-timeline-recommendation 브랜치
+- 생성/수정: features/future-timeline.md (신규), index.md
+- 노트: Claude/Gemini 병렬 호출, TMDB 포스터 enrichment, 하루 1회 새로고침 제한
+
 ## [2026-04-07] ingest: ui-ux-pro-max 디자인 점검
 - 대상: apps/web (main 브랜치 기준)
 - 생성/수정: processes/design-review.md (신규), index.md

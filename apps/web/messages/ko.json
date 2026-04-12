@@ -207,7 +207,20 @@
     "yearSuffix": "에는 ",
     "loading": "불러오는 중…",
     "subtitleModern": "내가 본 것들이 시간 순서로 모여요",
-    "emptyModern": "첫 기록을 남겨보세요. 타임라인이 바로 시작돼요."
+    "emptyModern": "첫 기록을 남겨보세요. 타임라인이 바로 시작돼요.",
+    "futureButton": "나의 미래는?",
+    "futureTitle": "미래의 타임라인",
+    "backButton": "← 현재로 돌아오기",
+    "refreshButton": "새로 추천받기",
+    "futureLoading": "AI가 미래를 예측하는 중...",
+    "futureNeedMoreLogs": "기록을 5개 이상 남기면 미래를 볼 수 있어요.",
+    "futureError": "미래의 타임라인이 그려지지 않아요.",
+    "futureEmpty": "아직 추천 결과가 없어요.",
+    "typeMovie": "영화",
+    "typeSeries": "시리즈",
+    "typeBook": "책",
+    "dismissButton": "과거에 봤던 작품",
+    "refreshCooldown": "오늘은 이미 추천받았어요"
   },
   "TitleSearchBox": {
     "defaultPlaceholder": "작품 검색 (예: 듄, 더 베어)",

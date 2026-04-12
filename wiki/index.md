@@ -14,6 +14,7 @@
 | [[onboarding]] | 첫 방문자 온보딩 오버레이 가이드 (현재 비활성화) |
 | [[share-card]] | 기록 저장 직후 SNS 친화적 이미지 카드 생성 및 공유 |
 | [[timeline-export]] | 사용자 타임라인 CSV/XLSX 내보내기, 복원 제외 |
+| [[future-timeline]] | LLM(Claude/Gemini) 기반 시청 기록 분석 → 미래의 타임라인 추천 |
 
 ## Architecture
 

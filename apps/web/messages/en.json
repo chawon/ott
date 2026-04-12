@@ -207,7 +207,20 @@
     "yearSuffix": "",
     "loading": "Loading…",
     "subtitleModern": "Your records are gathered in chronological order",
-    "emptyModern": "Leave your first log. Your timeline starts here."
+    "emptyModern": "Leave your first log. Your timeline starts here.",
+    "futureButton": "What's my future?",
+    "futureTitle": "Future Timeline",
+    "backButton": "← Back to present",
+    "refreshButton": "Refresh",
+    "futureLoading": "AI is predicting your future...",
+    "futureNeedMoreLogs": "Log at least 5 titles to see your future.",
+    "futureError": "Your future timeline couldn't be drawn.",
+    "futureEmpty": "No recommendations yet.",
+    "typeMovie": "Movie",
+    "typeSeries": "Series",
+    "typeBook": "Book",
+    "dismissButton": "Already watched",
+    "refreshCooldown": "Already refreshed today"
   },
   "TitleSearchBox": {
     "defaultPlaceholder": "Search titles (e.g., Dune, The Bear)",

@@ -201,6 +201,14 @@ export interface CreateWatchLogRequest {
   place?: Place;
   occasion?: Occasion;
 }
+export interface RecommendationItem {
+  name: string;
+  type: TitleType;
+  reason: string;
+  genres: string[];
+  posterUrl?: string | null;
+}
+
 export interface WatchLogHistory {
   id: string;
   logId: string;

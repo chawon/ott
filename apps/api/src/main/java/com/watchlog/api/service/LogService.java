@@ -24,15 +24,18 @@ public class LogService {
     private final WatchLogRepository watchLogRepository;
     private final TitleService titleService;
     private final WatchLogHistoryService historyService;
+    private final RecommendationService recommendationService;
 
     public LogService(
             WatchLogRepository watchLogRepository,
             TitleService titleService,
-            WatchLogHistoryService historyService
+            WatchLogHistoryService historyService,
+            RecommendationService recommendationService
     ) {
         this.watchLogRepository = watchLogRepository;
         this.titleService = titleService;
         this.historyService = historyService;
+        this.recommendationService = recommendationService;
     }
 
     @Transactional(readOnly = true)
@@ -129,6 +132,7 @@ public class LogService {
 
         var saved = watchLogRepository.save(log);
         historyService.recordSnapshot(saved);
+        if (userId != null) recommendationService.invalidateCache(userId);
         return saved;
     }
 
@@ -157,6 +161,7 @@ public class LogService {
         log.setUpdatedAt(OffsetDateTime.now());
 
         historyService.recordSnapshot(log);
+        if (userId != null) recommendationService.invalidateCache(userId);
         return log;
     }
 
