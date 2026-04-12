@@ -165,11 +165,11 @@ function FutureTimelineSection({
       <button
         type="button"
         onClick={handleRefresh}
-        disabled={loading || !canRefresh}
+        disabled={loading || !canRefresh || items.length === 0}
         title={!canRefresh ? t("refreshCooldown") : undefined}
         className={cn(
           "rounded-lg border border-border bg-card px-3 py-1.5 text-sm text-muted-foreground hover:bg-muted",
-          (loading || !canRefresh) && "opacity-40 cursor-not-allowed",
+          (loading || !canRefresh || items.length === 0) && "opacity-40 cursor-not-allowed",
         )}
       >
         {!canRefresh ? t("refreshCooldown") : t("refreshButton")}
