@@ -106,7 +106,11 @@ public interface WatchLogRepository extends JpaRepository<WatchLogEntity, UUID> 
             where w.userId = :userId
               and w.status = 'DONE'
               and w.deletedAt is null
+              and w.watchedAt >= :since
             order by w.watchedAt desc
             """)
-    List<WatchLogEntity> findTop50ForRecommendation(@Param("userId") UUID userId, Pageable pageable);
+    List<WatchLogEntity> findTop50ForRecommendation(
+            @Param("userId") UUID userId,
+            @Param("since") OffsetDateTime since,
+            Pageable pageable);
 }

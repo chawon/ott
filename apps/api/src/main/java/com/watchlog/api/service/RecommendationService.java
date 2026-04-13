@@ -23,6 +23,7 @@ import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
@@ -66,20 +67,39 @@ public class RecommendationService {
             }
         }
 
+        OffsetDateTime since = OffsetDateTime.now().minusMonths(3);
         List<WatchLogEntity> logs = watchLogRepository.findTop50ForRecommendation(
-                userId, PageRequest.of(0, 50));
+                userId, since, PageRequest.of(0, 50));
 
-        log.info("[Recommendation] userId={} DONE logs found: {}", userId, logs.size());
+        log.info("[Recommendation] userId={} DONE logs (last 3 months) found: {}", userId, logs.size());
 
         if (logs.size() < MIN_LOGS_REQUIRED) {
             log.info("[Recommendation] Not enough logs ({}), returning empty", logs.size());
             return List.of();
         }
 
+        // 사용자 시청 이력 타이틀명 (소문자) — LLM 결과 dedup에 사용
+        Set<String> watchedTitles = logs.stream()
+                .map(w -> w.getTitle().getName().toLowerCase().strip())
+                .collect(java.util.stream.Collectors.toSet());
+
+        // excluded (프론트에서 "이미 봤다" 체크한 목록)도 소문자로 추가
+        if (excluded != null) {
+            excluded.stream()
+                    .map(s -> s.toLowerCase().strip())
+                    .forEach(watchedTitles::add);
+        }
+
         String prompt = RecommendationPromptBuilder.build(logs, lang, excluded);
         log.info("[Recommendation] Calling {} provider(s)", llmProviders.stream().filter(LlmProvider::isEnabled).count());
         List<RecommendationItem> items = callAllProviders(prompt);
-        log.info("[Recommendation] Got {} items", items.size());
+
+        // 시청 이력 + excluded와 중복 제거
+        items = items.stream()
+                .filter(item -> !watchedTitles.contains(item.name().toLowerCase().strip()))
+                .toList();
+
+        log.info("[Recommendation] Got {} items after dedup", items.size());
         items = enrichWithPosters(items, lang);
 
         saveCache(userId, lang, items);

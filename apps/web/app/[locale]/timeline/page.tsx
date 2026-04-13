@@ -10,6 +10,7 @@ import { getUserId, listLogsLocal, upsertLogsLocal } from "@/lib/localStore";
 import { RecommendationItem, Status, WatchLog } from "@/lib/types";
 import { cn, statusOptionsForType } from "@/lib/utils";
 import { downloadTimelineCsv } from "@/lib/export";
+import { trackEvent } from "@/lib/analytics";
 import { useTranslations } from "next-intl";
 
 function buildQuery(params: Record<string, string | undefined>) {
@@ -141,6 +142,7 @@ function FutureTimelineSection({
     next.add(name.toLowerCase());
     setDismissed(next);
     saveDismissed(next);
+    trackEvent("recommendation_dismiss", { title: name });
   }
 
   function handleRefresh() {
@@ -149,6 +151,7 @@ function FutureTimelineSection({
     setDismissed(new Set());
     markRefreshed();
     setCanRefresh(false);
+    trackEvent("recommendation_refresh");
     onRefresh();
   }
 
@@ -229,7 +232,7 @@ function FutureTimelineSection({
                   <span className="rounded-full border border-primary/30 bg-primary/5 px-2 py-0.5 text-xs text-primary font-medium">
                     {typeLabel(item.type)}
                   </span>
-                  {item.genres.map((g) => (
+                  {item.genres?.map((g) => (
                     <span
                       key={g}
                       className="rounded-full border border-border bg-muted px-2 py-0.5 text-xs text-muted-foreground"
@@ -379,6 +382,7 @@ export default function TimelinePage() {
 
   function enterFutureMode() {
     setFutureMode(true);
+    trackEvent("recommendation_open");
     if (futureItems.length === 0 && !futureLoading) {
       loadFuture(false);
     }

@@ -102,7 +102,10 @@ export async function trackEvent(
     | "login_success"
     | "log_create"
     | "share_action"
-    | "migration_complete",
+    | "migration_complete"
+    | "recommendation_open"
+    | "recommendation_refresh"
+    | "recommendation_dismiss",
   properties?: Record<string, unknown>,
 ) {
   try {
