@@ -37,11 +37,13 @@
 13. 기기 unlink 후 서버 API 차단 + 로컬 캐시 초기화 적용
 14. Next.js 16 대응 `middleware` -> `proxy` 전환 완료
 15. ottline 브랜딩 전면 적용: 신규 아이콘/파비콘, 헤더 로고, 브랜드명, 슬로건, OG 이미지, 공유카드 watermark
+16. 낙장불입 정책 확정: 사용자용 개별 기록 삭제 없음, 설정의 로컬 초기화는 현재 기기 저장소만 삭제
 
 ### 제품 방향
 1. 추천 기능은 현재 범위에서 제외한다.
 2. 기록 가치(회상, 공유, 재방문)를 높이는 기능에 집중한다.
 3. 글로벌 서비스 확장을 위해 모든 UI/데이터는 다국어 대응을 기본으로 한다.
+4. 사용자용 개별 기록 삭제는 제공하지 않는다. 기록 정정은 수정과 히스토리로 관리한다.
 
 ---
 
@@ -57,10 +59,6 @@
 7. **레트로 모드 통계 제거**: admin analytics에서 retro 관련 섹션(레트로 현황, 주간 레트로 트렌드) 제거. `SyncWorker`의 `app_open` 이벤트에서 `isRetro` 프로퍼티 제거.
 8. **Chrome 확장 ottline 브랜딩 및 Chrome Web Store 배포**: `manifest.json`, `popup.html`, `popup.js` 브랜드명·URL을 ottline으로 전환, 아이콘 교체(512px 원본 리사이즈), `ottline-helper-0.1.0.zip` 패키징 후 스토어 심사 통과 및 배포 완료(2026-03-26).
 9. **Microsoft Store PWA 배포**: PWABuilder 기반 Windows 패키지 인증 심사 통과 및 배포 완료. 브랜드명 `On the Timeline` 기준.
-
-### P0
-1. **삭제 동기화(tombstone) + 복구 UX**
-2. **복구 시 충돌/중복 없이 로컬-서버 상태 일치**
 
 ### P1
 1. 사용자 기기 목록/해제 UX 마무리
@@ -202,6 +200,9 @@ feature/* ──PR──→ main ──→ [자동] staging.ottline.app
 5. 로그 주요 필드
    1. `status`, `rating`, `note`, `ott`, `watchedAt`, `place`, `occasion`, `updatedAt`
    2. `seasonNumber`, `episodeNumber`, `seasonPosterUrl`, `seasonYear`
+6. 사용자용 개별 삭제 API는 제공하지 않는다.
+   1. 실수한 기록은 `PATCH`로 수정한다.
+   2. 설정의 로컬 초기화는 현재 기기 브라우저 저장소만 비우며 서버 데이터는 삭제하지 않는다.
 
 ### TMDB 보조 API
 1. `GET /api/tmdb/tv/{providerId}/seasons`

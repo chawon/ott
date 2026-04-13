@@ -9,7 +9,7 @@
 | [[book-log]] | 네이버 책 검색 API 연동으로 영상 기록 흐름에 책 기록 통합 |
 | [[daily-report]] | 매일 오전 9시 Telegram으로 Cloudflare·GA4·내부 분석·K8s 통합 현황 발송 |
 | [[dark-mode]] | 기본 모드에서만 적용되는 라이트/다크/시스템 테마 전환 |
-| [[delete-sync]] | Soft Delete + Tombstone 방식 로컬 초기화, 복구 UX 없음 |
+| [[delete-sync]] | 개별 기록 삭제 없이 현재 기기 로컬 데이터만 초기화하는 정책 |
 | [[feedback]] | 앱 내부 문의 스레드 + 관리자 답변 화면을 포함한 자체 API 기반 문의 채널 |
 | [[onboarding]] | 첫 방문자 온보딩 오버레이 가이드 (현재 비활성화) |
 | [[share-card]] | 기록 저장 직후 SNS 친화적 이미지 카드 생성 및 공유 |

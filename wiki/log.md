@@ -1,5 +1,13 @@
 # Wiki Log
 
+## [2026-04-13] update: 낙장불입 정책 및 로컬 초기화 의미 정리
+- 대상: AGENTS.md, apps/web/app/[locale]/account/page.tsx, docs/delete-sync-mvp.md
+- 생성/수정: features/delete-sync.md, index.md
+- 노트:
+  - 사용자용 개별 기록 삭제 없음으로 제품 정책 확정
+  - 설정의 로컬 초기화는 현재 기기 브라우저 저장소만 삭제하는 기능으로 재정의
+  - 삭제 동기화(tombstone) + 복구 UX는 현재 우선순위에서 제외
+
 ## [2026-04-13] fix: Naver 미노출 — localePrefix as-needed 수정
 - 대상: apps/web/i18n/routing.ts
 - 생성/수정: architecture/geo-seo.md
