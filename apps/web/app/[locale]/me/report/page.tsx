@@ -36,7 +36,7 @@ export default function MyReportPage() {
       setLoading(true);
       setError(null);
       try {
-        const serverReport = await api<PersonalReport>("/analytics/me/report");
+        const serverReport = await api<PersonalReport>("/nalytic/me/report");
         setReport(serverReport);
         setSource("server");
       } catch (e: any) {

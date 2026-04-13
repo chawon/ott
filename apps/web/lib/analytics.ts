@@ -113,7 +113,7 @@ export async function trackEvent(
     const userId = getUserId();
     const clientId = ensureAnalyticsClientId();
 
-    const res = await fetch("/api/analytics/events", {
+    const res = await fetch("/api/nalytic/events", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

@@ -13,12 +13,13 @@ Timeline Page → "나의 미래는?" 버튼
         GET /api/recommendations?excluded=...
                     ↓
         RecommendationService
-          ├── DONE 로그 최근 50개 조회
-          ├── RecommendationPromptBuilder (excluded 포함)
+          ├── DONE 로그 최근 3개월 최대 50개 조회
+          ├── RecommendationPromptBuilder (excluded 포함, 메모/장소/누구와 포함)
           ├── LlmProvider 병렬 호출
-          │     ├── AnthropicProvider (claude-opus-4-5)
+          │     ├── AnthropicProvider (claude-sonnet-4-6)
           │     └── GeminiProvider (gemini-2.5-flash)
           ├── 이름 기준 중복 제거 병합
+          ├── 시청 이력 + excluded 대상 서버 측 dedup
           ├── TmdbClient.findPosterUrl() 병렬 enrichment
           └── recommendation_cache (24h, user_id PK)
 ```
@@ -35,7 +36,7 @@ GET /api/recommendations
     excluded=제목1   이미 본 작품 (중복 파라미터로 여러 개 전달)
 
 Response: RecommendationItem[]
-  { name, type, reason, genres[], posterUrl? }
+  { name, type, reason, posterUrl? }
 
 Error:
   503  LLM 키 미설정 또는 모든 provider 실패
@@ -66,7 +67,7 @@ Error:
 
 | 파일 | 변경 내용 |
 |---|---|
-| `repo/WatchLogRepository.java` | `findTop50ForRecommendation()` JPQL 쿼리 추가 |
+| `repo/WatchLogRepository.java` | `findTop50ForRecommendation()` — 최근 3개월 필터 + since 파라미터 |
 | `service/LogService.java` | create/update 시 `invalidateCache()` 호출 |
 | `tmdb/TmdbClient.java` | `findPosterUrl(name, type, language)` 추가 |
 | `resources/application.yaml` | `llm:` 설정 블록 추가 |
@@ -77,7 +78,7 @@ Error:
 ```
 ANTHROPIC_API_KEY=   # Claude API 키 (선택)
 GEMINI_API_KEY=      # Gemini API 키 (선택)
-ANTHROPIC_MODEL=     # 기본값: claude-opus-4-5
+ANTHROPIC_MODEL=     # 기본값: claude-sonnet-4-6
 GEMINI_MODEL=        # 기본값: gemini-2.5-flash
 ```
 
@@ -91,7 +92,7 @@ GEMINI_MODEL=        # 기본값: gemini-2.5-flash
 
 | 파일 | 변경 내용 |
 |---|---|
-| `app/[locale]/timeline/page.tsx` | futureMode 토글, FutureTimelineSection, FutureLoadingSkeleton |
+| `app/[locale]/timeline/page.tsx` | futureMode 토글, FutureTimelineSection, FutureLoadingSkeleton, 이벤트 트래킹 |
 | `lib/types.ts` | `RecommendationItem` 인터페이스 추가 |
 | `messages/ko.json` | `Timeline.*` 키 추가 |
 | `messages/en.json` | `Timeline.*` 키 추가 |
@@ -102,7 +103,9 @@ GEMINI_MODEL=        # 기본값: gemini-2.5-flash
 - **로딩**: 스켈레톤 카드 4장 + 2초마다 바뀌는 상태 메시지
 - **dismiss**: X 버튼("과거에 봤던 작품") → localStorage 저장 → 목록 즉시 숨김
 - **excluded 전달**: 새로 추천받기 시 dismissed 목록을 `?excluded=` 파라미터로 전달
+- **서버 측 dedup**: LLM 결과를 시청 이력 타이틀 + excluded 목록과 비교해 중복 제거
 - **하루 1회 제한**: `localStorage.watchlog.lastRecommendRefresh` 날짜 체크
+- **이벤트 트래킹**: `recommendation_open`, `recommendation_refresh`, `recommendation_dismiss`
 - **에러 처리**:
   - 503 (키 없음 / rate limit / 연결 실패) → "미래의 타임라인이 그려지지 않아요."
   - 200 `[]` (기록 부족) → "기록을 5개 이상 남기면 미래를 볼 수 있어요."

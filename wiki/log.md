@@ -1,5 +1,16 @@
 # Wiki Log
 
+## [2026-04-13] update: 미래의 타임라인 추천 품질 개선
+- 대상: main 브랜치
+- 생성/수정: features/future-timeline.md, docs/future-timeline-llm-recommendation.md
+- 노트:
+  - 이력 범위 최근 3개월 최대 50개로 변경
+  - LLM 결과를 시청 이력 + excluded 서버 측 dedup
+  - 프롬프트에 메모/장소/누구와 포함, 외국 작품 원제 요청
+  - 기본 모델 claude-opus-4-5 → claude-sonnet-4-6
+  - recommendation_open/refresh/dismiss 이벤트 트래킹 추가
+  - analytics 엔드포인트 /api/analytics → /api/nalytic (광고 차단기 우회)
+
 ## [2026-04-12] ingest: 미래의 타임라인 (LLM 추천) 기능 추가
 - 대상: feature/future-timeline-recommendation 브랜치
 - 생성/수정: features/future-timeline.md (신규), index.md

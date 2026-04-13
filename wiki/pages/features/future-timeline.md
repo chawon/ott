@@ -24,8 +24,10 @@
 | 조건 | 내용 |
 |---|---|
 | 최소 기록 수 | DONE 상태 기록 **5개 이상** 필요 |
+| 이력 범위 | 최근 **3개월** 최대 **50개** |
 | 추천 새로고침 | 하루 **1회** (프론트 localStorage 제어) |
 | 캐시 | DB 기반 **24시간** (로그 추가/수정 시 자동 무효화) |
+| dedup | LLM 결과를 시청 이력 + dismissed 목록과 서버 측 비교 제거 |
 
 ---
 
@@ -43,7 +45,7 @@
 - **Anthropic Claude** (`ANTHROPIC_API_KEY`) + **Google Gemini** (`GEMINI_API_KEY`)
 - 두 키 모두 설정 시 **병렬 호출 후 결과 병합** (이름 기준 중복 제거)
 - 하나만 설정해도 동작, 둘 다 없으면 503 반환
-- 기본 모델: `claude-opus-4-5`, `gemini-2.5-flash`
+- 기본 모델: `claude-sonnet-4-6`, `gemini-2.5-flash`
 
 ---
 
