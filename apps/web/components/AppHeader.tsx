@@ -25,8 +25,9 @@ function NavLink({
 }) {
   const pathname = usePathname();
   const active =
-    pathname.endsWith(href) ||
-    (href === "/" && pathname.split("/").length <= 2);
+    href === "/"
+      ? pathname === "/" || /^\/[a-z]{2}$/.test(pathname)
+      : pathname === href || pathname.endsWith(href);
 
   return (
     <IntlLink
