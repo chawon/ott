@@ -1,5 +1,15 @@
 # Wiki Log
 
+## [2026-04-13] fix: Naver 미노출 — localePrefix as-needed 수정
+- 대상: apps/web/i18n/routing.ts
+- 생성/수정: architecture/geo-seo.md
+- 노트: 사이트맵 URL 전체가 307 반환하던 문제 수정. 배포 후 네이버 서치어드바이저 수집 재요청 필요.
+
+## [2026-04-13] update: Whale Store 제출
+- 대상: apps/browser-extension
+- 생성/수정: platforms/browser-extension.md
+- 노트: 2026-04-13 제출 완료, 심사 중
+
 ## [2026-04-13] update: 미래의 타임라인 추천 품질 개선
 - 대상: main 브랜치
 - 생성/수정: features/future-timeline.md, docs/future-timeline-llm-recommendation.md

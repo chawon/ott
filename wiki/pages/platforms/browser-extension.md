@@ -18,6 +18,7 @@
 
 - **Chrome Web Store:** 배포 완료 (2026-03-26) — `achangjgnpbideilpolbohbkmmkmojpo`
 - **Edge Add-ons Store:** 배포 완료 — `egghbkekjopgknhggoeiekgdooofihbo` — https://microsoftedge.microsoft.com/addons/detail/ottline-helper/egghbkekjopgknhggoeiekgdooofihbo
+- **Whale Store:** 제출 완료 (2026-04-13) — 심사 중
 
 ---
 

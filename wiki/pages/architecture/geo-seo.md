@@ -44,6 +44,21 @@
 
 ---
 
+## 완료된 기술 개선 (2026-04-13)
+
+### Naver 미노출 수정
+
+- **원인**: `localePrefix: "always"` (next-intl 기본값)으로 인해 사이트맵의 모든 URL이 307 Temporary Redirect 반환
+  - `https://ottline.app` → 307 → `https://ottline.app/ko`
+  - Naver Yeti는 307 리다이렉트 페이지를 색인하지 않음 → `색인 허용 여부: 아니오`
+- **수정**: `i18n/routing.ts`에 `localePrefix: "as-needed"` 추가
+  - 기본 언어(ko) URL이 prefix 없이 루트에서 200 직접 서빙
+  - 사이트맵 URL(`/`, `/about`, `/faq` 등)과 실제 서빙 URL 일치
+  - 기존 `/ko/...` 링크는 `/...`로 308 리다이렉트 (SEO 영향 없음)
+- 배포 후 네이버 서치어드바이저에서 수집 재요청 필요
+
+---
+
 ## 완료된 기술 개선 (2026-03-17)
 
 ### Week 1
