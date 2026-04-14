@@ -22,8 +22,8 @@ spec:
             - name: APP_ENV
               value: staging
             - name: APP_VERSION
-              value: "staging-5354370"
-          image: yny.ocir.io/axvqyylkrvmi/ott-web:staging-53543701d347c9d42e91e8ea6639c9d9ee3e91fe
+              value: "staging-5b2f76c"
+          image: yny.ocir.io/axvqyylkrvmi/ott-web:staging-5b2f76cfd33f9c0864898afc4d4875fbbcf6282f
           ports:
             - containerPort: 3000
           envFrom:
