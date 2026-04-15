@@ -1,5 +1,29 @@
 # Wiki Log
 
+## [2026-04-14] update: 앱인토스 심사 반려 대응 재테스트 결과 반영
+- 대상: docs/apps-in-toss-review-fixes-2026-04-14.md, apps/web/lib/share.ts, apps/web/lib/shareCardCanvas.ts, apps/web/lib/url.ts, apps/web/components/ShareBottomSheet.tsx
+- 생성/수정: platforms/toss-inapp.md
+- 노트:
+  - 핀치 줌 차단, API 통신, 공유 카드 미리보기, 이미지 저장까지 실기기 확인 완료
+  - 프로덕션 `ottline.app` OG 라우트 배포 상태와 무관하게 앱인토스 내부 canvas 렌더 fallback 추가
+  - 앱인토스 SDK `share`는 텍스트 메시지만 지원하므로 공유 포맷은 현재 텍스트 공유로 제한됨
+
+## [2026-04-14] update: 앱인토스 심사 반려 사유 대응 코드 반영
+- 대상: 2026-04-14 앱인토스 심사 결과, docs/apps-in-toss-review-fixes-2026-04-14.md, apps/web/app/[locale]/layout.tsx, apps/web/lib/appsInToss.ts, apps/web/lib/share.ts, apps/web/components/ShareBottomSheet.tsx
+- 생성/수정: platforms/toss-inapp.md, index.md
+- 노트:
+  - 토스 공식 가이드에 맞춰 `tossmini.com` 환경에서 viewport를 `maximum-scale=1`, `user-scalable=no`로 강제
+  - 공유 카드 저장은 앱인토스 네이티브 `saveBase64Data` 브리지 우선 사용
+  - 공유 버튼은 preview 준비 여부와 무관하게 즉시 클릭 가능하도록 수정하고, Web Share(files) 불가 시 텍스트 네이티브 `share`로 fallback
+
+## [2026-04-14] ingest: Cloudflare CLS 분석 및 footer 대응 반영
+- 대상: `Account Analytics _ ottline.app _ Cloudflare.pdf`, apps/web/components/AppFooter.tsx, GitHub Actions 배포 이력
+- 생성/수정: architecture/web-performance.md (신규), index.md
+- 노트:
+  - Cloudflare PDF에서 `/timeline`의 footer를 주요 CLS 원인으로 확인
+  - `AppFooter`의 `apiVersion` 런타임 fetch 및 버전 라인 제거
+  - staging/production web 배포 완료 후 재관측 필요
+
 ## [2026-04-13] update: 낙장불입 정책 및 로컬 초기화 의미 정리
 - 대상: AGENTS.md, apps/web/app/[locale]/account/page.tsx, docs/delete-sync-mvp.md
 - 생성/수정: features/delete-sync.md, index.md
