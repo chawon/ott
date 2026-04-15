@@ -1,5 +1,7 @@
 import type { MetadataRoute } from "next";
 
+export const dynamic = "force-static";
+
 const baseUrl = "https://ottline.app";
 
 // Update this date when content pages are meaningfully changed

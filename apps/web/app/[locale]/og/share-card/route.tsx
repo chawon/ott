@@ -2,7 +2,37 @@ import { ImageResponse } from "next/og";
 import fs from "node:fs/promises";
 import { getAverageColor } from "fast-average-color-node";
 
+export const dynamic = "force-static";
 export const runtime = "nodejs";
+
+export function generateStaticParams() {
+  return [{ locale: "ko" }, { locale: "en" }];
+}
+
+const ALLOWED_CORS_ORIGINS = new Set([
+  "https://ottline.app",
+  "https://staging.ottline.app",
+  "http://localhost:3000",
+  "http://127.0.0.1:3000",
+  "https://ottline.apps.tossmini.com",
+  "https://ottline.private-apps.tossmini.com",
+]);
+
+function buildCorsHeaders(req: Request) {
+  const headers = new Headers({
+    Vary: "Origin",
+  });
+  const origin = req.headers.get("origin");
+  if (!origin || !ALLOWED_CORS_ORIGINS.has(origin)) {
+    return headers;
+  }
+
+  headers.set("Access-Control-Allow-Origin", origin);
+  headers.set("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
+  headers.set("Access-Control-Allow-Headers", "Content-Type");
+  headers.set("Access-Control-Max-Age", "86400");
+  return headers;
+}
 
 type ShareCardPayload = {
   title: string;
@@ -18,7 +48,7 @@ type ShareCardPayload = {
   theme: "default";
 };
 
-async function renderShareCard(body: ShareCardPayload) {
+async function renderShareCard(body: ShareCardPayload, req: Request) {
   try {
     const fonts: Array<{
       name: string;
@@ -312,6 +342,7 @@ async function renderShareCard(body: ShareCardPayload) {
         width,
         height,
         fonts,
+        headers: buildCorsHeaders(req),
       },
     );
   } catch (error) {
@@ -319,6 +350,7 @@ async function renderShareCard(body: ShareCardPayload) {
       `Share card error: ${error instanceof Error ? error.message : "unknown"}`,
       {
         status: 500,
+        headers: buildCorsHeaders(req),
       },
     );
   }
@@ -375,9 +407,16 @@ function tmdbResize(
   return `${marker}${size}${rest.slice(slash)}`;
 }
 
+export function OPTIONS(req: Request) {
+  return new Response(null, {
+    status: 204,
+    headers: buildCorsHeaders(req),
+  });
+}
+
 export async function POST(req: Request) {
   const body = (await req.json()) as ShareCardPayload;
-  return renderShareCard(body);
+  return renderShareCard(body, req);
 }
 
 import { getTranslations } from "next-intl/server";
@@ -386,10 +425,16 @@ export async function GET(req: Request) {
   const { searchParams, origin, pathname } = new URL(req.url);
   const sample = searchParams.get("sample");
   if (!sample) {
-    return new Response("Missing sample parameter", { status: 400 });
+    return new Response("Missing sample parameter", {
+      status: 400,
+      headers: buildCorsHeaders(req),
+    });
   }
   if (sample !== "video" && sample !== "book") {
-    return new Response("Unsupported sample", { status: 400 });
+    return new Response("Unsupported sample", {
+      status: 400,
+      headers: buildCorsHeaders(req),
+    });
   }
 
   // Extract locale from pathname (e.g., /en/og/share-card -> en)
@@ -412,5 +457,5 @@ export async function GET(req: Request) {
     theme: "default",
   };
 
-  return renderShareCard(body);
+  return renderShareCard(body, req);
 }

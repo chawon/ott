@@ -129,9 +129,9 @@ export default function ShareBottomSheet({
     if (!log) return;
     try {
       setBusy(true);
+      const text = tShare("shareText", { title: log.title.name });
       const blob = await buildBlob();
       const filename = filenameFor(log);
-      const text = tShare("shareText", { title: log.title.name });
       const shared = await shareBlob(blob, filename, log.title.name, text);
       await trackEvent("share_action", {
         action: shared ? "share" : "fallback_download",
@@ -251,11 +251,11 @@ export default function ShareBottomSheet({
             <button
               type="button"
               onClick={handleShare}
-              disabled={busy || !log || !shareCardBlob}
+              disabled={busy || !log}
               className="flex w-full items-center justify-center gap-2 rounded-2xl bg-foreground px-4 py-3 text-sm font-semibold text-background hover:bg-foreground/90 disabled:opacity-50"
             >
               <Share2 className="h-4 w-4" />
-              {shareCardBlob ? tShare("shareAction") : tShare("preparing")}
+              {tShare("shareAction")}
             </button>
             <div className="text-[11px] text-muted-foreground">
               {tShare("sizeLabel", { size: sizeLabel })}

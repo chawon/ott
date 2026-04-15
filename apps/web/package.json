@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "build:next-ait": "rm -rf .next dist && AIT_BUILD=true NEXT_PUBLIC_API_BASE_URL=https://ottline.app next build --webpack && cp dist/ko.html dist/index.html",
     "start": "next start",
     "lint": "biome check",
     "format": "biome format --write",
@@ -30,6 +31,7 @@
     "tailwind-merge": "^3.4.0"
   },
   "devDependencies": {
+    "@apps-in-toss/web-framework": "^2.4.1",
     "@biomejs/biome": "2.2.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",

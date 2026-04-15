@@ -1,4 +1,4 @@
-import type { Metadata, Viewport } from "next";
+import type { Viewport } from "next";
 import "../globals.css";
 import AppHeader from "@/components/AppHeader";
 import AppFooter from "@/components/AppFooter";
@@ -9,7 +9,11 @@ import MigrationBanner from "@/components/MigrationBanner";
 import ChunkErrorHandler from "@/components/ChunkErrorHandler";
 import { ThemeProvider } from "@/context/ThemeContext";
 import { NextIntlClientProvider } from "next-intl";
-import { getMessages, getTranslations } from "next-intl/server";
+import { getMessages, getTranslations, setRequestLocale } from "next-intl/server";
+
+export function generateStaticParams() {
+  return [{ locale: "ko" }, { locale: "en" }];
+}
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
@@ -61,8 +65,39 @@ export default async function RootLayout({
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
-  const messages = await getMessages();
+  setRequestLocale(locale);
+  const messages = await getMessages({ locale });
 
+  const appsInTossViewportInitScript = `
+(() => {
+  try {
+    const isAppsInTossHost = /(^|\\.)tossmini\\.com$/i.test(window.location.hostname);
+    const isAppsInToss = Boolean(window.__appsInToss) || isAppsInTossHost;
+    if (!isAppsInToss) return;
+
+    const viewportContent = "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no";
+    let viewportMeta = document.querySelector('meta[name="viewport"]');
+
+    if (!viewportMeta) {
+      viewportMeta = document.createElement("meta");
+      viewportMeta.setAttribute("name", "viewport");
+      document.head.prepend(viewportMeta);
+    }
+
+    viewportMeta.setAttribute("content", viewportContent);
+
+    const preventGesture = (event) => event.preventDefault();
+    const preventPinch = (event) => {
+      if (event.touches && event.touches.length > 1) {
+        event.preventDefault();
+      }
+    };
+
+    document.addEventListener("gesturestart", preventGesture, { passive: false });
+    document.addEventListener("touchmove", preventPinch, { passive: false });
+  } catch (_) {}
+})();
+`;
   const themeInitScript = `
 (() => {
   try {
@@ -78,6 +113,8 @@ export default async function RootLayout({
 (() => {
   if (!("serviceWorker" in navigator)) return;
   if (!window.isSecureContext) return;
+  const isAppsInTossHost = /(^|\\.)tossmini\\.com$/i.test(window.location.hostname);
+  if (window.__appsInToss || isAppsInTossHost) return;
   window.addEventListener("load", () => {
     navigator.serviceWorker.register("/sw.js").catch(() => {
       // Ignore registration errors to avoid blocking runtime flows.
@@ -140,6 +177,7 @@ export default async function RootLayout({
             }),
           }}
         />
+        <script dangerouslySetInnerHTML={{ __html: appsInTossViewportInitScript }} />
         {/* Google tag (gtag.js) */}
         <script async src="https://www.googletagmanager.com/gtag/js?id=G-61XBJHSN8G" />
         <script dangerouslySetInnerHTML={{ __html: `window.dataLayer = window.dataLayer || [];function gtag(){dataLayer.push(arguments);}gtag('js', new Date());gtag('config', 'G-61XBJHSN8G');` }} />

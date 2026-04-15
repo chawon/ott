@@ -1,3 +1,11 @@
+import {
+  isAppsInTossEnvironment,
+  saveBlobInAppsInToss,
+  shareTextInAppsInToss,
+} from "@/lib/appsInToss";
+import { renderShareCardBlobLocally } from "@/lib/shareCardCanvas";
+import { buildAppUrl, getCurrentLocale } from "@/lib/url";
+
 export type ShareCardPayload = {
   title: string;
   titleType?: "movie" | "series" | "book";
@@ -13,16 +21,32 @@ export type ShareCardPayload = {
 };
 
 export async function fetchShareCardBlob(payload: ShareCardPayload) {
-  const res = await fetch("/og/share-card", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify(payload),
-  });
-  if (!res.ok) throw new Error("Failed to render share card");
-  return res.blob();
+  if (isAppsInTossEnvironment()) {
+    return renderShareCardBlobLocally(payload);
+  }
+
+  const locale = getCurrentLocale();
+  try {
+    const res = await fetch(buildAppUrl(`/${locale}/og/share-card`), {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) throw new Error("Failed to render share card");
+    return res.blob();
+  } catch {
+    return renderShareCardBlobLocally(payload);
+  }
 }
 
 export async function downloadBlob(blob: Blob, filename: string) {
+  try {
+    const savedInAppsInToss = await saveBlobInAppsInToss(blob, filename);
+    if (savedInAppsInToss) return;
+  } catch {
+    // Fall through to browser download when the native bridge is unavailable.
+  }
+
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
@@ -51,7 +75,16 @@ export async function shareBlob(
       await navigator.share({ files: [file], title, text, url });
       return true;
     } catch {
-      return false;
+      // Fall through to other share mechanisms.
+    }
+  }
+
+  if (text) {
+    try {
+      const sharedInAppsInToss = await shareTextInAppsInToss(text);
+      if (sharedInAppsInToss) return true;
+    } catch {
+      // Keep fallback behavior for environments without native share support.
     }
   }
 

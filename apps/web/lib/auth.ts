@@ -7,6 +7,7 @@ import {
   setPairingCode,
   setUserId,
 } from "./localStore";
+import { buildApiUrl } from "./url";
 
 export type AuthInfo = {
   userId: string;
@@ -25,7 +26,7 @@ export async function ensureAuth(): Promise<AuthInfo | null> {
 
   // Fallback to registration (Silent migration is no longer possible via iframe)
   try {
-    const res = await fetch("/api/auth/register", {
+    const res = await fetch(buildApiUrl("/auth/register"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
     });
@@ -45,7 +46,7 @@ export async function ensureAuth(): Promise<AuthInfo | null> {
 
 export async function pairWithCode(code: string): Promise<AuthInfo> {
   const oldUserId = getUserId();
-  const res = await fetch("/api/auth/pair", {
+  const res = await fetch(buildApiUrl("/auth/pair"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ code, oldUserId }),

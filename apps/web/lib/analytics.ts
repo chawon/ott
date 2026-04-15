@@ -1,6 +1,7 @@
 "use client";
 
 import { ensureAnalyticsClientId, getUserId } from "@/lib/localStore";
+import { buildApiUrl } from "@/lib/url";
 import { safeUUID } from "@/lib/utils";
 
 export type AnalyticsPlatform = "web" | "pwa" | "twa";
@@ -113,7 +114,7 @@ export async function trackEvent(
     const userId = getUserId();
     const clientId = ensureAnalyticsClientId();
 
-    const res = await fetch("/api/nalytic/events", {
+    const res = await fetch(buildApiUrl("/nalytic/events"), {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

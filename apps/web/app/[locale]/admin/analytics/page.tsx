@@ -68,6 +68,7 @@ export default async function AdminAnalyticsPage({
   params,
   searchParams,
 }: Props) {
+  if (process.env.AIT_BUILD === "true") notFound();
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: "Admin" });
   const sParams = searchParams ? await searchParams : {};

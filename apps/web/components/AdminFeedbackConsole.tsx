@@ -8,6 +8,7 @@ import type {
   FeedbackThreadDetail,
   FeedbackThreadSummary,
 } from "@/lib/types";
+import { buildApiUrl } from "@/lib/url";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -32,7 +33,7 @@ async function adminFetch<T>(
   path: string,
   init?: RequestInit,
 ): Promise<T> {
-  const res = await fetch(`/api/admin/feedback${path}`, {
+  const res = await fetch(buildApiUrl(`/admin/feedback${path}`), {
     ...init,
     headers: {
       "Content-Type": "application/json",

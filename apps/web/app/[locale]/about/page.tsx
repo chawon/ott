@@ -24,9 +24,13 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
   };
 }
 
-import { useTranslations } from "next-intl";
-export default function AboutPage() {
-  const tAbout = useTranslations("About");
+export default async function AboutPage({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+  const tAbout = await getTranslations({ locale, namespace: "About" });
   return (
     <div className="mx-auto max-w-2xl space-y-10 py-10 text-foreground">
       <section className="space-y-2">

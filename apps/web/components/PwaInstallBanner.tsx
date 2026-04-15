@@ -23,6 +23,9 @@ export default function PwaInstallBanner() {
   );
 
   useEffect(() => {
+    const isAppsInTossHost = /(^|\.)tossmini\.com$/i.test(window.location.hostname);
+    if ((window as any).__appsInToss || isAppsInTossHost) return;
+
     // Detect platform
     const ua = window.navigator.userAgent.toLowerCase();
     const isIos = /iphone|ipad|ipod/.test(ua);

@@ -1,10 +1,16 @@
 import type { MetadataRoute } from "next";
 import { headers } from "next/headers";
 
+export const dynamic = "force-static";
+
 export default async function manifest(): Promise<MetadataRoute.Manifest> {
-  const headerList = await headers();
-  const acceptLanguage = headerList.get("accept-language") || "";
-  const isEn = acceptLanguage.toLowerCase().startsWith("en");
+  let isEn = false;
+
+  if (process.env.AIT_BUILD !== "true") {
+    const headerList = await headers();
+    const acceptLanguage = headerList.get("accept-language") || "";
+    isEn = acceptLanguage.toLowerCase().startsWith("en");
+  }
 
   return {
     id: "/",
