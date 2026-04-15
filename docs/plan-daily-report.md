@@ -16,8 +16,21 @@ ottline 웹서비스 운영 현황을 매일 한 곳에서 확인하고 싶음.
 |------|--------|------|
 | Cloudflare | 요청수, 방문자, 대역폭, 위협 차단 | CF GraphQL Analytics API |
 | GA4 | 세션, 활성 사용자, 페이지뷰, 신규 사용자 | GA4 Data API (서비스 계정) |
-| 내부 analytics | DAU, 로그 생성, 신규 등록 | 기존 `AnalyticsService` 재사용 |
+| 내부 analytics + DB | DAU, 로그 생성 사용자, 서버 반영 신규 로그 수, 신규 등록 | `analytics_events` + `watch_logs.created_at` |
 | Kubernetes | Pod 상태, Deployment 이미지, CPU/Memory (실시간) | K8s API (in-cluster config) + Metrics Server |
+
+### 2026-04-15 집계 정의 조정
+- 범위: 데일리 운영 리포트의 `앱 활동 (내부)` 섹션
+- API/스키마 영향: 없음. 기존 `GET /api/admin/report/daily` 응답 DTO에 내부 지표 필드만 확장
+- 집계 정의:
+  - `DAU`: 기존과 동일하게 `analytics_events.event_name = 'app_open'`의 고유 행위자 수
+  - `로그 생성 사용자`: `analytics_events.event_name = 'log_create'`의 고유 행위자 수
+  - `신규 로그 수 (DB)`: `watch_logs.created_at`이 전일 KST 범위에 포함되는 row 수
+  - `신규 기기`: 기존과 동일하게 `analytics_events.event_name = 'login_success'`의 고유 행위자 수
+- 해석 원칙:
+  - `로그 생성 사용자`는 사용 행태 추적용 지표이며, 전송 실패나 오프라인 상황에 따라 실제 DB 반영 수와 다를 수 있다.
+  - `신규 로그 수 (DB)`는 서버에 실제 반영된 신규 로그 수다.
+  - sync로 늦게 올라온 오프라인 기록은 사용자가 어제 작성했더라도 서버 반영 시점 날짜로 잡힌다.
 
 ---
 
@@ -103,8 +116,8 @@ ottline 웹서비스 운영 현황을 매일 한 곳에서 확인하고 싶음.
 • 페이지뷰: 2,345 | 신규: 234
 
 🎯 앱 활동 (내부)
-• DAU: 89 | 로그 생성: 123
-• 신규 등록: 5
+• DAU: 89 | 로그 생성 사용자: 63
+• 신규 로그 수(DB): 123 | 신규 등록: 5
 
 ☸️ 인프라 (K8s / ott ns)
 • ott-web ✅ Running  [이미지 태그]
@@ -136,3 +149,6 @@ ottline 웹서비스 운영 현황을 매일 한 곳에서 확인하고 싶음.
 3. `/admin/report?token=xxx` 페이지 렌더링 확인
 4. 스케줄러 로그 (KST 09:00 자동 발송)
 5. K8s RBAC 권한 오류 없이 Pod 목록 조회 확인
+6. 같은 사용자가 하루에 로그를 여러 건 생성해도 `로그 생성 사용자`는 1명으로 유지되는지 확인
+7. `watch_logs.created_at` 기준 전일 생성 row 수가 `신규 로그 수(DB)`에 반영되는지 확인
+8. 오프라인 후 다음날 sync된 로그가 `신규 로그 수(DB)`에는 sync 시점 날짜로 잡히는지 점검
