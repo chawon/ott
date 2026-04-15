@@ -16,7 +16,9 @@
 | 파트너사 신청 | ✅ 완료 |
 | appName 확정 | ✅ `ottline` |
 | 앱 등록 및 검수 요청 | ✅ 2026-04-05 완료 |
-| 검수 결과 | ⏳ 대기 중 (2차 재제출: 2026-04-07) |
+| 검수 결과 | ❌ 반려 (2026-04-14) |
+| 반려 대응 코드 | ✅ 완료 (2026-04-14) |
+| 재제출 준비 | ✅ 실기기 재테스트 완료 |
 
 ## 기술 스택
 
@@ -55,6 +57,44 @@
 참고: [자사 앱 설치/외부 링크 가이드라인](https://developers-apps-in-toss.toss.im/checklist/miniapp-external-link.md), [서비스 오픈 정책](https://developers-apps-in-toss.toss.im/intro/guide.md)
 
 ## 검수 피드백 및 이슈
+
+### 2026-04-14 심사 반려 사유
+
+1. 불필요한 화면 확대·축소 제스처가 활성화되어 있음
+2. 일부 UI 컴포넌트 비정상 동작
+   - 이미지 저장 미동작
+   - 공유하기 버튼이 `준비 중...` 상태로 보임
+
+### 2026-04-14 대응 코드
+
+- `apps/web/app/[locale]/layout.tsx`
+  - `tossmini.com` 또는 `window.__appsInToss` 환경에서 `viewport`를 `maximum-scale=1`, `user-scalable=no`로 강제
+- `apps/web/lib/appsInToss.ts`
+  - 앱인토스 브리지 유틸 추가 (`saveBase64Data`, `share`)
+- `apps/web/lib/share.ts`
+  - 저장 시 앱인토스 네이티브 저장 우선 사용
+  - 앱인토스 환경에서는 공유 카드 이미지를 로컬 canvas로 생성해 미리보기/저장에 사용
+  - Web Share(files) 또는 네이티브 파일 공유가 불가한 경우 앱인토스 텍스트 공유 fallback
+- `apps/web/components/ShareBottomSheet.tsx`
+  - preview 준비 여부와 무관하게 `공유하기` 버튼 즉시 활성화
+  - 공유 시 이미지 blob 생성 우선, 실패 시에만 텍스트 공유로 fallback
+
+### 2026-04-14 실기기 재테스트 결과
+
+- [x] 앱인토스 sandbox/production 도메인에서 실제 핀치 줌 차단 확인
+- [x] 공유 카드 미리보기 확인
+- [x] 공유 카드 `이미지 저장` 동작 확인
+- [x] `공유하기` 버튼이 `준비 중...` 상태에 고정되지 않음 확인
+- [ ] 재제출 후 심사 결과 대기
+
+### 현재 제한사항
+
+- 앱인토스 SDK `share` 브리지는 텍스트 메시지 공유만 지원한다.
+- 따라서 미니앱의 `공유하기`는 현재 이미지 첨부가 아니라 텍스트 공유로 동작한다.
+- 심사 대응 기준에서는
+  - 저장 버튼은 정상 동작
+  - 공유 버튼도 정상 동작
+  - 단, 공유 포맷은 SDK 제약상 텍스트다.
 
 ### 아이콘 & 썸네일 (2026-04-06 피드백)
 

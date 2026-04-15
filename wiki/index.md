@@ -24,6 +24,7 @@
 | [[i18n]] | next-intl 기반 한국어/영어 지원 완료, URL 기반 로케일 라우팅 |
 | [[navigation-auth-migration]] | ott.preview.pe.kr → ottline.app Redirect Flow 기반 인증 정보 이식 |
 | [[kmp]] | 초창기 KMP 크로스플랫폼 시도, 현재 중단 — shared/ 디렉토리 잔재 |
+| [[web-performance]] | Cloudflare Web Analytics 기준 Core Web Vitals 현황과 CLS 대응 기록 |
 
 ## Platforms
 
@@ -33,7 +34,7 @@
 | [[ms-store]] | PWABuilder 기반 Windows PWA 패키지 생성 및 Microsoft Store 제출 |
 | [[pwa]] | 로컬 우선 아키텍처 기반 설치형 웹앱, Service Worker 및 오프라인 지원 포함 |
 | [[native]] | React Native + Expo 기반 네이티브 앱 (feat/native-mobile-app 브랜치, 개발 중) |
-| [[toss-inapp]] | 앱인토스 WebView 미니앱 — 2차 검수 재제출 완료 (2026-04-07), 결과 대기 중 |
+| [[toss-inapp]] | 앱인토스 WebView 미니앱 — 2026-04-14 반려 대응 완료, 핀치줌/미리보기/저장 정상, 공유는 텍스트 |
 | [[twa]] | Android TWA, Play 내부 테스트 완료 — Capacitor 통합 전환 예정 |
 
 ## Processes
