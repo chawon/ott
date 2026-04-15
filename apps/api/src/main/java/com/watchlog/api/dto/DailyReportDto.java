@@ -28,6 +28,7 @@ public record DailyReportDto(
     public record InternalStatsDto(
             long dau,
             long logCreate,
+            long dbLogCreateCount,
             long newDevices
     ) {}
 

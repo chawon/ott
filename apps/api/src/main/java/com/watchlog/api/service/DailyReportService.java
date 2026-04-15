@@ -71,8 +71,9 @@ public class DailyReportService {
     private InternalStatsDto buildInternalStats(ZonedDateTime from, ZonedDateTime to) {
         long dau = countDistinctActors("app_open", from, to);
         long logCreate = countDistinctActors("log_create", from, to);
+        long dbLogCreateCount = countCreatedLogs(from, to);
         long newDevices = countDistinctActors("login_success", from, to);
-        return new InternalStatsDto(dau, logCreate, newDevices);
+        return new InternalStatsDto(dau, logCreate, dbLogCreateCount, newDevices);
     }
 
     private long countDistinctActors(String eventName, ZonedDateTime from, ZonedDateTime to) {
@@ -82,6 +83,16 @@ public class DailyReportService {
                 where event_name = ? and occurred_at >= ? and occurred_at < ?
                   and (user_id is null or user_id::text != ?)
                 """, Long.class, eventName, from.toOffsetDateTime(), to.toOffsetDateTime(), EXCLUDED_ADMIN_ID);
+        return value == null ? 0L : value;
+    }
+
+    private long countCreatedLogs(ZonedDateTime from, ZonedDateTime to) {
+        Long value = jdbcTemplate.queryForObject("""
+                select count(*)
+                from watch_logs
+                where created_at >= ? and created_at < ?
+                  and (user_id is null or user_id::text != ?)
+                """, Long.class, from.toOffsetDateTime(), to.toOffsetDateTime(), EXCLUDED_ADMIN_ID);
         return value == null ? 0L : value;
     }
 
@@ -150,8 +161,9 @@ public class DailyReportService {
 
         sb.append("\n<b>🎯 앱 활동 (내부)</b>\n");
         sb.append("• DAU: ").append(fmt(internal.dau()))
-          .append(" | 로그 생성: ").append(fmt(internal.logCreate())).append("\n");
-        sb.append("• 신규 기기: ").append(fmt(internal.newDevices())).append("\n");
+          .append(" | 로그 생성 사용자: ").append(fmt(internal.logCreate())).append("\n");
+        sb.append("• 신규 로그 수(DB): ").append(fmt(internal.dbLogCreateCount()))
+          .append(" | 신규 기기: ").append(fmt(internal.newDevices())).append("\n");
 
         sb.append("\n<b>☸️ 인프라 (K8s / ott)</b>\n");
         if (k8s.error() != null) {

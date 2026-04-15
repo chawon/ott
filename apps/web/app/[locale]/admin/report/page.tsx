@@ -37,6 +37,7 @@ type DailyReport = {
   internal: {
     dau: number;
     logCreate: number;
+    dbLogCreateCount: number;
     newDevices: number;
   };
   kubernetes: {
@@ -132,9 +133,10 @@ export default async function AdminReportPage({ params, searchParams }: Props) {
           {/* 내부 지표 */}
           <section className="rounded-2xl border border-border bg-card p-6 space-y-4">
             <div className="text-sm font-semibold">🎯 앱 활동 (내부)</div>
-            <div className="grid gap-3 sm:grid-cols-3">
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
               <Stat label="DAU" value={report.internal.dau.toLocaleString("ko-KR")} />
-              <Stat label="로그 생성" value={report.internal.logCreate.toLocaleString("ko-KR")} />
+              <Stat label="로그 생성 사용자" value={report.internal.logCreate.toLocaleString("ko-KR")} />
+              <Stat label="신규 로그 수(DB)" value={report.internal.dbLogCreateCount.toLocaleString("ko-KR")} />
               <Stat label="신규 기기 등록" value={report.internal.newDevices.toLocaleString("ko-KR")} />
             </div>
           </section>

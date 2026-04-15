@@ -20,8 +20,22 @@ ottline 운영 현황을 매일 한 곳에서 확인: Cloudflare(트래픽), GA4
 |---|---|---|
 | Cloudflare | 요청수, 방문자, 대역폭, 위협 차단 | CF GraphQL Analytics API |
 | GA4 | 세션, 활성 사용자, 페이지뷰, 신규 사용자 | GA4 Data API (서비스 계정) |
-| 내부 analytics | DAU, 로그 생성, 신규 등록 | 기존 `AnalyticsService` 재사용 |
+| 내부 analytics + DB | DAU, 로그 생성 사용자, 서버 반영 신규 로그 수, 신규 등록 | `analytics_events` + `watch_logs.created_at` |
 | Kubernetes | Pod 상태, 이미지 태그, CPU/Memory | K8s API (in-cluster) + Metrics Server |
+
+---
+
+## 내부 지표 정의
+
+- `DAU`: `analytics_events.event_name = 'app_open'`의 고유 행위자 수
+- `로그 생성 사용자`: `analytics_events.event_name = 'log_create'`의 고유 행위자 수
+- `신규 로그 수(DB)`: `watch_logs.created_at`이 전일 KST 범위에 포함되는 row 수
+- `신규 기기`: `analytics_events.event_name = 'login_success'`의 고유 행위자 수
+
+해석 메모:
+- `로그 생성 사용자`는 이벤트 전송 성공 여부에 영향을 받는 사용 행태 추적 지표다.
+- `신규 로그 수(DB)`는 서버에 실제 반영된 신규 로그 수다.
+- 오프라인 기록이 다음날 sync되면 사용자가 어제 작성했더라도 서버 반영 날짜 기준으로 집계된다.
 
 ---
 
@@ -80,8 +94,8 @@ report:
 • 페이지뷰: 2,345 | 신규: 234
 
 🎯 앱 활동 (내부)
-• DAU: 89 | 로그 생성: 123
-• 신규 등록: 5
+• DAU: 89 | 로그 생성 사용자: 63
+• 신규 로그 수(DB): 123 | 신규 등록: 5
 
 ☸️ 인프라 (K8s / ott ns)
 • ott-web ✅ Running  [이미지 태그]

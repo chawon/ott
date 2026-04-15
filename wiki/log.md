@@ -1,5 +1,14 @@
 # Wiki Log
 
+## [2026-04-15] update: 데일리 리포트 내부 지표 정의 분리
+- 대상: docs/plan-daily-report.md, apps/api/src/main/java/com/watchlog/api/service/DailyReportService.java, apps/api/src/main/java/com/watchlog/api/dto/DailyReportDto.java, apps/web/app/[locale]/admin/report/page.tsx
+- 생성/수정: features/daily-report.md
+- 노트:
+  - `로그 생성` 표기를 `로그 생성 사용자`로 명확화
+  - `watch_logs.created_at` 기준 `신규 로그 수(DB)` 추가
+  - 요청 시점 실시간 누적이 아니라 전일 KST 1일치 집계라는 해석 유지
+  - 오프라인 후 지연 sync 기록은 서버 반영 날짜 기준으로 집계됨
+
 ## [2026-04-14] update: 앱인토스 심사 반려 대응 재테스트 결과 반영
 - 대상: docs/apps-in-toss-review-fixes-2026-04-14.md, apps/web/lib/share.ts, apps/web/lib/shareCardCanvas.ts, apps/web/lib/url.ts, apps/web/components/ShareBottomSheet.tsx
 - 생성/수정: platforms/toss-inapp.md
