@@ -1,6 +1,6 @@
 # 데일리 리포트
 
-> 매일 오전 9시 Telegram으로 Cloudflare·GA4·내부 분석·K8s 통합 현황 발송
+> 매일 오전 9시 Telegram으로 Cloudflare·GA4·내부 분석·K8s 통합 현황을 발송하고, 내부 지표는 이벤트/DB 기준을 함께 제공
 
 ## 관련 페이지
 - [[analytics]]
@@ -11,6 +11,14 @@
 ## 목표
 
 ottline 운영 현황을 매일 한 곳에서 확인: Cloudflare(트래픽), GA4(사용자), 내부 admin analytics, K8s 인프라를 통합한 대시보드 제공 + 매일 KST 09:00 Telegram 자동 발송.
+
+---
+
+## 최근 반영
+
+- 2026-04-15: `로그 생성` 표기를 `로그 생성 사용자`로 명확화
+- 2026-04-15: `watch_logs.created_at` 기준 `신규 로그 수(DB)` 추가
+- 2026-04-15: staging 배포 완료 후 동일 SHA(`a63ae1d393d04a366dc1377699b01f7c48c80a17`)로 production web/api 배포 완료
 
 ---
 

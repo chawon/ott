@@ -7,7 +7,7 @@
 | [[analytics]] | 플랫폼별(Web/PWA/TWA) 사용 지표 수집, 개인 리포트, 관리자 대시보드 |
 | [[dna-aura]] | 시청 기록 26종 특질 추출 → Journey 화면 Aura 글로우 시각화 (native 앱) |
 | [[book-log]] | 네이버 책 검색 API 연동으로 영상 기록 흐름에 책 기록 통합 |
-| [[daily-report]] | 매일 오전 9시 Telegram으로 Cloudflare·GA4·내부 분석·K8s 통합 현황 발송 |
+| [[daily-report]] | 매일 오전 9시 Telegram으로 Cloudflare·GA4·내부 분석·K8s 통합 현황 발송, 내부 로그 지표는 이벤트/DB 기준 병기 |
 | [[dark-mode]] | 기본 모드에서만 적용되는 라이트/다크/시스템 테마 전환 |
 | [[delete-sync]] | 개별 기록 삭제 없이 현재 기기 로컬 데이터만 초기화하는 정책 |
 | [[feedback]] | 앱 내부 문의 스레드 + 관리자 답변 화면을 포함한 자체 API 기반 문의 채널 |

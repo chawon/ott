@@ -1,5 +1,13 @@
 # Wiki Log
 
+## [2026-04-15] update: 데일리 리포트 지표 변경 운영 배포 반영
+- 대상: PR #6, production deploy SHA `a63ae1d393d04a366dc1377699b01f7c48c80a17`, GitHub Actions production deploy runs
+- 생성/수정: features/daily-report.md, index.md
+- 노트:
+  - `로그 생성 사용자`와 `신규 로그 수(DB)` 병기 상태가 production web/api에 반영됨
+  - staging 검증 후 동일 SHA로 production 배포 완료
+  - 운영 리포트 해석 시 이벤트 기준 사용자 수와 DB 기준 row 수를 구분해야 함
+
 ## [2026-04-15] update: 데일리 리포트 내부 지표 정의 분리
 - 대상: docs/plan-daily-report.md, apps/api/src/main/java/com/watchlog/api/service/DailyReportService.java, apps/api/src/main/java/com/watchlog/api/dto/DailyReportDto.java, apps/web/app/[locale]/admin/report/page.tsx
 - 생성/수정: features/daily-report.md
