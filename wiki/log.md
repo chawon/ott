@@ -1,5 +1,13 @@
 # Wiki Log
 
+## [2026-04-17] update: Android 비공개 테스트 준비 완료 및 테스터 모집 상태 반영
+- 대상: GitHub Actions TWA AAB 빌드, Google Play 트랙 상태 확인, `assetlinks.json`
+- 생성/수정: platforms/twa.md, index.md
+- 노트:
+  - `versionName=1.0.2`, `versionCode=6` 기준 AAB를 재생성하고 Play `internal` / `alpha` 트랙 반영 완료
+  - 비공개 테스트(Closed testing) 준비 완료 상태와 테스터 모집 진행 중 상태를 위키에 명시
+  - production `assetlinks.json`에도 최신 Play signing fingerprint 3개가 모두 반영된 상태 확인
+
 ## [2026-04-17] update: Android 배포 기준을 TWA 현행 기준으로 정정
 - 대상: 사용자 확인, `apps/twa`, `.github/workflows/twa-*.yml`, `feat/native-mobile-app` 브랜치
 - 생성/수정: index.md, platforms/twa.md, platforms/native.md, processes/ottline-branding.md, docs/twa.md, docs/twa-play-launch-checklist.md, docs/twa-play-store-listing-ko.md, docs/assetlinks.template.json

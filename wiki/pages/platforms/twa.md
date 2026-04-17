@@ -22,6 +22,10 @@
 - Play 배포 이력:
   - internal track 배포 성공 (`versionName=1.0.0`, `versionCode=4`)
   - `twa-release.yml` 기준 `gplay release` 자동 업로드 경로 유지
+- 현재 운영 상태(2026-04-17):
+  - `versionName=1.0.2`, `versionCode=6` AAB 빌드 완료
+  - Play `internal` / `alpha` 트랙에 `6 (1.0.2)` 반영 완료
+  - 비공개 테스트(Closed testing) 준비 완료, 테스터 모집 진행 중
 - 현재 작업환경 재검증(2026-04-17):
   - 로컬 `./gradlew assembleDebug`는 WSL/ARM 환경의 `aapt2` 바이너리 호환 문제로 실패
   - 따라서 Android APK/AAB는 계속 GitHub Actions를 source of truth로 사용
@@ -54,6 +58,10 @@
 ## Google Play 배포 현황
 
 - 내부 테스트 트랙 배포 이력 있음 (`track=internal`, `versionName=1.0.0`, `versionCode=4`)
+- 2026-04-17 기준 최신 반영:
+  - `internal`: `6 (1.0.2)`, `status=completed`
+  - `alpha`: `6 (1.0.2)`, `status=completed`
+  - 비공개 테스트용 테스터 그룹 모집 진행 중
 - GitHub Actions `twa-release.yml` — AAB 빌드 후 `gplay release`
 - 관련 Secret:
   - `TWA_KEYSTORE_BASE64`
