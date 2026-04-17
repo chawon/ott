@@ -93,11 +93,15 @@ BG Dark:        #0F1E3D
 
 ---
 
-## Phase 5: 모바일 앱 (결정: TWA → Capacitor)
+## Phase 5: 모바일 앱 (현재 기준)
 
-**2026-03-17 결정:** TWA(bubblewrap) 폐기 → Capacitor로 Android/iOS 통합
+- Android 배포 기준은 여전히 `apps/twa` 기반 Bubblewrap TWA
+- 패키지명은 `app.ottline`, 대상 도메인은 `ottline.app`
+- Play internal track 업로드 이력과 GitHub Actions 워크플로우가 유지됨
+- `feat/native-mobile-app`의 React Native + Expo 앱은 별도 후보 브랜치이며, main 미머지 상태
+- 문서상 남아 있던 Capacitor 전환 결정은 저장소 코드 실체가 없어 현재 기준에서 제외
 
-자세한 내용: [[twa]]
+자세한 내용: [[twa]], [[native]]
 
 ---
 

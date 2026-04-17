@@ -13,6 +13,13 @@
 
 `feat/native-mobile-app` 브랜치에서 개발 중 (2026-03-25 기준). main에 미머지.
 
+- 실행 기준: Expo Go / `expo start --web` / `expo start --android`
+- 구현 범위: 인증 저장, API 연동, Journey/Log/Profile 화면
+- 배포 준비 상태:
+  - EAS 설정 없음
+  - `android/`, `ios/` 네이티브 폴더 없음
+  - Play/TestFlight용 signing, release workflow 없음
+
 ## 기술 스택
 
 | 항목 | 선택 |

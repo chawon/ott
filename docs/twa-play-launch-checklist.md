@@ -1,13 +1,13 @@
 # TWA Google Play 출시 체크리스트
 
 ## 목적
-- `kr.pe.preview.ott.twa` 앱을 Google Play에 안정적으로 출시
+- `app.ottline` TWA를 Google Play에 안정적으로 배포
 - 내부 테스트에서 프로덕션 출시까지 단계적으로 검증
 
 ## 기준 정보 (출시 전 고정)
-- 패키지명: `kr.pe.preview.ott.twa`
-- 도메인: `https://ott.preview.pe.kr`
-- 앱명: `On the Timeline (OTT)`
+- 패키지명: `app.ottline`
+- 도메인: `https://ottline.app`
+- 앱명: `ottline`
 
 ## 1) 서명/보안 준비
 - [ ] release keystore 최종 확정 (분실 방지 백업 포함)
@@ -46,10 +46,10 @@
   - 결과: `Deploy to Google Play` 단계 포함 전체 성공
 
 ## 3) Play Console 앱 설정
-- [ ] Play Console에서 앱 생성 (패키지명 일치 확인)
+- [x] Play Console 앱 생성 (패키지명 `app.ottline`)
 - [ ] 앱 카테고리/연락처/정책 URL 입력
 - [x] 개인정보처리방침 URL 입력
-  - `https://ott.preview.pe.kr/privacy`
+  - `https://ottline.app/privacy`
 - [ ] Data safety(데이터 수집/처리) 설문 작성
 - [ ] 콘텐츠 등급 설문 완료
 - [ ] 광고 여부 설정
@@ -138,6 +138,7 @@
 - WSL(ARM Linux) 환경 호환 제약으로 로컬 Android 빌드는 비권장
 - APK/AAB는 GitHub Actions를 기준으로 생성/배포
 - 키 유출이 의심되면 즉시 키 교체 및 CI 시크릿 전면 갱신
+- 현재 저장소 기준 Android 배포 경로는 `apps/twa`, Expo 앱(`apps/native`)은 별도 후보 구현
 
 ## Step 4 실행 순서 (권장)
 1. `docs/twa-play-store-listing-ko.md` 초안을 Play Console 스토어 등록정보에 입력

@@ -84,6 +84,13 @@
    3. Whale Store 제출 완료 (`2026-04-13`), 심사 중
    4. 남은 작업: Netflix 모달 selector 정밀화, 사이트별 캡처 정확도 검증, locale/base URL 설정 페이지 검토
 
+### P1
+1. Android 배포 경로 정리
+2. 현재 기준
+   1. Google Play internal/release 경로는 `apps/twa` 기반 Bubblewrap TWA
+   2. 패키지명 `app.ottline`, 도메인 `ottline.app`, 워크플로우는 `twa-debug.yml` / `twa-build-aab.yml` / `twa-release.yml`
+   3. `feat/native-mobile-app`의 `apps/native`는 React Native + Expo 후보 앱이며, main 미머지 상태이고 배포 파이프라인은 아직 없음
+
 ---
 
 ## 4) 배포 전략

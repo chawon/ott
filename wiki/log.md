@@ -1,5 +1,13 @@
 # Wiki Log
 
+## [2026-04-17] update: Android 배포 기준을 TWA 현행 기준으로 정정
+- 대상: 사용자 확인, `apps/twa`, `.github/workflows/twa-*.yml`, `feat/native-mobile-app` 브랜치
+- 생성/수정: index.md, platforms/twa.md, platforms/native.md, processes/ottline-branding.md, docs/twa.md, docs/twa-play-launch-checklist.md, docs/twa-play-store-listing-ko.md, docs/assetlinks.template.json
+- 노트:
+  - Android 히스토리를 Flutter 프로토타입 → TWA internal track → Expo 후보 브랜치로 재정리
+  - 저장소에는 Capacitor 코드가 없고, 기존 `TWA -> Capacitor` 표기는 문서 결정만 남아 있던 상태로 정정
+  - 현재 작업환경에서 로컬 TWA 빌드는 `aapt2` 바이너리 호환 이슈로 실패해 CI가 계속 source of truth
+
 ## [2026-04-17] update: 도메인 마이그레이션 운영 상태 현재 기준으로 정정
 - 대상: 사용자 확인, apps/web/app/[locale]/admin/analytics/page.tsx, apps/api/src/main/java/com/watchlog/api/service/AnalyticsService.java
 - 생성/수정: index.md, architecture/navigation-auth-migration.md, processes/ottline-branding.md

@@ -45,7 +45,7 @@
 
 ### 진행 업데이트 (2026-02-18)
 - Android 홈 화면 위젯 MVP 추가 (`빠른 기록`)
-  - 위치: `apps/twa/app/src/main/java/kr/pe/preview/ott/twa/QuickLogWidgetProvider.java`
+  - 위치: `apps/twa/app/src/main/java/app/ottline/QuickLogWidgetProvider.java`
   - 액션: `기록하기`, `타임라인` (1x2 위젯)
   - 동작: 위젯 버튼 탭 시 TWA 실행 후 웹 딥링크 파라미터 전달
 - TWA 런처 URL 라우팅 확장
@@ -57,9 +57,9 @@
   - 빠른 기록 카드 자동 오픈 + 타입 자동 선택 + 검색창 오토포커스
 
 ## 필수 입력 값
-- 도메인: https://ott.preview.pe.kr
-- 패키지명: kr.pe.preview.ott.twa
-- 앱명: On the Timeline (OTT)
+- 도메인: https://ottline.app
+- 패키지명: app.ottline
+- 앱명: ottline
 
 ## 사전 요구사항
 - JDK 17
@@ -76,16 +76,16 @@
 
 ```bash
 NPM_CONFIG_CACHE=./.npm-cache npx @bubblewrap/cli init \
-  --manifest "https://ott.preview.pe.kr/manifest.webmanifest" \
+  --manifest "https://ottline.app/manifest.webmanifest" \
   --directory "apps/twa"
 ```
 
 프롬프트 예시(중요 항목만):
 - JDK 설치 질문: `No` (이미 JDK 17 사용 중이면)
-- App name: `On the Timeline (OTT)`
-- Short name: `OTT`
-- Package name: `kr.pe.preview.ott`
-- Host: `ott.preview.pe.kr`
+- App name: `ottline`
+- Short name: `ottline`
+- Package name: `app.ottline`
+- Host: `ottline.app`
 - Start URL: `/`
 
 ## 2) APK 빌드(내부 테스트)
@@ -94,7 +94,7 @@ NPM_CONFIG_CACHE=./.npm-cache npx @bubblewrap/cli init \
 로컬 빌드(참고용, 현재 환경에서는 비권장):
 ```bash
 cd apps/twa
-./gradlew assembleDebug
+GRADLE_USER_HOME=./.gradle ./gradlew assembleDebug
 ```
 
 결과 APK 경로:
@@ -126,6 +126,7 @@ adb install -r apps/twa/app/build/outputs/apk/debug/app-debug.apk
 - 스토어 배포용은 AAB 빌드 필요 (`./gradlew bundleRelease`)
 - 실서비스 배포 시에는 release keystore의 SHA-256으로 `assetlinks.json`을 갱신해야 함
 - WSL ARM Linux 환경에서는 로컬 AAB 빌드도 동일한 호환 제약이 있으므로 CI 빌드를 권장
+- 2026-04-17 재검증 기준 현재 작업환경에서는 `aapt2` 바이너리 호환 문제로 로컬 빌드 실패
 
 ## CI (GitHub Actions) 빌드 준비
 - Secrets: `TWA_KEYSTORE_BASE64`, `TWA_KEYSTORE_PASSWORD`, `TWA_KEY_ALIAS`, `TWA_KEY_PASSWORD`
