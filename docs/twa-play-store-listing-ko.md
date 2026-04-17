@@ -116,6 +116,14 @@ ottline은 영화, 시리즈, 책 기록을 빠르게 남기고 시간이 지나
 - [ ] 피처 그래픽은 앱 아이콘을 단순 반복하지 않고 핵심 가치와 실제 UI를 중심에 배치
 - [ ] 다크 테마가 대표 강점이 아니라면 라이트 테마를 우선 노출
 
+### 현재 준비된 파일
+
+- `apps/web/public/play/icon-512.png`
+- `apps/web/public/play/feature-graphic-1024x500.png`
+- `apps/web/public/play/screenshot-home-720x1280.png`
+- `apps/web/public/play/screenshot-public-720x1280.png`
+- `apps/web/public/play/screenshot-account-720x1280.png`
+
 ### 스크린샷 권장 시나리오
 
 1. 홈 화면: QuickLog + 최근 기록
