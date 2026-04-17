@@ -8,6 +8,7 @@
 - 패키지명: `app.ottline`
 - 도메인: `https://ottline.app`
 - 앱명: `ottline`
+- 등록 문구/브랜딩 기준: `docs/twa-play-store-listing-ko.md`
 
 ## 1) 서명/보안 준비
 - [ ] release keystore 최종 확정 (분실 방지 백업 포함)
@@ -45,36 +46,53 @@
   - 입력값: `version_code=4`, `version_name=1.0.0`, `track=internal`
   - 결과: `Deploy to Google Play` 단계 포함 전체 성공
 
-## 3) Play Console 앱 설정
+### 진행 업데이트 (2026-04-17)
+- [x] GitHub Actions 수동 AAB 빌드 성공
+  - Run: `24555921495` (`Build TWA Release AAB (Manual Upload)`)
+  - 입력값: `version_code=5`, `version_name=1.0.1`
+  - Artifact: `ottline-release-aab-1.0.1`
+  - 비고: 로컬 WSL 빌드는 `aapt2` 호환 문제로 계속 비권장
+
+## 3) Play Console 앱 생성 / 기본 설정
 - [x] Play Console 앱 생성 (패키지명 `app.ottline`)
-- [ ] 앱 카테고리/연락처/정책 URL 입력
+- [ ] 기본 언어 `ko-KR` 확인
+- [ ] 앱 유형 `App` / 과금 `Free` 확인
+- [ ] 카테고리 `Lifestyle` 입력
+- [ ] 연락처 이메일 `contact@ottline.app` 입력
 - [x] 개인정보처리방침 URL 입력
   - `https://ottline.app/privacy`
-- [ ] Data safety(데이터 수집/처리) 설문 작성
+- [ ] 필요 시 Website 입력 (`https://ottline.app/faq` 또는 `https://ottline.app`)
+
+## 4) App content / 정책 선언
+- [ ] Ads: `No` 확인
+- [ ] App access: 기본 기록 기능은 로그인 없이 리뷰 가능하다고 명시
+- [ ] Target audience and content 작성
+- [ ] Data safety 설문 작성
 - [ ] 콘텐츠 등급 설문 완료
-- [ ] 광고 여부 설정
+- [ ] 앱 설명/개인정보처리방침/실제 동작이 서로 모순되지 않는지 확인
 
-## 4) 스토어 등록정보 준비
-- [ ] 앱 이름/짧은 설명/상세 설명 작성
-- [ ] 앱 아이콘/피처 그래픽 업로드
-- [ ] 휴대폰 스크린샷 업로드
+## 5) 스토어 등록정보 준비
+- [ ] 앱 이름/짧은 설명/상세 설명을 `docs/twa-play-store-listing-ko.md` 기준으로 입력
+- [ ] 앱 아이콘 업로드 (`512x512`, PNG)
+- [ ] 피처 그래픽 업로드 (`1024x500`, JPG 또는 24-bit PNG)
+- [ ] 휴대폰 스크린샷 최소 2장 업로드
 - [ ] 한국어 기본 메타데이터 검토 (필요 시 다국어 추가)
+- [ ] 구 도메인 `ott.preview.pe.kr` 또는 예전 브랜드가 에셋에 남아 있지 않은지 확인
 
-### 진행 업데이트 (2026-02-14, Step 4 시작)
-- [x] Step 4 착수 결정
+### 진행 업데이트 (2026-02-14, Step 5 시작)
 - [x] 스토어 문구 초안 문서 작성: `docs/twa-play-store-listing-ko.md`
 - [x] 업로드용 에셋 체크리스트/규격 정리
 - [ ] Play Console에 초안 반영
 - [ ] 스크린샷 최종본 반영 (휴대폰 2종 이상)
 - [ ] 최종 카피 리뷰 후 게시용 확정
 
-## 5) 테스트 트랙 배포 (권장 순서)
+## 6) 테스트 트랙 배포 (권장 순서)
 - [x] 내부 테스트 트랙에 AAB 업로드
 - [ ] 테스터 설치 확인 (Play를 통한 설치)
 - [ ] 핵심 시나리오 점검
   - [ ] 앱 실행/스플래시/스탠드얼론 동작
   - [ ] 로그인/로그아웃
-  - [ ] 기록 생성/수정/삭제
+  - [ ] 기록 생성/수정/타임라인 반영
   - [ ] 공유 기능 (TWA 공유 인텐트 → 작품 검색 프리필)
   - [ ] 딥링크 진입
 - [ ] 이슈 수정 후 내부 테스트 재배포
@@ -122,13 +140,13 @@
 - [x] 함께 기록 시즌 메타 보정
   - [x] 시즌 포스터 사용 시 시즌 연도도 함께 노출되도록 API 보완
 
-## 6) 프로덕션 출시
+## 7) 프로덕션 출시
 - [ ] 프로덕션 트랙에 릴리즈 생성
 - [ ] 변경사항(Release notes) 작성
 - [ ] 점진 배포(예: 10% -> 50% -> 100%) 전략 적용
 - [ ] 롤백 기준/담당자 사전 합의
 
-## 7) 출시 후 모니터링
+## 8) 출시 후 모니터링
 - [ ] Crash/ANR 모니터링 (출시 직후 24~72시간 집중)
 - [ ] 로그인/기록 저장 성공률 점검
 - [ ] 사용자 피드백/리뷰 모니터링
@@ -140,9 +158,10 @@
 - 키 유출이 의심되면 즉시 키 교체 및 CI 시크릿 전면 갱신
 - 현재 저장소 기준 Android 배포 경로는 `apps/twa`, Expo 앱(`apps/native`)은 별도 후보 구현
 
-## Step 4 실행 순서 (권장)
-1. `docs/twa-play-store-listing-ko.md` 초안을 Play Console 스토어 등록정보에 입력
+## Step 5 실행 순서 (권장)
+1. `docs/twa-play-store-listing-ko.md` 기준으로 앱 이름/설명/연락처/정책 URL 입력
 2. 아이콘/피처 그래픽/스크린샷을 규격에 맞춰 업로드
-3. 스토어 미리보기에서 줄바꿈/문구 잘림 확인
-4. 내부 테스트 트랙 사용자 3명 이상에게 스토어 페이지 가독성 리뷰 요청
-5. 피드백 반영 후 Step 5(테스트 트랙 배포)로 이동
+3. App content에서 Ads/App access/Data safety/Content rating를 현재 서비스 기준으로 입력
+4. 스토어 미리보기에서 줄바꿈/문구 잘림과 구 브랜드 잔존 여부 확인
+5. 내부 테스트 트랙 사용자 3명 이상에게 스토어 페이지 가독성 리뷰 요청
+6. 피드백 반영 후 Step 6(테스트 트랙 배포)로 이동
