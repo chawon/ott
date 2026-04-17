@@ -12,7 +12,7 @@
 
 ---
 
-## 2) 프로젝트 스냅샷 (기준일: 2026-03-16)
+## 2) 프로젝트 스냅샷 (기준일: 2026-04-17)
 
 ### 아키텍처
 1. 모노레포
@@ -37,7 +37,8 @@
 13. 기기 unlink 후 서버 API 차단 + 로컬 캐시 초기화 적용
 14. Next.js 16 대응 `middleware` -> `proxy` 전환 완료
 15. ottline 브랜딩 전면 적용: 신규 아이콘/파비콘, 헤더 로고, 브랜드명, 슬로건, OG 이미지, 공유카드 watermark
-16. 낙장불입 정책 확정: 사용자용 개별 기록 삭제 없음, 설정의 로컬 초기화는 현재 기기 저장소만 삭제
+16. 관리자 analytics에 마이그레이션 현황 + 구 도메인 잔존 사용(`oldDomainUsage`) 표시
+17. 낙장불입 정책 확정: 사용자용 개별 기록 삭제 없음, 설정의 로컬 초기화는 현재 기기 저장소만 삭제
 
 ### 제품 방향
 1. 추천 기능은 현재 범위에서 제외한다.
@@ -55,16 +56,11 @@
 3. **ottline 브랜딩 적용 (Phase 2)**: 아이콘/파비콘 교체, 헤더 로고(텍스트 조합), 레트로 모드 제거, 브랜드명·슬로건·OG이미지·공유카드 watermark 전면 반영 완료.
 4. **마이그레이션 현황 추적**: `migration_complete` 이벤트 서버 적재, `/api/admin/analytics/migration-status` 엔드포인트 추가, admin 페이지 마이그레이션 현황 섹션 표시.
 5. **도메인별 접속 분석**: `app_open` 이벤트에 `hostname` 프로퍼티 추가, admin 통계에 domain(hostname) 세그먼트 표시.
-6. **마이그레이션 배너 문구 개선**: `ott.preview.pe.kr` 접속 시 팝업에 `ottline.app`으로 주소 변경 안내 명시.
-7. **레트로 모드 통계 제거**: admin analytics에서 retro 관련 섹션(레트로 현황, 주간 레트로 트렌드) 제거. `SyncWorker`의 `app_open` 이벤트에서 `isRetro` 프로퍼티 제거.
-8. **Chrome 확장 ottline 브랜딩 및 Chrome Web Store 배포**: `manifest.json`, `popup.html`, `popup.js` 브랜드명·URL을 ottline으로 전환, 아이콘 교체(512px 원본 리사이즈), `ottline-helper-0.1.0.zip` 패키징 후 스토어 심사 통과 및 배포 완료(2026-03-26).
-9. **Microsoft Store PWA 배포**: PWABuilder 기반 Windows 패키지 인증 심사 통과 및 배포 완료. 브랜드명 `On the Timeline` 기준.
-
-### P1
-1. 사용자 기기 목록/해제 UX 마무리
-   1. 백엔드 API는 존재 (`GET /api/auth/devices`, `DELETE /api/auth/devices/{id}`)
-   2. 프론트 관리 화면 완성
-   3. unlink 후 서버 접근 차단/로컬 초기화까지 반영
+6. **구 도메인 잔존 사용 지표 분리**: admin analytics overview에 `oldDomainUsage` 응답 추가, `login_success`·`log_create`·`share_action`·`known user`를 old domain 기준으로 분리 표시.
+7. **마이그레이션 배너 문구 개선**: `ott.preview.pe.kr` 접속 시 팝업에 `ottline.app`으로 주소 변경 안내 명시. 현재 old domain은 301 전환하지 않고 병행 운영한다.
+8. **레트로 모드 통계 제거**: admin analytics에서 retro 관련 섹션(레트로 현황, 주간 레트로 트렌드) 제거. `SyncWorker`의 `app_open` 이벤트에서 `isRetro` 프로퍼티 제거.
+9. **브라우저 확장 ottline 브랜딩 및 스토어 배포**: `manifest.json`, `popup.html`, `popup.js` 브랜드명·URL을 ottline으로 전환, 아이콘 교체(512px 원본 리사이즈), Chrome Web Store/Edge Add-ons Store 배포 완료.
+10. **Microsoft Store PWA 배포**: PWABuilder 기반 Windows 패키지 인증 심사 통과 및 배포 완료. 브랜드명 `On the Timeline` 기준.
 
 ### P1
 1. 복구 코드(페어링 코드) 입력 UX + 보안 정책 확정
@@ -74,18 +70,19 @@
    3. 신규 기기 승인/해제 흐름
 
 ### P1
-1. 문의함 운영 알림 추가
+1. 문의함 운영 후속 작업
 2. 우선 검토
    1. 미답변 필터/카운트
-   2. 운영 응답 SLA 정리
-   3. 관리자 답변 알림 여부 결정
+   2. 관리자 답변 알림 여부 결정
+   3. 운영 응답 SLA 정리
 
 ### P1
 1. PC 브라우저 확장 — 배포 후 후속 작업
 2. 현재 기준
    1. Chrome Web Store 배포 완료 (`ottline-helper-0.1.0`, 2026-03-26)
    2. Microsoft Edge Add-ons Store 배포 완료 (`ottline-helper-0.1.0`)
-   3. 남은 작업: 실제 사이트 검증, 페이지 내 CTA 여부 판단
+   3. Whale Store 제출 완료 (`2026-04-13`), 심사 중
+   4. 남은 작업: Netflix 모달 selector 정밀화, 사이트별 캡처 정확도 검증, locale/base URL 설정 페이지 검토
 
 ---
 
@@ -261,6 +258,7 @@ feature/* ──PR──→ main ──→ [자동] staging.ottline.app
    1. 헤더: `X-User-Id` 필요
 3. `GET /api/admin/analytics/overview?days=`
    1. 헤더: `X-Admin-Token` 필요
+   2. 응답에 `oldDomainUsage` 포함 (`appOpenUsers`, `appOpenEvents`, `knownUsers`, `userBoundEvents`, `loginSuccessUsers`, `logCreateUsers`, `shareActionUsers`, `lastSeenAt`, `lastMeaningfulActionAt`, `installStates`, `browserFamilies`)
 4. `GET /api/admin/analytics/events?days=&limit=&eventName=&platform=`
    1. 헤더: `X-Admin-Token` 필요
 5. `GET /api/admin/analytics/migration-status`
