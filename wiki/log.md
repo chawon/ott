@@ -1,5 +1,21 @@
 # Wiki Log
 
+## [2026-04-17] update: 도메인 마이그레이션 운영 상태 현재 기준으로 정정
+- 대상: 사용자 확인, apps/web/app/[locale]/admin/analytics/page.tsx, apps/api/src/main/java/com/watchlog/api/service/AnalyticsService.java
+- 생성/수정: index.md, architecture/navigation-auth-migration.md, processes/ottline-branding.md
+- 노트:
+  - 위키에 남아 있던 `2026-04-15 301 전환` 표현을 실제 운영 상태와 맞게 수정
+  - 현재는 old domain을 의도적으로 열어두고 자발적 이전 유도 + 잔존 사용 추이를 관찰 중
+  - 301 컷오버 판단은 `app_open` 총량이 아니라 old domain의 실사용 이벤트 위주로 본다는 해석을 명시
+
+## [2026-04-16] update: 구 도메인 잔존 사용 지표 분리
+- 대상: docs/plan-old-domain-analytics-cutover.md, apps/api/src/main/java/com/watchlog/api/service/AnalyticsService.java, apps/api/src/main/java/com/watchlog/api/dto/AdminAnalyticsOverviewDto.java, apps/api/src/main/java/com/watchlog/api/dto/AdminOldDomainUsageDto.java, apps/web/app/[locale]/admin/analytics/page.tsx
+- 생성/수정: features/analytics.md
+- 노트:
+  - admin analytics overview에 `oldDomainUsage` 응답 추가
+  - `ott.preview.pe.kr`의 `app_open` 총량과 별도로 `login_success`, `log_create`, `share_action`, `known user`를 분리 표시
+  - old domain을 계속 열어두는 동안 `app_open`은 단순 방문도 누적되므로 301 컷오버 판단은 실사용 이벤트 위주로 해석
+
 ## [2026-04-15] update: 데일리 리포트 지표 변경 운영 배포 반영
 - 대상: PR #6, production deploy SHA `a63ae1d393d04a366dc1377699b01f7c48c80a17`, GitHub Actions production deploy runs
 - 생성/수정: features/daily-report.md, index.md

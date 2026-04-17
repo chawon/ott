@@ -79,6 +79,9 @@ create table analytics_events (
 - DAU/WAU/MAU, 퍼널, 플랫폼별 요약 카드
 - 이벤트 종류별 집계, 일자별 집계, 최근 원시 이벤트 목록
 - 마이그레이션 현황 섹션 (ott.preview.pe.kr → ottline.app 이전율)
+- 구 도메인 잔존 사용 섹션
+  - `app_open` 총량과 별도로 `login_success`, `log_create`, `share_action`, `known user`를 분리 표시
+  - old domain을 계속 열어두는 동안 `app_open`은 단순 유입까지 포함하므로, 301 컷오버 판단은 실사용 액션 위주로 해석
 
 ---
 
@@ -91,6 +94,14 @@ create table analytics_events (
 | `GET /api/admin/analytics/overview?days=30` | X-Admin-Token | 관리자 개요 |
 | `GET /api/admin/analytics/events` | X-Admin-Token | 원시 이벤트 목록 |
 | `GET /api/admin/analytics/migration-status` | X-Admin-Token | 마이그레이션 현황 |
+
+`/api/admin/analytics/overview` 응답에는 `oldDomainUsage`가 포함되며, 아래 값을 내려준다.
+
+- `appOpenUsers`, `appOpenEvents`
+- `knownUsers`, `userBoundEvents`
+- `loginSuccessUsers`, `logCreateUsers`, `shareActionUsers`
+- `lastSeenAt`, `lastMeaningfulActionAt`
+- `installStates`, `browserFamilies`
 
 ---
 

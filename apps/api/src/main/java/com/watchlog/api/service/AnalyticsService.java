@@ -8,6 +8,7 @@ import com.watchlog.api.dto.AdminDailyAnalyticsDto;
 import com.watchlog.api.dto.AdminDimensionSummaryDto;
 import com.watchlog.api.dto.AdminEventBreakdownDto;
 import com.watchlog.api.dto.AdminEventRowDto;
+import com.watchlog.api.dto.AdminOldDomainUsageDto;
 import com.watchlog.api.dto.AdminPlatformSummaryDto;
 import com.watchlog.api.dto.AdminMigrationStatusDto;
 import com.watchlog.api.dto.PersonalAnalyticsReportDto;
@@ -35,6 +36,7 @@ public class AnalyticsService {
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     private static final String EXCLUDED_ADMIN_ID = "2777a431-5ccb-4761-9c8a-2b17a34ff566";
+    private static final String OLD_DOMAIN_HOSTNAME = "ott.preview.pe.kr";
 
     private final JdbcTemplate jdbcTemplate;
     private final WatchLogRepository watchLogRepository;
@@ -224,6 +226,7 @@ public class AnalyticsService {
                 from,
                 EXCLUDED_ADMIN_ID
         );
+        AdminOldDomainUsageDto oldDomainUsage = buildOldDomainUsage(from);
 
         List<AdminDailyAnalyticsDto> daily = jdbcTemplate.query("""
                 select
@@ -269,6 +272,7 @@ public class AnalyticsService {
                 installStates,
                 domains,
                 eventBreakdown,
+                oldDomainUsage,
                 daily
         );
     }
@@ -338,9 +342,24 @@ public class AnalyticsService {
                 """, eventName, since, EXCLUDED_ADMIN_ID);
     }
 
+    private long countDistinctActorsByEventSinceAndHostname(String eventName, OffsetDateTime since, String hostname) {
+        return queryLong("""
+                select count(distinct coalesce(client_id::text, user_id::text, session_id))
+                from analytics_events
+                where event_name = ?
+                  and occurred_at >= ?
+                  and coalesce(nullif(properties->>'hostname', ''), 'unknown') = ?
+                  and (user_id is null or user_id::text != ?)
+                """, eventName, since, hostname, EXCLUDED_ADMIN_ID);
+    }
+
     private long queryLong(String sql, Object... args) {
         Long value = jdbcTemplate.queryForObject(sql, Long.class, args);
         return value == null ? 0L : value;
+    }
+
+    private OffsetDateTime queryOffsetDateTime(String sql, Object... args) {
+        return jdbcTemplate.queryForObject(sql, OffsetDateTime.class, args);
     }
 
     private List<AdminDimensionSummaryDto> queryAppOpenDimensionSummary(String propertyKey, OffsetDateTime from) {
@@ -364,6 +383,97 @@ public class AnalyticsService {
                 propertyKey,
                 from,
                 EXCLUDED_ADMIN_ID
+        );
+    }
+
+    private List<AdminDimensionSummaryDto> queryAppOpenDimensionSummaryByHostname(
+            String propertyKey,
+            OffsetDateTime from,
+            String hostname
+    ) {
+        return jdbcTemplate.query("""
+                select
+                    coalesce(nullif(properties->>?, ''), 'unknown') as dim_key,
+                    count(*) as events,
+                    count(distinct coalesce(client_id::text, user_id::text, session_id)) as active_users
+                from analytics_events
+                where event_name = 'app_open'
+                  and occurred_at >= ?
+                  and coalesce(nullif(properties->>'hostname', ''), 'unknown') = ?
+                  and (user_id is null or user_id::text != ?)
+                group by 1
+                order by events desc, dim_key asc
+                """,
+                (rs, rowNum) -> new AdminDimensionSummaryDto(
+                        rs.getString("dim_key"),
+                        rs.getLong("events"),
+                        rs.getLong("active_users")
+                ),
+                propertyKey,
+                from,
+                hostname,
+                EXCLUDED_ADMIN_ID
+        );
+    }
+
+    private AdminOldDomainUsageDto buildOldDomainUsage(OffsetDateTime from) {
+        long appOpenEvents = queryLong("""
+                select count(*)
+                from analytics_events
+                where event_name = 'app_open'
+                  and occurred_at >= ?
+                  and coalesce(nullif(properties->>'hostname', ''), 'unknown') = ?
+                  and (user_id is null or user_id::text != ?)
+                """, from, OLD_DOMAIN_HOSTNAME, EXCLUDED_ADMIN_ID);
+        long appOpenUsers = countDistinctActorsByEventSinceAndHostname("app_open", from, OLD_DOMAIN_HOSTNAME);
+        long knownUsers = queryLong("""
+                select count(distinct user_id)
+                from analytics_events
+                where occurred_at >= ?
+                  and coalesce(nullif(properties->>'hostname', ''), 'unknown') = ?
+                  and user_id is not null
+                  and user_id::text != ?
+                """, from, OLD_DOMAIN_HOSTNAME, EXCLUDED_ADMIN_ID);
+        long userBoundEvents = queryLong("""
+                select count(*)
+                from analytics_events
+                where occurred_at >= ?
+                  and coalesce(nullif(properties->>'hostname', ''), 'unknown') = ?
+                  and user_id is not null
+                  and user_id::text != ?
+                """, from, OLD_DOMAIN_HOSTNAME, EXCLUDED_ADMIN_ID);
+        long loginSuccessUsers = countDistinctActorsByEventSinceAndHostname("login_success", from, OLD_DOMAIN_HOSTNAME);
+        long logCreateUsers = countDistinctActorsByEventSinceAndHostname("log_create", from, OLD_DOMAIN_HOSTNAME);
+        long shareActionUsers = countDistinctActorsByEventSinceAndHostname("share_action", from, OLD_DOMAIN_HOSTNAME);
+        OffsetDateTime lastSeenAt = queryOffsetDateTime("""
+                select max(occurred_at)
+                from analytics_events
+                where occurred_at >= ?
+                  and coalesce(nullif(properties->>'hostname', ''), 'unknown') = ?
+                  and (user_id is null or user_id::text != ?)
+                """, from, OLD_DOMAIN_HOSTNAME, EXCLUDED_ADMIN_ID);
+        OffsetDateTime lastMeaningfulActionAt = queryOffsetDateTime("""
+                select max(occurred_at)
+                from analytics_events
+                where occurred_at >= ?
+                  and coalesce(nullif(properties->>'hostname', ''), 'unknown') = ?
+                  and event_name in ('login_success', 'log_create', 'share_action')
+                  and (user_id is null or user_id::text != ?)
+                """, from, OLD_DOMAIN_HOSTNAME, EXCLUDED_ADMIN_ID);
+
+        return new AdminOldDomainUsageDto(
+                OLD_DOMAIN_HOSTNAME,
+                appOpenEvents,
+                appOpenUsers,
+                knownUsers,
+                userBoundEvents,
+                loginSuccessUsers,
+                logCreateUsers,
+                shareActionUsers,
+                lastSeenAt,
+                lastMeaningfulActionAt,
+                queryAppOpenDimensionSummaryByHostname("installState", from, OLD_DOMAIN_HOSTNAME),
+                queryAppOpenDimensionSummaryByHostname("browserFamily", from, OLD_DOMAIN_HOSTNAME)
         );
     }
 
