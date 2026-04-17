@@ -5,6 +5,7 @@
 ## 관련 페이지
 - [[ottline-branding]]
 - [[gitops]]
+- [[analytics]]
 
 ---
 
@@ -58,4 +59,20 @@ SELECT COUNT(DISTINCT user_id) FROM analytics_events
 WHERE event_name = 'migration_complete';
 ```
 
-**2026-04-15에 301 리다이렉트 전환 예정** (이전율 25%에서 기준 포기, 20일 경과 판단)
+## 현재 운영 상태
+
+- `ott.preview.pe.kr`는 아직 301 리다이렉트로 전환하지 않고 계속 서빙 중
+- 목적: MigrationBanner를 통한 자발적 이전 유도 + old domain 잔존 사용 추이 관찰
+- admin analytics에서는 `migration_complete`뿐 아니라 `oldDomainUsage`를 함께 확인
+  - `app_open` 총량은 단순 방문까지 포함
+  - 301 컷오버 판단은 `login_success`, `log_create`, `share_action`, `known user` 위주로 해석
+
+## 301 전환 판단 기준
+
+- 다음 조건이 일정 기간 지속되면 301 전환을 검토한다.
+  - old domain의 `login_success`가 0에 수렴
+  - old domain의 `log_create`가 0에 수렴
+  - old domain의 `share_action`이 0에 수렴
+  - `user_id`가 있는 old domain 이벤트가 거의 발생하지 않음
+
+`app_open`은 old domain을 계속 열어두는 한 배너 확인, 재방문, 단순 유입도 누적되므로 단독 기준으로 사용하지 않는다.

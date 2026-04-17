@@ -4,7 +4,7 @@
 
 | 페이지 | 요약 |
 |---|---|
-| [[analytics]] | 플랫폼별(Web/PWA/TWA) 사용 지표 수집, 개인 리포트, 관리자 대시보드 |
+| [[analytics]] | 플랫폼별(Web/PWA/TWA) 사용 지표 수집, 개인 리포트, 관리자 대시보드, 구 도메인 잔존 사용 추적 |
 | [[dna-aura]] | 시청 기록 26종 특질 추출 → Journey 화면 Aura 글로우 시각화 (native 앱) |
 | [[book-log]] | 네이버 책 검색 API 연동으로 영상 기록 흐름에 책 기록 통합 |
 | [[daily-report]] | 매일 오전 9시 Telegram으로 Cloudflare·GA4·내부 분석·K8s 통합 현황 발송, 내부 로그 지표는 이벤트/DB 기준 병기 |
@@ -22,7 +22,7 @@
 |---|---|
 | [[geo-seo]] | AI 검색(GEO)과 SEO 관점의 ottline.app 현황 및 개선 계획 (29/100 Critical) |
 | [[i18n]] | next-intl 기반 한국어/영어 지원 완료, URL 기반 로케일 라우팅 |
-| [[navigation-auth-migration]] | ott.preview.pe.kr → ottline.app Redirect Flow 기반 인증 정보 이식 |
+| [[navigation-auth-migration]] | ott.preview.pe.kr → ottline.app Redirect Flow 기반 인증 정보 이식, 301 전환 전 잔존 사용 추적 |
 | [[kmp]] | 초창기 KMP 크로스플랫폼 시도, 현재 중단 — shared/ 디렉토리 잔재 |
 | [[web-performance]] | Cloudflare Web Analytics 기준 Core Web Vitals 현황과 CLS 대응 기록 |
 
@@ -43,7 +43,7 @@
 |---|---|
 | [[code-review]] | apps/web, apps/api, deploy/oke 전반 코드 품질 검토 (2026-02-06) |
 | [[gitops]] | OKE + ArgoCD 기반 GitOps 배포 자동화 가이드 |
-| [[ottline-branding]] | ott.preview.pe.kr → ottline.app 도메인 전환 및 브랜드 일괄 적용 |
+| [[ottline-branding]] | ott.preview.pe.kr → ottline.app 도메인 전환 및 브랜드 일괄 적용, old domain 병행 운영 중 |
 | [[security]] | 코드 리뷰 발견 보안 이슈 및 사고 대응 체크리스트 |
 | [[staging]] | OKE 별도 namespace + Cloudflare Access 접근 제한 스테이징 환경 |
 | [[ux-copy]] | 서비스 전반 사용자 노출 문구 톤/용어/형식 표준화 가이드 |

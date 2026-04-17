@@ -34,6 +34,24 @@ type AdminOverview = {
   installStates: Array<{ key: string; events: number; activeUsers: number }>;
   domains: Array<{ key: string; events: number; activeUsers: number }>;
   eventBreakdown: Array<{ eventName: string; events: number; actors: number }>;
+  oldDomainUsage: {
+    hostname: string;
+    appOpenEvents: number;
+    appOpenUsers: number;
+    knownUsers: number;
+    userBoundEvents: number;
+    loginSuccessUsers: number;
+    logCreateUsers: number;
+    shareActionUsers: number;
+    lastSeenAt: string | null;
+    lastMeaningfulActionAt: string | null;
+    installStates: Array<{ key: string; events: number; activeUsers: number }>;
+    browserFamilies: Array<{
+      key: string;
+      events: number;
+      activeUsers: number;
+    }>;
+  };
   daily: Array<{
     day: string;
     events: number;
@@ -146,6 +164,15 @@ export default async function AdminAnalyticsPage({
   const visibleRecentEvents = recentEvents.filter(
     (row) => !isOnboardingEvent(row.eventName),
   );
+  const dateTimeFormatter = new Intl.DateTimeFormat(
+    locale === "ko" ? "ko-KR" : "en-US",
+    {
+      dateStyle: "medium",
+      timeStyle: "short",
+    },
+  );
+  const formatTimestamp = (value: string | null) =>
+    value ? dateTimeFormatter.format(new Date(value)) : t("oldDomainNone");
 
   return (
     <div className="space-y-6">
@@ -192,29 +219,46 @@ export default async function AdminAnalyticsPage({
               <div className="text-sm font-semibold">마이그레이션 현황</div>
               <div className="grid gap-3 sm:grid-cols-4">
                 <div>
-                  <div className="text-xs text-muted-foreground">활성 유저 (기록 2개+)</div>
-                  <div className="mt-1 text-2xl font-semibold">{migrationStatus.totalActiveUsers}</div>
+                  <div className="text-xs text-muted-foreground">
+                    활성 유저 (기록 2개+)
+                  </div>
+                  <div className="mt-1 text-2xl font-semibold">
+                    {migrationStatus.totalActiveUsers}
+                  </div>
                 </div>
                 <div>
                   <div className="text-xs text-muted-foreground">이전 완료</div>
-                  <div className="mt-1 text-2xl font-semibold text-green-600">{migrationStatus.migratedUsers}</div>
+                  <div className="mt-1 text-2xl font-semibold text-green-600">
+                    {migrationStatus.migratedUsers}
+                  </div>
                 </div>
                 <div>
                   <div className="text-xs text-muted-foreground">미이전</div>
-                  <div className="mt-1 text-2xl font-semibold text-orange-500">{migrationStatus.notMigratedUsers}</div>
+                  <div className="mt-1 text-2xl font-semibold text-orange-500">
+                    {migrationStatus.notMigratedUsers}
+                  </div>
                 </div>
                 <div>
                   <div className="text-xs text-muted-foreground">이전율</div>
-                  <div className="mt-1 text-2xl font-semibold">{migrationStatus.migrationRate}%</div>
+                  <div className="mt-1 text-2xl font-semibold">
+                    {migrationStatus.migrationRate}%
+                  </div>
                 </div>
               </div>
               {migrationStatus.recentMigrations.length > 0 && (
                 <div>
-                  <div className="text-xs font-semibold text-muted-foreground mb-2">최근 이전 현황 (일별)</div>
+                  <div className="text-xs font-semibold text-muted-foreground mb-2">
+                    최근 이전 현황 (일별)
+                  </div>
                   <div className="space-y-1">
                     {migrationStatus.recentMigrations.map((row) => (
-                      <div key={row.date} className="flex items-center justify-between text-sm">
-                        <span className="text-muted-foreground">{row.date}</span>
+                      <div
+                        key={row.date}
+                        className="flex items-center justify-between text-sm"
+                      >
+                        <span className="text-muted-foreground">
+                          {row.date}
+                        </span>
                         <span className="font-medium">{row.count}건</span>
                       </div>
                     ))}
@@ -227,6 +271,146 @@ export default async function AdminAnalyticsPage({
               </p>
             </section>
           )}
+
+          <section className="space-y-4 rounded-2xl border border-border bg-card p-6">
+            <div className="space-y-1">
+              <div className="text-sm font-semibold">{t("oldDomainTitle")}</div>
+              <div className="text-xs text-muted-foreground">
+                {overview.oldDomainUsage.hostname}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {t("oldDomainGuide")}
+              </p>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+              <article className="rounded-2xl border border-border p-4">
+                <div className="text-xs text-muted-foreground">
+                  {t("oldDomainAppOpenUsers")}
+                </div>
+                <div className="mt-1 text-2xl font-semibold">
+                  {overview.oldDomainUsage.appOpenUsers}
+                </div>
+                <div className="mt-1 text-xs text-muted-foreground">
+                  events {overview.oldDomainUsage.appOpenEvents}
+                </div>
+              </article>
+              <article className="rounded-2xl border border-border p-4">
+                <div className="text-xs text-muted-foreground">
+                  {t("oldDomainKnownUsers")}
+                </div>
+                <div className="mt-1 text-2xl font-semibold">
+                  {overview.oldDomainUsage.knownUsers}
+                </div>
+              </article>
+              <article className="rounded-2xl border border-border p-4">
+                <div className="text-xs text-muted-foreground">
+                  {t("oldDomainLoginUsers")}
+                </div>
+                <div className="mt-1 text-2xl font-semibold text-orange-500">
+                  {overview.oldDomainUsage.loginSuccessUsers}
+                </div>
+              </article>
+              <article className="rounded-2xl border border-border p-4">
+                <div className="text-xs text-muted-foreground">
+                  {t("oldDomainLogCreateUsers")}
+                </div>
+                <div className="mt-1 text-2xl font-semibold text-orange-500">
+                  {overview.oldDomainUsage.logCreateUsers}
+                </div>
+              </article>
+              <article className="rounded-2xl border border-border p-4">
+                <div className="text-xs text-muted-foreground">
+                  {t("oldDomainShareUsers")}
+                </div>
+                <div className="mt-1 text-2xl font-semibold text-orange-500">
+                  {overview.oldDomainUsage.shareActionUsers}
+                </div>
+              </article>
+            </div>
+            <div className="grid gap-4 lg:grid-cols-3">
+              <div className="rounded-xl border border-border p-4">
+                <div className="mb-2 text-xs font-semibold text-muted-foreground">
+                  {t("oldDomainUsageMeta")}
+                </div>
+                <div className="space-y-1.5 text-sm">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="font-medium">
+                      {t("oldDomainLastSeenAt")}
+                    </span>
+                    <span className="text-right text-muted-foreground">
+                      {formatTimestamp(overview.oldDomainUsage.lastSeenAt)}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="font-medium">
+                      {t("oldDomainLastMeaningfulActionAt")}
+                    </span>
+                    <span className="text-right text-muted-foreground">
+                      {formatTimestamp(
+                        overview.oldDomainUsage.lastMeaningfulActionAt,
+                      )}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="font-medium">
+                      {t("oldDomainUserBoundEvents")}
+                    </span>
+                    <span className="text-right text-muted-foreground">
+                      {overview.oldDomainUsage.userBoundEvents}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <div className="rounded-xl border border-border p-4">
+                <div className="mb-2 text-xs font-semibold text-muted-foreground">
+                  {t("oldDomainInstallStates")}
+                </div>
+                <div className="space-y-1.5 text-sm">
+                  {overview.oldDomainUsage.installStates.length > 0 ? (
+                    overview.oldDomainUsage.installStates.map((row) => (
+                      <div
+                        key={row.key}
+                        className="flex items-center justify-between gap-3"
+                      >
+                        <span className="font-medium">{row.key}</span>
+                        <span className="text-right text-muted-foreground">
+                          events {row.events} · active {row.activeUsers}
+                        </span>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-muted-foreground">
+                      {t("oldDomainNone")}
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div className="rounded-xl border border-border p-4">
+                <div className="mb-2 text-xs font-semibold text-muted-foreground">
+                  {t("oldDomainBrowserFamilies")}
+                </div>
+                <div className="space-y-1.5 text-sm">
+                  {overview.oldDomainUsage.browserFamilies.length > 0 ? (
+                    overview.oldDomainUsage.browserFamilies.map((row) => (
+                      <div
+                        key={row.key}
+                        className="flex items-center justify-between gap-3"
+                      >
+                        <span className="font-medium">{row.key}</span>
+                        <span className="text-right text-muted-foreground">
+                          events {row.events} · active {row.activeUsers}
+                        </span>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-muted-foreground">
+                      {t("oldDomainNone")}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </section>
 
           <section className="rounded-2xl border border-border bg-card p-6">
             <div className="text-sm font-semibold">

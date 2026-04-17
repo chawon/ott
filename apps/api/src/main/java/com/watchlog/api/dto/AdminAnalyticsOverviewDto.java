@@ -21,5 +21,6 @@ public record AdminAnalyticsOverviewDto(
         List<AdminDimensionSummaryDto> installStates,
         List<AdminDimensionSummaryDto> domains,
         List<AdminEventBreakdownDto> eventBreakdown,
+        AdminOldDomainUsageDto oldDomainUsage,
         List<AdminDailyAnalyticsDto> daily
 ) {}
