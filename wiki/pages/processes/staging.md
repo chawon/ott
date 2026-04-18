@@ -4,6 +4,7 @@
 
 ## 관련 페이지
 - [[gitops]]
+- [[ottline-branding]]
 - [[security]]
 
 ---
@@ -47,6 +48,17 @@ feature/* → PR → main 머지
 3. Summary에서 SHA 복사 입력
 4. 새 이미지를 `{sha}` 태그로 빌드 → `deploy/oke/{web,api}-deployment.yaml` 업데이트
 5. ArgoCD 자동 적용
+
+### 최근 웹 배포 예시 (2026-04-18)
+- 변경 내용: 루트 공유용 OG 이미지를 `public/ottline.png` 기반 `public/og-image.png`로 교체
+- 스테이징 웹 배포:
+  - run: `24603483718`
+  - 배포 SHA: `4c885565b74ba02f9a39736cf990c436791d2748`
+  - 결과: 성공
+- 프로덕션 웹 배포:
+  - run: `24603593210`
+  - 입력 SHA: `4c885565b74ba02f9a39736cf990c436791d2748`
+  - 결과: 성공
 
 ---
 
