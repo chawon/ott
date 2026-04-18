@@ -1,5 +1,13 @@
 # Wiki Log
 
+## [2026-04-18] update: Android 비공개 테스트 시작 상태 반영
+- 대상: 사용자 확인, `gplay tracks/testers` 조회
+- 생성/수정: platforms/twa.md, index.md
+- 노트:
+  - `app.ottline` 기준 `internal` / `alpha` 트랙 모두 `6 (1.0.2)`, `status=completed` 상태 확인
+  - `alpha` 트랙에 `ottline-beta-testers@googlegroups.com` 테스터 그룹이 연결된 상태 확인
+  - 기존 `준비 완료/테스터 모집` 표현을 `2026-04-18 비공개 테스트 시작` 기준으로 갱신
+
 ## [2026-04-17] update: Android 비공개 테스트 준비 완료 및 테스터 모집 상태 반영
 - 대상: GitHub Actions TWA AAB 빌드, Google Play 트랙 상태 확인, `assetlinks.json`
 - 생성/수정: platforms/twa.md, index.md

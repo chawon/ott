@@ -143,3 +143,10 @@ adb install -r apps/twa/app/build/outputs/apk/debug/app-debug.apk
   - GitHub Actions Run: `22127449914`
   - 입력: `version_code=4`, `version_name=1.0.0`, `track=internal`
   - 결과: `Deploy to Google Play` 단계 포함 성공
+
+### 진행 업데이트 (2026-04-18)
+- Google Play 비공개 테스트 시작
+  - 트랙: `alpha`
+  - 상태: `completed`
+  - 버전: `1.0.2` (`versionCode=6`)
+  - 테스터 그룹: `ottline-beta-testers@googlegroups.com`

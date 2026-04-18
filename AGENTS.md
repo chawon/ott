@@ -89,7 +89,8 @@
 2. 현재 기준
    1. Google Play internal/release 경로는 `apps/twa` 기반 Bubblewrap TWA
    2. 패키지명 `app.ottline`, 도메인 `ottline.app`, 워크플로우는 `twa-debug.yml` / `twa-build-aab.yml` / `twa-release.yml`
-   3. `feat/native-mobile-app`의 `apps/native`는 React Native + Expo 후보 앱이며, main 미머지 상태이고 배포 파이프라인은 아직 없음
+   3. `2026-04-18` 기준 Google Play `alpha` 비공개 테스트 시작 (`versionName=1.0.2`, `versionCode=6`)
+   4. `feat/native-mobile-app`의 `apps/native`는 React Native + Expo 후보 앱이며, main 미머지 상태이고 배포 파이프라인은 아직 없음
 
 ---
 
