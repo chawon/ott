@@ -5,6 +5,7 @@
 ## 관련 페이지
 - [[navigation-auth-migration]]
 - [[geo-seo]]
+- [[staging]]
 - [[twa]]
 
 ---
@@ -46,6 +47,9 @@ BG Dark:        #0F1E3D
 
 ### OG 이미지
 - `public/og-image.png` (1200×630) 생성
+- **운영 업데이트 (2026-04-18):**
+  - 루트 공유용 OG 이미지를 `public/ottline.png` 원본 기준으로 다시 리사이즈한 `public/og-image.png`로 교체
+  - 기존 중앙 집중형 카피 레이아웃 대신 브랜드 로고/워드마크 중심 이미지로 단순화
 
 ### 레트로 모드 완전 제거 (2026-03-15)
 - `RetroContext` stub 처리 → 삭제

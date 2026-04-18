@@ -1,5 +1,13 @@
 # Wiki Log
 
+## [2026-04-18] update: 루트 OG 이미지 교체 및 web staging/production 배포 반영
+- 대상: `apps/web/public/ottline.png`, `apps/web/public/og-image.png`, GitHub Actions web deploy runs
+- 생성/수정: processes/ottline-branding.md, processes/staging.md, index.md
+- 노트:
+  - 루트 공유용 OG 이미지를 `ottline.png` 기준 1200×630 `og-image.png`로 교체
+  - staging web deploy run `24603483718` 성공, production deploy SHA `4c885565b74ba02f9a39736cf990c436791d2748`
+  - production web deploy run `24603593210` 성공
+
 ## [2026-04-18] update: Android 비공개 테스트 시작 상태 반영
 - 대상: 사용자 확인, `gplay tracks/testers` 조회
 - 생성/수정: platforms/twa.md, index.md
