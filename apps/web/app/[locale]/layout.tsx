@@ -1,17 +1,20 @@
-import type { Metadata, Viewport } from "next";
+import type { Viewport } from "next";
 import "../globals.css";
-import AppHeader from "@/components/AppHeader";
-import AppFooter from "@/components/AppFooter";
-import PwaInstallBanner from "@/components/PwaInstallBanner";
-import SyncWorker from "@/components/SyncWorker";
-import SwipeNav from "@/components/SwipeNav";
-import MigrationBanner from "@/components/MigrationBanner";
-import ChunkErrorHandler from "@/components/ChunkErrorHandler";
-import { ThemeProvider } from "@/context/ThemeContext";
 import { NextIntlClientProvider } from "next-intl";
 import { getMessages, getTranslations } from "next-intl/server";
+import AppFooter from "@/components/AppFooter";
+import AppHeader from "@/components/AppHeader";
+import ChunkErrorHandler from "@/components/ChunkErrorHandler";
+import PwaInstallBanner from "@/components/PwaInstallBanner";
+import SwipeNav from "@/components/SwipeNav";
+import SyncWorker from "@/components/SyncWorker";
+import { ThemeProvider } from "@/context/ThemeContext";
 
-export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: "Metadata" });
 
@@ -38,7 +41,13 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
       siteName: "ottline",
       locale: locale === "ko" ? "ko_KR" : "en_US",
       type: "website",
-      images: [{ url: "https://ottline.app/og-image-20260418.png", width: 1200, height: 630 }],
+      images: [
+        {
+          url: "https://ottline.app/og-image-20260418.png",
+          width: 1200,
+          height: 630,
+        },
+      ],
     },
     twitter: {
       card: "summary_large_image",
@@ -141,13 +150,27 @@ export default async function RootLayout({
           }}
         />
         {/* Google tag (gtag.js) */}
-        <script async src="https://www.googletagmanager.com/gtag/js?id=G-61XBJHSN8G" />
-        <script dangerouslySetInnerHTML={{ __html: `window.dataLayer = window.dataLayer || [];function gtag(){dataLayer.push(arguments);}gtag('js', new Date());gtag('config', 'G-61XBJHSN8G');` }} />
+        <script
+          async
+          src="https://www.googletagmanager.com/gtag/js?id=G-61XBJHSN8G"
+        />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `window.dataLayer = window.dataLayer || [];function gtag(){dataLayer.push(arguments);}gtag('js', new Date());gtag('config', 'G-61XBJHSN8G');`,
+          }}
+        />
         {/* Microsoft Clarity */}
-        <script dangerouslySetInnerHTML={{ __html: `(function(c,l,a,r,i,t,y){c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);})(window,document,"clarity","script","vwj7yzqkow");` }} />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(c,l,a,r,i,t,y){c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);})(window,document,"clarity","script","vwj7yzqkow");`,
+          }}
+        />
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
-        {process.env.NODE_ENV === "production" && process.env.APP_ENV !== "staging" ? (
-          <script dangerouslySetInnerHTML={{ __html: serviceWorkerInitScript }} />
+        {process.env.NODE_ENV === "production" &&
+        process.env.APP_ENV !== "staging" ? (
+          <script
+            dangerouslySetInnerHTML={{ __html: serviceWorkerInitScript }}
+          />
         ) : null}
       </head>
       <body className="min-h-screen bg-background text-foreground font-sans antialiased transition-colors duration-300">
@@ -159,7 +182,6 @@ export default async function RootLayout({
               </div>
             )}
             <ChunkErrorHandler />
-            <MigrationBanner />
             <AppHeader />
             <SwipeNav />
             <PwaInstallBanner />

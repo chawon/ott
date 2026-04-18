@@ -22,7 +22,7 @@
 |---|---|
 | [[geo-seo]] | AI 검색(GEO)과 SEO 관점의 ottline.app 현황 및 개선 계획 (29/100 Critical) |
 | [[i18n]] | next-intl 기반 한국어/영어 지원 완료, URL 기반 로케일 라우팅 |
-| [[navigation-auth-migration]] | ott.preview.pe.kr → ottline.app Redirect Flow 기반 인증 정보 이식, 301 전환 전 잔존 사용 추적 |
+| [[navigation-auth-migration]] | ott.preview.pe.kr → ottline.app Redirect Flow 기반 인증 정보 이식 이력과 2026-04-18 Cloudflare 301 컷오버 정리 |
 | [[kmp]] | 초창기 KMP 크로스플랫폼 시도, 현재 중단 — shared/ 디렉토리 잔재 |
 | [[web-performance]] | Cloudflare Web Analytics 기준 Core Web Vitals 현황과 CLS 대응 기록 |
 
@@ -43,7 +43,7 @@
 |---|---|
 | [[code-review]] | apps/web, apps/api, deploy/oke 전반 코드 품질 검토 (2026-02-06) |
 | [[gitops]] | OKE + ArgoCD 기반 GitOps 배포 자동화 가이드 |
-| [[ottline-branding]] | ott.preview.pe.kr → ottline.app 도메인 전환 및 브랜드 일괄 적용, old domain 병행 운영 중, 루트 OG 최신화 반영 |
+| [[ottline-branding]] | ott.preview.pe.kr → ottline.app 도메인 전환 및 브랜드 일괄 적용, 2026-04-18 old domain 301 컷오버 및 루트 OG 최신화 반영 |
 | [[security]] | 코드 리뷰 발견 보안 이슈 및 사고 대응 체크리스트 |
 | [[staging]] | OKE 별도 namespace + Cloudflare Access 접근 제한 스테이징 환경 |
 | [[ux-copy]] | 서비스 전반 사용자 노출 문구 톤/용어/형식 표준화 가이드 |

@@ -1,5 +1,13 @@
 # Wiki Log
 
+## [2026-04-18] update: old domain Cloudflare 301 컷오버 및 마이그레이션 UI 정리
+- 대상: Cloudflare redirect rule, `apps/web/app/[locale]/layout.tsx`, `apps/web/app/[locale]/migration-helper/page.tsx`, `apps/web/messages/{ko,en}.json`
+- 생성/수정: architecture/navigation-auth-migration.md, features/analytics.md, processes/ottline-branding.md, index.md
+- 노트:
+  - `https://ott.preview.pe.kr/`와 `https://ott.preview.pe.kr/ko/about?x=1`이 각각 `https://ottline.app/`, `https://ottline.app/ko/about?x=1`로 `301` 응답하는 것을 확인
+  - 웹앱의 MigrationBanner 노출을 제거하고 `migration-helper`는 locale 홈으로 즉시 리다이렉트하는 잔존 경로로 축소
+  - admin analytics의 구 도메인 안내 문구를 “301 판단용”에서 “컷오버 후 잔존 유입 모니터링용”으로 갱신
+
 ## [2026-04-18] update: 루트 OG 이미지 교체 및 web staging/production 배포 반영
 - 대상: `apps/web/public/ottline.png`, `apps/web/public/og-image.png`, GitHub Actions web deploy runs
 - 생성/수정: processes/ottline-branding.md, processes/staging.md, index.md

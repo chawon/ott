@@ -70,9 +70,9 @@ BG Dark:        #0F1E3D
 - `/api/admin/analytics/migration-status` 엔드포인트 추가
 - admin analytics 페이지에 마이그레이션 현황 섹션 추가
 - admin analytics 페이지에 구 도메인 잔존 사용 섹션 추가
-- **현재 운영 기준 (2026-04-17):** `ott.preview.pe.kr`는 아직 301 전환하지 않고 병행 운영
-  - 의도적으로 old domain을 열어두고 MigrationBanner로 자발적 이전 유도
-  - 301 판단은 `migration_complete` 총량보다 old domain의 실사용 액션(`login_success`, `log_create`, `share_action`, `known user`) 기준으로 해석
+- **최종 컷오버 (`2026-04-18`):** Cloudflare에서 `ott.preview.pe.kr/*`를 `https://ottline.app/*`로 301 리다이렉트 전환
+  - old domain 직접 서빙과 MigrationBanner 기반 자발적 이전 유도는 종료
+  - admin analytics의 `migration_complete`와 `oldDomainUsage`는 이력 및 잔존 유입 모니터링용으로 유지
 
 ---
 
