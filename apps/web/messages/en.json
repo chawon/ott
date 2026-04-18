@@ -599,7 +599,7 @@
     "weekStartNotice": "Based on Monday start, last {days} days",
     "recentEvents": "Recent Events (Max 300)",
     "oldDomainTitle": "Legacy Domain Residual Usage",
-    "oldDomainGuide": "app_open includes simple visits. Judge 301 cutover with login_success, log_create, share_action, and known users first.",
+    "oldDomainGuide": "The legacy domain has been on Cloudflare 301 redirects since 2026-04-18. Use this section to monitor residual traffic after cutover, including cache and bookmark effects.",
     "oldDomainAppOpenUsers": "Legacy app_open actors",
     "oldDomainKnownUsers": "Known users",
     "oldDomainLoginUsers": "login_success",

@@ -57,7 +57,7 @@
 4. **마이그레이션 현황 추적**: `migration_complete` 이벤트 서버 적재, `/api/admin/analytics/migration-status` 엔드포인트 추가, admin 페이지 마이그레이션 현황 섹션 표시.
 5. **도메인별 접속 분석**: `app_open` 이벤트에 `hostname` 프로퍼티 추가, admin 통계에 domain(hostname) 세그먼트 표시.
 6. **구 도메인 잔존 사용 지표 분리**: admin analytics overview에 `oldDomainUsage` 응답 추가, `login_success`·`log_create`·`share_action`·`known user`를 old domain 기준으로 분리 표시.
-7. **마이그레이션 배너 문구 개선**: `ott.preview.pe.kr` 접속 시 팝업에 `ottline.app`으로 주소 변경 안내 명시. 현재 old domain은 301 전환하지 않고 병행 운영한다.
+7. **구 도메인 301 전환 완료**: `2026-04-18`부터 `ott.preview.pe.kr/*`는 Cloudflare에서 `https://ottline.app/*`로 301 리다이렉트한다. 기존 MigrationBanner 기반 자발적 이전 유도는 종료했다.
 8. **레트로 모드 통계 제거**: admin analytics에서 retro 관련 섹션(레트로 현황, 주간 레트로 트렌드) 제거. `SyncWorker`의 `app_open` 이벤트에서 `isRetro` 프로퍼티 제거.
 9. **브라우저 확장 ottline 브랜딩 및 스토어 배포**: `manifest.json`, `popup.html`, `popup.js` 브랜드명·URL을 ottline으로 전환, 아이콘 교체(512px 원본 리사이즈), Chrome Web Store/Edge Add-ons Store 배포 완료.
 10. **Microsoft Store PWA 배포**: PWABuilder 기반 Windows 패키지 인증 심사 통과 및 배포 완료. 브랜드명 `On the Timeline` 기준.

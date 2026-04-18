@@ -599,7 +599,7 @@
     "weekStartNotice": "월요일 시작 기준, 최근 {days}일",
     "recentEvents": "최근 수집 이벤트 (최대 300)",
     "oldDomainTitle": "구 도메인 잔존 사용",
-    "oldDomainGuide": "app_open은 단순 방문까지 포함합니다. 301 전환 판단은 login_success, log_create, share_action, known user 위주로 보세요.",
+    "oldDomainGuide": "2026-04-18부터 old domain은 Cloudflare 301로 전환되었습니다. 이 섹션은 리다이렉트 이후 잔존 유입과 캐시/북마크 영향을 모니터링할 때 보세요.",
     "oldDomainAppOpenUsers": "구 도메인 app_open 유입",
     "oldDomainKnownUsers": "known user",
     "oldDomainLoginUsers": "login_success",

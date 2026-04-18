@@ -101,7 +101,7 @@ Title 태그 형식: ottline | On The Timeline
 - [x] `/api/admin/analytics/migration-status` 엔드포인트 추가 (활성유저 대비 이전율 집계)
 - [x] admin analytics 페이지에 마이그레이션 현황 섹션 추가 (이전율, 일별 추이)
 - [x] admin analytics 페이지에 domain(hostname) 별 접속 현황 추가
-- [ ] 이전율 80%+ 확인 후 `ott.preview.pe.kr` → 301 리다이렉트 전환
+- [x] `2026-04-18` Cloudflare에서 `ott.preview.pe.kr/*` → `https://ottline.app/*` 301 리다이렉트 전환
 
 > 마이그레이션 배포 이전 완료 사용자는 집계 불가 (배포 시점부터 카운트)
 

@@ -81,7 +81,7 @@ create table analytics_events (
 - 마이그레이션 현황 섹션 (ott.preview.pe.kr → ottline.app 이전율)
 - 구 도메인 잔존 사용 섹션
   - `app_open` 총량과 별도로 `login_success`, `log_create`, `share_action`, `known user`를 분리 표시
-  - old domain을 계속 열어두는 동안 `app_open`은 단순 유입까지 포함하므로, 301 컷오버 판단은 실사용 액션 위주로 해석
+  - `2026-04-18` Cloudflare 301 전환 이후에도 캐시, 북마크, 잔존 링크 영향으로 old domain 유입이 남을 수 있어 후속 관측용으로 유지
 
 ---
 
