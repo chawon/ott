@@ -1,5 +1,13 @@
 # Wiki Log
 
+## [2026-04-19] update: 헤더 언어 전환 추가 및 web staging/production 배포 반영
+- 대상: PR #10, `apps/web/components/AppHeader.tsx`, `apps/web/messages/{ko,en}.json`, GitHub Actions web deploy runs
+- 생성/수정: architecture/i18n.md, processes/staging.md, index.md
+- 노트:
+  - 헤더에 `KO` / `EN` 글로벌 전환 버튼을 추가하고, 현재 보고 있는 경로와 query를 유지한 채 locale만 바꾸도록 반영
+  - staging web deploy run `24619740878` 성공, 배포 SHA `21bba7fb2d4203eb1bf39b201ba8965641db6b6a`
+  - production web deploy run `24619856079` 성공, 동일 SHA를 입력값으로 사용
+
 ## [2026-04-18] update: public repo 보안 후속 정리 항목 기록
 - 대상: 공개 저장소 보안 검토 결과, `deploy/oke*/registry-secret.yaml`, `apps/api/src/main/resources/application-local.yaml`, 문서 내 자격증명 표기
 - 생성/수정: processes/security.md, index.md
