@@ -1,5 +1,13 @@
 # Wiki Log
 
+## [2026-04-18] update: public repo 보안 후속 정리 항목 기록
+- 대상: 공개 저장소 보안 검토 결과, `deploy/oke*/registry-secret.yaml`, `apps/api/src/main/resources/application-local.yaml`, 문서 내 자격증명 표기
+- 생성/수정: processes/security.md, index.md
+- 노트:
+  - 즉시 수정 대신 후속 계획으로 남길 항목을 정리
+  - OCIR pull secret의 ESO/Vault 전환, TMDB 개발용 토큰 env 치환, 문서 scrub, git history 정리 필요성을 명시
+  - 사용자 확인 기준 ArgoCD 비밀번호는 이미 변경된 상태이고, 문서의 값은 예전 잔재로 기록
+
 ## [2026-04-18] update: old domain Cloudflare 301 컷오버 및 마이그레이션 UI 정리
 - 대상: Cloudflare redirect rule, `apps/web/app/[locale]/layout.tsx`, `apps/web/app/[locale]/migration-helper/page.tsx`, `apps/web/messages/{ko,en}.json`
 - 생성/수정: architecture/navigation-auth-migration.md, features/analytics.md, processes/ottline-branding.md, index.md

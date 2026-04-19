@@ -56,6 +56,20 @@
 
 ---
 
+## 후속 정리 메모 (2026-04-18)
+
+- Public 저장소 재검토에서 아래 잔존 항목이 확인되었고, 즉시 수정 대신 후속 작업으로 남겨두었다.
+  - `deploy/oke/registry-secret.yaml`, `deploy/oke-staging/registry-secret.yaml`의 OCIR pull secret
+  - `apps/api/src/main/resources/application-local.yaml`의 TMDB 개발용 토큰
+  - 문서에 남은 운영 자격증명/토큰 표기
+- 사용자 확인 기준 ArgoCD 비밀번호는 이미 변경되었고, 현재 남아 있는 값은 예전 문서 잔재다.
+- 다음 정리 순서:
+  - OCIR pull secret을 ESO/Vault 관리로 전환
+  - `application-local.yaml`의 TMDB 토큰을 env 참조로 치환
+  - 문서 scrub 및 필요 시 git history 정리
+
+---
+
 ## 원칙
 
 > Public 저장소에 노출된 시크릿은 외부 수집(크롤링/봇 스캔) 가능성이 높으므로, 노출 시점부터 유출로 간주하고 회전하는 것을 기본 원칙으로 한다.

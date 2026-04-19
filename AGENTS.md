@@ -92,6 +92,14 @@
    3. `2026-04-18` 기준 Google Play `alpha` 비공개 테스트 시작 (`versionName=1.0.2`, `versionCode=6`)
    4. `feat/native-mobile-app`의 `apps/native`는 React Native + Expo 후보 앱이며, main 미머지 상태이고 배포 파이프라인은 아직 없음
 
+### P1
+1. Public repo 보안 후속 정리
+2. 현재 기준
+   1. `deploy/oke/registry-secret.yaml`, `deploy/oke-staging/registry-secret.yaml`에 OCIR pull secret이 남아 있어 ESO/Vault 기반 관리로 전환 필요
+   2. `apps/api/src/main/resources/application-local.yaml`의 TMDB 개발용 토큰은 env 참조로 치환 필요
+   3. 문서에 남은 운영 자격증명/토큰 표기는 scrub 필요
+   4. 관련 credential 회전 후 git history 정리는 별도 후속 작업으로 처리
+
 ---
 
 ## 4) 배포 전략
