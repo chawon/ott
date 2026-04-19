@@ -37,5 +37,11 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "yearly",
       priority: 0.3,
     },
+    {
+      url: `${baseUrl}/chatgpt`,
+      lastModified: new Date("2026-04-19"),
+      changeFrequency: "monthly",
+      priority: 0.5,
+    },
   ];
 }

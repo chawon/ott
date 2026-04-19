@@ -71,3 +71,14 @@ llm:
   anthropic-model: ${ANTHROPIC_MODEL:claude-sonnet-4-6}
   gemini-api-key: ${GEMINI_API_KEY:}
   gemini-model: ${GEMINI_MODEL:gemini-2.5-flash}
+
+chatgpt:
+  app-secret: ${CHATGPT_APP_SECRET:}
+  oauth-issuer: ${CHATGPT_OAUTH_ISSUER:http://localhost:3000/chatgpt/oauth}
+  resource-server-url: ${CHATGPT_RESOURCE_SERVER_URL:http://localhost:3000/chatgpt/mcp}
+  resource-documentation-url: ${CHATGPT_RESOURCE_DOCUMENTATION_URL:http://localhost:3000/chatgpt}
+  authorization-code-ttl-seconds: ${CHATGPT_AUTHORIZATION_CODE_TTL_SECONDS:600}
+  access-token-ttl-seconds: ${CHATGPT_ACCESS_TOKEN_TTL_SECONDS:3600}
+  review-username: ${CHATGPT_REVIEW_USERNAME:}
+  review-password: ${CHATGPT_REVIEW_PASSWORD:}
+  review-pairing-code: ${CHATGPT_REVIEW_PAIRING_CODE:}
