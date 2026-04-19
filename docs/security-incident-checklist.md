@@ -1,5 +1,10 @@
 # 보안 사고 대응 체크리스트 (Public Repo Secret 노출)
 
+## 현재 메모 (2026-04-18)
+- 공개 저장소 재검토 결과, 즉시 후속 정리가 필요한 항목은 `OCIR pull secret`, `application-local.yaml`의 TMDB 개발용 토큰, 문서 내 잔존 운영 자격증명 표기다.
+- 사용자는 ArgoCD 비밀번호는 이미 변경했다고 확인했다. 다만 public repo에 남은 예전 문구는 별도 scrub 대상이다.
+- 이번 문서는 실제 회전/제거 작업 전까지 후속 계획 체크리스트로 유지한다.
+
 ## 1) 즉시 접근 차단 (당일)
 - [ ] `TMDB_ACCESS_TOKEN` 재발급 후 기존 토큰 폐기
 - [ ] `NAVER_CLIENT_ID`/`NAVER_CLIENT_SECRET` 재발급 후 기존 비밀 폐기
