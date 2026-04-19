@@ -12,7 +12,7 @@
 
 ---
 
-## 2) 프로젝트 스냅샷 (기준일: 2026-04-17)
+## 2) 프로젝트 스냅샷 (기준일: 2026-04-19)
 
 ### 아키텍처
 1. 모노레포
@@ -38,7 +38,8 @@
 14. Next.js 16 대응 `middleware` -> `proxy` 전환 완료
 15. ottline 브랜딩 전면 적용: 신규 아이콘/파비콘, 헤더 로고, 브랜드명, 슬로건, OG 이미지, 공유카드 watermark
 16. 관리자 analytics에 마이그레이션 현황 + 구 도메인 잔존 사용(`oldDomainUsage`) 표시
-17. 낙장불입 정책 확정: 사용자용 개별 기록 삭제 없음, 설정의 로컬 초기화는 현재 기기 저장소만 삭제
+17. 낙장불입 정책 확정: 사용자용 개별 기록 삭제 없음, 설정의 로컬 초기화와 서버 데이터 전체 삭제를 분리
+18. 설정에서 계정 단위 서버 데이터 전체 삭제(기록/댓글/문의/analytics/기기 연결) 지원
 
 ### 제품 방향
 1. 추천 기능은 현재 범위에서 제외한다.
@@ -61,6 +62,7 @@
 8. **레트로 모드 통계 제거**: admin analytics에서 retro 관련 섹션(레트로 현황, 주간 레트로 트렌드) 제거. `SyncWorker`의 `app_open` 이벤트에서 `isRetro` 프로퍼티 제거.
 9. **브라우저 확장 ottline 브랜딩 및 스토어 배포**: `manifest.json`, `popup.html`, `popup.js` 브랜드명·URL을 ottline으로 전환, 아이콘 교체(512px 원본 리사이즈), Chrome Web Store/Edge Add-ons Store 배포 완료.
 10. **Microsoft Store PWA 배포**: PWABuilder 기반 Windows 패키지 인증 심사 통과 및 배포 완료. 브랜드명 `On the Timeline` 기준.
+11. **설정의 서버 데이터 전체 삭제 추가**: `DELETE /api/auth/account` 기반으로 계정 단위 서버 기록/댓글/문의/analytics/기기 연결 삭제 지원.
 
 ### P1
 1. 복구 코드(페어링 코드) 입력 UX + 보안 정책 확정
@@ -215,7 +217,8 @@ feature/* ──PR──→ main ──→ [자동] staging.ottline.app
    2. `seasonNumber`, `episodeNumber`, `seasonPosterUrl`, `seasonYear`
 6. 사용자용 개별 삭제 API는 제공하지 않는다.
    1. 실수한 기록은 `PATCH`로 수정한다.
-   2. 설정의 로컬 초기화는 현재 기기 브라우저 저장소만 비우며 서버 데이터는 삭제하지 않는다.
+   2. 설정의 로컬 초기화는 현재 기기 브라우저 저장소만 비운다.
+   3. 계정 단위 서버 데이터 전체 삭제는 설정의 별도 액션으로 제공한다.
 
 ### TMDB 보조 API
 1. `GET /api/tmdb/tv/{providerId}/seasons`
@@ -237,9 +240,12 @@ feature/* ──PR──→ main ──→ [자동] staging.ottline.app
 3. `GET /api/auth/devices`
 4. `DELETE /api/auth/devices/{id}`
 5. `DELETE /api/auth/devices/all`
-6. 활성 기기 검증
+6. `DELETE /api/auth/account`
+   1. 현재 계정의 서버 기록, 댓글, 문의, analytics 이벤트, 추천 캐시, 기기 연결을 삭제
+   2. 개별 로그 삭제가 아니라 계정 단위 전체 삭제용 엔드포인트
+7. 활성 기기 검증
    1. `X-User-Id` + `X-Device-Id` 조합이 유효하지 않으면 `401`
-   2. `logs`, `sync`, `feedback`, `analytics`, `auth/devices` 조회에 적용
+   2. `logs`, `sync`, `feedback`, `analytics`, `auth/devices`, `auth/account`에 적용
 
 ### Feedback
 1. `GET /api/feedback/threads`

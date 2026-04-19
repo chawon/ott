@@ -4,6 +4,7 @@ import com.watchlog.api.domain.DiscussionEntity;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -41,4 +42,28 @@ public interface DiscussionRepository extends JpaRepository<DiscussionEntity, UU
 
     @Query("select d from DiscussionEntity d join fetch d.title where d.id in :ids")
     List<DiscussionEntity> findByIdInWithTitle(@Param("ids") List<UUID> ids);
+
+    @Modifying
+    @Query(value = """
+            update discussions d
+            set comment_seq = coalesce((
+                select count(*)
+                from comments c
+                where c.discussion_id = d.id
+            ), 0)
+            where d.id in (:discussionIds)
+            """, nativeQuery = true)
+    int syncCommentCounts(@Param("discussionIds") List<UUID> discussionIds);
+
+    @Modifying
+    @Query(value = """
+            delete from discussions d
+            where d.id in (:discussionIds)
+              and not exists (
+                  select 1
+                  from comments c
+                  where c.discussion_id = d.id
+              )
+            """, nativeQuery = true)
+    int deleteEmptyDiscussions(@Param("discussionIds") List<UUID> discussionIds);
 }

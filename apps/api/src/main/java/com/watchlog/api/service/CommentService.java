@@ -79,8 +79,8 @@ public class CommentService {
     }
 
     private CommentEntity createForDiscussion(DiscussionEntity discussion, String body, UUID userId, boolean updateHistory, String authorBaseName) {
-        int nextSeq = discussion.getCommentSeq() + 1;
-        discussion.setCommentSeq(nextSeq);
+        int nextSeq = commentRepository.findNextAuthorSeq(discussion.getId());
+        discussion.setCommentSeq(discussion.getCommentSeq() + 1);
 
         String baseName = (authorBaseName == null || authorBaseName.isBlank())
                 ? normalizeTitleName(discussion.getTitle().getName())
