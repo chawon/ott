@@ -100,6 +100,10 @@ public interface WatchLogRepository extends JpaRepository<WatchLogEntity, UUID> 
     @Query(value = "update watch_logs set user_id = cast(:userId as uuid) where user_id is null", nativeQuery = true)
     int assignUserToOrphanLogs(@Param("userId") UUID userId);
 
+    @Modifying
+    @Query(value = "delete from watch_logs where user_id = cast(:userId as uuid)", nativeQuery = true)
+    int deleteByUserId(@Param("userId") UUID userId);
+
     @Query("""
             select w from WatchLogEntity w
             join fetch w.title t

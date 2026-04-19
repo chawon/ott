@@ -99,7 +99,7 @@ export default function AccountPage() {
     setLoading(true);
     try {
       await api("/auth/devices/all", { method: "DELETE" });
-      resetLocalState();
+      await resetLocalState();
       setStatus(tAccount("statusResetAll"));
       window.location.reload();
     } catch (e: any) {
@@ -109,11 +109,27 @@ export default function AccountPage() {
     }
   }
 
-  function handleResetLocal() {
-    if (confirm(tAccount("resetConfirm"))) {
-      resetLocalState();
-      setStatus(tAccount("statusLocalReset"));
+  async function handleResetLocal() {
+    if (!confirm(tAccount("resetConfirm"))) return;
+    await resetLocalState();
+    setStatus(tAccount("statusLocalReset"));
+    window.location.reload();
+  }
+
+  async function deleteAccount() {
+    if (loading || !userId) return;
+    if (!confirm(tAccount("deleteAccountConfirm"))) return;
+    setLoading(true);
+    setStatus(null);
+    try {
+      await api("/auth/account", { method: "DELETE" });
+      await resetLocalState();
+      setStatus(tAccount("statusAccountDeleted"));
       window.location.reload();
+    } catch (e: any) {
+      setStatus(e?.message ?? tAccount("statusAccountDeleteFailed"));
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -166,7 +182,7 @@ export default function AccountPage() {
   const headerTitle = tAccount("titleModern");
 
   return (
-    <div className="mx-auto max-w-xl space-y-6">
+    <div className="mx-auto max-w-2xl space-y-6">
       <header className="space-y-1">
         <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
           <Settings className="h-6 w-6" />
@@ -380,6 +396,27 @@ export default function AccountPage() {
             {tAccount("exportNotice")}
           </p>
         </div>
+      </section>
+
+      <section className="space-y-4 rounded-2xl border border-red-200 bg-red-50/60 p-6 shadow-sm">
+        <div>
+          <div className="text-sm font-semibold text-red-700">
+            {tAccount("deleteAccountTitle")}
+          </div>
+          <p className="text-xs text-red-700/80">
+            {tAccount("deleteAccountDesc")}
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={deleteAccount}
+          disabled={loading || !userId}
+          className={cn(
+            "w-full py-3 text-sm font-bold transition-all rounded-2xl border border-red-300 bg-red-600 text-white hover:bg-red-700 disabled:opacity-40",
+          )}
+        >
+          {tAccount("deleteAccountAction")}
+        </button>
       </section>
 
       <section className="space-y-4 rounded-2xl border border-border bg-card p-6 shadow-sm">

@@ -1,5 +1,13 @@
 # Wiki Log
 
+## [2026-04-19] update: 설정의 서버 데이터 전체 삭제 정책 반영
+- 대상: `apps/api/src/main/java/com/watchlog/api/web/AuthController.java`, `apps/api/src/main/java/com/watchlog/api/service/AccountDeletionService.java`, `apps/web/app/[locale]/account/page.tsx`, `apps/web/messages/{ko,en}.json`, AGENTS.md
+- 생성/수정: features/delete-sync.md, index.md
+- 노트:
+  - `DELETE /api/auth/account`를 추가해 계정 단위 서버 데이터 전체 삭제를 지원
+  - 설정 화면에 `서버 데이터 전체 삭제` 액션을 추가하고, `로컬 초기화`와 의미를 분리
+  - 개별 기록 삭제 없음 정책은 유지하되 FAQ/개인정보 안내/운영 문서를 새 동작에 맞게 갱신
+
 ## [2026-04-19] update: 헤더 언어 전환 추가 및 web staging/production 배포 반영
 - 대상: PR #10, `apps/web/components/AppHeader.tsx`, `apps/web/messages/{ko,en}.json`, GitHub Actions web deploy runs
 - 생성/수정: architecture/i18n.md, processes/staging.md, index.md

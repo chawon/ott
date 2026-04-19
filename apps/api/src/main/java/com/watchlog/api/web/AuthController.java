@@ -4,6 +4,7 @@ import com.watchlog.api.dto.AuthPairRequest;
 import com.watchlog.api.dto.AuthPairResponse;
 import com.watchlog.api.dto.AuthRegisterResponse;
 import com.watchlog.api.dto.DeviceDto;
+import com.watchlog.api.service.AccountDeletionService;
 import com.watchlog.api.service.AuthService;
 import org.springframework.web.bind.annotation.*;
 
@@ -14,9 +15,11 @@ import java.util.List;
 public class AuthController {
 
     private final AuthService authService;
+    private final AccountDeletionService accountDeletionService;
 
-    public AuthController(AuthService authService) {
+    public AuthController(AuthService authService, AccountDeletionService accountDeletionService) {
         this.authService = authService;
+        this.accountDeletionService = accountDeletionService;
     }
 
     @PostMapping("/register")
@@ -62,5 +65,15 @@ public class AuthController {
         if (userId == null) return;
         authService.requireActiveDevice(userId, deviceId);
         authService.revokeAllDevices(userId);
+    }
+
+    @DeleteMapping("/account")
+    public void deleteAccount(
+            @RequestHeader(value = "X-User-Id", required = false) java.util.UUID userId,
+            @RequestHeader(value = "X-Device-Id", required = false) java.util.UUID deviceId
+    ) {
+        if (userId == null) return;
+        authService.requireActiveDevice(userId, deviceId);
+        accountDeletionService.deleteAccount(userId);
     }
 }
