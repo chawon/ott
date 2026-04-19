@@ -85,3 +85,7 @@ export function requireChatGptSecret() {
   }
   return secret;
 }
+
+export function getOpenAiAppsChallengeToken() {
+  return process.env.OPENAI_APPS_CHALLENGE_TOKEN?.trim() || null;
+}
