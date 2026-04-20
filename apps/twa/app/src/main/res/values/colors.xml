@@ -15,4 +15,12 @@
 -->
 <resources>
     <color name="shortcut_background">#F5F5F5</color>
+    <color name="widget_brand_text">#173764</color>
+    <color name="widget_brand_badge_bg">#E4EEFF</color>
+    <color name="widget_title_text">#11294A</color>
+    <color name="widget_body_text">#47678D</color>
+    <color name="widget_record_icon">#184B84</color>
+    <color name="widget_timeline_icon">#3B5E8D</color>
+    <color name="widget_action_text">#173764</color>
+    <color name="widget_action_hint">#53739A</color>
 </resources>
