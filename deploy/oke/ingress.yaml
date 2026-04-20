@@ -8,29 +8,9 @@ metadata:
 spec:
   tls:
     - hosts:
-        - ott.preview.pe.kr
-      secretName: ott-preview-tls
-    - hosts:
         - ottline.app
       secretName: ottline-app-tls
   rules:
-    - host: ott.preview.pe.kr
-      http:
-        paths:
-          - path: /api
-            pathType: Prefix
-            backend:
-              service:
-                name: ott-api
-                port:
-                  number: 8080
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: ott-web
-                port:
-                  number: 3000
     - host: ottline.app
       http:
         paths:
