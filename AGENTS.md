@@ -12,7 +12,7 @@
 
 ---
 
-## 2) 프로젝트 스냅샷 (기준일: 2026-04-19)
+## 2) 프로젝트 스냅샷 (기준일: 2026-04-20)
 
 ### 아키텍처
 1. 모노레포
@@ -40,12 +40,14 @@
 16. 관리자 analytics에 마이그레이션 현황 + 구 도메인 잔존 사용(`oldDomainUsage`) 표시
 17. 낙장불입 정책 확정: 사용자용 개별 기록 삭제 없음, 설정의 로컬 초기화와 서버 데이터 전체 삭제를 분리
 18. 설정에서 계정 단위 서버 데이터 전체 삭제(기록/댓글/문의/analytics/기기 연결) 지원
+19. ChatGPT App v1 운영 배포: `timeline.list_recent_logs` 기반 읽기 전용 recent-history connector + OAuth/PKCE + 도메인 검증 경로 반영
 
 ### 제품 방향
 1. 추천 기능은 현재 범위에서 제외한다.
 2. 기록 가치(회상, 공유, 재방문)를 높이는 기능에 집중한다.
 3. 글로벌 서비스 확장을 위해 모든 UI/데이터는 다국어 대응을 기본으로 한다.
 4. 사용자용 개별 기록 삭제는 제공하지 않는다. 기록 정정은 수정과 히스토리로 관리한다.
+5. ChatGPT 앱은 ottline 기록을 대화에 연결하는 읽기 전용 커넥터로 유지하고, 해석과 추천은 ChatGPT에 맡긴다.
 
 ---
 
@@ -63,6 +65,7 @@
 9. **브라우저 확장 ottline 브랜딩 및 스토어 배포**: `manifest.json`, `popup.html`, `popup.js` 브랜드명·URL을 ottline으로 전환, 아이콘 교체(512px 원본 리사이즈), Chrome Web Store/Edge Add-ons Store 배포 완료.
 10. **Microsoft Store PWA 배포**: PWABuilder 기반 Windows 패키지 인증 심사 통과 및 배포 완료. 브랜드명 `On the Timeline` 기준.
 11. **설정의 서버 데이터 전체 삭제 추가**: `DELETE /api/auth/account` 기반으로 계정 단위 서버 기록/댓글/문의/analytics/기기 연결 삭제 지원.
+12. **ChatGPT App v1 배포 및 제출 준비**: `ottline.app/chatgpt` 운영 배포, OAuth/PKCE 연결, review 계정/도메인 검증/제출 문서 정리 완료.
 
 ### P1
 1. 복구 코드(페어링 코드) 입력 UX + 보안 정책 확정
@@ -291,6 +294,25 @@ feature/* ──PR──→ main ──→ [자동] staging.ottline.app
 1. `POST /api/sync/push`
 2. `GET /api/sync/pull?since=...`
 
+### ChatGPT App
+1. Public MCP endpoint
+   1. `GET|POST|DELETE /chatgpt/mcp`
+2. Public docs and verification
+   1. `GET /chatgpt`
+   2. `GET /.well-known/openai-apps-challenge`
+3. Protected resource / authorization metadata
+   1. `GET /.well-known/oauth-protected-resource/chatgpt/mcp`
+   2. `GET /.well-known/oauth-authorization-server/chatgpt/oauth`
+4. OAuth endpoints (public path, web rewrite -> backend)
+   1. `POST /chatgpt/oauth/register`
+   2. `GET|POST /chatgpt/oauth/authorize`
+   3. `POST /chatgpt/oauth/token`
+5. v1 범위
+   1. 읽기 전용만 지원한다.
+   2. 개인 도구는 `timeline.list_recent_logs` 하나만 제공한다.
+   3. 사용자는 OAuth 승인 화면에서 `Settings / Account`의 pairing code 또는 recovery code로 연결한다.
+   4. 쓰기(create/update/delete)는 지원하지 않는다.
+
 ---
 
 ## 7) 데이터 모델 핵심 합의
@@ -344,6 +366,8 @@ feature/* ──PR──→ main ──→ [자동] staging.ottline.app
 7. 타임라인: `apps/web/app/[locale]/timeline/page.tsx`
 8. 상세: `apps/web/app/[locale]/title/[id]/page.tsx`
 9. 번역 사전: `apps/web/messages/`
+10. ChatGPT MCP: `apps/web/lib/chatgpt/`, `apps/web/app/chatgpt/`
+11. ChatGPT well-known routes: `apps/web/app/.well-known/`
 
 ### 백엔드
 1. 로그 API: `apps/api/src/main/java/com/watchlog/api/web/LogController.java`
@@ -352,6 +376,8 @@ feature/* ──PR──→ main ──→ [자동] staging.ottline.app
 4. TMDB API: `apps/api/src/main/java/com/watchlog/api/web/TmdbController.java`
 5. 로그 서비스: `apps/api/src/main/java/com/watchlog/api/service/LogService.java`
 6. 마이그레이션: `apps/api/src/main/resources/db/migration/`
+7. ChatGPT OAuth: `apps/api/src/main/java/com/watchlog/api/web/ChatGptOAuthController.java`
+8. ChatGPT token/auth service: `apps/api/src/main/java/com/watchlog/api/service/ChatGptOAuthService.java`, `apps/api/src/main/java/com/watchlog/api/service/ChatGptTokenService.java`
 
 ---
 
