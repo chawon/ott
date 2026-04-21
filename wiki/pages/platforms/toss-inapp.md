@@ -19,12 +19,14 @@
 | 검수 결과 | ❌ 반려 (2026-04-14) |
 | 반려 대응 코드 | ✅ 완료 (2026-04-14) |
 | 재제출 준비 | ✅ 실기기 재테스트 완료 |
+| 출시 상태 | ✅ 공개 링크 운영 중 (2026-04-21 기준) |
 
 ## 기술 스택
 
 - SDK: `@apps-in-toss/web-framework` v2.4.1
 - 설정: `apps/web/granite.config.ts` (appName, brand, icon CDN URL), `apps/web/ottline.ait` (번들)
 - 진입: `intoss://ottline`
+- 공개 링크: `https://minion.toss.im/XYvjpUB2`
 - 방식: 기존 Next.js 앱에 WebView SDK를 얹는 방식 (React Native 신규 개발 아님)
 
 ## 구현 완료 항목 (Phase 1)
@@ -86,6 +88,11 @@
 - [x] 공유 카드 `이미지 저장` 동작 확인
 - [x] `공유하기` 버튼이 `준비 중...` 상태에 고정되지 않음 확인
 - [ ] 재제출 후 심사 결과 대기
+
+### 2026-04-21 출시 반영
+
+- 사용자 공개 진입 링크 운영 확인: `https://minion.toss.im/XYvjpUB2`
+- 서비스 소개 문구는 "앱 설치 없이 토스에서 바로 열고, 페어링 코드만 입력하면 계속 기록하고 확인할 수 있다"는 메시지로 정리
 
 ### 현재 제한사항
 
