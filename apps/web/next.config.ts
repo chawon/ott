@@ -5,6 +5,15 @@ const withNextIntl = createNextIntlPlugin("./i18n/request.ts");
 
 const nextConfig: NextConfig = {
   images: {
+    localPatterns: [
+      {
+        pathname: "/**",
+        search: "",
+      },
+      {
+        pathname: "/og/share-card",
+      },
+    ],
     remotePatterns: [
       {
         protocol: "https",
