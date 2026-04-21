@@ -114,6 +114,17 @@
 - [x] 비공개 테스트 테스터 그룹 연결 확인
   - 그룹: `ottline-beta-testers@googlegroups.com`
 
+### 진행 업데이트 (2026-04-21, 위젯 디자인 리프레시 재배포)
+- [x] 클로즈드 테스트 트랙 재배포 반영 확인
+  - 브랜치: `feat/twa-widget-design`
+  - GitHub Actions Run: `24705603466`
+  - 트랙: `alpha`
+  - 상태: `completed`
+  - 버전: `1.0.3` (`versionCode=7`)
+- [ ] Play 설치본에서 홈 화면 위젯 디자인 리프레시 실기기 확인
+  - [ ] 2x2 위젯 레이아웃 정상 표시
+  - [ ] `기록하기` / `타임라인` 액션 진입 확인
+
 ### 진행 업데이트 (2026-02-15)
 - [x] TWA 공유 인텐트 MVP 구현 완료 (`feat/twa-share-intent-mvp` → `main` 머지)
   - Android: `ACTION_SEND`, `ACTION_SEND_MULTIPLE` 수신

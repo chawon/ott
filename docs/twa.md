@@ -156,3 +156,11 @@ adb install -r apps/twa/app/build/outputs/apk/debug/app-debug.apk
   - 기존 1행 2버튼 구조를 브랜드 헤더 + 세로 액션 카드 2개가 있는 2x2 위젯으로 재구성
   - 액션 기능은 유지 (`기록하기`, `타임라인`)
   - 관련 설계 메모: `docs/twa-widget-design-refresh-2026-04-20.md`
+
+### 진행 업데이트 (2026-04-21)
+- 위젯 디자인 리프레시 브랜치 비공개 테스트 배포 완료
+  - 브랜치: `feat/twa-widget-design`
+  - GitHub Actions Run: `24705603466`
+  - 트랙: `alpha`
+  - 상태: `completed`
+  - 버전: `1.0.3` (`versionCode=7`)
