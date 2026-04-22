@@ -22,3 +22,14 @@
 1. `ko`, `en` `/about` 페이지에서 신규 소개 섹션이 자연스럽게 렌더링된다.
 2. 모바일 폭에서 카드형 섹션 줄바꿈이 깨지지 않는다.
 3. 기존 사용법/팁/공유 카드 예시 섹션이 그대로 유지된다.
+
+## 완료 상태 (2026-04-22)
+- `/about` 서비스 소개에 웹/PWA, 토스 인앱, Chrome Web Store 브라우저 확장, Microsoft Store Windows 앱 링크를 반영했다.
+- Android 앱과 ChatGPT 연결은 `준비 중` 상태로 유지했다.
+- 페어링 코드 메시지는 토스 전용 문구가 아니라 서비스 전반의 연속성 메시지로 정리했다.
+
+## 배포 기록
+- PR: `#19` (`Update about page platform rollout copy`)
+- main merge commit: `005481c20587222e86e9e610e999ff611797d32a`
+- Staging Web deploy success: GitHub Actions run `24726936985`
+- Production Web deploy success: GitHub Actions run `24727095919`
