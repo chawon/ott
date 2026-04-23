@@ -21,6 +21,7 @@ apps/mobile/
 apps/web/.env.local
 apps/web/.next/
 apps/web/next-env.d.ts
+apps/.playwright-browsers/
 deploy/.gemini/
 apps/api/bootrun.log
 *.tsbuildinfo
