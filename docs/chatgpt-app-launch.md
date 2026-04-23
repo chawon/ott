@@ -7,6 +7,7 @@
 - Supported data: recent movie, series, and book logs that already exist in the user's ottline account.
 - Non-goals in v1: create/update/delete, recommendations inside ottline, public search, community features, or account management.
 - Role split: ottline supplies recent history and notes; ChatGPT handles summarization, comparison, and recommendation in the conversation.
+- Review status: OpenAI app submission is in review as of `2026-04-23`.
 
 ## Public surface
 

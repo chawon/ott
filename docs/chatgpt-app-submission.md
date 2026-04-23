@@ -7,6 +7,7 @@
 - Current tool surface: `timeline.list_recent_logs`
 - Auth model: OAuth + ottline pairing/recovery code
 - Production MCP URL: `https://ottline.app/chatgpt/mcp`
+- Submission status: submitted, in review as of `2026-04-23`
 
 ## 2. Positioning
 
@@ -169,6 +170,14 @@
   - `Series only`
 - Do not bake prompts, model responses, browser chrome, or explanatory overlays into the image.
 - Use production-quality widget UI and export at the directory-required size.
+- Generated assets live under `apps/web/public/chatgpt-directory/`.
+- Rebuild command: `npm run generate:chatgpt-directory-screenshots --workspace ott`
+- The capture script renders the real `chatgpt-widget-v2.html` template with a local mock MCP bridge for review-safe sample data.
+- Current export set:
+  - `screenshot-recent-706x860.png`
+  - `screenshot-movies-706x860.png`
+  - `screenshot-series-706x860.png`
+  - matching `@2x` exports for retina-quality upload
 
 ## 11. Domain verification
 

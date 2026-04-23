@@ -122,6 +122,8 @@ const chatGptCopy = {
       recentSeriesLogsLoaded: "최근 시리즈 기록을 불러왔습니다.",
       recentBookLogsLoaded: "최근 책 기록을 불러왔습니다.",
       recentLogsEmpty: "표시할 최근 기록이 없습니다.",
+      recentLogsUnavailable:
+        "최근 기록을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.",
     },
   },
   en: {
@@ -232,6 +234,8 @@ const chatGptCopy = {
       recentSeriesLogsLoaded: "Loaded your recent series logs.",
       recentBookLogsLoaded: "Loaded your recent book logs.",
       recentLogsEmpty: "No recent logs found.",
+      recentLogsUnavailable:
+        "Could not load recent logs. Please try again in a moment.",
     },
   },
 } as const;

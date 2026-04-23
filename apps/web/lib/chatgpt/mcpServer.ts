@@ -32,14 +32,11 @@ type Identity = {
 };
 
 type LogSummary = {
-  id: string;
   title: {
-    id?: string;
     type?: string;
     name?: string;
     year?: number | null;
     posterUrl?: string | null;
-    provider?: string | null;
   };
   status?: string;
   rating?: number | null;
@@ -48,7 +45,6 @@ type LogSummary = {
   watchedAt?: string | null;
   place?: string | null;
   occasion?: string | null;
-  updatedAt?: string | null;
 };
 
 type UnauthorizedResult = ReturnType<typeof createUnauthorizedResult>;
@@ -114,14 +110,11 @@ function summarizeRecentLogs(items: unknown[]): LogSummary[] {
     }
 
     const log = item as {
-      id?: string;
       title?: {
-        id?: string;
         type?: string;
         name?: string;
         year?: number | null;
         posterUrl?: string | null;
-        provider?: string | null;
       };
       status?: string;
       rating?: number | null;
@@ -130,19 +123,15 @@ function summarizeRecentLogs(items: unknown[]): LogSummary[] {
       watchedAt?: string | null;
       place?: string | null;
       occasion?: string | null;
-      updatedAt?: string | null;
     };
 
     return [
       {
-        id: log.id ?? "",
         title: {
-          id: log.title?.id,
           type: log.title?.type,
           name: log.title?.name,
           year: log.title?.year ?? null,
           posterUrl: log.title?.posterUrl ?? null,
-          provider: log.title?.provider ?? null,
         },
         status: log.status,
         rating: log.rating ?? null,
@@ -151,7 +140,6 @@ function summarizeRecentLogs(items: unknown[]): LogSummary[] {
         watchedAt: log.watchedAt ?? null,
         place: log.place ?? null,
         occasion: log.occasion ?? null,
-        updatedAt: log.updatedAt ?? null,
       },
     ];
   });
@@ -280,17 +268,35 @@ function createServer(
         return resolved.error;
       }
       const { userId, deviceId, authMode } = resolved.identity;
-      const recentLogs = await listLogs({
-        userId,
-        deviceId,
-        limit,
-        titleType: type,
-        sort,
-        status,
-        ott,
-        place,
-        occasion,
-      });
+      let recentLogs: unknown[];
+      try {
+        recentLogs = await listLogs({
+          userId,
+          deviceId,
+          limit,
+          titleType: type,
+          sort,
+          status,
+          ott,
+          place,
+          occasion,
+        });
+      } catch (error) {
+        console.error("Failed to load recent logs for ottline ChatGPT", error);
+        return {
+          content: [
+            {
+              type: "text",
+              text: toolCopy.recentLogsUnavailable,
+            },
+          ],
+          structuredContent: {
+            mode: authMode,
+            recentLogs: [],
+          },
+          isError: true,
+        };
+      }
       const summarizedLogs = summarizeRecentLogs(recentLogs);
 
       return {

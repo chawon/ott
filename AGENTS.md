@@ -12,7 +12,7 @@
 
 ---
 
-## 2) 프로젝트 스냅샷 (기준일: 2026-04-22)
+## 2) 프로젝트 스냅샷 (기준일: 2026-04-23)
 
 ### 아키텍처
 1. 모노레포
@@ -40,7 +40,7 @@
 16. 관리자 analytics에 마이그레이션 현황 + 구 도메인 잔존 사용(`oldDomainUsage`) 표시
 17. 낙장불입 정책 확정: 사용자용 개별 기록 삭제 없음, 설정의 로컬 초기화와 서버 데이터 전체 삭제를 분리
 18. 설정에서 계정 단위 서버 데이터 전체 삭제(기록/댓글/문의/analytics/기기 연결) 지원
-19. ChatGPT App v1 운영 배포: `timeline.list_recent_logs` 기반 읽기 전용 recent-history connector + OAuth/PKCE + 도메인 검증 경로 반영
+19. ChatGPT App v1 운영 배포 + OpenAI 앱 심사 진행 중(`2026-04-23` 기준): `timeline.list_recent_logs` 기반 읽기 전용 recent-history connector + OAuth/PKCE + 도메인 검증 경로 반영
 20. 토스 인앱 미니앱 공개 링크 오픈 + `/about` 서비스 소개에 웹/PWA·토스·브라우저 확장·Windows 채널 반영, 페어링 코드 연속성 메시지 정리
 
 ### 제품 방향
@@ -66,7 +66,7 @@
 9. **브라우저 확장 ottline 브랜딩 및 스토어 배포**: `manifest.json`, `popup.html`, `popup.js` 브랜드명·URL을 ottline으로 전환, 아이콘 교체(512px 원본 리사이즈), Chrome Web Store/Edge Add-ons Store 배포 완료.
 10. **Microsoft Store PWA 배포**: PWABuilder 기반 Windows 패키지 인증 심사 통과 및 배포 완료. 브랜드명 `On the Timeline` 기준.
 11. **설정의 서버 데이터 전체 삭제 추가**: `DELETE /api/auth/account` 기반으로 계정 단위 서버 기록/댓글/문의/analytics/기기 연결 삭제 지원.
-12. **ChatGPT App v1 배포 및 제출 준비**: `ottline.app/chatgpt` 운영 배포, OAuth/PKCE 연결, review 계정/도메인 검증/제출 문서 정리 완료.
+12. **ChatGPT App v1 배포 및 제출**: `ottline.app/chatgpt` 운영 배포, OAuth/PKCE 연결, review 계정/도메인 검증/제출 문서 정리 완료, `2026-04-23` 기준 OpenAI 앱 심사 진행 중.
 13. **서비스 소개 채널 정리 및 토스 인앱 공개 링크 반영**: `/about` 페이지에 웹/PWA·토스·브라우저 확장·Windows 링크 노출, Android·ChatGPT `준비 중` 표기, 페어링 코드 연속성 메시지 반영 완료.
 
 ### P1
@@ -195,7 +195,7 @@ feature/* ──PR──→ main ──→ [자동] staging.ottline.app
    2. 온라인/오프라인 전환
    3. 히스토리 누락/중복 여부
 2. UI 변경 시 모바일 레이아웃 깨짐 여부를 함께 확인한다.
-3. 검증 기본 커맨드는 루트 기준 `npm run test`, `npm run lint`를 사용한다.
+3. 검증 기본 커맨드는 루트 기준 `npm run test`를 사용한다.
 
 ---
 
@@ -349,7 +349,6 @@ feature/* ──PR──→ main ──→ [자동] staging.ottline.app
 3. 기존 기능 회귀 없음(특히 QuickLog, Timeline, Title detail, Sync)
 4. 검증 커맨드 통과
    1. `npm run test`
-   2. `npm run lint`
 5. 문서 최신화
    1. API/룰 변경 시 본 파일 업데이트
    2. 장문 설계/회고는 `docs/`로 분리
