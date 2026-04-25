@@ -4,6 +4,7 @@ import { NextIntlClientProvider } from "next-intl";
 import { getMessages, getTranslations } from "next-intl/server";
 import AppFooter from "@/components/AppFooter";
 import AppHeader from "@/components/AppHeader";
+import BottomNav from "@/components/BottomNav";
 import ChunkErrorHandler from "@/components/ChunkErrorHandler";
 import PwaInstallBanner from "@/components/PwaInstallBanner";
 import SwipeNav from "@/components/SwipeNav";
@@ -60,6 +61,7 @@ export async function generateMetadata({
 
 export const viewport: Viewport = {
   themeColor: "#1E4D8C",
+  viewportFit: "cover",
 };
 
 export default async function RootLayout({
@@ -186,8 +188,11 @@ export default async function RootLayout({
             <SwipeNav />
             <PwaInstallBanner />
             <SyncWorker />
-            <main className="mx-auto max-w-5xl px-4 py-8">{children}</main>
+            <main className="mx-auto max-w-5xl px-4 py-8 pb-[var(--mobile-bottom-content-padding)] sm:pb-8">
+              {children}
+            </main>
             <AppFooter />
+            <BottomNav />
           </ThemeProvider>
         </NextIntlClientProvider>
       </body>

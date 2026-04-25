@@ -151,7 +151,7 @@ export default function FeedbackInbox() {
             <select
               value={category}
               onChange={(e) => setCategory(e.target.value as FeedbackCategory)}
-              className="select-base w-full rounded-xl px-3 py-2 text-sm"
+              className="min-h-12 select-base w-full rounded-xl px-3 text-sm"
             >
               {categories.map((value) => (
                 <option key={value} value={value}>
@@ -167,7 +167,7 @@ export default function FeedbackInbox() {
               value={subject}
               onChange={(e) => setSubject(e.target.value)}
               placeholder={t("subjectPlaceholder")}
-              className="w-full rounded-xl border border-border bg-card px-3 py-2 text-sm outline-none"
+              className="min-h-12 w-full rounded-xl border border-border bg-card px-3 text-sm outline-none"
               maxLength={120}
             />
           </label>
@@ -191,7 +191,7 @@ export default function FeedbackInbox() {
             onClick={submitThread}
             disabled={submitting || !body.trim()}
             className={cn(
-              "inline-flex items-center justify-center rounded-2xl px-4 py-3 text-sm font-semibold transition-all",
+              "inline-flex min-h-[52px] w-full items-center justify-center rounded-2xl px-4 text-sm font-semibold transition-all md:w-auto md:min-w-36",
               "bg-neutral-900 text-white hover:bg-neutral-800 disabled:opacity-40",
             )}
           >
@@ -206,7 +206,9 @@ export default function FeedbackInbox() {
 
       <section className="grid gap-4 lg:grid-cols-[320px_minmax(0,1fr)]">
         <div className="rounded-2xl border border-border bg-card p-4 shadow-sm">
-          <div className="mb-3 text-sm font-semibold">{t("myThreadsTitle")}</div>
+          <div className="mb-3 text-sm font-semibold">
+            {t("myThreadsTitle")}
+          </div>
           {loading ? (
             <div className="text-sm text-muted-foreground">{t("loading")}</div>
           ) : threads.length === 0 ? (

@@ -1,25 +1,29 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
 import { Clock, Download, Sparkles, X } from "lucide-react";
 import Image from "next/image";
+import { useTranslations } from "next-intl";
+import { useEffect, useMemo, useState } from "react";
 import FiltersBar from "@/components/FiltersBar";
 import LogCard from "@/components/LogCard";
-import { apiWithAuth } from "@/lib/api";
-import { getUserId, listLogsLocal, upsertLogsLocal } from "@/lib/localStore";
-import { RecommendationItem, Status, WatchLog } from "@/lib/types";
-import { cn, statusOptionsForType } from "@/lib/utils";
-import { downloadTimelineCsv } from "@/lib/export";
 import { trackEvent } from "@/lib/analytics";
-import { useTranslations } from "next-intl";
+import { apiWithAuth } from "@/lib/api";
+import { downloadTimelineCsv } from "@/lib/export";
+import { getUserId, listLogsLocal, upsertLogsLocal } from "@/lib/localStore";
+import type { RecommendationItem, Status, WatchLog } from "@/lib/types";
+import { cn, statusOptionsForType } from "@/lib/utils";
 
 function buildQuery(params: Record<string, string | undefined>) {
   const qs = new URLSearchParams();
   for (const [k, v] of Object.entries(params)) {
-    if (v && v.trim()) qs.set(k, v.trim());
+    if (v?.trim()) qs.set(k, v.trim());
   }
   const s = qs.toString();
   return s ? `?${s}` : "";
+}
+
+function getErrorMessage(error: unknown, fallback: string) {
+  return error instanceof Error ? error.message : fallback;
 }
 
 const FUTURE_LOADING_MESSAGES_KO = [
@@ -37,7 +41,11 @@ const FUTURE_LOADING_MESSAGES_EN = [
   "Fetching posters...",
 ];
 
-function FutureLoadingSkeleton({ t }: { t: ReturnType<typeof useTranslations> }) {
+function FutureLoadingSkeleton({
+  t,
+}: {
+  t: ReturnType<typeof useTranslations>;
+}) {
   const [msgIdx, setMsgIdx] = useState(0);
   const messages = t("futureTitle").includes("미래")
     ? FUTURE_LOADING_MESSAGES_KO
@@ -161,7 +169,9 @@ function FutureTimelineSection({
     return t("typeBook");
   };
 
-  const visible = items.filter((item) => !dismissed.has(item.name.toLowerCase()));
+  const visible = items.filter(
+    (item) => !dismissed.has(item.name.toLowerCase()),
+  );
 
   return (
     <div className="space-y-3">
@@ -171,8 +181,9 @@ function FutureTimelineSection({
         disabled={loading || !canRefresh || items.length === 0}
         title={!canRefresh ? t("refreshCooldown") : undefined}
         className={cn(
-          "rounded-lg border border-border bg-card px-3 py-1.5 text-sm text-muted-foreground hover:bg-muted",
-          (loading || !canRefresh || items.length === 0) && "opacity-40 cursor-not-allowed",
+          "min-h-[52px] rounded-lg border border-border bg-card px-4 text-sm text-muted-foreground hover:bg-muted",
+          (loading || !canRefresh || items.length === 0) &&
+            "opacity-40 cursor-not-allowed",
         )}
       >
         {!canRefresh ? t("refreshCooldown") : t("refreshButton")}
@@ -194,9 +205,9 @@ function FutureTimelineSection({
 
       {!loading && visible.length > 0 && (
         <div className="grid grid-cols-1 gap-3">
-          {visible.map((item, i) => (
+          {visible.map((item) => (
             <div
-              key={i}
+              key={`${item.type}:${item.name}`}
               className="rounded-2xl border border-dashed border-primary/30 bg-card p-5 shadow-sm flex gap-5"
             >
               <div className="h-32 w-20 shrink-0 overflow-hidden rounded-xl bg-muted shadow-sm border border-border">
@@ -222,7 +233,7 @@ function FutureTimelineSection({
                   <button
                     type="button"
                     onClick={() => dismiss(item.name)}
-                    className="shrink-0 flex items-center gap-1 rounded-full border border-border px-2 py-0.5 text-xs text-muted-foreground hover:bg-muted"
+                    className="flex min-h-10 shrink-0 items-center gap-1 rounded-full border border-border px-3 text-xs text-muted-foreground hover:bg-muted"
                   >
                     <X className="h-3 w-3" />
                     {t("dismissButton")}
@@ -278,7 +289,9 @@ export default function TimelinePage() {
   const [futureLoading, setFutureLoading] = useState(false);
   const [futureError, setFutureError] = useState<string | null>(null);
 
-  useEffect(() => { setMounted(true); }, []);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     if (contentType === "ALL") {
@@ -330,9 +343,9 @@ export default function TimelinePage() {
           });
           if (!cancelled) setLogs(refreshed);
         }
-      } catch (e: any) {
+      } catch (error) {
         if (!cancelled) {
-          setErr(e?.message ?? "Failed to load logs");
+          setErr(getErrorMessage(error, "Failed to load logs"));
           if (!hadLocal) setLogs([]);
         }
       } finally {
@@ -369,12 +382,14 @@ export default function TimelinePage() {
       const params = new URLSearchParams();
       if (refresh) params.set("refresh", "true");
       const dismissed = getDismissed();
-      dismissed.forEach((name) => params.append("excluded", name));
+      dismissed.forEach((name) => {
+        params.append("excluded", name);
+      });
       const url = `/recommendations${params.toString() ? `?${params}` : ""}`;
       const items = await apiWithAuth<RecommendationItem[]>(url);
       setFutureItems(items);
-    } catch (e: any) {
-      setFutureError(e?.message ?? "error");
+    } catch (error) {
+      setFutureError(getErrorMessage(error, "error"));
     } finally {
       setFutureLoading(false);
     }
@@ -441,8 +456,8 @@ export default function TimelinePage() {
         tQuick,
       );
       setExportStatus(tAccount("statusExportSuccess"));
-    } catch (e: any) {
-      setExportStatus(e?.message ?? tAccount("statusExportFailed"));
+    } catch (error) {
+      setExportStatus(getErrorMessage(error, tAccount("statusExportFailed")));
     } finally {
       setExporting(false);
     }
@@ -470,8 +485,8 @@ export default function TimelinePage() {
   return (
     <div className="space-y-4">
       <div>
-        <div className="flex items-center justify-between">
-          <div className="text-xl font-semibold flex items-center gap-2">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-2 text-xl font-semibold">
             {futureMode ? (
               <Sparkles className="h-5 w-5 text-primary" />
             ) : (
@@ -479,13 +494,15 @@ export default function TimelinePage() {
             )}
             {headerTitle}
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {mounted && getUserId() && !futureMode && (
               <button
                 type="button"
                 onClick={enterFutureMode}
-                style={{ background: "linear-gradient(to right, #7c3aed, #4f46e5)" }}
-                className="rounded-xl px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:opacity-90 transition-opacity"
+                style={{
+                  background: "linear-gradient(to right, #7c3aed, #4f46e5)",
+                }}
+                className="min-h-[52px] rounded-xl px-4 text-xs font-semibold text-white shadow-sm transition-opacity hover:opacity-90"
               >
                 <span className="flex items-center gap-1.5">
                   <Sparkles className="h-3.5 w-3.5" />
@@ -501,7 +518,7 @@ export default function TimelinePage() {
                 title={tTimeline("exportCsv")}
                 aria-label={tTimeline("exportCsv")}
                 className={cn(
-                  "rounded-lg border border-border bg-card px-2 py-1 text-muted-foreground hover:bg-muted",
+                  "flex min-h-[52px] min-w-[52px] items-center justify-center rounded-lg border border-border bg-card text-muted-foreground hover:bg-muted",
                   exporting && "opacity-40",
                 )}
               >
@@ -512,7 +529,7 @@ export default function TimelinePage() {
               <button
                 type="button"
                 onClick={() => setFutureMode(false)}
-                className="rounded-lg border border-border bg-card px-3 py-1 text-xs text-muted-foreground hover:bg-muted"
+                className="min-h-[52px] rounded-lg border border-border bg-card px-4 text-sm text-muted-foreground hover:bg-muted"
               >
                 {tTimeline("backButton")}
               </button>
@@ -520,14 +537,10 @@ export default function TimelinePage() {
           </div>
         </div>
         {headerSubtitle && (
-          <div className="text-sm text-muted-foreground">
-            {headerSubtitle}
-          </div>
+          <div className="text-sm text-muted-foreground">{headerSubtitle}</div>
         )}
         {exportStatus ? (
-          <div className="text-sm text-muted-foreground">
-            {exportStatus}
-          </div>
+          <div className="text-sm text-muted-foreground">{exportStatus}</div>
         ) : null}
       </div>
 
@@ -589,7 +602,9 @@ export default function TimelinePage() {
                           {group.items.length}
                         </span>
                         <span>
-                          {contentType === "book" ? tTimeline("unitBook") : tTimeline("unitVideo")}
+                          {contentType === "book"
+                            ? tTimeline("unitBook")
+                            : tTimeline("unitVideo")}
                           {statusLabel || tStatus("DONE")}
                         </span>
                       </>

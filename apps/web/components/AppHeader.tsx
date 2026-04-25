@@ -16,6 +16,7 @@ import { type ComponentProps, startTransition } from "react";
 import { useTheme } from "@/context/ThemeContext";
 import { Link as IntlLink, usePathname, useRouter } from "@/i18n/routing";
 import { cn } from "@/lib/utils";
+import { useMobileBottomNav } from "./useMobileBottomNav";
 
 const localeOptions = [
   { value: "ko", shortLabel: "KO", labelKey: "languageKorean" },
@@ -81,6 +82,7 @@ export default function AppHeader() {
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const useBottomNav = useMobileBottomNav();
 
   const ThemeIcon = mode === "system" ? Monitor : mode === "dark" ? Moon : Sun;
   const themeLabel =
@@ -141,7 +143,7 @@ export default function AppHeader() {
 
           <div className="flex items-center gap-2">
             <fieldset
-              className="flex items-center rounded-full border border-border bg-background/80 p-1"
+              className="flex items-center rounded-full border border-border bg-background/80 p-0.5"
               aria-label={t("languageSwitcher")}
             >
               <legend className="sr-only">{t("languageSwitcher")}</legend>
@@ -156,7 +158,7 @@ export default function AppHeader() {
                     lang={value}
                     onClick={() => handleLocaleChange(value)}
                     className={cn(
-                      "rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                      "min-h-9 min-w-9 rounded-full px-2.5 text-[10px] font-semibold uppercase tracking-[0.14em] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:min-h-8 sm:min-w-8",
                       active
                         ? "bg-foreground text-background"
                         : "text-muted-foreground hover:bg-muted hover:text-foreground",
@@ -182,7 +184,7 @@ export default function AppHeader() {
             <button
               type="button"
               onClick={toggleTheme}
-              className="rounded-md p-2 text-foreground/70 transition hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="flex min-h-11 min-w-11 items-center justify-center rounded-md p-2 text-foreground/70 transition hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:min-h-9 sm:min-w-9"
               title={t("themeClickToChange", { theme: themeLabel })}
               aria-label={t("themeChangeCurrent", { theme: themeLabel })}
             >
@@ -191,7 +193,12 @@ export default function AppHeader() {
           </div>
         </div>
 
-        <nav className="grid w-full grid-cols-4 items-center gap-1 sm:w-auto sm:flex sm:flex-nowrap sm:gap-2">
+        <nav
+          className={cn(
+            "w-full grid-cols-4 items-center gap-1 sm:w-auto sm:flex sm:flex-nowrap sm:gap-2",
+            useBottomNav ? "hidden" : "grid",
+          )}
+        >
           <NavLink href="/" label={t("navLogModern")} icon={PencilLine} />
           <NavLink
             href="/timeline"

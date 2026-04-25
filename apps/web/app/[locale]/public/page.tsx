@@ -1,11 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { MessageCircle } from "lucide-react";
+import { useTranslations } from "next-intl";
+import { useEffect, useState } from "react";
 import DiscussionList from "@/components/DiscussionList";
 import { api } from "@/lib/api";
-import { DiscussionListItem } from "@/lib/types";
-import { useTranslations } from "next-intl";
+import type { DiscussionListItem } from "@/lib/types";
+
+function getErrorMessage(error: unknown, fallback: string) {
+  return error instanceof Error ? error.message : fallback;
+}
 
 export default function PublicDiscussionsPage() {
   const tPublic = useTranslations("Public");
@@ -32,8 +36,8 @@ export default function PublicDiscussionsPage() {
           "/discussions/all?limit=100",
         );
         setItems(res);
-      } catch (e: any) {
-        setErr(e?.message ?? tPublic("loadError"));
+      } catch (error) {
+        setErr(getErrorMessage(error, tPublic("loadError")));
         setItems([]);
       } finally {
         setLoading(false);
@@ -55,9 +59,7 @@ export default function PublicDiscussionsPage() {
           <MessageCircle className="h-5 w-5" />
           {headerTitle}
         </div>
-        <div className="text-sm text-muted-foreground">
-          {headerSubtitle}
-        </div>
+        <div className="text-sm text-muted-foreground">{headerSubtitle}</div>
       </div>
 
       <div className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-4 shadow-sm md:flex-row md:items-center md:justify-between">
@@ -65,14 +67,14 @@ export default function PublicDiscussionsPage() {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder={tPublic("searchPlaceholder")}
-          className="w-full rounded-xl border border-border bg-card px-3 py-2 text-sm outline-none md:w-72"
+          className="min-h-12 w-full rounded-xl border border-border bg-card px-3 text-sm outline-none md:w-72"
         />
-        <div className="flex items-center gap-2">
+        <div className="flex w-full items-center justify-between gap-2 md:w-auto">
           <div className="text-xs text-neutral-500">{tPublic("sortLabel")}</div>
           <select
             value={sort}
             onChange={(e) => setSort(e.target.value as "latest" | "comments")}
-            className="select-base rounded-xl px-3 py-2 text-xs"
+            className="min-h-12 select-base rounded-xl px-3 text-sm"
           >
             <option value="latest">{tPublic("sortLatest")}</option>
             <option value="comments">{tPublic("sortComments")}</option>

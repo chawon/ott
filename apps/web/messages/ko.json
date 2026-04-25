@@ -455,9 +455,7 @@
     "loading": "로딩 중...",
     "emptyFootprints": "아직 발자취가 없어. 위에서 날적이 하나 남겨봐~",
     "emptyRecords": "첫 기록을 남겨보세요. 타임라인이 바로 시작돼요.",
-    "publicTitleModern": "요즘 함께 하는 기록들",
-    "toggleFold": "접기",
-    "toggleExpand": "펼치기"
+    "publicTitleModern": "요즘 함께 하는 기록들"
   },
   "DiscussionDetail": {
     "loadError": "함께 기록을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.",

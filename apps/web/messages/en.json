@@ -455,9 +455,7 @@
     "loading": "Loading...",
     "emptyFootprints": "No footprints yet. Leave a log above!",
     "emptyRecords": "Leave your first log. Your timeline starts here.",
-    "publicTitleModern": "Records shared together",
-    "toggleFold": "Fold",
-    "toggleExpand": "Expand"
+    "publicTitleModern": "Records shared together"
   },
   "DiscussionDetail": {
     "loadError": "Failed to load shared record. Please try again later.",
