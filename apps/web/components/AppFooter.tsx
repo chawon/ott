@@ -9,7 +9,7 @@ export default async function AppFooter() {
   return (
     <footer
       className={cn(
-        "mt-20 border-t py-12",
+        "mt-20 border-t py-12 pb-[var(--mobile-bottom-content-padding)] sm:pb-12",
         "border-border bg-muted/60 dark:bg-card/80",
       )}
     >
@@ -25,10 +25,7 @@ export default async function AppFooter() {
               {t("titleModern")}
             </div>
             <p
-              className={cn(
-                "text-xs leading-relaxed",
-                "text-muted-foreground",
-              )}
+              className={cn("text-xs leading-relaxed", "text-muted-foreground")}
             >
               {t("descriptionModern")}
             </p>
@@ -43,12 +40,7 @@ export default async function AppFooter() {
             >
               {t("sectionServiceModern")}
             </h3>
-            <ul
-              className={cn(
-                "space-y-2 text-xs",
-                "text-muted-foreground",
-              )}
-            >
+            <ul className={cn("space-y-2 text-xs", "text-muted-foreground")}>
               <li>
                 <IntlLink href="/" className="hover:underline">
                   {t("linkLogModern")}
@@ -76,12 +68,7 @@ export default async function AppFooter() {
             >
               {t("sectionGuideModern")}
             </h3>
-            <ul
-              className={cn(
-                "space-y-2 text-xs",
-                "text-muted-foreground",
-              )}
-            >
+            <ul className={cn("space-y-2 text-xs", "text-muted-foreground")}>
               <li>
                 <IntlLink href="/about" className="hover:underline">
                   {t("linkAboutModern")}
@@ -105,15 +92,9 @@ export default async function AppFooter() {
             </ul>
           </div>
 
-          <div
-            className={cn(
-              "space-y-4 text-xs",
-              "text-muted-foreground",
-            )}
-          >
+          <div className={cn("space-y-4 text-xs", "text-muted-foreground")}>
             <p>
-              © {currentYear} {t("titleModern")}.{" "}
-              {t("allRightsReserved")}
+              © {currentYear} {t("titleModern")}. {t("allRightsReserved")}
             </p>
             <a
               href="mailto:contact@ottline.app"

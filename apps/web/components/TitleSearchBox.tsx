@@ -1,10 +1,14 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "@/lib/api";
-import { DiscussionListItem, TitleSearchItem } from "@/lib/types";
-import { useTranslations } from "next-intl";
+import type { DiscussionListItem, TitleSearchItem } from "@/lib/types";
 import { cn, tmdbResize } from "@/lib/utils";
+
+function errorMessage(error: unknown, fallback: string) {
+  return error instanceof Error ? error.message : fallback;
+}
 
 export default function TitleSearchBox({
   onSelect,
@@ -32,6 +36,7 @@ export default function TitleSearchBox({
   const [recentLoading, setRecentLoading] = useState(false);
   const [recentErr, setRecentErr] = useState<string | null>(null);
   const rootRef = useRef<HTMLDivElement | null>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
   const consumedInitialRef = useRef<string | null>(null);
 
   const query = useMemo(() => q.trim(), [q]);
@@ -52,6 +57,7 @@ export default function TitleSearchBox({
       setItems([]);
       setErr(null);
       setLoading(false);
+      setActiveIndex(0);
       return;
     }
 
@@ -66,11 +72,15 @@ export default function TitleSearchBox({
         const res = await api<TitleSearchItem[]>(
           `/titles/search?q=${encodeURIComponent(query)}${typeQuery}`,
         );
-        if (!cancelled) setItems(res);
-      } catch (e: any) {
+        if (!cancelled) {
+          setItems(res);
+          setActiveIndex(0);
+        }
+      } catch (e: unknown) {
         if (!cancelled) {
           setItems([]);
-          setErr(e?.message ?? "Search failed");
+          setActiveIndex(0);
+          setErr(errorMessage(e, "Search failed"));
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -96,10 +106,10 @@ export default function TitleSearchBox({
           "/discussions/latest?limit=6&days=14",
         );
         if (!cancelled) setRecent(res);
-      } catch (e: any) {
+      } catch (e: unknown) {
         if (!cancelled) {
           setRecent([]);
-          setRecentErr(e?.message ?? "Failed to load discussions");
+          setRecentErr(errorMessage(e, "Failed to load discussions"));
         }
       } finally {
         if (!cancelled) setRecentLoading(false);
@@ -154,16 +164,18 @@ export default function TitleSearchBox({
     open && (loading || err || items.length > 0 || showRecentPanel);
 
   useEffect(() => {
-    setActiveIndex(0);
-  }, [items]);
+    if (!autoFocus) return;
+    inputRef.current?.focus();
+    setOpen(true);
+  }, [autoFocus]);
 
   const modernPlaceholder = placeholder || tTitleSearch("defaultPlaceholder");
 
   return (
     <div ref={rootRef} className="relative">
       <input
+        ref={inputRef}
         value={q}
-        autoFocus={autoFocus}
         onChange={(e) => {
           setQ(e.target.value);
           setOpen(true);
@@ -191,24 +203,20 @@ export default function TitleSearchBox({
         placeholder={modernPlaceholder}
         className={cn(
           "w-full transition-all outline-none",
-          "rounded-xl border border-border bg-card px-4 py-3 text-sm text-foreground focus:ring-2 focus:ring-ring/40 focus:border-border placeholder:text-muted-foreground",
+          "min-h-12 rounded-xl border border-border bg-card px-4 py-3 text-sm text-foreground focus:ring-2 focus:ring-ring/40 focus:border-border placeholder:text-muted-foreground",
         )}
       />
 
       {showPanel && (
         <div
           className={cn(
-            "absolute z-50 mt-2 w-full max-h-[70vh] overflow-auto bg-card text-card-foreground",
+            "absolute z-50 mt-2 w-full max-h-[calc(100dvh-var(--mobile-bottom-nav-height)-9rem)] overflow-auto bg-card text-card-foreground sm:max-h-[70vh]",
             "rounded-xl border border-border shadow-xl",
           )}
           data-onboarding-target="title-search-panel"
         >
           {showRecentPanel ? (
-            <div
-              className={cn(
-                "border-b border-border",
-              )}
-            >
+            <div className={cn("border-b border-border")}>
               <div
                 className={cn(
                   "px-4 py-2 text-[10px] font-bold uppercase tracking-widest",
@@ -272,19 +280,13 @@ export default function TitleSearchBox({
                           <img
                             src={tmdbResize(d.posterUrl, "w185") ?? d.posterUrl}
                             alt={d.titleName}
-                            className={cn(
-                              "h-full w-full object-cover",
-                            )}
+                            className={cn("h-full w-full object-cover")}
                             loading="lazy"
                           />
                         ) : null}
                       </div>
                       <div className="min-w-0 flex-1">
-                        <div
-                          className={cn(
-                            "truncate text-sm font-bold",
-                          )}
-                        >
+                        <div className={cn("truncate text-sm font-bold")}>
                           {d.titleName}
                         </div>
                         <div
@@ -313,7 +315,9 @@ export default function TitleSearchBox({
           ) : null}
 
           {loading && (
-            <div className="px-4 py-3 text-sm font-bold">{tTitleSearch("searchLoading")}</div>
+            <div className="px-4 py-3 text-sm font-bold">
+              {tTitleSearch("searchLoading")}
+            </div>
           )}
 
           {!loading && err && (
@@ -353,9 +357,7 @@ export default function TitleSearchBox({
                   onMouseEnter={() => setActiveIndex(idx)}
                   className={cn(
                     "flex w-full items-center gap-4 px-4 py-3 text-left transition-colors",
-                    idx === activeIndex
-                      ? "bg-muted"
-                      : "hover:bg-muted",
+                    idx === activeIndex ? "bg-muted" : "hover:bg-muted",
                   )}
                 >
                   <div
@@ -368,20 +370,14 @@ export default function TitleSearchBox({
                       <img
                         src={tmdbResize(t.posterUrl, "w185") ?? t.posterUrl}
                         alt={t.name}
-                        className={cn(
-                          "h-full w-full object-cover",
-                        )}
+                        className={cn("h-full w-full object-cover")}
                         loading="lazy"
                       />
                     ) : null}
                   </div>
 
                   <div className="min-w-0 flex-1">
-                    <div
-                      className={cn(
-                        "truncate text-sm font-bold",
-                      )}
-                    >
+                    <div className={cn("truncate text-sm font-bold")}>
                       {t.name}
                     </div>
                     <div

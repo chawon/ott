@@ -12,10 +12,10 @@
     "Pretendard Variable", Pretendard, "Poppins", -apple-system, BlinkMacSystemFont, system-ui, Roboto, "Helvetica Neue", "Segoe UI", "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", sans-serif;
   --font-mono: var(--font-geist-mono);
 
-  --color-brand-navy: #1E4D8C;
-  --color-brand-cyan: #38BDF8;
-  --color-brand-bg-light: #F0F6FF;
-  --color-brand-bg-dark: #0F1E3D;
+  --color-brand-navy: #1e4d8c;
+  --color-brand-cyan: #38bdf8;
+  --color-brand-bg-light: #f0f6ff;
+  --color-brand-bg-dark: #0f1e3d;
 
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
@@ -58,6 +58,10 @@
 :root {
   /* Keep a stable scrollbar gutter to prevent horizontal layout jump on route changes */
   scrollbar-gutter: stable;
+  --mobile-safe-area-bottom: env(safe-area-inset-bottom, 0px);
+  --mobile-bottom-nav-height: 0px;
+  --mobile-bottom-content-padding: 2rem;
+  --mobile-bottom-overlay-offset: 1.5rem;
   --radius: 0.625rem;
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
@@ -90,6 +94,17 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+}
+
+@media (max-width: 639.98px) and (pointer: coarse) {
+  :root {
+    --mobile-bottom-nav-height: calc(4rem + var(--mobile-safe-area-bottom));
+    --mobile-bottom-content-padding: calc(
+      var(--mobile-bottom-nav-height) +
+      1.5rem
+    );
+    --mobile-bottom-overlay-offset: calc(var(--mobile-bottom-nav-height) + 1rem);
+  }
 }
 
 .dark {
@@ -144,4 +159,3 @@
     @apply border border-border bg-card text-foreground outline-none;
   }
 }
-

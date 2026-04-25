@@ -1,9 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import Link from "next/link";
 import { Settings } from "lucide-react";
+import Link from "next/link";
+import { useLocale, useTranslations } from "next-intl";
+import { useCallback, useEffect, useState } from "react";
+import { Link as IntlLink } from "@/i18n/routing";
+import { api } from "@/lib/api";
 import { pairWithCode } from "@/lib/auth";
+import { downloadTimelineCsv } from "@/lib/export";
 import {
   getDeviceId,
   getPairingCode,
@@ -11,12 +15,20 @@ import {
   listAllLogsLocal,
   resetLocalState,
 } from "@/lib/localStore";
-import { api } from "@/lib/api";
+import type { WatchLog } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { downloadTimelineCsv } from "@/lib/export";
-import { Link as IntlLink } from "@/i18n/routing";
 
-import { useLocale, useTranslations } from "next-intl";
+type DeviceSummary = {
+  id: string;
+  browser?: string | null;
+  os?: string | null;
+  createdAt: string;
+  lastSeenAt: string;
+};
+
+function getErrorMessage(error: unknown, fallback: string) {
+  return error instanceof Error ? error.message : fallback;
+}
 
 export default function AccountPage() {
   const tAccount = useTranslations("Account");
@@ -32,13 +44,23 @@ export default function AccountPage() {
   const [status, setStatus] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [initializing, setInitializing] = useState(true);
-  const [devices, setDevices] = useState<any[]>([]);
-  const [logs, setLogs] = useState<any[]>([]);
+  const [devices, setDevices] = useState<DeviceSummary[]>([]);
+  const [logs, setLogs] = useState<WatchLog[]>([]);
   const [exportRange, setExportRange] = useState<"ALL" | "video" | "book">(
     "ALL",
   );
   const [exporting, setExporting] = useState(false);
   const [exportStatus, setExportStatus] = useState<string | null>(null);
+
+  const loadDevices = useCallback(async () => {
+    if (!getUserId()) return;
+    try {
+      const res = await api<DeviceSummary[]>("/auth/devices");
+      setDevices(res);
+    } catch {
+      // ignore
+    }
+  }, []);
 
   useEffect(() => {
     setUserId(getUserId());
@@ -47,17 +69,7 @@ export default function AccountPage() {
     setInitializing(false);
     loadDevices();
     listAllLogsLocal().then(setLogs);
-  }, []);
-
-  async function loadDevices() {
-    if (!getUserId()) return;
-    try {
-      const res = await api<any[]>("/auth/devices");
-      setDevices(res);
-    } catch {
-      // ignore
-    }
-  }
+  }, [loadDevices]);
 
   async function handlePair() {
     if (!input.trim() || loading) return;
@@ -67,8 +79,8 @@ export default function AccountPage() {
       await pairWithCode(input.trim());
       setStatus(tAccount("statusConnected"));
       await loadDevices();
-    } catch (e: any) {
-      setStatus(e?.message ?? tAccount("statusConnectFailed"));
+    } catch (error) {
+      setStatus(getErrorMessage(error, tAccount("statusConnectFailed")));
     } finally {
       setLoading(false);
     }
@@ -87,8 +99,8 @@ export default function AccountPage() {
         setStatus(tAccount("statusUnlinked"));
         await loadDevices();
       }
-    } catch (e: any) {
-      setStatus(e?.message ?? tAccount("statusUnlinkFailed"));
+    } catch (error) {
+      setStatus(getErrorMessage(error, tAccount("statusUnlinkFailed")));
     } finally {
       setLoading(false);
     }
@@ -102,8 +114,8 @@ export default function AccountPage() {
       await resetLocalState();
       setStatus(tAccount("statusResetAll"));
       window.location.reload();
-    } catch (e: any) {
-      setStatus(e?.message ?? tAccount("statusResetFailed"));
+    } catch (error) {
+      setStatus(getErrorMessage(error, tAccount("statusResetFailed")));
     } finally {
       setLoading(false);
     }
@@ -126,8 +138,8 @@ export default function AccountPage() {
       await resetLocalState();
       setStatus(tAccount("statusAccountDeleted"));
       window.location.reload();
-    } catch (e: any) {
-      setStatus(e?.message ?? tAccount("statusAccountDeleteFailed"));
+    } catch (error) {
+      setStatus(getErrorMessage(error, tAccount("statusAccountDeleteFailed")));
     } finally {
       setLoading(false);
     }
@@ -164,8 +176,8 @@ export default function AccountPage() {
         tQuick,
       );
       setExportStatus(tAccount("statusExportSuccess"));
-    } catch (e: any) {
-      setExportStatus(e?.message ?? tAccount("statusExportFailed"));
+    } catch (error) {
+      setExportStatus(getErrorMessage(error, tAccount("statusExportFailed")));
     } finally {
       setExporting(false);
     }
@@ -241,7 +253,9 @@ export default function AccountPage() {
               "rounded-xl bg-muted/50",
             )}
           >
-            {initializing ? tAccount("pairingCodeLoading") : (pairingCode ?? "—")}
+            {initializing
+              ? tAccount("pairingCodeLoading")
+              : (pairingCode ?? "—")}
           </div>
           <p className="text-xs text-muted-foreground">
             {logs.length > 0
@@ -259,21 +273,22 @@ export default function AccountPage() {
           <div className="text-sm font-semibold">
             {tAccount("connectDevice")}
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-col gap-2 sm:flex-row">
             <input
               value={input}
               onChange={(e) => setInput(e.target.value.toUpperCase())}
               placeholder={tAccount("pairingCodePlaceholder")}
               className={cn(
-                "flex-1 px-3 py-2 text-sm outline-none",
+                "min-h-12 flex-1 px-3 text-sm outline-none",
                 "rounded-xl border border-border bg-card focus:ring-2 focus:ring-ring/40",
               )}
             />
             <button
+              type="button"
               onClick={handlePair}
               disabled={loading || !input.trim()}
               className={cn(
-                "px-4 py-2 text-sm font-bold transition-all",
+                "min-h-[52px] px-5 text-sm font-bold transition-all",
                 "rounded-xl bg-neutral-900 text-white hover:bg-neutral-800 disabled:opacity-40",
               )}
             >
@@ -288,7 +303,9 @@ export default function AccountPage() {
 
       <section className="space-y-4 rounded-2xl border border-border bg-card p-6 shadow-sm">
         <div>
-          <div className="text-base font-semibold">{tAccount("feedbackTitle")}</div>
+          <div className="text-base font-semibold">
+            {tAccount("feedbackTitle")}
+          </div>
           <p className="text-sm text-muted-foreground">
             {tAccount("feedbackDesc")}
           </p>
@@ -305,7 +322,9 @@ export default function AccountPage() {
       </section>
 
       <section className="space-y-4 rounded-2xl border border-border bg-card p-6 shadow-sm">
-        <div className="text-sm font-semibold">{tAccount("accountInfoLabel")}</div>
+        <div className="text-sm font-semibold">
+          {tAccount("accountInfoLabel")}
+        </div>
         <div className="space-y-2 text-xs text-muted-foreground">
           <div className="flex justify-between">
             <span>User ID</span>
@@ -315,15 +334,15 @@ export default function AccountPage() {
             <span>Device ID</span>
             <span className="font-mono">{deviceId?.slice(0, 8) ?? "—"}</span>
           </div>
-          <p className="mt-2 opacity-70">
-            {tAccount("accountInfoNotice")}
-          </p>
+          <p className="mt-2 opacity-70">{tAccount("accountInfoNotice")}</p>
         </div>
       </section>
 
       <section className="space-y-4 rounded-2xl border border-border bg-card p-6 shadow-sm">
         <div>
-          <div className="text-sm font-semibold">{tAccount("resetLocalTitle")}</div>
+          <div className="text-sm font-semibold">
+            {tAccount("resetLocalTitle")}
+          </div>
           <p className="text-xs text-muted-foreground">
             {tAccount("resetLocalDesc")}
           </p>
@@ -332,7 +351,7 @@ export default function AccountPage() {
           type="button"
           onClick={handleResetLocal}
           className={cn(
-            "w-full py-3 text-sm font-bold transition-all rounded-2xl border border-red-200 bg-red-50 text-red-600 hover:bg-red-100",
+            "min-h-[52px] w-full text-sm font-bold transition-all rounded-2xl border border-red-200 bg-red-50 text-red-600 hover:bg-red-100",
           )}
         >
           {tAccount("resetLocalAction")}
@@ -341,7 +360,9 @@ export default function AccountPage() {
 
       <section className="space-y-4 rounded-2xl border border-border bg-card p-6 shadow-sm">
         <div>
-          <div className="text-base font-semibold">{tAccount("exportTitle")}</div>
+          <div className="text-base font-semibold">
+            {tAccount("exportTitle")}
+          </div>
           <p className="text-sm text-muted-foreground">
             {logs.length > 0
               ? tAccount("exportDescModern")
@@ -361,7 +382,7 @@ export default function AccountPage() {
                   type="button"
                   onClick={() => setExportRange(r)}
                   className={cn(
-                    "rounded-xl border py-2 text-xs font-medium transition-all",
+                    "min-h-[52px] rounded-xl border px-2 text-xs font-medium transition-all",
                     exportRange === r
                       ? "border-indigo-600 bg-indigo-50 text-indigo-700 dark:bg-indigo-950/30"
                       : "border-border bg-card text-muted-foreground hover:bg-muted",
@@ -382,7 +403,7 @@ export default function AccountPage() {
             onClick={exportLogs}
             disabled={exporting || logs.length === 0}
             className={cn(
-              "w-full rounded-2xl bg-neutral-900 py-3 text-sm font-semibold text-white transition-all hover:bg-neutral-800 disabled:opacity-40",
+              "min-h-[52px] w-full rounded-2xl bg-neutral-900 text-sm font-semibold text-white transition-all hover:bg-neutral-800 disabled:opacity-40",
             )}
           >
             {exporting ? tAccount("exporting") : tAccount("exportAction")}
@@ -412,7 +433,7 @@ export default function AccountPage() {
           onClick={deleteAccount}
           disabled={loading || !userId}
           className={cn(
-            "w-full py-3 text-sm font-bold transition-all rounded-2xl border border-red-300 bg-red-600 text-white hover:bg-red-700 disabled:opacity-40",
+            "min-h-[52px] w-full text-sm font-bold transition-all rounded-2xl border border-red-300 bg-red-600 text-white hover:bg-red-700 disabled:opacity-40",
           )}
         >
           {tAccount("deleteAccountAction")}
@@ -420,7 +441,9 @@ export default function AccountPage() {
       </section>
 
       <section className="space-y-4 rounded-2xl border border-border bg-card p-6 shadow-sm">
-        <div className="text-sm font-semibold">{tAccount("connectedDevices")}</div>
+        <div className="text-sm font-semibold">
+          {tAccount("connectedDevices")}
+        </div>
         <div className="space-y-3">
           {devices.length === 0 ? (
             <div className="flex h-32 flex-col items-center justify-center rounded-xl border border-dashed border-border bg-muted/30 p-6 text-center text-sm text-muted-foreground">
@@ -433,7 +456,7 @@ export default function AccountPage() {
                 <div
                   key={d.id}
                   className={cn(
-                    "flex items-center justify-between rounded-xl border p-3",
+                    "flex flex-col gap-3 rounded-xl border p-3 sm:flex-row sm:items-center sm:justify-between",
                     isCurrent
                       ? "border-indigo-200 bg-indigo-50/30 dark:bg-indigo-950/10"
                       : "border-border",
@@ -442,10 +465,13 @@ export default function AccountPage() {
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-bold text-foreground">
-                        {isCurrent ? tAccount("currentDevice") : tAccount("otherDevice")}
+                        {isCurrent
+                          ? tAccount("currentDevice")
+                          : tAccount("otherDevice")}
                       </span>
                       <span className="text-[10px] text-muted-foreground">
-                        {d.browser ?? tAccount("browser")} · {d.os ?? tAccount("os")}
+                        {d.browser ?? tAccount("browser")} ·{" "}
+                        {d.os ?? tAccount("os")}
                       </span>
                     </div>
                     <div className="text-xs text-muted-foreground">
@@ -463,7 +489,7 @@ export default function AccountPage() {
                       type="button"
                       onClick={() => revokeDevice(d.id)}
                       disabled={loading}
-                      className="shrink-0 text-xs font-bold transition-colors text-red-600 hover:text-red-700"
+                      className="min-h-12 shrink-0 rounded-xl border border-red-200 px-3 text-xs font-bold text-red-600 transition-colors hover:bg-red-50 hover:text-red-700"
                     >
                       {tAccount("unlinkAction")}
                     </button>
@@ -482,7 +508,7 @@ export default function AccountPage() {
               type="button"
               onClick={revokeAll}
               disabled={loading}
-              className="mt-2 w-full py-3 text-xs font-bold transition-all rounded-2xl border border-border bg-card text-muted-foreground hover:bg-muted hover:text-foreground"
+              className="mt-2 min-h-[52px] w-full text-xs font-bold transition-all rounded-2xl border border-border bg-card text-muted-foreground hover:bg-muted hover:text-foreground"
             >
               {tAccount("unlinkAllAction")}
             </button>

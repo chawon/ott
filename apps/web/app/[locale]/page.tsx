@@ -1,13 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { MessageCircle, PencilLine, NotebookPen } from "lucide-react";
+import { MessageCircle, NotebookPen, PencilLine } from "lucide-react";
 import Link from "next/link";
-import QuickLogCard from "@/components/QuickLogCard";
+import { useTranslations } from "next-intl";
+import { useCallback, useEffect, useState } from "react";
+import DiscussionList from "@/components/DiscussionList";
 import LogCard from "@/components/LogCard";
+import QuickLogCard from "@/components/QuickLogCard";
 import ShareBottomSheet from "@/components/ShareBottomSheet";
 import { api, apiWithAuth } from "@/lib/api";
-import DiscussionList from "@/components/DiscussionList";
 import { getUserId, listLogsLocal, upsertLogsLocal } from "@/lib/localStore";
 import {
   extractShareIntentUrls,
@@ -16,15 +17,12 @@ import {
   sanitizeResolvedTitle,
 } from "@/lib/shareIntent";
 import type { DiscussionListItem, WatchLog } from "@/lib/types";
-import { useTranslations } from "next-intl";
 
 export default function HomePage() {
   const tHome = useTranslations("HomePage");
   const [logs, setLogs] = useState<WatchLog[]>([]);
   const [loading, setLoading] = useState(false);
-  const [bootstrapped, setBootstrapped] = useState(false);
   const [discussions, setDiscussions] = useState<DiscussionListItem[]>([]);
-  const [quickOpen, setQuickOpen] = useState(true);
   const [quickType, setQuickType] = useState<"video" | "book">("video");
   const [shareOpen, setShareOpen] = useState(false);
   const [shareLog, setShareLog] = useState<WatchLog | null>(null);
@@ -50,7 +48,6 @@ export default function HomePage() {
 
       if (quickEnabled) {
         if (!cancelled) {
-          setQuickOpen(true);
           if (quickTypeParam === "book" || quickTypeParam === "video") {
             setQuickType(quickTypeParam);
           }
@@ -62,7 +59,6 @@ export default function HomePage() {
 
       if (captureTitle && !cancelled) {
         setSharedQuery(captureTitle);
-        setQuickOpen(true);
         setAutoFocusSearch(true);
         if (captureType === "book" || captureType === "video") {
           setSharedContentType(captureType);
@@ -82,7 +78,6 @@ export default function HomePage() {
         if (!cancelled) {
           setSharedQuery(parsed.query);
           setSharedContentType(parsed.contentType);
-          setQuickOpen(true);
         }
         return;
       }
@@ -103,7 +98,6 @@ export default function HomePage() {
         if (!title || cancelled) return;
         setSharedQuery(title.slice(0, 160));
         setSharedContentType("video");
-        setQuickOpen(true);
       } catch {
         // ignore resolver failures
       }
@@ -114,7 +108,7 @@ export default function HomePage() {
     };
   }, []);
 
-  async function loadDiscussions() {
+  const loadDiscussions = useCallback(async () => {
     try {
       const latest = await api<DiscussionListItem[]>(
         "/discussions/latest?limit=6&days=14",
@@ -123,7 +117,7 @@ export default function HomePage() {
     } catch {
       setDiscussions([]);
     }
-  }
+  }, []);
 
   useEffect(() => {
     (async () => {
@@ -142,14 +136,13 @@ export default function HomePage() {
         // keep cached logs if network fails
       } finally {
         setLoading(false);
-        setBootstrapped(true);
       }
     })();
   }, []);
 
   useEffect(() => {
     loadDiscussions();
-  }, []);
+  }, [loadDiscussions]);
 
   useEffect(() => {
     function handleSync() {
@@ -158,7 +151,7 @@ export default function HomePage() {
     }
     window.addEventListener("sync:updated", handleSync);
     return () => window.removeEventListener("sync:updated", handleSync);
-  }, []);
+  }, [loadDiscussions]);
 
   return (
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
@@ -176,33 +169,23 @@ export default function HomePage() {
                 {tHome("heroTimelineDesc")}
               </p>
             </div>
-            <button
-              type="button"
-              onClick={() => setQuickOpen((v) => !v)}
-              className="text-sm font-medium text-muted-foreground hover:text-foreground"
-              aria-expanded={quickOpen}
-            >
-              {quickOpen ? tHome("toggleFold") : tHome("toggleExpand")}
-            </button>
           </div>
-          {quickOpen ? (
-            <QuickLogCard
-              onCreated={async (created, options) => {
-                setLogs((prev) => [created, ...prev].slice(0, 8));
-                await upsertLogsLocal([created]);
-                await loadDiscussions();
-                if (options?.shareCard) {
-                  setShareLog(created);
-                  setShareOpen(true);
-                }
-              }}
-              onContentTypeChange={setQuickType}
-              initialContentType={sharedQuery ? sharedContentType : quickType}
-              initialSearchQuery={sharedQuery}
-              initialPlatform={sharedPlatform}
-              autoFocusSearch={autoFocusSearch}
-            />
-          ) : null}
+          <QuickLogCard
+            onCreated={async (created, options) => {
+              setLogs((prev) => [created, ...prev].slice(0, 8));
+              await upsertLogsLocal([created]);
+              await loadDiscussions();
+              if (options?.shareCard) {
+                setShareLog(created);
+                setShareOpen(true);
+              }
+            }}
+            onContentTypeChange={setQuickType}
+            initialContentType={sharedQuery ? sharedContentType : quickType}
+            initialSearchQuery={sharedQuery}
+            initialPlatform={sharedPlatform}
+            autoFocusSearch={autoFocusSearch}
+          />
         </section>
         <section className="space-y-3">
           <div className="flex items-baseline justify-between">

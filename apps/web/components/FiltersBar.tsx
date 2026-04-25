@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { Status, WatchLog } from "@/lib/types";
-import { cn, statusOptionsForType } from "@/lib/utils";
 import { useTranslations } from "next-intl";
+import { useEffect, useMemo, useState } from "react";
+import type { Status } from "@/lib/types";
+import { cn, statusOptionsForType } from "@/lib/utils";
 
 const VIDEO_PLATFORM_GROUPS = [
   {
@@ -53,38 +53,16 @@ const BOOK_PLATFORM_GROUPS = [
   },
   {
     label: "groupLibrary",
-    options: [
-      "platformPublicLib",
-      "platformUnivLib",
-      "platformSchoolLib",
-    ],
+    options: ["platformPublicLib", "platformUnivLib", "platformSchoolLib"],
   },
 ] as const;
 
-const OTT_CUSTOM_VALUE = "__custom__";
 const VIDEO_CUSTOM_KEY = "watchlog.ott.custom";
 const BOOK_CUSTOM_KEY = "watchlog.book.platform.custom";
-
-function resolvePlatformSelect(
-  value: string,
-  options: string[],
-  groups: readonly { label: string; options: readonly string[] }[],
-) {
-  if (!value) return "";
-  if (value.includes(",")) {
-    const picked = value
-      .split(",")
-      .map((v) => v.trim())
-      .filter(Boolean);
-    for (const group of groups) {
-      if (picked.length !== group.options.length) continue;
-      // We don't have the translations here easily, so we just check if it is a group logic
-      // In FiltersBar we manually handle groups
-    }
-    return OTT_CUSTOM_VALUE;
-  }
-  return options.includes(value) ? value : OTT_CUSTOM_VALUE;
-}
+const filterFieldClass =
+  "flex min-w-0 flex-col gap-1.5 text-sm sm:flex-row sm:items-center sm:gap-2";
+const filterSelectClass =
+  "min-h-12 w-full select-base rounded-xl px-3 text-sm sm:w-auto";
 
 function loadCustomOptions(key: string): string[] {
   if (typeof localStorage === "undefined") return [];
@@ -122,7 +100,6 @@ export default function FiltersBar({
   const tQuick = useTranslations("QuickLogCard");
   const tStatus = useTranslations("Status");
 
-  const [ottSelect, setOttSelect] = useState<string>("");
   const [customOttOptions, setCustomOttOptions] = useState<string[]>([]);
   const isBookMode = contentType === "book";
   const platformGroups = isBookMode
@@ -138,16 +115,10 @@ export default function FiltersBar({
     setCustomOttOptions(loadCustomOptions(platformCustomKey));
   }, [platformCustomKey]);
 
-  useEffect(() => {
-    if (contentType === "ALL") {
-      setOttSelect("");
-    }
-  }, [contentType]);
-
   return (
     <div className="flex flex-col gap-4 rounded-2xl border border-border bg-card p-4 shadow-sm md:flex-row md:items-center">
-      <div className="flex flex-wrap items-center gap-4">
-        <label className="flex items-center gap-2">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:flex lg:flex-wrap lg:items-center">
+        <label className={filterFieldClass}>
           <div className="text-sm text-muted-foreground">
             {tFilters("contentLabel")}
           </div>
@@ -156,7 +127,7 @@ export default function FiltersBar({
             onChange={(e) =>
               setContentType(e.target.value as "ALL" | "video" | "book")
             }
-            className="select-base rounded-xl px-3 py-2 text-xs"
+            className={filterSelectClass}
           >
             <option value="ALL">{tFilters("all")}</option>
             <option value="video">{tFilters("video")}</option>
@@ -164,14 +135,14 @@ export default function FiltersBar({
           </select>
         </label>
 
-        <label className="flex items-center gap-2">
+        <label className={filterFieldClass}>
           <div className="text-sm text-muted-foreground">
             {tFilters("filterLabel")}
           </div>
           <select
             value={status}
             onChange={(e) => setStatus(e.target.value as Status | "ALL")}
-            className="select-base rounded-xl px-3 py-2 text-xs"
+            className={filterSelectClass}
           >
             <option value="ALL">{tFilters("all")}</option>
             {statusOptions.map((o) => (
@@ -182,7 +153,7 @@ export default function FiltersBar({
           </select>
         </label>
 
-        <label className="flex items-center gap-2">
+        <label className={filterFieldClass}>
           <div className="text-sm text-muted-foreground">
             {tFilters("categoryLabel")}
           </div>
@@ -191,7 +162,7 @@ export default function FiltersBar({
             onChange={(e) =>
               setOrigin(e.target.value as "ALL" | "LOG" | "COMMENT")
             }
-            className="select-base rounded-xl px-3 py-2 text-xs"
+            className={filterSelectClass}
           >
             <option value="ALL">{tFilters("all")}</option>
             <option value="LOG">{tFilters("myLog")}</option>
@@ -200,27 +171,32 @@ export default function FiltersBar({
         </label>
 
         {contentType !== "ALL" && (
-          <label className="flex items-center gap-2">
+          <label className={filterFieldClass}>
             <div className="text-sm text-muted-foreground">
               {tFilters("platformLabel")}
             </div>
             <select
               value={ott}
               onChange={(e) => setOtt(e.target.value)}
-              className="select-base rounded-xl px-3 py-2 text-xs max-w-[120px]"
+              className={cn(filterSelectClass, "sm:min-w-44 lg:max-w-[220px]")}
             >
               <option value="">{tFilters("all")}</option>
               {platformGroups.map((g) => {
                 const groupLabel =
-                  g.label === "OTT" ? "OTT" : tQuick(g.label as any);
+                  g.label === "OTT"
+                    ? "OTT"
+                    : tQuick(g.label as Parameters<typeof tQuick>[0]);
                 return (
                   <optgroup key={g.label} label={groupLabel}>
                     <option value={`__group:${g.label}`}>
                       {tFilters("groupAll", { group: groupLabel })}
                     </option>
                     {g.options.map((o) => (
-                      <option key={o} value={tQuick(o as any)}>
-                        {tQuick(o as any)}
+                      <option
+                        key={o}
+                        value={tQuick(o as Parameters<typeof tQuick>[0])}
+                      >
+                        {tQuick(o as Parameters<typeof tQuick>[0])}
                       </option>
                     ))}
                   </optgroup>
