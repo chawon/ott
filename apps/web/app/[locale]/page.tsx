@@ -172,7 +172,15 @@ export default function HomePage() {
           </div>
           <QuickLogCard
             onCreated={async (created, options) => {
-              setLogs((prev) => [created, ...prev].slice(0, 8));
+              setLogs((prev) => {
+                const idx = prev.findIndex((l) => l.id === created.id);
+                if (idx >= 0) {
+                  const next = [...prev];
+                  next[idx] = created;
+                  return next;
+                }
+                return [created, ...prev].slice(0, 8);
+              });
               await upsertLogsLocal([created]);
               await loadDiscussions();
               if (options?.shareCard) {
@@ -215,7 +223,7 @@ export default function HomePage() {
 
           <div className="grid grid-cols-1 gap-3">
             {logs.map((l) => (
-              <LogCard key={l.id} log={l} />
+              <LogCard key={l.id} log={l} onShareCard={() => { setShareLog(l); setShareOpen(true); }} />
             ))}
           </div>
         </section>

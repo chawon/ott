@@ -158,7 +158,7 @@ export default function AppHeader() {
                     lang={value}
                     onClick={() => handleLocaleChange(value)}
                     className={cn(
-                      "min-h-9 min-w-9 rounded-full px-2.5 text-[10px] font-semibold uppercase tracking-[0.14em] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:min-h-8 sm:min-w-8",
+                      "inline-flex h-7 min-w-7 items-center justify-center rounded-full px-2 text-[9px] font-semibold uppercase tracking-[0.1em] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:h-6 sm:min-w-6",
                       active
                         ? "bg-foreground text-background"
                         : "text-muted-foreground hover:bg-muted hover:text-foreground",

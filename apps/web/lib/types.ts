@@ -143,6 +143,9 @@ export interface TitleSearchItem {
   isbn10?: string | null;
   isbn13?: string | null;
   pubdate?: string | null;
+  genres?: string[] | null;
+  directors?: string[] | null;
+  cast?: string[] | null;
 }
 
 export interface WatchLog {

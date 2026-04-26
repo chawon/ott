@@ -85,7 +85,7 @@
     "detailPlatform": "플랫폼",
     "saveAndShare": "저장 후 함께 하기",
     "shareToPublic": "함께 하는 기록 남기기",
-    "createShareCard": "공유 이미지 카드 만들기",
+    "createShareCard": "공유 포토 카드 만들기",
     "saving": "저장 중...",
     "saveActionModern": "기록 저장",
     "newBook": "새로운 책",
@@ -153,7 +153,20 @@
     "typeMovie": "영화",
     "typeSeriesModern": "시리즈",
     "typeBook": "책",
-    "typeSeries": "시리즈"
+    "typeSeries": "시리즈",
+    "statusPrompt": "이 콘텐츠, 당신은?",
+    "savedLocally": "로그인 없이 이 기기에 먼저 저장돼요.",
+    "statusDoneVideo": "봤어요",
+    "statusInProgressVideo": "보는 중",
+    "statusWishlistVideo": "보고 싶어요",
+    "statusDoneBook": "읽었어요",
+    "statusInProgressBook": "읽는 중",
+    "statusWishlistBook": "읽고 싶어요",
+    "saveSuccessPrompt": "저장됐어요. 더 남길 내용이 있나요?",
+    "optionalDetailsTitle": "추가 입력 (선택)",
+    "detailGenre": "장르",
+    "detailDirector": "감독",
+    "detailCast": "주연"
   },
   "Common": {
     "placeLabels": {
@@ -188,7 +201,8 @@
     "typeMovie": "영화",
     "typeSeries": "시리즈",
     "typeSeriesModern": "시리즈",
-    "typeBook": "책"
+    "typeBook": "책",
+    "addMoreDetails": "별점·메모 남기기"
   },
   "Status": {
     "DONE": "봤어요",
@@ -351,9 +365,9 @@
     "submitActionModern": "댓글 등록"
   },
   "ShareBottomSheet": {
-    "title": "공유 카드 만들기",
-    "description": "저장한 기록을 이미지로 공유해보세요.",
-    "previewAlt": "공유 카드 미리보기",
+    "title": "공유 포토 카드 만들기",
+    "description": "저장한 기록을 포토 카드로 공유해 보세요.",
+    "previewAlt": "공유 포토 카드 미리보기",
     "previewLoading": "미리보기 준비 중...",
     "toggleRating": "평점 문구 포함",
     "toggleNote": "한 줄 메모 포함",
@@ -408,10 +422,10 @@
     "tip1Desc": "ottline은 설치형 앱처럼 사용할 수 있어요. 홈 화면에 추가하면 앱 아이콘으로 빠르게 열 수 있습니다.",
     "tip2Title": "내 기록 CSV로 내보내기",
     "tip2Desc": "설정에서 내 기록을 CSV로 내려받아 엑셀이나 스프레드시트로 정리할 수 있어요.",
-    "tip3Title": "공유 카드로 기록 올리기",
-    "tip3Desc": "기록 저장 후 “공유 카드 만들기”를 선택하면, SNS에 올릴 수 있는 예쁜 카드가 자동으로 만들어집니다.",
-    "exampleVideo": "영상 공유 카드 예시",
-    "exampleBook": "책 공유 카드 예시",
+    "tip3Title": "공유 포토 카드로 기록 올리기",
+    "tip3Desc": "기록 저장 후 “공유 포토 카드 만들기”를 선택하면, SNS에 올릴 수 있는 예쁜 카드가 자동으로 만들어집니다.",
+    "exampleVideo": "영상 공유 포토 카드 예시",
+    "exampleBook": "책 공유 포토 카드 예시",
     "closing": "\"기억은 흐릿해지지만, 기록은 타임라인으로 남습니다.\""
   },
   "TitleDetail": {
@@ -448,7 +462,7 @@
     "heroModernDesc": "내 타임라인",
     "heroTimelineBook": "내 책 기록",
     "heroTimelineVideo": "내 영상 기록",
-    "heroTimelineDesc": "한 줄만 적어두면 타임라인이 쌓여요",
+    "heroTimelineDesc": "버튼 한 번 클릭으로 타임라인이 쌓여요",
     "viewAll": "전체 보기",
     "myFootprints": "내 발자취",
     "myRecords": "내 기록",

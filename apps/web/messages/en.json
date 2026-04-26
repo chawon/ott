@@ -85,7 +85,7 @@
     "detailPlatform": "Platform",
     "saveAndShare": "Save and Share",
     "shareToPublic": "Share to public timeline",
-    "createShareCard": "Create Share Card",
+    "createShareCard": "Create Share Photo Card",
     "saving": "Saving...",
     "saveActionModern": "Save Log",
     "newBook": "New Book",
@@ -153,7 +153,20 @@
     "typeMovie": "Movie",
     "typeSeriesModern": "Series",
     "typeBook": "Book",
-    "typeSeries": "Series"
+    "typeSeries": "Series",
+    "statusPrompt": "Your status for this title?",
+    "savedLocally": "Saved locally to this device first without login.",
+    "statusDoneVideo": "Watched",
+    "statusInProgressVideo": "Watching",
+    "statusWishlistVideo": "Want to watch",
+    "statusDoneBook": "Read",
+    "statusInProgressBook": "Reading",
+    "statusWishlistBook": "Want to read",
+    "saveSuccessPrompt": "Saved! Any more details to add?",
+    "optionalDetailsTitle": "Optional Details",
+    "detailGenre": "Genre",
+    "detailDirector": "Director",
+    "detailCast": "Cast"
   },
   "Common": {
     "placeLabels": {
@@ -188,7 +201,8 @@
     "typeMovie": "Movie",
     "typeSeries": "Series",
     "typeSeriesModern": "Series",
-    "typeBook": "Book"
+    "typeBook": "Book",
+    "addMoreDetails": "Add more details"
   },
   "Status": {
     "DONE": "Watched",
@@ -351,9 +365,9 @@
     "submitActionModern": "Post Comment"
   },
   "ShareBottomSheet": {
-    "title": "Create Share Card",
+    "title": "Create Share Photo Card",
     "description": "Share your saved log as an image.",
-    "previewAlt": "Share card preview",
+    "previewAlt": "Share photo card preview",
     "previewLoading": "Preparing preview...",
     "toggleRating": "Include rating",
     "toggleNote": "Include note",
@@ -408,10 +422,10 @@
     "tip1Desc": "ottline can be used like an installed app. Add it to your home screen to open quickly with an icon.",
     "tip2Title": "Export to CSV",
     "tip2Desc": "You can download your records as a CSV in Settings and organize them in Excel or Spreadsheet.",
-    "tip3Title": "Share with Share Cards",
-    "tip3Desc": "Select \"Create Share Card\" after saving a record to automatically generate a beautiful card for social media.",
-    "exampleVideo": "Video share card example",
-    "exampleBook": "Book share card example",
+    "tip3Title": "Share with Share Photo Cards",
+    "tip3Desc": "Select \"Create Share Photo Card\" after saving a record to automatically generate a beautiful card for social media.",
+    "exampleVideo": "Video share photo card example",
+    "exampleBook": "Book share photo card example",
     "closing": "\"Memories fade, but records remain on the timeline.\""
   },
   "TitleDetail": {
@@ -448,7 +462,7 @@
     "heroModernDesc": "Your personal content timeline",
     "heroTimelineBook": "My Book Logs",
     "heroTimelineVideo": "My Video Logs",
-    "heroTimelineDesc": "Just one line, and your timeline grows",
+    "heroTimelineDesc": "Just one click, and your timeline grows",
     "viewAll": "View All",
     "myFootprints": "My Footprints",
     "myRecords": "My Records",

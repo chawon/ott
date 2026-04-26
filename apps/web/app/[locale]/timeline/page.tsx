@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useState } from "react";
 import FiltersBar from "@/components/FiltersBar";
 import LogCard from "@/components/LogCard";
+import ShareBottomSheet from "@/components/ShareBottomSheet";
 import { trackEvent } from "@/lib/analytics";
 import { apiWithAuth } from "@/lib/api";
 import { downloadTimelineCsv } from "@/lib/export";
@@ -265,6 +266,8 @@ function FutureTimelineSection({
 }
 
 export default function TimelinePage() {
+  const [shareOpen, setShareOpen] = useState(false);
+  const [shareLog, setShareLog] = useState<WatchLog | null>(null);
   const tTimeline = useTranslations("Timeline");
   const tStatus = useTranslations("Status");
   const tCommon = useTranslations("Common");
@@ -485,8 +488,8 @@ export default function TimelinePage() {
   return (
     <div className="space-y-4">
       <div>
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-2 text-xl font-semibold">
+        <div className="flex items-center justify-between gap-3 mb-1">
+          <div className="flex items-center gap-2 text-lg sm:text-xl font-semibold whitespace-nowrap">
             {futureMode ? (
               <Sparkles className="h-5 w-5 text-primary" />
             ) : (
@@ -494,7 +497,7 @@ export default function TimelinePage() {
             )}
             {headerTitle}
           </div>
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2">
             {mounted && getUserId() && !futureMode && (
               <button
                 type="button"
@@ -502,7 +505,7 @@ export default function TimelinePage() {
                 style={{
                   background: "linear-gradient(to right, #7c3aed, #4f46e5)",
                 }}
-                className="min-h-[52px] rounded-xl px-4 text-xs font-semibold text-white shadow-sm transition-opacity hover:opacity-90"
+                className="flex h-9 sm:h-11 items-center justify-center rounded-xl px-3 sm:px-4 text-[11px] sm:text-xs font-bold text-white shadow-sm transition-all active:scale-[0.98] hover:opacity-90"
               >
                 <span className="flex items-center gap-1.5">
                   <Sparkles className="h-3.5 w-3.5" />
@@ -518,7 +521,7 @@ export default function TimelinePage() {
                 title={tTimeline("exportCsv")}
                 aria-label={tTimeline("exportCsv")}
                 className={cn(
-                  "flex min-h-[52px] min-w-[52px] items-center justify-center rounded-lg border border-border bg-card text-muted-foreground hover:bg-muted",
+                  "flex h-9 w-9 sm:h-11 sm:w-11 items-center justify-center rounded-xl border border-border bg-card text-muted-foreground transition-all active:scale-[0.98] hover:bg-muted",
                   exporting && "opacity-40",
                 )}
               >
@@ -529,7 +532,7 @@ export default function TimelinePage() {
               <button
                 type="button"
                 onClick={() => setFutureMode(false)}
-                className="min-h-[52px] rounded-lg border border-border bg-card px-4 text-sm text-muted-foreground hover:bg-muted"
+                className="flex h-9 sm:h-11 items-center justify-center rounded-xl border border-border bg-card px-3 sm:px-4 text-xs sm:text-sm font-medium text-muted-foreground transition-all active:scale-[0.98] hover:bg-muted"
               >
                 {tTimeline("backButton")}
               </button>
@@ -612,7 +615,14 @@ export default function TimelinePage() {
                   </div>
                   <div className="grid grid-cols-1 gap-3">
                     {group.items.map((l) => (
-                      <LogCard key={l.id} log={l} />
+                      <LogCard
+                        key={l.id}
+                        log={l}
+                        onShareCard={() => {
+                          setShareLog(l);
+                          setShareOpen(true);
+                        }}
+                      />
                     ))}
                   </div>
                 </div>
@@ -621,12 +631,24 @@ export default function TimelinePage() {
           ) : (
             <div className="grid grid-cols-1 gap-3">
               {logs.map((l) => (
-                <LogCard key={l.id} log={l} />
+                <LogCard
+                  key={l.id}
+                  log={l}
+                  onShareCard={() => {
+                    setShareLog(l);
+                    setShareOpen(true);
+                  }}
+                />
               ))}
             </div>
           )}
         </>
       )}
+      <ShareBottomSheet
+        open={shareOpen}
+        log={shareLog}
+        onClose={() => setShareOpen(false)}
+      />
     </div>
   );
 }

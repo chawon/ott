@@ -1,15 +1,22 @@
+import { BookOpen, Film, MessageSquare, Share2, Tv } from "lucide-react";
 import Link from "next/link";
-import { BookOpen, Film, Tv } from "lucide-react";
-import { WatchLog } from "@/lib/types";
+import { useLocale, useTranslations } from "next-intl";
+import { useState } from "react";
+import { api } from "@/lib/api";
+import type {
+  Comment,
+  CreateCommentRequest,
+  Discussion,
+  WatchLog,
+} from "@/lib/types";
 import {
+  cn,
   formatNoteInline,
   occasionLabel,
   placeLabel,
   statusLabel,
   tmdbResize,
 } from "@/lib/utils";
-import { cn } from "@/lib/utils";
-import { useLocale, useTranslations } from "next-intl";
 
 function formatDate(iso: string, locale: string) {
   const d = new Date(iso);
@@ -68,14 +75,59 @@ function seasonEpisodeLabel(log: WatchLog) {
   return `S${log.seasonNumber}`;
 }
 
-export default function LogCard({ log }: { log: WatchLog }) {
+export default function LogCard({
+  log,
+  onShareCard,
+}: {
+  log: WatchLog;
+  onShareCard?: () => void;
+}) {
   const t = log.title;
   const locale = useLocale();
   const tStatus = useTranslations("Status");
+  const tQuick = useTranslations("QuickLogCard");
   const tCommon = useTranslations("Common");
+  const [isSharing, setIsSharing] = useState(false);
+  const [isShared, setIsShared] = useState(false);
 
   if (log.deletedAt) return null;
   if (!t?.id) return null;
+
+  async function handleSharePublic() {
+    if (isSharing || isShared) return;
+    setIsSharing(true);
+    try {
+      const discussion = await api<Discussion>("/discussions", {
+        method: "POST",
+        body: JSON.stringify({ titleId: t.id }),
+      });
+      if (log.note?.trim()) {
+        const userId =
+          typeof localStorage !== "undefined"
+            ? localStorage.getItem("watchlog.userId")
+            : null;
+        const req: CreateCommentRequest = {
+          body: log.note.trim(),
+          userId: userId ?? null,
+          mentions: [],
+          syncLog: false,
+        };
+        await api<Comment>(`/discussions/${discussion.id}/comments`, {
+          method: "POST",
+          body: JSON.stringify(req),
+        });
+      }
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("sync:updated"));
+      }
+      setIsShared(true);
+    } catch {
+      // ignore
+    } finally {
+      setIsSharing(false);
+    }
+  }
+
   const seasonLabel = seasonEpisodeLabel(log);
   const isCommentOrigin = log.origin === "COMMENT";
   const isBook = t.type === "book";
@@ -99,7 +151,10 @@ export default function LogCard({ log }: { log: WatchLog }) {
           {(log.seasonPosterUrl ?? t.posterUrl) ? (
             <img
               src={
-                tmdbResize((log.seasonPosterUrl ?? t.posterUrl) || "", "w185") ??
+                tmdbResize(
+                  (log.seasonPosterUrl ?? t.posterUrl) || "",
+                  "w185",
+                ) ??
                 log.seasonPosterUrl ??
                 t.posterUrl ??
                 ""
@@ -189,6 +244,50 @@ export default function LogCard({ log }: { log: WatchLog }) {
             {renderBody(formatNoteInline(log.note))}
           </p>
         ) : null}
+
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          {onShareCard && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                onShareCard();
+              }}
+              className="inline-flex items-center gap-1.5 rounded-full border border-neutral-200/60 bg-neutral-50 px-2.5 py-1 text-[11px] font-medium text-neutral-600 transition-colors hover:bg-neutral-100 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-300"
+            >
+              <Share2 className="h-3 w-3" />
+              {tQuick("createShareCard")}
+            </button>
+          )}
+          {log.note?.trim() ? (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                handleSharePublic();
+              }}
+              disabled={isSharing || isShared}
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors",
+                isShared
+                  ? "border-emerald-200/60 bg-emerald-50 text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-950/40 dark:text-emerald-400"
+                  : "border-neutral-200/60 bg-neutral-50 text-neutral-600 hover:bg-neutral-100 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-300 disabled:opacity-50",
+              )}
+            >
+              <MessageSquare className="h-3 w-3" />
+              {isShared
+                ? tQuick("saveSuccessPrompt").split(".")[0]
+                : tQuick("shareToPublic")}
+            </button>
+          ) : (
+            <Link
+              href={`/title/${t.id}`}
+              className="inline-flex items-center gap-1.5 rounded-full border border-blue-200/50 bg-blue-50 px-2.5 py-1 text-[11px] font-medium text-blue-600 transition-colors hover:bg-blue-100 dark:border-blue-900/50 dark:bg-blue-950/40 dark:text-blue-400"
+            >
+              <MessageSquare className="h-3 w-3" />+ {tCommon("addMoreDetails")}
+            </Link>
+          )}
+        </div>
       </div>
     </article>
   );

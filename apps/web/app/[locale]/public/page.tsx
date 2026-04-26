@@ -62,19 +62,18 @@ export default function PublicDiscussionsPage() {
         <div className="text-sm text-muted-foreground">{headerSubtitle}</div>
       </div>
 
-      <div className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-4 shadow-sm md:flex-row md:items-center md:justify-between">
+      <div className="flex flex-row items-center gap-3 rounded-2xl border border-border bg-card p-3 shadow-sm overflow-x-auto no-scrollbar">
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder={tPublic("searchPlaceholder")}
-          className="min-h-12 w-full rounded-xl border border-border bg-card px-3 text-sm outline-none md:w-72"
+          className="flex h-10 w-full min-w-[120px] shrink items-center rounded-xl border border-border bg-card px-3 text-sm outline-none sm:w-72"
         />
-        <div className="flex w-full items-center justify-between gap-2 md:w-auto">
-          <div className="text-xs text-neutral-500">{tPublic("sortLabel")}</div>
+        <div className="flex shrink-0 items-center gap-2">
           <select
             value={sort}
             onChange={(e) => setSort(e.target.value as "latest" | "comments")}
-            className="min-h-12 select-base rounded-xl px-3 text-sm"
+            className="flex h-10 items-center select-base rounded-xl px-3 py-0 text-sm outline-none transition-all"
           >
             <option value="latest">{tPublic("sortLatest")}</option>
             <option value="comments">{tPublic("sortComments")}</option>

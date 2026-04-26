@@ -18,7 +18,7 @@ export async function ensureAuth(): Promise<AuthInfo | null> {
   const userId = getUserId();
   const deviceId = getDeviceId();
   const pairingCode = getPairingCode();
-  
+
   if (userId && deviceId && pairingCode) {
     return { userId, deviceId, pairingCode };
   }
@@ -28,10 +28,16 @@ export async function ensureAuth(): Promise<AuthInfo | null> {
     const res = await fetch("/api/auth/register", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({}), // Explicit empty body for some proxy/server setups
     });
-    if (!res.ok) throw new Error("Registration failed");
-    const body = await res.json() as AuthInfo;
-    
+    if (!res.ok) {
+      const errorText = await res.text().catch(() => "Unknown error");
+      throw new Error(
+        `Registration failed with status ${res.status}: ${errorText}`,
+      );
+    }
+    const body = (await res.json()) as AuthInfo;
+
     setUserId(body.userId);
     setDeviceId(body.deviceId);
     setPairingCode(body.pairingCode);
@@ -51,8 +57,8 @@ export async function pairWithCode(code: string): Promise<AuthInfo> {
     body: JSON.stringify({ code, oldUserId }),
   });
   if (!res.ok) throw new Error("Pairing failed");
-  const body = await res.json() as AuthInfo;
-  
+  const body = (await res.json()) as AuthInfo;
+
   setUserId(body.userId);
   setDeviceId(body.deviceId);
   setPairingCode(body.pairingCode);

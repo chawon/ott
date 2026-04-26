@@ -63,7 +63,9 @@ const OTT_CUSTOM_VALUE = "__custom__";
 const VIDEO_CUSTOM_KEY = "watchlog.ott.custom";
 const BOOK_CUSTOM_KEY = "watchlog.book.platform.custom";
 const fieldControlClass =
-  "min-h-[52px] w-full select-base rounded-xl px-3 py-3 text-sm outline-none transition-all focus:ring-2 focus:ring-neutral-900/5";
+  "min-h-[40px] w-full select-base rounded-xl px-3 py-2 text-sm outline-none transition-all focus:ring-2 focus:ring-neutral-900/5";
+const selectControlClass =
+  "flex h-10 w-full items-center select-base rounded-xl px-3 py-0 text-sm outline-none transition-all focus:ring-2 focus:ring-neutral-900/5";
 const disabledControlClass = "cursor-not-allowed opacity-50";
 type QuickLogTranslator = ReturnType<typeof useTranslations>;
 
@@ -156,6 +158,7 @@ export default function QuickLogCard({
 }) {
   const tQuick = useTranslations("QuickLogCard");
   const tCommon = useTranslations("Common");
+  const tDetail = useTranslations("TitleDetail");
   const tStatus = useTranslations("Status");
   const [contentType, setContentType] = useState<"video" | "book">(
     initialContentType,
@@ -167,8 +170,8 @@ export default function QuickLogCard({
   const [ott, setOtt] = useState("");
   const [ottSelect, setOttSelect] = useState<string>("");
   const [customOttOptions, setCustomOttOptions] = useState<string[]>([]);
-  const [place, setPlace] = useState<Place>("HOME");
-  const [occasion, setOccasion] = useState<Occasion>("ALONE");
+  const [place, setPlace] = useState<Place | "">("");
+  const [occasion, setOccasion] = useState<Occasion | "">("");
   const [useWatchedAt, setUseWatchedAt] = useState(false);
   const [watchedDate, setWatchedDate] = useState("");
   const [seasons, setSeasons] = useState<SeasonOption[]>([]);
@@ -183,6 +186,8 @@ export default function QuickLogCard({
   const [episodeLoading, setEpisodeLoading] = useState(false);
   const [seasonError, setSeasonError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [localLogId, setLocalLogId] = useState<string | null>(null);
+  const [localTitleId, setLocalTitleId] = useState<string | null>(null);
   const [banner, setBanner] = useState<{
     visible: boolean;
     count: number;
@@ -298,6 +303,8 @@ export default function QuickLogCard({
 
   function clearSelectedTitleState() {
     setSelected(null);
+    setLocalLogId(null);
+    setLocalTitleId(null);
     setSeasons([]);
     setEpisodes([]);
     setSelectedSeason("");
@@ -339,6 +346,32 @@ export default function QuickLogCard({
       cancelled = true;
     };
   }, [selectedLocalTitleId]);
+  useEffect(() => {
+    if (!selected || selected.genres || selected.provider !== "TMDB") return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const details = await api<Pick<Title, "genres" | "directors" | "cast">>(
+          `/tmdb/${selected.type}/${selected.providerId}`,
+        );
+        if (cancelled) return;
+        setSelected((prev) => {
+          if (!prev || prev.providerId !== selected.providerId) return prev;
+          return {
+            ...prev,
+            genres: details.genres,
+            directors: details.directors,
+            cast: details.cast,
+          };
+        });
+      } catch {
+        // ignore
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [selected]);
 
   useEffect(() => {
     setCustomOttOptions(loadCustomOptions(platformCustomKey));
@@ -347,6 +380,8 @@ export default function QuickLogCard({
   useEffect(() => {
     setContentType(initialContentType);
     setSelected(null);
+    setLocalLogId(null);
+    setLocalTitleId(null);
     setSeasons([]);
     setEpisodes([]);
     setSelectedSeason("");
@@ -459,7 +494,7 @@ export default function QuickLogCard({
     };
   }, [selected, selectedSeason, seasons]);
 
-  async function submit() {
+  async function handleInitialSave(clickedStatus: Status) {
     if (!selected || saving) return;
     setSaving(true);
     try {
@@ -467,8 +502,119 @@ export default function QuickLogCard({
       const existingTitle = selected.titleId
         ? null
         : await findTitleByProvider(selected.provider, selected.providerId);
-      const localTitleId = selected.titleId ?? existingTitle?.id ?? safeUUID();
-      const localLogId = safeUUID();
+      const newLocalTitleId =
+        selected.titleId ?? existingTitle?.id ?? safeUUID();
+      const newLocalLogId = safeUUID();
+
+      setLocalTitleId(newLocalTitleId);
+      setLocalLogId(newLocalLogId);
+      setStatus(clickedStatus);
+
+      const localLog: WatchLog = {
+        id: newLocalLogId,
+        title: {
+          id: newLocalTitleId,
+          type: selected.type,
+          name: selected.name,
+          year: selected.year ?? undefined,
+          posterUrl: selected.posterUrl ?? undefined,
+          overview: selected.overview ?? undefined,
+          author: selected.author ?? undefined,
+          publisher: selected.publisher ?? undefined,
+          isbn10: selected.isbn10 ?? undefined,
+          isbn13: selected.isbn13 ?? undefined,
+          pubdate: selected.pubdate ?? undefined,
+          provider: selected.provider,
+          providerId: selected.providerId,
+          updatedAt: now,
+        },
+        status: clickedStatus,
+        rating: null,
+        note: null,
+        ott: null,
+        seasonNumber: null,
+        episodeNumber: null,
+        seasonPosterUrl: null,
+        seasonYear: null,
+        origin: "LOG",
+        spoiler: false,
+        watchedAt: now,
+        createdAt: now,
+        place: null,
+        occasion: null,
+        syncStatus: "pending",
+        updatedAt: now,
+      };
+
+      await upsertLogLocal(localLog);
+      await enqueueCreateLog({
+        logId: newLocalLogId,
+        titleId: newLocalTitleId,
+        updatedAt: now,
+        log: {
+          id: newLocalLogId,
+          op: "upsert",
+          updatedAt: now,
+          payload: {
+            titleId: newLocalTitleId,
+            status: clickedStatus,
+            rating: null,
+            note: null,
+            ott: null,
+            seasonNumber: null,
+            episodeNumber: null,
+            seasonPosterUrl: null,
+            seasonYear: null,
+            origin: "LOG",
+            spoiler: false,
+            watchedAt: now,
+            place: null,
+            occasion: null,
+          },
+        },
+        title: {
+          id: newLocalTitleId,
+          op: "upsert",
+          updatedAt: now,
+          payload: {
+            type: selected.type,
+            name: selected.name,
+            year: selected.year ?? null,
+            genres: null,
+            overview: selected.overview ?? null,
+            posterUrl: selected.posterUrl ?? null,
+            author: selected.author ?? null,
+            publisher: selected.publisher ?? null,
+            isbn10: selected.isbn10 ?? null,
+            isbn13: selected.isbn13 ?? null,
+            pubdate: selected.pubdate ?? null,
+            provider: selected.provider,
+            providerId: selected.providerId,
+          },
+        },
+      });
+      await trackEvent("log_create", {
+        titleType: selected.type,
+        hasRating: false,
+        hasNote: false,
+        hasOtt: false,
+      });
+      onCreated(localLog);
+      await syncOutbox();
+
+      const totalCount = await countLogsLocal();
+      setBanner({ visible: true, count: totalCount });
+      window.setTimeout(() => setBanner(null), 3000);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleUpdateSave() {
+    if (!selected || !localLogId || !localTitleId || saving) return;
+    setSaving(true);
+    try {
+      const now = new Date().toISOString();
 
       if (ott.trim()) {
         const trimmed = ott.trim();
@@ -485,7 +631,8 @@ export default function QuickLogCard({
 
       const pickedWatchedAt =
         useWatchedAt && watchedDate ? dateToIso(watchedDate) : now;
-      const localLog: WatchLog = {
+
+      const updatedLog: WatchLog = {
         id: localLogId,
         title: {
           id: localTitleId,
@@ -514,14 +661,14 @@ export default function QuickLogCard({
         origin: "LOG",
         spoiler: false,
         watchedAt: pickedWatchedAt,
-        createdAt: now,
-        place,
-        occasion,
+        createdAt: now, // Will be overwritten by DB layer properly
+        place: place === "" ? null : place,
+        occasion: occasion === "" ? null : occasion,
         syncStatus: "pending",
         updatedAt: now,
       };
 
-      await upsertLogLocal(localLog);
+      await upsertLogLocal(updatedLog);
       await enqueueCreateLog({
         logId: localLogId,
         titleId: localTitleId,
@@ -543,8 +690,8 @@ export default function QuickLogCard({
             origin: "LOG",
             spoiler: false,
             watchedAt: pickedWatchedAt,
-            place,
-            occasion,
+            place: place === "" ? null : place,
+            occasion: occasion === "" ? null : occasion,
           },
         },
         title: {
@@ -568,13 +715,7 @@ export default function QuickLogCard({
           },
         },
       });
-      await trackEvent("log_create", {
-        titleType: selected.type,
-        hasRating: rating !== "",
-        hasNote: note.trim().length > 0,
-        hasOtt: ott.trim().length > 0,
-      });
-      onCreated(localLog, { shareCard });
+      onCreated(updatedLog, { shareCard });
       await syncOutbox();
 
       if (shareToDiscussion) {
@@ -602,53 +743,55 @@ export default function QuickLogCard({
           if (typeof window !== "undefined") {
             window.dispatchEvent(new CustomEvent("sync:updated"));
           }
-        } catch {
-          // ignore share failures (e.g., offline)
-        }
+        } catch {}
       }
 
-      const totalCount = await countLogsLocal();
-      setBanner({ visible: true, count: totalCount });
-      window.setTimeout(() => setBanner(null), 3000);
-
-      setSelected(null);
+      clearSelectedTitleState();
       setStatus("IN_PROGRESS");
       setRating("");
       setNote("");
       setOtt("");
       setOttSelect("");
       setCustomOttOptions(loadCustomOptions(platformCustomKey));
-      setPlace("HOME");
-      setOccasion("ALONE");
+      setPlace("");
+      setOccasion("");
       setUseWatchedAt(false);
       setWatchedDate("");
-      setSeasons([]);
-      setEpisodes([]);
-      setSelectedSeason("");
-      setSelectedEpisode("");
-      setSeasonPosterUrl(null);
-      setSeasonYear(null);
       setShareCard(false);
       setShareToDiscussion(false);
     } finally {
       setSaving(false);
     }
   }
+  function handleCancel() {
+    clearSelectedTitleState();
+    setStatus("IN_PROGRESS");
+    setRating("");
+    setNote("");
+    setOtt("");
+    setOttSelect("");
+    setPlace("");
+    setOccasion("");
+    setUseWatchedAt(false);
+    setWatchedDate("");
+    setShareCard(false);
+    setShareToDiscussion(false);
+  }
 
   function contentTypeButtonClass(type: "video" | "book") {
     const active = contentType === type;
     return cn(
-      "min-h-12 rounded-full px-4 text-xs font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-      active && type === "video" && "bg-neutral-900 text-white",
+      "inline-flex h-10 items-center justify-center rounded-xl px-4 text-xs font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+      active && type === "video" && "bg-foreground text-background shadow-sm",
       !active &&
         type === "video" &&
         "bg-muted text-muted-foreground hover:bg-muted/80",
       active &&
         type === "book" &&
-        "border border-emerald-700 bg-emerald-700 text-white",
+        "border border-emerald-700 bg-emerald-700 text-white shadow-sm dark:bg-emerald-600 dark:border-emerald-600",
       !active &&
         type === "book" &&
-        "border border-emerald-200/70 bg-emerald-50/60 text-emerald-700 hover:bg-emerald-50",
+        "border border-emerald-200/70 bg-emerald-50/60 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-900/60 dark:bg-emerald-950/40 dark:text-emerald-300 dark:hover:bg-emerald-950/60",
     );
   }
 
@@ -766,11 +909,44 @@ export default function QuickLogCard({
                       </>
                     )}
                   </div>
+
+                  <div className="mt-3 space-y-2">
+                    {selected.genres && selected.genres.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5">
+                        {selected.genres.map((g) => (
+                          <span
+                            key={g}
+                            className="rounded-full border border-neutral-200 bg-neutral-50 px-2 py-0.5 text-[10px] text-neutral-600 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-400"
+                          >
+                            {g}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    <div className="space-y-0.5">
+                      {selected.directors && selected.directors.length > 0 && (
+                        <div className="text-[11px] text-muted-foreground line-clamp-1">
+                          {tDetail("director")} ·{" "}
+                          {selected.directors.join(", ")}
+                        </div>
+                      )}
+                      {selected.cast && selected.cast.length > 0 && (
+                        <div className="text-[11px] text-muted-foreground line-clamp-1">
+                          {tDetail("cast")} · {selected.cast.join(", ")}
+                        </div>
+                      )}
+                    </div>
+                    {selected.type === "book" && selected.overview && (
+                      <div className="text-[11px] text-muted-foreground line-clamp-2 mt-1 leading-relaxed">
+                        {selected.overview}
+                      </div>
+                    )}
+                  </div>
                 </div>
                 <button
                   type="button"
                   aria-label={tQuick("cancelAction")}
-                  onClick={() => setSelected(null)}
+                  onClick={handleCancel}
                   className="flex min-h-12 min-w-12 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                 >
                   <X className="h-5 w-5" />
@@ -778,300 +954,383 @@ export default function QuickLogCard({
               </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-              <div className="space-y-2">
-                <div className="text-xs font-medium text-neutral-500 ml-1 flex items-center gap-1.5">
-                  <Clock className="h-3 w-3" />
-                  {tQuick("detailStatus")}
+            {!localLogId ? (
+              <div className="space-y-4 pt-4 pb-2 animate-in fade-in duration-300">
+                <div className="text-sm font-semibold text-center text-foreground">
+                  {tQuick("statusPrompt")}
                 </div>
-                <select
-                  value={status}
-                  onChange={(e) => setStatus(e.target.value as Status)}
-                  className={fieldControlClass}
-                >
-                  {statusOptions.map((o) => (
-                    <option key={o.value} value={o.value}>
-                      {o.label}
-                    </option>
-                  ))}
-                </select>
+                <div className="grid grid-cols-3 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleInitialSave("DONE")}
+                    disabled={saving}
+                    className="min-h-[52px] rounded-xl bg-foreground text-background font-bold text-sm transition-all active:scale-[0.98] disabled:opacity-50"
+                  >
+                    {isBookMode
+                      ? tQuick("statusDoneBook")
+                      : tQuick("statusDoneVideo")}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleInitialSave("IN_PROGRESS")}
+                    disabled={saving}
+                    className="min-h-[52px] rounded-xl bg-muted text-foreground font-bold text-sm transition-all active:scale-[0.98] disabled:opacity-50"
+                  >
+                    {isBookMode
+                      ? tQuick("statusInProgressBook")
+                      : tQuick("statusInProgressVideo")}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleInitialSave("WISHLIST")}
+                    disabled={saving}
+                    className="min-h-[52px] rounded-xl border border-border bg-card text-foreground font-bold text-sm transition-all active:scale-[0.98] disabled:opacity-50"
+                  >
+                    {isBookMode
+                      ? tQuick("statusWishlistBook")
+                      : tQuick("statusWishlistVideo")}
+                  </button>
+                </div>
+                <div className="text-center text-xs text-muted-foreground mt-2">
+                  {tQuick("savedLocally")}
+                </div>
               </div>
+            ) : (
+              <div className="space-y-6 pt-2 animate-in slide-in-from-top-4 fade-in duration-300">
+                <div className="text-sm font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 p-4 rounded-2xl text-center border border-emerald-200 dark:border-emerald-900/50">
+                  {tQuick("saveSuccessPrompt")}
+                </div>
 
-              {selected?.type === "series" ? (
-                <>
-                  <div className="space-y-2">
-                    <div className="text-xs font-medium text-neutral-500 ml-1">
-                      {tQuick("seasonLabel")}
+                <div>
+                  <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-4 ml-1">
+                    {tQuick("optionalDetailsTitle")}
+                  </div>
+                  <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <div className="text-xs font-medium text-neutral-500 ml-1 flex items-center gap-1.5">
+                        <Clock className="h-3 w-3" />
+                        {tQuick("detailStatus")}
+                      </div>
+                      <select
+                        value={status}
+                        onChange={(e) => setStatus(e.target.value as Status)}
+                        className={fieldControlClass}
+                      >
+                        {statusOptions.map((o) => (
+                          <option key={o.value} value={o.value}>
+                            {o.label}
+                          </option>
+                        ))}
+                      </select>
                     </div>
-                    <select
-                      value={selectedSeason}
-                      onChange={(e) =>
-                        setSelectedSeason(
-                          e.target.value ? Number(e.target.value) : "",
-                        )
-                      }
-                      className={fieldControlClass}
-                    >
-                      <option value="">{tCommon("none")}</option>
-                      {seasons.map((s) => (
-                        <option key={s.seasonNumber} value={s.seasonNumber}>
-                          {tQuick("seasonValue", { number: s.seasonNumber })}
-                          {s.name ? ` · ${s.name}` : ""}
+
+                    {selected?.type === "series" ? (
+                      <>
+                        <div className="space-y-2">
+                          <div className="text-xs font-medium text-neutral-500 ml-1">
+                            {tQuick("seasonLabel")}
+                          </div>
+                          <select
+                            value={selectedSeason}
+                            onChange={(e) =>
+                              setSelectedSeason(
+                                e.target.value ? Number(e.target.value) : "",
+                              )
+                            }
+                            className={fieldControlClass}
+                          >
+                            <option value="">{tCommon("none")}</option>
+                            {seasons.map((s) => (
+                              <option
+                                key={s.seasonNumber}
+                                value={s.seasonNumber}
+                              >
+                                {tQuick("seasonValue", {
+                                  number: s.seasonNumber,
+                                })}
+                                {s.name ? ` · ${s.name}` : ""}
+                              </option>
+                            ))}
+                          </select>
+                          {seasonLoading ? (
+                            <div className="text-[11px] text-neutral-400">
+                              {tQuick("loadingSeasons")}
+                            </div>
+                          ) : null}
+                          {seasonError ? (
+                            <div className="text-[11px] text-red-500">
+                              {seasonError}
+                            </div>
+                          ) : null}
+                        </div>
+
+                        <div className="space-y-2">
+                          <div className="text-xs font-medium text-neutral-500 ml-1">
+                            {tQuick("episodeLabel")}
+                          </div>
+                          <select
+                            value={selectedEpisode}
+                            onChange={(e) =>
+                              setSelectedEpisode(
+                                e.target.value ? Number(e.target.value) : "",
+                              )
+                            }
+                            className={cn(
+                              fieldControlClass,
+                              (selectedSeason === "" || episodeLoading) &&
+                                disabledControlClass,
+                            )}
+                            disabled={selectedSeason === "" || episodeLoading}
+                          >
+                            <option value="">{tCommon("none")}</option>
+                            {episodes.map((e) => (
+                              <option
+                                key={e.episodeNumber}
+                                value={e.episodeNumber}
+                              >
+                                EP {e.episodeNumber}
+                                {e.name ? ` · ${e.name}` : ""}
+                              </option>
+                            ))}
+                          </select>
+                          {episodeLoading ? (
+                            <div className="text-[11px] text-neutral-400">
+                              {tQuick("loadingEpisodes")}
+                            </div>
+                          ) : null}
+                        </div>
+                      </>
+                    ) : null}
+
+                    <div className="space-y-2">
+                      <div className="text-xs font-medium text-neutral-500 ml-1 flex items-center gap-1.5">
+                        <Star className="h-3 w-3" />
+                        {tQuick("detailRating")}
+                      </div>
+                      <select
+                        value={rating === "" ? "" : String(rating)}
+                        onChange={(e) =>
+                          setRating(
+                            e.target.value === "" ? "" : Number(e.target.value),
+                          )
+                        }
+                        className={cn(
+                          fieldControlClass,
+                          isWishlist && disabledControlClass,
+                        )}
+                        disabled={isWishlist}
+                      >
+                        <option value="">{tCommon("none")}</option>
+                        {ratingOptions.map((o) => (
+                          <option key={o.value} value={String(o.value)}>
+                            {o.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="md:col-span-2 space-y-2">
+                      <div className="text-xs font-medium text-neutral-500 ml-1 flex items-center gap-1.5">
+                        <MonitorPlay className="h-3 w-3" />
+                        {tQuick("detailPlatform")}
+                      </div>
+                      <select
+                        value={ottSelect}
+                        onChange={(e) => {
+                          const next = e.target.value;
+                          setOttSelect(next);
+                          if (next === OTT_CUSTOM_VALUE) {
+                            setOtt("");
+                          } else {
+                            setOtt(next);
+                          }
+                        }}
+                        className={fieldControlClass}
+                      >
+                        <option value="">{tCommon("none")}</option>
+                        {platformGroups.map((g) => (
+                          <optgroup key={g.label} label={g.label}>
+                            {g.options.map((o) => (
+                              <option key={o} value={o}>
+                                {o}
+                              </option>
+                            ))}
+                          </optgroup>
+                        ))}
+                        {customOttOptions.length > 0 ? (
+                          <optgroup label={tQuick("myInput")}>
+                            {customOttOptions.map((o) => (
+                              <option key={o} value={o}>
+                                {o}
+                              </option>
+                            ))}
+                          </optgroup>
+                        ) : null}
+                        <option value={OTT_CUSTOM_VALUE}>
+                          {tQuick("customInput")}
                         </option>
-                      ))}
-                    </select>
-                    {seasonLoading ? (
-                      <div className="text-[11px] text-neutral-400">
-                        {tQuick("loadingSeasons")}
+                      </select>
+                      {ottSelect === OTT_CUSTOM_VALUE ? (
+                        <input
+                          value={ott}
+                          onChange={(e) => setOtt(e.target.value)}
+                          className={cn(fieldControlClass, "mt-2")}
+                          placeholder={
+                            isBookMode
+                              ? tQuick("customInputPlaceholder")
+                              : tQuick("customInput")
+                          }
+                        />
+                      ) : null}
+                    </div>
+
+                    <div className="space-y-2">
+                      <div className="text-xs font-medium text-neutral-500 ml-1 flex items-center gap-1.5">
+                        <MapPin className="h-3 w-3" />
+                        {tQuick("detailPlace")}
                       </div>
-                    ) : null}
-                    {seasonError ? (
-                      <div className="text-[11px] text-red-500">
-                        {seasonError}
+                      <select
+                        value={place}
+                        onChange={(e) => setPlace(e.target.value as Place | "")}
+                        className={cn(
+                          fieldControlClass,
+                          isWishlist && disabledControlClass,
+                        )}
+                        disabled={isWishlist}
+                      >
+                        <option value="">{tCommon("none")}</option>
+                        {placeOptions.map((o) => (
+                          <option key={o.value} value={o.value}>
+                            {o.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <div className="text-xs font-medium text-neutral-500 ml-1 flex items-center gap-1.5">
+                        <Users className="h-3 w-3" />
+                        {tQuick("detailOccasion")}
                       </div>
-                    ) : null}
+                      <select
+                        value={occasion}
+                        onChange={(e) =>
+                          setOccasion(e.target.value as Occasion)
+                        }
+                        className={cn(
+                          fieldControlClass,
+                          isWishlist && disabledControlClass,
+                        )}
+                        disabled={isWishlist}
+                      >
+                        {occasionOptions.map((o) => (
+                          <option key={o.value} value={o.value}>
+                            {o.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="md:col-span-2 space-y-2">
+                      <button
+                        type="button"
+                        onClick={() => setUseWatchedAt(!useWatchedAt)}
+                        className={cn(
+                          "flex min-h-[52px] items-center gap-2 rounded-xl px-2 text-xs font-medium transition-colors",
+                          useWatchedAt
+                            ? "text-neutral-900"
+                            : "text-neutral-400 hover:text-neutral-600",
+                        )}
+                      >
+                        <Calendar className="h-3.5 w-3.5" />
+                        {useWatchedAt
+                          ? tQuick("dateSelecting")
+                          : tQuick("dateOther")}
+                      </button>
+                      {useWatchedAt ? (
+                        <input
+                          type="date"
+                          value={watchedDate}
+                          onChange={(e) => setWatchedDate(e.target.value)}
+                          className={selectControlClass}
+                        />
+                      ) : null}
+                    </div>
+
+                    <div className="md:col-span-2 space-y-2">
+                      <div className="text-xs font-medium text-neutral-500 ml-1 flex items-center gap-1.5">
+                        <MessageSquare className="h-3 w-3" />
+                        {tQuick("detailNote")}
+                      </div>
+                      <textarea
+                        value={note}
+                        onChange={(e) => setNote(e.target.value)}
+                        className={cn(
+                          fieldControlClass,
+                          "min-h-28 resize-none",
+                        )}
+                        placeholder={tQuick("notePlaceholder")}
+                        rows={3}
+                      />
+                    </div>
                   </div>
 
-                  <div className="space-y-2">
-                    <div className="text-xs font-medium text-neutral-500 ml-1">
-                      {tQuick("episodeLabel")}
-                    </div>
-                    <select
-                      value={selectedEpisode}
-                      onChange={(e) =>
-                        setSelectedEpisode(
-                          e.target.value ? Number(e.target.value) : "",
-                        )
-                      }
-                      className={cn(
-                        fieldControlClass,
-                        (selectedSeason === "" || episodeLoading) &&
-                          disabledControlClass,
-                      )}
-                      disabled={selectedSeason === "" || episodeLoading}
-                    >
-                      <option value="">{tCommon("none")}</option>
-                      {episodes.map((e) => (
-                        <option key={e.episodeNumber} value={e.episodeNumber}>
-                          EP {e.episodeNumber}
-                          {e.name ? ` · ${e.name}` : ""}
-                        </option>
-                      ))}
-                    </select>
-                    {episodeLoading ? (
-                      <div className="text-[11px] text-neutral-400">
-                        {tQuick("loadingEpisodes")}
+                  <div
+                    className="mt-3 grid grid-cols-1 gap-2"
+                    data-onboarding-target="status-save"
+                  >
+                    <div className="space-y-1">
+                      <div className="text-xs font-medium text-neutral-500 ml-1 flex items-center gap-1.5">
+                        <Share2 className="h-3 w-3" />
+                        {tQuick("saveAndShare")}
                       </div>
-                    ) : null}
+                      <div className="flex flex-row flex-nowrap items-center rounded-xl border border-border bg-muted/30 px-4 sm:px-6 py-2 overflow-x-auto no-scrollbar">
+                        <label className="flex min-h-[40px] cursor-pointer items-center whitespace-nowrap text-xs font-medium text-neutral-700">
+                          <input
+                            type="checkbox"
+                            checked={shareToDiscussion}
+                            onChange={(e) =>
+                              setShareToDiscussion(e.target.checked)
+                            }
+                            style={{
+                              width: "20px",
+                              height: "20px",
+                              marginRight: "12px",
+                            }}
+                            className="shrink-0"
+                          />
+                          <span>{tQuick("shareToPublic")}</span>
+                        </label>
+                        <div className="w-10 sm:w-24 shrink-0" />
+                        <label className="flex min-h-[40px] cursor-pointer items-center whitespace-nowrap text-xs font-medium text-neutral-700">
+                          <input
+                            type="checkbox"
+                            checked={shareCard}
+                            onChange={(e) => setShareCard(e.target.checked)}
+                            style={{
+                              width: "20px",
+                              height: "20px",
+                              marginRight: "12px",
+                            }}
+                            className="shrink-0"
+                          />
+                          <span>{tQuick("createShareCard")}</span>
+                        </label>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      disabled={!canSave}
+                      onClick={handleUpdateSave}
+                      className="flex h-12 sm:h-14 min-h-[48px] sm:min-h-[56px] w-full items-center justify-center whitespace-nowrap rounded-2xl bg-neutral-900 px-8 text-sm font-semibold text-white transition-all hover:bg-neutral-800 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-40"
+                    >
+                      {saving ? tQuick("saving") : tQuick("saveActionModern")}
+                    </button>
                   </div>
-                </>
-              ) : null}
-
-              <div className="space-y-2">
-                <div className="text-xs font-medium text-neutral-500 ml-1 flex items-center gap-1.5">
-                  <Star className="h-3 w-3" />
-                  {tQuick("detailRating")}
-                </div>
-                <select
-                  value={rating === "" ? "" : String(rating)}
-                  onChange={(e) =>
-                    setRating(
-                      e.target.value === "" ? "" : Number(e.target.value),
-                    )
-                  }
-                  className={cn(
-                    fieldControlClass,
-                    isWishlist && disabledControlClass,
-                  )}
-                  disabled={isWishlist}
-                >
-                  <option value="">{tCommon("none")}</option>
-                  {ratingOptions.map((o) => (
-                    <option key={o.value} value={String(o.value)}>
-                      {o.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="md:col-span-2 space-y-2">
-                <div className="text-xs font-medium text-neutral-500 ml-1 flex items-center gap-1.5">
-                  <MonitorPlay className="h-3 w-3" />
-                  {tQuick("detailPlatform")}
-                </div>
-                <select
-                  value={ottSelect}
-                  onChange={(e) => {
-                    const next = e.target.value;
-                    setOttSelect(next);
-                    if (next === OTT_CUSTOM_VALUE) {
-                      setOtt("");
-                    } else {
-                      setOtt(next);
-                    }
-                  }}
-                  className={fieldControlClass}
-                >
-                  <option value="">{tCommon("none")}</option>
-                  {platformGroups.map((g) => (
-                    <optgroup key={g.label} label={g.label}>
-                      {g.options.map((o) => (
-                        <option key={o} value={o}>
-                          {o}
-                        </option>
-                      ))}
-                    </optgroup>
-                  ))}
-                  {customOttOptions.length > 0 ? (
-                    <optgroup label={tQuick("myInput")}>
-                      {customOttOptions.map((o) => (
-                        <option key={o} value={o}>
-                          {o}
-                        </option>
-                      ))}
-                    </optgroup>
-                  ) : null}
-                  <option value={OTT_CUSTOM_VALUE}>
-                    {tQuick("customInput")}
-                  </option>
-                </select>
-                {ottSelect === OTT_CUSTOM_VALUE ? (
-                  <input
-                    value={ott}
-                    onChange={(e) => setOtt(e.target.value)}
-                    className={cn(fieldControlClass, "mt-2")}
-                    placeholder={
-                      isBookMode
-                        ? tQuick("customInputPlaceholder")
-                        : tQuick("customInput")
-                    }
-                  />
-                ) : null}
-              </div>
-
-              <div className="space-y-2">
-                <div className="text-xs font-medium text-neutral-500 ml-1 flex items-center gap-1.5">
-                  <MapPin className="h-3 w-3" />
-                  {tQuick("detailPlace")}
-                </div>
-                <select
-                  value={place}
-                  onChange={(e) => setPlace(e.target.value as Place)}
-                  className={cn(
-                    fieldControlClass,
-                    isWishlist && disabledControlClass,
-                  )}
-                  disabled={isWishlist}
-                >
-                  {placeOptions.map((o) => (
-                    <option key={o.value} value={o.value}>
-                      {o.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="space-y-2">
-                <div className="text-xs font-medium text-neutral-500 ml-1 flex items-center gap-1.5">
-                  <Users className="h-3 w-3" />
-                  {tQuick("detailOccasion")}
-                </div>
-                <select
-                  value={occasion}
-                  onChange={(e) => setOccasion(e.target.value as Occasion)}
-                  className={cn(
-                    fieldControlClass,
-                    isWishlist && disabledControlClass,
-                  )}
-                  disabled={isWishlist}
-                >
-                  {occasionOptions.map((o) => (
-                    <option key={o.value} value={o.value}>
-                      {o.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="md:col-span-2 space-y-2">
-                <button
-                  type="button"
-                  onClick={() => setUseWatchedAt(!useWatchedAt)}
-                  className={cn(
-                    "flex min-h-[52px] items-center gap-2 rounded-xl px-2 text-xs font-medium transition-colors",
-                    useWatchedAt
-                      ? "text-neutral-900"
-                      : "text-neutral-400 hover:text-neutral-600",
-                  )}
-                >
-                  <Calendar className="h-3.5 w-3.5" />
-                  {useWatchedAt ? tQuick("dateSelecting") : tQuick("dateOther")}
-                </button>
-                {useWatchedAt ? (
-                  <input
-                    type="date"
-                    value={watchedDate}
-                    onChange={(e) => setWatchedDate(e.target.value)}
-                    className={fieldControlClass}
-                  />
-                ) : null}
-              </div>
-
-              <div className="md:col-span-2 space-y-2">
-                <div className="text-xs font-medium text-neutral-500 ml-1 flex items-center gap-1.5">
-                  <MessageSquare className="h-3 w-3" />
-                  {tQuick("detailNote")}
-                </div>
-                <textarea
-                  value={note}
-                  onChange={(e) => setNote(e.target.value)}
-                  className={cn(fieldControlClass, "min-h-28 resize-none")}
-                  placeholder={tQuick("notePlaceholder")}
-                  rows={3}
-                />
-              </div>
-            </div>
-
-            <div
-              className="grid grid-cols-1 gap-2"
-              data-onboarding-target="status-save"
-            >
-              <div className="space-y-1">
-                <div className="text-xs font-medium text-neutral-500 ml-1 flex items-center gap-1.5">
-                  <Share2 className="h-3 w-3" />
-                  {tQuick("saveAndShare")}
-                </div>
-                <div className="flex flex-wrap items-center gap-4 rounded-xl border border-border bg-muted/30 px-3 py-3">
-                  <label className="flex min-h-[52px] items-center gap-2 whitespace-nowrap text-xs font-medium text-neutral-700">
-                    <input
-                      type="checkbox"
-                      checked={shareToDiscussion}
-                      onChange={(e) => setShareToDiscussion(e.target.checked)}
-                      className="h-5 w-5"
-                    />
-                    {tQuick("shareToPublic")}
-                  </label>
-                  <label className="flex min-h-[52px] items-center gap-2 whitespace-nowrap text-xs font-medium text-neutral-700">
-                    <input
-                      type="checkbox"
-                      checked={shareCard}
-                      onChange={(e) => setShareCard(e.target.checked)}
-                      className="h-5 w-5"
-                    />
-                    {tQuick("createShareCard")}
-                  </label>
                 </div>
               </div>
-
-              <button
-                type="button"
-                disabled={!canSave}
-                onClick={submit}
-                className="h-[52px] w-full whitespace-nowrap rounded-2xl bg-neutral-900 px-8 text-sm font-semibold text-white transition-all hover:bg-neutral-800 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-40 sm:h-[68px]"
-              >
-                {saving ? tQuick("saving") : tQuick("saveActionModern")}
-              </button>
-            </div>
+            )}
           </div>
         ) : null}
       </section>

@@ -44,4 +44,36 @@ public class TmdbController {
                 .map(e -> new TmdbEpisodeDto(e.episodeNumber(), e.name()))
                 .toList();
     }
+
+    public record TmdbDetailsDto(
+            String name,
+            Integer year,
+            String overview,
+            String posterUrl,
+            List<String> genres,
+            List<String> directors,
+            List<String> cast
+    ) {}
+
+    @GetMapping("/{type}/{providerId}")
+    public TmdbDetailsDto details(
+            @PathVariable String type,
+            @PathVariable String providerId,
+            @RequestHeader(value = HttpHeaders.ACCEPT_LANGUAGE, required = false) String language
+    ) {
+        var snapshot = tmdbClient.fetchDetails(
+                com.watchlog.api.domain.TitleType.valueOf(type),
+                providerId,
+                language
+        );
+        return new TmdbDetailsDto(
+                snapshot.name(),
+                snapshot.year(),
+                snapshot.overview(),
+                snapshot.posterUrl(),
+                snapshot.genres(),
+                snapshot.directors(),
+                snapshot.cast()
+        );
+    }
 }

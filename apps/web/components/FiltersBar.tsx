@@ -60,9 +60,9 @@ const BOOK_PLATFORM_GROUPS = [
 const VIDEO_CUSTOM_KEY = "watchlog.ott.custom";
 const BOOK_CUSTOM_KEY = "watchlog.book.platform.custom";
 const filterFieldClass =
-  "flex min-w-0 flex-col gap-1.5 text-sm sm:flex-row sm:items-center sm:gap-2";
+  "flex shrink-0 min-w-0 flex-col gap-1 text-sm sm:flex-row sm:items-center sm:gap-3 sm:mr-8 lg:mr-10";
 const filterSelectClass =
-  "min-h-12 w-full select-base rounded-xl px-3 text-sm sm:w-auto";
+  "flex h-10 w-full items-center select-base rounded-lg px-2.5 py-0 text-[13px] outline-none transition-all sm:w-auto sm:min-w-[100px]";
 
 function loadCustomOptions(key: string): string[] {
   if (typeof localStorage === "undefined") return [];
@@ -116,8 +116,8 @@ export default function FiltersBar({
   }, [platformCustomKey]);
 
   return (
-    <div className="flex flex-col gap-4 rounded-2xl border border-border bg-card p-4 shadow-sm md:flex-row md:items-center">
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:flex lg:flex-wrap lg:items-center">
+    <div className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-3 shadow-sm md:flex-row md:items-center overflow-hidden">
+      <div className="flex flex-nowrap items-center gap-3 overflow-x-auto no-scrollbar pb-1 sm:flex-wrap sm:gap-x-12 sm:gap-y-4 sm:pb-0">
         <label className={filterFieldClass}>
           <div className="text-sm text-muted-foreground">
             {tFilters("contentLabel")}

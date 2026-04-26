@@ -1,7 +1,8 @@
 import { apiWithAuth, ensureAuthIds } from "./api";
+import type { OutboxItem } from "./db";
 import {
-  getTitleLocal,
   findTitleByProvider,
+  getTitleLocal,
   listOutbox,
   markLogDeleted,
   recordOutboxError,
@@ -13,8 +14,7 @@ import {
   upsertLogLocal,
   upsertTitleLocal,
 } from "./localStore";
-import { OutboxItem } from "./db";
-import { Title, WatchLog } from "./types";
+import type { Title, WatchLog } from "./types";
 
 let syncing = false;
 
@@ -170,9 +170,16 @@ export async function syncOutbox() {
     const hasStoredUser = !!getUserId();
     if (items.length === 0 && !hasStoredUser) return;
 
-    const auth = await ensureAuthIds({
-      register: items.length > 0 || hasStoredUser,
-    });
+    let auth: SyncAuthIds;
+    try {
+      auth = await ensureAuthIds({
+        register: items.length > 0 || hasStoredUser,
+      });
+    } catch (e) {
+      console.error("[Sync] Authentication failed during sync:", e);
+      return; // Stop sync for now, will retry later
+    }
+
     if (!auth.userId || !auth.deviceId) return;
 
     for (const item of items) {
