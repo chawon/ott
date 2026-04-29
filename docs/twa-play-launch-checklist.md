@@ -125,6 +125,25 @@
   - [ ] 2x2 위젯 레이아웃 정상 표시
   - [ ] `기록하기` / `타임라인` 액션 진입 확인
 
+### 진행 업데이트 (2026-04-29, Android 진입면 보강 후보)
+- [x] 런처 롱프레스 shortcuts 구현
+  - [x] `기록하기` → `/?quick=1&quick_focus=1`
+  - [x] `영상 기록` → `/?quick=1&quick_type=video&quick_focus=1`
+  - [x] `책 기록` → `/?quick=1&quick_type=book&quick_focus=1`
+  - [x] `타임라인` → `/timeline`
+- [x] PWA/TWA Web Share Target 계약 명시
+  - [x] PWA manifest `share_target` 추가
+  - [x] TWA `METADATA_SHARE_TARGET` 추가
+  - [x] 홈에서 `shared_url`도 공유 입력으로 처리
+- [x] 홈 화면 위젯 액션 분리
+  - [x] `영상`
+  - [x] `책`
+  - [x] `타임라인`
+- [ ] 다음 alpha 재배포 시 실기기 확인
+  - [ ] 앱 롱프레스 shortcut 4종 표시 및 진입
+  - [ ] 외부 앱 URL/text 공유 → QuickLog 검색 프리필
+  - [ ] 위젯 `영상` / `책` / `타임라인` 진입
+
 ### 진행 업데이트 (2026-02-15)
 - [x] TWA 공유 인텐트 MVP 구현 완료 (`feat/twa-share-intent-mvp` → `main` 머지)
   - Android: `ACTION_SEND`, `ACTION_SEND_MULTIPLE` 수신

@@ -97,7 +97,8 @@
    1. Google Play internal/release 경로는 `apps/twa` 기반 Bubblewrap TWA
    2. 패키지명 `app.ottline`, 도메인 `ottline.app`, 워크플로우는 `twa-debug.yml` / `twa-build-aab.yml` / `twa-release.yml`
    3. `2026-04-21` 기준 Google Play `alpha` 비공개 테스트 최신 버전은 `1.0.3` (`versionCode=7`)이며, 홈 화면 위젯 디자인 리프레시가 반영됐다
-   4. `feat/native-mobile-app`의 `apps/native`는 React Native + Expo 후보 앱이며, main 미머지 상태이고 배포 파이프라인은 아직 없음
+   4. `2026-04-29` 다음 alpha 후보로 Android 런처 shortcuts, PWA/TWA Web Share Target, 홈 위젯 영상/책/타임라인 액션 분리가 준비 중이다
+   5. `feat/native-mobile-app`의 `apps/native`는 React Native + Expo 후보 앱이며, main 미머지 상태이고 배포 파이프라인은 아직 없음
 
 ### P1
 1. Public repo 보안 후속 정리

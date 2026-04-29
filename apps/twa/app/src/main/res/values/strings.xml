@@ -40,12 +40,28 @@
     
   </string>  
 
+  <string name="share_target">
+  {
+      \"action\": \"https://ottline.app/?quick=1&amp;quick_focus=1\",
+      \"method\": \"GET\",
+      \"params\": {
+          \"title\": \"shared_subject\",
+          \"text\": \"shared_text\",
+          \"url\": \"shared_url\"
+      }
+  }
+  </string>
+
   <string name="widget_brand_label">OTTLINE</string>
   <string name="widget_quick_log_title">빠른 기록</string>
-  <string name="widget_quick_log_subtitle">방금 본 작품을 남기고 흐름을 이어갑니다.</string>
-  <string name="widget_quick_log_description">기록하기와 타임라인을 빠르게 여는 홈 화면 위젯입니다.</string>
+  <string name="widget_quick_log_subtitle">영상과 책을 바로 골라 남깁니다.</string>
+  <string name="widget_quick_log_description">영상 기록, 책 기록, 타임라인을 빠르게 여는 홈 화면 위젯입니다.</string>
   <string name="widget_action_record">기록하기</string>
   <string name="widget_action_record_hint">검색창을 바로 열어요</string>
+  <string name="widget_action_video">영상</string>
+  <string name="widget_action_video_hint">영화·시리즈</string>
+  <string name="widget_action_book">책</string>
+  <string name="widget_action_book_hint">도서 기록</string>
   <string name="widget_action_timeline">타임라인</string>
   <string name="widget_action_timeline_hint">최근 기록 흐름으로 이동</string>
 </resources>

@@ -1,7 +1,21 @@
 import type { MetadataRoute } from "next";
 import { headers } from "next/headers";
 
-export default async function manifest(): Promise<MetadataRoute.Manifest> {
+type WebShareTarget = {
+  action: string;
+  method: "GET";
+  params: {
+    title: string;
+    text: string;
+    url: string;
+  };
+};
+
+type OttlineManifest = MetadataRoute.Manifest & {
+  share_target: WebShareTarget;
+};
+
+export default async function manifest(): Promise<OttlineManifest> {
   const headerList = await headers();
   const acceptLanguage = headerList.get("accept-language") || "";
   const isEn = acceptLanguage.toLowerCase().startsWith("en");
@@ -45,15 +59,28 @@ export default async function manifest(): Promise<MetadataRoute.Manifest> {
         sizes: "1280x720",
         type: "image/png",
         form_factor: "wide",
-        label: isEn ? "Home timeline and quick log entry (Desktop)" : "홈 타임라인과 퀵로그 입력 화면 (데스크톱)",
+        label: isEn
+          ? "Home timeline and quick log entry (Desktop)"
+          : "홈 타임라인과 퀵로그 입력 화면 (데스크톱)",
       },
       {
         src: "/pwa/screenshot-mobile-narrow.png",
         sizes: "720x1280",
         type: "image/png",
         form_factor: "narrow",
-        label: isEn ? "Home timeline and quick log entry (Mobile)" : "홈 타임라인과 퀵로그 입력 화면 (모바일)",
+        label: isEn
+          ? "Home timeline and quick log entry (Mobile)"
+          : "홈 타임라인과 퀵로그 입력 화면 (모바일)",
       },
     ],
+    share_target: {
+      action: "/?quick=1&quick_focus=1",
+      method: "GET",
+      params: {
+        title: "shared_subject",
+        text: "shared_text",
+        url: "shared_url",
+      },
+    },
   };
 }

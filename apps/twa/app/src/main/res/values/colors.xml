@@ -20,6 +20,8 @@
     <color name="widget_title_text">#11294A</color>
     <color name="widget_body_text">#47678D</color>
     <color name="widget_record_icon">#184B84</color>
+    <color name="widget_video_icon">#184B84</color>
+    <color name="widget_book_icon">#376B4E</color>
     <color name="widget_timeline_icon">#3B5E8D</color>
     <color name="widget_action_text">#173764</color>
     <color name="widget_action_hint">#53739A</color>
