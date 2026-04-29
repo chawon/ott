@@ -1,12 +1,13 @@
 # Wiki Log
 
-## [2026-04-29] update: Android TWA 진입면 보강 후보 반영
+## [2026-04-29] update: Android TWA 진입면 보강 alpha 배포 반영
 - 대상: `apps/twa`, `apps/web/app/manifest.ts`, `apps/web/app/[locale]/page.tsx`, `docs/twa-android-entrypoints-2026-04-29.md`
 - 생성/수정: platforms/twa.md, index.md
 - 노트:
   - 런처 롱프레스 shortcuts 4종(`기록하기`, `영상 기록`, `책 기록`, `타임라인`)을 추가
   - PWA/TWA Web Share Target 계약을 명시하고 URL 공유용 `shared_url` 처리를 추가
   - Android 홈 화면 위젯 액션을 `영상`, `책`, `타임라인`으로 분리
+  - GitHub Actions Run `25090236209`로 Play `alpha` 트랙에 `1.0.4` (`versionCode=8`) 배포 완료
 
 ## [2026-04-19] update: 설정의 서버 데이터 전체 삭제 정책 반영
 - 대상: `apps/api/src/main/java/com/watchlog/api/web/AuthController.java`, `apps/api/src/main/java/com/watchlog/api/service/AccountDeletionService.java`, `apps/web/app/[locale]/account/page.tsx`, `apps/web/messages/{ko,en}.json`, AGENTS.md

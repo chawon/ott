@@ -125,7 +125,7 @@
   - [ ] 2x2 위젯 레이아웃 정상 표시
   - [ ] `기록하기` / `타임라인` 액션 진입 확인
 
-### 진행 업데이트 (2026-04-29, Android 진입면 보강 후보)
+### 진행 업데이트 (2026-04-29, Android 진입면 보강 alpha 배포)
 - [x] 런처 롱프레스 shortcuts 구현
   - [x] `기록하기` → `/?quick=1&quick_focus=1`
   - [x] `영상 기록` → `/?quick=1&quick_type=video&quick_focus=1`
@@ -139,6 +139,11 @@
   - [x] `영상`
   - [x] `책`
   - [x] `타임라인`
+- [x] 클로즈드 테스트 트랙 재배포 반영 확인
+  - GitHub Actions Run: `25090236209`
+  - 트랙: `alpha`
+  - 상태: `completed`
+  - 버전: `1.0.4` (`versionCode=8`)
 - [ ] 다음 alpha 재배포 시 실기기 확인
   - [ ] 앱 롱프레스 shortcut 4종 표시 및 진입
   - [ ] 외부 앱 URL/text 공유 → QuickLog 검색 프리필
