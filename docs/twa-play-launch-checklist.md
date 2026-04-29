@@ -144,6 +144,10 @@
   - 트랙: `alpha`
   - 상태: `completed`
   - 버전: `1.0.4` (`versionCode=8`)
+- [x] Web Share Target production manifest 확인
+  - [x] `/manifest.webmanifest` route handler 전환
+  - [x] Web production deploy run `25090523988`
+  - [x] live `share_target` JSON 노출 확인
 - [ ] 다음 alpha 재배포 시 실기기 확인
   - [ ] 앱 롱프레스 shortcut 4종 표시 및 진입
   - [ ] 외부 앱 URL/text 공유 → QuickLog 검색 프리필
