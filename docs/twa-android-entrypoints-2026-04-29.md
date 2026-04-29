@@ -10,7 +10,7 @@
 - GitHub Actions Run: `25090236209`
 
 ## 범위
-- 대상: `apps/twa`, `apps/web/app/manifest.ts`, `apps/web/app/[locale]/page.tsx`
+- 대상: `apps/twa`, `apps/web/app/manifest.webmanifest/route.ts`, `apps/web/app/[locale]/page.tsx`
 - 영향: Android launcher shortcuts, TWA/Web Share Target, Android home widget
 - 비영향: API, DB, Sync, 계정/권한 정책
 
@@ -31,3 +31,8 @@
 2. 외부 앱에서 텍스트/URL을 ottline으로 공유하면 QuickLog 검색어가 프리필된다.
 3. 홈 위젯에서 `영상`, `책`, `타임라인`을 눌렀을 때 각각 영상 QuickLog, 책 QuickLog, 타임라인으로 진입한다.
 4. TWA release AAB 빌드에서 `shortcuts.xml`, widget layout, AndroidManifest 리소스 참조가 깨지지 않는다.
+
+## 검증 메모
+- 현재 로컬 작업환경(WSL on ARM Linux)에서는 Android Gradle 빌드(`assembleDebug`, `bundleRelease`)가 `aapt2` 바이너리 호환 문제로 실패하는 알려진 제약이 있다.
+- 로컬 Android 빌드 실패는 이 변경의 회귀 판단 근거로 쓰지 않고, TWA APK/AAB 산출물은 GitHub Actions Run `25090236209`처럼 CI 결과를 기준으로 검증한다.
+- 로컬에서는 필요 시 `apps/twa`에서 `GRADLE_USER_HOME=./.gradle ./gradlew :app:generateShorcutsFile --no-daemon`로 shortcuts 리소스 생성 정도만 확인한다.

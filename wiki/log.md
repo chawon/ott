@@ -1,7 +1,15 @@
 # Wiki Log
 
+## [2026-04-29] update: 로컬 Android 빌드 제약 명시
+- 대상: `AGENTS.md`, `docs/twa.md`, `docs/twa-play-launch-checklist.md`, `docs/twa-android-entrypoints-2026-04-29.md`, `wiki/pages/platforms/twa.md`
+- 생성/수정: platforms/twa.md, index.md
+- 노트:
+  - 현재 로컬 작업환경(WSL on ARM Linux)에서는 `assembleDebug`/`bundleRelease`가 `aapt2` 바이너리 호환 문제로 실패하는 알려진 제약임을 운영 문서에 명시
+  - Android APK/AAB 검증과 Play 배포의 source of truth를 GitHub Actions로 고정
+  - 로컬 Gradle은 필요 시 `:app:generateShorcutsFile` 같은 리소스 생성 확인까지만 제한적으로 사용하도록 정리
+
 ## [2026-04-29] update: Android TWA 진입면 보강 alpha 배포 반영
-- 대상: `apps/twa`, `apps/web/app/manifest.ts`, `apps/web/app/[locale]/page.tsx`, `docs/twa-android-entrypoints-2026-04-29.md`
+- 대상: `apps/twa`, `apps/web/app/manifest.webmanifest/route.ts`, `apps/web/app/[locale]/page.tsx`, `docs/twa-android-entrypoints-2026-04-29.md`
 - 생성/수정: platforms/twa.md, index.md
 - 노트:
   - 런처 롱프레스 shortcuts 4종(`기록하기`, `영상 기록`, `책 기록`, `타임라인`)을 추가

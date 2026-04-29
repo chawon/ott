@@ -6,7 +6,7 @@
 
 ## 진행 상황
 - GitHub Actions에서 디버그 APK 빌드 성공 및 기기 설치 확인 완료
-- 현재 개발 환경(WSL on ARM Linux)에서는 Android Gradle 로컬 빌드 호환 이슈가 있어, APK/AAB 빌드는 GitHub Actions를 기본 경로로 사용
+- 현재 개발 환경(WSL on ARM Linux)에서는 Android Gradle 로컬 빌드 호환 이슈가 있어, APK/AAB 빌드는 GitHub Actions만 정식 검증/배포 경로로 사용
 
 ### 진행 업데이트 (2026-02-15)
 - TWA 공유 인텐트 MVP 반영 완료 (main 머지)
@@ -68,8 +68,10 @@
 
 ## 빌드 방식 안내 (중요)
 - `bubblewrap init`으로 프로젝트 생성/갱신은 가능
-- 하지만 WSL의 ARM Linux 환경에서는 Android 빌드 도구 호환 문제로 `./gradlew assembleDebug`, `./gradlew bundleRelease` 같은 로컬 빌드가 안정적으로 동작하지 않음
-- 따라서 실제 빌드 산출물(APK/AAB)은 GitHub Actions에서 생성하고, 아티팩트를 내려받아 테스트/배포에 사용
+- 하지만 현재 로컬 작업환경(WSL on ARM Linux)에서는 Android 빌드 도구 호환 문제로 `./gradlew assembleDebug`, `./gradlew bundleRelease`가 `aapt2` 단계에서 실패하는 것이 알려진 제약
+- 로컬 Android 빌드 실패는 코드 회귀 판단 근거로 쓰지 않는다
+- 실제 빌드 산출물(APK/AAB)은 GitHub Actions에서 생성하고, 아티팩트를 내려받아 테스트/배포에 사용
+- 로컬 Gradle은 필요 시 `GRADLE_USER_HOME=./.gradle ./gradlew :app:generateShorcutsFile --no-daemon` 같은 리소스 생성 확인까지만 제한적으로 사용
 
 ## 1) Bubblewrap 초기화
 아래 명령으로 TWA 프로젝트를 생성한다.
@@ -89,16 +91,16 @@ NPM_CONFIG_CACHE=./.npm-cache npx @bubblewrap/cli init \
 - Start URL: `/`
 
 ## 2) APK 빌드(내부 테스트)
-기본 경로: GitHub Actions에서 빌드
+정식 경로: GitHub Actions에서 빌드
 
-로컬 빌드(참고용, 현재 환경에서는 비권장):
-```bash
-cd apps/twa
-GRADLE_USER_HOME=./.gradle ./gradlew assembleDebug
-```
+- 디버그 APK: `.github/workflows/twa-debug.yml`
+- 릴리즈 AAB 수동 생성: `.github/workflows/twa-build-aab.yml`
+- Play 트랙 배포: `.github/workflows/twa-release.yml`
 
-결과 APK 경로:
+GitHub Actions 아티팩트 기준 결과 APK 경로:
 - `apps/twa/app/build/outputs/apk/debug/app-debug.apk`
+
+현재 로컬 작업환경에서는 `assembleDebug`/`bundleRelease`를 실행해도 `aapt2` 호환 문제로 실패할 수 있다. 이 실패는 알려진 환경 제약이며, Android 빌드 성공 여부는 GitHub Actions 결과로만 판단한다.
 
 ## 3) Asset Links 설정
 TWA는 디지털 자산 링크 검증이 필요하다. 서명 키의 SHA-256 지문을 구한 후
@@ -125,7 +127,7 @@ adb install -r apps/twa/app/build/outputs/apk/debug/app-debug.apk
 ## 참고
 - 스토어 배포용은 AAB 빌드 필요 (`./gradlew bundleRelease`)
 - 실서비스 배포 시에는 release keystore의 SHA-256으로 `assetlinks.json`을 갱신해야 함
-- WSL ARM Linux 환경에서는 로컬 AAB 빌드도 동일한 호환 제약이 있으므로 CI 빌드를 권장
+- WSL ARM Linux 환경에서는 로컬 APK/AAB 빌드가 동일한 `aapt2` 호환 제약을 받으므로 CI 빌드를 사용
 - 2026-04-17 재검증 기준 현재 작업환경에서는 `aapt2` 바이너리 호환 문제로 로컬 빌드 실패
 
 ## CI (GitHub Actions) 빌드 준비

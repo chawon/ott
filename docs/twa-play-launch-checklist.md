@@ -35,6 +35,7 @@
 - [x] GitHub Actions `Build TWA Release AAB` 실행
 - [ ] 결과물 `app-release.aab` 다운로드
 - [ ] AAB 파일명에 버전 식별 정보 추가 보관 (예: 날짜/릴리즈 태그)
+- [x] 현재 로컬 작업환경의 Android Gradle 빌드 실패는 알려진 WSL/ARM `aapt2` 제약으로 분류하고, APK/AAB 성공 여부는 GitHub Actions 결과만 기준으로 판단
 
 ### 진행 업데이트 (2026-02-18)
 - [x] GitHub Actions에 Google Play 배포 자동화 반영 (`gplay release`)
@@ -201,8 +202,10 @@
 - [ ] 긴급 패치 여부 판단
 
 ## 운영 메모
-- WSL(ARM Linux) 환경 호환 제약으로 로컬 Android 빌드는 비권장
+- WSL(ARM Linux) 환경 호환 제약으로 로컬 Android 빌드는 정식 검증 경로가 아님
+- `./gradlew assembleDebug`, `./gradlew bundleRelease`가 로컬에서 `aapt2` 문제로 실패해도 알려진 환경 제약으로 취급
 - APK/AAB는 GitHub Actions를 기준으로 생성/배포
+- 로컬 Gradle은 필요한 경우 `apps/twa`에서 `GRADLE_USER_HOME=./.gradle ./gradlew :app:generateShorcutsFile --no-daemon` 같은 리소스 생성 확인까지만 사용
 - 키 유출이 의심되면 즉시 키 교체 및 CI 시크릿 전면 갱신
 - 현재 저장소 기준 Android 배포 경로는 `apps/twa`, Expo 앱(`apps/native`)은 별도 후보 구현
 
