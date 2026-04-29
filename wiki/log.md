@@ -1,5 +1,13 @@
 # Wiki Log
 
+## [2026-04-29] update: Android 1.0.4 alpha 모바일 실기기 확인
+- 대상: `app.ottline` Play `alpha` `1.0.4` (`versionCode=8`), `AGENTS.md`, `docs/twa.md`, `docs/twa-play-launch-checklist.md`, `docs/twa-android-entrypoints-2026-04-29.md`
+- 생성/수정: platforms/twa.md, index.md
+- 노트:
+  - 모바일 Play 설치본에서 홈 위젯 `영상` / `책` / `타임라인` 진입 정상 확인
+  - 앱 아이콘 롱프레스 shortcuts 4종 표시 및 진입 정상 확인
+  - OTT 앱의 공유하기로 ottline을 호출했을 때 QuickLog 조회/검색 프리필 정상 확인
+
 ## [2026-04-29] update: 로컬 Android 빌드 제약 명시
 - 대상: `AGENTS.md`, `docs/twa.md`, `docs/twa-play-launch-checklist.md`, `docs/twa-android-entrypoints-2026-04-29.md`, `wiki/pages/platforms/twa.md`
 - 생성/수정: platforms/twa.md, index.md

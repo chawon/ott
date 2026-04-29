@@ -181,3 +181,7 @@ adb install -r apps/twa/app/build/outputs/apk/debug/app-debug.apk
   - Next metadata `manifest.ts`가 `share_target`을 live JSON에 내보내지 않아 `/manifest.webmanifest`를 route handler로 전환
   - Web production deploy run `25090523988` 성공
   - `https://ottline.app/manifest.webmanifest`에서 `share_target` 노출 확인
+- 모바일 실기기 확인 완료
+  - 홈 위젯 `영상` / `책` / `타임라인` 진입 정상
+  - 앱 아이콘 롱프레스 shortcuts 표시 및 진입 정상
+  - OTT 앱의 공유하기로 ottline을 호출하면 QuickLog 조회/검색 프리필 정상

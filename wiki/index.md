@@ -35,7 +35,7 @@
 | [[pwa]] | 로컬 우선 아키텍처 기반 설치형 웹앱, Service Worker 및 오프라인 지원 포함 |
 | [[native]] | React Native + Expo 기반 네이티브 후보 앱 (feat/native-mobile-app 브랜치, 배포 파이프라인 미구성) |
 | [[toss-inapp]] | 앱인토스 WebView 미니앱 — 2026-04-14 반려 대응 완료, 핀치줌/미리보기/저장 정상, 공유는 텍스트 |
-| [[twa]] | Android 현재 배포 경로인 Bubblewrap TWA, Play `alpha` 비공개 테스트 진행 중, shortcuts/share target/위젯 진입면 보강, APK/AAB는 GitHub Actions 기준 |
+| [[twa]] | Android 현재 배포 경로인 Bubblewrap TWA, Play `alpha` 비공개 테스트 진행 중, shortcuts/share target/위젯 실기기 확인 완료, APK/AAB는 GitHub Actions 기준 |
 
 ## Processes
 
