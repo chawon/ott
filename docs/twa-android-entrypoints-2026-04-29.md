@@ -4,6 +4,11 @@
 - Android 비공개 테스트 중인 TWA 빌드에 Android 전용 진입면을 보강한다.
 - 웹앱의 기록 흐름은 유지하고, 런처/공유/위젯에서 바로 QuickLog로 들어가는 경로를 명확히 한다.
 
+## 배포 상태
+- 2026-04-29 `alpha` 트랙 배포 완료
+- 버전: `1.0.4` (`versionCode=8`)
+- GitHub Actions Run: `25090236209`
+
 ## 범위
 - 대상: `apps/twa`, `apps/web/app/manifest.ts`, `apps/web/app/[locale]/page.tsx`
 - 영향: Android launcher shortcuts, TWA/Web Share Target, Android home widget
