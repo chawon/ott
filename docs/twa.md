@@ -175,3 +175,7 @@ adb install -r apps/twa/app/build/outputs/apk/debug/app-debug.apk
   - 트랙: `alpha`
   - 상태: `completed`
   - 버전: `1.0.4` (`versionCode=8`)
+- Web Share Target live 보정
+  - Next metadata `manifest.ts`가 `share_target`을 live JSON에 내보내지 않아 `/manifest.webmanifest`를 route handler로 전환
+  - Web production deploy run `25090523988` 성공
+  - `https://ottline.app/manifest.webmanifest`에서 `share_target` 노출 확인

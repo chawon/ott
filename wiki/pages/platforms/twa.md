@@ -79,7 +79,7 @@
 
 Android `ACTION_SEND` 수신 → 웹앱에 `shared_text`, `shared_subject` 쿼리 전달 → QuickLog 검색창 자동 프리필
 
-2026-04-29 `1.0.4` alpha에서는 PWA manifest와 TWA metadata에 Web Share Target을 명시하고, URL 공유용 `shared_url`도 홈 QuickLog 입력으로 병합한다.
+2026-04-29 `1.0.4` alpha에서는 PWA manifest와 TWA metadata에 Web Share Target을 명시하고, URL 공유용 `shared_url`도 홈 QuickLog 입력으로 병합한다. Next metadata `manifest.ts`는 live JSON에 `share_target`을 노출하지 않아 `/manifest.webmanifest`를 route handler로 전환했고, web production deploy run `25090523988` 이후 live manifest에서 `share_target` 노출을 확인했다.
 
 **지원 OTT 파서:**
 - Netflix, Disney+, Prime Video, Apple TV, TVING, Coupang Play, WATCHA
