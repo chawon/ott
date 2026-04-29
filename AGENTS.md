@@ -98,7 +98,9 @@
    2. 패키지명 `app.ottline`, 도메인 `ottline.app`, 워크플로우는 `twa-debug.yml` / `twa-build-aab.yml` / `twa-release.yml`
    3. `2026-04-21` 기준 Google Play `alpha` 비공개 테스트 최신 버전은 `1.0.3` (`versionCode=7`)이며, 홈 화면 위젯 디자인 리프레시가 반영됐다
    4. `2026-04-29` 기준 Google Play `alpha` 최신 버전은 `1.0.4` (`versionCode=8`)이며, Android 런처 shortcuts, PWA/TWA Web Share Target, 홈 위젯 영상/책/타임라인 액션 분리가 반영됐다
-   5. `feat/native-mobile-app`의 `apps/native`는 React Native + Expo 후보 앱이며, main 미머지 상태이고 배포 파이프라인은 아직 없음
+   5. 현재 로컬 작업환경(WSL on ARM Linux)에서는 Android Gradle 빌드(`assembleDebug`, `bundleRelease`)가 `aapt2` 바이너리 호환 문제로 실패하는 것이 정상 제약이다. 로컬 Android 빌드 실패를 회귀로 보지 말고, APK/AAB 산출물 검증과 Play 배포는 GitHub Actions를 source of truth로 사용한다.
+   6. 로컬 Gradle은 필요 시 `apps/twa`에서 `GRADLE_USER_HOME=./.gradle ./gradlew :app:generateShorcutsFile --no-daemon` 같은 리소스 생성 확인까지만 제한적으로 사용한다.
+   7. `feat/native-mobile-app`의 `apps/native`는 React Native + Expo 후보 앱이며, main 미머지 상태이고 배포 파이프라인은 아직 없음
 
 ### P1
 1. Public repo 보안 후속 정리
