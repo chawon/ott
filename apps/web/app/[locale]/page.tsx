@@ -69,7 +69,9 @@ export default function HomePage() {
         }
       }
 
-      const rawShared = params.get("shared_text");
+      const rawShared = [params.get("shared_text"), params.get("shared_url")]
+        .filter((v): v is string => Boolean(v?.trim()))
+        .join("\n");
       const rawSubject = params.get("shared_subject");
       const platform = inferShareIntentPlatform(rawShared, rawSubject);
       if (platform && !cancelled) setSharedPlatform(platform);
@@ -223,7 +225,14 @@ export default function HomePage() {
 
           <div className="grid grid-cols-1 gap-3">
             {logs.map((l) => (
-              <LogCard key={l.id} log={l} onShareCard={() => { setShareLog(l); setShareOpen(true); }} />
+              <LogCard
+                key={l.id}
+                log={l}
+                onShareCard={() => {
+                  setShareLog(l);
+                  setShareOpen(true);
+                }}
+              />
             ))}
           </div>
         </section>

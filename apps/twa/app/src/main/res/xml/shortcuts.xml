@@ -1,1 +1,18 @@
-<shortcuts xmlns:android='http://schemas.android.com/apk/res/android' />
+<shortcuts xmlns:android='http://schemas.android.com/apk/res/android'>
+    <shortcut android:shortcutId='record' android:enabled='true' android:icon='@drawable/shortcut_record' android:shortcutShortLabel='@string/shortcut_short_name_0' android:shortcutLongLabel='@string/shortcut_name_0'>
+        <intent android:action='android.intent.action.MAIN' android:targetPackage='app.ottline' android:targetClass='app.ottline.LauncherActivity' android:data='https://ottline.app/?quick=1&amp;quick_focus=1' />
+        <categories android:name='android.intent.category.LAUNCHER' />
+    </shortcut>
+    <shortcut android:shortcutId='video' android:enabled='true' android:icon='@drawable/shortcut_video' android:shortcutShortLabel='@string/shortcut_short_name_1' android:shortcutLongLabel='@string/shortcut_name_1'>
+        <intent android:action='android.intent.action.MAIN' android:targetPackage='app.ottline' android:targetClass='app.ottline.LauncherActivity' android:data='https://ottline.app/?quick=1&amp;quick_type=video&amp;quick_focus=1' />
+        <categories android:name='android.intent.category.LAUNCHER' />
+    </shortcut>
+    <shortcut android:shortcutId='book' android:enabled='true' android:icon='@drawable/shortcut_book' android:shortcutShortLabel='@string/shortcut_short_name_2' android:shortcutLongLabel='@string/shortcut_name_2'>
+        <intent android:action='android.intent.action.MAIN' android:targetPackage='app.ottline' android:targetClass='app.ottline.LauncherActivity' android:data='https://ottline.app/?quick=1&amp;quick_type=book&amp;quick_focus=1' />
+        <categories android:name='android.intent.category.LAUNCHER' />
+    </shortcut>
+    <shortcut android:shortcutId='timeline' android:enabled='true' android:icon='@drawable/shortcut_timeline' android:shortcutShortLabel='@string/shortcut_short_name_3' android:shortcutLongLabel='@string/shortcut_name_3'>
+        <intent android:action='android.intent.action.MAIN' android:targetPackage='app.ottline' android:targetClass='app.ottline.LauncherActivity' android:data='https://ottline.app/timeline' />
+        <categories android:name='android.intent.category.LAUNCHER' />
+    </shortcut>
+</shortcuts>

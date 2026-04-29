@@ -164,3 +164,10 @@ adb install -r apps/twa/app/build/outputs/apk/debug/app-debug.apk
   - 트랙: `alpha`
   - 상태: `completed`
   - 버전: `1.0.3` (`versionCode=7`)
+
+### 진행 업데이트 (2026-04-29)
+- Android 진입면 보강 후보 반영
+  - 런처 롱프레스 shortcuts 추가: `기록하기`, `영상 기록`, `책 기록`, `타임라인`
+  - PWA/TWA Web Share Target 계약 명시: `shared_text`, `shared_subject`, `shared_url`
+  - 홈 화면 위젯 액션을 `영상`, `책`, `타임라인`으로 분리
+  - 관련 설계 메모: `docs/twa-android-entrypoints-2026-04-29.md`

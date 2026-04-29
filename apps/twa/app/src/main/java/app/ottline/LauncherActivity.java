@@ -54,6 +54,11 @@ public class LauncherActivity
         Intent intent = getIntent();
         if (intent == null) return uri;
 
+        Uri data = intent.getData();
+        if (isOttlineUrl(data)) {
+            return data;
+        }
+
         String quickType = intent.getStringExtra(EXTRA_QUICK_TYPE);
         if (!TextUtils.isEmpty(quickType)) {
             if (QUICK_TYPE_TIMELINE.equals(quickType)) {
@@ -94,5 +99,11 @@ public class LauncherActivity
         }
 
         return uri;
+    }
+
+    private boolean isOttlineUrl(Uri uri) {
+        return uri != null
+                && "https".equals(uri.getScheme())
+                && "ottline.app".equals(uri.getHost());
     }
 }

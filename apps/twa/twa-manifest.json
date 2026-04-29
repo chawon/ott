@@ -21,7 +21,32 @@
   },
   "appVersionName": "1",
   "appVersionCode": 1,
-  "shortcuts": [],
+  "shortcuts": [
+    {
+      "name": "기록하기",
+      "short_name": "기록",
+      "url": "/?quick=1&quick_focus=1",
+      "icon": "https://ottline.app/icon.png"
+    },
+    {
+      "name": "영상 기록",
+      "short_name": "영상",
+      "url": "/?quick=1&quick_type=video&quick_focus=1",
+      "icon": "https://ottline.app/icon.png"
+    },
+    {
+      "name": "책 기록",
+      "short_name": "책",
+      "url": "/?quick=1&quick_type=book&quick_focus=1",
+      "icon": "https://ottline.app/icon.png"
+    },
+    {
+      "name": "타임라인",
+      "short_name": "타임라인",
+      "url": "/timeline",
+      "icon": "https://ottline.app/icon.png"
+    }
+  ],
   "generatorApp": "bubblewrap-cli",
   "webManifestUrl": "https://ottline.app/manifest.webmanifest",
   "fallbackType": "customtabs",

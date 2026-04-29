@@ -48,7 +48,36 @@ def twaManifest = [
     // - short_name: Shorter string used if |name| is too long.
     // - url: Absolute path of the URL to launch the app with (e.g '/create').
     // - icon: Name of the resource in the drawable folder to use as an icon.
-    shortcuts: [],
+    shortcuts: [
+        [
+            id: 'record',
+            name: '기록하기',
+            short_name: '기록',
+            url: 'https://ottline.app/?quick=1&quick_focus=1',
+            icon: 'shortcut_record'
+        ],
+        [
+            id: 'video',
+            name: '영상 기록',
+            short_name: '영상',
+            url: 'https://ottline.app/?quick=1&quick_type=video&quick_focus=1',
+            icon: 'shortcut_video'
+        ],
+        [
+            id: 'book',
+            name: '책 기록',
+            short_name: '책',
+            url: 'https://ottline.app/?quick=1&quick_type=book&quick_focus=1',
+            icon: 'shortcut_book'
+        ],
+        [
+            id: 'timeline',
+            name: '타임라인',
+            short_name: '타임라인',
+            url: 'https://ottline.app/timeline',
+            icon: 'shortcut_timeline'
+        ],
+    ],
     // The duration of fade out animation in milliseconds to be played when removing splash screen.
     splashScreenFadeOutDuration: 300,
     generatorApp: 'bubblewrap-cli', // Application that generated the Android Project
@@ -204,7 +233,7 @@ task generateShorcutsFile {
         .'shortcuts'('xmlns:android': 'http://schemas.android.com/apk/res/android') {
             twaManifest.shortcuts.eachWithIndex { s, i ->
                 'shortcut'(
-                        'android:shortcutId': 'shortcut' + i,
+                        'android:shortcutId': s.id ?: 'shortcut' + i,
                         'android:enabled': 'true',
                         'android:icon': '@drawable/' + s.icon,
                         'android:shortcutShortLabel': '@string/shortcut_short_name_' + i,
