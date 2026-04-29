@@ -26,6 +26,7 @@
   - `versionName=1.0.4`, `versionCode=8` AAB 빌드 완료
   - Play `alpha` 트랙에 `8 (1.0.4)` 반영 완료
   - 런처 shortcuts, PWA/TWA Web Share Target, 홈 위젯 영상/책/타임라인 액션 분리 반영
+  - 모바일 실기기에서 위젯, 롱프레스 shortcuts, OTT 앱 공유 후 QuickLog 조회 정상 확인
   - Google Play `alpha` 비공개 테스트(Closed testing) 시작
   - 비공개 테스트 테스터 그룹: `ottline-beta-testers@googlegroups.com`
 - 현재 작업환경 재검증(2026-04-17):

@@ -8,6 +8,7 @@
 - 2026-04-29 `alpha` 트랙 배포 완료
 - 버전: `1.0.4` (`versionCode=8`)
 - GitHub Actions Run: `25090236209`
+- 모바일 실기기 확인 완료: 위젯, 런처 shortcuts, OTT 앱 공유 후 QuickLog 조회 정상
 
 ## 범위
 - 대상: `apps/twa`, `apps/web/app/manifest.webmanifest/route.ts`, `apps/web/app/[locale]/page.tsx`
@@ -33,6 +34,7 @@
 4. TWA release AAB 빌드에서 `shortcuts.xml`, widget layout, AndroidManifest 리소스 참조가 깨지지 않는다.
 
 ## 검증 메모
+- 2026-04-29 Play 설치본 모바일 실기기에서 위젯 `영상` / `책` / `타임라인`, 앱 롱프레스 shortcut 4종, OTT 앱 공유 후 QuickLog 조회/검색 프리필을 확인했다.
 - 현재 로컬 작업환경(WSL on ARM Linux)에서는 Android Gradle 빌드(`assembleDebug`, `bundleRelease`)가 `aapt2` 바이너리 호환 문제로 실패하는 알려진 제약이 있다.
 - 로컬 Android 빌드 실패는 이 변경의 회귀 판단 근거로 쓰지 않고, TWA APK/AAB 산출물은 GitHub Actions Run `25090236209`처럼 CI 결과를 기준으로 검증한다.
 - 로컬에서는 필요 시 `apps/twa`에서 `GRADLE_USER_HOME=./.gradle ./gradlew :app:generateShorcutsFile --no-daemon`로 shortcuts 리소스 생성 정도만 확인한다.

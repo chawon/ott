@@ -122,9 +122,9 @@
   - 트랙: `alpha`
   - 상태: `completed`
   - 버전: `1.0.3` (`versionCode=7`)
-- [ ] Play 설치본에서 홈 화면 위젯 디자인 리프레시 실기기 확인
-  - [ ] 2x2 위젯 레이아웃 정상 표시
-  - [ ] `기록하기` / `타임라인` 액션 진입 확인
+- [x] Play 설치본에서 홈 화면 위젯 디자인 리프레시 실기기 확인
+  - [x] 2x2 위젯 레이아웃 정상 표시
+  - [x] `1.0.4` 기준 `영상` / `책` / `타임라인` 액션으로 대체 확인
 
 ### 진행 업데이트 (2026-04-29, Android 진입면 보강 alpha 배포)
 - [x] 런처 롱프레스 shortcuts 구현
@@ -149,10 +149,10 @@
   - [x] `/manifest.webmanifest` route handler 전환
   - [x] Web production deploy run `25090523988`
   - [x] live `share_target` JSON 노출 확인
-- [ ] 다음 alpha 재배포 시 실기기 확인
-  - [ ] 앱 롱프레스 shortcut 4종 표시 및 진입
-  - [ ] 외부 앱 URL/text 공유 → QuickLog 검색 프리필
-  - [ ] 위젯 `영상` / `책` / `타임라인` 진입
+- [x] Play 설치본 모바일 실기기 확인
+  - [x] 앱 롱프레스 shortcut 4종 표시 및 진입
+  - [x] 외부 OTT 앱 URL/text 공유 → QuickLog 조회/검색 프리필
+  - [x] 위젯 `영상` / `책` / `타임라인` 진입
 
 ### 진행 업데이트 (2026-02-15)
 - [x] TWA 공유 인텐트 MVP 구현 완료 (`feat/twa-share-intent-mvp` → `main` 머지)
