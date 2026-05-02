@@ -219,7 +219,7 @@ export default function FiltersBar({
           </label>
         )}
       </div>
-      <label className="flex min-w-0 flex-1 flex-col gap-1 text-sm md:max-w-xs">
+      <label className="flex min-w-0 flex-1 flex-col gap-1 text-sm sm:flex-row sm:items-center sm:gap-3 md:max-w-xs">
         <div className="text-sm text-muted-foreground">
           {tFilters("searchLabel")}
         </div>
