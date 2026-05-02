@@ -2,7 +2,7 @@
 
 import { ShieldCheck } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type {
   CreateFeedbackMessageRequest,
   FeedbackThreadDetail,
@@ -14,6 +14,8 @@ type Props = {
   token: string;
 };
 
+type FeedbackFilter = "ALL" | "OPEN" | "ANSWERED" | "CLOSED";
+
 function formatDate(value: string, locale: string) {
   return new Date(value).toLocaleString(locale === "ko" ? "ko-KR" : "en-US", {
     month: "short",
@@ -21,6 +23,24 @@ function formatDate(value: string, locale: string) {
     hour: "2-digit",
     minute: "2-digit",
   });
+}
+
+function hoursSince(value: string) {
+  const elapsed = Date.now() - new Date(value).getTime();
+  return Math.max(0, Math.floor(elapsed / 3_600_000));
+}
+
+function formatAge(hours: number, t: ReturnType<typeof useTranslations>) {
+  if (hours < 24) return t("slaHours", { count: Math.max(1, hours) });
+  return t("slaDays", { count: Math.floor(hours / 24) });
+}
+
+function slaTone(thread: FeedbackThreadSummary) {
+  if (thread.status !== "OPEN") return "done";
+  const ageHours = hoursSince(thread.updatedAt);
+  if (ageHours >= 48) return "overdue";
+  if (ageHours >= 24) return "soon";
+  return "ok";
 }
 
 function errorMessage(error: unknown, fallback: string) {
@@ -57,9 +77,28 @@ export default function AdminFeedbackConsole({ token }: Props) {
   const [detail, setDetail] = useState<FeedbackThreadDetail | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [replyBody, setReplyBody] = useState("");
+  const [filter, setFilter] = useState<FeedbackFilter>("OPEN");
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
+
+  const counts = useMemo(
+    () => ({
+      ALL: threads.length,
+      OPEN: threads.filter((thread) => thread.status === "OPEN").length,
+      ANSWERED: threads.filter((thread) => thread.status === "ANSWERED").length,
+      CLOSED: threads.filter((thread) => thread.status === "CLOSED").length,
+    }),
+    [threads],
+  );
+
+  const visibleThreads = useMemo(
+    () =>
+      filter === "ALL"
+        ? threads
+        : threads.filter((thread) => thread.status === filter),
+    [filter, threads],
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -74,7 +113,10 @@ export default function AdminFeedbackConsole({ token }: Props) {
         );
         if (cancelled) return;
         setThreads(items);
-        const initialId = items[0]?.id ?? null;
+        const initialId =
+          items.find((item) => item.status === "OPEN")?.id ??
+          items[0]?.id ??
+          null;
         setSelectedId(initialId);
         if (initialId) {
           const next = await adminFetch<FeedbackThreadDetail>(
@@ -100,12 +142,31 @@ export default function AdminFeedbackConsole({ token }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [t]);
+  }, [t, token]);
+
+  useEffect(() => {
+    if (loading) return;
+    if (visibleThreads.some((thread) => thread.id === selectedId)) return;
+    const nextId = visibleThreads[0]?.id ?? null;
+    setSelectedId(nextId);
+    if (!nextId) {
+      setDetail(null);
+      return;
+    }
+    adminFetch<FeedbackThreadDetail>(token, `/threads/${nextId}`)
+      .then(setDetail)
+      .catch((error: unknown) =>
+        setStatus(errorMessage(error, t("loadDetailError"))),
+      );
+  }, [loading, selectedId, t, token, visibleThreads]);
 
   async function openThread(id: string) {
     setSelectedId(id);
     try {
-      const next = await adminFetch<FeedbackThreadDetail>(token, `/threads/${id}`);
+      const next = await adminFetch<FeedbackThreadDetail>(
+        token,
+        `/threads/${id}`,
+      );
       setDetail(next);
     } catch (error: unknown) {
       setStatus(errorMessage(error, t("loadDetailError")));
@@ -118,7 +179,11 @@ export default function AdminFeedbackConsole({ token }: Props) {
       "/threads?limit=100",
     );
     setThreads(items);
-    const nextId = selected ?? items[0]?.id ?? null;
+    const nextId =
+      selected ??
+      items.find((item) => item.status === filter)?.id ??
+      items[0]?.id ??
+      null;
     setSelectedId(nextId);
     if (nextId) {
       const next = await adminFetch<FeedbackThreadDetail>(
@@ -131,16 +196,27 @@ export default function AdminFeedbackConsole({ token }: Props) {
     }
   }
 
+  const filterOptions: Array<{ value: FeedbackFilter; label: string }> = [
+    { value: "OPEN", label: t("filterOpen") },
+    { value: "ALL", label: t("filterAll") },
+    { value: "ANSWERED", label: t("filterAnswered") },
+    { value: "CLOSED", label: t("filterClosed") },
+  ];
+
   async function submitReply() {
     if (!detail || !replyBody.trim() || submitting) return;
     setSubmitting(true);
     setStatus(null);
     try {
       const payload: CreateFeedbackMessageRequest = { body: replyBody.trim() };
-      await adminFetch<FeedbackThreadDetail>(token, `/threads/${detail.id}/reply`, {
-        method: "POST",
-        body: JSON.stringify(payload),
-      });
+      await adminFetch<FeedbackThreadDetail>(
+        token,
+        `/threads/${detail.id}/reply`,
+        {
+          method: "POST",
+          body: JSON.stringify(payload),
+        },
+      );
       setReplyBody("");
       await reload(detail.id);
       setStatus(t("replySuccess"));
@@ -159,6 +235,23 @@ export default function AdminFeedbackConsole({ token }: Props) {
           <h1 className="text-2xl font-bold tracking-tight">{t("title")}</h1>
         </div>
         <p className="text-sm text-muted-foreground">{t("description")}</p>
+        <div className="flex flex-wrap gap-2 pt-2">
+          {filterOptions.map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              onClick={() => setFilter(option.value)}
+              className={cn(
+                "min-h-10 rounded-full border px-3 text-xs font-semibold transition-colors",
+                filter === option.value
+                  ? "border-neutral-900 bg-neutral-900 text-white"
+                  : "border-border bg-card text-muted-foreground hover:bg-muted",
+              )}
+            >
+              {option.label} {counts[option.value]}
+            </button>
+          ))}
+        </div>
         {status ? (
           <p className="text-xs font-medium text-blue-600">{status}</p>
         ) : null}
@@ -169,44 +262,62 @@ export default function AdminFeedbackConsole({ token }: Props) {
           <div className="mb-3 text-sm font-semibold">{t("allThreads")}</div>
           {loading ? (
             <div className="text-sm text-muted-foreground">{t("loading")}</div>
-          ) : threads.length === 0 ? (
+          ) : visibleThreads.length === 0 ? (
             <div className="rounded-xl border border-dashed border-border p-6 text-sm text-muted-foreground">
               {t("empty")}
             </div>
           ) : (
             <div className="space-y-2">
-              {threads.map((thread) => (
-                <button
-                  key={thread.id}
-                  type="button"
-                  onClick={() => openThread(thread.id)}
-                  className={cn(
-                    "w-full rounded-2xl border px-3 py-3 text-left transition-colors",
-                    selectedId === thread.id
-                      ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-950/20"
-                      : "border-border hover:bg-muted/60",
-                  )}
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-xs font-semibold text-indigo-600">
-                      {t(`category.${thread.category}`)}
-                    </span>
-                    <span className="text-[11px] text-muted-foreground">
-                      {t(`status.${thread.status}`)}
-                    </span>
-                  </div>
-                  <div className="mt-1 line-clamp-1 text-sm font-semibold text-foreground">
-                    {thread.subject || t("untitled")}
-                  </div>
-                  <div className="mt-1 line-clamp-2 text-xs text-muted-foreground">
-                    {thread.lastMessagePreview || t("noMessages")}
-                  </div>
-                  <div className="mt-2 text-[11px] text-muted-foreground">
-                    {thread.userId.slice(0, 8)} ·{" "}
-                    {formatDate(thread.updatedAt, locale)}
-                  </div>
-                </button>
-              ))}
+              {visibleThreads.map((thread) => {
+                const tone = slaTone(thread);
+                return (
+                  <button
+                    key={thread.id}
+                    type="button"
+                    onClick={() => openThread(thread.id)}
+                    className={cn(
+                      "w-full rounded-2xl border px-3 py-3 text-left transition-colors",
+                      selectedId === thread.id
+                        ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-950/20"
+                        : "border-border hover:bg-muted/60",
+                    )}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-xs font-semibold text-indigo-600">
+                        {t(`category.${thread.category}`)}
+                      </span>
+                      <span
+                        className={cn(
+                          "rounded-full px-2 py-0.5 text-[11px] font-semibold",
+                          tone === "overdue" &&
+                            "bg-red-100 text-red-700 dark:bg-red-950/30 dark:text-red-200",
+                          tone === "soon" &&
+                            "bg-amber-100 text-amber-800 dark:bg-amber-950/30 dark:text-amber-100",
+                          tone === "ok" &&
+                            "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-100",
+                          tone === "done" && "bg-muted text-muted-foreground",
+                        )}
+                      >
+                        {thread.status === "OPEN"
+                          ? t(`sla.${tone}`, {
+                              age: formatAge(hoursSince(thread.updatedAt), t),
+                            })
+                          : t(`status.${thread.status}`)}
+                      </span>
+                    </div>
+                    <div className="mt-1 line-clamp-1 text-sm font-semibold text-foreground">
+                      {thread.subject || t("untitled")}
+                    </div>
+                    <div className="mt-1 line-clamp-2 text-xs text-muted-foreground">
+                      {thread.lastMessagePreview || t("noMessages")}
+                    </div>
+                    <div className="mt-2 text-[11px] text-muted-foreground">
+                      {thread.userId.slice(0, 8)} ·{" "}
+                      {formatDate(thread.updatedAt, locale)}
+                    </div>
+                  </button>
+                );
+              })}
             </div>
           )}
         </div>
@@ -222,6 +333,13 @@ export default function AdminFeedbackConsole({ token }: Props) {
                   <span className="text-xs text-muted-foreground">
                     {t(`status.${detail.status}`)}
                   </span>
+                  {detail.status === "OPEN" ? (
+                    <span className="text-xs font-semibold text-amber-700">
+                      {t("detailOpenAge", {
+                        age: formatAge(hoursSince(detail.updatedAt), t),
+                      })}
+                    </span>
+                  ) : null}
                   <span className="text-xs text-muted-foreground">
                     user {detail.userId.slice(0, 8)}
                   </span>

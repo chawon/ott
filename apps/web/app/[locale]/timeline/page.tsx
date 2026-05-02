@@ -280,6 +280,7 @@ export default function TimelinePage() {
   );
   const [origin, setOrigin] = useState<"ALL" | "LOG" | "COMMENT">("ALL");
   const [ott, setOtt] = useState("");
+  const [query, setQuery] = useState("");
   const [logs, setLogs] = useState<WatchLog[]>([]);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -318,6 +319,7 @@ export default function TimelinePage() {
           status: status === "ALL" ? undefined : status,
           origin: origin === "ALL" ? undefined : origin,
           ott: ott.trim() ? ott : undefined,
+          query: query.trim() ? query : undefined,
           sortBy: "history",
         });
         if (!cancelled) {
@@ -325,16 +327,17 @@ export default function TimelinePage() {
           setLogs(cached);
         }
 
-        const query = buildQuery({
+        const requestQuery = buildQuery({
           limit: "50",
           status: status === "ALL" ? undefined : status,
           origin: origin === "ALL" ? undefined : origin,
           ott: ott.trim() ? ott : undefined,
+          q: query.trim() ? query : undefined,
           sort: "history",
         });
 
         if (getUserId()) {
-          const res = await apiWithAuth<WatchLog[]>(`/logs${query}`);
+          const res = await apiWithAuth<WatchLog[]>(`/logs${requestQuery}`);
           await upsertLogsLocal(res);
           const refreshed = await listLogsLocal({
             limit: 50,
@@ -342,6 +345,7 @@ export default function TimelinePage() {
             status: status === "ALL" ? undefined : status,
             origin: origin === "ALL" ? undefined : origin,
             ott: ott.trim() ? ott : undefined,
+            query: query.trim() ? query : undefined,
             sortBy: "history",
           });
           if (!cancelled) setLogs(refreshed);
@@ -360,7 +364,7 @@ export default function TimelinePage() {
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [status, ott, origin, contentType]);
+  }, [status, ott, origin, contentType, query]);
 
   useEffect(() => {
     function handleSync() {
@@ -370,12 +374,13 @@ export default function TimelinePage() {
         status: status === "ALL" ? undefined : status,
         origin: origin === "ALL" ? undefined : origin,
         ott: ott.trim() ? ott : undefined,
+        query: query.trim() ? query : undefined,
         sortBy: "history",
       }).then((cached) => setLogs(cached));
     }
     window.addEventListener("sync:updated", handleSync);
     return () => window.removeEventListener("sync:updated", handleSync);
-  }, [status, ott, origin, contentType]);
+  }, [status, ott, origin, contentType, query]);
 
   async function loadFuture(refresh = false) {
     if (!getUserId()) return;
@@ -444,6 +449,7 @@ export default function TimelinePage() {
         status: status === "ALL" ? undefined : status,
         origin: origin === "ALL" ? undefined : origin,
         ott: ott.trim() ? ott : undefined,
+        query: query.trim() ? query : undefined,
         sortBy: "history",
       });
       if (filtered.length === 0) {
@@ -564,6 +570,8 @@ export default function TimelinePage() {
             setOrigin={setOrigin}
             ott={ott}
             setOtt={setOtt}
+            query={query}
+            setQuery={setQuery}
             contentType={contentType}
             setContentType={setContentType}
           />

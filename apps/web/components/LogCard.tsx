@@ -2,7 +2,7 @@ import { BookOpen, Film, MessageSquare, Share2, Tv } from "lucide-react";
 import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
 import { useState } from "react";
-import { api } from "@/lib/api";
+import { api, apiWithAuth } from "@/lib/api";
 import type {
   Comment,
   CreateCommentRequest,
@@ -29,12 +29,15 @@ function formatDate(iso: string, locale: string) {
 
 function renderBody(text: string) {
   const parts = text.split(/(@\{[^}]+\})/g);
-  return parts.map((p, idx) => {
+  let offset = 0;
+  return parts.map((p) => {
+    const key = `${offset}:${p}`;
+    offset += p.length;
     if (p.startsWith("@{") && p.endsWith("}")) {
       const name = p.slice(2, -1);
       return (
         <span
-          key={idx}
+          key={key}
           className="rounded-md bg-accent px-1 text-accent-foreground"
         >
           @{name}
@@ -44,14 +47,14 @@ function renderBody(text: string) {
     if (p.startsWith("@")) {
       return (
         <span
-          key={idx}
+          key={key}
           className="rounded-md bg-accent px-1 text-accent-foreground"
         >
           {p}
         </span>
       );
     }
-    return <span key={idx}>{p}</span>;
+    return <span key={key}>{p}</span>;
   });
 }
 
@@ -102,17 +105,12 @@ export default function LogCard({
         body: JSON.stringify({ titleId: t.id }),
       });
       if (log.note?.trim()) {
-        const userId =
-          typeof localStorage !== "undefined"
-            ? localStorage.getItem("watchlog.userId")
-            : null;
         const req: CreateCommentRequest = {
           body: log.note.trim(),
-          userId: userId ?? null,
           mentions: [],
           syncLog: false,
         };
-        await api<Comment>(`/discussions/${discussion.id}/comments`, {
+        await apiWithAuth<Comment>(`/discussions/${discussion.id}/comments`, {
           method: "POST",
           body: JSON.stringify(req),
         });
@@ -223,16 +221,20 @@ export default function LogCard({
           <div className="flex flex-wrap gap-1.5 mb-3">
             {log.place
               ? chip(
-                  placeLabel(log.place, (k: any) =>
-                    tCommon(`placeLabels.${k}`),
+                  placeLabel(log.place, (k: string) =>
+                    tCommon(
+                      `placeLabels.${k}` as Parameters<typeof tCommon>[0],
+                    ),
                   ),
                   "place",
                 )
               : null}
             {log.occasion
               ? chip(
-                  occasionLabel(log.occasion, (k: any) =>
-                    tCommon(`occasionLabels.${k}`),
+                  occasionLabel(log.occasion, (k: string) =>
+                    tCommon(
+                      `occasionLabels.${k}` as Parameters<typeof tCommon>[0],
+                    ),
                   ),
                   "occasion",
                 )

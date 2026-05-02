@@ -1,5 +1,5 @@
-import { db, LocalWatchLog, OutboxItem } from "./db";
-import { Title, WatchLog, WatchLogHistory } from "./types";
+import { db, type LocalWatchLog, type OutboxItem } from "./db";
+import type { Title, WatchLog, WatchLogHistory } from "./types";
 import { safeUUID } from "./utils";
 
 function nowIso() {
@@ -83,16 +83,26 @@ export async function listLogsLocal(params: {
   occasion?: WatchLog["occasion"];
   contentType?: "video" | "book";
   sortBy?: "watchedAt" | "history";
+  query?: string;
 }) {
-  const { limit, status, origin, ott, place, occasion, contentType, sortBy } =
-    params;
-  const ottList =
-    ott && ott.includes(",")
-      ? ott
-          .split(",")
-          .map((v) => v.trim())
-          .filter(Boolean)
-      : null;
+  const {
+    limit,
+    status,
+    origin,
+    ott,
+    place,
+    occasion,
+    contentType,
+    sortBy,
+    query,
+  } = params;
+  const normalizedQuery = query?.trim().toLowerCase();
+  const ottList = ott?.includes(",")
+    ? ott
+        .split(",")
+        .map((v) => v.trim())
+        .filter(Boolean)
+    : null;
   const orderField = sortBy === "history" ? "updatedAt" : "watchedAt";
   let coll = db.logs.orderBy(orderField).reverse();
   coll = coll.filter((l) => {
@@ -111,6 +121,19 @@ export async function listLogsLocal(params: {
       if (l.ott && !l.ott.toLowerCase().includes(ott.toLowerCase()))
         return false;
       if (!l.ott) return false;
+    }
+    if (normalizedQuery) {
+      const haystack = [
+        l.title?.name,
+        l.title?.author,
+        l.title?.publisher,
+        l.note,
+        l.ott,
+      ]
+        .filter((value): value is string => Boolean(value?.trim()))
+        .join(" ")
+        .toLowerCase();
+      if (!haystack.includes(normalizedQuery)) return false;
     }
     return true;
   });
@@ -370,9 +393,15 @@ export async function updatePendingCreatePayload(
   if (!pending || pending.type !== "create_log") return false;
   if (typeof pending.payload !== "object" || pending.payload === null)
     return false;
-  const prev = pending.payload as Record<string, any>;
-  const nextLog = { ...(payload as Record<string, any>) };
-  const prevTitleId = prev?.log?.payload?.titleId;
+  type SyncLogPayload = Record<string, unknown> & {
+    payload?: Record<string, unknown>;
+  };
+  type PendingCreatePayload = Record<string, unknown> & {
+    log?: SyncLogPayload;
+  };
+  const prev = pending.payload as PendingCreatePayload;
+  const nextLog: SyncLogPayload = { ...payload };
+  const prevTitleId = prev.log?.payload?.titleId;
   if (prevTitleId && !nextLog?.payload?.titleId) {
     nextLog.payload = {
       ...(nextLog.payload ?? {}),

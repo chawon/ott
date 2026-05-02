@@ -36,6 +36,7 @@ public class LogController {
             @RequestParam(value = "status", required = false) Status status,
             @RequestParam(value = "origin", required = false) com.watchlog.api.domain.LogOrigin origin,
             @RequestParam(value = "ott", required = false) String ott,
+            @RequestParam(value = "q", required = false) String query,
             @RequestParam(value = "place", required = false) Place place,
             @RequestParam(value = "occasion", required = false) Occasion occasion,
             @RequestParam(value = "sort", required = false) String sort,
@@ -45,7 +46,7 @@ public class LogController {
     ) {
         authService.requireActiveDevice(userId, deviceId);
         boolean sortByHistory = "history".equalsIgnoreCase(sort);
-        return logService.list(titleId, status, origin, ott, place, occasion, limit, userId, sortByHistory)
+        return logService.list(titleId, status, origin, ott, query, place, occasion, limit, userId, sortByHistory)
                 .stream()
                 .map(WatchLogDto::from)
                 .toList();

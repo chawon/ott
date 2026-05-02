@@ -1,5 +1,13 @@
 # Wiki Log
 
+## [2026-05-02] update: 댓글 인증, 문의함 운영 필터, 타임라인 검색 반영
+- 대상: `CommentController`, `AdminFeedbackConsole`, `FiltersBar`, `timeline/page.tsx`, `LogController`, `WatchLogRepository`, `AGENTS.md`
+- 생성/수정: features/feedback.md, features/timeline.md, index.md
+- 노트:
+  - 공개 댓글 작성 시 body의 `userId`를 신뢰하지 않고 `X-User-Id` + `X-Device-Id` 활성 기기 검증으로 작성자를 확정
+  - 관리자 문의함에 미답변/전체/답변 완료/종료 필터, 카운트, 미답변 경과 시간 SLA 배지 추가
+  - 타임라인에 제목/메모/플랫폼/도서 저자·출판사 검색을 추가하고 로컬 IndexedDB와 서버 `GET /api/logs?q=` 경로를 맞춤
+
 ## [2026-04-29] update: Android 1.0.4 alpha 모바일 실기기 확인
 - 대상: `app.ottline` Play `alpha` `1.0.4` (`versionCode=8`), `AGENTS.md`, `docs/twa.md`, `docs/twa-play-launch-checklist.md`, `docs/twa-android-entrypoints-2026-04-29.md`
 - 생성/수정: platforms/twa.md, index.md

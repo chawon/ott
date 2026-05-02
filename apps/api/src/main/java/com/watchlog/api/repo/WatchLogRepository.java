@@ -24,6 +24,20 @@ public interface WatchLogRepository extends JpaRepository<WatchLogEntity, UUID> 
               and (cast(:status as text) is null or w.status = cast(:status as text))
               and (cast(:origin as text) is null or w.origin = cast(:origin as text))
               and (cast(:ott as text) is null or coalesce(w.ott, '') ilike concat('%', cast(:ott as text), '%'))
+              and (
+                cast(:query as text) is null
+                or coalesce(w.note, '') ilike concat('%', cast(:query as text), '%')
+                or coalesce(w.ott, '') ilike concat('%', cast(:query as text), '%')
+                or exists (
+                  select 1 from titles t
+                  where t.id = w.title_id
+                    and (
+                      coalesce(t.name, '') ilike concat('%', cast(:query as text), '%')
+                      or coalesce(t.author, '') ilike concat('%', cast(:query as text), '%')
+                      or coalesce(t.publisher, '') ilike concat('%', cast(:query as text), '%')
+                    )
+                )
+              )
               and (cast(:place as text) is null or w.place = cast(:place as text))
               and (cast(:occasion as text) is null or w.occasion = cast(:occasion as text))
             order by
@@ -36,6 +50,7 @@ public interface WatchLogRepository extends JpaRepository<WatchLogEntity, UUID> 
             @Param("status") String status,
             @Param("origin") String origin,
             @Param("ott") String ott,
+            @Param("query") String query,
             @Param("place") Place place,
             @Param("occasion") Occasion occasion,
             @Param("sortByHistory") boolean sortByHistory,
@@ -49,6 +64,20 @@ public interface WatchLogRepository extends JpaRepository<WatchLogEntity, UUID> 
               and (cast(:status as text) is null or w.status = cast(:status as text))
               and (cast(:origin as text) is null or w.origin = cast(:origin as text))
               and (cast(:ottPatterns as text[]) is null or coalesce(w.ott, '') ilike any (cast(:ottPatterns as text[])))
+              and (
+                cast(:query as text) is null
+                or coalesce(w.note, '') ilike concat('%', cast(:query as text), '%')
+                or coalesce(w.ott, '') ilike concat('%', cast(:query as text), '%')
+                or exists (
+                  select 1 from titles t
+                  where t.id = w.title_id
+                    and (
+                      coalesce(t.name, '') ilike concat('%', cast(:query as text), '%')
+                      or coalesce(t.author, '') ilike concat('%', cast(:query as text), '%')
+                      or coalesce(t.publisher, '') ilike concat('%', cast(:query as text), '%')
+                    )
+                )
+              )
               and (cast(:place as text) is null or w.place = cast(:place as text))
               and (cast(:occasion as text) is null or w.occasion = cast(:occasion as text))
             order by
@@ -61,6 +90,7 @@ public interface WatchLogRepository extends JpaRepository<WatchLogEntity, UUID> 
             @Param("status") String status,
             @Param("origin") String origin,
             @Param("ottPatterns") String[] ottPatterns,
+            @Param("query") String query,
             @Param("place") Place place,
             @Param("occasion") Occasion occasion,
             @Param("sortByHistory") boolean sortByHistory,
