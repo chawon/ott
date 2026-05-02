@@ -13,6 +13,7 @@
 | [[feedback]] | 앱 내부 문의 스레드 + 관리자 답변 화면을 포함한 자체 API 기반 문의 채널 |
 | [[onboarding]] | 첫 방문자 온보딩 오버레이 가이드 (현재 비활성화) |
 | [[share-card]] | 기록 저장 직후 SNS 친화적 이미지 카드 생성 및 공유 |
+| [[timeline]] | 개인 영상/책 기록을 필터와 검색으로 재방문하는 타임라인 화면 |
 | [[timeline-export]] | 사용자 타임라인 CSV/XLSX 내보내기, 복원 제외 |
 | [[future-timeline]] | LLM(Claude/Gemini) 기반 시청 기록 분석 → 미래의 타임라인 추천 |
 

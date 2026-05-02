@@ -79,9 +79,9 @@
 ### P1
 1. 문의함 운영 후속 작업
 2. 우선 검토
-   1. 미답변 필터/카운트
-   2. 관리자 답변 알림 여부 결정
-   3. 운영 응답 SLA 정리
+   1. 관리자 문의함 미답변/전체/답변 완료/종료 필터와 카운트 표시 적용
+   2. 미답변 경과 시간 기반 운영 SLA 배지 표시 적용
+   3. 남은 작업: 관리자 답변 알림 여부 결정, 사용자 후속 메시지 지원 여부 결정
 
 ### P1
 1. PC 브라우저 확장 — 배포 후 후속 작업
@@ -216,8 +216,9 @@ feature/* ──PR──→ main ──→ [자동] staging.ottline.app
    1. 내부 UUID title 스냅샷 반환
 
 ### Logs
-1. `GET /api/logs?limit=&status=&origin=&ott=&place=&occasion=&titleId=&sort=`
+1. `GET /api/logs?limit=&status=&origin=&ott=&q=&place=&occasion=&titleId=&sort=`
    1. `sort=history`면 `updatedAt`(히스토리 반영 순) 기준 정렬, 기본은 `watchedAt`
+   2. `q`는 제목/메모/플랫폼/도서 저자·출판사 검색에 사용
 2. `POST /api/logs` (헤더에 따른 다국어 타이틀 정보 자동 생성)
 3. `PATCH /api/logs/{id}`
 4. `GET /api/logs/{id}/history?limit=`
@@ -241,7 +242,10 @@ feature/* ──PR──→ main ──→ [자동] staging.ottline.app
 4. `GET /api/discussions/all?limit=`
 5. `GET /api/discussions/{id}`
 6. `GET /api/discussions/{id}/comments?limit=`
-7. `POST /api/discussions/{id}/comments` (멘션된 타이틀 자동 생성 시 다국어 대응)
+7. `POST /api/discussions/{id}/comments`
+   1. 헤더: `X-User-Id`, `X-Device-Id` 필요
+   2. 서버는 헤더의 활성 기기를 검증하고, 댓글 작성자는 헤더의 사용자로 확정한다
+   3. 멘션된 타이틀 자동 생성 시 다국어 대응
 
 ### Auth
 1. `POST /api/auth/register`

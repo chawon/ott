@@ -72,7 +72,6 @@ export interface Comment {
 
 export interface CreateCommentRequest {
   body: string;
-  userId?: string | null;
   mentions?: MentionRef[];
   syncLog?: boolean;
 }

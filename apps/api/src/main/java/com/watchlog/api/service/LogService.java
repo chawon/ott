@@ -44,6 +44,7 @@ public class LogService {
             Status status,
             LogOrigin origin,
             String ott,
+            String query,
             Place place,
             Occasion occasion,
             int limit,
@@ -52,6 +53,7 @@ public class LogService {
     ) {
         int safeLimit = Math.max(1, Math.min(limit, 100));
         String normalizedOtt = (ott == null || ott.isBlank()) ? null : ott.trim();
+        String normalizedQuery = (query == null || query.isBlank()) ? null : query.trim();
         String[] ottPatterns = null;
         if (normalizedOtt != null && normalizedOtt.contains(",")) {
             var parts = java.util.Arrays.stream(normalizedOtt.split(","))
@@ -70,6 +72,7 @@ public class LogService {
                     status == null ? null : status.name(),
                     origin == null ? null : origin.name(),
                     ottPatterns,
+                    normalizedQuery,
                     place,
                     occasion,
                     sortByHistory,
@@ -82,6 +85,7 @@ public class LogService {
                 status == null ? null : status.name(),
                 origin == null ? null : origin.name(),
                 normalizedOtt,
+                normalizedQuery,
                 place,
                 occasion,
                 sortByHistory,

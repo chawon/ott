@@ -454,7 +454,9 @@
     "myLog": "My Log",
     "comment": "Comment",
     "platformLabel": "Platform",
-    "groupAll": "All {group}"
+    "groupAll": "All {group}",
+    "searchLabel": "Search",
+    "searchPlaceholder": "Title, note, platform"
   },
   "HomePage": {
     "heroModernBook": "Stream. Read. Remember.",
@@ -595,6 +597,13 @@
     "title": "Admin Feedback Inbox",
     "description": "Review all user inquiries and reply from one place.",
     "allThreads": "All Threads",
+    "filterAll": "All",
+    "filterOpen": "Open",
+    "filterAnswered": "Answered",
+    "filterClosed": "Closed",
+    "slaHours": "{count}h open",
+    "slaDays": "{count}d open",
+    "detailOpenAge": "Open for {age}",
     "loading": "Loading…",
     "empty": "No inquiries yet.",
     "emptyDetail": "Select a thread from the left.",
@@ -620,6 +629,11 @@
       "OPEN": "Open",
       "ANSWERED": "Answered",
       "CLOSED": "Closed"
+    },
+    "sla": {
+      "ok": "{age}",
+      "soon": "{age} · needs attention",
+      "overdue": "{age} · SLA overdue"
     }
   },
   "Admin": {

@@ -17,7 +17,7 @@ import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useState } from "react";
 import TitleSearchBox from "@/components/TitleSearchBox";
 import { trackEvent } from "@/lib/analytics";
-import { api } from "@/lib/api";
+import { api, apiWithAuth } from "@/lib/api";
 import {
   countLogsLocal,
   enqueueCreateLog,
@@ -725,20 +725,18 @@ export default function QuickLogCard({
             body: JSON.stringify({ titleId: localTitleId }),
           });
           if (note.trim()) {
-            const userId =
-              typeof localStorage !== "undefined"
-                ? localStorage.getItem("watchlog.userId")
-                : null;
             const req: CreateCommentRequest = {
               body: note.trim(),
-              userId: userId ?? null,
               mentions: [],
               syncLog: false,
             };
-            await api<Comment>(`/discussions/${discussion.id}/comments`, {
-              method: "POST",
-              body: JSON.stringify(req),
-            });
+            await apiWithAuth<Comment>(
+              `/discussions/${discussion.id}/comments`,
+              {
+                method: "POST",
+                body: JSON.stringify(req),
+              },
+            );
           }
           if (typeof window !== "undefined") {
             window.dispatchEvent(new CustomEvent("sync:updated"));

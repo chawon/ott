@@ -84,6 +84,8 @@ export default function FiltersBar({
   setOtt,
   origin,
   setOrigin,
+  query,
+  setQuery,
   contentType,
   setContentType,
 }: {
@@ -93,6 +95,8 @@ export default function FiltersBar({
   setOtt: (s: string) => void;
   origin: "ALL" | "LOG" | "COMMENT";
   setOrigin: (s: "ALL" | "LOG" | "COMMENT") => void;
+  query: string;
+  setQuery: (s: string) => void;
   contentType: "ALL" | "video" | "book";
   setContentType: (s: "ALL" | "video" | "book") => void;
 }) {
@@ -215,6 +219,17 @@ export default function FiltersBar({
           </label>
         )}
       </div>
+      <label className="flex min-w-0 flex-1 flex-col gap-1 text-sm md:max-w-xs">
+        <div className="text-sm text-muted-foreground">
+          {tFilters("searchLabel")}
+        </div>
+        <input
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder={tFilters("searchPlaceholder")}
+          className="h-10 w-full rounded-lg border border-border bg-card px-3 text-[13px] outline-none transition-all focus:ring-2 focus:ring-ring/40"
+        />
+      </label>
     </div>
   );
 }

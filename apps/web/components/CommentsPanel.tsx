@@ -1,10 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useLocale, useTranslations } from "next-intl";
+import { useCallback, useEffect, useId, useMemo, useState } from "react";
+import TitleSearchBox from "@/components/TitleSearchBox";
 import { api } from "@/lib/api";
 import { ensureAuth } from "@/lib/auth";
 import { getUserId } from "@/lib/localStore";
-import {
+import type {
   Comment,
   CreateCommentRequest,
   Discussion,
@@ -12,10 +14,7 @@ import {
   Title,
   TitleSearchItem,
 } from "@/lib/types";
-import { formatNoteInline } from "@/lib/utils";
-import TitleSearchBox from "@/components/TitleSearchBox";
-import { useLocale, useTranslations } from "next-intl";
-import { cn } from "@/lib/utils";
+import { cn, formatNoteInline } from "@/lib/utils";
 
 function formatTime(iso: string, locale: string) {
   const d = new Date(iso);
@@ -25,6 +24,10 @@ function formatTime(iso: string, locale: string) {
     hour: "2-digit",
     minute: "2-digit",
   });
+}
+
+function errorMessage(error: unknown, fallback: string) {
+  return error instanceof Error ? error.message : fallback;
 }
 
 export default function CommentsPanel({
@@ -50,6 +53,7 @@ export default function CommentsPanel({
   const [effectiveUserId, setEffectiveUserId] = useState<string | null>(
     userId ?? getUserId(),
   );
+  const commentBodyId = useId();
 
   const canPost = useMemo(() => !!body.trim() && !posting, [body, posting]);
   const sortedComments = useMemo(() => {
@@ -62,13 +66,10 @@ export default function CommentsPanel({
     [sortedComments, visibleCount],
   );
 
-  useEffect(() => {
-    setVisibleCount(5);
-  }, [sort, titleId]);
-
-  async function loadDiscussion() {
+  const loadDiscussion = useCallback(async () => {
     setLoading(true);
     setErr(null);
+    setVisibleCount(5);
     try {
       const d = await api<Discussion | null>(
         `/discussions?titleId=${encodeURIComponent(titleId)}`,
@@ -82,17 +83,17 @@ export default function CommentsPanel({
       } else {
         setComments([]);
       }
-    } catch (e: any) {
-      setErr(e?.message ?? tComments("loadError"));
+    } catch (error: unknown) {
+      setErr(errorMessage(error, tComments("loadError")));
     } finally {
       setLoading(false);
     }
-  }
+  }, [titleId, tComments]);
 
   useEffect(() => {
     if (!titleId) return;
     loadDiscussion();
-  }, [titleId]);
+  }, [titleId, loadDiscussion]);
 
   useEffect(() => {
     setEffectiveUserId(userId ?? getUserId());
@@ -123,7 +124,6 @@ export default function CommentsPanel({
       const d = await ensureDiscussion();
       const req: CreateCommentRequest = {
         body: body.trim(),
-        userId: currentUserId,
         mentions,
       };
       const created = await api<Comment>(`/discussions/${d.id}/comments`, {
@@ -133,8 +133,8 @@ export default function CommentsPanel({
       setComments((prev) => [...prev, created]);
       setBody("");
       setMentions([]);
-    } catch (e: any) {
-      setErr(e?.message ?? tComments("postError"));
+    } catch (error: unknown) {
+      setErr(errorMessage(error, tComments("postError")));
     } finally {
       setPosting(false);
     }
@@ -168,12 +168,15 @@ export default function CommentsPanel({
 
   function renderBody(text: string) {
     const parts = text.split(/(@\{[^}]+\})/g);
-    return parts.map((p, idx) => {
+    let offset = 0;
+    return parts.map((p) => {
+      const key = `${offset}:${p}`;
+      offset += p.length;
       if (p.startsWith("@{") && p.endsWith("}")) {
         const name = p.slice(2, -1);
         return (
           <span
-            key={idx}
+            key={key}
             className="rounded-md bg-accent px-1 text-accent-foreground"
           >
             @{name}
@@ -183,14 +186,14 @@ export default function CommentsPanel({
       if (p.startsWith("@")) {
         return (
           <span
-            key={idx}
+            key={key}
             className="rounded-md bg-accent px-1 text-accent-foreground"
           >
             {p}
           </span>
         );
       }
-      return <span key={idx}>{p}</span>;
+      return <span key={key}>{p}</span>;
     });
   }
 
@@ -231,9 +234,10 @@ export default function CommentsPanel({
                 <span>{tComments("sortLabel")}</span>
                 <select
                   value={sort}
-                  onChange={(e) =>
-                    setSort(e.target.value as "oldest" | "latest")
-                  }
+                  onChange={(e) => {
+                    setSort(e.target.value as "oldest" | "latest");
+                    setVisibleCount(5);
+                  }}
                   className="text-xs select-base rounded-lg px-2 py-1 text-foreground"
                 >
                   <option value="oldest">{tComments("sortOldest")}</option>
@@ -287,10 +291,14 @@ export default function CommentsPanel({
       {/* 댓글 입력 영역 (하단 이동) */}
       <div className="space-y-3 pt-4 border-t border-border">
         <div className="space-y-2">
-          <label className="text-sm font-bold block text-muted-foreground">
+          <label
+            htmlFor={commentBodyId}
+            className="text-sm font-bold block text-muted-foreground"
+          >
             {tComments("inputTitleModern")}
           </label>
           <textarea
+            id={commentBodyId}
             value={body}
             onChange={(e) => setBody(e.target.value)}
             rows={3}
