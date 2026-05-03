@@ -1,5 +1,13 @@
 # Wiki Log
 
+## [2026-05-03] update: Android production release submitted
+- 대상: 사용자 확인, `gplay tracks get/list`
+- 생성/수정: platforms/twa.md, index.md
+- 노트:
+  - Android 비공개 테스트 종료 후 Google Play 프로덕션 출시 제출 완료
+  - `gplay` 기준 현재 게시된 production 트랙 릴리즈는 아직 없고, `alpha`는 `1.0.4` (`versionCode=8`) `completed` 상태
+  - Play 심사 승인 후 production 트랙 노출과 실제 설치 가능 여부 재확인 필요
+
 ## [2026-05-02] update: 댓글 인증, 문의함 운영 필터, 타임라인 검색 반영
 - 대상: `CommentController`, `AdminFeedbackConsole`, `FiltersBar`, `timeline/page.tsx`, `LogController`, `WatchLogRepository`, `AGENTS.md`
 - 생성/수정: features/feedback.md, features/timeline.md, index.md

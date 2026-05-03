@@ -185,3 +185,10 @@ adb install -r apps/twa/app/build/outputs/apk/debug/app-debug.apk
   - 홈 위젯 `영상` / `책` / `타임라인` 진입 정상
   - 앱 아이콘 롱프레스 shortcuts 표시 및 진입 정상
   - OTT 앱의 공유하기로 ottline을 호출하면 QuickLog 조회/검색 프리필 정상
+
+### 진행 업데이트 (2026-05-03)
+- Android 비공개 테스트 종료 후 Google Play 프로덕션 출시 제출 완료
+  - 제출 기준 버전: `1.0.4` (`versionCode=8`)
+  - `gplay` 조회 기준 현재 게시된 production 트랙 릴리즈는 아직 없음
+  - `alpha` 트랙은 `1.0.4` (`versionCode=8`), `status=completed` 상태 유지
+  - 남은 확인: Play 심사 승인 후 production 트랙 릴리즈 노출 및 실제 설치 가능 여부 확인

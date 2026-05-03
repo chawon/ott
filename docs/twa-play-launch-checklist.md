@@ -190,10 +190,20 @@
   - [x] 시즌 포스터 사용 시 시즌 연도도 함께 노출되도록 API 보완
 
 ## 7) 프로덕션 출시
-- [ ] 프로덕션 트랙에 릴리즈 생성
-- [ ] 변경사항(Release notes) 작성
-- [ ] 점진 배포(예: 10% -> 50% -> 100%) 전략 적용
+- [x] 프로덕션 출시 제출
+- [x] 변경사항(Release notes) 작성
+- [ ] Play 심사 승인 및 production 트랙 릴리즈 노출 확인
+- [ ] 실제 Google Play 설치 가능 여부 확인
+- [ ] 점진 배포(예: 10% -> 50% -> 100%) 상태 확인
 - [ ] 롤백 기준/담당자 사전 합의
+
+### 진행 업데이트 (2026-05-03, 프로덕션 출시 제출)
+- [x] Android 비공개 테스트 종료
+- [x] Google Play 프로덕션 출시 제출 완료
+  - 제출 기준 버전: `1.0.4` (`versionCode=8`)
+  - `gplay tracks get --track production` 기준 현재 게시된 production 릴리즈는 아직 없음
+  - `alpha`: `1.0.4` (`versionCode=8`), `status=completed`
+- [ ] Play 심사 승인 후 production 트랙 상태 재확인
 
 ## 8) 출시 후 모니터링
 - [ ] Crash/ANR 모니터링 (출시 직후 24~72시간 집중)
