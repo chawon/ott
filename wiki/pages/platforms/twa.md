@@ -22,13 +22,15 @@
 - Play 배포 이력:
   - internal track 배포 성공 (`versionName=1.0.0`, `versionCode=4`)
   - `twa-release.yml` 기준 `gplay release` 자동 업로드 경로 유지
-- 현재 운영 상태(2026-05-03):
+- 현재 운영 상태(2026-05-08):
   - `versionName=1.0.4`, `versionCode=8` AAB 빌드 완료
   - Play `alpha` 트랙에 `8 (1.0.4)` 반영 완료
   - 런처 shortcuts, PWA/TWA Web Share Target, 홈 위젯 영상/책/타임라인 액션 분리 반영
   - 모바일 실기기에서 위젯, 롱프레스 shortcuts, OTT 앱 공유 후 QuickLog 조회 정상 확인
-  - Google Play 비공개 테스트 종료 후 production 출시 제출 완료
-  - `gplay` 조회 기준 게시된 production 트랙 릴리즈는 아직 없음
+  - Google Play 프로덕션 액세스 신청 결과 권한 미부여
+  - Play 검토 사유: 비공개 테스트 중 실제 테스터 참여 없음, 사용자 의견 수집/조치/앱 업데이트 같은 테스트 권장사항 미충족
+  - `gplay` 조회 기준 게시된 production 트랙 릴리즈는 없고, `alpha` 테스터 그룹은 `ottline-beta-testers@googlegroups.com`
+  - 재신청 전 실제 테스터 대상 14일 비공개 테스트와 참여/피드백/조치 이력 확보 필요
 - 현재 작업환경 재검증(2026-04-17):
   - 로컬 `./gradlew assembleDebug` / `./gradlew bundleRelease`는 WSL/ARM 환경의 `aapt2` 바이너리 호환 문제로 실패하는 것이 알려진 제약
   - 따라서 Android APK/AAB는 계속 GitHub Actions를 source of truth로 사용
@@ -62,11 +64,12 @@
 ## Google Play 배포 현황
 
 - 내부 테스트 트랙 배포 이력 있음 (`track=internal`, `versionName=1.0.0`, `versionCode=4`)
-- 2026-05-03 기준 최신 반영:
+- 2026-05-08 기준 최신 반영:
   - `internal`: `6 (1.0.2)`, `status=completed`
   - `alpha`: `8 (1.0.4)`, `status=completed`
-  - production: 출시 제출 완료, 게시된 릴리즈는 아직 없음
-  - 남은 확인: Play 심사 승인 후 production 트랙 릴리즈 노출 및 실제 설치 가능 여부
+  - `alpha` 테스터 그룹: `ottline-beta-testers@googlegroups.com`
+  - production: 프로덕션 액세스 미부여, 게시된 릴리즈 없음
+  - 남은 작업: 실제 테스터 대상 14일 비공개 테스트 재진행, 사용자 의견/조치 이력 정리, 프로덕션 액세스 재신청
 - GitHub Actions `twa-release.yml` — AAB 빌드 후 `gplay release`
 - 관련 Secret:
   - `TWA_KEYSTORE_BASE64`

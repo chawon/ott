@@ -7,6 +7,7 @@
 ## 진행 상황
 - GitHub Actions에서 디버그 APK 빌드 성공 및 기기 설치 확인 완료
 - 현재 개발 환경(WSL on ARM Linux)에서는 Android Gradle 로컬 빌드 호환 이슈가 있어, APK/AAB 빌드는 GitHub Actions만 정식 검증/배포 경로로 사용
+- Google Play 프로덕션 액세스는 아직 부여되지 않았으며, 2026-05-08 검토 결과에 따라 실제 테스터 대상 14일 비공개 테스트를 다시 진행해야 함
 
 ### 진행 업데이트 (2026-02-15)
 - TWA 공유 인텐트 MVP 반영 완료 (main 머지)
@@ -192,3 +193,17 @@ adb install -r apps/twa/app/build/outputs/apk/debug/app-debug.apk
   - `gplay` 조회 기준 현재 게시된 production 트랙 릴리즈는 아직 없음
   - `alpha` 트랙은 `1.0.4` (`versionCode=8`), `status=completed` 상태 유지
   - 남은 확인: Play 심사 승인 후 production 트랙 릴리즈 노출 및 실제 설치 가능 여부 확인
+
+### 진행 업데이트 (2026-05-08)
+- Google Play 프로덕션 액세스 신청 결과: 승인되지 않음
+  - Play 검토 사유: 비공개 테스트 중 실제 테스터 참여가 없었음
+  - Play 검토 사유: 앱 업데이트로 사용자 의견을 수집하고 조치하는 등의 테스트 권장사항을 따르지 못했음
+  - 재신청 전 요구사항: 실제 테스터 대상 14일 비공개 테스트 재진행
+- `gplay` 재확인 결과
+  - `production`: 게시된 릴리즈 없음
+  - `alpha`: `1.0.4` (`versionCode=8`), `status=completed`
+  - `alpha` 테스터 그룹: `ottline-beta-testers@googlegroups.com`
+- 다음 운영 기준
+  - 실제 테스터 설치/사용 참여를 먼저 확보
+  - 테스트 기간 중 사용자 의견과 조치 내역을 문서화
+  - 필요한 수정은 `alpha` 업데이트로 배포한 뒤 프로덕션 액세스를 재신청

@@ -1,5 +1,15 @@
 # Wiki Log
 
+## [2026-05-08] update: Android production access denied
+- 대상: 사용자 전달 Google Play 심사 결과, `gplay tracks get`, `gplay testers get`
+- 생성/수정: platforms/twa.md, index.md
+- 노트:
+  - Google Play 프로덕션 액세스가 부여되지 않음
+  - Play 검토 사유는 비공개 테스트 중 실제 테스터 참여 없음, 사용자 의견 수집/조치/앱 업데이트 같은 테스트 권장사항 미충족
+  - `gplay` 기준 production 트랙은 여전히 게시 릴리즈가 없고, `alpha`는 `1.0.4` (`versionCode=8`) `completed` 상태
+  - `alpha` 테스터 그룹은 `ottline-beta-testers@googlegroups.com`
+  - 재신청 전 실제 테스터 대상 14일 비공개 테스트와 참여/피드백/조치 이력 확보 필요
+
 ## [2026-05-03] update: Android production release submitted
 - 대상: 사용자 확인, `gplay tracks get/list`
 - 생성/수정: platforms/twa.md, index.md
