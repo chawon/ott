@@ -215,7 +215,7 @@ adb install -r apps/twa/app/build/outputs/apk/debug/app-debug.apk
   - TWA release run: `25656711609`
   - Google Play `alpha`: `1.0.5` (`versionCode=9`), `status=completed`
   - Google Play `production`: 게시된 릴리즈 없음
-  - 설정 화면에 Android 테스트 체크리스트와 `Android 테스트 의견 보내기` 진입 추가
+  - Google Play TWA 세션에서만 설정 화면에 Android 테스트 체크리스트와 `Android 테스트 의견 보내기` 진입 노출
   - 문의함 URL preset 추가: `/feedback?source=android-alpha`, `/feedback?source=android-alpha-share`
   - TWA/PWA 공유 진입 시 QuickLog에 공유 제목 추출 성공/실패 안내와 공유 기록 의견 링크 표시
   - `twa-release.yml`에 Play release notes 입력 추가

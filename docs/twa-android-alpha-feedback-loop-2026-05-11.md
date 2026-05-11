@@ -25,7 +25,7 @@
   - `apps/web/messages/{ko,en}.json`
   - `.github/workflows/twa-release.yml`
 - 영향:
-  - 설정 화면의 Android 테스트 체크리스트와 피드백 CTA
+  - Google Play TWA 세션에서만 보이는 설정 화면 Android 테스트 체크리스트와 피드백 CTA
   - 문의함 URL preset (`/feedback?source=android-alpha`, `/feedback?source=android-alpha-share`)
   - 공유 진입 QuickLog 상태 배너
   - Play alpha release notes 입력
@@ -34,7 +34,7 @@
   - Android native resource, widget, shortcut URL 계약
 
 ## 변경 사항
-1. 설정 화면에 `Android 테스트 의견` 섹션을 추가한다.
+1. Google Play TWA 세션에서만 설정 화면에 `Android 테스트 의견` 섹션을 추가한다.
    - 홈 화면 위젯
    - 앱 아이콘 롱프레스 shortcut
    - OTT 앱 공유로 QuickLog 검색 프리필
@@ -59,9 +59,10 @@ release_notes: Android closed-test feedback flow added. Testers can now send And
 ```
 
 ## 검증 시나리오
-1. 설정 화면에서 Android 테스트 체크리스트와 `Android 테스트 의견 보내기` 버튼이 모바일 폭에서 깨지지 않는다.
-2. `/feedback?source=android-alpha` 진입 시 제목/본문 템플릿이 채워지고 문의 등록이 가능하다.
-3. `/feedback?source=android-alpha-share` 진입 시 공유 기록 테스트 템플릿이 채워진다.
-4. `/?quick=1&shared_text=...` 진입 시 QuickLog 검색창이 채워지고 공유 성공 배너가 표시된다.
-5. 자동 추출이 불가능한 공유 입력에서는 직접 검색 안내와 공유 기록 의견 링크가 표시된다.
-6. `twa-release.yml` 수동 실행 시 release notes 입력을 `gplay release`에 전달한다.
+1. Google Play TWA 세션에서 설정 화면의 Android 테스트 체크리스트와 `Android 테스트 의견 보내기` 버튼이 모바일 폭에서 깨지지 않는다.
+2. 일반 웹, Windows PWA, Toss WebView 세션에서는 설정 화면의 Android 테스트 섹션이 보이지 않는다.
+3. `/feedback?source=android-alpha` 진입 시 제목/본문 템플릿이 채워지고 문의 등록이 가능하다.
+4. `/feedback?source=android-alpha-share` 진입 시 공유 기록 테스트 템플릿이 채워진다.
+5. `/?quick=1&shared_text=...` 진입 시 QuickLog 검색창이 채워지고 공유 성공 배너가 표시된다.
+6. 자동 추출이 불가능한 공유 입력에서는 직접 검색 안내와 공유 기록 의견 링크가 표시된다.
+7. `twa-release.yml` 수동 실행 시 release notes 입력을 `gplay release`에 전달한다.
