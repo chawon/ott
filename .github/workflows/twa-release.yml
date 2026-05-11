@@ -36,6 +36,11 @@ on:
         required: false
         default: "1.0"
         type: string
+      release_notes:
+        description: "Google Play release notes (plain text, en-US)"
+        required: false
+        default: ""
+        type: string
 
 permissions:
   contents: read
@@ -123,6 +128,8 @@ jobs:
       - name: Deploy to Google Play
         working-directory: apps/twa
         shell: bash
+        env:
+          RELEASE_NOTES: ${{ github.event.inputs.release_notes }}
         run: |
           release_args=(
             --package "$PLAY_PACKAGE"
@@ -134,6 +141,9 @@ jobs:
 
           if [[ "${{ github.event.inputs.track }}" != "internal" ]]; then
             release_args+=(--rollout "${{ github.event.inputs.rollout }}")
+          fi
+          if [[ -n "$RELEASE_NOTES" ]]; then
+            release_args+=(--release-notes "$RELEASE_NOTES")
           fi
 
           gplay release "${release_args[@]}"

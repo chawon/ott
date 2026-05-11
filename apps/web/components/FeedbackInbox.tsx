@@ -2,7 +2,7 @@
 
 import { MailQuestion, MessagesSquare } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { api, ensureAuthIds } from "@/lib/api";
 import type {
   CreateFeedbackThreadRequest,
@@ -13,6 +13,13 @@ import type {
 import { cn } from "@/lib/utils";
 
 const categories: FeedbackCategory[] = ["QUESTION", "BUG", "IDEA", "OTHER"];
+
+export type FeedbackPreset = {
+  source?: string;
+  category?: FeedbackCategory;
+  subject?: string;
+  body?: string;
+};
 
 function formatDate(value: string, locale: string) {
   return new Date(value).toLocaleString(locale === "ko" ? "ko-KR" : "en-US", {
@@ -27,7 +34,41 @@ function errorMessage(error: unknown, fallback: string) {
   return error instanceof Error ? error.message : fallback;
 }
 
-export default function FeedbackInbox() {
+function resolvePreset(
+  preset: FeedbackPreset,
+  t: ReturnType<typeof useTranslations>,
+) {
+  const source = preset.source?.trim();
+  const fallback =
+    source === "android-alpha-share"
+      ? {
+          category: "BUG" as FeedbackCategory,
+          subject: t("androidSharePresetSubject"),
+          body: t("androidSharePresetBody"),
+          notice: t("androidSharePresetNotice"),
+        }
+      : source === "android-alpha"
+        ? {
+            category: "IDEA" as FeedbackCategory,
+            subject: t("androidPresetSubject"),
+            body: t("androidPresetBody"),
+            notice: t("androidPresetNotice"),
+          }
+        : null;
+
+  if (!fallback && !preset.category && !preset.subject && !preset.body) {
+    return null;
+  }
+
+  return {
+    category: preset.category ?? fallback?.category ?? "QUESTION",
+    subject: preset.subject?.trim() || fallback?.subject || "",
+    body: preset.body?.trim() || fallback?.body || "",
+    notice: fallback?.notice ?? null,
+  };
+}
+
+export default function FeedbackInbox({ preset }: { preset?: FeedbackPreset }) {
   const t = useTranslations("Feedback");
   const locale = useLocale();
   const [threads, setThreads] = useState<FeedbackThreadSummary[]>([]);
@@ -39,6 +80,8 @@ export default function FeedbackInbox() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
+  const [presetNotice, setPresetNotice] = useState<string | null>(null);
+  const appliedPresetRef = useRef<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -77,6 +120,19 @@ export default function FeedbackInbox() {
       cancelled = true;
     };
   }, [t]);
+
+  useEffect(() => {
+    if (!preset) return;
+    const key = JSON.stringify(preset);
+    if (appliedPresetRef.current === key) return;
+    const next = resolvePreset(preset, t);
+    if (!next) return;
+    appliedPresetRef.current = key;
+    setCategory(next.category);
+    setSubject((prev) => prev || next.subject);
+    setBody((prev) => prev || next.body);
+    setPresetNotice(next.notice);
+  }, [preset, t]);
 
   async function openThread(id: string) {
     setSelectedId(id);
@@ -144,6 +200,12 @@ export default function FeedbackInbox() {
           <MessagesSquare className="h-4 w-4" />
           <div className="text-sm font-semibold">{t("newThreadTitle")}</div>
         </div>
+
+        {presetNotice ? (
+          <div className="mb-4 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-xs font-medium text-blue-800 dark:border-blue-900/60 dark:bg-blue-950/30 dark:text-blue-200">
+            {presetNotice}
+          </div>
+        ) : null}
 
         <div className="grid gap-3 md:grid-cols-[180px_minmax(0,1fr)]">
           <label className="space-y-1 text-sm">

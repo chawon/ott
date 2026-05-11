@@ -1,6 +1,6 @@
 "use client";
 
-import { Settings } from "lucide-react";
+import { MessageSquareText, Settings, Smartphone } from "lucide-react";
 import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
 import { useCallback, useEffect, useState } from "react";
@@ -318,6 +318,43 @@ export default function AccountPage() {
           )}
         >
           {tAccount("feedbackAction")}
+        </IntlLink>
+      </section>
+
+      <section className="space-y-4 rounded-2xl border border-blue-200 bg-blue-50/70 p-6 shadow-sm dark:border-blue-900/60 dark:bg-blue-950/25">
+        <div className="flex items-start gap-3">
+          <div className="rounded-2xl bg-white p-2 text-blue-700 shadow-sm dark:bg-blue-950 dark:text-blue-200">
+            <Smartphone className="h-5 w-5" />
+          </div>
+          <div className="min-w-0 space-y-1">
+            <div className="text-base font-semibold">
+              {tAccount("androidTestTitle")}
+            </div>
+            <p className="text-sm text-muted-foreground">
+              {tAccount("androidTestDesc")}
+            </p>
+          </div>
+        </div>
+        <div className="rounded-xl border border-blue-200/80 bg-white/75 p-4 dark:border-blue-900/50 dark:bg-blue-950/25">
+          <div className="mb-2 text-xs font-semibold uppercase text-blue-700 dark:text-blue-200">
+            {tAccount("androidTestChecklistTitle")}
+          </div>
+          <ul className="space-y-1.5 text-sm text-muted-foreground">
+            <li>{tAccount("androidTestChecklistWidget")}</li>
+            <li>{tAccount("androidTestChecklistShortcut")}</li>
+            <li>{tAccount("androidTestChecklistShare")}</li>
+            <li>{tAccount("androidTestChecklistFeedback")}</li>
+          </ul>
+        </div>
+        <IntlLink
+          href="/feedback?source=android-alpha"
+          className={cn(
+            "flex w-full items-center justify-center gap-2 px-4 py-3 text-center text-sm font-bold transition-all break-keep",
+            "rounded-2xl bg-blue-700 text-white hover:bg-blue-800",
+          )}
+        >
+          <MessageSquareText className="h-4 w-4" />
+          {tAccount("androidTestAction")}
         </IntlLink>
       </section>
 
