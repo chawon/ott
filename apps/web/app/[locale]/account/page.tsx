@@ -30,6 +30,25 @@ function getErrorMessage(error: unknown, fallback: string) {
   return error instanceof Error ? error.message : fallback;
 }
 
+const ANDROID_TWA_SESSION_KEY = "ottline.androidTwaSession";
+
+function isGooglePlayTwaContext() {
+  if (typeof window === "undefined") return false;
+  const ref = document.referrer.toLowerCase();
+  const fromOttlineTwa = ref.startsWith("android-app://app.ottline");
+
+  try {
+    if (fromOttlineTwa) {
+      sessionStorage.setItem(ANDROID_TWA_SESSION_KEY, "1");
+      return true;
+    }
+
+    return sessionStorage.getItem(ANDROID_TWA_SESSION_KEY) === "1";
+  } catch {
+    return fromOttlineTwa;
+  }
+}
+
 export default function AccountPage() {
   const tAccount = useTranslations("Account");
   const tCsv = useTranslations("CSV");
@@ -51,6 +70,7 @@ export default function AccountPage() {
   );
   const [exporting, setExporting] = useState(false);
   const [exportStatus, setExportStatus] = useState<string | null>(null);
+  const [showAndroidTestSection, setShowAndroidTestSection] = useState(false);
 
   const loadDevices = useCallback(async () => {
     if (!getUserId()) return;
@@ -66,6 +86,7 @@ export default function AccountPage() {
     setUserId(getUserId());
     setDeviceId(getDeviceId());
     setPairingCode(getPairingCode());
+    setShowAndroidTestSection(isGooglePlayTwaContext());
     setInitializing(false);
     loadDevices();
     listAllLogsLocal().then(setLogs);
@@ -321,42 +342,44 @@ export default function AccountPage() {
         </IntlLink>
       </section>
 
-      <section className="space-y-4 rounded-2xl border border-blue-200 bg-blue-50/70 p-6 shadow-sm dark:border-blue-900/60 dark:bg-blue-950/25">
-        <div className="flex items-start gap-3">
-          <div className="rounded-2xl bg-white p-2 text-blue-700 shadow-sm dark:bg-blue-950 dark:text-blue-200">
-            <Smartphone className="h-5 w-5" />
-          </div>
-          <div className="min-w-0 space-y-1">
-            <div className="text-base font-semibold">
-              {tAccount("androidTestTitle")}
+      {showAndroidTestSection ? (
+        <section className="space-y-4 rounded-2xl border border-blue-200 bg-blue-50/70 p-6 shadow-sm dark:border-blue-900/60 dark:bg-blue-950/25">
+          <div className="flex items-start gap-3">
+            <div className="rounded-2xl bg-white p-2 text-blue-700 shadow-sm dark:bg-blue-950 dark:text-blue-200">
+              <Smartphone className="h-5 w-5" />
             </div>
-            <p className="text-sm text-muted-foreground">
-              {tAccount("androidTestDesc")}
-            </p>
+            <div className="min-w-0 space-y-1">
+              <div className="text-base font-semibold">
+                {tAccount("androidTestTitle")}
+              </div>
+              <p className="text-sm text-muted-foreground">
+                {tAccount("androidTestDesc")}
+              </p>
+            </div>
           </div>
-        </div>
-        <div className="rounded-xl border border-blue-200/80 bg-white/75 p-4 dark:border-blue-900/50 dark:bg-blue-950/25">
-          <div className="mb-2 text-xs font-semibold uppercase text-blue-700 dark:text-blue-200">
-            {tAccount("androidTestChecklistTitle")}
+          <div className="rounded-xl border border-blue-200/80 bg-white/75 p-4 dark:border-blue-900/50 dark:bg-blue-950/25">
+            <div className="mb-2 text-xs font-semibold uppercase text-blue-700 dark:text-blue-200">
+              {tAccount("androidTestChecklistTitle")}
+            </div>
+            <ul className="space-y-1.5 text-sm text-muted-foreground">
+              <li>{tAccount("androidTestChecklistWidget")}</li>
+              <li>{tAccount("androidTestChecklistShortcut")}</li>
+              <li>{tAccount("androidTestChecklistShare")}</li>
+              <li>{tAccount("androidTestChecklistFeedback")}</li>
+            </ul>
           </div>
-          <ul className="space-y-1.5 text-sm text-muted-foreground">
-            <li>{tAccount("androidTestChecklistWidget")}</li>
-            <li>{tAccount("androidTestChecklistShortcut")}</li>
-            <li>{tAccount("androidTestChecklistShare")}</li>
-            <li>{tAccount("androidTestChecklistFeedback")}</li>
-          </ul>
-        </div>
-        <IntlLink
-          href="/feedback?source=android-alpha"
-          className={cn(
-            "flex w-full items-center justify-center gap-2 px-4 py-3 text-center text-sm font-bold transition-all break-keep",
-            "rounded-2xl bg-blue-700 text-white hover:bg-blue-800",
-          )}
-        >
-          <MessageSquareText className="h-4 w-4" />
-          {tAccount("androidTestAction")}
-        </IntlLink>
-      </section>
+          <IntlLink
+            href="/feedback?source=android-alpha"
+            className={cn(
+              "flex w-full items-center justify-center gap-2 px-4 py-3 text-center text-sm font-bold transition-all break-keep",
+              "rounded-2xl bg-blue-700 text-white hover:bg-blue-800",
+            )}
+          >
+            <MessageSquareText className="h-4 w-4" />
+            {tAccount("androidTestAction")}
+          </IntlLink>
+        </section>
+      ) : null}
 
       <section className="space-y-4 rounded-2xl border border-border bg-card p-6 shadow-sm">
         <div className="text-sm font-semibold">

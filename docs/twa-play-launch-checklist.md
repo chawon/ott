@@ -226,7 +226,7 @@
 
 ### 진행 업데이트 (2026-05-11, Android 테스트 피드백 루프)
 - [x] `1.0.5` (`versionCode=9`) alpha 업데이트 후보 정리
-  - [x] 설정 화면에 Android 테스트 체크리스트 추가
+  - [x] Google Play TWA 세션에서만 설정 화면에 Android 테스트 체크리스트 추가
   - [x] `Android 테스트 의견 보내기` 버튼 추가
   - [x] `/feedback?source=android-alpha` 문의함 preset 추가
   - [x] `/feedback?source=android-alpha-share` 공유 기록 문의 preset 추가

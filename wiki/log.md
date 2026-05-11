@@ -14,7 +14,7 @@
 - 생성/수정: platforms/twa.md, features/feedback.md, index.md
 - 노트:
   - 재진행 중인 Android 비공개 테스트에서 테스터 의견 수집과 조치 이력을 남기기 위한 `1.0.5` (`versionCode=9`) 업데이트 후보를 정리
-  - 설정 화면에 Android 테스트 체크리스트와 `Android 테스트 의견 보내기` 진입 추가
+  - Google Play TWA 세션에서만 설정 화면에 Android 테스트 체크리스트와 `Android 테스트 의견 보내기` 진입 추가
   - 문의함 preset(`/feedback?source=android-alpha`, `/feedback?source=android-alpha-share`)과 QuickLog 공유 진입 성공/실패 안내 추가
   - `twa-release.yml`에 Play release notes 입력을 추가해 alpha 릴리스 노트를 함께 남길 수 있게 함
 
