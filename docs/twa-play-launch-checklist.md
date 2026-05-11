@@ -197,7 +197,7 @@
 - [x] 비공개 테스트용 피드백 루프 업데이트 준비
 - [ ] 테스터 설치/참여 확인
 - [ ] 사용자 의견 수집 및 조치 이력 정리
-- [ ] `alpha` 업데이트 배포 (`1.0.5`, `versionCode=9`)
+- [x] `alpha` 업데이트 배포 (`1.0.5`, `versionCode=9`)
 - [ ] 프로덕션 액세스 재신청
 - [ ] Play 심사 승인 및 production 트랙 릴리즈 노출 확인
 - [ ] 실제 Google Play 설치 가능 여부 확인
@@ -232,10 +232,13 @@
   - [x] `/feedback?source=android-alpha-share` 공유 기록 문의 preset 추가
   - [x] QuickLog 공유 진입 성공/실패 안내 추가
   - [x] `twa-release.yml`에 release notes 입력 추가
-- [ ] GitHub Actions `twa-release.yml`로 `alpha` 배포
-  - 권장 입력: `version_code=9`, `version_name=1.0.5`, `track=alpha`, `release_status=completed`, `rollout=1.0`
+- [x] GitHub Actions `twa-release.yml`로 `alpha` 배포
+  - Run: `25656711609`
+  - 입력: `version_code=9`, `version_name=1.0.5`, `track=alpha`, `release_status=completed`, `rollout=1.0`
   - 릴리스 노트: `Android closed-test feedback flow added. Testers can now send Android test feedback from Settings, use a prefilled feedback template, and report shared logging issues directly from QuickLog.`
-- [ ] Play alpha 트랙에서 `1.0.5` 반영 확인
+- [x] Play alpha 트랙에서 `1.0.5` 반영 확인
+  - `alpha`: `1.0.5` (`versionCode=9`), `status=completed`
+  - `production`: 게시된 릴리즈 없음
 - [ ] 테스터에게 opt-in 링크와 앱 내 문의 경로를 함께 안내
 
 ## 8) 출시 후 모니터링

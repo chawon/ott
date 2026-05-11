@@ -209,8 +209,12 @@ adb install -r apps/twa/app/build/outputs/apk/debug/app-debug.apk
   - 필요한 수정은 `alpha` 업데이트로 배포한 뒤 프로덕션 액세스를 재신청
 
 ### 진행 업데이트 (2026-05-11)
-- Android 비공개 테스트 피드백 루프 업데이트 준비
-  - 배포 후보: `1.0.5` (`versionCode=9`)
+- Android 비공개 테스트 피드백 루프 업데이트 alpha 배포 완료
+  - 버전: `1.0.5` (`versionCode=9`)
+  - Web production deploy run: `25656621482`
+  - TWA release run: `25656711609`
+  - Google Play `alpha`: `1.0.5` (`versionCode=9`), `status=completed`
+  - Google Play `production`: 게시된 릴리즈 없음
   - 설정 화면에 Android 테스트 체크리스트와 `Android 테스트 의견 보내기` 진입 추가
   - 문의함 URL preset 추가: `/feedback?source=android-alpha`, `/feedback?source=android-alpha-share`
   - TWA/PWA 공유 진입 시 QuickLog에 공유 제목 추출 성공/실패 안내와 공유 기록 의견 링크 표시

@@ -96,9 +96,9 @@
 2. 현재 기준
    1. Google Play internal/release 경로는 `apps/twa` 기반 Bubblewrap TWA
    2. 패키지명 `app.ottline`, 도메인 `ottline.app`, 워크플로우는 `twa-debug.yml` / `twa-build-aab.yml` / `twa-release.yml`
-   3. `2026-04-29` 기준 Google Play `alpha` 최신 버전은 `1.0.4` (`versionCode=8`)이며, Android 런처 shortcuts, PWA/TWA Web Share Target, 홈 위젯 영상/책/타임라인 액션 분리가 반영됐다. 모바일 실기기에서 위젯, 롱프레스 shortcuts, OTT 앱 공유 후 QuickLog 조회까지 확인 완료.
+   3. `2026-05-11` 기준 Google Play `alpha` 최신 버전은 `1.0.5` (`versionCode=9`, `status=completed`)이며, Android 런처 shortcuts, PWA/TWA Web Share Target, 홈 위젯 영상/책/타임라인 액션, 테스트 피드백 루프가 반영됐다. `1.0.4` 모바일 실기기에서 위젯, 롱프레스 shortcuts, OTT 앱 공유 후 QuickLog 조회까지 확인 완료했고, `1.0.5`는 설정 화면 Android 테스트 체크리스트, 문의함 preset, QuickLog 공유 진입 성공/실패 안내를 추가했다.
    4. `2026-05-08` 기준 Google Play 프로덕션 액세스 신청은 승인되지 않았다. Play 검토 사유는 비공개 테스트 중 실제 테스터 참여가 없었고, 사용자 의견 수집/조치/앱 업데이트 같은 테스트 권장사항을 충족하지 못했다는 점이다. `gplay` 재확인 기준 production 트랙 릴리즈는 없고, `alpha` 트랙은 `1.0.4` (`versionCode=8`, `status=completed`) 상태이며, 테스터 그룹은 `ottline-beta-testers@googlegroups.com`가 연결돼 있다. 재신청 전 실제 테스터 대상 14일 비공개 테스트를 다시 진행하고 참여/피드백/조치 이력을 남겨야 한다.
-   5. `2026-05-11` 기준 비공개 테스트를 재진행했고, `1.0.5` (`versionCode=9`) 업데이트 후보는 테스트 피드백 루프 보강이다. 설정 화면 Android 테스트 체크리스트, 문의함 preset(`/feedback?source=android-alpha`, `/feedback?source=android-alpha-share`), QuickLog 공유 진입 성공/실패 안내, Play release notes 입력을 함께 반영한다.
+   5. `2026-05-11` 기준 비공개 테스트를 재진행했고, `1.0.5` (`versionCode=9`) 테스트 피드백 루프 업데이트를 `alpha`에 업로드했다. 설정 화면 Android 테스트 체크리스트, 문의함 preset(`/feedback?source=android-alpha`, `/feedback?source=android-alpha-share`), QuickLog 공유 진입 성공/실패 안내, Play release notes 입력을 함께 반영했다.
    6. 현재 로컬 작업환경(WSL on ARM Linux)에서는 Android Gradle 빌드(`assembleDebug`, `bundleRelease`)가 `aapt2` 바이너리 호환 문제로 실패하는 것이 정상 제약이다. 로컬 Android 빌드 실패를 회귀로 보지 말고, APK/AAB 산출물 검증과 Play 배포는 GitHub Actions를 source of truth로 사용한다.
    7. 로컬 Gradle은 필요 시 `apps/twa`에서 `GRADLE_USER_HOME=./.gradle ./gradlew :app:generateShorcutsFile --no-daemon` 같은 리소스 생성 확인까지만 제한적으로 사용한다.
    8. `feat/native-mobile-app`의 `apps/native`는 React Native + Expo 후보 앱이며, main 미머지 상태이고 배포 파이프라인은 아직 없음

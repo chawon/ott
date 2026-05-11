@@ -1,5 +1,14 @@
 # Wiki Log
 
+## [2026-05-11] update: Android alpha 1.0.5 upload
+- 대상: GitHub Actions web production run `25656621482`, TWA release run `25656711609`, `gplay tracks get`
+- 생성/수정: platforms/twa.md, index.md
+- 노트:
+  - web production에 `5039d6f38666aabc4e6bd49308113962f95c93fe` 반영 완료
+  - `twa-release.yml`로 Google Play `alpha`에 `1.0.5` (`versionCode=9`) 업로드 완료
+  - `gplay` 확인 기준 `alpha`는 `1.0.5` (`versionCode=9`, `status=completed`), `production`은 게시 릴리즈 없음
+  - Play release notes에 Android closed-test feedback flow 추가 내용을 남김
+
 ## [2026-05-11] update: Android alpha feedback loop
 - 대상: `apps/web/app/[locale]/account/page.tsx`, `apps/web/app/[locale]/feedback/page.tsx`, `apps/web/app/[locale]/page.tsx`, `apps/web/components/FeedbackInbox.tsx`, `apps/web/components/QuickLogCard.tsx`, `.github/workflows/twa-release.yml`, `docs/twa-android-alpha-feedback-loop-2026-05-11.md`
 - 생성/수정: platforms/twa.md, features/feedback.md, index.md

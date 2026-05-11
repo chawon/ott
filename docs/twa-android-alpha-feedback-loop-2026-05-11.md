@@ -5,11 +5,15 @@
 - Android 비공개 테스트 중 확인해야 할 위젯, 런처 shortcuts, 공유 기록 흐름을 설정 화면에서 명확히 안내한다.
 - OTT 앱 공유가 성공/실패했을 때 QuickLog에서 상태를 보여주고, 실패 사례를 바로 문의함으로 보낼 수 있게 한다.
 
-## 배포 후보
+## 배포 상태
 - 버전: `1.0.5`
 - versionCode: `9`
 - 대상 트랙: Google Play `alpha`
 - 배포 워크플로우: `.github/workflows/twa-release.yml`
+- Web production deploy run: `25656621482`
+- TWA release run: `25656711609`
+- Google Play `alpha`: `1.0.5` (`versionCode=9`), `status=completed`
+- Google Play `production`: 게시된 릴리즈 없음
 
 ## 범위
 - 대상:
@@ -44,7 +48,7 @@
 4. `twa-release.yml`에 `release_notes` 입력을 추가한다.
    - `gplay release --release-notes`로 Play alpha 릴리스 노트를 함께 남긴다.
 
-## 권장 Play alpha 입력값
+## Play alpha 입력값
 ```text
 version_code: 9
 version_name: 1.0.5
