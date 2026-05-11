@@ -18,6 +18,13 @@ import {
 } from "@/lib/shareIntent";
 import type { DiscussionListItem, WatchLog } from "@/lib/types";
 
+type ShareImportStatus = "imported" | "unresolved";
+
+function feedbackHref(source: string) {
+  const params = new URLSearchParams({ source });
+  return `/feedback?${params.toString()}`;
+}
+
 export default function HomePage() {
   const tHome = useTranslations("HomePage");
   const [logs, setLogs] = useState<WatchLog[]>([]);
@@ -31,6 +38,8 @@ export default function HomePage() {
     "video",
   );
   const [sharedPlatform, setSharedPlatform] = useState<string>("");
+  const [shareImportStatus, setShareImportStatus] =
+    useState<ShareImportStatus | null>(null);
   const [autoFocusSearch, setAutoFocusSearch] = useState(false);
 
   useEffect(() => {
@@ -59,6 +68,7 @@ export default function HomePage() {
 
       if (captureTitle && !cancelled) {
         setSharedQuery(captureTitle);
+        setShareImportStatus("imported");
         setAutoFocusSearch(true);
         if (captureType === "book" || captureType === "video") {
           setSharedContentType(captureType);
@@ -73,6 +83,7 @@ export default function HomePage() {
         .filter((v): v is string => Boolean(v?.trim()))
         .join("\n");
       const rawSubject = params.get("shared_subject");
+      const hasSharedInput = Boolean(rawShared.trim() || rawSubject?.trim());
       const platform = inferShareIntentPlatform(rawShared, rawSubject);
       if (platform && !cancelled) setSharedPlatform(platform);
       const parsed = parseShareIntentText(rawShared, rawSubject);
@@ -80,12 +91,19 @@ export default function HomePage() {
         if (!cancelled) {
           setSharedQuery(parsed.query);
           setSharedContentType(parsed.contentType);
+          setShareImportStatus("imported");
         }
         return;
       }
 
       const firstUrl = extractShareIntentUrls(rawShared, rawSubject)[0];
-      if (!firstUrl) return;
+      if (!firstUrl) {
+        if (hasSharedInput && !cancelled) {
+          setShareImportStatus("unresolved");
+          setAutoFocusSearch(true);
+        }
+        return;
+      }
       try {
         const r = await fetch(
           `/share-resolve?url=${encodeURIComponent(firstUrl)}`,
@@ -97,11 +115,22 @@ export default function HomePage() {
         if (!r.ok) return;
         const data = (await r.json()) as { title?: string | null };
         const title = sanitizeResolvedTitle(data.title);
-        if (!title || cancelled) return;
+        if (!title) {
+          if (!cancelled) {
+            setShareImportStatus("unresolved");
+            setAutoFocusSearch(true);
+          }
+          return;
+        }
+        if (cancelled) return;
         setSharedQuery(title.slice(0, 160));
         setSharedContentType("video");
+        setShareImportStatus("imported");
       } catch {
-        // ignore resolver failures
+        if (!cancelled) {
+          setShareImportStatus("unresolved");
+          setAutoFocusSearch(true);
+        }
       }
     })();
 
@@ -195,6 +224,8 @@ export default function HomePage() {
             initialSearchQuery={sharedQuery}
             initialPlatform={sharedPlatform}
             autoFocusSearch={autoFocusSearch}
+            shareImportStatus={shareImportStatus}
+            shareImportFeedbackHref={feedbackHref("android-alpha-share")}
           />
         </section>
         <section className="space-y-3">

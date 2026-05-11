@@ -148,6 +148,8 @@ export default function QuickLogCard({
   initialSearchQuery,
   initialPlatform,
   autoFocusSearch = false,
+  shareImportStatus,
+  shareImportFeedbackHref,
 }: {
   onCreated: (log: WatchLog, options?: { shareCard: boolean }) => void;
   onContentTypeChange?: (type: "video" | "book") => void;
@@ -155,6 +157,8 @@ export default function QuickLogCard({
   initialSearchQuery?: string;
   initialPlatform?: string;
   autoFocusSearch?: boolean;
+  shareImportStatus?: "imported" | "unresolved" | null;
+  shareImportFeedbackHref?: string;
 }) {
   const tQuick = useTranslations("QuickLogCard");
   const tCommon = useTranslations("Common");
@@ -838,6 +842,35 @@ export default function QuickLogCard({
                 <ArrowRight className="h-4 w-4" />
                 {tQuick("searchStartModern")}
               </div>
+              {shareImportStatus ? (
+                <div
+                  className={cn(
+                    "mb-3 rounded-xl border px-3 py-2 text-xs leading-relaxed",
+                    shareImportStatus === "imported"
+                      ? "border-blue-200 bg-white/80 text-blue-800 dark:border-blue-900/60 dark:bg-blue-950/30 dark:text-blue-200"
+                      : "border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-100",
+                  )}
+                >
+                  <div className="font-semibold">
+                    {shareImportStatus === "imported"
+                      ? tQuick("shareImportTitle")
+                      : tQuick("shareImportUnresolvedTitle")}
+                  </div>
+                  <div className="mt-0.5">
+                    {shareImportStatus === "imported"
+                      ? tQuick("shareImportDesc")
+                      : tQuick("shareImportUnresolvedDesc")}
+                  </div>
+                  {shareImportFeedbackHref ? (
+                    <Link
+                      href={shareImportFeedbackHref}
+                      className="mt-1.5 inline-flex min-h-9 items-center font-semibold text-blue-700 underline underline-offset-4 dark:text-blue-200"
+                    >
+                      {tQuick("shareImportFeedbackAction")}
+                    </Link>
+                  ) : null}
+                </div>
+              ) : null}
               <TitleSearchBox
                 key={contentType}
                 onSelect={(item) => setSelected(item)}

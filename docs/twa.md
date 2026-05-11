@@ -207,3 +207,12 @@ adb install -r apps/twa/app/build/outputs/apk/debug/app-debug.apk
   - 실제 테스터 설치/사용 참여를 먼저 확보
   - 테스트 기간 중 사용자 의견과 조치 내역을 문서화
   - 필요한 수정은 `alpha` 업데이트로 배포한 뒤 프로덕션 액세스를 재신청
+
+### 진행 업데이트 (2026-05-11)
+- Android 비공개 테스트 피드백 루프 업데이트 준비
+  - 배포 후보: `1.0.5` (`versionCode=9`)
+  - 설정 화면에 Android 테스트 체크리스트와 `Android 테스트 의견 보내기` 진입 추가
+  - 문의함 URL preset 추가: `/feedback?source=android-alpha`, `/feedback?source=android-alpha-share`
+  - TWA/PWA 공유 진입 시 QuickLog에 공유 제목 추출 성공/실패 안내와 공유 기록 의견 링크 표시
+  - `twa-release.yml`에 Play release notes 입력 추가
+  - 관련 설계 메모: `docs/twa-android-alpha-feedback-loop-2026-05-11.md`

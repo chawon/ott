@@ -10,7 +10,7 @@
 | [[daily-report]] | 매일 오전 9시 Telegram으로 Cloudflare·GA4·내부 분석·K8s 통합 현황 발송, 내부 로그 지표는 이벤트/DB 기준 병기 |
 | [[dark-mode]] | 기본 모드에서만 적용되는 라이트/다크/시스템 테마 전환 |
 | [[delete-sync]] | 개별 기록 삭제 없이 로컬 초기화와 서버 데이터 전체 삭제를 분리한 정책 |
-| [[feedback]] | 앱 내부 문의 스레드 + 관리자 답변 화면을 포함한 자체 API 기반 문의 채널 |
+| [[feedback]] | 앱 내부 문의 스레드 + 관리자 답변 화면, Android 테스트 preset을 포함한 자체 API 기반 문의 채널 |
 | [[onboarding]] | 첫 방문자 온보딩 오버레이 가이드 (현재 비활성화) |
 | [[share-card]] | 기록 저장 직후 SNS 친화적 이미지 카드 생성 및 공유 |
 | [[timeline]] | 개인 영상/책 기록을 필터와 검색으로 재방문하는 타임라인 화면 |
@@ -36,7 +36,7 @@
 | [[pwa]] | 로컬 우선 아키텍처 기반 설치형 웹앱, Service Worker 및 오프라인 지원 포함 |
 | [[native]] | React Native + Expo 기반 네이티브 후보 앱 (feat/native-mobile-app 브랜치, 배포 파이프라인 미구성) |
 | [[toss-inapp]] | 앱인토스 WebView 미니앱 — 2026-04-14 반려 대응 완료, 핀치줌/미리보기/저장 정상, 공유는 텍스트 |
-| [[twa]] | Android 현재 배포 경로인 Bubblewrap TWA, Play 프로덕션 액세스 미부여로 실제 테스터 14일 비공개 테스트 재진행 필요, APK/AAB는 GitHub Actions 기준 |
+| [[twa]] | Android 현재 배포 경로인 Bubblewrap TWA, Play 프로덕션 액세스 미부여 후 비공개 테스트 재진행 및 1.0.5 피드백 루프 업데이트 준비, APK/AAB는 GitHub Actions 기준 |
 
 ## Processes
 

@@ -35,6 +35,8 @@
 **우선:**
 1. 설정 화면 (`apps/web/app/[locale]/account/page.tsx`) — "내 문의함 열기" 섹션
 2. 푸터 (`apps/web/components/AppFooter.tsx`)
+3. Android 비공개 테스트 섹션 — "Android 테스트 의견 보내기" (`/feedback?source=android-alpha`)
+4. QuickLog 공유 진입 실패/개선 링크 — `/feedback?source=android-alpha-share`
 
 **후순위:**
 - FAQ 페이지 ("찾는 답이 없나요?" 다음 액션)
@@ -47,6 +49,9 @@
 ### 사용자 화면
 - `apps/web/app/[locale]/feedback/page.tsx` — 문의 작성 / 내 목록 / 관리자 답변 확인
 - 카테고리: `QUESTION`, `BUG`, `IDEA`, `OTHER`
+- URL preset:
+  - `/feedback?source=android-alpha` — Android 비공개 테스트 의견 템플릿
+  - `/feedback?source=android-alpha-share` — OTT 앱 공유 기록 테스트 의견 템플릿
 
 ### 관리자 화면
 - `apps/web/app/[locale]/admin/feedback/page.tsx?token=...`
