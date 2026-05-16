@@ -34,7 +34,7 @@
 | [[browser-extension]] | PC OTT 페이지에서 ottline 기록 화면으로 연결하는 Chrome/Edge 확장 |
 | [[ms-store]] | PWABuilder 기반 Windows PWA 패키지 생성 및 Microsoft Store 제출 |
 | [[pwa]] | 로컬 우선 아키텍처 기반 설치형 웹앱, Service Worker 및 오프라인 지원 포함 |
-| [[native]] | React Native + Expo 기반 네이티브 후보 앱 (feat/native-mobile-app 브랜치, 배포 파이프라인 미구성) |
+| [[native]] | React Native + Expo 기반 iOS TestFlight 후보 앱, 기록 핵심 범위와 local-first sync 구현 진행 중 |
 | [[toss-inapp]] | 앱인토스 WebView 미니앱 — 2026-04-14 반려 대응 완료, 핀치줌/미리보기/저장 정상, 공유는 텍스트 |
 | [[twa]] | Android 현재 배포 경로인 Bubblewrap TWA, Play 프로덕션 액세스 미부여 후 비공개 테스트 재진행 및 1.0.5 피드백 루프 업데이트 배포 완료, APK/AAB는 GitHub Actions 기준 |
 

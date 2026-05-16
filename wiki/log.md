@@ -1,5 +1,13 @@
 # Wiki Log
 
+## [2026-05-16] update: iOS native TestFlight preparation
+- 대상: `apps/native`, `docs/ios-testflight-plan.md`, `AGENTS.md`
+- 생성/수정: platforms/native.md, index.md
+- 노트:
+  - Expo 기반 iOS 네이티브 후보를 기록/타임라인/계정/문의함 중심으로 재정리
+  - iOS Bundle Identifier는 `app.ottline`, Android native package는 기존 TWA와 분리해 `app.ottline.mobile`로 유지
+  - DNA Aura/Journey 실험은 v1에서 제외하고 TestFlight 준비 범위는 Apple 계정 확인 전 코드/설정 단계로 한정
+
 ## [2026-05-11] update: Android alpha 1.0.5 upload
 - 대상: GitHub Actions web production run `25656621482`, TWA release run `25656711609`, `gplay tracks get`
 - 생성/수정: platforms/twa.md, index.md

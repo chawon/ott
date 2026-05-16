@@ -105,7 +105,8 @@ BG Dark:        #0F1E3D
 - Play Console 앱 이름은 `ottline` 고정, `On The Timeline`은 보조 표기로만 사용
 - Play 스크린샷/피처 그래픽/설명 문구에서 `ott.preview.pe.kr`와 구 브랜드 자산은 재사용하지 않음
 - 연락처 이메일은 `contact@ottline.app`, 개인정보처리방침 URL은 `https://ottline.app/privacy`
-- `feat/native-mobile-app`의 React Native + Expo 앱은 별도 후보 브랜치이며, main 미머지 상태
+- `feature/ios-native-testflight`에서 React Native + Expo 기반 iOS TestFlight 후보를 기록 핵심 범위로 재정리 중
+- iOS Bundle Identifier는 `app.ottline`, Android native package는 TWA와 분리해 `app.ottline.mobile`로 유지
 - 문서상 남아 있던 Capacitor 전환 결정은 저장소 코드 실체가 없어 현재 기준에서 제외
 
 자세한 내용: [[twa]], [[native]]

@@ -1,6 +1,6 @@
 # Native 앱 (React Native + Expo)
 
-> React Native + Expo Router 기반 네이티브 모바일 앱 — `apps/native/`
+> React Native + Expo Router 기반 iOS 네이티브 TestFlight 후보 — `apps/native/`
 
 ## 관련 페이지
 - [[twa]]
@@ -11,14 +11,14 @@
 
 ## 현황
 
-`feat/native-mobile-app` 브랜치에서 개발 중 (2026-03-25 기준). main에 미머지.
+`feature/ios-native-testflight` 브랜치에서 iOS TestFlight 준비 작업을 진행 중이다. App Store 실제 제출은 Apple Developer Program과 App Store Connect 상태 확인 후 별도 진행한다.
 
-- 실행 기준: Expo Go / `expo start --web` / `expo start --android`
-- 구현 범위: 인증 저장, API 연동, Journey/Log/Profile 화면
-- 배포 준비 상태:
-  - EAS 설정 없음
-  - `android/`, `ios/` 네이티브 폴더 없음
-  - Play/TestFlight용 signing, release workflow 없음
+- v1 범위: 기록 핵심
+- 화면: 기록, 타임라인, 계정, 문의함
+- iOS Bundle Identifier: `app.ottline`
+- Android native package: `app.ottline.mobile`
+- Android 공식 배포 경로는 계속 `apps/twa` 기반 Bubblewrap TWA다.
+- DNA Aura/Journey 실험 화면은 v1에서 제외하고 후속 실험으로 둔다.
 
 ## 기술 스택
 
@@ -27,7 +27,6 @@
 | 프레임워크 | React Native + Expo SDK |
 | 라우팅 | expo-router (파일 기반) |
 | 상태 관리 | Zustand (`store/authStore.ts`) |
-| 서버 상태 | TanStack React Query |
 | 로컬 저장소 | expo-sqlite, expo-secure-store |
 | 스타일 | StyleSheet (react-native), Pretendard 폰트 |
 | 테스트 | Jest |
@@ -37,22 +36,19 @@
 ```
 apps/native/
   app/
-    _layout.tsx              # 루트 레이아웃, 인증 분기
-    onboarding/index.tsx     # 온보딩 화면
+    _layout.tsx              # 루트 레이아웃, DB/인증 초기화
     (tabs)/
       _layout.tsx            # 탭 네비게이터
-      journey/index.tsx      # Journey 화면 (DNA Aura 연결)
-      log/index.tsx          # 기록 화면
-      profile/index.tsx      # 프로필 화면
-  components/
-    journey/HeroBar.tsx      # DNA 특질 칩 3개 표시
-    journey/JourneyNode.tsx  # Aura 글로우 강도 적용 카드
-    log/QuickLogModal.tsx    # 빠른 기록 모달
+      log/index.tsx          # 검색 + QuickLog 저장
+      timeline/index.tsx     # local-first 타임라인
+      account/index.tsx      # 페어링/초기화/계정 삭제
+    feedback/index.tsx       # 문의함
   lib/
-    api.ts                   # syncPull() — API 연동
-    gamification.ts          # calcDnaTraits(), calcAuraScore()
-    traits.ts                # TRAIT_META, getAuraColor()
-    types.ts                 # TraitKey, DnaTraitMap, AuraResult, WatchLog
+    api.ts                   # API 연동
+    localDb.ts               # expo-sqlite local-first 저장소
+    sync.ts                  # outbox push/pull
+    syncPayload.ts           # /api/sync/push payload 생성
+    types.ts                 # API/로컬 타입
     secureStore.ts           # expo-secure-store 웹 폴백 (localStorage)
   store/authStore.ts         # Zustand 인증 상태
   constants/
@@ -63,35 +59,27 @@ apps/native/
 ## 실행 방법
 
 ```bash
-cd apps/native
 npm install
-
-# 웹 (가장 빠름)
-NODE_PATH="$(pwd)/node_modules" npx expo start --web
-# → http://localhost:8081
-
-# Android 에뮬레이터
-NODE_PATH="$(pwd)/node_modules" npx expo start --android
-
-# 실기기 (Expo Go QR 스캔)
-NODE_PATH="$(pwd)/node_modules" npx expo start
+npm run start --workspace native
+npm run ios --workspace native
 ```
 
-> 모노레포 구조상 `NODE_PATH` 설정 필수 — 없으면 expo-router를 찾지 못함
+TestFlight 빌드는 Apple 계정/서명 준비 후 `apps/native/eas.json`의 `testflight` 프로필로 실행한다.
 
 ## 테스트
 
 ```bash
-cd apps/native
-npx jest
+npm run typecheck --workspace native
+npm run test --workspace native -- --runInBand
 ```
 
-`__tests__/gamification.dna.test.ts` — DNA 특질 계산 단위 테스트 11개
+`__tests__/syncPayload.test.ts` — `/api/sync/push` payload 생성 단위 테스트
 
 ## 구현 완료 기능
 
-- Journey 화면: 시청 기록을 시간순으로 구불구불한 SVG 경로 위에 노드로 배치
-- DNA Aura: 26종 특질 추출 → HeroBar 칩 + JourneyNode 글로우 시각화 (→ [[dna-aura]])
-- 기록 화면: QuickLogModal 기반 시청 기록 추가
-- 온보딩 화면
-- Zustand 기반 인증 상태 관리
+- 제목 검색 후 로컬 QuickLog 저장
+- `expo-sqlite` 기반 titles/logs/outbox/settings 저장
+- outbox 기반 `/api/sync/push` 및 `/api/sync/pull`
+- 페어링 코드 발급/기기 연결
+- 로컬 초기화와 서버 데이터 전체 삭제 진입
+- 문의 등록과 내 문의 목록 표시

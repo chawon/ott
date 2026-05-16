@@ -101,7 +101,16 @@
    5. `2026-05-11` 기준 비공개 테스트를 재진행했고, `1.0.5` (`versionCode=9`) 테스트 피드백 루프 업데이트를 `alpha`에 업로드했다. Google Play TWA 세션에서만 보이는 설정 화면 Android 테스트 체크리스트, 문의함 preset(`/feedback?source=android-alpha`, `/feedback?source=android-alpha-share`), QuickLog 공유 진입 성공/실패 안내, Play release notes 입력을 함께 반영했다.
    6. 현재 로컬 작업환경(WSL on ARM Linux)에서는 Android Gradle 빌드(`assembleDebug`, `bundleRelease`)가 `aapt2` 바이너리 호환 문제로 실패하는 것이 정상 제약이다. 로컬 Android 빌드 실패를 회귀로 보지 말고, APK/AAB 산출물 검증과 Play 배포는 GitHub Actions를 source of truth로 사용한다.
    7. 로컬 Gradle은 필요 시 `apps/twa`에서 `GRADLE_USER_HOME=./.gradle ./gradlew :app:generateShorcutsFile --no-daemon` 같은 리소스 생성 확인까지만 제한적으로 사용한다.
-   8. `feat/native-mobile-app`의 `apps/native`는 React Native + Expo 후보 앱이며, main 미머지 상태이고 배포 파이프라인은 아직 없음
+   8. `apps/native`는 React Native + Expo 기반 iOS TestFlight 후보 앱으로 재정리 중이다. iOS Bundle Identifier는 `app.ottline`, Android native package는 TWA와 충돌하지 않게 `app.ottline.mobile`로 유지한다. v1 범위는 기록/타임라인/계정/문의함이며, DNA Aura/Journey 실험은 제외한다. Apple Developer Program/App Store Connect 상태 확인 전이므로 실제 TestFlight 제출은 아직 진행하지 않는다.
+
+### P1
+1. iOS 네이티브 앱 TestFlight 준비
+2. 현재 기준
+   1. 구현 경로는 `apps/native`의 Expo managed app이다.
+   2. v1 범위는 검색 기반 QuickLog 저장, local-first 타임라인, 페어링 코드 기반 계정 연결, 문의함, 로컬 초기화와 서버 데이터 전체 삭제다.
+   3. 로컬 저장소는 `expo-sqlite`, 인증 정보는 `expo-secure-store`, 서버 동기화는 기존 `/api/sync/push`·`/api/sync/pull` 계약을 사용한다.
+   4. `apps/native/eas.json`에 `testflight` 빌드 프로필을 둔다.
+   5. 남은 작업: Apple Developer Program 확인, App Store Connect 앱 등록, EAS signing credential 생성, `eas build --platform ios --profile testflight`, TestFlight 내부 테스트, App Privacy/스크린샷/리뷰 노트 작성.
 
 ### P1
 1. Public repo 보안 후속 정리
