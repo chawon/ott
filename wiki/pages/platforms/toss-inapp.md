@@ -19,15 +19,24 @@
 | 1차 검수 결과 | ❌ 반려 (2026-04-14) |
 | 반려 대응 코드 | ✅ 완료 (2026-04-14) |
 | 실기기 재테스트 | ✅ 완료 |
-| 출시 상태 | ✅ 공개 링크 운영 중 (2026-04-21 기준) |
+| 출시 상태 | ✅ 기존 공개 링크 운영 중 (2026-04-21 기준) |
+| 현행 웹 버전 재반영 | 🟡 검토 요청 제출 (2026-05-17, 승인/공개 전) |
+| 운영 브랜치 | `chore/toss-inapp-current-release-20260517` (main 미머지 운영) |
 
 ## 기술 스택
 
-- SDK: `@apps-in-toss/web-framework` v2.4.1
+- SDK: `@apps-in-toss/web-framework` v2.5.1
 - 설정: `apps/web/granite.config.ts` (appName, brand, icon CDN URL), `apps/web/ottline.ait` (번들)
 - 진입: `intoss://ottline`
 - 공개 링크: `https://minion.toss.im/XYvjpUB2`
 - 방식: 기존 Next.js 앱에 WebView SDK를 얹는 방식 (React Native 신규 개발 아님)
+
+## 운영 브랜치 정책 (2026-05-17 결정)
+
+- 토스 인앱용 현행 번들은 `main`에 머지하지 않고 `chore/toss-inapp-current-release-20260517` 브랜치에서 계속 운영한다.
+- 토스 검토 피드백이 오면 이 브랜치 위에 추가 커밋을 쌓고 `apps/web/ottline.ait`를 다시 빌드한다.
+- 사용자가 토스 콘솔 업로드를 직접 수행하므로, 에이전트는 명시 요청 전까지 `npx ait deploy`를 실행하지 않는다.
+- AIT 정적 번들은 Toss 호스트에서 실행되므로 클라이언트 API 호출은 `https://ottline.app/api/...` 운영 origin을 사용해야 한다. 상대 경로 `/api/...`를 사용하면 Toss 정적 HTML이 내려와 JSON 파싱 오류가 발생할 수 있다.
 
 ## 구현 완료 항목 (Phase 1)
 
@@ -93,6 +102,15 @@
 
 - 사용자 공개 진입 링크 운영 확인: `https://minion.toss.im/XYvjpUB2`
 - `/about` 서비스 소개는 토스 진입점 설명과 페어링 코드 연속성 메시지를 분리해 정리
+
+### 2026-05-17 현행 웹 버전 재반영 검토 요청
+
+- 작업 브랜치: `chore/toss-inapp-current-release-20260517`
+- 최신 제출 커밋: `8782520` (`fix(toss): route api calls to production origin`)
+- 최신 AIT `deploymentId`: `019e357e-d72d-79d0-adda-2c54eebca094`
+- 산출물: `apps/web/ottline.ait`
+- 상태: 사용자가 토스 콘솔에 검토 요청 제출 완료. 승인/공개 여부는 아직 확인 전이다.
+- 이슈 대응: Toss 정적 호스트에서 `/api/...` 상대 경로 요청이 HTML을 반환해 `Unexpected token '<'` JSON 파싱 오류가 발생하던 문제를 운영 origin 호출로 수정했다.
 
 ### 현재 제한사항
 

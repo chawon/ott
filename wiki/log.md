@@ -1,5 +1,14 @@
 # Wiki Log
 
+## [2026-05-17] update: Toss in-app branch-only release operation
+- 대상: `chore/toss-inapp-current-release-20260517`, `apps/web/ottline.ait`, Toss console review request
+- 생성/수정: platforms/toss-inapp.md, index.md
+- 노트:
+  - 현행 웹 버전을 앱인토스 번들로 재생성하고 사용자가 토스 콘솔 검토 요청을 제출한 상태를 기록
+  - 최신 제출 커밋은 `8782520`, AIT `deploymentId`는 `019e357e-d72d-79d0-adda-2c54eebca094`
+  - 해당 흐름은 `main`에 머지하지 않고 `chore/toss-inapp-current-release-20260517` 브랜치에서 계속 운영
+  - Toss 정적 호스트에서 `/api/...` 상대 경로가 HTML을 반환해 JSON 파싱 오류가 나던 문제를 운영 origin API 호출로 수정
+
 ## [2026-05-17] update: 무로그인 개인 프로필 v1 배포 확인
 - 대상: PR #33, production deploy runs `25984577795` / `25984619366`, ArgoCD `ott-app`
 - 생성/수정: features/personal-profile.md, features/share-card.md, features/timeline.md, index.md
