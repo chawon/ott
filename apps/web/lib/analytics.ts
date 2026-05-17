@@ -1,6 +1,7 @@
 "use client";
 
 import { ensureAnalyticsClientId, getUserId } from "@/lib/localStore";
+import { buildApiUrl } from "@/lib/url";
 import { safeUUID } from "@/lib/utils";
 
 export type AnalyticsPlatform = "web" | "pwa" | "twa";
@@ -78,7 +79,8 @@ function detectInstallState(platform: AnalyticsPlatform): InstallState {
 
 function buildContextProperties(platform: AnalyticsPlatform) {
   return {
-    hostname: typeof window !== "undefined" ? window.location.hostname : "unknown",
+    hostname:
+      typeof window !== "undefined" ? window.location.hostname : "unknown",
     deviceType: detectDeviceType(),
     osFamily: detectOsFamily(),
     browserFamily: detectBrowserFamily(),
@@ -113,7 +115,7 @@ export async function trackEvent(
     const userId = getUserId();
     const clientId = ensureAnalyticsClientId();
 
-    const res = await fetch("/api/nalytic/events", {
+    const res = await fetch(buildApiUrl("/nalytic/events"), {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

@@ -27,6 +27,7 @@ import {
   sanitizeResolvedTitle,
 } from "@/lib/shareIntent";
 import type { DiscussionListItem, WatchLog } from "@/lib/types";
+import { buildAppUrl, getCurrentLocale } from "@/lib/url";
 import { useUserProfile } from "@/lib/useUserProfile";
 
 type ShareImportStatus = "imported" | "unresolved";
@@ -127,7 +128,9 @@ export default function HomePage() {
       }
       try {
         const r = await fetch(
-          `/share-resolve?url=${encodeURIComponent(firstUrl)}`,
+          buildAppUrl(
+            `/${getCurrentLocale()}/share-resolve?url=${encodeURIComponent(firstUrl)}`,
+          ),
           {
             method: "GET",
             cache: "no-store",

@@ -1,5 +1,6 @@
 import { ensureAuth } from "./auth"; // Import migration-aware auth
 import { getDeviceId, getUserId, resetLocalState } from "./localStore";
+import { buildApiUrl } from "./url";
 
 function buildHeaders(init?: RequestInit) {
   const headers = new Headers(init?.headers ?? {});
@@ -32,7 +33,7 @@ function buildHeaders(init?: RequestInit) {
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`/api${path}`, {
+  const res = await fetch(buildApiUrl(path), {
     ...init,
     headers: buildHeaders(init),
     cache: "no-store",
