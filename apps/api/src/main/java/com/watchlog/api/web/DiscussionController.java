@@ -3,6 +3,10 @@ package com.watchlog.api.web;
 import com.watchlog.api.dto.CreateDiscussionRequest;
 import com.watchlog.api.dto.DiscussionDto;
 import com.watchlog.api.dto.DiscussionListItemDto;
+import com.watchlog.api.dto.DiscussionReactionStateDto;
+import com.watchlog.api.dto.ToggleDiscussionReactionRequest;
+import com.watchlog.api.service.AuthService;
+import com.watchlog.api.service.DiscussionReactionService;
 import com.watchlog.api.service.DiscussionService;
 import com.watchlog.api.service.TitleService;
 import org.springframework.web.bind.annotation.*;
@@ -16,10 +20,19 @@ public class DiscussionController {
 
     private final DiscussionService discussionService;
     private final TitleService titleService;
+    private final DiscussionReactionService reactionService;
+    private final AuthService authService;
 
-    public DiscussionController(DiscussionService discussionService, TitleService titleService) {
+    public DiscussionController(
+            DiscussionService discussionService,
+            TitleService titleService,
+            DiscussionReactionService reactionService,
+            AuthService authService
+    ) {
         this.discussionService = discussionService;
         this.titleService = titleService;
+        this.reactionService = reactionService;
+        this.authService = authService;
     }
 
     private String normalizeLocale(String language) {
@@ -30,7 +43,7 @@ public class DiscussionController {
     @GetMapping
     public DiscussionDto getByTitle(@RequestParam("titleId") UUID titleId) {
         var discussion = discussionService.findByTitle(titleId);
-        return discussion == null ? null : DiscussionDto.from(discussion);
+        return discussion == null ? null : DiscussionDto.from(discussion, reactionService.summarize(discussion.getId()));
     }
 
     @GetMapping("/{id}")
@@ -38,7 +51,12 @@ public class DiscussionController {
         var discussion = discussionService.require(id);
         var seasonMetaByTitleId = discussionService.findLatestSeasonMetaByTitleIds(List.of(discussion.getTitle().getId()));
         var meta = seasonMetaByTitleId.get(discussion.getTitle().getId());
-        return DiscussionListItemDto.from(discussion, meta == null ? null : meta.posterUrl(), meta == null ? null : meta.seasonYear());
+        return DiscussionListItemDto.from(
+                discussion,
+                meta == null ? null : meta.posterUrl(),
+                meta == null ? null : meta.seasonYear(),
+                reactionService.summarize(discussion.getId())
+        );
     }
 
     @GetMapping("/latest")
@@ -53,10 +71,18 @@ public class DiscussionController {
         var seasonMetaByTitleId = discussionService.findLatestSeasonMetaByTitleIds(
                 discussions.stream().map(d -> d.getTitle().getId()).distinct().toList()
         );
+        var reactionSummaryByDiscussionId = reactionService.summarize(
+                discussions.stream().map(d -> d.getId()).toList()
+        );
         return discussions.stream()
                 .map(d -> {
                     var meta = seasonMetaByTitleId.get(d.getTitle().getId());
-                    return DiscussionListItemDto.from(d, meta == null ? null : meta.posterUrl(), meta == null ? null : meta.seasonYear());
+                    return DiscussionListItemDto.from(
+                            d,
+                            meta == null ? null : meta.posterUrl(),
+                            meta == null ? null : meta.seasonYear(),
+                            reactionSummaryByDiscussionId.get(d.getId())
+                    );
                 })
                 .toList();
     }
@@ -71,10 +97,18 @@ public class DiscussionController {
         var seasonMetaByTitleId = discussionService.findLatestSeasonMetaByTitleIds(
                 discussions.stream().map(d -> d.getTitle().getId()).distinct().toList()
         );
+        var reactionSummaryByDiscussionId = reactionService.summarize(
+                discussions.stream().map(d -> d.getId()).toList()
+        );
         return discussions.stream()
                 .map(d -> {
                     var meta = seasonMetaByTitleId.get(d.getTitle().getId());
-                    return DiscussionListItemDto.from(d, meta == null ? null : meta.posterUrl(), meta == null ? null : meta.seasonYear());
+                    return DiscussionListItemDto.from(
+                            d,
+                            meta == null ? null : meta.posterUrl(),
+                            meta == null ? null : meta.seasonYear(),
+                            reactionSummaryByDiscussionId.get(d.getId())
+                    );
                 })
                 .toList();
     }
@@ -86,6 +120,32 @@ public class DiscussionController {
     ) {
         String locale = normalizeLocale(language);
         var title = titleService.require(req.titleId());
-        return DiscussionDto.from(discussionService.ensureForTitle(title, locale));
+        var discussion = discussionService.ensureForTitle(title, locale);
+        return DiscussionDto.from(discussion, reactionService.summarize(discussion.getId()));
+    }
+
+    @GetMapping("/{id}/reactions/me")
+    public DiscussionReactionStateDto myReaction(
+            @PathVariable UUID id,
+            @RequestHeader(value = "X-User-Id", required = false) UUID userId,
+            @RequestHeader(value = "X-Device-Id", required = false) UUID deviceId
+    ) {
+        authService.requireActiveDevice(userId, deviceId);
+        return new DiscussionReactionStateDto(
+                reactionService.summarize(id),
+                reactionService.selectedTypes(id, userId),
+                false
+        );
+    }
+
+    @PutMapping("/{id}/reactions")
+    public DiscussionReactionStateDto toggleReaction(
+            @PathVariable UUID id,
+            @RequestBody ToggleDiscussionReactionRequest req,
+            @RequestHeader(value = "X-User-Id", required = false) UUID userId,
+            @RequestHeader(value = "X-Device-Id", required = false) UUID deviceId
+    ) {
+        authService.requireActiveDevice(userId, deviceId);
+        return reactionService.toggle(id, userId, req == null ? null : req.type());
     }
 }

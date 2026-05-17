@@ -9,14 +9,20 @@ public record DiscussionDto(
         UUID id,
         UUID titleId,
         int commentSeq,
-        OffsetDateTime createdAt
+        OffsetDateTime createdAt,
+        DiscussionReactionSummaryDto reactionSummary
 ) {
     public static DiscussionDto from(DiscussionEntity e) {
+        return from(e, DiscussionReactionSummaryDto.empty());
+    }
+
+    public static DiscussionDto from(DiscussionEntity e, DiscussionReactionSummaryDto reactionSummary) {
         return new DiscussionDto(
                 e.getId(),
                 e.getTitle().getId(),
                 e.getCommentSeq(),
-                e.getCreatedAt()
+                e.getCreatedAt(),
+                reactionSummary == null ? DiscussionReactionSummaryDto.empty() : reactionSummary
         );
     }
 }

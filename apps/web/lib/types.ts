@@ -1,6 +1,7 @@
 export type Status = "DONE" | "IN_PROGRESS" | "WISHLIST";
 export type TitleType = "movie" | "series" | "book";
 export type Provider = "TMDB" | "LOCAL" | "NAVER";
+export type DiscussionReactionType = "DONE" | "CURIOUS" | "SAVE";
 export type PersonaKey =
   | "cinema_keeper"
   | "book_drifter"
@@ -71,6 +72,7 @@ export interface DiscussionListItem {
   posterUrl?: string | null;
   commentCount: number;
   createdAt: string;
+  reactionSummary?: DiscussionReactionSummary;
 }
 
 export interface Discussion {
@@ -78,6 +80,7 @@ export interface Discussion {
   titleId: string;
   commentSeq: number;
   createdAt: string;
+  reactionSummary?: DiscussionReactionSummary;
 }
 
 export interface Comment {
@@ -93,6 +96,18 @@ export interface CreateCommentRequest {
   body: string;
   mentions?: MentionRef[];
   syncLog?: boolean;
+}
+
+export interface DiscussionReactionSummary {
+  done: number;
+  curious: number;
+  save: number;
+}
+
+export interface DiscussionReactionState {
+  summary: DiscussionReactionSummary;
+  selectedTypes: DiscussionReactionType[];
+  selected: boolean;
 }
 
 export interface MentionRef {
