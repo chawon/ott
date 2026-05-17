@@ -4,6 +4,7 @@
 
 ## 관련 페이지
 - [[book-log]]
+- [[personal-profile]]
 - [[timeline-export]]
 - [[delete-sync]]
 
@@ -14,6 +15,7 @@
 - `apps/web/app/[locale]/timeline/page.tsx`에서 타임라인 목록, 필터, CSV 내보내기, 미래의 타임라인 추천 전환을 제공한다.
 - `apps/web/components/FiltersBar.tsx`에서 콘텐츠 타입, 상태, 출처, 플랫폼, 검색어 필터를 관리한다.
 - 검색어 필터는 제목, 메모, 플랫폼, 도서 저자/출판사를 대상으로 한다.
+- 개인 프로필이 완성된 경우 제목과 CTA 일부에 닉네임을 반영한다. 예: `{nickname}의 타임라인`, `{nickname}의 미래는?`.
 - 서버 동기화 계정은 `GET /api/logs?q=...`로 서버 결과를 먼저 가져온 뒤 IndexedDB에 반영하고, 로컬 필터를 다시 적용한다.
 - 오프라인 또는 서버 실패 시에는 IndexedDB의 `listLogsLocal()` 필터 결과를 유지한다.
 

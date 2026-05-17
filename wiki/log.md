@@ -1,5 +1,15 @@
 # Wiki Log
 
+## [2026-05-17] update: 무로그인 개인 프로필 v1 배포 확인
+- 대상: PR #33, production deploy runs `25984577795` / `25984619366`, ArgoCD `ott-app`
+- 생성/수정: features/personal-profile.md, features/share-card.md, features/timeline.md, index.md
+- 노트:
+  - 기존 페어링 계정에 닉네임, 성향 타이틀, clean-bg WebP 프리셋 아바타를 저장하는 개인 프로필 v1을 production 반영 완료
+  - 배포 SHA `652c249ba7b09f7d9086652514436a2d5fb31c1a` 기준 `ott-api`, `ott-web` production 이미지 교체 확인
+  - ArgoCD `ott-app`은 revision `240f531cb211e293c8d1d85497f8758bff2bbde6` 기준 `Synced / Healthy`
+  - 공유 포토 카드에 선택형 `아바타 + 닉네임 · by ottline.app` 서명 옵션을 추가하고 production 렌더 `200 image/png` 확인
+  - `/api/auth/profile` 무인증 401, `/api/titles/search`, clean-bg avatar asset 응답 확인
+
 ## [2026-05-11] update: Android alpha 1.0.5 upload
 - 대상: GitHub Actions web production run `25656621482`, TWA release run `25656711609`, `gplay tracks get`
 - 생성/수정: platforms/twa.md, index.md
