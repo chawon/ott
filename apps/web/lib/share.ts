@@ -8,6 +8,10 @@ export type ShareCardPayload = {
   ratingValue?: number | null;
   date: string;
   posterUrl?: string | null;
+  showProfileSignature?: boolean;
+  profileNickname?: string | null;
+  profileAvatarUrl?: string | null;
+  profilePersonaKey?: string | null;
   watermark: string;
   theme: "default";
 };

@@ -1,6 +1,15 @@
-import { ImageResponse } from "next/og";
 import fs from "node:fs/promises";
+import path from "node:path";
 import { getAverageColor } from "fast-average-color-node";
+import { ImageResponse } from "next/og";
+import { getTranslations } from "next-intl/server";
+import sharp from "sharp";
+import {
+  avatarLayerStyle,
+  isPersonaKey,
+  SHARE_CARD_AVATAR_IMAGE_SCALE,
+} from "@/lib/profile";
+import type { PersonaKey } from "@/lib/types";
 
 export const runtime = "nodejs";
 
@@ -14,6 +23,10 @@ type ShareCardPayload = {
   ratingValue?: number | null;
   date: string;
   posterUrl?: string | null;
+  showProfileSignature?: boolean;
+  profileNickname?: string | null;
+  profileAvatarUrl?: string | null;
+  profilePersonaKey?: PersonaKey | string | null;
   watermark: string;
   theme: "default";
 };
@@ -61,9 +74,7 @@ async function renderShareCard(body: ShareCardPayload) {
             style: "normal",
           });
           break; // Use the first successful one
-        } catch {
-          continue;
-        }
+        } catch {}
       }
     }
 
@@ -84,6 +95,19 @@ async function renderShareCard(body: ShareCardPayload) {
       : null;
     let posterUrl = body.posterUrl ?? null;
     const watermark = body.watermark ?? "ottline.app";
+    const profileNickname =
+      body.showProfileSignature && body.profileNickname?.trim()
+        ? clampText(body.profileNickname.trim(), 32)
+        : null;
+    const profilePersonaKey = isPersonaKey(body.profilePersonaKey)
+      ? body.profilePersonaKey
+      : null;
+    const profileAvatarUrl = profileNickname
+      ? await imageDataUrlForShareCard(body.profileAvatarUrl)
+      : null;
+    const profileAvatarPosition = avatarLayerStyle(profilePersonaKey);
+    const sourceLabel = profileNickname ? "by ottline.app" : watermark;
+    const signatureTextOffset = s(8);
 
     // Select font family
     const fontFamily = "NanumSquare, sans-serif";
@@ -106,7 +130,7 @@ async function renderShareCard(body: ShareCardPayload) {
           try {
             const colorData = await getAverageColor(buffer);
 
-            if (colorData && colorData.value) {
+            if (colorData?.value) {
               const [r, g, b] = colorData.value;
               // Darken the color significantly to ensure white text readability
               const darken = 0.2;
@@ -162,6 +186,7 @@ async function renderShareCard(body: ShareCardPayload) {
           {posterUrl ? (
             <img
               src={posterUrl}
+              alt=""
               style={{
                 width: "100%",
                 height: "100%",
@@ -299,13 +324,75 @@ async function renderShareCard(body: ShareCardPayload) {
             bottom: s(64),
             left: s(88),
             display: "flex",
+            alignItems: "center",
+            gap: s(20),
             fontSize: s(26),
             fontWeight: 500,
-            letterSpacing: "0.02em",
             color: "rgba(255,255,255,0.75)",
           }}
         >
-          {watermark}
+          {profileNickname ? (
+            <>
+              {profileAvatarUrl ? (
+                <div
+                  style={{
+                    position: "relative",
+                    display: "flex",
+                    width: s(40),
+                    height: s(40),
+                    borderRadius: s(12),
+                    overflow: "hidden",
+                    backgroundColor: "rgba(255,255,255,0.12)",
+                    border: "1px solid rgba(255,255,255,0.18)",
+                  }}
+                >
+                  <div
+                    style={{
+                      position: "absolute",
+                      display: "flex",
+                      top: profileAvatarPosition.top,
+                      left: profileAvatarPosition.left,
+                      width: "100%",
+                      height: "100%",
+                    }}
+                  >
+                    <img
+                      src={profileAvatarUrl}
+                      alt=""
+                      style={{
+                        width: "100%",
+                        height: "100%",
+                        objectFit: "cover",
+                        transform: `scale(${SHARE_CARD_AVATAR_IMAGE_SCALE})`,
+                      }}
+                    />
+                  </div>
+                </div>
+              ) : null}
+              <span
+                style={{
+                  color: "rgba(255,255,255,0.88)",
+                  marginLeft: profileAvatarUrl ? s(4) : 0,
+                  marginTop: signatureTextOffset,
+                }}
+              >
+                {profileNickname}
+              </span>
+              <span
+                style={{
+                  color: "rgba(255,255,255,0.42)",
+                  marginTop: signatureTextOffset,
+                }}
+              >
+                ·
+              </span>
+              <span style={{ marginTop: signatureTextOffset }}>
+                {sourceLabel}
+              </span>
+            </>
+          ) : (
+            sourceLabel
+          )}
         </div>
       </div>,
       {
@@ -340,7 +427,7 @@ function normalizeNote(text: string, maxLines = 2) {
 
 function stripBookSubtitle(title: string) {
   const withoutParens = title
-    .replace(/\s*[\(\[\{][^)\]\}]+[\)\]\}]/g, " ")
+    .replace(/\s*[([{][^)\]}]+[)\]}]/g, " ")
     .replace(/\s{2,}/g, " ")
     .trim();
   const colonIndex = withoutParens.search(/:\s+/);
@@ -375,12 +462,38 @@ function tmdbResize(
   return `${marker}${size}${rest.slice(slash)}`;
 }
 
+async function imageDataUrlForShareCard(
+  src: string | null | undefined,
+): Promise<string | null> {
+  if (!src) return null;
+  if (!src.startsWith("/")) return null;
+
+  try {
+    const publicPath = src.split(/[?#]/)[0];
+    if (
+      !publicPath.startsWith("/avatars/") ||
+      publicPath.includes("..") ||
+      publicPath.includes("\\")
+    ) {
+      return null;
+    }
+
+    const publicRoot = path.join(process.cwd(), "public");
+    const filePath = path.join(publicRoot, publicPath.slice(1));
+    if (!filePath.startsWith(publicRoot)) return null;
+
+    const data = await fs.readFile(filePath);
+    const png = await sharp(data).png().toBuffer();
+    return `data:image/png;base64,${png.toString("base64")}`;
+  } catch {
+    return null;
+  }
+}
+
 export async function POST(req: Request) {
   const body = (await req.json()) as ShareCardPayload;
   return renderShareCard(body);
 }
-
-import { getTranslations } from "next-intl/server";
 
 export async function GET(req: Request) {
   const { searchParams, origin, pathname } = new URL(req.url);
@@ -399,12 +512,28 @@ export async function GET(req: Request) {
   const posterUrl = `${origin}/share-cards/${isBookSample ? "sample-book-poster.svg" : "sample-video-poster.svg"}`;
 
   const body: ShareCardPayload = {
-    title: isBookSample ? (locale === "ko" ? "불편한 편의점" : "Uncomfortable Convenience Store") : (locale === "ko" ? "듄: 파트 두" : "Dune: Part Two"),
+    title: isBookSample
+      ? locale === "ko"
+        ? "불편한 편의점"
+        : "Uncomfortable Convenience Store"
+      : locale === "ko"
+        ? "듄: 파트 두"
+        : "Dune: Part Two",
     titleType: isBookSample ? "book" : "movie",
     format: "story",
-    note: isBookSample ? (locale === "ko" ? "퇴근 후 한 장씩" : "One page after work") : (locale === "ko" ? "아이맥스로 다시 한 번" : "Once more in IMAX"),
-    statusLabel: isBookSample ? tQuick("actionReadingComplete") : tQuick("actionWatched"),
-    ratingLabel: isBookSample ? tQuick("ratingBestBook") : tQuick("ratingBestVideo"),
+    note: isBookSample
+      ? locale === "ko"
+        ? "퇴근 후 한 장씩"
+        : "One page after work"
+      : locale === "ko"
+        ? "아이맥스로 다시 한 번"
+        : "Once more in IMAX",
+    statusLabel: isBookSample
+      ? tQuick("actionReadingComplete")
+      : tQuick("actionWatched"),
+    ratingLabel: isBookSample
+      ? tQuick("ratingBestBook")
+      : tQuick("ratingBestVideo"),
     ratingValue: 5,
     date: "2026.01.31",
     posterUrl,

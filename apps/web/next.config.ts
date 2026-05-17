@@ -4,7 +4,10 @@ import createNextIntlPlugin from "next-intl/plugin";
 const withNextIntl = createNextIntlPlugin("./i18n/request.ts");
 
 const nextConfig: NextConfig = {
-  allowedDevOrigins: ["172.24.75.199"],
+  allowedDevOrigins: [
+    "172.24.75.199",
+    "unmellow-dimple-untouchably.ngrok-free.dev",
+  ],
   images: {
     localPatterns: [
       {

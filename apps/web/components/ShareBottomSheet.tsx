@@ -1,18 +1,20 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { useTranslations } from "next-intl";
 import { Download, Share2 } from "lucide-react";
+import { useTranslations } from "next-intl";
+import { useEffect, useMemo, useState } from "react";
 import {
   Sheet,
   SheetContent,
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { WatchLog } from "@/lib/types";
-import { downloadBlob, fetchShareCardBlob, shareBlob } from "@/lib/share";
-import { cn, ratingDisplay, statusLabel } from "@/lib/utils";
 import { trackEvent } from "@/lib/analytics";
+import { avatarSrc, isPersonaKey, isProfileComplete } from "@/lib/profile";
+import { downloadBlob, fetchShareCardBlob, shareBlob } from "@/lib/share";
+import type { WatchLog } from "@/lib/types";
+import { useUserProfile } from "@/lib/useUserProfile";
+import { cn, ratingDisplay, statusLabel } from "@/lib/utils";
 
 export default function ShareBottomSheet({
   open,
@@ -28,10 +30,13 @@ export default function ShareBottomSheet({
   const tQuick = useTranslations("QuickLogCard");
   const [showRatingLabel, setShowRatingLabel] = useState(true);
   const [showNote, setShowNote] = useState(true);
+  const [showProfileSignature, setShowProfileSignature] = useState(false);
   const [format, setFormat] = useState<"story" | "feed">("story");
   const [busy, setBusy] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [shareCardBlob, setShareCardBlob] = useState<Blob | null>(null);
+  const { profile } = useUserProfile();
+  const profileComplete = isProfileComplete(profile);
   const previewAspect = format === "feed" ? "aspect-[4/5]" : "aspect-[9/16]";
   const sizeLabel =
     format === "feed" ? "1080×1350 (Feed)" : "1080×1920 (Story)";
@@ -40,7 +45,12 @@ export default function ShareBottomSheet({
     if (!log) return;
     setShowRatingLabel(true);
     setShowNote(Boolean(log.note));
+    setShowProfileSignature(false);
   }, [log]);
+
+  useEffect(() => {
+    if (!profileComplete) setShowProfileSignature(false);
+  }, [profileComplete]);
 
   const payload = useMemo(() => {
     if (!log) return null;
@@ -50,6 +60,13 @@ export default function ShareBottomSheet({
     const day = String(date.getDate()).padStart(2, "0");
     const rating = ratingDisplay(log.rating, log.title?.type, tQuick);
     const note = log.note ? log.note : null;
+    const profilePersonaKey = isPersonaKey(profile?.personaKey)
+      ? profile.personaKey
+      : null;
+    const includeProfileSignature =
+      profileComplete &&
+      showProfileSignature &&
+      Boolean(profile?.nickname?.trim() && profilePersonaKey);
     return {
       title: log.title.name,
       titleType: log.title?.type,
@@ -60,10 +77,29 @@ export default function ShareBottomSheet({
       ratingValue: showRatingLabel && rating ? rating.value : null,
       date: `${year}.${month}.${day}`,
       posterUrl: log.seasonPosterUrl ?? log.title.posterUrl ?? null,
+      showProfileSignature: includeProfileSignature,
+      profileNickname: includeProfileSignature
+        ? profile?.nickname?.trim()
+        : null,
+      profileAvatarUrl: includeProfileSignature
+        ? avatarSrc(profilePersonaKey)
+        : null,
+      profilePersonaKey: includeProfileSignature ? profilePersonaKey : null,
       watermark: "ottline.app",
       theme: "default" as const,
     };
-  }, [format, log, showNote, showRatingLabel, tStatus, tQuick]);
+  }, [
+    format,
+    log,
+    profile?.nickname,
+    profile?.personaKey,
+    profileComplete,
+    showNote,
+    showProfileSignature,
+    showRatingLabel,
+    tStatus,
+    tQuick,
+  ]);
 
   useEffect(() => {
     let active = true;
@@ -206,6 +242,17 @@ export default function ShareBottomSheet({
                 />
                 {tShare("toggleNote")}
               </label>
+              {profileComplete ? (
+                <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <input
+                    type="checkbox"
+                    checked={showProfileSignature}
+                    onChange={(e) => setShowProfileSignature(e.target.checked)}
+                    className="h-4 w-4 rounded border-border"
+                  />
+                  {tShare("toggleProfileSignature")}
+                </label>
+              ) : null}
             </div>
             <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
               <span>{tShare("ratioLabel")}</span>

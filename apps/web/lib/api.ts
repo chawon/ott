@@ -1,23 +1,5 @@
-import {
-  getDeviceId,
-  getPairingCode,
-  getUserId,
-  resetLocalState,
-} from "./localStore";
 import { ensureAuth } from "./auth"; // Import migration-aware auth
-
-type AuthRegisterResponse = {
-  userId: string;
-  deviceId: string;
-  pairingCode: string;
-};
-
-function getStoredAuth() {
-  const userId = getUserId();
-  const deviceId = getDeviceId();
-  const pairingCode = getPairingCode();
-  return { userId, deviceId, pairingCode };
-}
+import { getDeviceId, getUserId, resetLocalState } from "./localStore";
 
 function buildHeaders(init?: RequestInit) {
   const headers = new Headers(init?.headers ?? {});
@@ -36,6 +18,14 @@ function buildHeaders(init?: RequestInit) {
   // Add current locale to Accept-Language header
   if (typeof document !== "undefined" && document.documentElement.lang) {
     headers.set("Accept-Language", document.documentElement.lang);
+  }
+
+  if (
+    typeof window !== "undefined" &&
+    window.location.hostname.endsWith(".ngrok-free.dev") &&
+    !headers.has("ngrok-skip-browser-warning")
+  ) {
+    headers.set("ngrok-skip-browser-warning", "true");
   }
 
   return headers;

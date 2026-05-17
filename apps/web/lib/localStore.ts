@@ -1,6 +1,9 @@
 import { db, type LocalWatchLog, type OutboxItem } from "./db";
-import type { Title, WatchLog, WatchLogHistory } from "./types";
+import type { Title, UserProfile, WatchLog, WatchLogHistory } from "./types";
 import { safeUUID } from "./utils";
+
+const PROFILE_CACHE_KEY = "watchlog.profile.v1";
+const PROFILE_PROMPT_DISMISSED_KEY = "watchlog.profilePromptDismissed";
 
 function nowIso() {
   return new Date().toISOString();
@@ -299,6 +302,43 @@ export function ensureAnalyticsClientId() {
   return next;
 }
 
+export function getCachedUserProfile(): UserProfile | null {
+  if (typeof localStorage === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(PROFILE_CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as UserProfile;
+    return parsed?.userId ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+export function setCachedUserProfile(profile: UserProfile | null) {
+  if (typeof localStorage === "undefined") return;
+  if (!profile) {
+    localStorage.removeItem(PROFILE_CACHE_KEY);
+    return;
+  }
+  localStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify(profile));
+}
+
+export function isProfilePromptDismissed() {
+  if (typeof localStorage === "undefined") return false;
+  return localStorage.getItem(PROFILE_PROMPT_DISMISSED_KEY) === "true";
+}
+
+export function dismissProfilePrompt() {
+  if (typeof localStorage === "undefined") return;
+  localStorage.setItem(PROFILE_PROMPT_DISMISSED_KEY, "true");
+}
+
+export function clearUserProfileState() {
+  if (typeof localStorage === "undefined") return;
+  localStorage.removeItem(PROFILE_CACHE_KEY);
+  localStorage.removeItem(PROFILE_PROMPT_DISMISSED_KEY);
+}
+
 export async function resetLocalState() {
   await db.transaction(
     "rw",
@@ -319,6 +359,7 @@ export async function resetLocalState() {
   localStorage.removeItem("watchlog.pairingCode");
   localStorage.removeItem("watchlog.analytics.clientId");
   localStorage.removeItem("watchlog.lastSyncAt");
+  clearUserProfileState();
 }
 
 export async function findTitleByProvider(
