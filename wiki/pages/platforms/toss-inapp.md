@@ -15,6 +15,7 @@
 |------|------|
 | 파트너사 신청 | ✅ 완료 |
 | appName 확정 | ✅ `ottline` |
+| 표시명 | `내 OTT 타임라인` |
 | 앱 등록 및 검수 요청 | ✅ 2026-04-05 완료 |
 | 1차 검수 결과 | ❌ 반려 (2026-04-14) |
 | 반려 대응 코드 | ✅ 완료 (2026-04-14) |
@@ -26,7 +27,7 @@
 ## 기술 스택
 
 - SDK: `@apps-in-toss/web-framework` v2.5.1
-- 설정: `apps/web/granite.config.ts` (appName, brand, icon CDN URL), `apps/web/ottline.ait` (번들)
+- 설정: `apps/web/granite.config.ts` (appName `ottline`, displayName `내 OTT 타임라인`, icon CDN URL), `apps/web/ottline.ait` (번들)
 - 진입: `intoss://ottline`
 - 공개 링크: `https://minion.toss.im/XYvjpUB2`
 - 방식: 기존 Next.js 앱에 WebView SDK를 얹는 방식 (React Native 신규 개발 아님)
@@ -111,6 +112,12 @@
 - 산출물: `apps/web/ottline.ait`
 - 상태: 사용자가 토스 콘솔에 검토 요청 제출 완료. 승인/공개 여부는 아직 확인 전이다.
 - 이슈 대응: Toss 정적 호스트에서 `/api/...` 상대 경로 요청이 HTML을 반환해 `Unexpected token '<'` JSON 파싱 오류가 발생하던 문제를 운영 origin 호출로 수정했다.
+
+### 2026-05-17 앱 표시명 수정
+
+- 토스 검토 반려 후 앱 표시명을 `나만의 OTT 타임라인`에서 `내 OTT 타임라인`으로 변경했다.
+- 변경 파일: `apps/web/granite.config.ts`
+- 이 변경은 기존 운영 브랜치 `chore/toss-inapp-current-release-20260517` 위에 반영하고, 새 `apps/web/ottline.ait` 산출물을 다시 생성한다.
 
 ### 현재 제한사항
 

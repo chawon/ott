@@ -1,5 +1,12 @@
 # Wiki Log
 
+## [2026-05-17] update: Toss in-app display name changed
+- 대상: `apps/web/granite.config.ts`, `apps/web/ottline.ait`, Toss review rejection follow-up
+- 생성/수정: platforms/toss-inapp.md
+- 노트:
+  - 토스 검토 반려 후 앱인토스 표시명을 `나만의 OTT 타임라인`에서 `내 OTT 타임라인`으로 변경
+  - 기존 운영 브랜치 `chore/toss-inapp-current-release-20260517` 위에서 새 AIT 산출물을 생성하는 흐름으로 유지
+
 ## [2026-05-17] update: Toss in-app branch-only release operation
 - 대상: `chore/toss-inapp-current-release-20260517`, `apps/web/ottline.ait`, Toss console review request
 - 생성/수정: platforms/toss-inapp.md, index.md
