@@ -282,6 +282,17 @@
     "commentCountModern": "{count} comments",
     "typeSeries": "Series"
   },
+  "DiscussionReactions": {
+    "doneVideoLabel": "Watched it too",
+    "doneBookLabel": "Read it too",
+    "curiousLabel": "Curious",
+    "saveLabel": "Save for later",
+    "savedMessage": "Reaction added and saved to your timeline.",
+    "alreadyLoggedMessage": "Reaction added. This is already in your timeline.",
+    "removedMessage": "Reaction removed.",
+    "errorMessage": "Could not add the reaction.",
+    "editLink": "View my log"
+  },
   "Account": {
     "titleModern": "Settings",
     "descriptionModern": "Manage your profile, device connection, inbox, and data in one place.",

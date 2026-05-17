@@ -282,6 +282,17 @@
     "commentCountModern": "{count}개의 이야기들",
     "typeSeries": "시리즈"
   },
+  "DiscussionReactions": {
+    "doneVideoLabel": "나도 봤어요",
+    "doneBookLabel": "나도 읽었어요",
+    "curiousLabel": "궁금해요",
+    "saveLabel": "저장해둘래요",
+    "savedMessage": "리액션을 남기고 내 타임라인에 저장했어요.",
+    "alreadyLoggedMessage": "리액션을 남겼어요. 이미 내 타임라인에 있어요.",
+    "removedMessage": "리액션을 취소했어요.",
+    "errorMessage": "리액션을 남기지 못했어요.",
+    "editLink": "내 기록 보기"
+  },
   "Account": {
     "titleModern": "설정",
     "descriptionModern": "프로필, 기기 연결, 문의함과 데이터 관리를 한곳에서 조정해요.",

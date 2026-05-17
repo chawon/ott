@@ -19,6 +19,7 @@ public class AccountDeletionService {
 
     private final RecommendationCacheRepository recommendationCacheRepository;
     private final FeedbackThreadRepository feedbackThreadRepository;
+    private final DiscussionReactionService discussionReactionService;
     private final CommentRepository commentRepository;
     private final DiscussionRepository discussionRepository;
     private final WatchLogRepository watchLogRepository;
@@ -29,6 +30,7 @@ public class AccountDeletionService {
     public AccountDeletionService(
             RecommendationCacheRepository recommendationCacheRepository,
             FeedbackThreadRepository feedbackThreadRepository,
+            DiscussionReactionService discussionReactionService,
             CommentRepository commentRepository,
             DiscussionRepository discussionRepository,
             WatchLogRepository watchLogRepository,
@@ -38,6 +40,7 @@ public class AccountDeletionService {
     ) {
         this.recommendationCacheRepository = recommendationCacheRepository;
         this.feedbackThreadRepository = feedbackThreadRepository;
+        this.discussionReactionService = discussionReactionService;
         this.commentRepository = commentRepository;
         this.discussionRepository = discussionRepository;
         this.watchLogRepository = watchLogRepository;
@@ -53,6 +56,7 @@ public class AccountDeletionService {
         recommendationCacheRepository.deleteByUserId(userId);
         jdbcTemplate.update("delete from analytics_events where user_id = ?", userId);
         feedbackThreadRepository.deleteByUserId(userId);
+        discussionReactionService.deleteByUserId(userId);
 
         List<UUID> affectedDiscussionIds = commentRepository.findDistinctDiscussionIdsByUserId(userId);
         if (!affectedDiscussionIds.isEmpty()) {

@@ -1,5 +1,13 @@
 # Wiki Log
 
+## [2026-05-17] update: 공개 리액션 v1 구현 기록
+- 대상: `feature/public-reactions`, docs/public-reactions-v1-2026-05-17.md
+- 생성/수정: features/public-reactions.md, index.md
+- 노트:
+  - 함께 메뉴 공개 글에 댓글과 분리된 리액션 집계를 추가하는 v1 범위 기록
+  - `DONE`, `CURIOUS`, `SAVE` 리액션과 local-first 내 기록 저장 규칙을 명시
+  - 낙장불입 정책 재검토는 별도 태스크로 분리
+
 ## [2026-05-17] update: 무로그인 개인 프로필 v1 배포 확인
 - 대상: PR #33, production deploy runs `25984577795` / `25984619366`, ArgoCD `ott-app`
 - 생성/수정: features/personal-profile.md, features/share-card.md, features/timeline.md, index.md

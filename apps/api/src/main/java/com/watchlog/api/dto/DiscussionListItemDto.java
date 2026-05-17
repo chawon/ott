@@ -15,17 +15,27 @@ public record DiscussionListItemDto(
         Integer titleYear,
         String posterUrl,
         int commentCount,
-        OffsetDateTime createdAt
+        OffsetDateTime createdAt,
+        DiscussionReactionSummaryDto reactionSummary
 ) {
     public static DiscussionListItemDto from(DiscussionEntity d) {
-        return from(d, null, null);
+        return from(d, null, null, DiscussionReactionSummaryDto.empty());
     }
 
     public static DiscussionListItemDto from(DiscussionEntity d, String preferredPosterUrl) {
-        return from(d, preferredPosterUrl, null);
+        return from(d, preferredPosterUrl, null, DiscussionReactionSummaryDto.empty());
     }
 
     public static DiscussionListItemDto from(DiscussionEntity d, String preferredPosterUrl, Integer preferredYear) {
+        return from(d, preferredPosterUrl, preferredYear, DiscussionReactionSummaryDto.empty());
+    }
+
+    public static DiscussionListItemDto from(
+            DiscussionEntity d,
+            String preferredPosterUrl,
+            Integer preferredYear,
+            DiscussionReactionSummaryDto reactionSummary
+    ) {
         TitleEntity t = d.getTitle();
         String poster = (preferredPosterUrl != null && !preferredPosterUrl.isBlank())
                 ? preferredPosterUrl
@@ -39,7 +49,8 @@ public record DiscussionListItemDto(
                 year,
                 poster,
                 d.getCommentSeq(),
-                d.getCreatedAt()
+                d.getCreatedAt(),
+                reactionSummary == null ? DiscussionReactionSummaryDto.empty() : reactionSummary
         );
     }
 }

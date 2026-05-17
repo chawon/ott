@@ -1,13 +1,17 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useTranslations } from "next-intl";
-import Link from "next/link";
-import { api } from "@/lib/api";
+import { useCallback, useEffect, useState } from "react";
 import CommentsPanel from "@/components/CommentsPanel";
-import { DiscussionListItem } from "@/lib/types";
+import DiscussionReactionChips from "@/components/DiscussionReactionChips";
+import { api } from "@/lib/api";
 import { getUserId } from "@/lib/localStore";
+import type {
+  DiscussionListItem,
+  DiscussionReactionSummary,
+} from "@/lib/types";
 
 export default function PublicDiscussionDetailPage() {
   const params = useParams<{ id: string }>();
@@ -35,23 +39,27 @@ export default function PublicDiscussionDetailPage() {
           `/discussions/${discussionId}`,
         );
         setDetail(res);
-      } catch (e: any) {
-        setErr(
-          e?.message ??
-            tDetail("loadError"),
-        );
+      } catch (e: unknown) {
+        setErr(e instanceof Error ? e.message : tDetail("loadError"));
       } finally {
         setLoading(false);
       }
     })();
   }, [discussionId, tDetail]);
 
+  const updateReactionSummary = useCallback(
+    (summary: DiscussionReactionSummary) => {
+      setDetail((prev) =>
+        prev ? { ...prev, reactionSummary: summary } : prev,
+      );
+    },
+    [],
+  );
+
   if (!discussionId) {
     return (
       <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
-        <div className="text-base font-semibold">
-          {tDetail("invalidPath")}
-        </div>
+        <div className="text-base font-semibold">{tDetail("invalidPath")}</div>
       </div>
     );
   }
@@ -105,9 +113,7 @@ export default function PublicDiscussionDetailPage() {
             ) : null}
           </div>
           <div className="min-w-0 flex-1">
-            <div className="text-xl font-semibold">
-              {detail.titleName}
-            </div>
+            <div className="text-xl font-semibold">{detail.titleName}</div>
             <div className="mt-1 text-sm font-medium text-muted-foreground">
               {typeLabel}
               {detail.titleYear ? ` · ${detail.titleYear}` : ""}
@@ -119,6 +125,20 @@ export default function PublicDiscussionDetailPage() {
               >
                 {tDetail("viewTitleDetail")}
               </Link>
+            </div>
+            <div className="mt-5">
+              <DiscussionReactionChips
+                discussionId={detail.id}
+                title={{
+                  id: detail.titleId,
+                  name: detail.titleName,
+                  type: detail.titleType,
+                  year: detail.titleYear,
+                  posterUrl: detail.posterUrl,
+                }}
+                summary={detail.reactionSummary}
+                onSummaryChange={updateReactionSummary}
+              />
             </div>
           </div>
         </div>

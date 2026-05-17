@@ -3,6 +3,7 @@ package com.watchlog.api.service;
 import com.watchlog.api.domain.UserEntity;
 import com.watchlog.api.dto.UpdateUserProfileRequest;
 import com.watchlog.api.repo.CommentRepository;
+import com.watchlog.api.repo.DiscussionReactionRepository;
 import com.watchlog.api.repo.UserDeviceRepository;
 import com.watchlog.api.repo.UserRepository;
 import com.watchlog.api.repo.WatchLogRepository;
@@ -33,7 +34,8 @@ class AuthServiceProfileTest {
                 userRepository,
                 userDeviceRepository,
                 mock(WatchLogRepository.class),
-                mock(CommentRepository.class)
+                mock(CommentRepository.class),
+                mock(DiscussionReactionRepository.class)
         );
     }
 

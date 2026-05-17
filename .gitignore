@@ -20,6 +20,8 @@ apps/twa/keystore.properties
 apps/mobile/
 apps/web/.env.local
 apps/web/.next/
+apps/web/.granite/
+apps/web/dist/
 apps/web/next-env.d.ts
 apps/.playwright-browsers/
 deploy/.gemini/

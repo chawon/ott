@@ -249,6 +249,16 @@ feature/* ──PR──→ main ──→ [자동] staging.ottline.app
    1. 헤더: `X-User-Id`, `X-Device-Id` 필요
    2. 서버는 헤더의 활성 기기를 검증하고, 댓글 작성자는 헤더의 사용자로 확정한다
    3. 멘션된 타이틀 자동 생성 시 다국어 대응
+8. `GET /api/discussions/{id}/reactions/me`
+   1. 헤더: `X-User-Id`, `X-Device-Id` 필요
+   2. 현재 사용자의 해당 공개 글 리액션 선택 상태와 집계를 반환한다
+9. `PUT /api/discussions/{id}/reactions`
+   1. 헤더: `X-User-Id`, `X-Device-Id` 필요
+   2. 요청: `type(DONE|CURIOUS|SAVE)`
+   3. 사용자별 공개 글당 1개 리액션만 유지하며, 같은 type 재클릭은 취소한다
+   4. `DONE`은 프론트에서 영상 `나도 봤어요`/책 `나도 읽었어요`로 표시한다
+   5. 리액션 클릭으로 내 기록을 남기는 동작은 프론트 local-first outbox 경로로 처리한다
+10. `DiscussionListItem`/`DiscussionDto` 응답에는 `reactionSummary(done, curious, save)`가 포함된다
 
 ### Auth
 1. `POST /api/auth/register`
@@ -356,6 +366,10 @@ feature/* ──PR──→ main ──→ [자동] staging.ottline.app
 6. `feedback_messages`
    1. 문의 스레드 하위 메시지
    2. `author_role(USER|ADMIN)` 기준으로 작성자 구분
+7. `discussion_reactions`
+   1. 공개 글의 가벼운 리액션 집계
+   2. `discussion_id`, `user_id`, `type(DONE|CURIOUS|SAVE)`를 관리
+   3. `unique(discussion_id, user_id)`로 사용자별 공개 글당 1개 리액션만 유지
 
 ---
 

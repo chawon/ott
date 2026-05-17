@@ -7,6 +7,7 @@ import com.watchlog.api.dto.AuthRegisterResponse;
 import com.watchlog.api.dto.UpdateUserProfileRequest;
 import com.watchlog.api.dto.UserProfileDto;
 import com.watchlog.api.repo.CommentRepository;
+import com.watchlog.api.repo.DiscussionReactionRepository;
 import com.watchlog.api.repo.UserDeviceRepository;
 import com.watchlog.api.repo.UserRepository;
 import com.watchlog.api.repo.WatchLogRepository;
@@ -40,18 +41,21 @@ public class AuthService {
     private final UserDeviceRepository userDeviceRepository;
     private final WatchLogRepository watchLogRepository;
     private final CommentRepository commentRepository;
+    private final DiscussionReactionRepository discussionReactionRepository;
     private final SecureRandom random = new SecureRandom();
 
     public AuthService(
             UserRepository userRepository,
             UserDeviceRepository userDeviceRepository,
             WatchLogRepository watchLogRepository,
-            CommentRepository commentRepository
+            CommentRepository commentRepository,
+            DiscussionReactionRepository discussionReactionRepository
     ) {
         this.userRepository = userRepository;
         this.userDeviceRepository = userDeviceRepository;
         this.watchLogRepository = watchLogRepository;
         this.commentRepository = commentRepository;
+        this.discussionReactionRepository = discussionReactionRepository;
     }
 
     @Transactional
@@ -170,6 +174,8 @@ public class AuthService {
         }
 
         commentRepository.assignUser(fromUserId, toUserId);
+        discussionReactionRepository.deleteDuplicatesForMerge(fromUserId, toUserId);
+        discussionReactionRepository.assignUser(fromUserId, toUserId);
         userDeviceRepository.deleteByUser_Id(fromUserId);
         userRepository.deleteById(fromUserId);
     }
