@@ -1,5 +1,6 @@
 import { trackEvent } from "./analytics";
 import {
+  clearUserProfileState,
   getDeviceId,
   getPairingCode,
   getUserId,
@@ -38,9 +39,13 @@ export async function ensureAuth(): Promise<AuthInfo | null> {
     }
     const body = (await res.json()) as AuthInfo;
 
+    clearUserProfileState();
     setUserId(body.userId);
     setDeviceId(body.deviceId);
     setPairingCode(body.pairingCode);
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("auth:changed"));
+    }
     await trackEvent("login_success", { method: "register" });
     return body;
   } catch (e) {
@@ -59,9 +64,13 @@ export async function pairWithCode(code: string): Promise<AuthInfo> {
   if (!res.ok) throw new Error("Pairing failed");
   const body = (await res.json()) as AuthInfo;
 
+  clearUserProfileState();
   setUserId(body.userId);
   setDeviceId(body.deviceId);
   setPairingCode(body.pairingCode);
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent("auth:changed"));
+  }
   await trackEvent("login_success", { method: "pair" });
   return body;
 }

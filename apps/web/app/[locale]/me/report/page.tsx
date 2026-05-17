@@ -1,24 +1,27 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { listAllLogsLocal } from "@/lib/localStore";
-import { buildPersonalReport, PersonalReport } from "@/lib/report";
-import {
-  OCCASION_LABELS,
-  PLACE_LABELS,
-  placeLabel,
-  occasionLabel,
-} from "@/lib/utils";
-import { api } from "@/lib/api";
 import { useLocale, useTranslations } from "next-intl";
-import { Occasion, Place } from "@/lib/types";
+import { useEffect, useState } from "react";
+import { api } from "@/lib/api";
+import { listAllLogsLocal } from "@/lib/localStore";
+import { isProfileComplete } from "@/lib/profile";
+import { buildPersonalReport, type PersonalReport } from "@/lib/report";
+import type { Occasion, Place } from "@/lib/types";
+import { useUserProfile } from "@/lib/useUserProfile";
+import { occasionLabel, placeLabel } from "@/lib/utils";
+
+function errorMessage(error: unknown) {
+  return error instanceof Error ? error.message : null;
+}
 
 export default function MyReportPage() {
   const t = useTranslations("Report");
   const tCommon = useTranslations("Common");
   const tQuick = useTranslations("QuickLogCard");
+  const tProfile = useTranslations("Profile");
   const locale = useLocale();
   const [report, setReport] = useState<PersonalReport | null>(null);
+  const { profile } = useUserProfile();
 
   function typeLabel(type: string) {
     if (type === "movie") return tQuick("typeMovie");
@@ -39,16 +42,14 @@ export default function MyReportPage() {
         const serverReport = await api<PersonalReport>("/nalytic/me/report");
         setReport(serverReport);
         setSource("server");
-      } catch (e: any) {
+      } catch (e) {
         try {
           const items = await listAllLogsLocal();
           setReport(buildPersonalReport(items));
           setSource("local");
-        } catch (fallbackError: any) {
+        } catch (fallbackError) {
           setError(
-            fallbackError?.message ??
-              e?.message ??
-              t("loadError"),
+            errorMessage(fallbackError) ?? errorMessage(e) ?? t("loadError"),
           );
         }
       } finally {
@@ -59,9 +60,7 @@ export default function MyReportPage() {
 
   if (loading) {
     return (
-      <div className="text-sm text-muted-foreground">
-        {t("calculating")}
-      </div>
+      <div className="text-sm text-muted-foreground">{t("calculating")}</div>
     );
   }
 
@@ -69,46 +68,62 @@ export default function MyReportPage() {
     return <div className="text-sm text-red-500">{error}</div>;
   }
   if (!report) {
-    return (
-      <div className="text-sm text-muted-foreground">
-        {t("noData")}
-      </div>
-    );
+    return <div className="text-sm text-muted-foreground">{t("noData")}</div>;
   }
 
   const placeText =
     report.topPlace !== "-"
-      ? placeLabel(report.topPlace as Place, (k: any) => tCommon("placeLabels." + k))
+      ? placeLabel(report.topPlace as Place, (k: Place) =>
+          tCommon(`placeLabels.${k}`),
+        )
       : "-";
   const occasionText =
     report.topOccasion !== "-"
-      ? occasionLabel(report.topOccasion as Occasion, (k: any) => tCommon("occasionLabels." + k))
+      ? occasionLabel(report.topOccasion as Occasion, (k: Occasion) =>
+          tCommon(`occasionLabels.${k}`),
+        )
       : "-";
+  const profileComplete = isProfileComplete(profile);
+  const reportTitle = profileComplete
+    ? t("personalizedTitle", { nickname: profile?.nickname ?? "" })
+    : t("title");
+  const personaLabel = profileComplete
+    ? tProfile(`personas.${profile?.personaKey}`)
+    : null;
 
   return (
     <div className="space-y-6">
       <section className="space-y-2">
-        <h1 className="text-2xl font-bold tracking-tight">{t("title")}</h1>
+        <h1 className="text-2xl font-bold tracking-tight">{reportTitle}</h1>
+        {personaLabel ? (
+          <p className="text-sm font-medium text-sky-700 dark:text-sky-200">
+            {t("profileNotice", { persona: personaLabel })}
+          </p>
+        ) : null}
         <p className="text-sm text-muted-foreground">
-          {source === "server"
-            ? t("syncNotice")
-            : t("localNotice")}
+          {source === "server" ? t("syncNotice") : t("localNotice")}
         </p>
       </section>
 
       <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <article className="rounded-2xl border border-border bg-card p-4">
-          <div className="text-xs text-muted-foreground">{t("totalRecords")}</div>
+          <div className="text-xs text-muted-foreground">
+            {t("totalRecords")}
+          </div>
           <div className="mt-1 text-2xl font-semibold">{report.totalLogs}</div>
         </article>
         <article className="rounded-2xl border border-border bg-card p-4">
-          <div className="text-xs text-muted-foreground">{t("monthlyRecords")}</div>
+          <div className="text-xs text-muted-foreground">
+            {t("monthlyRecords")}
+          </div>
           <div className="mt-1 text-2xl font-semibold">
             {report.thisMonthLogs}
           </div>
         </article>
         <article className="rounded-2xl border border-border bg-card p-4">
-          <div className="text-xs text-muted-foreground">{t("completionRate")}</div>
+          <div className="text-xs text-muted-foreground">
+            {t("completionRate")}
+          </div>
           <div className="mt-1 text-2xl font-semibold">
             {report.doneRatePct}%
           </div>
@@ -150,17 +165,24 @@ export default function MyReportPage() {
           </div>
         </article>
         <article className="rounded-2xl border border-border bg-card p-4">
-          <div className="text-xs text-muted-foreground">{t("frequentPlace")}</div>
+          <div className="text-xs text-muted-foreground">
+            {t("frequentPlace")}
+          </div>
           <div className="mt-1 text-lg font-semibold">{placeText}</div>
         </article>
         <article className="rounded-2xl border border-border bg-card p-4">
-          <div className="text-xs text-muted-foreground">{t("frequentOccasion")}</div>
+          <div className="text-xs text-muted-foreground">
+            {t("frequentOccasion")}
+          </div>
           <div className="mt-1 text-lg font-semibold">{occasionText}</div>
         </article>
         <article className="rounded-2xl border border-border bg-card p-4 sm:col-span-2 lg:col-span-3">
           <div className="text-xs text-muted-foreground">{t("streak")}</div>
           <div className="mt-1 text-lg font-semibold">
-            {t("streakDesc", { current: report.streakDays, longest: report.longestStreakDays })}
+            {t("streakDesc", {
+              current: report.streakDays,
+              longest: report.longestStreakDays,
+            })}
           </div>
         </article>
       </section>

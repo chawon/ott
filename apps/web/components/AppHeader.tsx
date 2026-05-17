@@ -15,7 +15,10 @@ import { useLocale, useTranslations } from "next-intl";
 import { type ComponentProps, startTransition } from "react";
 import { useTheme } from "@/context/ThemeContext";
 import { Link as IntlLink, usePathname, useRouter } from "@/i18n/routing";
+import { isProfileComplete } from "@/lib/profile";
+import { useUserProfile } from "@/lib/useUserProfile";
 import { cn } from "@/lib/utils";
+import ProfileAvatar from "./ProfileAvatar";
 import { useMobileBottomNav } from "./useMobileBottomNav";
 
 const localeOptions = [
@@ -83,6 +86,8 @@ export default function AppHeader() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const useBottomNav = useMobileBottomNav();
+  const { profile } = useUserProfile();
+  const hasProfile = isProfileComplete(profile);
 
   const ThemeIcon = mode === "system" ? Monitor : mode === "dark" ? Moon : Sun;
   const themeLabel =
@@ -190,6 +195,20 @@ export default function AppHeader() {
             >
               <ThemeIcon className="h-4 w-4" />
             </button>
+            {hasProfile ? (
+              <IntlLink
+                href="/account"
+                className="flex min-h-11 min-w-11 items-center justify-center rounded-md p-1 text-foreground/70 transition hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:hidden"
+                title={t("profileLink")}
+                aria-label={t("profileLink")}
+              >
+                <ProfileAvatar
+                  personaKey={profile?.personaKey}
+                  size={28}
+                  alt=""
+                />
+              </IntlLink>
+            ) : null}
           </div>
         </div>
 

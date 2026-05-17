@@ -1,6 +1,13 @@
 export type Status = "DONE" | "IN_PROGRESS" | "WISHLIST";
 export type TitleType = "movie" | "series" | "book";
 export type Provider = "TMDB" | "LOCAL" | "NAVER";
+export type PersonaKey =
+  | "cinema_keeper"
+  | "book_drifter"
+  | "deep_watcher"
+  | "midnight_logger"
+  | "weekend_curator"
+  | "archive_collector";
 
 export type Place =
   | "HOME"
@@ -41,6 +48,18 @@ export interface Title {
   providerId?: string;
   updatedAt?: string;
   deletedAt?: string | null;
+}
+
+export interface UserProfile {
+  userId: string;
+  nickname?: string | null;
+  personaKey?: PersonaKey | null;
+  profileUpdatedAt?: string | null;
+}
+
+export interface UpdateUserProfileRequest {
+  nickname: string;
+  personaKey: PersonaKey;
 }
 
 export interface DiscussionListItem {

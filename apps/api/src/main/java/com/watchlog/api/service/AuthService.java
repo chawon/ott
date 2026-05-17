@@ -4,6 +4,8 @@ import com.watchlog.api.domain.UserDeviceEntity;
 import com.watchlog.api.domain.UserEntity;
 import com.watchlog.api.dto.AuthPairResponse;
 import com.watchlog.api.dto.AuthRegisterResponse;
+import com.watchlog.api.dto.UpdateUserProfileRequest;
+import com.watchlog.api.dto.UserProfileDto;
 import com.watchlog.api.repo.CommentRepository;
 import com.watchlog.api.repo.UserDeviceRepository;
 import com.watchlog.api.repo.UserRepository;
@@ -13,6 +15,8 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.security.SecureRandom;
+import java.util.Locale;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.springframework.http.HttpStatus.UNAUTHORIZED;
@@ -22,6 +26,15 @@ public class AuthService {
 
     private static final String CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
     private static final int CODE_LENGTH = 8;
+    private static final int MAX_NICKNAME_LENGTH = 32;
+    private static final Set<String> PERSONA_KEYS = Set.of(
+            "cinema_keeper",
+            "book_drifter",
+            "deep_watcher",
+            "midnight_logger",
+            "weekend_curator",
+            "archive_collector"
+    );
 
     private final UserRepository userRepository;
     private final UserDeviceRepository userDeviceRepository;
@@ -114,6 +127,23 @@ public class AuthService {
         }
     }
 
+    @Transactional(readOnly = true)
+    public UserProfileDto getProfile(java.util.UUID userId) {
+        var user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+        return UserProfileDto.from(user);
+    }
+
+    @Transactional
+    public UserProfileDto updateProfile(java.util.UUID userId, UpdateUserProfileRequest request) {
+        var nickname = normalizeNickname(request == null ? null : request.nickname());
+        var personaKey = normalizePersonaKey(request == null ? null : request.personaKey());
+        var user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+        user.updateProfile(nickname, personaKey);
+        return UserProfileDto.from(user);
+    }
+
     private void mergeUsers(java.util.UUID fromUserId, java.util.UUID toUserId) {
         var fromLogs = watchLogRepository.findByUserId(fromUserId);
         for (var log : fromLogs) {
@@ -178,5 +208,30 @@ public class AuthService {
         if (v.contains("firefox/")) return "Firefox";
         if (v.contains("opr/") || v.contains("opera")) return "Opera";
         return "Unknown Browser";
+    }
+
+    private String normalizeNickname(String nickname) {
+        if (nickname == null) {
+            throw new IllegalArgumentException("Nickname is required");
+        }
+        var normalized = nickname.trim();
+        if (normalized.isEmpty()) {
+            throw new IllegalArgumentException("Nickname is required");
+        }
+        if (normalized.length() > MAX_NICKNAME_LENGTH) {
+            throw new IllegalArgumentException("Nickname must be 32 characters or fewer");
+        }
+        return normalized;
+    }
+
+    private String normalizePersonaKey(String personaKey) {
+        if (personaKey == null) {
+            throw new IllegalArgumentException("Persona is required");
+        }
+        var normalized = personaKey.trim().toLowerCase(Locale.ROOT);
+        if (!PERSONA_KEYS.contains(normalized)) {
+            throw new IllegalArgumentException("Invalid persona");
+        }
+        return normalized;
     }
 }

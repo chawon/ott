@@ -11,7 +11,9 @@ import { trackEvent } from "@/lib/analytics";
 import { apiWithAuth } from "@/lib/api";
 import { downloadTimelineCsv } from "@/lib/export";
 import { getUserId, listLogsLocal, upsertLogsLocal } from "@/lib/localStore";
+import { isProfileComplete } from "@/lib/profile";
 import type { RecommendationItem, Status, WatchLog } from "@/lib/types";
+import { useUserProfile } from "@/lib/useUserProfile";
 import { cn, statusOptionsForType } from "@/lib/utils";
 
 function buildQuery(params: Record<string, string | undefined>) {
@@ -274,6 +276,8 @@ export default function TimelinePage() {
   const tCsv = useTranslations("CSV");
   const tQuick = useTranslations("QuickLogCard");
   const tAccount = useTranslations("Account");
+  const tProfile = useTranslations("Profile");
+  const { profile } = useUserProfile();
   const [status, setStatus] = useState<Status | "ALL">("ALL");
   const [contentType, setContentType] = useState<"ALL" | "video" | "book">(
     "ALL",
@@ -411,16 +415,30 @@ export default function TimelinePage() {
     }
   }
 
+  const profileComplete = isProfileComplete(profile);
+  const personaLabel = profileComplete
+    ? tProfile(`personas.${profile?.personaKey}`)
+    : null;
   const headerTitle = futureMode
     ? tTimeline("futureTitle")
-    : tTimeline("titleModern");
+    : profileComplete
+      ? tTimeline("titlePersonalized", { nickname: profile?.nickname ?? "" })
+      : tTimeline("titleModern");
+  const futureButtonLabel = profileComplete
+    ? tTimeline("futureButtonPersonalized", {
+        nickname: profile?.nickname ?? "",
+      })
+    : tTimeline("futureButton");
 
   const headerSubtitle = useMemo(() => {
     if (futureMode) return null;
     if (loading) return tTimeline("loading");
     if (err) return err;
+    if (personaLabel) {
+      return tTimeline("subtitlePersonalized", { persona: personaLabel });
+    }
     return tTimeline("subtitleModern");
-  }, [futureMode, loading, err, tTimeline]);
+  }, [futureMode, loading, err, personaLabel, tTimeline]);
 
   const statusLabel = useMemo(() => {
     if (status === "ALL") return null;
@@ -515,7 +533,7 @@ export default function TimelinePage() {
               >
                 <span className="flex items-center gap-1.5">
                   <Sparkles className="h-3.5 w-3.5" />
-                  {tTimeline("futureButton")}
+                  {futureButtonLabel}
                 </span>
               </button>
             )}

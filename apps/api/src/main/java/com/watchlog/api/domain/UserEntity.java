@@ -22,6 +22,15 @@ public class UserEntity {
     @Column(name = "created_at", nullable = false)
     private OffsetDateTime createdAt = OffsetDateTime.now();
 
+    @Column(name = "nickname", length = 32)
+    private String nickname;
+
+    @Column(name = "persona_key", length = 32)
+    private String personaKey;
+
+    @Column(name = "profile_updated_at")
+    private OffsetDateTime profileUpdatedAt;
+
     protected UserEntity() {}
 
     public UserEntity(UUID id, String pairingCode) {
@@ -32,4 +41,13 @@ public class UserEntity {
     public UUID getId() { return id; }
     public String getPairingCode() { return pairingCode; }
     public OffsetDateTime getCreatedAt() { return createdAt; }
+    public String getNickname() { return nickname; }
+    public String getPersonaKey() { return personaKey; }
+    public OffsetDateTime getProfileUpdatedAt() { return profileUpdatedAt; }
+
+    public void updateProfile(String nickname, String personaKey) {
+        this.nickname = nickname;
+        this.personaKey = personaKey;
+        this.profileUpdatedAt = OffsetDateTime.now();
+    }
 }

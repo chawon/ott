@@ -42,6 +42,7 @@
 18. 설정에서 계정 단위 서버 데이터 전체 삭제(기록/댓글/문의/analytics/기기 연결) 지원
 19. ChatGPT App v1 운영 배포 + OpenAI 앱 심사 진행 중(`2026-04-23` 기준): `timeline.list_recent_logs` 기반 읽기 전용 recent-history connector + OAuth/PKCE + 도메인 검증 경로 반영
 20. 토스 인앱 미니앱 공개 링크 오픈 + `/about` 서비스 소개에 웹/PWA·토스·브라우저 확장·Windows 채널 반영, 페어링 코드 연속성 메시지 정리
+21. 무로그인 개인 프로필 v1: 기존 페어링 계정에 닉네임, 성향 타이틀, 프리셋 아바타를 저장하고 본인 화면(헤더/홈/타임라인/리포트/설정)에만 노출
 
 ### 제품 방향
 1. 추천 기능은 현재 범위에서 제외한다.
@@ -49,6 +50,7 @@
 3. 글로벌 서비스 확장을 위해 모든 UI/데이터는 다국어 대응을 기본으로 한다.
 4. 사용자용 개별 기록 삭제는 제공하지 않는다. 기록 정정은 수정과 히스토리로 관리한다.
 5. ChatGPT 앱은 ottline 기록을 대화에 연결하는 읽기 전용 커넥터로 유지하고, 해석과 추천은 ChatGPT에 맡긴다.
+6. 개인 프로필은 로그인 기능이 아니라 기존 페어링 계정의 개인화 메타데이터다. v1에서는 공개 댓글/함께 화면에 닉네임·아바타를 노출하지 않는다.
 
 ---
 
@@ -257,9 +259,17 @@ feature/* ──PR──→ main ──→ [자동] staging.ottline.app
 6. `DELETE /api/auth/account`
    1. 현재 계정의 서버 기록, 댓글, 문의, analytics 이벤트, 추천 캐시, 기기 연결을 삭제
    2. 개별 로그 삭제가 아니라 계정 단위 전체 삭제용 엔드포인트
-7. 활성 기기 검증
+7. `GET /api/auth/profile`
+   1. 활성 기기 검증 후 현재 계정의 프로필 반환
+   2. 응답: `userId`, `nickname`, `personaKey`, `profileUpdatedAt`
+8. `PATCH /api/auth/profile`
+   1. 활성 기기 검증 후 `nickname`, `personaKey` 저장
+   2. `nickname`: trim 후 1~32자
+   3. `personaKey`: `cinema_keeper`, `book_drifter`, `deep_watcher`, `midnight_logger`, `weekend_curator`, `archive_collector`
+   4. 표시 이름은 서버에 저장하지 않고 프론트 번역 사전에서 관리한다
+9. 활성 기기 검증
    1. `X-User-Id` + `X-Device-Id` 조합이 유효하지 않으면 `401`
-   2. `logs`, `sync`, `feedback`, `analytics`, `auth/devices`, `auth/account`에 적용
+   2. `logs`, `sync`, `feedback`, `analytics`, `auth/devices`, `auth/profile`, `auth/account`에 적용
 
 ### Feedback
 1. `GET /api/feedback/threads`
@@ -330,16 +340,20 @@ feature/* ──PR──→ main ──→ [자동] staging.ottline.app
 1. `titles`
    1. `provider`, `provider_id` 기반 upsert
    2. `unique(provider, provider_id)`
-2. `watch_logs`
+2. `users`
+   1. 페어링 계정의 진실 원천
+   2. `nickname`, `persona_key`, `profile_updated_at`로 무로그인 개인 프로필을 관리
+   3. 성향 표시 이름과 아바타 파일 매핑은 프론트에서 관리
+3. `watch_logs`
    1. 사용자의 최신 상태 레코드
    2. TPO + 시즌/에피소드 관련 필드 포함
-3. `watch_log_history`
+4. `watch_log_history`
    1. create/update 시점 스냅샷 누적
    2. 상세 화면 타임라인의 진실 원천
-4. `feedback_threads`
+5. `feedback_threads`
    1. 사용자별 문의 스레드
    2. `category`, `status`, `subject`, `updated_at` 관리
-5. `feedback_messages`
+6. `feedback_messages`
    1. 문의 스레드 하위 메시지
    2. `author_role(USER|ADMIN)` 기준으로 작성자 구분
 
@@ -372,12 +386,13 @@ feature/* ──PR──→ main ──→ [자동] staging.ottline.app
 3. 로컬 DB: `apps/web/lib/db.ts`
 4. 로컬 저장소: `apps/web/lib/localStore.ts`
 5. 동기화: `apps/web/lib/sync.ts`
-6. 핵심 입력 UI: `apps/web/components/QuickLogCard.tsx`
-7. 타임라인: `apps/web/app/[locale]/timeline/page.tsx`
-8. 상세: `apps/web/app/[locale]/title/[id]/page.tsx`
-9. 번역 사전: `apps/web/messages/`
-10. ChatGPT MCP: `apps/web/lib/chatgpt/`, `apps/web/app/chatgpt/`
-11. ChatGPT well-known routes: `apps/web/app/.well-known/`
+6. 프로필/성향: `apps/web/lib/profile.ts`, `apps/web/lib/profileApi.ts`, `apps/web/components/ProfileEditor.tsx`
+7. 핵심 입력 UI: `apps/web/components/QuickLogCard.tsx`
+8. 타임라인: `apps/web/app/[locale]/timeline/page.tsx`
+9. 상세: `apps/web/app/[locale]/title/[id]/page.tsx`
+10. 번역 사전: `apps/web/messages/`
+11. ChatGPT MCP: `apps/web/lib/chatgpt/`, `apps/web/app/chatgpt/`
+12. ChatGPT well-known routes: `apps/web/app/.well-known/`
 
 ### 백엔드
 1. 로그 API: `apps/api/src/main/java/com/watchlog/api/web/LogController.java`
