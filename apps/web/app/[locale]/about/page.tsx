@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 
 import Image from "next/image";
-import { useTranslations } from "next-intl";
-import { getTranslations } from "next-intl/server";
+import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Link as IntlLink } from "@/i18n/routing";
 
 export async function generateMetadata({
@@ -11,6 +10,7 @@ export async function generateMetadata({
   params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
   const { locale } = await params;
+  setRequestLocale(locale);
   const t = await getTranslations({ locale, namespace: "About" });
 
   return {
@@ -31,8 +31,14 @@ export async function generateMetadata({
   };
 }
 
-export default function AboutPage() {
-  const tAbout = useTranslations("About");
+export default async function AboutPage({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+  setRequestLocale(locale);
+  const tAbout = await getTranslations({ locale, namespace: "About" });
   const platforms = [
     {
       title: tAbout("platformWebTitle"),

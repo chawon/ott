@@ -4,8 +4,13 @@ import { headers } from "next/headers";
 import { getChatGptCopy, resolveChatGptLocale } from "@/lib/chatgpt/copy";
 
 const canonicalUrl = "https://ottline.app/chatgpt";
+const isAitBuild = process.env.AIT_BUILD === "true";
 
 async function getPageCopy() {
+  if (isAitBuild) {
+    return getChatGptCopy("ko").page;
+  }
+
   const requestHeaders = await headers();
   return getChatGptCopy(
     resolveChatGptLocale(requestHeaders.get("accept-language")),

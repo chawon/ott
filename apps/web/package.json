@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "build:next-ait": "AIT_BUILD=true NEXT_PUBLIC_APP_BASE_URL=https://ottline.app NEXT_PUBLIC_API_BASE_URL=https://ottline.app CHATGPT_PUBLIC_ORIGIN=https://ottline.app next build --webpack && node scripts/alias-ait-default-locale.mjs",
     "start": "next start",
     "lint": "biome check",
     "format": "biome format --write",
@@ -34,6 +35,7 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@apps-in-toss/web-framework": "^2.5.1",
     "@biomejs/biome": "2.2.0",
     "@tailwindcss/postcss": "^4.2.4",
     "@types/node": "^20",

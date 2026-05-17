@@ -1,6 +1,7 @@
 import { handleMcpRequest } from "@/lib/chatgpt/mcpServer";
 
 export const runtime = "nodejs";
+export const dynamic = "force-static";
 
 function isPlainHealthCheck(request: Request) {
   const accept = request.headers.get("accept") ?? "";

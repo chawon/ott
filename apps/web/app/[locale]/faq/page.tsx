@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { getTranslations } from "next-intl/server";
+import { getTranslations, setRequestLocale } from "next-intl/server";
 
 export async function generateMetadata({
   params,
@@ -7,6 +7,7 @@ export async function generateMetadata({
   params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
   const { locale } = await params;
+  setRequestLocale(locale);
   const t = await getTranslations({ locale, namespace: "FAQ" });
 
   return {
@@ -33,6 +34,7 @@ export default async function FaqPage({
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
+  setRequestLocale(locale);
   const t = await getTranslations({ locale, namespace: "FAQ" });
 
   const stripHtml = (html: string) => html.replace(/<[^>]*>/g, "");
@@ -44,12 +46,54 @@ export default async function FaqPage({
     url: "https://ottline.app/faq",
     inLanguage: locale === "ko" ? "ko-KR" : "en-US",
     mainEntity: [
-      { "@type": "Question", name: stripHtml(t("q1")), acceptedAnswer: { "@type": "Answer", text: stripHtml(t.raw("a1") as string) } },
-      { "@type": "Question", name: stripHtml(t("q2")), acceptedAnswer: { "@type": "Answer", text: stripHtml(t.raw("a2") as string) } },
-      { "@type": "Question", name: stripHtml(t("q3")), acceptedAnswer: { "@type": "Answer", text: stripHtml(t.raw("a3") as string) } },
-      { "@type": "Question", name: stripHtml(t("q4")), acceptedAnswer: { "@type": "Answer", text: stripHtml(t.raw("a4") as string) } },
-      { "@type": "Question", name: stripHtml(t("q5")), acceptedAnswer: { "@type": "Answer", text: stripHtml(t.raw("a5") as string) } },
-      { "@type": "Question", name: stripHtml(t("q6")), acceptedAnswer: { "@type": "Answer", text: stripHtml(t.raw("a6") as string) } },
+      {
+        "@type": "Question",
+        name: stripHtml(t("q1")),
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: stripHtml(t.raw("a1") as string),
+        },
+      },
+      {
+        "@type": "Question",
+        name: stripHtml(t("q2")),
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: stripHtml(t.raw("a2") as string),
+        },
+      },
+      {
+        "@type": "Question",
+        name: stripHtml(t("q3")),
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: stripHtml(t.raw("a3") as string),
+        },
+      },
+      {
+        "@type": "Question",
+        name: stripHtml(t("q4")),
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: stripHtml(t.raw("a4") as string),
+        },
+      },
+      {
+        "@type": "Question",
+        name: stripHtml(t("q5")),
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: stripHtml(t.raw("a5") as string),
+        },
+      },
+      {
+        "@type": "Question",
+        name: stripHtml(t("q6")),
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: stripHtml(t.raw("a6") as string),
+        },
+      },
     ],
   };
 

@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { getTranslations } from "next-intl/server";
+import { getTranslations, setRequestLocale } from "next-intl/server";
 
 type Props = {
   params: Promise<{ locale: string }>;
@@ -87,7 +87,11 @@ export default async function AdminAnalyticsPage({
   searchParams,
 }: Props) {
   const { locale } = await params;
+  setRequestLocale(locale);
   const t = await getTranslations({ locale, namespace: "Admin" });
+  if (process.env.AIT_BUILD === "true") {
+    notFound();
+  }
   const sParams = searchParams ? await searchParams : {};
   const token = readToken(sParams?.token);
   const expected = process.env.ADMIN_ANALYTICS_TOKEN?.trim() || null;

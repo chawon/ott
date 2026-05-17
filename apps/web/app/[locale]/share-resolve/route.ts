@@ -1,5 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 
+export const dynamic = "force-static";
+
+export function generateStaticParams() {
+  return [{ locale: "ko" }, { locale: "en" }];
+}
+
 function isAllowedHost(hostname: string): boolean {
   const h = hostname.toLowerCase();
   const exact = new Set([

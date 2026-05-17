@@ -12,6 +12,11 @@ import {
 import type { PersonaKey } from "@/lib/types";
 
 export const runtime = "nodejs";
+export const dynamic = "force-static";
+
+export function generateStaticParams() {
+  return [{ locale: "ko" }, { locale: "en" }];
+}
 
 type ShareCardPayload = {
   title: string;

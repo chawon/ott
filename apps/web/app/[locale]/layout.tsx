@@ -1,7 +1,12 @@
 import type { Viewport } from "next";
 import "../globals.css";
 import { NextIntlClientProvider } from "next-intl";
-import { getMessages, getTranslations } from "next-intl/server";
+import {
+  getMessages,
+  getTranslations,
+  setRequestLocale,
+} from "next-intl/server";
+import { Suspense } from "react";
 import AppFooter from "@/components/AppFooter";
 import AppHeader from "@/components/AppHeader";
 import BottomNav from "@/components/BottomNav";
@@ -17,6 +22,7 @@ export async function generateMetadata({
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
+  setRequestLocale(locale);
   const t = await getTranslations({ locale, namespace: "Metadata" });
 
   return {
@@ -62,7 +68,17 @@ export async function generateMetadata({
 export const viewport: Viewport = {
   themeColor: "#1E4D8C",
   viewportFit: "cover",
+  ...(process.env.AIT_BUILD === "true"
+    ? {
+        maximumScale: 1,
+        userScalable: false,
+      }
+    : {}),
 };
+
+export function generateStaticParams() {
+  return [{ locale: "ko" }, { locale: "en" }];
+}
 
 export default async function RootLayout({
   children,
@@ -72,6 +88,7 @@ export default async function RootLayout({
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
+  setRequestLocale(locale);
   const messages = await getMessages();
 
   const themeInitScript = `
@@ -89,6 +106,7 @@ export default async function RootLayout({
 (() => {
   if (!("serviceWorker" in navigator)) return;
   if (!window.isSecureContext) return;
+  if (window.__appsInToss || /(^|\\.)tossmini\\.com$/i.test(window.location.hostname)) return;
   window.addEventListener("load", () => {
     navigator.serviceWorker.register("/sw.js").catch(() => {
       // Ignore registration errors to avoid blocking runtime flows.
@@ -184,7 +202,9 @@ export default async function RootLayout({
               </div>
             )}
             <ChunkErrorHandler />
-            <AppHeader />
+            <Suspense fallback={null}>
+              <AppHeader />
+            </Suspense>
             <SwipeNav />
             <PwaInstallBanner />
             <SyncWorker />

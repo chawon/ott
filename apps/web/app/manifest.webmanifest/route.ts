@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 
-export const dynamic = "force-dynamic";
+export const dynamic = "force-static";
 
 export function GET(request: NextRequest) {
   const acceptLanguage = request.headers.get("accept-language") || "";

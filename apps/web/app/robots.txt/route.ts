@@ -1,3 +1,5 @@
+export const dynamic = "force-static";
+
 export function GET() {
   const body = `User-agent: *
 Allow: /

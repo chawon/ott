@@ -3,6 +3,7 @@
 import { Download, Share, Smartphone, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
+import { isAppsInTossEnvironment } from "@/lib/appsInToss";
 
 interface BeforeInstallPromptEvent extends Event {
   readonly platforms: string[];
@@ -23,6 +24,8 @@ export default function PwaInstallBanner() {
   );
 
   useEffect(() => {
+    if (isAppsInTossEnvironment()) return;
+
     // Detect platform
     const ua = window.navigator.userAgent.toLowerCase();
     const isIos = /iphone|ipad|ipod/.test(ua);
