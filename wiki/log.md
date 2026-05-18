@@ -1,5 +1,13 @@
 # Wiki Log
 
+## [2026-05-18] update: 토스 인앱 승인 및 출시 완료 반영
+- 대상: 토스 인앱 미니앱 출시 상태, `내 OTT 타임라인` 표시명
+- 생성/수정: platforms/toss-inapp.md, index.md, AGENTS.md
+- 노트:
+  - 토스 인앱 미니앱이 재검토 승인 후 출시 완료된 상태를 현재 운영 문서에 반영
+  - 토스 표시명을 `내 OTT 타임라인`으로 기록
+  - 토스 인앱은 main에 병합하지 않고 별도 브랜치/채널 산출물로 운영하는 원칙 유지
+
 ## [2026-05-17] update: 공개 리액션 v1 구현 기록
 - 대상: `feature/public-reactions`, docs/public-reactions-v1-2026-05-17.md
 - 생성/수정: features/public-reactions.md, index.md
