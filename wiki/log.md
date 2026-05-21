@@ -1,5 +1,14 @@
 # Wiki Log
 
+## [2026-05-21] update: CLS 안정화 및 프로필 아바타 배율 조정 production 반영
+- 대상: PR #35, web staging run `26227067104`, web production run `26227235012`, ArgoCD `ott-staging-app` / `ott-app`
+- 생성/수정: log.md
+- 노트:
+  - 홈/타임라인 초기 로딩 skeleton, 모바일 top/bottom navigation CSS 전환, 프로필 프롬프트 계정 화면 이동으로 초기 레이아웃 변동을 줄임
+  - 프로필 아바타 및 공유카드 서명 아바타 확대 배율을 낮춰 과확대에 따른 품질 저하를 완화
+  - 배포 SHA `95abe5f6e3544ded276d1d7adc39440fd300ac11` 기준 staging/prod web 이미지 교체와 ArgoCD `Synced / Healthy` 확인
+  - production smoke: `https://ottline.app/`, clean-bg avatar asset, `/api/titles/search` 응답 확인
+
 ## [2026-05-18] update: 토스 인앱 승인 및 출시 완료 반영
 - 대상: 토스 인앱 미니앱 출시 상태, `내 OTT 타임라인` 표시명
 - 생성/수정: platforms/toss-inapp.md, index.md, AGENTS.md
