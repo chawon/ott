@@ -7,7 +7,7 @@
 ## 진행 상황
 - GitHub Actions에서 디버그 APK 빌드 성공 및 기기 설치 확인 완료
 - 현재 개발 환경(WSL on ARM Linux)에서는 Android Gradle 로컬 빌드 호환 이슈가 있어, APK/AAB 빌드는 GitHub Actions만 정식 검증/배포 경로로 사용
-- Google Play 프로덕션 액세스는 아직 부여되지 않았으며, 2026-05-08 검토 결과에 따라 실제 테스터 대상 14일 비공개 테스트를 다시 진행해야 함
+- Google Play 프로덕션 액세스는 아직 부여되지 않았으며, 2026-05-21 `1.0.6` alpha refresh 기준으로 실제 테스터 대상 14일 비공개 테스트를 다시 진행 중
 
 ### 진행 업데이트 (2026-02-15)
 - TWA 공유 인텐트 MVP 반영 완료 (main 머지)
@@ -220,3 +220,13 @@ adb install -r apps/twa/app/build/outputs/apk/debug/app-debug.apk
   - TWA/PWA 공유 진입 시 QuickLog에 공유 제목 추출 성공/실패 안내와 공유 기록 의견 링크 표시
   - `twa-release.yml`에 Play release notes 입력 추가
   - 관련 설계 메모: `docs/twa-android-alpha-feedback-loop-2026-05-11.md`
+
+### 진행 업데이트 (2026-05-21)
+- Google Play production access 재신청 전 14일 closed-test 재시작을 위한 version-only alpha refresh 배포 완료
+  - 버전: `1.0.6` (`versionCode=10`)
+  - TWA release run: `26228374153`
+  - Google Play `alpha`: `1.0.6` (`versionCode=10`), `status=completed`
+  - Google Play `production`: 게시된 릴리즈 없음
+  - `alpha` 테스터 그룹: `ottline-beta-testers@googlegroups.com`
+  - 기능 추가 없음. `1.0.5`의 Android 테스트 피드백 루프를 유지한 채 새 14일 테스트 사이클을 시작하기 위한 배포
+  - 12명 이상 실제 테스터가 2026-05-21에 opt-in했다는 전제에서 가장 빠른 재신청 기준일은 2026-06-04 이후

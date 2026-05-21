@@ -1,5 +1,14 @@
 # Wiki Log
 
+## [2026-05-21] update: Android alpha 1.0.6 closed-test refresh
+- 대상: GitHub Actions TWA release run `26228374153`, `gplay tracks get`, `gplay testers get`
+- 생성/수정: AGENTS.md, docs/twa.md, docs/twa-play-launch-checklist.md, platforms/twa.md, index.md
+- 노트:
+  - Google Play production access 재신청 전 14일 closed-test 재시작을 위해 `1.0.6` (`versionCode=10`)을 `alpha`에 version-only refresh로 업로드
+  - `gplay` 확인 기준 `alpha`는 `1.0.6` (`versionCode=10`, `status=completed`), `production`은 게시 릴리즈 없음
+  - `alpha` 테스터 그룹은 `ottline-beta-testers@googlegroups.com`
+  - 12명 이상 실제 테스터 opt-in, 14일 연속 유지, 참여/피드백/조치 이력 확보 후 production access 재신청 필요
+
 ## [2026-05-21] update: CLS 안정화 및 프로필 아바타 배율 조정 production 반영
 - 대상: PR #35, web staging run `26227067104`, web production run `26227235012`, ArgoCD `ott-staging-app` / `ott-app`
 - 생성/수정: log.md

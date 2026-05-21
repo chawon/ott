@@ -198,6 +198,7 @@
 - [ ] 테스터 설치/참여 확인
 - [ ] 사용자 의견 수집 및 조치 이력 정리
 - [x] `alpha` 업데이트 배포 (`1.0.5`, `versionCode=9`)
+- [x] `alpha` version-only refresh 배포 (`1.0.6`, `versionCode=10`)
 - [ ] 프로덕션 액세스 재신청
 - [ ] Play 심사 승인 및 production 트랙 릴리즈 노출 확인
 - [ ] 실제 Google Play 설치 가능 여부 확인
@@ -240,6 +241,20 @@
   - `alpha`: `1.0.5` (`versionCode=9`), `status=completed`
   - `production`: 게시된 릴리즈 없음
 - [ ] 테스터에게 opt-in 링크와 앱 내 문의 경로를 함께 안내
+
+### 진행 업데이트 (2026-05-21, 비공개 테스트 재시작용 version refresh)
+- [x] Google Play production access 재신청 전 14일 closed-test 재시작을 위해 version-only alpha refresh 배포
+  - Run: `26228374153`
+  - 입력: `version_code=10`, `version_name=1.0.6`, `track=alpha`, `release_status=completed`, `rollout=1.0`
+  - 릴리스 노트: `Closed testing retest refresh for production access. No new feature changes; testers should install version 1.0.6 and use the Android feedback flow from Settings or QuickLog while testing the main logging, timeline, widget, shortcut, and sharing flows.`
+- [x] Play alpha 트랙에서 `1.0.6` 반영 확인
+  - `alpha`: `1.0.6` (`versionCode=10`), `status=completed`
+  - `production`: 게시된 릴리즈 없음
+  - `alpha` 테스터 그룹: `ottline-beta-testers@googlegroups.com`
+- [ ] 12명 이상 실제 테스터 opt-in 확인
+- [ ] 14일 연속 opt-in 유지 확인
+- [ ] 앱 사용/피드백/조치 증빙 정리
+- 참고: 12명 이상 테스터가 모두 2026-05-21에 opt-in했다는 전제에서 가장 빠른 재신청 기준일은 2026-06-04 이후
 
 ## 8) 출시 후 모니터링
 - [ ] Crash/ANR 모니터링 (출시 직후 24~72시간 집중)
