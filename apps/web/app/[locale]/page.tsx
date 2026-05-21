@@ -36,12 +36,79 @@ function feedbackHref(source: string) {
   return `/feedback?${params.toString()}`;
 }
 
+function RecentLogsSkeleton() {
+  const rows = [
+    "home-log-skeleton-1",
+    "home-log-skeleton-2",
+    "home-log-skeleton-3",
+    "home-log-skeleton-4",
+    "home-log-skeleton-5",
+    "home-log-skeleton-6",
+    "home-log-skeleton-7",
+    "home-log-skeleton-8",
+  ];
+
+  return (
+    <div className="grid grid-cols-1 gap-3" aria-hidden="true">
+      {rows.map((row) => (
+        <div
+          key={row}
+          className="min-h-[193px] rounded-2xl border border-border bg-card p-5 shadow-sm sm:min-h-[170px]"
+        >
+          <div className="flex gap-3">
+            <div className="h-32 w-20 shrink-0 rounded-xl bg-muted animate-pulse" />
+            <div className="min-w-0 flex-1 space-y-3 py-1">
+              <div className="h-4 w-2/3 rounded bg-muted animate-pulse" />
+              <div className="flex gap-2">
+                <div className="h-5 w-14 rounded-full bg-muted animate-pulse" />
+                <div className="h-5 w-20 rounded-full bg-muted animate-pulse" />
+              </div>
+              <div className="h-3 w-full rounded bg-muted animate-pulse" />
+              <div className="h-3 w-4/5 rounded bg-muted animate-pulse" />
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function DiscussionsSkeleton() {
+  const rows = [
+    "home-discussion-skeleton-1",
+    "home-discussion-skeleton-2",
+    "home-discussion-skeleton-3",
+    "home-discussion-skeleton-4",
+  ];
+
+  return (
+    <div
+      className="rounded-2xl border border-border bg-card p-4 shadow-sm"
+      aria-hidden="true"
+    >
+      <div className="space-y-3">
+        {rows.map((row) => (
+          <div key={row} className="flex items-center gap-4 px-2 py-2">
+            <div className="h-16 w-12 shrink-0 rounded-lg bg-muted animate-pulse" />
+            <div className="min-w-0 flex-1 space-y-2">
+              <div className="h-4 w-3/4 rounded bg-muted animate-pulse" />
+              <div className="h-3 w-1/2 rounded bg-muted animate-pulse" />
+            </div>
+            <div className="h-8 w-12 rounded bg-muted animate-pulse" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function HomePage() {
   const tHome = useTranslations("HomePage");
   const tProfile = useTranslations("Profile");
   const [logs, setLogs] = useState<WatchLog[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [discussions, setDiscussions] = useState<DiscussionListItem[]>([]);
+  const [discussionsLoading, setDiscussionsLoading] = useState(true);
   const [quickType, setQuickType] = useState<"video" | "book">("video");
   const [shareOpen, setShareOpen] = useState(false);
   const [shareLog, setShareLog] = useState<WatchLog | null>(null);
@@ -161,6 +228,7 @@ export default function HomePage() {
   }, [refreshProfilePromptState]);
 
   const loadDiscussions = useCallback(async () => {
+    setDiscussionsLoading(true);
     try {
       const latest = await api<DiscussionListItem[]>(
         "/discussions/latest?limit=6&days=14",
@@ -168,6 +236,8 @@ export default function HomePage() {
       setDiscussions(latest);
     } catch {
       setDiscussions([]);
+    } finally {
+      setDiscussionsLoading(false);
     }
   }, []);
 
@@ -232,7 +302,7 @@ export default function HomePage() {
     : tHome("myRecords");
 
   return (
-    <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+    <div className="grid min-h-[calc(100dvh-12rem)] grid-cols-1 gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
       <div className="space-y-6">
         <section className="space-y-3">
           <div className="flex items-end justify-between">
@@ -287,16 +357,6 @@ export default function HomePage() {
             shareImportStatus={shareImportStatus}
             shareImportFeedbackHref={feedbackHref("android-alpha-share")}
           />
-          {showProfilePrompt ? (
-            <ProfilePromptCard
-              profile={profile}
-              onSaved={() => refreshProfilePromptState()}
-              onDismiss={() => {
-                dismissProfilePrompt();
-                refreshProfilePromptState();
-              }}
-            />
-          ) : null}
         </section>
         <section className="space-y-3">
           <div className="flex items-baseline justify-between">
@@ -313,8 +373,9 @@ export default function HomePage() {
           </div>
 
           {loading && logs.length === 0 ? (
-            <div className="rounded-2xl border border-border bg-card p-5 text-sm text-muted-foreground shadow-sm">
-              {tHome("loading")}
+            <div>
+              <output className="sr-only">{tHome("loading")}</output>
+              <RecentLogsSkeleton />
             </div>
           ) : null}
 
@@ -337,6 +398,14 @@ export default function HomePage() {
             ))}
           </div>
         </section>
+        {showProfilePrompt ? (
+          <ProfilePromptCard
+            onDismiss={() => {
+              dismissProfilePrompt();
+              refreshProfilePromptState();
+            }}
+          />
+        ) : null}
       </div>
 
       <aside className="space-y-3">
@@ -352,7 +421,14 @@ export default function HomePage() {
             {tHome("viewAll")}
           </Link>
         </div>
-        <DiscussionList items={discussions} />
+        {discussionsLoading && discussions.length === 0 ? (
+          <div>
+            <output className="sr-only">{tHome("loading")}</output>
+            <DiscussionsSkeleton />
+          </div>
+        ) : (
+          <DiscussionList items={discussions} />
+        )}
       </aside>
       <ShareBottomSheet
         open={shareOpen}

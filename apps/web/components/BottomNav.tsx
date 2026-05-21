@@ -5,7 +5,6 @@ import { useTranslations } from "next-intl";
 import type { ComponentProps } from "react";
 import { Link as IntlLink, usePathname } from "@/i18n/routing";
 import { cn } from "@/lib/utils";
-import { useMobileBottomNav } from "./useMobileBottomNav";
 
 function NavLink({
   href,
@@ -52,12 +51,9 @@ function NavLink({
 
 export default function BottomNav() {
   const t = useTranslations("AppHeader");
-  const enabled = useMobileBottomNav();
-
-  if (!enabled) return null;
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 flex min-h-[var(--mobile-bottom-nav-height)] border-t border-border bg-card/90 pb-[var(--mobile-safe-area-bottom)] backdrop-blur-md transition-colors duration-200 sm:hidden">
+    <nav className="app-bottom-nav fixed bottom-0 left-0 right-0 z-50 min-h-[var(--mobile-bottom-nav-height)] border-t border-border bg-card/90 pb-[var(--mobile-safe-area-bottom)] backdrop-blur-md transition-colors duration-200">
       <NavLink href="/" label={t("navLogModern")} icon={PencilLine} />
       <NavLink href="/timeline" label={t("navTimelineModern")} icon={Clock} />
       <NavLink
