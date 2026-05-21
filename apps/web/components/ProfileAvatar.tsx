@@ -1,5 +1,5 @@
 import Image from "next/image";
-import { avatarLayerStyle, avatarSrc } from "@/lib/profile";
+import { AVATAR_IMAGE_SCALE, avatarLayerStyle, avatarSrc } from "@/lib/profile";
 import type { PersonaKey } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -16,6 +16,8 @@ export default function ProfileAvatar({
   imageClassName?: string;
   alt?: string;
 }) {
+  const imageRequestSize = Math.ceil(size * AVATAR_IMAGE_SCALE);
+
   return (
     <span
       className={cn(
@@ -32,8 +34,9 @@ export default function ProfileAvatar({
           src={avatarSrc(personaKey)}
           alt={alt}
           fill
-          sizes={`${size}px`}
-          className={cn("scale-[1.85] object-cover", imageClassName)}
+          sizes={`${imageRequestSize}px`}
+          className={cn("object-cover", imageClassName)}
+          style={{ transform: `scale(${AVATAR_IMAGE_SCALE})` }}
         />
       </span>
     </span>

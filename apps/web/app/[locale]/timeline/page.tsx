@@ -100,6 +100,43 @@ function FutureLoadingSkeleton({
   );
 }
 
+function TimelineLoadingSkeleton() {
+  const rows = [
+    "timeline-skeleton-1",
+    "timeline-skeleton-2",
+    "timeline-skeleton-3",
+    "timeline-skeleton-4",
+    "timeline-skeleton-5",
+    "timeline-skeleton-6",
+    "timeline-skeleton-7",
+    "timeline-skeleton-8",
+  ];
+
+  return (
+    <div className="space-y-3" aria-hidden="true">
+      {rows.map((row) => (
+        <div
+          key={row}
+          className="rounded-2xl border border-border bg-card p-3 shadow-sm"
+        >
+          <div className="flex gap-3">
+            <div className="h-32 w-20 shrink-0 rounded-xl bg-muted animate-pulse" />
+            <div className="min-w-0 flex-1 space-y-3 py-1">
+              <div className="h-4 w-2/3 rounded bg-muted animate-pulse" />
+              <div className="flex gap-2">
+                <div className="h-5 w-14 rounded-full bg-muted animate-pulse" />
+                <div className="h-5 w-20 rounded-full bg-muted animate-pulse" />
+              </div>
+              <div className="h-3 w-full rounded bg-muted animate-pulse" />
+              <div className="h-3 w-4/5 rounded bg-muted animate-pulse" />
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 const DISMISSED_KEY = "watchlog.dismissedRecs";
 const LAST_REFRESH_KEY = "watchlog.lastRecommendRefresh";
 
@@ -286,7 +323,7 @@ export default function TimelinePage() {
   const [ott, setOtt] = useState("");
   const [query, setQuery] = useState("");
   const [logs, setLogs] = useState<WatchLog[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
   const [exportStatus, setExportStatus] = useState<string | null>(null);
@@ -510,7 +547,7 @@ export default function TimelinePage() {
   }, [enableYearGrouping, logs]);
 
   return (
-    <div className="space-y-4">
+    <div className="min-h-[calc(100dvh-12rem)] space-y-4">
       <div>
         <div className="flex items-center justify-between gap-3 mb-1">
           <div className="flex items-center gap-2 text-lg sm:text-xl font-semibold whitespace-nowrap">
@@ -595,8 +632,9 @@ export default function TimelinePage() {
           />
 
           {loading && logs.length === 0 && (
-            <div className="rounded-2xl border border-border bg-card p-5 text-sm text-muted-foreground shadow-sm">
-              {tTimeline("loading")}
+            <div>
+              <output className="sr-only">{tTimeline("loading")}</output>
+              <TimelineLoadingSkeleton />
             </div>
           )}
 

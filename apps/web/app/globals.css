@@ -107,6 +107,30 @@
   }
 }
 
+.app-top-nav {
+  display: grid;
+}
+
+.app-bottom-nav {
+  display: none;
+}
+
+@media (min-width: 640px) {
+  .app-top-nav {
+    display: flex;
+  }
+}
+
+@media (max-width: 639.98px) and (pointer: coarse) {
+  .app-top-nav {
+    display: none;
+  }
+
+  .app-bottom-nav {
+    display: flex;
+  }
+}
+
 .dark {
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);

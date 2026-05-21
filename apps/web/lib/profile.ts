@@ -10,8 +10,8 @@ export const PERSONA_KEYS = [
 ] as const satisfies readonly PersonaKey[];
 
 export const DEFAULT_PERSONA_KEY: PersonaKey = "cinema_keeper";
-export const AVATAR_IMAGE_SCALE = 2.25;
-export const SHARE_CARD_AVATAR_IMAGE_SCALE = 1.75;
+export const AVATAR_IMAGE_SCALE = 1.5;
+export const SHARE_CARD_AVATAR_IMAGE_SCALE = 1.4;
 
 export function isPersonaKey(value: unknown): value is PersonaKey {
   return (

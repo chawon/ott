@@ -19,7 +19,6 @@ import { isProfileComplete } from "@/lib/profile";
 import { useUserProfile } from "@/lib/useUserProfile";
 import { cn } from "@/lib/utils";
 import ProfileAvatar from "./ProfileAvatar";
-import { useMobileBottomNav } from "./useMobileBottomNav";
 
 const localeOptions = [
   { value: "ko", shortLabel: "KO", labelKey: "languageKorean" },
@@ -85,7 +84,6 @@ export default function AppHeader() {
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const useBottomNav = useMobileBottomNav();
   const { profile } = useUserProfile();
   const hasProfile = isProfileComplete(profile);
 
@@ -212,12 +210,7 @@ export default function AppHeader() {
           </div>
         </div>
 
-        <nav
-          className={cn(
-            "w-full grid-cols-4 items-center gap-1 sm:w-auto sm:flex sm:flex-nowrap sm:gap-2",
-            useBottomNav ? "hidden" : "grid",
-          )}
-        >
+        <nav className="app-top-nav w-full grid-cols-4 items-center gap-1 sm:w-auto sm:flex-nowrap sm:gap-2">
           <NavLink href="/" label={t("navLogModern")} icon={PencilLine} />
           <NavLink
             href="/timeline"
