@@ -20,6 +20,7 @@
 - movie/tv 인기 작품 혼합 조회
 - `Accept-Language` 기반 TMDB language/watch region 추정
   - `ko`는 `KR`, region 없는 `en`은 `US`를 기본값으로 사용한다.
+  - 한국어(`ko-KR`) fallback은 `with_origin_country=KR`로 국내 제작 작품만 노출한다.
 - 영화는 공개일, 시리즈는 첫 방영일이 요청일 이후인 후보 제외
 - 추정 region이 있으면 `watch_region`과 시청 방식(`flatrate|free|ads|rent|buy`)으로 후보 제한
 - `providerId` 기준 실제 공개 기록과 인기 작품 중복 제거

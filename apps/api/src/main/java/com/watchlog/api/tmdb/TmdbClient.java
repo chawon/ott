@@ -211,6 +211,10 @@ public class TmdbClient {
                 .queryParam("watch_region", locale.region())
                 .queryParam("with_watch_monetization_types", "flatrate|free|ads|rent|buy");
 
+        if (locale.koreanFallback()) {
+            builder.queryParam("with_origin_country", "KR");
+        }
+
         if ("movie".equals(mediaType)) {
             builder
                     .queryParam("include_video", "false")
@@ -254,7 +258,11 @@ public class TmdbClient {
         String region = parts.length >= 2 && !parts[1].isBlank()
                 ? parts[1].toUpperCase(Locale.ROOT)
                 : defaultRegion(languageCode);
-        return new LocalePreference(languageCode + "-" + region, region);
+        return new LocalePreference(
+                languageCode + "-" + region,
+                region,
+                "ko".equals(languageCode) && "KR".equals(region)
+        );
     }
 
     private String defaultRegion(String languageCode) {
@@ -360,7 +368,11 @@ public class TmdbClient {
 
     }
 
-    private record LocalePreference(String language, String region) {}
+    private record LocalePreference(
+            String language,
+            String region,
+            boolean koreanFallback
+    ) {}
 
     private record FallbackCacheEntry(Instant expiresAt, List<SearchItem> items) {}
 

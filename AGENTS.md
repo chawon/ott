@@ -224,7 +224,8 @@ feature/* ──PR──→ main ──→ [자동] staging.ottline.app
 2. `GET /api/titles/popular?limit=`
    1. TMDB movie/tv 인기 작품을 혼합해 반환한다.
    2. `Accept-Language`에서 language/watch region을 추정하고 공개일·첫 방영일·시청 가능 region을 기준으로 후보를 제한한다.
-   3. 서버 내부에서 언어/지역별 1일 캐시하며, 홈의 함께 기록 부족분 보충에만 사용한다.
+   3. 한국어(`ko-KR`) fallback은 `with_origin_country=KR`로 국내 제작 작품만 노출한다.
+   4. 서버 내부에서 언어/지역별 1일 캐시하며, 홈의 함께 기록 부족분 보충에만 사용한다.
 3. `GET /api/titles/{id}`
    1. 내부 UUID title 스냅샷 반환
 
