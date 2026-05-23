@@ -10,6 +10,8 @@ import java.util.UUID;
 public record DiscussionListItemDto(
         UUID id,
         UUID titleId,
+        String titleProvider,
+        String titleProviderId,
         String titleName,
         TitleType titleType,
         Integer titleYear,
@@ -44,6 +46,8 @@ public record DiscussionListItemDto(
         return new DiscussionListItemDto(
                 d.getId(),
                 t.getId(),
+                t.getProvider(),
+                t.getProviderId(),
                 t.getName(),
                 t.getType(),
                 year,
