@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  Download,
   MessageSquareText,
   Settings,
   Smartphone,
@@ -21,6 +22,8 @@ import {
   listAllLogsLocal,
   resetLocalState,
 } from "@/lib/localStore";
+import { createPairingRecoveryCardBlob } from "@/lib/recoveryCard";
+import { downloadBlob } from "@/lib/share";
 import type { WatchLog } from "@/lib/types";
 import { useUserProfile } from "@/lib/useUserProfile";
 import { cn } from "@/lib/utils";
@@ -101,6 +104,10 @@ export default function AccountPage() {
   );
   const [exporting, setExporting] = useState(false);
   const [exportStatus, setExportStatus] = useState<string | null>(null);
+  const [recoveryCardSaving, setRecoveryCardSaving] = useState(false);
+  const [recoveryCardStatus, setRecoveryCardStatus] = useState<string | null>(
+    null,
+  );
   const [showAndroidTestSection, setShowAndroidTestSection] = useState(false);
   const { profile } = useUserProfile();
 
@@ -207,6 +214,41 @@ export default function AccountPage() {
     const m = String(now.getMonth() + 1).padStart(2, "0");
     const d = String(now.getDate()).padStart(2, "0");
     return `watchlog-export-${y}${m}${d}.csv`;
+  }
+
+  function recoveryCardFileName() {
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, "0");
+    const d = String(now.getDate()).padStart(2, "0");
+    return `ottline-recovery-card-${y}${m}${d}.png`;
+  }
+
+  async function saveRecoveryCard() {
+    if (!pairingCode || recoveryCardSaving) return;
+    setRecoveryCardSaving(true);
+    setRecoveryCardStatus(null);
+    try {
+      const blob = await createPairingRecoveryCardBlob(pairingCode, {
+        eyebrow: tAccount("recoveryCardEyebrow"),
+        title: tAccount("recoveryCardTitle"),
+        subtitle: tAccount("recoveryCardSubtitle"),
+        codeLabel: tAccount("recoveryCardCodeLabel"),
+        instructionTitle: tAccount("recoveryCardInstructionTitle"),
+        instructionBody: tAccount("recoveryCardInstructionBody"),
+        warningTitle: tAccount("recoveryCardWarningTitle"),
+        warningBody: tAccount("recoveryCardWarningBody"),
+        footer: tAccount("recoveryCardFooter"),
+      });
+      await downloadBlob(blob, recoveryCardFileName());
+      setRecoveryCardStatus(tAccount("statusRecoveryCardSaved"));
+    } catch (error) {
+      setRecoveryCardStatus(
+        getErrorMessage(error, tAccount("statusRecoveryCardFailed")),
+      );
+    } finally {
+      setRecoveryCardSaving(false);
+    }
   }
 
   async function exportLogs() {
@@ -353,6 +395,32 @@ export default function AccountPage() {
                 {tAccount("pairingCodeNotice")}
               </p>
             )}
+            {pairingCode && !initializing ? (
+              <div className="mt-3 space-y-2 rounded-xl border border-amber-200 bg-amber-50/60 p-3 dark:border-amber-900/60 dark:bg-amber-950/20">
+                <p className="text-xs text-amber-900 dark:text-amber-100">
+                  {tAccount("recoveryCardHelp")}
+                </p>
+                <button
+                  type="button"
+                  onClick={saveRecoveryCard}
+                  disabled={recoveryCardSaving}
+                  className={cn(
+                    "inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl px-4 text-sm font-bold transition-all sm:w-auto",
+                    "bg-amber-700 text-white hover:bg-amber-800 disabled:opacity-40",
+                  )}
+                >
+                  <Download className="h-4 w-4" />
+                  {recoveryCardSaving
+                    ? tAccount("recoveryCardSaving")
+                    : tAccount("recoveryCardAction")}
+                </button>
+                {recoveryCardStatus ? (
+                  <p className="text-xs font-medium text-amber-900 dark:text-amber-100">
+                    {recoveryCardStatus}
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
           </div>
 
           <div className="space-y-3 pt-2">
