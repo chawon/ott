@@ -43,6 +43,7 @@
 19. ChatGPT App v1 운영 배포 + OpenAI 앱 심사 진행 중(`2026-04-23` 기준): `timeline.list_recent_logs` 기반 읽기 전용 recent-history connector + OAuth/PKCE + 도메인 검증 경로 반영
 20. 토스 인앱 미니앱 승인 및 출시 완료(`2026-05-18`, 표시명 `내 OTT 타임라인`) + `/about` 서비스 소개에 웹/PWA·토스·브라우저 확장·Windows 채널 반영, 페어링 코드 연속성 메시지 정리
 21. 무로그인 개인 프로필 v1: 기존 페어링 계정에 닉네임, 성향 타이틀, 프리셋 아바타를 저장하고 본인 화면(헤더/홈/타임라인/리포트/설정)에만 노출
+22. 페어링 코드 복구 카드: 설정의 기기 연결 영역에서 페어링 코드를 개인 보관용 PNG 카드로 로컬 생성·저장(`2026-05-23` production 반영, web SHA `b5b30af`)
 
 ### 제품 방향
 1. 추천 기능은 현재 범위에서 제외한다.
@@ -70,13 +71,17 @@
 11. **설정의 서버 데이터 전체 삭제 추가**: `DELETE /api/auth/account` 기반으로 계정 단위 서버 기록/댓글/문의/analytics/기기 연결 삭제 지원.
 12. **ChatGPT App v1 배포 및 제출**: `ottline.app/chatgpt` 운영 배포, OAuth/PKCE 연결, review 계정/도메인 검증/제출 문서 정리 완료, `2026-04-23` 기준 OpenAI 앱 심사 진행 중.
 13. **서비스 소개 채널 정리 및 토스 인앱 출시 반영**: 토스 인앱 미니앱은 `2026-05-18` 승인 및 출시 완료(`내 OTT 타임라인`). `/about` 페이지에 웹/PWA·토스·브라우저 확장·Windows 링크 노출, Android·ChatGPT `준비 중` 표기, 페어링 코드 연속성 메시지 반영 완료.
+14. **페어링 코드 복구 카드 저장 UX**: 설정 > 기기 연결에서 개인 보관용 복구 카드 PNG를 브라우저 Canvas로 로컬 생성해 저장하도록 반영 완료. 서버 이메일 발송, 서버 이미지 렌더링, 공개 공유 UX는 제외했다. `2026-05-23` web production run `26329158127`로 `b5b30af29731aae89ddc3bd336ad3752feddc666` 배포 완료.
 
 ### P1
-1. 복구 코드(페어링 코드) 입력 UX + 보안 정책 확정
+1. 복구 코드(페어링 코드) 보안 정책 후속
 2. 최소 보안 정책
    1. 코드 길이/만료
    2. 재발급 규칙
    3. 신규 기기 승인/해제 흐름
+3. 현재 기준
+   1. 페어링 코드 보관 UX는 복구 카드 저장 기능으로 1차 반영 완료
+   2. 남은 작업은 기존 코드의 권한/수명/재발급 정책과 신규 기기 승인 흐름 결정
 
 ### P1
 1. 문의함 운영 후속 작업
@@ -408,6 +413,7 @@ feature/* ──PR──→ main ──→ [자동] staging.ottline.app
 10. 번역 사전: `apps/web/messages/`
 11. ChatGPT MCP: `apps/web/lib/chatgpt/`, `apps/web/app/chatgpt/`
 12. ChatGPT well-known routes: `apps/web/app/.well-known/`
+13. 페어링 코드 복구 카드: `apps/web/lib/recoveryCard.ts`, `apps/web/app/[locale]/account/page.tsx`
 
 ### 백엔드
 1. 로그 API: `apps/api/src/main/java/com/watchlog/api/web/LogController.java`

@@ -1,5 +1,14 @@
 # Wiki Log
 
+## [2026-05-23] update: 페어링 코드 복구 카드 production 반영
+- 대상: PR #36, web staging run `26327104098`, web production run `26329158127`, `docs/pairing-recovery-card.md`
+- 생성/수정: AGENTS.md, docs/pairing-recovery-card.md, features/pairing-recovery-card.md, index.md, log.md
+- 노트:
+  - 설정 > 기기 연결에서 페어링 코드가 있는 경우 개인 보관용 `복구 카드 저장` 액션을 노출
+  - 복구 카드는 브라우저 Canvas에서 로컬 PNG로 생성하며 서버 이메일 발송, 서버 이미지 렌더링, 공개 공유 UX는 제외
+  - 카드와 설정 UI에 다른 사람에게 공유하지 말라는 경고와 서버 미전송 문구를 표시
+  - 배포 SHA `b5b30af29731aae89ddc3bd336ad3752feddc666` 기준 staging/prod web image tag 업데이트 완료
+
 ## [2026-05-21] update: Android alpha 1.0.6 closed-test refresh
 - 대상: GitHub Actions TWA release run `26228374153`, `gplay tracks get`, `gplay testers get`
 - 생성/수정: AGENTS.md, docs/twa.md, docs/twa-play-launch-checklist.md, platforms/twa.md, index.md

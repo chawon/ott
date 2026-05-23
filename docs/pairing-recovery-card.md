@@ -1,5 +1,13 @@
 # 페어링 코드 복구 카드
 
+## 구현 상태
+
+- `2026-05-23` production 반영 완료.
+- PR: #36
+- web deploy SHA: `b5b30af29731aae89ddc3bd336ad3752feddc666`
+- production workflow: `Deploy Web to Production` run `26329158127`
+- production manifest: `deploy/oke/web-deployment.yaml`의 `ott-web` image tag가 위 SHA로 업데이트됨
+
 ## 배경
 
 - 페어링 코드는 가입 없이 같은 타임라인을 이어 쓰는 핵심 식별자다.
@@ -28,8 +36,32 @@
 - QR 스캔 연결
 - 코드 재발급/만료 정책 변경
 
+## 구현 파일
+
+- `apps/web/lib/recoveryCard.ts`
+  - Canvas 기반 `1080x1440` PNG 생성
+  - 카드 문구와 페어링 코드를 입력받아 브라우저에서만 렌더링
+- `apps/web/app/[locale]/account/page.tsx`
+  - 페어링 코드가 있는 경우에만 `복구 카드 저장` 액션 노출
+  - `downloadBlob`으로 PNG 다운로드
+- `apps/web/messages/ko.json`, `apps/web/messages/en.json`
+  - 카드 본문, 경고, 저장 성공/실패 상태 문구
+
 ## 검증 시나리오
 
 1. 페어링 코드가 있는 계정에서 복구 카드 PNG가 저장된다.
 2. 페어링 코드가 아직 없을 때 저장 액션이 노출되지 않는다.
 3. 생성 실패 시 설정 화면에 실패 상태가 표시된다.
+
+## 검증 기록
+
+- `npx tsc -p apps/web/tsconfig.json --noEmit --pretty false`
+- `node_modules/@biomejs/cli-linux-arm64/biome check apps/web/lib/recoveryCard.ts apps/web/app/[locale]/account/page.tsx apps/web/messages/ko.json apps/web/messages/en.json docs/pairing-recovery-card.md`
+- `git diff --check`
+- `npm run build --workspace ott`
+
+## 남은 정책 결정
+
+- 페어링 코드 길이와 만료 여부
+- 코드 재발급 시 기존 연결 유지/해제 규칙
+- 신규 기기 연결 시 기존 기기 승인 또는 알림 필요 여부
