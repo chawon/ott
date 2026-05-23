@@ -1,5 +1,13 @@
 # Wiki Log
 
+## [2026-05-23] update: 페어링 코드 보안 후속 안건 정리
+- 대상: AGENTS.md, docs/pairing-recovery-card.md, features/pairing-recovery-card.md
+- 생성/수정: AGENTS.md, docs/pairing-recovery-card.md, features/pairing-recovery-card.md, log.md
+- 노트:
+  - 실제 사용자 규모가 아직 작고 복구 카드 저장 UX가 먼저 반영되어, 페어링 코드 보안 정책 변경은 즉시 구현하지 않고 P2 후속 안건으로 보류
+  - 재검토 트리거는 사용자/연결 기기 증가, 코드 분실·공유·유출 문의, 외부 채널 심사 요구로 정리
+  - 추후 진행안은 12자 이상 코드, 입력 정규화, pair rate limit/audit, 코드 재발급, 신규 기기 알림/승인, digest 저장 전환으로 기록
+
 ## [2026-05-23] update: 홈 함께 기록 인기 작품 fallback production 반영
 - 대상: PR #37, web/api staging runs `26330960327` / `26330960490`, web/api production runs `26331154875` / `26331157652`, `docs/home-trending-fallback.md`
 - 생성/수정: AGENTS.md, docs/home-trending-fallback.md, features/home-popular-fallback.md, index.md, log.md
