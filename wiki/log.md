@@ -1,5 +1,15 @@
 # Wiki Log
 
+## [2026-05-23] update: 홈 함께 기록 인기 작품 fallback production 반영
+- 대상: PR #37, web/api staging runs `26330960327` / `26330960490`, web/api production runs `26331154875` / `26331157652`, `docs/home-trending-fallback.md`
+- 생성/수정: AGENTS.md, docs/home-trending-fallback.md, features/home-popular-fallback.md, index.md, log.md
+- 노트:
+  - 홈 `요즘 함께 하는 기록들`은 실제 공개 기록을 먼저 최대 6개 표시하고, 부족분만 `/api/titles/popular` 기반 fallback 카드로 채움
+  - fallback 카드는 `인기 작품` / `Popular pick` 배지로 실제 함께 기록과 구분하고, 클릭 시 QuickLog 영상 검색어를 프리필
+  - 한국어 fallback은 TMDB weekly trending movie/tv를 최대 5페이지 overfetch한 뒤 `original_language=ko` 또는 `origin_country=KR`인 항목만 노출
+  - 비한국어 fallback은 `Accept-Language`에서 추정한 region과 TMDB watch availability 기반 discover 후보를 사용
+  - 배포 SHA `9a3fcdf28ef142f2021c143da3a00598762a6053` 기준 staging/prod web/api image tag 업데이트 및 production 반영 확인
+
 ## [2026-05-23] update: 페어링 코드 복구 카드 production 반영
 - 대상: PR #36, web staging run `26327104098`, web production run `26329158127`, `docs/pairing-recovery-card.md`
 - 생성/수정: AGENTS.md, docs/pairing-recovery-card.md, features/pairing-recovery-card.md, index.md, log.md

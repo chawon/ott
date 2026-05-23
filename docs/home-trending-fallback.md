@@ -13,6 +13,20 @@
 3. 인기 작품은 실제 함께 기록과 다른 배지/문구로 표시한다.
 4. TMDB 호출은 백엔드에서만 수행하고, 언어/지역별로 1일 캐시한다.
 
+## 구현 상태
+
+- 2026-05-23 기준 PR #37로 production 반영 완료.
+- 배포 SHA: `9a3fcdf28ef142f2021c143da3a00598762a6053`
+- staging workflow:
+  - `Deploy Web to Staging` run `26330960327`
+  - `Deploy API to Staging` run `26330960490`
+- production workflow:
+  - `Deploy Web to Production` run `26331154875`
+  - `Deploy API to Production` run `26331157652`
+- production 이미지:
+  - `ott-web:9a3fcdf28ef142f2021c143da3a00598762a6053`
+  - `ott-api:9a3fcdf28ef142f2021c143da3a00598762a6053`
+
 ## 범위
 
 ### 포함

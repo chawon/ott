@@ -11,6 +11,7 @@
 | [[dark-mode]] | 기본 모드에서만 적용되는 라이트/다크/시스템 테마 전환 |
 | [[delete-sync]] | 개별 기록 삭제 없이 로컬 초기화와 서버 데이터 전체 삭제를 분리한 정책 |
 | [[feedback]] | 앱 내부 문의 스레드 + 관리자 답변 화면, Android 테스트 preset을 포함한 자체 API 기반 문의 채널 |
+| [[home-popular-fallback]] | 홈 `요즘 함께 하는 기록들`이 6개 미만일 때 TMDB 기반 인기 작품으로 부족분만 채우는 fallback |
 | [[onboarding]] | 첫 방문자 온보딩 오버레이 가이드 (현재 비활성화) |
 | [[pairing-recovery-card]] | 페어링 코드를 개인 보관용 PNG 카드로 로컬 저장하는 기기 연결 복구 UX |
 | [[personal-profile]] | 무로그인 페어링 계정에 닉네임, 성향 타이틀, 프리셋 아바타를 저장하는 본인 화면 개인화 |
