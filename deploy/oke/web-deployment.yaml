@@ -18,12 +18,12 @@ spec:
         - name: ocir-pull-secret
       containers:
         - name: web
-          image: yny.ocir.io/axvqyylkrvmi/ott-web:b5b30af29731aae89ddc3bd336ad3752feddc666
+          image: yny.ocir.io/axvqyylkrvmi/ott-web:9a3fcdf28ef142f2021c143da3a00598762a6053
           ports:
             - containerPort: 3000
           env:
             - name: APP_VERSION
-              value: "b5b30af"
+              value: "9a3fcdf"
           envFrom:
             - configMapRef:
                 name: ott-web-config
