@@ -4,6 +4,7 @@
 .flutter
 .flutter/
 .gemini/
+.antigravitycli/
 .gradle/
 .pub-cache/
 .tools/
