@@ -8,15 +8,21 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import java.time.Duration;
+import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Component
 public class TmdbClient {
 
     private final RestClient rest;
     private final TmdbProperties props;
+    private final ConcurrentHashMap<String, TrendingCacheEntry> trendingCache =
+            new ConcurrentHashMap<>();
 
     public TmdbClient(@Qualifier("tmdbRestClient") RestClient tmdbRestClient, TmdbProperties props) {
         this.rest = tmdbRestClient;
@@ -42,6 +48,25 @@ public class TmdbClient {
                 .filter(r -> r.id != null)
                 .limit(10)
                 .toList();
+    }
+
+    public List<SearchItem> trendingMixedWeekly(String language, int limit) {
+        requireToken();
+        int safeLimit = Math.max(1, Math.min(limit, 40));
+        String lang = normalizeLanguage(language);
+        String cacheKey = "week:" + lang;
+        var now = Instant.now();
+        var cached = trendingCache.get(cacheKey);
+        if (cached != null && cached.expiresAt().isAfter(now)) {
+            return cached.items().stream().limit(safeLimit).toList();
+        }
+
+        var items = fetchMixedWeeklyTrending(lang);
+        trendingCache.put(
+                cacheKey,
+                new TrendingCacheEntry(now.plus(Duration.ofDays(1)), items)
+        );
+        return items.stream().limit(safeLimit).toList();
     }
 
     public Snapshot fetchDetails(TitleType type, String providerId, String language) {
@@ -158,6 +183,50 @@ public class TmdbClient {
         }
     }
 
+    private List<SearchItem> fetchMixedWeeklyTrending(String language) {
+        var movies = fetchTrending("movie", language);
+        var tvShows = fetchTrending("tv", language);
+        var mixed = new ArrayList<SearchItem>();
+        int max = Math.max(movies.size(), tvShows.size());
+        for (int i = 0; i < max; i++) {
+            if (i < movies.size()) mixed.add(movies.get(i));
+            if (i < tvShows.size()) mixed.add(tvShows.get(i));
+        }
+        return mixed;
+    }
+
+    private List<SearchItem> fetchTrending(String mediaType, String language) {
+        var uri = UriComponentsBuilder.fromPath("/trending/{mediaType}/week")
+                .queryParam("language", language)
+                .buildAndExpand(mediaType)
+                .toUriString();
+
+        var res = rest.get().uri(uri).retrieve().body(SearchResponse.class);
+        if (res == null || res.results == null) return List.of();
+
+        return res.results.stream()
+                .filter(r -> r.id != null)
+                .filter(r -> !Boolean.TRUE.equals(r.adult))
+                .peek(r -> {
+                    if (r.mediaType == null || r.mediaType.isBlank()) {
+                        r.mediaType = mediaType;
+                    }
+                })
+                .filter(r -> "movie".equals(r.mediaType) || "tv".equals(r.mediaType))
+                .filter(r -> r.displayName() != null && !r.displayName().isBlank())
+                .toList();
+    }
+
+    private String normalizeLanguage(String language) {
+        String lang = (language == null || language.isBlank())
+                ? props.language()
+                : language;
+        String primary = lang.split(",", 2)[0].trim();
+        if ("ko".equalsIgnoreCase(primary)) return "ko-KR";
+        if ("en".equalsIgnoreCase(primary)) return "en-US";
+        return primary.isBlank() ? props.language() : primary;
+    }
+
     private Integer yearFrom(String date) {
         if (date == null || date.length() < 4) return null;
         try { return Integer.parseInt(date.substring(0, 4)); } catch (Exception e) { return null; }
@@ -231,6 +300,9 @@ public class TmdbClient {
         @JsonProperty("overview")
         String overview;
 
+        @JsonProperty("adult")
+        Boolean adult;
+
         public String displayName() {
             return (title != null && !title.isBlank()) ? title : name;
         }
@@ -246,6 +318,8 @@ public class TmdbClient {
         public String posterPathValue() { return posterPath; }
 
     }
+
+    private record TrendingCacheEntry(Instant expiresAt, List<SearchItem> items) {}
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     static class Genre {

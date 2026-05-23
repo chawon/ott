@@ -280,6 +280,8 @@
     "typeSeriesModern": "Series",
     "typeBook": "Book",
     "commentCountModern": "{count} comments",
+    "trendingBadge": "TMDB trend",
+    "trendingAction": "Log it",
     "typeSeries": "Series"
   },
   "DiscussionReactions": {

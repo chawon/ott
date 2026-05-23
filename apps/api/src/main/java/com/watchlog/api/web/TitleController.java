@@ -72,24 +72,18 @@ public class TitleController {
                     }
                     return "movie".equals(mType) || "tv".equals(mType);
                 })
-                .map(item -> {
-                    String mType = item.mediaTypeValue();
-                    boolean isTv = "tv".equals(mType);
-                    return new TitleSearchItemDto(
-                            "TMDB",
-                            String.valueOf(item.idValue()),
-                            isTv ? TitleType.series : TitleType.movie,
-                            item.displayName(),
-                            item.displayYear(),
-                            tmdbPosterUrl(item.posterPathValue()),
-                            item.overviewValue(),
-                            null,
-                            null,
-                            null,
-                            null,
-                            null
-                    );
-                })
+                .map(this::fromTmdbItem)
+                .collect(Collectors.toList());
+    }
+
+    @GetMapping("/trending")
+    public List<TitleSearchItemDto> trending(
+            @RequestParam(value = "limit", defaultValue = "6") int limit,
+            @RequestHeader(value = HttpHeaders.ACCEPT_LANGUAGE, required = false) String language
+    ) {
+        int safeLimit = Math.max(1, Math.min(limit, 20));
+        return tmdbClient.trendingMixedWeekly(language, safeLimit).stream()
+                .map(this::fromTmdbItem)
                 .collect(Collectors.toList());
     }
 
@@ -101,6 +95,25 @@ public class TitleController {
     private String tmdbPosterUrl(String path) {
         if (path == null || path.isBlank()) return null;
         return "https://image.tmdb.org/t/p/w342" + path;
+    }
+
+    private TitleSearchItemDto fromTmdbItem(TmdbClient.SearchItem item) {
+        String mType = item.mediaTypeValue();
+        boolean isTv = "tv".equals(mType);
+        return new TitleSearchItemDto(
+                "TMDB",
+                String.valueOf(item.idValue()),
+                isTv ? TitleType.series : TitleType.movie,
+                item.displayName(),
+                item.displayYear(),
+                tmdbPosterUrl(item.posterPathValue()),
+                item.overviewValue(),
+                null,
+                null,
+                null,
+                null,
+                null
+        );
     }
 
     private Integer yearFromDate(String date) {

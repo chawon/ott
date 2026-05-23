@@ -26,10 +26,67 @@ import {
   parseShareIntentText,
   sanitizeResolvedTitle,
 } from "@/lib/shareIntent";
-import type { DiscussionListItem, WatchLog } from "@/lib/types";
+import type {
+  DiscussionListItem,
+  TitleSearchItem,
+  WatchLog,
+} from "@/lib/types";
 import { useUserProfile } from "@/lib/useUserProfile";
 
 type ShareImportStatus = "imported" | "unresolved";
+const HOME_DISCUSSION_LIMIT = 6;
+
+function titleFallbackKey({
+  type,
+  name,
+  year,
+}: {
+  type: string;
+  name: string;
+  year?: number | null;
+}) {
+  return `${type}:${name.trim().toLowerCase()}:${year ?? ""}`;
+}
+
+function selectTrendingFillers(
+  discussions: DiscussionListItem[],
+  trends: TitleSearchItem[],
+  limit: number,
+) {
+  const providerKeys = new Set(
+    discussions
+      .map((item) =>
+        item.titleProvider && item.titleProviderId
+          ? `${item.titleProvider}:${item.titleProviderId}`
+          : null,
+      )
+      .filter((key): key is string => Boolean(key)),
+  );
+  const fallbackKeys = new Set(
+    discussions.map((item) =>
+      titleFallbackKey({
+        type: item.titleType,
+        name: item.titleName,
+        year: item.titleYear,
+      }),
+    ),
+  );
+  const selected: TitleSearchItem[] = [];
+
+  for (const item of trends) {
+    if (selected.length >= limit) break;
+    const providerKey = `${item.provider}:${item.providerId}`;
+    const fallbackKey = titleFallbackKey(item);
+    if (providerKeys.has(providerKey) || fallbackKeys.has(fallbackKey)) {
+      continue;
+    }
+    providerKeys.add(providerKey);
+    fallbackKeys.add(fallbackKey);
+    selected.push(item);
+  }
+
+  return selected;
+}
 
 function feedbackHref(source: string) {
   const params = new URLSearchParams({ source });
@@ -108,6 +165,7 @@ export default function HomePage() {
   const [logs, setLogs] = useState<WatchLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [discussions, setDiscussions] = useState<DiscussionListItem[]>([]);
+  const [trendingTitles, setTrendingTitles] = useState<TitleSearchItem[]>([]);
   const [discussionsLoading, setDiscussionsLoading] = useState(true);
   const [quickType, setQuickType] = useState<"video" | "book">("video");
   const [shareOpen, setShareOpen] = useState(false);
@@ -231,14 +289,39 @@ export default function HomePage() {
     setDiscussionsLoading(true);
     try {
       const latest = await api<DiscussionListItem[]>(
-        "/discussions/latest?limit=6&days=14",
+        `/discussions/latest?limit=${HOME_DISCUSSION_LIMIT}&days=14`,
       );
       setDiscussions(latest);
+      const missingCount = Math.max(0, HOME_DISCUSSION_LIMIT - latest.length);
+      if (missingCount === 0) {
+        setTrendingTitles([]);
+        return;
+      }
+
+      try {
+        const trends = await api<TitleSearchItem[]>(
+          `/titles/trending?limit=${HOME_DISCUSSION_LIMIT * 2}`,
+        );
+        setTrendingTitles(selectTrendingFillers(latest, trends, missingCount));
+      } catch {
+        setTrendingTitles([]);
+      }
     } catch {
       setDiscussions([]);
+      setTrendingTitles([]);
     } finally {
       setDiscussionsLoading(false);
     }
+  }, []);
+
+  const handleTrendingSelect = useCallback((item: TitleSearchItem) => {
+    setSharedQuery(item.name);
+    setSharedContentType("video");
+    setQuickType("video");
+    setSharedPlatform("");
+    setShareImportStatus(null);
+    setAutoFocusSearch(true);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }, []);
 
   useEffect(() => {
@@ -421,13 +504,19 @@ export default function HomePage() {
             {tHome("viewAll")}
           </Link>
         </div>
-        {discussionsLoading && discussions.length === 0 ? (
+        {discussionsLoading &&
+        discussions.length === 0 &&
+        trendingTitles.length === 0 ? (
           <div>
             <output className="sr-only">{tHome("loading")}</output>
             <DiscussionsSkeleton />
           </div>
         ) : (
-          <DiscussionList items={discussions} />
+          <DiscussionList
+            items={discussions}
+            trendingItems={trendingTitles}
+            onTrendingSelect={handleTrendingSelect}
+          />
         )}
       </aside>
       <ShareBottomSheet

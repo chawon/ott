@@ -66,6 +66,8 @@ export interface UpdateUserProfileRequest {
 export interface DiscussionListItem {
   id: string;
   titleId: string;
+  titleProvider?: Provider | null;
+  titleProviderId?: string | null;
   titleName: string;
   titleType: TitleType;
   titleYear?: number | null;

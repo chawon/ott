@@ -221,7 +221,10 @@ feature/* ──PR──→ main ──→ [자동] staging.ottline.app
    1. TMDB 기반 검색 (헤더에 따른 다국어 검색 결과 반환)
    2. 도서 검색: Naver 도서 API 사용
    3. 응답: `provider(TMDB|NAVER)`, `providerId`, `type(movie|series|book)`, `name`, `year`, `posterUrl`, `overview`, `author`, `publisher`, `isbn10`, `isbn13`
-2. `GET /api/titles/{id}`
+2. `GET /api/titles/trending?limit=`
+   1. TMDB movie/tv 주간 트렌드를 혼합해 반환한다.
+   2. 서버 내부에서 언어별 1일 캐시하며, 홈의 함께 기록 부족분 보충에만 사용한다.
+3. `GET /api/titles/{id}`
    1. 내부 UUID title 스냅샷 반환
 
 ### Logs
@@ -264,7 +267,8 @@ feature/* ──PR──→ main ──→ [자동] staging.ottline.app
    3. 사용자별 공개 글당 1개 리액션만 유지하며, 같은 type 재클릭은 취소한다
    4. `DONE`은 프론트에서 영상 `나도 봤어요`/책 `나도 읽었어요`로 표시한다
    5. 리액션 클릭으로 내 기록을 남기는 동작은 프론트 local-first outbox 경로로 처리한다
-10. `DiscussionListItem`/`DiscussionDto` 응답에는 `reactionSummary(done, curious, save)`가 포함된다
+10. `DiscussionListItem` 응답에는 트렌드 중복 제거용 `titleProvider`, `titleProviderId`가 포함된다
+11. `DiscussionListItem`/`DiscussionDto` 응답에는 `reactionSummary(done, curious, save)`가 포함된다
 
 ### Auth
 1. `POST /api/auth/register`

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
 import DiscussionReactionChips from "@/components/DiscussionReactionChips";
-import type { DiscussionListItem } from "@/lib/types";
+import type { DiscussionListItem, TitleSearchItem } from "@/lib/types";
 import { cn, tmdbResize } from "@/lib/utils";
 
 function formatShortDate(iso: string, locale: string) {
@@ -16,20 +16,24 @@ function formatShortDate(iso: string, locale: string) {
 
 export default function DiscussionList({
   items,
+  trendingItems = [],
   emptyText,
   linkMode = "title",
   showReactions,
+  onTrendingSelect,
 }: {
   items: DiscussionListItem[];
+  trendingItems?: TitleSearchItem[];
   emptyText?: string;
   linkMode?: "title" | "discussion";
   showReactions?: boolean;
+  onTrendingSelect?: (item: TitleSearchItem) => void;
 }) {
   const tList = useTranslations("DiscussionList");
   const locale = useLocale();
   const shouldShowReactions = showReactions ?? linkMode === "discussion";
 
-  if (items.length === 0) {
+  if (items.length === 0 && trendingItems.length === 0) {
     return (
       <div
         className={cn(
@@ -103,6 +107,50 @@ export default function DiscussionList({
                 />
               </div>
             ) : null}
+          </article>
+        ))}
+        {trendingItems.map((item) => (
+          <article
+            key={`${item.provider}:${item.providerId}`}
+            className="rounded-xl px-2 py-2 transition hover:bg-muted/60"
+          >
+            <button
+              type="button"
+              onClick={() => onTrendingSelect?.(item)}
+              className="flex w-full items-center gap-4 text-left"
+            >
+              <div className="h-16 w-12 shrink-0 overflow-hidden rounded-lg bg-muted border border-border">
+                {item.posterUrl ? (
+                  <img
+                    src={tmdbResize(item.posterUrl, "w185") ?? item.posterUrl}
+                    alt={item.name}
+                    className="h-full w-full object-cover"
+                    loading="lazy"
+                  />
+                ) : null}
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-sm font-semibold text-foreground">
+                  {item.name}
+                </div>
+                <div className="mt-0.5 text-xs text-muted-foreground">
+                  {item.type === "movie"
+                    ? tList("typeMovie")
+                    : item.type === "series"
+                      ? tList("typeSeriesModern")
+                      : tList("typeBook")}
+                  {item.year ? ` · ${item.year}` : ""}
+                </div>
+              </div>
+              <div className="shrink-0 text-right">
+                <div className="inline-flex rounded-full border border-blue-100 bg-blue-50 px-2 py-1 text-[10px] font-semibold text-blue-700">
+                  {tList("trendingBadge")}
+                </div>
+                <div className="mt-1 text-xs font-medium text-muted-foreground">
+                  {tList("trendingAction")}
+                </div>
+              </div>
+            </button>
           </article>
         ))}
       </div>
