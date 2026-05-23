@@ -300,7 +300,7 @@ export default function HomePage() {
 
       try {
         const trends = await api<TitleSearchItem[]>(
-          `/titles/trending?limit=${HOME_DISCUSSION_LIMIT * 2}`,
+          `/titles/popular?limit=${HOME_DISCUSSION_LIMIT * 2}`,
         );
         setTrendingTitles(selectTrendingFillers(latest, trends, missingCount));
       } catch {

@@ -76,13 +76,13 @@ public class TitleController {
                 .collect(Collectors.toList());
     }
 
-    @GetMapping("/trending")
-    public List<TitleSearchItemDto> trending(
+    @GetMapping("/popular")
+    public List<TitleSearchItemDto> popular(
             @RequestParam(value = "limit", defaultValue = "6") int limit,
             @RequestHeader(value = HttpHeaders.ACCEPT_LANGUAGE, required = false) String language
     ) {
         int safeLimit = Math.max(1, Math.min(limit, 20));
-        return tmdbClient.trendingMixedWeekly(language, safeLimit).stream()
+        return tmdbClient.availablePopular(language, safeLimit).stream()
                 .map(this::fromTmdbItem)
                 .collect(Collectors.toList());
     }

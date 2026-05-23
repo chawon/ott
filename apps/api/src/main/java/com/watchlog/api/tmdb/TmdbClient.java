@@ -10,9 +10,11 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -21,7 +23,7 @@ public class TmdbClient {
 
     private final RestClient rest;
     private final TmdbProperties props;
-    private final ConcurrentHashMap<String, TrendingCacheEntry> trendingCache =
+    private final ConcurrentHashMap<String, FallbackCacheEntry> fallbackCache =
             new ConcurrentHashMap<>();
 
     public TmdbClient(@Qualifier("tmdbRestClient") RestClient tmdbRestClient, TmdbProperties props) {
@@ -50,21 +52,22 @@ public class TmdbClient {
                 .toList();
     }
 
-    public List<SearchItem> trendingMixedWeekly(String language, int limit) {
+    public List<SearchItem> availablePopular(String language, int limit) {
         requireToken();
         int safeLimit = Math.max(1, Math.min(limit, 40));
-        String lang = normalizeLanguage(language);
-        String cacheKey = "week:" + lang;
+        var locale = resolveLocale(language);
+        String today = LocalDate.now().toString();
+        String cacheKey = "available:" + locale.language() + ":" + locale.region() + ":" + today;
         var now = Instant.now();
-        var cached = trendingCache.get(cacheKey);
+        var cached = fallbackCache.get(cacheKey);
         if (cached != null && cached.expiresAt().isAfter(now)) {
             return cached.items().stream().limit(safeLimit).toList();
         }
 
-        var items = fetchMixedWeeklyTrending(lang);
-        trendingCache.put(
+        var items = fetchMixedAvailablePopular(locale, today);
+        fallbackCache.put(
                 cacheKey,
-                new TrendingCacheEntry(now.plus(Duration.ofDays(1)), items)
+                new FallbackCacheEntry(now.plus(Duration.ofDays(1)), items)
         );
         return items.stream().limit(safeLimit).toList();
     }
@@ -183,9 +186,9 @@ public class TmdbClient {
         }
     }
 
-    private List<SearchItem> fetchMixedWeeklyTrending(String language) {
-        var movies = fetchTrending("movie", language);
-        var tvShows = fetchTrending("tv", language);
+    private List<SearchItem> fetchMixedAvailablePopular(LocalePreference locale, String today) {
+        var movies = fetchAvailablePopular("movie", locale, today);
+        var tvShows = fetchAvailablePopular("tv", locale, today);
         var mixed = new ArrayList<SearchItem>();
         int max = Math.max(movies.size(), tvShows.size());
         for (int i = 0; i < max; i++) {
@@ -195,11 +198,30 @@ public class TmdbClient {
         return mixed;
     }
 
-    private List<SearchItem> fetchTrending(String mediaType, String language) {
-        var uri = UriComponentsBuilder.fromPath("/trending/{mediaType}/week")
-                .queryParam("language", language)
-                .buildAndExpand(mediaType)
-                .toUriString();
+    private List<SearchItem> fetchAvailablePopular(
+            String mediaType,
+            LocalePreference locale,
+            String today
+    ) {
+        var builder = UriComponentsBuilder.fromPath("/discover/{mediaType}")
+                .queryParam("include_adult", "false")
+                .queryParam("language", locale.language())
+                .queryParam("page", 1)
+                .queryParam("sort_by", "popularity.desc")
+                .queryParam("watch_region", locale.region())
+                .queryParam("with_watch_monetization_types", "flatrate|free|ads|rent|buy");
+
+        if ("movie".equals(mediaType)) {
+            builder
+                    .queryParam("include_video", "false")
+                    .queryParam("release_date.lte", today);
+        } else {
+            builder
+                    .queryParam("first_air_date.lte", today)
+                    .queryParam("include_null_first_air_dates", "false");
+        }
+
+        var uri = builder.buildAndExpand(mediaType).toUriString();
 
         var res = rest.get().uri(uri).retrieve().body(SearchResponse.class);
         if (res == null || res.results == null) return List.of();
@@ -217,14 +239,33 @@ public class TmdbClient {
                 .toList();
     }
 
-    private String normalizeLanguage(String language) {
+    private LocalePreference resolveLocale(String language) {
         String lang = (language == null || language.isBlank())
                 ? props.language()
                 : language;
-        String primary = lang.split(",", 2)[0].trim();
-        if ("ko".equalsIgnoreCase(primary)) return "ko-KR";
-        if ("en".equalsIgnoreCase(primary)) return "en-US";
-        return primary.isBlank() ? props.language() : primary;
+        String primary = lang.split(",", 2)[0]
+                .split(";", 2)[0]
+                .trim()
+                .replace('_', '-');
+        if (primary.isBlank()) primary = props.language();
+
+        String[] parts = primary.split("-", 3);
+        String languageCode = parts[0].toLowerCase(Locale.ROOT);
+        String region = parts.length >= 2 && !parts[1].isBlank()
+                ? parts[1].toUpperCase(Locale.ROOT)
+                : defaultRegion(languageCode);
+        return new LocalePreference(languageCode + "-" + region, region);
+    }
+
+    private String defaultRegion(String languageCode) {
+        if ("ko".equals(languageCode)) return "KR";
+        if ("en".equals(languageCode)) return "US";
+
+        String configured = props.language();
+        if (configured != null && configured.contains("-")) {
+            return configured.substring(configured.indexOf('-') + 1).toUpperCase(Locale.ROOT);
+        }
+        return "US";
     }
 
     private Integer yearFrom(String date) {
@@ -319,7 +360,9 @@ public class TmdbClient {
 
     }
 
-    private record TrendingCacheEntry(Instant expiresAt, List<SearchItem> items) {}
+    private record LocalePreference(String language, String region) {}
+
+    private record FallbackCacheEntry(Instant expiresAt, List<SearchItem> items) {}
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     static class Genre {
