@@ -21,6 +21,7 @@
 - `Accept-Language` 기반 TMDB language/watch region 추정
   - `ko`는 `KR`, region 없는 `en`은 `US`를 기본값으로 사용한다.
   - 한국어(`ko-KR`) fallback은 TMDB 주간 트렌드에서 `original_language=ko` 또는 `origin_country=KR`인 항목만 노출한다.
+  - 한국어 fallback은 필터링 후 부족해지지 않도록 주간 트렌드를 최대 5페이지까지 overfetch한다.
 - 영화는 공개일, 시리즈는 첫 방영일이 요청일 이후인 후보 제외
 - 영어 등 비한국어 fallback은 추정 region이 있으면 `watch_region`과 시청 방식(`flatrate|free|ads|rent|buy`)으로 후보 제한
 - `providerId` 기준 실제 공개 기록과 인기 작품 중복 제거

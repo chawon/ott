@@ -25,6 +25,7 @@ public class TmdbClient {
     private final TmdbProperties props;
     private final ConcurrentHashMap<String, FallbackCacheEntry> fallbackCache =
             new ConcurrentHashMap<>();
+    private static final int KOREAN_TRENDING_PAGES = 5;
 
     public TmdbClient(@Qualifier("tmdbRestClient") RestClient tmdbRestClient, TmdbProperties props) {
         this.rest = tmdbRestClient;
@@ -66,7 +67,7 @@ public class TmdbClient {
         }
 
         var items = locale.koreanFallback()
-                ? fetchMixedKoreanTrending(locale.language(), today)
+                ? fetchMixedKoreanTrending(locale.language(), today, safeLimit)
                 : fetchMixedAvailablePopular(locale, today);
         fallbackCache.put(
                 cacheKey,
@@ -201,9 +202,14 @@ public class TmdbClient {
         return mixed;
     }
 
-    private List<SearchItem> fetchMixedKoreanTrending(String language, String today) {
-        var movies = fetchKoreanTrending("movie", language, today);
-        var tvShows = fetchKoreanTrending("tv", language, today);
+    private List<SearchItem> fetchMixedKoreanTrending(
+            String language,
+            String today,
+            int limit
+    ) {
+        int perTypeLimit = Math.max(6, limit);
+        var movies = fetchKoreanTrending("movie", language, today, perTypeLimit);
+        var tvShows = fetchKoreanTrending("tv", language, today, perTypeLimit);
         var mixed = new ArrayList<SearchItem>();
         int max = Math.max(movies.size(), tvShows.size());
         for (int i = 0; i < max; i++) {
@@ -213,28 +219,39 @@ public class TmdbClient {
         return mixed;
     }
 
-    private List<SearchItem> fetchKoreanTrending(String mediaType, String language, String today) {
-        var uri = UriComponentsBuilder.fromPath("/trending/{mediaType}/week")
-                .queryParam("language", language)
-                .buildAndExpand(mediaType)
-                .toUriString();
+    private List<SearchItem> fetchKoreanTrending(
+            String mediaType,
+            String language,
+            String today,
+            int limit
+    ) {
+        var items = new ArrayList<SearchItem>();
+        for (int page = 1; page <= KOREAN_TRENDING_PAGES && items.size() < limit; page++) {
+            var uri = UriComponentsBuilder.fromPath("/trending/{mediaType}/week")
+                    .queryParam("language", language)
+                    .queryParam("page", page)
+                    .buildAndExpand(mediaType)
+                    .toUriString();
 
-        var res = rest.get().uri(uri).retrieve().body(SearchResponse.class);
-        if (res == null || res.results == null) return List.of();
+            var res = rest.get().uri(uri).retrieve().body(SearchResponse.class);
+            if (res == null || res.results == null || res.results.isEmpty()) break;
 
-        return res.results.stream()
-                .filter(r -> r.id != null)
-                .filter(r -> !Boolean.TRUE.equals(r.adult))
-                .peek(r -> {
-                    if (r.mediaType == null || r.mediaType.isBlank()) {
-                        r.mediaType = mediaType;
-                    }
-                })
-                .filter(r -> "movie".equals(r.mediaType) || "tv".equals(r.mediaType))
-                .filter(this::isKoreanContent)
-                .filter(r -> isReleased(r, today))
-                .filter(r -> r.displayName() != null && !r.displayName().isBlank())
-                .toList();
+            var pageItems = res.results.stream()
+                    .filter(r -> r.id != null)
+                    .filter(r -> !Boolean.TRUE.equals(r.adult))
+                    .peek(r -> {
+                        if (r.mediaType == null || r.mediaType.isBlank()) {
+                            r.mediaType = mediaType;
+                        }
+                    })
+                    .filter(r -> "movie".equals(r.mediaType) || "tv".equals(r.mediaType))
+                    .filter(this::isKoreanContent)
+                    .filter(r -> isReleased(r, today))
+                    .filter(r -> r.displayName() != null && !r.displayName().isBlank())
+                    .toList();
+            items.addAll(pageItems);
+        }
+        return items.stream().limit(limit).toList();
     }
 
     private List<SearchItem> fetchAvailablePopular(

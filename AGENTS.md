@@ -225,7 +225,8 @@ feature/* ──PR──→ main ──→ [자동] staging.ottline.app
    1. TMDB movie/tv 인기 작품을 혼합해 반환한다.
    2. `Accept-Language`에서 language/watch region을 추정하고 공개일·첫 방영일·시청 가능 region을 기준으로 후보를 제한한다.
    3. 한국어(`ko-KR`) fallback은 TMDB 주간 트렌드에서 `original_language=ko` 또는 `origin_country=KR`인 항목만 노출한다.
-   4. 서버 내부에서 언어/지역별 1일 캐시하며, 홈의 함께 기록 부족분 보충에만 사용한다.
+   4. 한국어 fallback은 필터링 후 부족해지지 않도록 주간 트렌드를 최대 5페이지까지 overfetch한다.
+   5. 서버 내부에서 언어/지역별 1일 캐시하며, 홈의 함께 기록 부족분 보충에만 사용한다.
 3. `GET /api/titles/{id}`
    1. 내부 UUID title 스냅샷 반환
 
