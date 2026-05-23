@@ -57,14 +57,17 @@ public class TmdbClient {
         int safeLimit = Math.max(1, Math.min(limit, 40));
         var locale = resolveLocale(language);
         String today = LocalDate.now().toString();
-        String cacheKey = "available:" + locale.language() + ":" + locale.region() + ":" + today;
+        String mode = locale.koreanFallback() ? "trending-ko" : "available";
+        String cacheKey = mode + ":" + locale.language() + ":" + locale.region() + ":" + today;
         var now = Instant.now();
         var cached = fallbackCache.get(cacheKey);
         if (cached != null && cached.expiresAt().isAfter(now)) {
             return cached.items().stream().limit(safeLimit).toList();
         }
 
-        var items = fetchMixedAvailablePopular(locale, today);
+        var items = locale.koreanFallback()
+                ? fetchMixedKoreanTrending(locale.language(), today)
+                : fetchMixedAvailablePopular(locale, today);
         fallbackCache.put(
                 cacheKey,
                 new FallbackCacheEntry(now.plus(Duration.ofDays(1)), items)
@@ -198,6 +201,42 @@ public class TmdbClient {
         return mixed;
     }
 
+    private List<SearchItem> fetchMixedKoreanTrending(String language, String today) {
+        var movies = fetchKoreanTrending("movie", language, today);
+        var tvShows = fetchKoreanTrending("tv", language, today);
+        var mixed = new ArrayList<SearchItem>();
+        int max = Math.max(movies.size(), tvShows.size());
+        for (int i = 0; i < max; i++) {
+            if (i < movies.size()) mixed.add(movies.get(i));
+            if (i < tvShows.size()) mixed.add(tvShows.get(i));
+        }
+        return mixed;
+    }
+
+    private List<SearchItem> fetchKoreanTrending(String mediaType, String language, String today) {
+        var uri = UriComponentsBuilder.fromPath("/trending/{mediaType}/week")
+                .queryParam("language", language)
+                .buildAndExpand(mediaType)
+                .toUriString();
+
+        var res = rest.get().uri(uri).retrieve().body(SearchResponse.class);
+        if (res == null || res.results == null) return List.of();
+
+        return res.results.stream()
+                .filter(r -> r.id != null)
+                .filter(r -> !Boolean.TRUE.equals(r.adult))
+                .peek(r -> {
+                    if (r.mediaType == null || r.mediaType.isBlank()) {
+                        r.mediaType = mediaType;
+                    }
+                })
+                .filter(r -> "movie".equals(r.mediaType) || "tv".equals(r.mediaType))
+                .filter(this::isKoreanContent)
+                .filter(r -> isReleased(r, today))
+                .filter(r -> r.displayName() != null && !r.displayName().isBlank())
+                .toList();
+    }
+
     private List<SearchItem> fetchAvailablePopular(
             String mediaType,
             LocalePreference locale,
@@ -210,10 +249,6 @@ public class TmdbClient {
                 .queryParam("sort_by", "popularity.desc")
                 .queryParam("watch_region", locale.region())
                 .queryParam("with_watch_monetization_types", "flatrate|free|ads|rent|buy");
-
-        if (locale.koreanFallback()) {
-            builder.queryParam("with_origin_country", "KR");
-        }
 
         if ("movie".equals(mediaType)) {
             builder
@@ -241,6 +276,18 @@ public class TmdbClient {
                 .filter(r -> "movie".equals(r.mediaType) || "tv".equals(r.mediaType))
                 .filter(r -> r.displayName() != null && !r.displayName().isBlank())
                 .toList();
+    }
+
+    private boolean isKoreanContent(SearchItem item) {
+        if ("ko".equalsIgnoreCase(item.originalLanguage)) return true;
+        return item.originCountries != null &&
+                item.originCountries.stream().anyMatch("KR"::equalsIgnoreCase);
+    }
+
+    private boolean isReleased(SearchItem item, String today) {
+        String date = "tv".equals(item.mediaType) ? item.firstAirDate : item.releaseDate;
+        if (date == null || date.length() < 10) return false;
+        return date.substring(0, 10).compareTo(today) <= 0;
     }
 
     private LocalePreference resolveLocale(String language) {
@@ -342,6 +389,12 @@ public class TmdbClient {
 
         @JsonProperty("first_air_date")
         String firstAirDate;
+
+        @JsonProperty("original_language")
+        String originalLanguage;
+
+        @JsonProperty("origin_country")
+        List<String> originCountries;
 
         @JsonProperty("poster_path")
         String posterPath;
