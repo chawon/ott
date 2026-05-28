@@ -10,6 +10,12 @@
 - 대상 트랙: Google Play `alpha`
 - 배포 워크플로우: `.github/workflows/twa-release.yml`
 
+## 배포 상태
+- Web production deploy run: `26554196848`
+- TWA release run: `26554394942`
+- Google Play `alpha`: `1.0.7` (`versionCode=11`), `status=completed`
+- 확인: `gplay tracks get --package app.ottline --track alpha`
+
 ## 범위
 - 대상:
   - `apps/twa/app/build.gradle`

@@ -232,9 +232,12 @@ adb install -r apps/twa/app/build/outputs/apk/debug/app-debug.apk
   - 12명 이상 실제 테스터가 2026-05-21에 opt-in했다는 전제에서 가장 빠른 재신청 기준일은 2026-06-04 이후
 
 ### 진행 업데이트 (2026-05-28)
-- Android 비공개 테스트 피드백 진단 정보 업데이트 후보 준비
+- Android 비공개 테스트 피드백 진단 정보 업데이트 alpha 배포 완료
   - 버전: `1.0.7` (`versionCode=11`)
+  - Web production deploy run: `26554196848`
+  - TWA release run: `26554394942`
+  - Google Play `alpha`: `1.0.7` (`versionCode=11`), `status=completed`
   - 목표: 테스트 문의 본문에 앱 버전, 진입 경로, 언어, 표시 모드, User-Agent를 자동 입력해 피드백 조치 이력을 남기기 쉽게 함
   - TWA 시작 URL과 launcher shortcuts가 release 입력값 기반 `android_app_version`, `android_app_version_code`를 웹에 전달
-  - Play alpha release notes 입력값 정리 완료
+  - Play alpha release notes 입력 및 `gplay tracks get` 확인 완료
   - 관련 설계 메모: `docs/twa-android-alpha-feedback-diagnostics-2026-05-28.md`

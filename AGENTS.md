@@ -95,13 +95,14 @@
 2. 현재 기준
    1. Google Play internal/release 경로는 `apps/twa` 기반 Bubblewrap TWA
    2. 패키지명 `app.ottline`, 도메인 `ottline.app`, 워크플로우는 `twa-debug.yml` / `twa-build-aab.yml` / `twa-release.yml`
-   3. `2026-05-21` 기준 Google Play `alpha` 최신 버전은 `1.0.6` (`versionCode=10`, `status=completed`)이며, `2026-05-11`의 `1.0.5` 테스트 피드백 루프 위에 비공개 테스트 재시작을 위한 version-only refresh로 업로드됐다. Android 런처 shortcuts, PWA/TWA Web Share Target, 홈 위젯 영상/책/타임라인 액션, 테스트 피드백 루프는 `1.0.5`에서 반영됐고, `1.0.6`은 새 14일 테스트 사이클을 시작하기 위한 배포다.
-   4. Google Play 프로덕션 액세스 신청은 승인되지 않았다. Play 검토 사유는 비공개 테스트 중 실제 테스터 참여가 없었고, 사용자 의견 수집/조치/앱 업데이트 같은 테스트 권장사항을 충족하지 못했다는 점이다. `2026-05-21` `gplay` 재확인 기준 production 트랙 릴리즈는 없고, `alpha` 테스터 그룹은 `ottline-beta-testers@googlegroups.com`가 연결돼 있다. 재신청 전 실제 테스터 12명 이상이 Google Play closed test에 opt-in하고 14일 연속 유지되며, 참여/피드백/조치 이력을 남겨야 한다.
+   3. `2026-05-28` 기준 Google Play `alpha` 최신 버전은 `1.0.7` (`versionCode=11`, `status=completed`)이다. `1.0.7`은 Android 비공개 테스트 피드백 진단 정보 업데이트로, TWA 시작 URL/launcher shortcuts가 앱 버전 정보를 웹에 전달하고 `/feedback?source=android-alpha`, `/feedback?source=android-alpha-share` 문의 본문에 앱 버전, 진입 경로, 언어, 표시 모드, User-Agent를 자동 입력한다.
+   4. Google Play 프로덕션 액세스 신청은 승인되지 않았다. Play 검토 사유는 비공개 테스트 중 실제 테스터 참여가 없었고, 사용자 의견 수집/조치/앱 업데이트 같은 테스트 권장사항을 충족하지 못했다는 점이다. `2026-05-28` `gplay` 재확인 기준 production 트랙 릴리즈는 없고, `alpha` 테스터 그룹은 `ottline-beta-testers@googlegroups.com`가 연결돼 있다. 재신청 전 실제 테스터 12명 이상이 Google Play closed test에 opt-in하고 14일 연속 유지되며, 참여/피드백/조치 이력을 남겨야 한다.
    5. `2026-05-11` 기준 비공개 테스트를 재진행했고, `1.0.5` (`versionCode=9`) 테스트 피드백 루프 업데이트를 `alpha`에 업로드했다. Google Play TWA 세션에서만 보이는 설정 화면 Android 테스트 체크리스트, 문의함 preset(`/feedback?source=android-alpha`, `/feedback?source=android-alpha-share`), QuickLog 공유 진입 성공/실패 안내, Play release notes 입력을 함께 반영했다.
    6. `2026-05-21` 기준 `1.0.6` (`versionCode=10`)을 Google Play `alpha`에 업로드해 비공개 테스트를 다시 시작했다. 12명 이상 테스터가 모두 opt-in한 시점부터 14일 연속 조건을 계산하며, 모두 2026-05-21에 opt-in했다는 전제에서 가장 빠른 재신청 기준일은 2026-06-04 이후다.
-   7. 현재 로컬 작업환경(WSL on ARM Linux)에서는 Android Gradle 빌드(`assembleDebug`, `bundleRelease`)가 `aapt2` 바이너리 호환 문제로 실패하는 것이 정상 제약이다. 로컬 Android 빌드 실패를 회귀로 보지 말고, APK/AAB 산출물 검증과 Play 배포는 GitHub Actions를 source of truth로 사용한다.
-   8. 로컬 Gradle은 필요 시 `apps/twa`에서 `GRADLE_USER_HOME=./.gradle ./gradlew :app:generateShorcutsFile --no-daemon` 같은 리소스 생성 확인까지만 제한적으로 사용한다.
-   9. `feat/native-mobile-app`의 `apps/native`는 React Native + Expo 후보 앱이며, main 미머지 상태이고 배포 파이프라인은 아직 없음
+   7. `2026-05-28` 기준 `1.0.7` (`versionCode=11`)을 Google Play `alpha`에 업로드했다. Web production run `26554196848`, TWA release run `26554394942`, main SHA `c9413fc`(기능 SHA `d6a4d2b`)이며 `gplay tracks get`으로 `alpha`의 `1.0.7`/`11`/`completed` 반영을 확인했다.
+   8. 현재 로컬 작업환경(WSL on ARM Linux)에서는 Android Gradle 빌드(`assembleDebug`, `bundleRelease`)가 `aapt2` 바이너리 호환 문제로 실패하는 것이 정상 제약이다. 로컬 Android 빌드 실패를 회귀로 보지 말고, APK/AAB 산출물 검증과 Play 배포는 GitHub Actions를 source of truth로 사용한다.
+   9. 로컬 Gradle은 필요 시 `apps/twa`에서 `GRADLE_USER_HOME=./.gradle ./gradlew :app:generateShorcutsFile --no-daemon` 같은 리소스 생성 확인까지만 제한적으로 사용한다.
+   10. `feat/native-mobile-app`의 `apps/native`는 React Native + Expo 후보 앱이며, main 미머지 상태이고 배포 파이프라인은 아직 없음
 
 ### P1
 1. Public repo 보안 후속 정리

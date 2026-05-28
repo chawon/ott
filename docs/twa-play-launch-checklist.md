@@ -262,9 +262,14 @@
   - [x] 웹에서 Android 앱 버전 맥락을 로컬 저장
   - [x] `/feedback?source=android-alpha` 문의 본문에 진단 정보 자동 입력
   - [x] `/feedback?source=android-alpha-share` 공유 기록 문의 본문에 진단 정보 자동 입력
-- [ ] GitHub Actions `twa-release.yml`로 `alpha` 배포
-  - 입력 예정: `version_code=11`, `version_name=1.0.7`, `track=alpha`, `release_status=completed`, `rollout=1.0`
+- [x] GitHub Actions `twa-release.yml`로 `alpha` 배포
+  - Run: `26554394942`
+  - 입력: `version_code=11`, `version_name=1.0.7`, `track=alpha`, `release_status=completed`, `rollout=1.0`
   - 릴리스 노트: `Improved Android closed-test feedback diagnostics. Testers can now send feedback with app version, entry path, locale, display mode, and device context attached for widget, shortcut, sharing, and logging checks.`
+- [x] Play alpha 트랙에서 `1.0.7` 반영 확인
+  - `alpha`: `1.0.7` (`versionCode=11`), `status=completed`
+  - 확인: `gplay tracks get --package app.ottline --track alpha`
+  - Web production deploy run: `26554196848`
 
 ## 8) 출시 후 모니터링
 - [ ] Crash/ANR 모니터링 (출시 직후 24~72시간 집중)
