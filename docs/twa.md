@@ -240,4 +240,6 @@ adb install -r apps/twa/app/build/outputs/apk/debug/app-debug.apk
   - 목표: 테스트 문의 본문에 앱 버전, 진입 경로, 언어, 표시 모드, User-Agent를 자동 입력해 피드백 조치 이력을 남기기 쉽게 함
   - TWA 시작 URL과 launcher shortcuts가 release 입력값 기반 `android_app_version`, `android_app_version_code`를 웹에 전달
   - Play alpha release notes 입력 및 `gplay tracks get` 확인 완료
+  - 2026-05-28 테스터 단말 Google Play에 업데이트가 노출됐고, 사용자가 `1.0.7` 업데이트 설치를 완료했다고 확인
+  - 후속 확인: Google Play TWA에서도 앱 재개/내부 이동 시 `android-app://app.ottline` referrer가 비어 설정의 Android 테스트 의견 카드가 숨을 수 있어, Android standalone 앱 컨텍스트와 `1.0.7` 버전 진단 컨텍스트도 TWA 세션으로 인정하도록 보강
   - 관련 설계 메모: `docs/twa-android-alpha-feedback-diagnostics-2026-05-28.md`

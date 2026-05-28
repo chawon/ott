@@ -12,6 +12,10 @@ import { useLocale, useTranslations } from "next-intl";
 import { type ReactNode, useCallback, useEffect, useState } from "react";
 import ProfileEditor from "@/components/ProfileEditor";
 import { Link as IntlLink } from "@/i18n/routing";
+import {
+  readAndroidAppContext,
+  recordAndroidAppContextFromCurrentUrl,
+} from "@/lib/androidAppContext";
 import { api } from "@/lib/api";
 import { pairWithCode } from "@/lib/auth";
 import { downloadTimelineCsv } from "@/lib/export";
@@ -70,16 +74,25 @@ function isGooglePlayTwaContext() {
   if (typeof window === "undefined") return false;
   const ref = document.referrer.toLowerCase();
   const fromOttlineTwa = ref.startsWith("android-app://app.ottline");
+  const androidAppContext =
+    recordAndroidAppContextFromCurrentUrl() ?? readAndroidAppContext();
+  const fromVersionedAndroidApp = Boolean(
+    androidAppContext?.versionName || androidAppContext?.versionCode,
+  );
+  const ua = window.navigator.userAgent.toLowerCase();
+  const fromAndroidStandalone =
+    ua.includes("android") &&
+    window.matchMedia?.("(display-mode: standalone)").matches;
 
   try {
-    if (fromOttlineTwa) {
+    if (fromOttlineTwa || fromVersionedAndroidApp || fromAndroidStandalone) {
       sessionStorage.setItem(ANDROID_TWA_SESSION_KEY, "1");
       return true;
     }
 
     return sessionStorage.getItem(ANDROID_TWA_SESSION_KEY) === "1";
   } catch {
-    return fromOttlineTwa;
+    return fromOttlineTwa || fromVersionedAndroidApp || fromAndroidStandalone;
   }
 }
 
