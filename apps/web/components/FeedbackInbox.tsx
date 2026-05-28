@@ -3,6 +3,10 @@
 import { MailQuestion, MessagesSquare } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
+import {
+  readAndroidAppContext,
+  recordAndroidAppContextFromCurrentUrl,
+} from "@/lib/androidAppContext";
 import { api, ensureAuthIds } from "@/lib/api";
 import type {
   CreateFeedbackThreadRequest,
@@ -16,10 +20,14 @@ const categories: FeedbackCategory[] = ["QUESTION", "BUG", "IDEA", "OTHER"];
 
 export type FeedbackPreset = {
   source?: string;
+  from?: string;
   category?: FeedbackCategory;
   subject?: string;
   body?: string;
 };
+
+const androidTestSources = new Set(["android-alpha", "android-alpha-share"]);
+const diagnosticMaxLength = 360;
 
 function formatDate(value: string, locale: string) {
   return new Date(value).toLocaleString(locale === "ko" ? "ko-KR" : "en-US", {
@@ -32,6 +40,97 @@ function formatDate(value: string, locale: string) {
 
 function errorMessage(error: unknown, fallback: string) {
   return error instanceof Error ? error.message : fallback;
+}
+
+function cleanDiagnosticValue(
+  value: string | null | undefined,
+  fallback = "unknown",
+) {
+  const normalized = value?.replace(/\s+/g, " ").trim();
+  if (!normalized) return fallback;
+  if (normalized.length <= diagnosticMaxLength) return normalized;
+  return `${normalized.slice(0, diagnosticMaxLength)}...`;
+}
+
+function detectDisplayMode() {
+  if (typeof window === "undefined") return "unknown";
+  const referrer = document.referrer.toLowerCase();
+  if (referrer.startsWith("android-app://")) return "twa";
+  if (window.matchMedia?.("(display-mode: standalone)").matches) {
+    return "standalone";
+  }
+  return "browser";
+}
+
+function buildAndroidDiagnosticBlock(
+  preset: FeedbackPreset,
+  locale: string,
+  t: ReturnType<typeof useTranslations>,
+) {
+  const source = preset.source?.trim();
+  if (!source || !androidTestSources.has(source)) return "";
+  if (typeof window === "undefined") return "";
+
+  const context =
+    recordAndroidAppContextFromCurrentUrl() ?? readAndroidAppContext();
+  const unknown = t("androidDiagnosticUnknown");
+  const appVersion = context?.versionName
+    ? context.versionCode
+      ? `${context.versionName} (${context.versionCode})`
+      : context.versionName
+    : unknown;
+  const currentPath = `${window.location.pathname}${window.location.search}`;
+  const entryPath = preset.from || context?.launchPath || document.referrer;
+
+  const lines = [
+    t("androidDiagnosticTitle"),
+    `${t("androidDiagnosticSource")}: ${cleanDiagnosticValue(source, unknown)}`,
+    `${t("androidDiagnosticAppVersion")}: ${cleanDiagnosticValue(
+      appVersion,
+      unknown,
+    )}`,
+    `${t("androidDiagnosticEntryPath")}: ${cleanDiagnosticValue(
+      entryPath,
+      unknown,
+    )}`,
+    `${t("androidDiagnosticCurrentPath")}: ${cleanDiagnosticValue(
+      currentPath,
+      unknown,
+    )}`,
+    `${t("androidDiagnosticSharedEntry")}: ${t(
+      source === "android-alpha-share"
+        ? "androidDiagnosticYes"
+        : "androidDiagnosticNo",
+    )}`,
+    `${t("androidDiagnosticDisplayMode")}: ${cleanDiagnosticValue(
+      detectDisplayMode(),
+      unknown,
+    )}`,
+    `${t("androidDiagnosticLocale")}: ${cleanDiagnosticValue(
+      `${locale} / ${window.navigator.language || "unknown"}`,
+      unknown,
+    )}`,
+    `${t("androidDiagnosticUserAgent")}: ${cleanDiagnosticValue(
+      window.navigator.userAgent,
+      unknown,
+    )}`,
+    `${t("androidDiagnosticRecordedAt")}: ${new Date().toISOString()}`,
+  ];
+
+  return lines.join("\n");
+}
+
+function appendAndroidDiagnostics(
+  body: string,
+  preset: FeedbackPreset,
+  locale: string,
+  t: ReturnType<typeof useTranslations>,
+) {
+  const diagnostics = buildAndroidDiagnosticBlock(preset, locale, t);
+  if (!diagnostics || body.includes(t("androidDiagnosticTitle"))) {
+    return body;
+  }
+  return `${body.trimEnd()}\n\n${diagnostics}`;
 }
 
 function resolvePreset(
@@ -130,9 +229,11 @@ export default function FeedbackInbox({ preset }: { preset?: FeedbackPreset }) {
     appliedPresetRef.current = key;
     setCategory(next.category);
     setSubject((prev) => prev || next.subject);
-    setBody((prev) => prev || next.body);
+    setBody(
+      (prev) => prev || appendAndroidDiagnostics(next.body, preset, locale, t),
+    );
     setPresetNotice(next.notice);
-  }, [preset, t]);
+  }, [locale, preset, t]);
 
   async function openThread(id: string) {
     setSelectedId(id);

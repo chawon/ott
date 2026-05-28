@@ -89,7 +89,7 @@ function selectTrendingFillers(
 }
 
 function feedbackHref(source: string) {
-  const params = new URLSearchParams({ source });
+  const params = new URLSearchParams({ source, from: "home" });
   return `/feedback?${params.toString()}`;
 }
 

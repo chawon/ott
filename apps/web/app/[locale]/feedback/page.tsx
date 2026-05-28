@@ -30,6 +30,7 @@ export default async function FeedbackPage({
   const params = (await searchParams) ?? {};
   const preset: FeedbackPreset = {
     source: single(params.source),
+    from: single(params.from),
     category: toCategory(single(params.category)),
     subject: single(params.subject),
     body: single(params.body),
