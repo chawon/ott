@@ -270,6 +270,10 @@
   - `alpha`: `1.0.7` (`versionCode=11`), `status=completed`
   - 확인: `gplay tracks get --package app.ottline --track alpha`
   - Web production deploy run: `26554196848`
+- [x] Google Play 설치본 업데이트 노출 및 설치 확인
+  - 2026-05-28 테스터 단말 Google Play에 업데이트가 노출됐고, 사용자가 `1.0.7` 업데이트 설치를 완료했다고 확인
+- [x] Google Play TWA Android 테스트 카드 노출 보강
+  - TWA 앱 재개/내부 이동에서 referrer가 비는 경우를 대비해 Android standalone 앱 컨텍스트와 `1.0.7` 버전 진단 컨텍스트도 TWA 세션으로 인정
 
 ## 8) 출시 후 모니터링
 - [ ] Crash/ANR 모니터링 (출시 직후 24~72시간 집중)
