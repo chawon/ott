@@ -256,6 +256,16 @@
 - [ ] 앱 사용/피드백/조치 증빙 정리
 - 참고: 12명 이상 테스터가 모두 2026-05-21에 opt-in했다는 전제에서 가장 빠른 재신청 기준일은 2026-06-04 이후
 
+### 진행 업데이트 (2026-05-28, Android 테스트 진단 정보)
+- [x] `1.0.7` (`versionCode=11`) alpha 업데이트 후보 정리
+  - [x] Android TWA 시작 URL과 launcher shortcuts에 앱 버전 진단 파라미터 추가
+  - [x] 웹에서 Android 앱 버전 맥락을 로컬 저장
+  - [x] `/feedback?source=android-alpha` 문의 본문에 진단 정보 자동 입력
+  - [x] `/feedback?source=android-alpha-share` 공유 기록 문의 본문에 진단 정보 자동 입력
+- [ ] GitHub Actions `twa-release.yml`로 `alpha` 배포
+  - 입력 예정: `version_code=11`, `version_name=1.0.7`, `track=alpha`, `release_status=completed`, `rollout=1.0`
+  - 릴리스 노트: `Improved Android closed-test feedback diagnostics. Testers can now send feedback with app version, entry path, locale, display mode, and device context attached for widget, shortcut, sharing, and logging checks.`
+
 ## 8) 출시 후 모니터링
 - [ ] Crash/ANR 모니터링 (출시 직후 24~72시간 집중)
 - [ ] 로그인/기록 저장 성공률 점검

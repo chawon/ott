@@ -2,6 +2,7 @@ import type { Viewport } from "next";
 import "../globals.css";
 import { NextIntlClientProvider } from "next-intl";
 import { getMessages, getTranslations } from "next-intl/server";
+import AndroidAppContextRecorder from "@/components/AndroidAppContextRecorder";
 import AppFooter from "@/components/AppFooter";
 import AppHeader from "@/components/AppHeader";
 import BottomNav from "@/components/BottomNav";
@@ -184,6 +185,7 @@ export default async function RootLayout({
               </div>
             )}
             <ChunkErrorHandler />
+            <AndroidAppContextRecorder />
             <AppHeader />
             <SwipeNav />
             <PwaInstallBanner />

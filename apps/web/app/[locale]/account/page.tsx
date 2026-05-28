@@ -600,7 +600,7 @@ export default function AccountPage() {
               </ul>
             </div>
             <IntlLink
-              href="/feedback?source=android-alpha"
+              href="/feedback?source=android-alpha&from=account"
               className={cn(
                 "flex w-full items-center justify-center gap-2 px-4 py-3 text-center text-sm font-bold transition-all break-keep",
                 "rounded-2xl bg-blue-700 text-white hover:bg-blue-800",

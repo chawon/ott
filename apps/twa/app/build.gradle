@@ -32,7 +32,7 @@ def releaseVersionName = project.findProperty("releaseVersionName") ?: "1.0.0"
 def twaManifest = [
     applicationId: 'app.ottline',
     hostName: 'ottline.app', // The domain being opened in the TWA.
-    launchUrl: '/', // The start path for the TWA. Must be relative to the domain.
+    launchUrl: "/?android_app_version=${releaseVersionName}&android_app_version_code=${releaseVersionCode}", // The start path for the TWA. Must be relative to the domain.
     name: 'ottline', // The application name.
     launcherName: 'ottline', // The name shown on the Android Launcher.
     themeColor: '#1E4D8C', // The color used for the status bar.
@@ -53,28 +53,28 @@ def twaManifest = [
             id: 'record',
             name: '기록하기',
             short_name: '기록',
-            url: 'https://ottline.app/?quick=1&quick_focus=1',
+            url: "https://ottline.app/?quick=1&quick_focus=1&android_app_version=${releaseVersionName}&android_app_version_code=${releaseVersionCode}",
             icon: 'shortcut_record'
         ],
         [
             id: 'video',
             name: '영상 기록',
             short_name: '영상',
-            url: 'https://ottline.app/?quick=1&quick_type=video&quick_focus=1',
+            url: "https://ottline.app/?quick=1&quick_type=video&quick_focus=1&android_app_version=${releaseVersionName}&android_app_version_code=${releaseVersionCode}",
             icon: 'shortcut_video'
         ],
         [
             id: 'book',
             name: '책 기록',
             short_name: '책',
-            url: 'https://ottline.app/?quick=1&quick_type=book&quick_focus=1',
+            url: "https://ottline.app/?quick=1&quick_type=book&quick_focus=1&android_app_version=${releaseVersionName}&android_app_version_code=${releaseVersionCode}",
             icon: 'shortcut_book'
         ],
         [
             id: 'timeline',
             name: '타임라인',
             short_name: '타임라인',
-            url: 'https://ottline.app/timeline',
+            url: "https://ottline.app/timeline?android_app_version=${releaseVersionName}&android_app_version_code=${releaseVersionCode}",
             icon: 'shortcut_timeline'
         ],
     ],
