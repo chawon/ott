@@ -242,4 +242,5 @@ adb install -r apps/twa/app/build/outputs/apk/debug/app-debug.apk
   - Play alpha release notes 입력 및 `gplay tracks get` 확인 완료
   - 2026-05-28 테스터 단말 Google Play에 업데이트가 노출됐고, 사용자가 `1.0.7` 업데이트 설치를 완료했다고 확인
   - 후속 확인: Google Play TWA에서도 앱 재개/내부 이동 시 `android-app://app.ottline` referrer가 비어 설정의 Android 테스트 의견 카드가 숨을 수 있어, Android standalone 앱 컨텍스트와 `1.0.7` 버전 진단 컨텍스트도 TWA 세션으로 인정하도록 보강
+  - Hotfix web production deploy run `26559129042` 반영 후 Google Play TWA 설치본 설정 화면에서 `Android 테스트 의견` 카드 노출을 확인
   - 관련 설계 메모: `docs/twa-android-alpha-feedback-diagnostics-2026-05-28.md`
