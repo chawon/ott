@@ -1,0 +1,139 @@
+package app.ottline;
+
+import android.Manifest;
+import android.app.Activity;
+import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.net.Uri;
+import android.os.Build;
+import android.os.Bundle;
+import android.provider.Settings;
+import android.view.ViewGroup;
+import android.widget.Button;
+import android.widget.LinearLayout;
+import android.widget.ScrollView;
+import android.widget.TextView;
+
+import java.util.Map;
+
+public class WatchReminderSettingsActivity extends Activity {
+    private static final int NOTIFICATION_PERMISSION_REQUEST = 529;
+
+    private LinearLayout content;
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+
+        ScrollView scrollView = new ScrollView(this);
+        content = new LinearLayout(this);
+        content.setOrientation(LinearLayout.VERTICAL);
+        int padding = dp(20);
+        content.setPadding(padding, padding, padding, padding);
+        scrollView.addView(content);
+        setContentView(scrollView);
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        render();
+    }
+
+    private void render() {
+        content.removeAllViews();
+
+        addTitle("ottline 시청 기록 알림");
+        addBody("테스트 APK 전용 기능입니다. 선택한 OTT 앱 사용이 끝난 뒤 기록 알림을 띄우는지 확인합니다.");
+        addBody("콘텐츠 제목은 읽지 않고, 앱 사용 여부만 기기 안에서 확인합니다.");
+
+        boolean enabled = WatchReminderScheduler.isEnabled(this);
+        boolean usageAccess = WatchReminderAccess.hasUsageAccess(this);
+        boolean notifications = WatchReminderAccess.canPostNotifications(this);
+
+        addStatus("기능 상태", enabled ? "켜짐" : "꺼짐");
+        addStatus("사용 정보 접근", usageAccess ? "허용됨" : "필요함");
+        addStatus("알림 권한", notifications ? "허용됨" : "필요함");
+
+        Button toggle = addButton(enabled ? "시청 기록 알림 끄기" : "시청 기록 알림 켜기");
+        toggle.setOnClickListener(v -> {
+            WatchReminderScheduler.setEnabled(this, !WatchReminderScheduler.isEnabled(this));
+            render();
+        });
+
+        Button usage = addButton("Android 사용 정보 접근 설정 열기");
+        usage.setOnClickListener(v -> startActivity(new Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)));
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && !notifications) {
+            Button notification = addButton("알림 권한 요청");
+            notification.setOnClickListener(v -> requestPermissions(
+                    new String[]{Manifest.permission.POST_NOTIFICATIONS},
+                    NOTIFICATION_PERMISSION_REQUEST
+            ));
+        }
+
+        Button test = addButton("테스트 알림 보내기");
+        test.setOnClickListener(v -> {
+            WatchReminderTargets.Target target = WatchReminderTargets.find("com.netflix.mediaclient");
+            if (target != null) WatchReminderNotifier.show(this, target);
+        });
+
+        addTitle("감지 대상");
+        PackageManager packageManager = getPackageManager();
+        for (Map.Entry<String, WatchReminderTargets.Target> entry : WatchReminderTargets.all().entrySet()) {
+            boolean installed = isInstalled(packageManager, entry.getKey());
+            addStatus(entry.getValue().label, installed ? "설치됨" : "미설치");
+        }
+    }
+
+    private boolean isInstalled(PackageManager packageManager, String packageName) {
+        try {
+            packageManager.getPackageInfo(packageName, 0);
+            return true;
+        } catch (PackageManager.NameNotFoundException e) {
+            return false;
+        }
+    }
+
+    private void addTitle(String value) {
+        TextView view = new TextView(this);
+        view.setText(value);
+        view.setTextSize(20f);
+        view.setTypeface(view.getTypeface(), android.graphics.Typeface.BOLD);
+        view.setPadding(0, dp(14), 0, dp(8));
+        content.addView(view);
+    }
+
+    private void addBody(String value) {
+        TextView view = new TextView(this);
+        view.setText(value);
+        view.setTextSize(14f);
+        view.setLineSpacing(0, 1.15f);
+        view.setPadding(0, 0, 0, dp(8));
+        content.addView(view);
+    }
+
+    private void addStatus(String label, String value) {
+        TextView view = new TextView(this);
+        view.setText(label + ": " + value);
+        view.setTextSize(15f);
+        view.setPadding(0, dp(4), 0, dp(4));
+        content.addView(view);
+    }
+
+    private Button addButton(String value) {
+        Button button = new Button(this);
+        button.setText(value);
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+        );
+        params.setMargins(0, dp(8), 0, 0);
+        content.addView(button, params);
+        return button;
+    }
+
+    private int dp(int value) {
+        return Math.round(value * getResources().getDisplayMetrics().density);
+    }
+}
