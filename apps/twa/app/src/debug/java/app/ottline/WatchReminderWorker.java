@@ -10,8 +10,10 @@ import androidx.annotation.NonNull;
 import androidx.work.Worker;
 import androidx.work.WorkerParameters;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public final class WatchReminderWorker extends Worker {
-    private static final long INITIAL_LOOKBACK_MS = 6L * 60L * 60L * 1000L;
     private static final long MIN_SESSION_MS = 10L * 60L * 1000L;
     private static final long GLOBAL_COOLDOWN_MS = 3L * 60L * 60L * 1000L;
     private static final long APP_COOLDOWN_MS = 24L * 60L * 60L * 1000L;
@@ -33,17 +35,26 @@ public final class WatchReminderWorker extends Worker {
         SharedPreferences prefs = WatchReminderScheduler.prefs(context);
         long now = System.currentTimeMillis();
         long lastQueryAt = prefs.getLong(WatchReminderScheduler.KEY_LAST_QUERY_AT, 0L);
-        long since = lastQueryAt > 0L ? lastQueryAt : now - INITIAL_LOOKBACK_MS;
+        if (lastQueryAt <= 0L) {
+            prefs.edit()
+                    .putLong(WatchReminderScheduler.KEY_LAST_QUERY_AT, now)
+                    .apply();
+            return Result.success();
+        }
 
         UsageStatsManager usageStatsManager =
                 (UsageStatsManager) context.getSystemService(Context.USAGE_STATS_SERVICE);
         if (usageStatsManager == null) return Result.success();
 
-        String activePackage = prefs.getString(WatchReminderScheduler.KEY_ACTIVE_PACKAGE, null);
-        long activeStartAt = prefs.getLong(WatchReminderScheduler.KEY_ACTIVE_START_AT, 0L);
+        Map<String, Long> activeStarts = new HashMap<>();
+        String storedActivePackage = prefs.getString(WatchReminderScheduler.KEY_ACTIVE_PACKAGE, null);
+        long storedActiveStartAt = prefs.getLong(WatchReminderScheduler.KEY_ACTIVE_START_AT, 0L);
+        if (WatchReminderTargets.contains(storedActivePackage) && storedActiveStartAt > 0L) {
+            activeStarts.put(storedActivePackage, storedActiveStartAt);
+        }
         Candidate latestCandidate = null;
 
-        UsageEvents events = usageStatsManager.queryEvents(since, now);
+        UsageEvents events = usageStatsManager.queryEvents(lastQueryAt, now);
         UsageEvents.Event event = new UsageEvents.Event();
         while (events.hasNextEvent()) {
             events.getNextEvent(event);
@@ -53,33 +64,30 @@ public final class WatchReminderWorker extends Worker {
             int eventType = event.getEventType();
             if (isForegroundEvent(eventType)) {
                 if (WatchReminderTargets.contains(packageName)) {
-                    activePackage = packageName;
-                    activeStartAt = event.getTimeStamp();
-                } else if (activePackage != null) {
-                    latestCandidate = chooseLatest(
+                    activeStarts.put(packageName, event.getTimeStamp());
+                } else if (!activeStarts.isEmpty()) {
+                    latestCandidate = closeActiveSessions(
                             latestCandidate,
-                            buildCandidate(activePackage, activeStartAt, event.getTimeStamp())
+                            activeStarts,
+                            event.getTimeStamp()
                     );
-                    activePackage = null;
-                    activeStartAt = 0L;
                 }
             } else if (isBackgroundEvent(eventType)
-                    && activePackage != null
-                    && activePackage.equals(packageName)) {
+                    && WatchReminderTargets.contains(packageName)) {
+                Long activeStartAt = activeStarts.remove(packageName);
                 latestCandidate = chooseLatest(
                         latestCandidate,
-                        buildCandidate(activePackage, activeStartAt, event.getTimeStamp())
+                        buildCandidate(packageName, activeStartAt, event.getTimeStamp())
                 );
-                activePackage = null;
-                activeStartAt = 0L;
             }
         }
 
         SharedPreferences.Editor editor = prefs.edit()
                 .putLong(WatchReminderScheduler.KEY_LAST_QUERY_AT, now);
-        if (activePackage != null && WatchReminderTargets.contains(activePackage)) {
-            editor.putString(WatchReminderScheduler.KEY_ACTIVE_PACKAGE, activePackage)
-                    .putLong(WatchReminderScheduler.KEY_ACTIVE_START_AT, activeStartAt);
+        Candidate activeCandidate = latestActive(activeStarts);
+        if (activeCandidate != null) {
+            editor.putString(WatchReminderScheduler.KEY_ACTIVE_PACKAGE, activeCandidate.packageName)
+                    .putLong(WatchReminderScheduler.KEY_ACTIVE_START_AT, activeCandidate.endAt);
         } else {
             editor.remove(WatchReminderScheduler.KEY_ACTIVE_PACKAGE)
                     .remove(WatchReminderScheduler.KEY_ACTIVE_START_AT);
@@ -91,7 +99,7 @@ public final class WatchReminderWorker extends Worker {
             if (target != null && WatchReminderNotifier.show(context, target)) {
                 prefs.edit()
                         .putLong(WatchReminderScheduler.KEY_LAST_NOTIFICATION_AT, now)
-                        .putLong(lastNotificationKey(latestCandidate.packageName), now)
+                        .putLong(WatchReminderScheduler.lastNotificationKey(latestCandidate.packageName), now)
                         .apply();
             }
         }
@@ -118,6 +126,10 @@ public final class WatchReminderWorker extends Worker {
         return new Candidate(packageName, endAt);
     }
 
+    private static Candidate buildCandidate(String packageName, Long startAt, long endAt) {
+        return startAt == null ? null : buildCandidate(packageName, startAt, endAt);
+    }
+
     private static Candidate chooseLatest(Candidate current, Candidate next) {
         if (next == null) return current;
         if (current == null || next.endAt > current.endAt) return next;
@@ -126,12 +138,33 @@ public final class WatchReminderWorker extends Worker {
 
     private static boolean canNotify(SharedPreferences prefs, String packageName, long now) {
         long lastGlobal = prefs.getLong(WatchReminderScheduler.KEY_LAST_NOTIFICATION_AT, 0L);
-        long lastApp = prefs.getLong(lastNotificationKey(packageName), 0L);
+        long lastApp = prefs.getLong(WatchReminderScheduler.lastNotificationKey(packageName), 0L);
         return now - lastGlobal >= GLOBAL_COOLDOWN_MS && now - lastApp >= APP_COOLDOWN_MS;
     }
 
-    private static String lastNotificationKey(String packageName) {
-        return "last_notification_" + packageName;
+    private static Candidate closeActiveSessions(
+            Candidate latestCandidate,
+            Map<String, Long> activeStarts,
+            long endAt
+    ) {
+        Candidate latest = latestCandidate;
+        for (Map.Entry<String, Long> entry : activeStarts.entrySet()) {
+            latest = chooseLatest(
+                    latest,
+                    buildCandidate(entry.getKey(), entry.getValue(), endAt)
+            );
+        }
+        activeStarts.clear();
+        return latest;
+    }
+
+    private static Candidate latestActive(Map<String, Long> activeStarts) {
+        Candidate latest = null;
+        for (Map.Entry<String, Long> entry : activeStarts.entrySet()) {
+            Candidate active = new Candidate(entry.getKey(), entry.getValue());
+            latest = chooseLatest(latest, active);
+        }
+        return latest;
     }
 
     private static final class Candidate {

@@ -78,6 +78,12 @@ public class WatchReminderSettingsActivity extends Activity {
             if (target != null) WatchReminderNotifier.show(this, target);
         });
 
+        Button reset = addButton("감지 상태 초기화");
+        reset.setOnClickListener(v -> {
+            WatchReminderScheduler.resetState(this);
+            render();
+        });
+
         addTitle("감지 대상");
         PackageManager packageManager = getPackageManager();
         for (Map.Entry<String, WatchReminderTargets.Target> entry : WatchReminderTargets.all().entrySet()) {

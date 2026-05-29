@@ -10,7 +10,9 @@ import androidx.work.WorkManager;
 import java.util.concurrent.TimeUnit;
 
 final class WatchReminderScheduler {
+    private static final int STATE_VERSION = 2;
     static final String PREFS = "ottline.watch_reminder";
+    static final String KEY_STATE_VERSION = "state_version";
     static final String KEY_ENABLED = "enabled";
     static final String KEY_LAST_QUERY_AT = "last_query_at";
     static final String KEY_ACTIVE_PACKAGE = "active_package";
@@ -25,15 +27,31 @@ final class WatchReminderScheduler {
     }
 
     static boolean isEnabled(Context context) {
+        ensureStateVersion(context);
         return prefs(context).getBoolean(KEY_ENABLED, false);
     }
 
     static void setEnabled(Context context, boolean enabled) {
-        prefs(context).edit().putBoolean(KEY_ENABLED, enabled).apply();
+        ensureStateVersion(context);
+        SharedPreferences.Editor editor = prefs(context).edit()
+                .putBoolean(KEY_ENABLED, enabled);
+        resetRuntimeState(editor, System.currentTimeMillis());
+        editor.apply();
         if (enabled) {
             schedule(context);
         } else {
             cancel(context);
+        }
+    }
+
+    static void resetState(Context context) {
+        boolean enabled = isEnabled(context);
+        SharedPreferences.Editor editor = prefs(context).edit()
+                .putBoolean(KEY_ENABLED, enabled);
+        resetRuntimeState(editor, System.currentTimeMillis());
+        editor.apply();
+        if (enabled) {
+            schedule(context);
         }
     }
 
@@ -55,5 +73,33 @@ final class WatchReminderScheduler {
     static void cancel(Context context) {
         WorkManager.getInstance(context.getApplicationContext())
                 .cancelUniqueWork(WORK_NAME);
+    }
+
+    private static void ensureStateVersion(Context context) {
+        SharedPreferences sharedPreferences = prefs(context);
+        if (sharedPreferences.getInt(KEY_STATE_VERSION, 0) >= STATE_VERSION) {
+            return;
+        }
+
+        boolean enabled = sharedPreferences.getBoolean(KEY_ENABLED, false);
+        SharedPreferences.Editor editor = sharedPreferences.edit()
+                .putBoolean(KEY_ENABLED, enabled);
+        resetRuntimeState(editor, System.currentTimeMillis());
+        editor.apply();
+    }
+
+    private static void resetRuntimeState(SharedPreferences.Editor editor, long now) {
+        editor.putInt(KEY_STATE_VERSION, STATE_VERSION)
+                .putLong(KEY_LAST_QUERY_AT, now)
+                .remove(KEY_ACTIVE_PACKAGE)
+                .remove(KEY_ACTIVE_START_AT)
+                .remove(KEY_LAST_NOTIFICATION_AT);
+        for (String packageName : WatchReminderTargets.all().keySet()) {
+            editor.remove(lastNotificationKey(packageName));
+        }
+    }
+
+    static String lastNotificationKey(String packageName) {
+        return "last_notification_" + packageName;
     }
 }
