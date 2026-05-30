@@ -49,7 +49,7 @@ final class WatchReminderNotifier {
         );
 
         Notification.Builder builder = new Notification.Builder(context)
-                .setSmallIcon(R.drawable.ic_notification_icon)
+                .setSmallIcon(R.drawable.ic_watch_reminder_notification)
                 .setContentTitle("방금 본 콘텐츠를 기록해볼까요?")
                 .setContentText(target.label + "에서 본 작품을 ottline에 남겨보세요.")
                 .setContentIntent(pendingIntent)

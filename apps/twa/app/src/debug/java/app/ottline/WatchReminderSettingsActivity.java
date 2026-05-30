@@ -54,6 +54,13 @@ public class WatchReminderSettingsActivity extends Activity {
         addStatus("기능 상태", enabled ? "켜짐" : "꺼짐");
         addStatus("사용 정보 접근", usageAccess ? "허용됨" : "필요함");
         addStatus("알림 권한", notifications ? "허용됨" : "필요함");
+        addStatus(
+                "마지막 감지 결과",
+                WatchReminderScheduler.prefs(this).getString(
+                        WatchReminderScheduler.KEY_LAST_SCAN_RESULT,
+                        "아직 없음"
+                )
+        );
 
         Button toggle = addButton(enabled ? "시청 기록 알림 끄기" : "시청 기록 알림 켜기");
         toggle.setOnClickListener(v -> {
@@ -76,6 +83,12 @@ public class WatchReminderSettingsActivity extends Activity {
         test.setOnClickListener(v -> {
             WatchReminderTargets.Target target = WatchReminderTargets.find("com.netflix.mediaclient");
             if (target != null) WatchReminderNotifier.show(this, target);
+        });
+
+        Button scan = addButton("지금 감지 실행(cooldown 무시)");
+        scan.setOnClickListener(v -> {
+            WatchReminderWorker.scanNow(this, true);
+            render();
         });
 
         Button reset = addButton("감지 상태 초기화");

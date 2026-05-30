@@ -28,9 +28,17 @@ public final class WatchReminderWorker extends Worker {
     @NonNull
     @Override
     public Result doWork() {
-        Context context = getApplicationContext();
-        if (!WatchReminderScheduler.isEnabled(context)) return Result.success();
-        if (!WatchReminderAccess.hasUsageAccess(context)) return Result.success();
+        scanNow(getApplicationContext(), false);
+        return Result.success();
+    }
+
+    static String scanNow(Context context, boolean ignoreCooldown) {
+        if (!WatchReminderScheduler.isEnabled(context)) {
+            return saveResult(context, "기능 꺼짐");
+        }
+        if (!WatchReminderAccess.hasUsageAccess(context)) {
+            return saveResult(context, "사용 정보 접근 권한 없음");
+        }
 
         SharedPreferences prefs = WatchReminderScheduler.prefs(context);
         long now = System.currentTimeMillis();
@@ -39,16 +47,24 @@ public final class WatchReminderWorker extends Worker {
             prefs.edit()
                     .putLong(WatchReminderScheduler.KEY_LAST_QUERY_AT, now)
                     .apply();
-            return Result.success();
+            return saveResult(context, "감지 기준 시각 초기화됨");
         }
 
         UsageStatsManager usageStatsManager =
                 (UsageStatsManager) context.getSystemService(Context.USAGE_STATS_SERVICE);
-        if (usageStatsManager == null) return Result.success();
+        if (usageStatsManager == null) {
+            return saveResult(context, "UsageStatsManager 없음");
+        }
 
         Map<String, Long> activeStarts = new HashMap<>();
-        String storedActivePackage = prefs.getString(WatchReminderScheduler.KEY_ACTIVE_PACKAGE, null);
-        long storedActiveStartAt = prefs.getLong(WatchReminderScheduler.KEY_ACTIVE_START_AT, 0L);
+        String storedActivePackage = prefs.getString(
+                WatchReminderScheduler.KEY_ACTIVE_PACKAGE,
+                null
+        );
+        long storedActiveStartAt = prefs.getLong(
+                WatchReminderScheduler.KEY_ACTIVE_START_AT,
+                0L
+        );
         if (WatchReminderTargets.contains(storedActivePackage) && storedActiveStartAt > 0L) {
             activeStarts.put(storedActivePackage, storedActiveStartAt);
         }
@@ -58,7 +74,7 @@ public final class WatchReminderWorker extends Worker {
         UsageEvents.Event event = new UsageEvents.Event();
         while (events.hasNextEvent()) {
             events.getNextEvent(event);
-            if (lastQueryAt > 0L && event.getTimeStamp() <= lastQueryAt) continue;
+            if (event.getTimeStamp() <= lastQueryAt) continue;
 
             String packageName = event.getPackageName();
             int eventType = event.getEventType();
@@ -94,17 +110,53 @@ public final class WatchReminderWorker extends Worker {
         }
         editor.apply();
 
-        if (latestCandidate != null && canNotify(prefs, latestCandidate.packageName, now)) {
-            WatchReminderTargets.Target target = WatchReminderTargets.find(latestCandidate.packageName);
-            if (target != null && WatchReminderNotifier.show(context, target)) {
-                prefs.edit()
-                        .putLong(WatchReminderScheduler.KEY_LAST_NOTIFICATION_AT, now)
-                        .putLong(WatchReminderScheduler.lastNotificationKey(latestCandidate.packageName), now)
-                        .apply();
-            }
+        if (latestCandidate == null && ignoreCooldown) {
+            latestCandidate = readPendingCandidate(prefs);
         }
 
-        return Result.success();
+        if (latestCandidate == null) {
+            return saveResult(context, "알림 후보 없음");
+        }
+
+        WatchReminderTargets.Target target = WatchReminderTargets.find(latestCandidate.packageName);
+        if (target == null) {
+            return saveResult(context, "대상 앱 매핑 없음: " + latestCandidate.packageName);
+        }
+
+        if (!ignoreCooldown && !canNotify(prefs, latestCandidate.packageName, now)) {
+            savePendingCandidate(prefs, latestCandidate);
+            return saveResult(context, "후보 " + target.label + " · cooldown으로 보류");
+        }
+
+        if (!WatchReminderAccess.canPostNotifications(context)) {
+            savePendingCandidate(prefs, latestCandidate);
+            return saveResult(context, "후보 " + target.label + " · 알림 권한 없음");
+        }
+
+        if (WatchReminderNotifier.show(context, target)) {
+            String result = "알림 발송: " + target.label;
+            prefs.edit()
+                    .putLong(WatchReminderScheduler.KEY_LAST_NOTIFICATION_AT, now)
+                    .putLong(
+                            WatchReminderScheduler.lastNotificationKey(latestCandidate.packageName),
+                            now
+                    )
+                    .remove(WatchReminderScheduler.KEY_PENDING_PACKAGE)
+                    .remove(WatchReminderScheduler.KEY_PENDING_END_AT)
+                    .putString(WatchReminderScheduler.KEY_LAST_SCAN_RESULT, result)
+                    .apply();
+            return result;
+        }
+
+        savePendingCandidate(prefs, latestCandidate);
+        return saveResult(context, "후보 " + target.label + " · 알림 발송 실패");
+    }
+
+    private static String saveResult(Context context, String result) {
+        WatchReminderScheduler.prefs(context).edit()
+                .putString(WatchReminderScheduler.KEY_LAST_SCAN_RESULT, result)
+                .apply();
+        return result;
     }
 
     private static boolean isForegroundEvent(int type) {
@@ -140,6 +192,20 @@ public final class WatchReminderWorker extends Worker {
         long lastGlobal = prefs.getLong(WatchReminderScheduler.KEY_LAST_NOTIFICATION_AT, 0L);
         long lastApp = prefs.getLong(WatchReminderScheduler.lastNotificationKey(packageName), 0L);
         return now - lastGlobal >= GLOBAL_COOLDOWN_MS && now - lastApp >= APP_COOLDOWN_MS;
+    }
+
+    private static Candidate readPendingCandidate(SharedPreferences prefs) {
+        String packageName = prefs.getString(WatchReminderScheduler.KEY_PENDING_PACKAGE, null);
+        long endAt = prefs.getLong(WatchReminderScheduler.KEY_PENDING_END_AT, 0L);
+        if (!WatchReminderTargets.contains(packageName) || endAt <= 0L) return null;
+        return new Candidate(packageName, endAt);
+    }
+
+    private static void savePendingCandidate(SharedPreferences prefs, Candidate candidate) {
+        prefs.edit()
+                .putString(WatchReminderScheduler.KEY_PENDING_PACKAGE, candidate.packageName)
+                .putLong(WatchReminderScheduler.KEY_PENDING_END_AT, candidate.endAt)
+                .apply();
     }
 
     private static Candidate closeActiveSessions(

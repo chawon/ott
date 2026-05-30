@@ -10,14 +10,17 @@ import androidx.work.WorkManager;
 import java.util.concurrent.TimeUnit;
 
 final class WatchReminderScheduler {
-    private static final int STATE_VERSION = 2;
+    private static final int STATE_VERSION = 3;
     static final String PREFS = "ottline.watch_reminder";
     static final String KEY_STATE_VERSION = "state_version";
     static final String KEY_ENABLED = "enabled";
     static final String KEY_LAST_QUERY_AT = "last_query_at";
     static final String KEY_ACTIVE_PACKAGE = "active_package";
     static final String KEY_ACTIVE_START_AT = "active_start_at";
+    static final String KEY_PENDING_PACKAGE = "pending_package";
+    static final String KEY_PENDING_END_AT = "pending_end_at";
     static final String KEY_LAST_NOTIFICATION_AT = "last_notification_at";
+    static final String KEY_LAST_SCAN_RESULT = "last_scan_result";
     static final String WORK_NAME = "ottline-watch-reminder";
 
     private WatchReminderScheduler() {}
@@ -93,7 +96,10 @@ final class WatchReminderScheduler {
                 .putLong(KEY_LAST_QUERY_AT, now)
                 .remove(KEY_ACTIVE_PACKAGE)
                 .remove(KEY_ACTIVE_START_AT)
-                .remove(KEY_LAST_NOTIFICATION_AT);
+                .remove(KEY_PENDING_PACKAGE)
+                .remove(KEY_PENDING_END_AT)
+                .remove(KEY_LAST_NOTIFICATION_AT)
+                .putString(KEY_LAST_SCAN_RESULT, "초기화됨");
         for (String packageName : WatchReminderTargets.all().keySet()) {
             editor.remove(lastNotificationKey(packageName));
         }
