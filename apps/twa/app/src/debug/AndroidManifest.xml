@@ -18,7 +18,8 @@
         <activity
             android:name=".WatchReminderSettingsActivity"
             android:exported="true"
-            android:label="@string/watch_reminder_title">
+            android:label="@string/watch_reminder_title"
+            android:theme="@android:style/Theme.Material.Light.NoActionBar">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />

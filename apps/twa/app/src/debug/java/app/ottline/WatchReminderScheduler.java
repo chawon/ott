@@ -10,7 +10,7 @@ import androidx.work.WorkManager;
 import java.util.concurrent.TimeUnit;
 
 final class WatchReminderScheduler {
-    private static final int STATE_VERSION = 3;
+    private static final int STATE_VERSION = 4;
     static final String PREFS = "ottline.watch_reminder";
     static final String KEY_STATE_VERSION = "state_version";
     static final String KEY_ENABLED = "enabled";
@@ -21,6 +21,7 @@ final class WatchReminderScheduler {
     static final String KEY_PENDING_END_AT = "pending_end_at";
     static final String KEY_LAST_NOTIFICATION_AT = "last_notification_at";
     static final String KEY_LAST_SCAN_RESULT = "last_scan_result";
+    static final String KEY_LAST_USAGE_DEBUG = "last_usage_debug";
     static final String WORK_NAME = "ottline-watch-reminder";
 
     private WatchReminderScheduler() {}
@@ -38,7 +39,7 @@ final class WatchReminderScheduler {
         ensureStateVersion(context);
         SharedPreferences.Editor editor = prefs(context).edit()
                 .putBoolean(KEY_ENABLED, enabled);
-        resetRuntimeState(editor, System.currentTimeMillis());
+        resetRuntimeState(context, editor, System.currentTimeMillis());
         editor.apply();
         if (enabled) {
             schedule(context);
@@ -51,7 +52,7 @@ final class WatchReminderScheduler {
         boolean enabled = isEnabled(context);
         SharedPreferences.Editor editor = prefs(context).edit()
                 .putBoolean(KEY_ENABLED, enabled);
-        resetRuntimeState(editor, System.currentTimeMillis());
+        resetRuntimeState(context, editor, System.currentTimeMillis());
         editor.apply();
         if (enabled) {
             schedule(context);
@@ -87,11 +88,11 @@ final class WatchReminderScheduler {
         boolean enabled = sharedPreferences.getBoolean(KEY_ENABLED, false);
         SharedPreferences.Editor editor = sharedPreferences.edit()
                 .putBoolean(KEY_ENABLED, enabled);
-        resetRuntimeState(editor, System.currentTimeMillis());
+        resetRuntimeState(context, editor, System.currentTimeMillis());
         editor.apply();
     }
 
-    private static void resetRuntimeState(SharedPreferences.Editor editor, long now) {
+    private static void resetRuntimeState(Context context, SharedPreferences.Editor editor, long now) {
         editor.putInt(KEY_STATE_VERSION, STATE_VERSION)
                 .putLong(KEY_LAST_QUERY_AT, now)
                 .remove(KEY_ACTIVE_PACKAGE)
@@ -99,13 +100,31 @@ final class WatchReminderScheduler {
                 .remove(KEY_PENDING_PACKAGE)
                 .remove(KEY_PENDING_END_AT)
                 .remove(KEY_LAST_NOTIFICATION_AT)
-                .putString(KEY_LAST_SCAN_RESULT, "초기화됨");
+                .putString(KEY_LAST_SCAN_RESULT, "초기화됨")
+                .putString(KEY_LAST_USAGE_DEBUG, "초기화됨");
+
+        boolean usageAccess = WatchReminderAccess.hasUsageAccess(context);
+        java.util.Map<String, Long> totals = WatchReminderWorker.currentForegroundTotals(context, now);
         for (String packageName : WatchReminderTargets.all().keySet()) {
             editor.remove(lastNotificationKey(packageName));
+            Long total = totals.get(packageName);
+            if (total == null) {
+                if (usageAccess) {
+                    editor.putLong(foregroundTotalKey(packageName), 0L);
+                } else {
+                    editor.remove(foregroundTotalKey(packageName));
+                }
+            } else {
+                editor.putLong(foregroundTotalKey(packageName), total);
+            }
         }
     }
 
     static String lastNotificationKey(String packageName) {
         return "last_notification_" + packageName;
+    }
+
+    static String foregroundTotalKey(String packageName) {
+        return "foreground_total_" + packageName;
     }
 }

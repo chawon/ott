@@ -4,7 +4,7 @@ import android.Manifest;
 import android.app.Activity;
 import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.net.Uri;
+import android.graphics.Color;
 import android.os.Build;
 import android.os.Bundle;
 import android.provider.Settings;
@@ -18,6 +18,10 @@ import java.util.Map;
 
 public class WatchReminderSettingsActivity extends Activity {
     private static final int NOTIFICATION_PERMISSION_REQUEST = 529;
+    private static final int SCREEN_BACKGROUND = Color.rgb(250, 249, 247);
+    private static final int TEXT_PRIMARY = Color.rgb(22, 23, 26);
+    private static final int TEXT_SECONDARY = Color.rgb(70, 75, 85);
+    private static final int BUTTON_BACKGROUND = Color.rgb(238, 240, 244);
 
     private LinearLayout content;
 
@@ -25,9 +29,18 @@ public class WatchReminderSettingsActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+        getWindow().setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(SCREEN_BACKGROUND));
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            getWindow().setStatusBarColor(SCREEN_BACKGROUND);
+            getWindow().setNavigationBarColor(SCREEN_BACKGROUND);
+        }
+
         ScrollView scrollView = new ScrollView(this);
+        scrollView.setFillViewport(true);
+        scrollView.setBackgroundColor(SCREEN_BACKGROUND);
         content = new LinearLayout(this);
         content.setOrientation(LinearLayout.VERTICAL);
+        content.setBackgroundColor(SCREEN_BACKGROUND);
         int padding = dp(20);
         content.setPadding(padding, padding, padding, padding);
         scrollView.addView(content);
@@ -61,6 +74,11 @@ public class WatchReminderSettingsActivity extends Activity {
                         "아직 없음"
                 )
         );
+        addTitle("최근 감지 디버그");
+        addBody(WatchReminderScheduler.prefs(this).getString(
+                WatchReminderScheduler.KEY_LAST_USAGE_DEBUG,
+                "아직 없음"
+        ));
 
         Button toggle = addButton(enabled ? "시청 기록 알림 끄기" : "시청 기록 알림 켜기");
         toggle.setOnClickListener(v -> {
@@ -118,6 +136,7 @@ public class WatchReminderSettingsActivity extends Activity {
         TextView view = new TextView(this);
         view.setText(value);
         view.setTextSize(20f);
+        view.setTextColor(TEXT_PRIMARY);
         view.setTypeface(view.getTypeface(), android.graphics.Typeface.BOLD);
         view.setPadding(0, dp(14), 0, dp(8));
         content.addView(view);
@@ -127,6 +146,7 @@ public class WatchReminderSettingsActivity extends Activity {
         TextView view = new TextView(this);
         view.setText(value);
         view.setTextSize(14f);
+        view.setTextColor(TEXT_SECONDARY);
         view.setLineSpacing(0, 1.15f);
         view.setPadding(0, 0, 0, dp(8));
         content.addView(view);
@@ -136,6 +156,7 @@ public class WatchReminderSettingsActivity extends Activity {
         TextView view = new TextView(this);
         view.setText(label + ": " + value);
         view.setTextSize(15f);
+        view.setTextColor(TEXT_PRIMARY);
         view.setPadding(0, dp(4), 0, dp(4));
         content.addView(view);
     }
@@ -143,6 +164,8 @@ public class WatchReminderSettingsActivity extends Activity {
     private Button addButton(String value) {
         Button button = new Button(this);
         button.setText(value);
+        button.setTextColor(TEXT_PRIMARY);
+        button.setBackgroundColor(BUTTON_BACKGROUND);
         LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT

@@ -7,7 +7,7 @@
 ## 범위
 
 - 대상 앱: Netflix, TVING, Wavve, Watcha, Coupang Play, Disney+
-- 감지 방식: Android Usage Access 기반 주기 감지
+- 감지 방식: Android Usage Access 기반 주기 감지. UsageEvents 이벤트 쌍을 우선 사용하고, 단말에서 이벤트가 비면 앱별 foreground 누적 사용시간 증가분으로 보완한다.
 - 알림 동작: 대상 OTT 앱을 10분 이상 사용한 뒤 다른 앱으로 이동하면 기록 알림 후보가 된다.
 - 제외: 콘텐츠 제목 감지, Accessibility, Notification Listener, 서버 전송, Play alpha 제출
 
@@ -19,12 +19,14 @@
 4. 이전 테스트에서 다른 OTT 앱 이름이 잘못 떴거나 알림이 안 떴다면 `감지 상태 초기화`를 누른 뒤 다시 시작한다.
 5. 대상 OTT 앱을 10분 이상 사용한 뒤 홈 또는 다른 앱으로 이동한다.
 6. 최대 15분 안팎의 WorkManager 주기 후 기록 알림이 뜨는지 확인한다.
-7. 알림이 안 뜨면 테스트 화면의 `마지막 감지 결과`를 확인하고, 필요하면 `지금 감지 실행(cooldown 무시)`으로 보류된 후보를 즉시 알림으로 보낸다.
+7. 알림이 안 뜨면 테스트 화면의 `마지막 감지 결과`와 `최근 감지 디버그`를 확인하고, 필요하면 `지금 감지 실행(cooldown 무시)`으로 보류된 후보를 즉시 알림으로 보낸다.
 8. 알림을 탭했을 때 QuickLog가 영상 모드로 열리고 플랫폼이 채워지는지 확인한다.
 
 ## 제한
 
 - WorkManager 주기는 OS 배터리 정책에 따라 지연될 수 있다.
 - 기능을 켠 시점 이전의 앱 사용 기록은 알림 후보에서 제외한다.
+- 누적 사용시간 fallback은 Android가 제공하는 앱 단위 foreground 시간만 사용한다. 콘텐츠 제목, 재생 상태, 앱 화면 내용은 읽지 않는다.
 - 테스트 알림은 debug 전용 신규 알림 아이콘을 사용한다.
+- 네이티브 테스트 설정 화면은 debug Activity에서 별도 Light theme과 명시적 배경색을 사용한다.
 - Debug APK 전용 구현이므로 release/AAB manifest에는 Usage Access 권한과 대상 앱 query를 넣지 않는다.
