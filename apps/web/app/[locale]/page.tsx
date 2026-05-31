@@ -93,6 +93,28 @@ function feedbackHref(source: string) {
   return `/feedback?${params.toString()}`;
 }
 
+function platformFromCaptureKey(
+  key: string | undefined,
+  tQuick: ReturnType<typeof useTranslations>,
+) {
+  switch (key?.toLowerCase()) {
+    case "netflix":
+      return tQuick("platformNetflix");
+    case "disney":
+      return tQuick("platformDisney");
+    case "tving":
+      return tQuick("platformTving");
+    case "wavve":
+      return tQuick("platformWavve");
+    case "coupang":
+      return tQuick("platformCoupang");
+    case "watcha":
+      return tQuick("platformWatcha");
+    default:
+      return undefined;
+  }
+}
+
 function RecentLogsSkeleton() {
   const rows = [
     "home-log-skeleton-1",
@@ -162,6 +184,7 @@ function DiscussionsSkeleton() {
 export default function HomePage() {
   const tHome = useTranslations("HomePage");
   const tProfile = useTranslations("Profile");
+  const tQuick = useTranslations("QuickLogCard");
   const [logs, setLogs] = useState<WatchLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [discussions, setDiscussions] = useState<DiscussionListItem[]>([]);
@@ -199,7 +222,10 @@ export default function HomePage() {
       const quickFocus = params.get("quick_focus") === "1";
       const captureTitle = params.get("capture_title")?.trim();
       const captureType = params.get("capture_type");
-      const capturePlatform = params.get("capture_platform")?.trim();
+      const capturePlatform =
+        platformFromCaptureKey(params.get("capture_platform_key")?.trim(), tQuick) ??
+        params.get("capture_platform")?.trim();
+      const fromWatchReminder = params.get("source") === "android-watch-reminder";
 
       if (quickEnabled) {
         if (!cancelled) {
@@ -212,10 +238,7 @@ export default function HomePage() {
         }
       }
 
-      if (captureTitle && !cancelled) {
-        setSharedQuery(captureTitle);
-        setShareImportStatus("imported");
-        setAutoFocusSearch(true);
+      if (!cancelled) {
         if (captureType === "book" || captureType === "video") {
           setSharedContentType(captureType);
           setQuickType(captureType);
@@ -223,6 +246,15 @@ export default function HomePage() {
         if (capturePlatform) {
           setSharedPlatform(capturePlatform);
         }
+        if (fromWatchReminder) {
+          setAutoFocusSearch(true);
+        }
+      }
+
+      if (captureTitle && !cancelled) {
+        setSharedQuery(captureTitle);
+        setShareImportStatus("imported");
+        setAutoFocusSearch(true);
       }
 
       const rawShared = [params.get("shared_text"), params.get("shared_url")]

@@ -612,6 +612,19 @@ export default function AccountPage() {
                 <li>{tAccount("androidTestChecklistFeedback")}</li>
               </ul>
             </div>
+            <a
+              href="ottline://watch-reminder"
+              className={cn(
+                "flex w-full items-center justify-center gap-2 px-4 py-3 text-center text-sm font-bold transition-all break-keep",
+                "rounded-2xl border border-blue-200 bg-white text-blue-800 hover:bg-blue-100 dark:border-blue-900/50 dark:bg-blue-950/40 dark:text-blue-100",
+              )}
+            >
+              <Settings className="h-4 w-4" />
+              {tAccount("androidWatchReminderAction")}
+            </a>
+            <p className="text-xs text-muted-foreground">
+              {tAccount("androidWatchReminderDesc")}
+            </p>
             <IntlLink
               href="/feedback?source=android-alpha&from=account"
               className={cn(
