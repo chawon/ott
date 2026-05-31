@@ -244,3 +244,18 @@ adb install -r apps/twa/app/build/outputs/apk/debug/app-debug.apk
   - 후속 확인: Google Play TWA에서도 앱 재개/내부 이동 시 `android-app://app.ottline` referrer가 비어 설정의 Android 테스트 의견 카드가 숨을 수 있어, Android standalone 앱 컨텍스트와 `1.0.7` 버전 진단 컨텍스트도 TWA 세션으로 인정하도록 보강
   - Hotfix web production deploy run `26559129042` 반영 후 Google Play TWA 설치본 설정 화면에서 `Android 테스트 의견` 카드 노출을 확인
   - 관련 설계 메모: `docs/twa-android-alpha-feedback-diagnostics-2026-05-28.md`
+
+### 진행 업데이트 (2026-05-31)
+- Android 시청 기록 알림 alpha 배포 완료
+  - 버전: `1.0.8` (`versionCode=12`)
+  - PR: `#40`
+  - Main SHA: `e6b5cfa`
+  - Web staging deploy run: `26712369692`
+  - TWA release run: `26712381951`
+  - Google Play `alpha`: `1.0.8` (`versionCode=12`), `status=completed`
+  - 대상 앱: Netflix, TVING, Wavve, Watcha, Coupang Play, Disney+, Prime Video
+  - 감지 방식: Android Usage Access 기반 UsageStats 감지. 자동 알림은 대상 OTT 앱 foreground 사용 증가분 5분 이상, 마지막 사용 15분 이내일 때만 후보로 삼는다.
+  - 콘텐츠 제목, 재생 상태, 앱 화면 내용은 읽지 않는다.
+  - release/AAB 설정 화면은 사용 정보 접근, 알림 권한, 알림 켜기 순서의 3단계 사용자용 UI만 노출하고, debug APK에서만 최근 감지 디버그/수동 감지/대상 앱 목록을 노출한다.
+  - Play alpha release notes 입력 및 `gplay tracks get` 확인 완료
+  - 관련 설계 메모: `docs/twa-android-watch-reminder-test-apk-2026-05-29.md`

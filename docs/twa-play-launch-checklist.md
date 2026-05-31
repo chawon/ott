@@ -276,6 +276,22 @@
   - TWA 앱 재개/내부 이동에서 referrer가 비는 경우를 대비해 Android standalone 앱 컨텍스트와 `1.0.7` 버전 진단 컨텍스트도 TWA 세션으로 인정
   - Hotfix web production deploy run `26559129042` 반영 후 Google Play TWA 설치본 설정 화면에서 `Android 테스트 의견` 카드 노출 확인
 
+### 진행 업데이트 (2026-05-31, Android 시청 기록 알림 alpha)
+- [x] `1.0.8` (`versionCode=12`) alpha 업데이트 후보 정리
+  - [x] UsageStats 기반 시청 기록 알림 네이티브 설정/스케줄러를 release TWA 앱에 포함
+  - [x] 대상 OTT 앱 hardcoded package/query 추가: Netflix, TVING, Wavve, Watcha, Coupang Play, Disney+, Prime Video
+  - [x] release 설정 화면은 사용자용 3단계 권한/기능 설정 UI만 노출
+  - [x] debug APK에서만 최근 감지 디버그, 수동 감지, 테스트 알림, 대상 앱 목록 노출
+- [x] GitHub Actions `twa-release.yml`로 `alpha` 배포
+  - Run: `26712381951`
+  - 입력: `version_code=12`, `version_name=1.0.8`, `track=alpha`, `release_status=completed`, `rollout=1.0`
+  - 릴리스 노트: `Adds an alpha watch reminder setting that can remind testers to log content after using supported OTT apps. Usage access is optional and must be enabled by the tester in Android settings.`
+- [x] Play alpha 트랙에서 `1.0.8` 반영 확인
+  - `alpha`: `1.0.8` (`versionCode=12`), `status=completed`
+  - 확인: `gplay tracks get --package app.ottline --edit 13164171265652028227 --track alpha`
+  - 임시 확인용 edit은 확인 후 삭제
+  - Web staging deploy run: `26712369692`
+
 ## 8) 출시 후 모니터링
 - [ ] Crash/ANR 모니터링 (출시 직후 24~72시간 집중)
 - [ ] 로그인/기록 저장 성공률 점검
