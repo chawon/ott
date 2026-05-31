@@ -13,8 +13,25 @@ type ThemeContextType = {
 };
 
 const STORAGE_KEY = "theme-mode";
+const THEME_BACKGROUND = {
+  light: "#ffffff",
+  dark: "#1f1f1f",
+} as const;
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
+
+function applyDocumentTheme(isDark: boolean) {
+  const resolvedTheme = isDark ? "dark" : "light";
+  const background = THEME_BACKGROUND[resolvedTheme];
+  const root = document.documentElement;
+  root.classList.toggle("dark", isDark);
+  root.style.colorScheme = resolvedTheme;
+  root.style.backgroundColor = background;
+  document.body.style.backgroundColor = background;
+  document
+    .querySelector<HTMLMetaElement>('meta[name="theme-color"]')
+    ?.setAttribute("content", background);
+}
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [mode, setModeState] = useState<ThemeMode>("system");
@@ -30,10 +47,9 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    const root = document.documentElement;
     const apply = (isDark: boolean) => {
       setResolvedTheme(isDark ? "dark" : "light");
-      root.classList.toggle("dark", isDark);
+      applyDocumentTheme(isDark);
     };
 
     let mediaQuery: MediaQueryList | null = null;

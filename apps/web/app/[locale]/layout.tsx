@@ -78,11 +78,23 @@ export default async function RootLayout({
   const themeInitScript = `
 (() => {
   try {
+    const themeBackground = { light: "#ffffff", dark: "#1f1f1f" };
     const root = document.documentElement;
     const mode = localStorage.getItem("theme-mode") || "system";
     const prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
     const isDark = mode === "dark" || (mode === "system" && prefersDark);
+    const resolvedTheme = isDark ? "dark" : "light";
+    const background = themeBackground[resolvedTheme];
     root.classList.toggle("dark", isDark);
+    root.style.colorScheme = resolvedTheme;
+    root.style.backgroundColor = background;
+    let themeColor = document.querySelector('meta[name="theme-color"]');
+    if (!themeColor) {
+      themeColor = document.createElement("meta");
+      themeColor.setAttribute("name", "theme-color");
+      document.head.appendChild(themeColor);
+    }
+    themeColor.setAttribute("content", background);
   } catch (_) {}
 })();
 `;
@@ -176,7 +188,7 @@ export default async function RootLayout({
           />
         ) : null}
       </head>
-      <body className="min-h-screen bg-background text-foreground font-sans antialiased transition-colors duration-300">
+      <body className="min-h-screen bg-background text-foreground font-sans antialiased">
         <NextIntlClientProvider messages={messages}>
           <ThemeProvider>
             {process.env.APP_ENV === "staging" && (
