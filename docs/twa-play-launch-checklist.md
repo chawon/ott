@@ -291,6 +291,16 @@
   - 확인: `gplay tracks get --package app.ottline --edit 13164171265652028227 --track alpha`
   - 임시 확인용 edit은 확인 후 삭제
   - Web staging deploy run: `26712369692`
+- [x] Web production 배포 및 앱 내 설정 진입 확인
+  - Web production deploy run: `26715052717`
+  - Production web image: `e6b5cfa2db0e851a04ecf64a4039f1ac2d45e298`
+  - Kubernetes `ott-web` rollout 완료 확인
+  - Play alpha `1.0.8` 설치본에서 `시청 기록 알림 설정` 진입 버튼 노출 확인
+- [x] 테스터 단말 기능 확인
+  - 권한 설정 화면 노출 확인
+  - 사용 정보 접근/알림 권한 설정 흐름 확인
+  - OTT 사용 후 알림 발송 확인
+  - 알림 탭 시 ottline 기록 화면 이동 확인
 
 ## 8) 출시 후 모니터링
 - [ ] Crash/ANR 모니터링 (출시 직후 24~72시간 집중)

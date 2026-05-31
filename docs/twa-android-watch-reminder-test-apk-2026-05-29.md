@@ -40,3 +40,9 @@ Google Play TWA 앱 안에서 OTT 앱 사용 종료 후 ottline 기록 알림을
 - release/AAB manifest에도 Usage Access 권한 선언과 대상 앱 query를 포함한다. Usage Access 실제 허용은 사용자가 Android 설정에서 직접 켜야 한다.
 - release/AAB 설정 화면은 사용 정보 접근, 알림 권한, 알림 켜기 순서의 3단계 카드와 필요한 다음 액션만 노출하고 감지 결과/수동 감지/대상 패키지 목록 같은 진단 UI는 숨긴다.
 - debug 빌드는 같은 설정 화면을 앱 런처에서도 바로 열 수 있도록 추가 launcher intent를 붙이고 진단 UI를 켠다.
+
+## 확인 결과
+
+- `2026-05-31` Google Play alpha `1.0.8` (`versionCode=12`)로 배포했다.
+- Web production `e6b5cfa` 배포 후 Google Play TWA 설치본에서 `시청 기록 알림 설정` 진입 버튼 노출을 확인했다.
+- 테스터 단말에서 권한 설정 화면, OTT 사용 후 알림 발송, 알림 탭 시 ottline 기록 화면 이동을 확인했다.

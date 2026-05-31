@@ -251,6 +251,7 @@ adb install -r apps/twa/app/build/outputs/apk/debug/app-debug.apk
   - PR: `#40`
   - Main SHA: `e6b5cfa`
   - Web staging deploy run: `26712369692`
+  - Web production deploy run: `26715052717`
   - TWA release run: `26712381951`
   - Google Play `alpha`: `1.0.8` (`versionCode=12`), `status=completed`
   - 대상 앱: Netflix, TVING, Wavve, Watcha, Coupang Play, Disney+, Prime Video
@@ -258,4 +259,6 @@ adb install -r apps/twa/app/build/outputs/apk/debug/app-debug.apk
   - 콘텐츠 제목, 재생 상태, 앱 화면 내용은 읽지 않는다.
   - release/AAB 설정 화면은 사용 정보 접근, 알림 권한, 알림 켜기 순서의 3단계 사용자용 UI만 노출하고, debug APK에서만 최근 감지 디버그/수동 감지/대상 앱 목록을 노출한다.
   - Play alpha release notes 입력 및 `gplay tracks get` 확인 완료
+  - Web production도 `e6b5cfa`로 배포해 Google Play TWA 설치본의 설정 화면에서 `시청 기록 알림 설정` 진입 버튼 노출을 확인
+  - 2026-05-31 테스터 단말에서 권한 설정 화면 노출, 사용 정보 접근/알림 권한 설정, OTT 사용 후 알림 발송, 알림 탭 시 ottline 기록 화면 이동을 확인
   - 관련 설계 메모: `docs/twa-android-watch-reminder-test-apk-2026-05-29.md`
