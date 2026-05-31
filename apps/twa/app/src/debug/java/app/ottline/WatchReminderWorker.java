@@ -4,6 +4,8 @@ import android.app.usage.UsageStats;
 import android.app.usage.UsageEvents;
 import android.app.usage.UsageStatsManager;
 import android.content.Context;
+import android.content.pm.ApplicationInfo;
+import android.content.pm.PackageManager;
 import android.content.SharedPreferences;
 import android.os.Build;
 
@@ -24,6 +26,7 @@ public final class WatchReminderWorker extends Worker {
     private static final long USAGE_STATS_CANDIDATE_WINDOW_MS = 6L * 60L * 60L * 1000L;
     private static final long DEBUG_EVENTS_LOOKBACK_MS = 90L * 60L * 1000L;
     private static final int DEBUG_EVENT_LIMIT = 16;
+    private static final int DEBUG_RECENT_APP_LIMIT = 18;
 
     public WatchReminderWorker(
             @NonNull Context context,
@@ -106,18 +109,23 @@ public final class WatchReminderWorker extends Worker {
         }
 
         Candidate eventCandidate = latestCandidate;
-        Map<String, UsageSnapshot> usageSnapshots = queryUsageSnapshots(usageStatsManager, now);
+        Map<String, UsageSnapshot> usageSnapshots = queryUsageSnapshots(usageStatsManager, now, true);
+        Map<String, UsageSnapshot> allUsageSnapshots = queryUsageSnapshots(usageStatsManager, now, false);
         Candidate usageStatsCandidate = findUsageStatsCandidate(prefs, usageSnapshots, now);
         if (latestCandidate == null) {
             latestCandidate = usageStatsCandidate;
         }
+        Candidate recentUsageCandidate = findRecentUsageCandidate(allUsageSnapshots, now);
         String usageDebug = buildUsageDebug(
+                context,
                 prefs,
                 usageSnapshots,
+                allUsageSnapshots,
                 lastQueryAt,
                 now,
                 eventCandidate,
                 usageStatsCandidate,
+                recentUsageCandidate,
                 readRecentTargetEvents(usageStatsManager, now)
         );
 
@@ -137,6 +145,9 @@ public final class WatchReminderWorker extends Worker {
 
         if (latestCandidate == null && ignoreCooldown) {
             latestCandidate = readPendingCandidate(prefs);
+        }
+        if (latestCandidate == null && ignoreCooldown) {
+            latestCandidate = recentUsageCandidate;
         }
 
         if (latestCandidate == null) {
@@ -263,7 +274,7 @@ public final class WatchReminderWorker extends Worker {
                 (UsageStatsManager) context.getSystemService(Context.USAGE_STATS_SERVICE);
         if (usageStatsManager == null) return new HashMap<>();
 
-        Map<String, UsageSnapshot> snapshots = queryUsageSnapshots(usageStatsManager, now);
+        Map<String, UsageSnapshot> snapshots = queryUsageSnapshots(usageStatsManager, now, true);
         Map<String, Long> totals = new HashMap<>();
         for (Map.Entry<String, UsageSnapshot> entry : snapshots.entrySet()) {
             totals.put(entry.getKey(), entry.getValue().totalForegroundMs);
@@ -273,7 +284,8 @@ public final class WatchReminderWorker extends Worker {
 
     private static Map<String, UsageSnapshot> queryUsageSnapshots(
             UsageStatsManager usageStatsManager,
-            long now
+            long now,
+            boolean targetOnly
     ) {
         Map<String, UsageSnapshot> snapshots = new HashMap<>();
         List<UsageStats> stats = usageStatsManager.queryUsageStats(
@@ -285,7 +297,7 @@ public final class WatchReminderWorker extends Worker {
 
         for (UsageStats usageStats : stats) {
             String packageName = usageStats.getPackageName();
-            if (!WatchReminderTargets.contains(packageName)) continue;
+            if (targetOnly && !WatchReminderTargets.contains(packageName)) continue;
 
             UsageSnapshot snapshot = snapshots.get(packageName);
             if (snapshot == null) {
@@ -325,6 +337,29 @@ public final class WatchReminderWorker extends Worker {
         return latest;
     }
 
+    private static Candidate findRecentUsageCandidate(
+            Map<String, UsageSnapshot> snapshots,
+            long now
+    ) {
+        Candidate latest = null;
+        for (Map.Entry<String, UsageSnapshot> entry : snapshots.entrySet()) {
+            String packageName = entry.getKey();
+            if (!WatchReminderTargets.contains(packageName)) continue;
+
+            UsageSnapshot snapshot = entry.getValue();
+            if (snapshot.totalForegroundMs < MIN_SESSION_MS) continue;
+            if (snapshot.lastTimeUsed <= 0L) continue;
+            if (now - snapshot.lastTimeUsed > USAGE_STATS_CANDIDATE_WINDOW_MS) continue;
+
+            latest = chooseLatest(latest, new Candidate(
+                    packageName,
+                    snapshot.lastTimeUsed,
+                    "recent"
+            ));
+        }
+        return latest;
+    }
+
     private static void writeUsageBaselines(
             SharedPreferences.Editor editor,
             Map<String, UsageSnapshot> snapshots
@@ -341,12 +376,15 @@ public final class WatchReminderWorker extends Worker {
     }
 
     private static String buildUsageDebug(
+            Context context,
             SharedPreferences prefs,
             Map<String, UsageSnapshot> snapshots,
+            Map<String, UsageSnapshot> allSnapshots,
             long lastQueryAt,
             long now,
             Candidate eventCandidate,
             Candidate usageStatsCandidate,
+            Candidate recentUsageCandidate,
             String recentEvents
     ) {
         StringBuilder builder = new StringBuilder();
@@ -357,7 +395,10 @@ public final class WatchReminderWorker extends Worker {
                 .append(formatCandidate(eventCandidate))
                 .append('\n');
         builder.append("누적시간 후보: ")
-                .append(formatCandidate(usageStatsCandidate));
+                .append(formatCandidate(usageStatsCandidate))
+                .append('\n');
+        builder.append("최근 사용 후보: ")
+                .append(formatCandidate(recentUsageCandidate));
 
         for (Map.Entry<String, WatchReminderTargets.Target> entry : WatchReminderTargets.all().entrySet()) {
             String packageName = entry.getKey();
@@ -378,7 +419,50 @@ public final class WatchReminderWorker extends Worker {
         }
 
         builder.append('\n').append("최근 이벤트: ").append(recentEvents);
+        builder.append('\n').append("최근 사용 앱: ").append(buildRecentAppDebug(context, allSnapshots, now));
         return builder.toString();
+    }
+
+    private static String buildRecentAppDebug(
+            Context context,
+            Map<String, UsageSnapshot> snapshots,
+            long now
+    ) {
+        if (snapshots.isEmpty()) return "없음";
+        List<Map.Entry<String, UsageSnapshot>> entries = new ArrayList<>(snapshots.entrySet());
+        entries.sort((left, right) -> Long.compare(
+                right.getValue().lastTimeUsed,
+                left.getValue().lastTimeUsed
+        ));
+
+        PackageManager packageManager = context.getPackageManager();
+        StringBuilder builder = new StringBuilder();
+        int count = 0;
+        for (Map.Entry<String, UsageSnapshot> entry : entries) {
+            UsageSnapshot snapshot = entry.getValue();
+            if (snapshot.lastTimeUsed <= 0L || snapshot.totalForegroundMs <= 0L) continue;
+            if (count > 0) builder.append(" / ");
+            builder.append(formatAppLabel(packageManager, entry.getKey()))
+                    .append(" [")
+                    .append(entry.getKey())
+                    .append("] ")
+                    .append(formatDuration(snapshot.totalForegroundMs))
+                    .append(", ")
+                    .append(formatAge(now - snapshot.lastTimeUsed));
+            count++;
+            if (count >= DEBUG_RECENT_APP_LIMIT) break;
+        }
+        return count == 0 ? "없음" : builder.toString();
+    }
+
+    private static String formatAppLabel(PackageManager packageManager, String packageName) {
+        try {
+            ApplicationInfo info = packageManager.getApplicationInfo(packageName, 0);
+            CharSequence label = packageManager.getApplicationLabel(info);
+            if (label != null && label.length() > 0) return label.toString();
+        } catch (PackageManager.NameNotFoundException ignored) {
+        }
+        return packageName;
     }
 
     private static String readRecentTargetEvents(UsageStatsManager usageStatsManager, long now) {
@@ -417,6 +501,7 @@ public final class WatchReminderWorker extends Worker {
     private static String sourceSuffix(String source) {
         if ("usage".equals(source)) return " (누적시간)";
         if ("pending".equals(source)) return " (보류 후보)";
+        if ("recent".equals(source)) return " (최근 사용)";
         return "";
     }
 

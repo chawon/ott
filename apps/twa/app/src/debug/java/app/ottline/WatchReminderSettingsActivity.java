@@ -103,7 +103,7 @@ public class WatchReminderSettingsActivity extends Activity {
             if (target != null) WatchReminderNotifier.show(this, target);
         });
 
-        Button scan = addButton("지금 감지 실행(cooldown 무시)");
+        Button scan = addButton("지금 감지 실행(보류/최근 사용 포함)");
         scan.setOnClickListener(v -> {
             WatchReminderWorker.scanNow(this, true);
             render();
@@ -119,7 +119,7 @@ public class WatchReminderSettingsActivity extends Activity {
         PackageManager packageManager = getPackageManager();
         for (Map.Entry<String, WatchReminderTargets.Target> entry : WatchReminderTargets.all().entrySet()) {
             boolean installed = isInstalled(packageManager, entry.getKey());
-            addStatus(entry.getValue().label, installed ? "설치됨" : "미설치");
+            addStatus(entry.getValue().label + " (" + entry.getKey() + ")", installed ? "설치됨" : "미설치");
         }
     }
 

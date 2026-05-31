@@ -7,6 +7,7 @@
 
     <queries>
         <package android:name="com.netflix.mediaclient" />
+        <package android:name="com.netflix.ninja" />
         <package android:name="net.cj.cjhv.gs.tving" />
         <package android:name="kr.co.captv.pooqV2" />
         <package android:name="com.frograms.wplay" />
