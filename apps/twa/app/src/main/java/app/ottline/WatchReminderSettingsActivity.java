@@ -68,18 +68,22 @@ public class WatchReminderSettingsActivity extends Activity {
         addStatus("기능 상태", enabled ? "켜짐" : "꺼짐");
         addStatus("사용 정보 접근", usageAccess ? "허용됨" : "필요함");
         addStatus("알림 권한", notifications ? "허용됨" : "필요함");
-        addStatus(
-                "마지막 감지 결과",
-                WatchReminderScheduler.prefs(this).getString(
-                        WatchReminderScheduler.KEY_LAST_SCAN_RESULT,
-                        "아직 없음"
-                )
-        );
-        addTitle("최근 감지 디버그");
-        addBody(WatchReminderScheduler.prefs(this).getString(
-                WatchReminderScheduler.KEY_LAST_USAGE_DEBUG,
-                "아직 없음"
-        ));
+
+        boolean showDebugControls = showDebugControls();
+        if (showDebugControls) {
+            addStatus(
+                    "마지막 감지 결과",
+                    WatchReminderScheduler.prefs(this).getString(
+                            WatchReminderScheduler.KEY_LAST_SCAN_RESULT,
+                            "아직 없음"
+                    )
+            );
+            addTitle("최근 감지 디버그");
+            addBody(WatchReminderScheduler.prefs(this).getString(
+                    WatchReminderScheduler.KEY_LAST_USAGE_DEBUG,
+                    "아직 없음"
+            ));
+        }
 
         Button toggle = addButton(enabled ? "시청 기록 알림 끄기" : "시청 기록 알림 켜기");
         toggle.setOnClickListener(v -> {
@@ -98,43 +102,49 @@ public class WatchReminderSettingsActivity extends Activity {
             ));
         }
 
-        Button test = addButton("테스트 알림 보내기");
-        test.setOnClickListener(v -> {
-            WatchReminderTargets.Target target = WatchReminderTargets.find("com.netflix.mediaclient");
-            if (target != null) WatchReminderNotifier.show(this, target);
-        });
+        if (showDebugControls) {
+            Button test = addButton("테스트 알림 보내기");
+            test.setOnClickListener(v -> {
+                WatchReminderTargets.Target target = WatchReminderTargets.find("com.netflix.mediaclient");
+                if (target != null) WatchReminderNotifier.show(this, target);
+            });
 
-        Button scan = addButton("지금 감지 실행(보류/마지막 사용 포함)");
-        scan.setOnClickListener(v -> {
-            scan.setEnabled(false);
-            scan.setText("감지 중...");
-            Context appContext = getApplicationContext();
-            new Thread(() -> {
-                try {
-                    WatchReminderWorker.scanNow(appContext, true);
-                    runOnUiThread(this::renderSafely);
-                } catch (Throwable error) {
-                    WatchReminderWorker.saveFailure(appContext, "수동 감지 오류", error);
+            Button scan = addButton("지금 감지 실행(보류/마지막 사용 포함)");
+            scan.setOnClickListener(v -> {
+                scan.setEnabled(false);
+                scan.setText("감지 중...");
+                Context appContext = getApplicationContext();
+                new Thread(() -> {
                     try {
+                        WatchReminderWorker.scanNow(appContext, true);
                         runOnUiThread(this::renderSafely);
-                    } catch (Throwable ignored) {
+                    } catch (Throwable error) {
+                        WatchReminderWorker.saveFailure(appContext, "수동 감지 오류", error);
+                        try {
+                            runOnUiThread(this::renderSafely);
+                        } catch (Throwable ignored) {
+                        }
                     }
-                }
-            }).start();
-        });
+                }).start();
+            });
 
-        Button reset = addButton("감지 상태 초기화");
-        reset.setOnClickListener(v -> {
-            WatchReminderScheduler.resetState(this);
-            renderSafely();
-        });
+            Button reset = addButton("감지 상태 초기화");
+            reset.setOnClickListener(v -> {
+                WatchReminderScheduler.resetState(this);
+                renderSafely();
+            });
 
-        addTitle("감지 대상");
-        PackageManager packageManager = getPackageManager();
-        for (Map.Entry<String, WatchReminderTargets.Target> entry : WatchReminderTargets.all().entrySet()) {
-            boolean installed = isInstalled(packageManager, entry.getKey());
-            addStatus(entry.getValue().label + " (" + entry.getKey() + ")", installed ? "설치됨" : "미설치");
+            addTitle("감지 대상");
+            PackageManager packageManager = getPackageManager();
+            for (Map.Entry<String, WatchReminderTargets.Target> entry : WatchReminderTargets.all().entrySet()) {
+                boolean installed = isInstalled(packageManager, entry.getKey());
+                addStatus(entry.getValue().label + " (" + entry.getKey() + ")", installed ? "설치됨" : "미설치");
+            }
         }
+    }
+
+    private boolean showDebugControls() {
+        return getResources().getBoolean(R.bool.watch_reminder_show_debug_controls);
     }
 
     private boolean isInstalled(PackageManager packageManager, String packageName) {
