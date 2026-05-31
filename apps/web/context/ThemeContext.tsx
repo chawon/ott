@@ -1,6 +1,12 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useLayoutEffect,
+  useState,
+} from "react";
 
 type ThemeMode = "system" | "light" | "dark";
 type ResolvedTheme = "light" | "dark";
@@ -17,6 +23,8 @@ const THEME_BACKGROUND = {
   light: "#ffffff",
   dark: "#1f1f1f",
 } as const;
+const useIsomorphicLayoutEffect =
+  typeof window === "undefined" ? useEffect : useLayoutEffect;
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
@@ -25,6 +33,7 @@ function applyDocumentTheme(isDark: boolean) {
   const background = THEME_BACKGROUND[resolvedTheme];
   const root = document.documentElement;
   root.classList.toggle("dark", isDark);
+  root.dataset.theme = resolvedTheme;
   root.style.colorScheme = resolvedTheme;
   root.style.backgroundColor = background;
   document.body.style.backgroundColor = background;
@@ -36,16 +45,19 @@ function applyDocumentTheme(isDark: boolean) {
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [mode, setModeState] = useState<ThemeMode>("system");
   const [resolvedTheme, setResolvedTheme] = useState<ResolvedTheme>("light");
+  const [initialized, setInitialized] = useState(false);
 
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved === "light" || saved === "dark" || saved === "system") {
       setModeState(saved);
     }
+    setInitialized(true);
   }, []);
 
-  useEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     if (typeof window === "undefined") return;
+    if (!initialized) return;
 
     const apply = (isDark: boolean) => {
       setResolvedTheme(isDark ? "dark" : "light");
@@ -75,7 +87,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     }
 
     apply(mode === "dark");
-  }, [mode]);
+  }, [initialized, mode]);
 
   const setMode = (next: ThemeMode) => {
     setModeState(next);

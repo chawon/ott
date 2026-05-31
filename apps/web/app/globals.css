@@ -172,6 +172,7 @@
     min-height: 100%;
     background: var(--background);
     color: var(--foreground);
+    -webkit-tap-highlight-color: transparent;
     overflow-y: scroll;
     overflow-x: hidden;
   }
