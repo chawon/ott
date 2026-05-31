@@ -86,8 +86,18 @@ export default async function RootLayout({
     const resolvedTheme = isDark ? "dark" : "light";
     const background = themeBackground[resolvedTheme];
     root.classList.toggle("dark", isDark);
+    root.dataset.theme = resolvedTheme;
     root.style.colorScheme = resolvedTheme;
     root.style.backgroundColor = background;
+    const applyBodyBackground = () => {
+      if (document.body) {
+        document.body.style.backgroundColor = background;
+      }
+    };
+    applyBodyBackground();
+    if (!document.body) {
+      document.addEventListener("DOMContentLoaded", applyBodyBackground, { once: true });
+    }
     let themeColor = document.querySelector('meta[name="theme-color"]');
     if (!themeColor) {
       themeColor = document.createElement("meta");
@@ -112,6 +122,7 @@ export default async function RootLayout({
   return (
     <html lang={locale} suppressHydrationWarning>
       <head>
+        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
         <meta
           name="naver-site-verification"
           content="d48c8e320c660f8e8f1291f6cad71bc39e268d10"
@@ -180,7 +191,6 @@ export default async function RootLayout({
             __html: `(function(c,l,a,r,i,t,y){c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);})(window,document,"clarity","script","vwj7yzqkow");`,
           }}
         />
-        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
         {process.env.NODE_ENV === "production" &&
         process.env.APP_ENV !== "staging" ? (
           <script
