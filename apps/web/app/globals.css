@@ -58,6 +58,7 @@
 :root {
   /* Keep a stable scrollbar gutter to prevent horizontal layout jump on route changes */
   scrollbar-gutter: stable;
+  color-scheme: light;
   --mobile-safe-area-bottom: env(safe-area-inset-bottom, 0px);
   --mobile-bottom-nav-height: 0px;
   --mobile-bottom-content-padding: 2rem;
@@ -132,6 +133,7 @@
 }
 
 .dark {
+  color-scheme: dark;
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);
   --card: oklch(0.205 0 0);
@@ -167,11 +169,20 @@
 
 @layer base {
   html {
+    min-height: 100%;
+    background: var(--background);
+    color: var(--foreground);
     overflow-y: scroll;
     overflow-x: hidden;
   }
   body {
+    min-height: 100dvh;
+    background: var(--background);
+    color: var(--foreground);
     overflow-x: hidden;
+  }
+  body::backdrop {
+    background: var(--background);
   }
   * {
     @apply border-border outline-ring/50;
