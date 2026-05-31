@@ -4,6 +4,7 @@ import android.content.Context;
 import android.content.SharedPreferences;
 
 import androidx.work.ExistingPeriodicWorkPolicy;
+import androidx.work.OneTimeWorkRequest;
 import androidx.work.PeriodicWorkRequest;
 import androidx.work.WorkManager;
 
@@ -22,7 +23,10 @@ final class WatchReminderScheduler {
     static final String KEY_LAST_NOTIFICATION_AT = "last_notification_at";
     static final String KEY_LAST_SCAN_RESULT = "last_scan_result";
     static final String KEY_LAST_USAGE_DEBUG = "last_usage_debug";
+    static final String KEY_NEXT_ONE_SHOT_AT = "next_one_shot_at";
     static final String WORK_NAME = "ottline-watch-reminder";
+    private static final String ONE_SHOT_WORK_TAG = "ottline-watch-reminder-one-shot";
+    private static final long ONE_SHOT_INTERVAL_MS = 5L * 60L * 1000L;
 
     private WatchReminderScheduler() {}
 
@@ -66,17 +70,50 @@ final class WatchReminderScheduler {
                 TimeUnit.MILLISECONDS
         ).build();
 
-        WorkManager.getInstance(context.getApplicationContext())
+        WorkManager workManager = WorkManager.getInstance(context.getApplicationContext());
+        workManager.cancelAllWorkByTag(ONE_SHOT_WORK_TAG);
+        workManager
                 .enqueueUniquePeriodicWork(
                         WORK_NAME,
                         ExistingPeriodicWorkPolicy.UPDATE,
                         request
                 );
+        scheduleNextOneShot(context, true);
     }
 
     static void cancel(Context context) {
-        WorkManager.getInstance(context.getApplicationContext())
-                .cancelUniqueWork(WORK_NAME);
+        WorkManager workManager = WorkManager.getInstance(context.getApplicationContext());
+        workManager.cancelUniqueWork(WORK_NAME);
+        workManager.cancelAllWorkByTag(ONE_SHOT_WORK_TAG);
+        prefs(context).edit()
+                .remove(KEY_NEXT_ONE_SHOT_AT)
+                .apply();
+    }
+
+    static void scheduleNextOneShot(Context context) {
+        scheduleNextOneShot(context, false);
+    }
+
+    private static void scheduleNextOneShot(Context context, boolean force) {
+        Context appContext = context.getApplicationContext();
+        SharedPreferences sharedPreferences = prefs(appContext);
+        if (!sharedPreferences.getBoolean(KEY_ENABLED, false)) return;
+
+        long now = System.currentTimeMillis();
+        long scheduledAt = sharedPreferences.getLong(KEY_NEXT_ONE_SHOT_AT, 0L);
+        if (!force && scheduledAt > now + 30_000L) return;
+
+        long nextAt = now + ONE_SHOT_INTERVAL_MS;
+        sharedPreferences.edit()
+                .putLong(KEY_NEXT_ONE_SHOT_AT, nextAt)
+                .apply();
+
+        OneTimeWorkRequest request = new OneTimeWorkRequest.Builder(WatchReminderWorker.class)
+                .setInitialDelay(ONE_SHOT_INTERVAL_MS, TimeUnit.MILLISECONDS)
+                .addTag(ONE_SHOT_WORK_TAG)
+                .build();
+
+        WorkManager.getInstance(appContext).enqueue(request);
     }
 
     private static void ensureStateVersion(Context context) {
@@ -100,6 +137,7 @@ final class WatchReminderScheduler {
                 .remove(KEY_PENDING_PACKAGE)
                 .remove(KEY_PENDING_END_AT)
                 .remove(KEY_LAST_NOTIFICATION_AT)
+                .remove(KEY_NEXT_ONE_SHOT_AT)
                 .putString(KEY_LAST_SCAN_RESULT, "초기화됨")
                 .putString(KEY_LAST_USAGE_DEBUG, "초기화됨");
 

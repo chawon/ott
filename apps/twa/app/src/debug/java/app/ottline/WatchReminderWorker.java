@@ -31,6 +31,7 @@ public final class WatchReminderWorker extends Worker {
     @Override
     public Result doWork() {
         scanNow(getApplicationContext(), false);
+        WatchReminderScheduler.scheduleNextOneShot(getApplicationContext());
         return Result.success();
     }
 
