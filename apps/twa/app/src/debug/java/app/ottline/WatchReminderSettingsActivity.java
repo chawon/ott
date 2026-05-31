@@ -2,6 +2,7 @@ package app.ottline;
 
 import android.Manifest;
 import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
@@ -105,8 +106,13 @@ public class WatchReminderSettingsActivity extends Activity {
 
         Button scan = addButton("지금 감지 실행(보류/최근 사용 포함)");
         scan.setOnClickListener(v -> {
-            WatchReminderWorker.scanNow(this, true);
-            render();
+            scan.setEnabled(false);
+            scan.setText("감지 중...");
+            Context appContext = getApplicationContext();
+            new Thread(() -> {
+                WatchReminderWorker.scanNow(appContext, true);
+                runOnUiThread(this::render);
+            }).start();
         });
 
         Button reset = addButton("감지 상태 초기화");

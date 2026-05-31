@@ -4,8 +4,6 @@ import android.app.usage.UsageStats;
 import android.app.usage.UsageEvents;
 import android.app.usage.UsageStatsManager;
 import android.content.Context;
-import android.content.pm.ApplicationInfo;
-import android.content.pm.PackageManager;
 import android.content.SharedPreferences;
 import android.os.Build;
 
@@ -43,6 +41,23 @@ public final class WatchReminderWorker extends Worker {
     }
 
     static String scanNow(Context context, boolean ignoreCooldown) {
+        try {
+            return scanNowInternal(context.getApplicationContext(), ignoreCooldown);
+        } catch (RuntimeException error) {
+            String result = "감지 오류: " + error.getClass().getSimpleName();
+            String message = error.getMessage();
+            if (message != null && !message.isEmpty()) {
+                result += " · " + trimForDebug(message, 180);
+            }
+            WatchReminderScheduler.prefs(context).edit()
+                    .putString(WatchReminderScheduler.KEY_LAST_SCAN_RESULT, result)
+                    .putString(WatchReminderScheduler.KEY_LAST_USAGE_DEBUG, result)
+                    .apply();
+            return result;
+        }
+    }
+
+    private static String scanNowInternal(Context context, boolean ignoreCooldown) {
         if (!WatchReminderScheduler.isEnabled(context)) {
             return saveResult(context, "기능 꺼짐");
         }
@@ -435,17 +450,14 @@ public final class WatchReminderWorker extends Worker {
                 left.getValue().lastTimeUsed
         ));
 
-        PackageManager packageManager = context.getPackageManager();
         StringBuilder builder = new StringBuilder();
         int count = 0;
         for (Map.Entry<String, UsageSnapshot> entry : entries) {
             UsageSnapshot snapshot = entry.getValue();
             if (snapshot.lastTimeUsed <= 0L || snapshot.totalForegroundMs <= 0L) continue;
             if (count > 0) builder.append(" / ");
-            builder.append(formatAppLabel(packageManager, entry.getKey()))
-                    .append(" [")
-                    .append(entry.getKey())
-                    .append("] ")
+            builder.append(entry.getKey())
+                    .append(" ")
                     .append(formatDuration(snapshot.totalForegroundMs))
                     .append(", ")
                     .append(formatAge(now - snapshot.lastTimeUsed));
@@ -453,16 +465,6 @@ public final class WatchReminderWorker extends Worker {
             if (count >= DEBUG_RECENT_APP_LIMIT) break;
         }
         return count == 0 ? "없음" : builder.toString();
-    }
-
-    private static String formatAppLabel(PackageManager packageManager, String packageName) {
-        try {
-            ApplicationInfo info = packageManager.getApplicationInfo(packageName, 0);
-            CharSequence label = packageManager.getApplicationLabel(info);
-            if (label != null && label.length() > 0) return label.toString();
-        } catch (PackageManager.NameNotFoundException ignored) {
-        }
-        return packageName;
     }
 
     private static String readRecentTargetEvents(UsageStatsManager usageStatsManager, long now) {
@@ -515,6 +517,11 @@ public final class WatchReminderWorker extends Worker {
 
     private static String formatAge(long ageMs) {
         return formatDuration(ageMs) + " 전";
+    }
+
+    private static String trimForDebug(String value, int maxLength) {
+        if (value.length() <= maxLength) return value;
+        return value.substring(0, maxLength) + "...";
     }
 
     private static String eventName(int type) {
