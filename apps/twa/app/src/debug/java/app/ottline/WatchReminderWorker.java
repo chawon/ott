@@ -24,7 +24,6 @@ public final class WatchReminderWorker extends Worker {
     private static final long USAGE_STATS_CANDIDATE_WINDOW_MS = 6L * 60L * 60L * 1000L;
     private static final long DEBUG_EVENTS_LOOKBACK_MS = 90L * 60L * 1000L;
     private static final int DEBUG_EVENT_LIMIT = 16;
-    private static final int DEBUG_RECENT_APP_LIMIT = 18;
 
     public WatchReminderWorker(
             @NonNull Context context,
@@ -85,6 +84,10 @@ public final class WatchReminderWorker extends Worker {
             return saveResult(context, "UsageStatsManager 없음");
         }
 
+        if (ignoreCooldown) {
+            return scanManualNow(context, prefs, usageStatsManager, now, lastQueryAt);
+        }
+
         Map<String, Long> activeStarts = new HashMap<>();
         String storedActivePackage = prefs.getString(
                 WatchReminderScheduler.KEY_ACTIVE_PACKAGE,
@@ -129,17 +132,14 @@ public final class WatchReminderWorker extends Worker {
 
         Candidate eventCandidate = latestCandidate;
         Map<String, UsageSnapshot> usageSnapshots = queryUsageSnapshots(usageStatsManager, now, true);
-        Map<String, UsageSnapshot> allUsageSnapshots = queryUsageSnapshots(usageStatsManager, now, false);
         Candidate usageStatsCandidate = findUsageStatsCandidate(prefs, usageSnapshots, now);
         if (latestCandidate == null) {
             latestCandidate = usageStatsCandidate;
         }
-        Candidate recentUsageCandidate = findRecentUsageCandidate(allUsageSnapshots, now);
+        Candidate recentUsageCandidate = findRecentUsageCandidate(usageSnapshots, now);
         String usageDebug = buildUsageDebug(
-                context,
                 prefs,
                 usageSnapshots,
-                allUsageSnapshots,
                 lastQueryAt,
                 now,
                 eventCandidate,
@@ -162,13 +162,6 @@ public final class WatchReminderWorker extends Worker {
         writeUsageBaselines(editor, usageSnapshots);
         editor.apply();
 
-        if (latestCandidate == null && ignoreCooldown) {
-            latestCandidate = readPendingCandidate(prefs);
-        }
-        if (latestCandidate == null && ignoreCooldown) {
-            latestCandidate = recentUsageCandidate;
-        }
-
         if (latestCandidate == null) {
             return saveResult(context, "알림 후보 없음");
         }
@@ -181,6 +174,72 @@ public final class WatchReminderWorker extends Worker {
         if (!ignoreCooldown && !canNotify(prefs, latestCandidate.packageName, now)) {
             savePendingCandidate(prefs, latestCandidate);
             return saveResult(context, "후보 " + target.label + " · cooldown으로 보류");
+        }
+
+        if (!WatchReminderAccess.canPostNotifications(context)) {
+            savePendingCandidate(prefs, latestCandidate);
+            return saveResult(context, "후보 " + target.label + " · 알림 권한 없음");
+        }
+
+        if (WatchReminderNotifier.show(context, target)) {
+            String result = "알림 발송: " + target.label + sourceSuffix(latestCandidate.source);
+            prefs.edit()
+                    .putLong(WatchReminderScheduler.KEY_LAST_NOTIFICATION_AT, now)
+                    .putLong(
+                            WatchReminderScheduler.lastNotificationKey(latestCandidate.packageName),
+                            now
+                    )
+                    .remove(WatchReminderScheduler.KEY_PENDING_PACKAGE)
+                    .remove(WatchReminderScheduler.KEY_PENDING_END_AT)
+                    .putString(WatchReminderScheduler.KEY_LAST_SCAN_RESULT, result)
+                    .apply();
+            return result;
+        }
+
+        savePendingCandidate(prefs, latestCandidate);
+        return saveResult(context, "후보 " + target.label + " · 알림 발송 실패");
+    }
+
+    private static String scanManualNow(
+            Context context,
+            SharedPreferences prefs,
+            UsageStatsManager usageStatsManager,
+            long now,
+            long lastQueryAt
+    ) {
+        Map<String, UsageSnapshot> usageSnapshots = queryUsageSnapshots(usageStatsManager, now, true);
+        Candidate pendingCandidate = readPendingCandidate(prefs);
+        Candidate usageStatsCandidate = findUsageStatsCandidate(prefs, usageSnapshots, now);
+        Candidate lastSeenCandidate = findLastSeenCandidate(usageSnapshots, now);
+        Candidate latestCandidate = chooseLatest(
+                chooseLatest(pendingCandidate, usageStatsCandidate),
+                lastSeenCandidate
+        );
+
+        String usageDebug = buildUsageDebug(
+                prefs,
+                usageSnapshots,
+                lastQueryAt,
+                now,
+                null,
+                usageStatsCandidate,
+                lastSeenCandidate,
+                "수동 감지는 이벤트 조회 생략"
+        );
+
+        SharedPreferences.Editor editor = prefs.edit()
+                .putLong(WatchReminderScheduler.KEY_LAST_QUERY_AT, now)
+                .putString(WatchReminderScheduler.KEY_LAST_USAGE_DEBUG, usageDebug);
+        writeUsageBaselines(editor, usageSnapshots);
+        editor.apply();
+
+        if (latestCandidate == null) {
+            return saveResult(context, "알림 후보 없음 (수동)");
+        }
+
+        WatchReminderTargets.Target target = WatchReminderTargets.find(latestCandidate.packageName);
+        if (target == null) {
+            return saveResult(context, "대상 앱 매핑 없음: " + latestCandidate.packageName);
         }
 
         if (!WatchReminderAccess.canPostNotifications(context)) {
@@ -379,6 +438,28 @@ public final class WatchReminderWorker extends Worker {
         return latest;
     }
 
+    private static Candidate findLastSeenCandidate(
+            Map<String, UsageSnapshot> snapshots,
+            long now
+    ) {
+        Candidate latest = null;
+        for (Map.Entry<String, UsageSnapshot> entry : snapshots.entrySet()) {
+            String packageName = entry.getKey();
+            if (!WatchReminderTargets.contains(packageName)) continue;
+
+            UsageSnapshot snapshot = entry.getValue();
+            if (snapshot.lastTimeUsed <= 0L || snapshot.totalForegroundMs <= 0L) continue;
+            if (now - snapshot.lastTimeUsed > USAGE_STATS_CANDIDATE_WINDOW_MS) continue;
+
+            latest = chooseLatest(latest, new Candidate(
+                    packageName,
+                    snapshot.lastTimeUsed,
+                    "last_seen"
+            ));
+        }
+        return latest;
+    }
+
     private static void writeUsageBaselines(
             SharedPreferences.Editor editor,
             Map<String, UsageSnapshot> snapshots
@@ -395,10 +476,8 @@ public final class WatchReminderWorker extends Worker {
     }
 
     private static String buildUsageDebug(
-            Context context,
             SharedPreferences prefs,
             Map<String, UsageSnapshot> snapshots,
-            Map<String, UsageSnapshot> allSnapshots,
             long lastQueryAt,
             long now,
             Candidate eventCandidate,
@@ -438,37 +517,7 @@ public final class WatchReminderWorker extends Worker {
         }
 
         builder.append('\n').append("최근 이벤트: ").append(recentEvents);
-        builder.append('\n').append("최근 사용 앱: ").append(buildRecentAppDebug(context, allSnapshots, now));
         return builder.toString();
-    }
-
-    private static String buildRecentAppDebug(
-            Context context,
-            Map<String, UsageSnapshot> snapshots,
-            long now
-    ) {
-        if (snapshots.isEmpty()) return "없음";
-        List<Map.Entry<String, UsageSnapshot>> entries = new ArrayList<>(snapshots.entrySet());
-        entries.sort((left, right) -> Long.compare(
-                right.getValue().lastTimeUsed,
-                left.getValue().lastTimeUsed
-        ));
-
-        StringBuilder builder = new StringBuilder();
-        int count = 0;
-        for (Map.Entry<String, UsageSnapshot> entry : entries) {
-            UsageSnapshot snapshot = entry.getValue();
-            if (snapshot.lastTimeUsed <= 0L || snapshot.totalForegroundMs <= 0L) continue;
-            if (count > 0) builder.append(" / ");
-            builder.append(entry.getKey())
-                    .append(" ")
-                    .append(formatDuration(snapshot.totalForegroundMs))
-                    .append(", ")
-                    .append(formatAge(now - snapshot.lastTimeUsed));
-            count++;
-            if (count >= DEBUG_RECENT_APP_LIMIT) break;
-        }
-        return count == 0 ? "없음" : builder.toString();
     }
 
     private static String readRecentTargetEvents(UsageStatsManager usageStatsManager, long now) {
@@ -508,6 +557,7 @@ public final class WatchReminderWorker extends Worker {
         if ("usage".equals(source)) return " (누적시간)";
         if ("pending".equals(source)) return " (보류 후보)";
         if ("recent".equals(source)) return " (최근 사용)";
+        if ("last_seen".equals(source)) return " (마지막 사용)";
         return "";
     }
 

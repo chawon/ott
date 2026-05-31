@@ -104,7 +104,7 @@ public class WatchReminderSettingsActivity extends Activity {
             if (target != null) WatchReminderNotifier.show(this, target);
         });
 
-        Button scan = addButton("지금 감지 실행(보류/최근 사용 포함)");
+        Button scan = addButton("지금 감지 실행(보류/마지막 사용 포함)");
         scan.setOnClickListener(v -> {
             scan.setEnabled(false);
             scan.setText("감지 중...");
