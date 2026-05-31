@@ -1,21 +1,22 @@
-# Android Watch Reminder Test APK
+# Android Watch Reminder Alpha
 
 ## 목적
 
-테스트 APK에서만 OTT 앱 사용 종료 후 ottline 기록 알림을 띄우는 실험을 검증한다.
+Google Play TWA 앱 안에서 OTT 앱 사용 종료 후 ottline 기록 알림을 띄우는 알파 기능을 검증한다.
 
 ## 범위
 
-- 대상 앱: Netflix, TVING, Wavve, Watcha, Coupang Play, Disney+
+- 대상 앱: Netflix, TVING, Wavve, Watcha, Coupang Play, Disney+, Prime Video
   - Netflix는 모바일 패키지(`com.netflix.mediaclient`)와 TV 계열 패키지(`com.netflix.ninja`)를 함께 진단한다.
-- 감지 방식: Android Usage Access 기반 주기 감지. 대상 OTT 앱의 UsageStats만 읽고, 자동 감지는 5분 이상 foreground 사용시간 증가분이 있으며 마지막 사용이 15분 이내인 앱만 후보로 삼는다. Debug APK는 WorkManager periodic에 더해 5분 지연 one-shot 감지 체인을 함께 예약한다.
+  - Prime Video는 Google Play 패키지(`com.amazon.avod.thirdpartyclient`)를 진단한다.
+- 감지 방식: Android Usage Access 기반 주기 감지. 대상 OTT 앱의 UsageStats만 읽고, 자동 감지는 5분 이상 foreground 사용시간 증가분이 있으며 마지막 사용이 15분 이내인 앱만 후보로 삼는다. WorkManager periodic에 더해 5분 지연 one-shot 감지 체인을 함께 예약한다.
 - 알림 동작: 대상 OTT 앱을 의미 있게 사용한 것으로 보이면 기록 알림 후보가 된다. 기존 global/app cooldown은 유지한다.
-- 제외: 콘텐츠 제목 감지, Accessibility, Notification Listener, 서버 전송, Play alpha 제출
+- 제외: 콘텐츠 제목 감지, Accessibility, Notification Listener, 서버 전송
 
 ## 테스트 절차
 
-1. GitHub Actions `Build TWA Debug APK`로 `ottline-watch-reminder-debug.apk`를 생성한다.
-2. APK를 설치하고 ottline 설정의 Android 테스트 섹션에서 `시청 기록 알림 테스트`를 연다.
+1. GitHub Actions `Build TWA Debug APK`로 `ottline-watch-reminder-debug.apk`를 생성하거나 Google Play alpha 빌드를 설치한다.
+2. ottline 설정의 Android 테스트 섹션에서 `시청 기록 알림 설정`을 연다.
 3. 네이티브 설정 화면에서 기능을 켜고 Android 사용 정보 접근 권한과 알림 권한을 허용한다.
 4. 이전 테스트에서 다른 OTT 앱 이름이 잘못 떴거나 알림이 안 떴다면 `감지 상태 초기화`를 누른 뒤 다시 시작한다.
 5. 대상 OTT 앱을 5분 이상 사용한 뒤 홈 또는 다른 앱으로 이동한다.
@@ -34,6 +35,7 @@
 - 감지는 Android가 제공하는 앱 단위 마지막 사용 시각과 foreground 시간만 사용한다. 콘텐츠 제목, 재생 상태, 앱 화면 내용은 읽지 않는다.
 - `최근 감지 디버그`는 대상 OTT 앱별 누적 사용시간 증가분과 마지막 사용 시각을 표시한다. 수동 감지에서는 마지막 사용 시각만 보여도 후보로 올려 알림/QuickLog 진입을 검증한다.
 - 알림 문구는 실제 재생을 단정하지 않고, `OTT에서 본 작품이 있나요?`처럼 기록 유도 톤을 사용한다.
-- 테스트 알림은 debug 전용 신규 알림 아이콘을 사용한다.
-- 네이티브 테스트 설정 화면은 debug Activity에서 별도 Light theme과 명시적 배경색을 사용한다.
-- Debug APK 전용 구현이므로 release/AAB manifest에는 Usage Access 권한과 대상 앱 query를 넣지 않는다.
+- 알림은 ottline 신규 알림 아이콘을 사용한다.
+- 네이티브 설정 화면은 별도 Light theme과 명시적 배경색을 사용한다.
+- release/AAB manifest에도 Usage Access 권한 선언과 대상 앱 query를 포함한다. Usage Access 실제 허용은 사용자가 Android 설정에서 직접 켜야 한다.
+- debug 빌드는 같은 설정 화면을 앱 런처에서도 바로 열 수 있도록 추가 launcher intent만 붙인다.

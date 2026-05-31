@@ -393,8 +393,8 @@
     "androidTestChecklistShortcut": "앱 아이콘 길게 누르기 바로가기 확인",
     "androidTestChecklistShare": "OTT 앱 공유로 QuickLog 검색창 자동 채움 확인",
     "androidTestChecklistFeedback": "문의함에서 테스트 의견 등록 확인",
-    "androidWatchReminderAction": "시청 기록 알림 테스트",
-    "androidWatchReminderDesc": "테스트 APK에서만 동작합니다. OTT 앱 사용 종료 후 기록 알림이 뜨는지 확인해 주세요.",
+    "androidWatchReminderAction": "시청 기록 알림 설정",
+    "androidWatchReminderDesc": "OTT 앱 사용 종료 후 기록 알림을 받을지 설정합니다. 사용 정보 접근 권한은 Android 설정에서 직접 허용해야 합니다.",
     "androidTestAction": "Android 테스트 의견 보내기"
   },
   "Profile": {

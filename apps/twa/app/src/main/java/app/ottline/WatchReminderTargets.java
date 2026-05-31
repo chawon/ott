@@ -28,6 +28,7 @@ final class WatchReminderTargets {
         put(targets, "com.frograms.wplay", "watcha", "Watcha");
         put(targets, "com.coupang.mobile.play", "coupang", "Coupang Play");
         put(targets, "com.disney.disneyplus", "disney", "Disney+");
+        put(targets, "com.amazon.avod.thirdpartyclient", "prime_video", "Prime Video");
         TARGETS = Collections.unmodifiableMap(targets);
     }
 
@@ -68,6 +69,12 @@ final class WatchReminderTargets {
         }
         if (lowerPackageName.contains("disneyplus")) {
             return new Target(packageName, "disney", "Disney+");
+        }
+        if (lowerPackageName.contains("amazon")
+                && (lowerPackageName.contains("avod")
+                || lowerPackageName.contains("primevideo")
+                || lowerPackageName.contains("prime.video"))) {
+            return new Target(packageName, "prime_video", "Prime Video");
         }
 
         return null;

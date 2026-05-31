@@ -58,7 +58,7 @@ public class WatchReminderSettingsActivity extends Activity {
         content.removeAllViews();
 
         addTitle("ottline 시청 기록 알림");
-        addBody("테스트 APK 전용 기능입니다. 선택한 OTT 앱 사용이 끝난 뒤 기록 알림을 띄우는지 확인합니다.");
+        addBody("알파 기능입니다. 선택한 OTT 앱 사용이 끝난 뒤 기록 알림을 띄웁니다.");
         addBody("콘텐츠 제목은 읽지 않고, 앱 사용 여부만 기기 안에서 확인합니다.");
 
         boolean enabled = WatchReminderScheduler.isEnabled(this);

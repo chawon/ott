@@ -393,8 +393,8 @@
     "androidTestChecklistShortcut": "Open launcher long-press shortcuts",
     "androidTestChecklistShare": "Share from an OTT app and confirm QuickLog is prefilled",
     "androidTestChecklistFeedback": "Send feedback from the in-app inbox",
-    "androidWatchReminderAction": "Test watch reminder",
-    "androidWatchReminderDesc": "Only the test APK uses this. Check whether a reminder appears after leaving an OTT app.",
+    "androidWatchReminderAction": "Watch reminder settings",
+    "androidWatchReminderDesc": "Choose whether to receive a reminder after leaving an OTT app. Usage access must be enabled manually in Android settings.",
     "androidTestAction": "Send Android Test Feedback"
   },
   "Profile": {

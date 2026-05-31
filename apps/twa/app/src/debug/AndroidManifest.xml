@@ -1,20 +1,4 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools">
-
-    <uses-permission
-        android:name="android.permission.PACKAGE_USAGE_STATS"
-        tools:ignore="ProtectedPermissions" />
-
-    <queries>
-        <package android:name="com.netflix.mediaclient" />
-        <package android:name="com.netflix.ninja" />
-        <package android:name="net.cj.cjhv.gs.tving" />
-        <package android:name="kr.co.captv.pooqV2" />
-        <package android:name="com.frograms.wplay" />
-        <package android:name="com.coupang.mobile.play" />
-        <package android:name="com.disney.disneyplus" />
-    </queries>
-
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <application>
         <activity
             android:name=".WatchReminderSettingsActivity"
@@ -24,14 +8,6 @@
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-            <intent-filter>
-                <action android:name="android.intent.action.VIEW" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
-                <data
-                    android:host="watch-reminder"
-                    android:scheme="ottline" />
             </intent-filter>
         </activity>
     </application>
