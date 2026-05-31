@@ -14,11 +14,12 @@ import java.util.List;
 import java.util.Map;
 
 public final class WatchReminderWorker extends Worker {
-    private static final long MIN_SESSION_MS = 10L * 60L * 1000L;
+    private static final long AUTO_MIN_FOREGROUND_MS = 5L * 60L * 1000L;
     private static final long GLOBAL_COOLDOWN_MS = 3L * 60L * 60L * 1000L;
     private static final long APP_COOLDOWN_MS = 24L * 60L * 60L * 1000L;
     private static final long USAGE_STATS_LOOKBACK_MS = 48L * 60L * 60L * 1000L;
-    private static final long USAGE_STATS_CANDIDATE_WINDOW_MS = 6L * 60L * 60L * 1000L;
+    private static final long AUTO_CANDIDATE_WINDOW_MS = 15L * 60L * 1000L;
+    private static final long MANUAL_CANDIDATE_WINDOW_MS = 6L * 60L * 60L * 1000L;
 
     public WatchReminderWorker(
             @NonNull Context context,
@@ -87,7 +88,7 @@ public final class WatchReminderWorker extends Worker {
         Map<String, UsageSnapshot> usageSnapshots = queryUsageSnapshots(usageStatsManager, now, true);
         Candidate usageStatsCandidate = findUsageStatsCandidate(prefs, usageSnapshots, now);
         Candidate lastSeenCandidate = findLastSeenCandidate(usageSnapshots, now, lastQueryAt);
-        Candidate latestCandidate = chooseLatest(usageStatsCandidate, lastSeenCandidate);
+        Candidate latestCandidate = usageStatsCandidate;
         String usageDebug = buildUsageDebug(
                 prefs,
                 usageSnapshots,
@@ -96,7 +97,7 @@ public final class WatchReminderWorker extends Worker {
                 null,
                 usageStatsCandidate,
                 lastSeenCandidate,
-                "자동 감지는 이벤트 조회 생략"
+                "자동 감지는 5분 이상 foreground 증가분만 후보"
         );
 
         SharedPreferences.Editor editor = prefs.edit()
@@ -299,9 +300,9 @@ public final class WatchReminderWorker extends Worker {
 
             long previousTotal = prefs.getLong(key, currentTotal);
             long delta = currentTotal - previousTotal;
-            if (snapshot == null || delta < MIN_SESSION_MS) continue;
+            if (snapshot == null || delta < AUTO_MIN_FOREGROUND_MS) continue;
             if (snapshot.lastTimeUsed <= 0L) continue;
-            if (now - snapshot.lastTimeUsed > USAGE_STATS_CANDIDATE_WINDOW_MS) continue;
+            if (now - snapshot.lastTimeUsed > AUTO_CANDIDATE_WINDOW_MS) continue;
 
             latest = chooseLatest(latest, new Candidate(
                     packageName,
@@ -325,7 +326,7 @@ public final class WatchReminderWorker extends Worker {
             UsageSnapshot snapshot = entry.getValue();
             if (snapshot.lastTimeUsed <= 0L || snapshot.totalForegroundMs <= 0L) continue;
             if (snapshot.lastTimeUsed <= minLastUsedAt) continue;
-            if (now - snapshot.lastTimeUsed > USAGE_STATS_CANDIDATE_WINDOW_MS) continue;
+            if (now - snapshot.lastTimeUsed > MANUAL_CANDIDATE_WINDOW_MS) continue;
 
             latest = chooseLatest(latest, new Candidate(
                     packageName,
@@ -392,7 +393,7 @@ public final class WatchReminderWorker extends Worker {
                             : formatAge(now - snapshot.lastTimeUsed));
         }
 
-        builder.append('\n').append("최근 이벤트: ").append(recentEvents);
+        builder.append('\n').append("감지 메모: ").append(recentEvents);
         return builder.toString();
     }
 
