@@ -43,18 +43,22 @@ public final class WatchReminderWorker extends Worker {
     static String scanNow(Context context, boolean ignoreCooldown) {
         try {
             return scanNowInternal(context.getApplicationContext(), ignoreCooldown);
-        } catch (RuntimeException error) {
-            String result = "감지 오류: " + error.getClass().getSimpleName();
-            String message = error.getMessage();
-            if (message != null && !message.isEmpty()) {
-                result += " · " + trimForDebug(message, 180);
-            }
-            WatchReminderScheduler.prefs(context).edit()
-                    .putString(WatchReminderScheduler.KEY_LAST_SCAN_RESULT, result)
-                    .putString(WatchReminderScheduler.KEY_LAST_USAGE_DEBUG, result)
-                    .apply();
-            return result;
+        } catch (Throwable error) {
+            return saveFailure(context, "감지 오류", error);
         }
+    }
+
+    static String saveFailure(Context context, String prefix, Throwable error) {
+        String result = prefix + ": " + error.getClass().getSimpleName();
+        String message = error.getMessage();
+        if (message != null && !message.isEmpty()) {
+            result += " · " + trimForDebug(message, 180);
+        }
+        WatchReminderScheduler.prefs(context).edit()
+                .putString(WatchReminderScheduler.KEY_LAST_SCAN_RESULT, result)
+                .putString(WatchReminderScheduler.KEY_LAST_USAGE_DEBUG, result)
+                .apply();
+        return result;
     }
 
     private static String scanNowInternal(Context context, boolean ignoreCooldown) {

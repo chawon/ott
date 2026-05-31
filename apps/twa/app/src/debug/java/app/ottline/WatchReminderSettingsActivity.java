@@ -51,7 +51,7 @@ public class WatchReminderSettingsActivity extends Activity {
     @Override
     protected void onResume() {
         super.onResume();
-        render();
+        renderSafely();
     }
 
     private void render() {
@@ -84,7 +84,7 @@ public class WatchReminderSettingsActivity extends Activity {
         Button toggle = addButton(enabled ? "시청 기록 알림 끄기" : "시청 기록 알림 켜기");
         toggle.setOnClickListener(v -> {
             WatchReminderScheduler.setEnabled(this, !WatchReminderScheduler.isEnabled(this));
-            render();
+            renderSafely();
         });
 
         Button usage = addButton("Android 사용 정보 접근 설정 열기");
@@ -110,15 +110,23 @@ public class WatchReminderSettingsActivity extends Activity {
             scan.setText("감지 중...");
             Context appContext = getApplicationContext();
             new Thread(() -> {
-                WatchReminderWorker.scanNow(appContext, true);
-                runOnUiThread(this::render);
+                try {
+                    WatchReminderWorker.scanNow(appContext, true);
+                    runOnUiThread(this::renderSafely);
+                } catch (Throwable error) {
+                    WatchReminderWorker.saveFailure(appContext, "수동 감지 오류", error);
+                    try {
+                        runOnUiThread(this::renderSafely);
+                    } catch (Throwable ignored) {
+                    }
+                }
             }).start();
         });
 
         Button reset = addButton("감지 상태 초기화");
         reset.setOnClickListener(v -> {
             WatchReminderScheduler.resetState(this);
-            render();
+            renderSafely();
         });
 
         addTitle("감지 대상");
@@ -135,6 +143,24 @@ public class WatchReminderSettingsActivity extends Activity {
             return true;
         } catch (PackageManager.NameNotFoundException e) {
             return false;
+        }
+    }
+
+    private void renderSafely() {
+        if (isFinishing()) return;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1 && isDestroyed()) return;
+
+        try {
+            render();
+        } catch (Throwable error) {
+            WatchReminderWorker.saveFailure(getApplicationContext(), "화면 표시 오류", error);
+            content.removeAllViews();
+            addTitle("ottline 시청 기록 알림");
+            addBody("화면 표시 오류: " + error.getClass().getSimpleName());
+            String message = error.getMessage();
+            if (message != null && !message.isEmpty()) {
+                addBody(message);
+            }
         }
     }
 
