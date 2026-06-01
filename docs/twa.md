@@ -254,7 +254,7 @@ adb install -r apps/twa/app/build/outputs/apk/debug/app-debug.apk
   - Web production deploy run: `26715052717`
   - TWA release run: `26712381951`
   - Google Play `alpha`: `1.0.8` (`versionCode=12`), `status=completed`
-  - 대상 앱: Netflix, TVING, Wavve, Watcha, Coupang Play, Disney+, Prime Video, Apple TV
+  - 대상 앱: Netflix, TVING, Wavve, Watcha, Coupang Play, Disney+, Prime Video
   - 감지 방식: Android Usage Access 기반 UsageStats 감지. 자동 알림은 대상 OTT 앱 foreground 사용 증가분 5분 이상, 마지막 사용 15분 이내일 때만 후보로 삼는다.
   - 콘텐츠 제목, 재생 상태, 앱 화면 내용은 읽지 않는다.
   - release/AAB 설정 화면은 사용 정보 접근, 알림 권한, 알림 켜기 순서의 3단계 사용자용 UI만 노출하고, debug APK에서만 최근 감지 디버그/수동 감지/대상 앱 목록을 노출한다.
@@ -262,3 +262,13 @@ adb install -r apps/twa/app/build/outputs/apk/debug/app-debug.apk
   - Web production도 `e6b5cfa`로 배포해 Google Play TWA 설치본의 설정 화면에서 `시청 기록 알림 설정` 진입 버튼 노출을 확인
   - 2026-05-31 테스터 단말에서 권한 설정 화면 노출, 사용 정보 접근/알림 권한 설정, OTT 사용 후 알림 발송, 알림 탭 시 ottline 기록 화면 이동을 확인
   - 관련 설계 메모: `docs/twa-android-watch-reminder-test-apk-2026-05-29.md`
+
+### 진행 업데이트 (2026-06-01)
+- Android 시청 기록 알림 Apple TV 대상 추가 alpha 배포 완료
+  - 버전: `1.0.9` (`versionCode=13`)
+  - PR: `#43`
+  - Main SHA: `54d531d`
+  - TWA release run: `26735136175`
+  - Google Play `alpha`: `1.0.9` (`versionCode=13`), `status=completed`
+  - 추가 대상 앱: Apple TV (`com.apple.atve.androidtv.appletv`)
+  - Play alpha release notes 입력 및 `gplay tracks get` 확인 완료

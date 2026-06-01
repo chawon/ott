@@ -279,7 +279,7 @@
 ### 진행 업데이트 (2026-05-31, Android 시청 기록 알림 alpha)
 - [x] `1.0.8` (`versionCode=12`) alpha 업데이트 후보 정리
   - [x] UsageStats 기반 시청 기록 알림 네이티브 설정/스케줄러를 release TWA 앱에 포함
-  - [x] 대상 OTT 앱 hardcoded package/query 추가: Netflix, TVING, Wavve, Watcha, Coupang Play, Disney+, Prime Video, Apple TV
+  - [x] 대상 OTT 앱 hardcoded package/query 추가: Netflix, TVING, Wavve, Watcha, Coupang Play, Disney+, Prime Video
   - [x] release 설정 화면은 사용자용 3단계 권한/기능 설정 UI만 노출
   - [x] debug APK에서만 최근 감지 디버그, 수동 감지, 테스트 알림, 대상 앱 목록 노출
 - [x] GitHub Actions `twa-release.yml`로 `alpha` 배포
@@ -301,6 +301,21 @@
   - 사용 정보 접근/알림 권한 설정 흐름 확인
   - OTT 사용 후 알림 발송 확인
   - 알림 탭 시 ottline 기록 화면 이동 확인
+
+### 진행 업데이트 (2026-06-01, Android 시청 기록 알림 Apple TV)
+- [x] `1.0.9` (`versionCode=13`) alpha 업데이트 후보 정리
+  - [x] Apple TV 패키지/query 추가: `com.apple.atve.androidtv.appletv`
+  - [x] `/tmp/usagestats.txt`에서 사용자 단말 Apple TV 패키지 확인
+- [x] PR `#43` merge
+  - Main SHA: `54d531d`
+- [x] GitHub Actions `twa-release.yml`로 `alpha` 배포
+  - Run: `26735136175`
+  - 입력: `version_code=13`, `version_name=1.0.9`, `track=alpha`, `release_status=completed`, `rollout=1.0`
+  - 릴리스 노트: `Adds Apple TV as a supported watch reminder app for alpha testing.`
+- [x] Play alpha 트랙에서 `1.0.9` 반영 확인
+  - `alpha`: `1.0.9` (`versionCode=13`), `status=completed`
+  - 확인: `gplay tracks get --package app.ottline --edit 02477569053389061690 --track alpha`
+  - 임시 확인용 edit은 확인 후 삭제
 
 ## 8) 출시 후 모니터링
 - [ ] Crash/ANR 모니터링 (출시 직후 24~72시간 집중)

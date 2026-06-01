@@ -47,3 +47,4 @@ Google Play TWA 앱 안에서 OTT 앱 사용 종료 후 ottline 기록 알림을
 - `2026-05-31` Google Play alpha `1.0.8` (`versionCode=12`)로 배포했다.
 - Web production `e6b5cfa` 배포 후 Google Play TWA 설치본에서 `시청 기록 알림 설정` 진입 버튼 노출을 확인했다.
 - 테스터 단말에서 권한 설정 화면, OTT 사용 후 알림 발송, 알림 탭 시 ottline 기록 화면 이동을 확인했다.
+- `2026-06-01` Apple TV 패키지(`com.apple.atve.androidtv.appletv`)를 대상에 추가하고 Google Play alpha `1.0.9` (`versionCode=13`)로 배포했다.
