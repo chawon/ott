@@ -33,6 +33,7 @@
         <package android:name="com.coupang.mobile.play" />
         <package android:name="com.disney.disneyplus" />
         <package android:name="com.amazon.avod.thirdpartyclient" />
+        <package android:name="com.apple.atve.androidtv.appletv" />
     </queries>
 
     
