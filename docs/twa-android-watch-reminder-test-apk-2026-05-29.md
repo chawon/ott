@@ -6,9 +6,10 @@ Google Play TWA 앱 안에서 OTT 앱 사용 종료 후 ottline 기록 알림을
 
 ## 범위
 
-- 대상 앱: Netflix, TVING, Wavve, Watcha, Coupang Play, Disney+, Prime Video
+- 대상 앱: Netflix, TVING, Wavve, Watcha, Coupang Play, Disney+, Prime Video, Apple TV
   - Netflix는 모바일 패키지(`com.netflix.mediaclient`)와 TV 계열 패키지(`com.netflix.ninja`)를 함께 진단한다.
   - Prime Video는 Google Play 패키지(`com.amazon.avod.thirdpartyclient`)를 진단한다.
+  - Apple TV는 Google Play 패키지(`com.apple.atve.androidtv.appletv`)를 진단한다.
 - 감지 방식: Android Usage Access 기반 주기 감지. 대상 OTT 앱의 UsageStats만 읽고, 자동 감지는 5분 이상 foreground 사용시간 증가분이 있으며 마지막 사용이 15분 이내인 앱만 후보로 삼는다. WorkManager periodic에 더해 5분 지연 one-shot 감지 체인을 함께 예약한다.
 - 알림 동작: 대상 OTT 앱을 의미 있게 사용한 것으로 보이면 기록 알림 후보가 된다. 기존 global/app cooldown은 유지한다.
 - 제외: 콘텐츠 제목 감지, Accessibility, Notification Listener, 서버 전송

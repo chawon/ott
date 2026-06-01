@@ -279,7 +279,7 @@
 ### 진행 업데이트 (2026-05-31, Android 시청 기록 알림 alpha)
 - [x] `1.0.8` (`versionCode=12`) alpha 업데이트 후보 정리
   - [x] UsageStats 기반 시청 기록 알림 네이티브 설정/스케줄러를 release TWA 앱에 포함
-  - [x] 대상 OTT 앱 hardcoded package/query 추가: Netflix, TVING, Wavve, Watcha, Coupang Play, Disney+, Prime Video
+  - [x] 대상 OTT 앱 hardcoded package/query 추가: Netflix, TVING, Wavve, Watcha, Coupang Play, Disney+, Prime Video, Apple TV
   - [x] release 설정 화면은 사용자용 3단계 권한/기능 설정 UI만 노출
   - [x] debug APK에서만 최근 감지 디버그, 수동 감지, 테스트 알림, 대상 앱 목록 노출
 - [x] GitHub Actions `twa-release.yml`로 `alpha` 배포

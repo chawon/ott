@@ -254,7 +254,7 @@ adb install -r apps/twa/app/build/outputs/apk/debug/app-debug.apk
   - Web production deploy run: `26715052717`
   - TWA release run: `26712381951`
   - Google Play `alpha`: `1.0.8` (`versionCode=12`), `status=completed`
-  - 대상 앱: Netflix, TVING, Wavve, Watcha, Coupang Play, Disney+, Prime Video
+  - 대상 앱: Netflix, TVING, Wavve, Watcha, Coupang Play, Disney+, Prime Video, Apple TV
   - 감지 방식: Android Usage Access 기반 UsageStats 감지. 자동 알림은 대상 OTT 앱 foreground 사용 증가분 5분 이상, 마지막 사용 15분 이내일 때만 후보로 삼는다.
   - 콘텐츠 제목, 재생 상태, 앱 화면 내용은 읽지 않는다.
   - release/AAB 설정 화면은 사용 정보 접근, 알림 권한, 알림 켜기 순서의 3단계 사용자용 UI만 노출하고, debug APK에서만 최근 감지 디버그/수동 감지/대상 앱 목록을 노출한다.
