@@ -1,6 +1,6 @@
 "use client";
 
-import { Download, Share2 } from "lucide-react";
+import { Download, Loader2, Share2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -215,9 +215,30 @@ export default function ShareBottomSheet({
                       className="h-full w-full object-cover"
                     />
                   ) : (
-                    <div className="flex h-full w-full items-center justify-center text-xs text-muted-foreground">
-                      {tShare("previewLoading")}
-                    </div>
+                    <output
+                      className="flex h-full w-full flex-col justify-between bg-gradient-to-br from-background via-muted/70 to-card p-5 text-muted-foreground"
+                      aria-live="polite"
+                    >
+                      <div className="flex items-start">
+                        <div className="h-24 w-16 rounded-xl bg-background/70 shadow-sm animate-pulse" />
+                      </div>
+                      <div className="space-y-3">
+                        <div className="space-y-2" aria-hidden="true">
+                          <div className="h-4 w-3/4 rounded-full bg-background/80 animate-pulse" />
+                          <div className="h-3 w-1/2 rounded-full bg-background/70 animate-pulse" />
+                          <div className="h-3 w-5/6 rounded-full bg-background/60 animate-pulse" />
+                        </div>
+                        <div className="rounded-2xl bg-background/85 px-4 py-3 shadow-sm">
+                          <div className="flex items-center gap-2 text-xs font-semibold text-foreground">
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            <span>{tShare("previewGenerating")}</span>
+                          </div>
+                          <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
+                            {tShare("previewGeneratingDescription")}
+                          </p>
+                        </div>
+                      </div>
+                    </output>
                   )}
                 </div>
               </div>
@@ -301,7 +322,11 @@ export default function ShareBottomSheet({
               disabled={busy || !log || !shareCardBlob}
               className="flex w-full items-center justify-center gap-2 rounded-2xl bg-foreground px-4 py-3 text-sm font-semibold text-background hover:bg-foreground/90 disabled:opacity-50"
             >
-              <Share2 className="h-4 w-4" />
+              {shareCardBlob ? (
+                <Share2 className="h-4 w-4" />
+              ) : (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              )}
               {shareCardBlob ? tShare("shareAction") : tShare("preparing")}
             </button>
             <div className="text-[11px] text-muted-foreground">
