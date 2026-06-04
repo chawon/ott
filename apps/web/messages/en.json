@@ -22,7 +22,7 @@
     "titleModern": "ottline"
   },
   "AppFooter": {
-    "descriptionModern": "Fast and simple movie & book logs. Build your own timeline.",
+    "descriptionModern": "Fast and simple OTT watch logs, movie logs, and book logs. Build your own timeline.",
     "sectionServiceModern": "Service",
     "sectionGuideModern": "Guide",
     "linkLogModern": "Log",
@@ -465,14 +465,14 @@
     "shareText": "My log share: {title}"
   },
   "Metadata": {
-    "titleDefault": "ottline | Stream. Read. Remember.",
+    "titleDefault": "ottline | OTT Watch Logs in 10 Seconds",
     "titleTemplate": "%s | ottline",
-    "description": "Log your movie and book records in 10 seconds without sign-up. Build your own timeline easily."
+    "description": "Log OTT watch history, movies, series, and books in 10 seconds without sign-up. Build your own personal timeline."
   },
   "About": {
-    "title": "About Service & How to Use",
-    "subtitle": "Movie & Book Timeline without sign-up",
-    "description": "ottline helps you quickly log movies and books into your own timeline. Start on the web without tedious sign-up, then continue through the same flow on the installable PWA, Toss in-app mini app, browser extension, and Windows app. Android and ChatGPT connections are still in preparation.",
+    "title": "OTT Watch Log App & How to Use",
+    "subtitle": "OTT watch logs, movie logs, and book timelines without sign-up",
+    "description": "ottline helps you quickly log OTT watch history from services like Netflix, TVING, and Disney+, plus movies, series, and books, into your own timeline. Start on the web without tedious sign-up, then continue through the same flow on the installable PWA, Toss in-app mini app, browser extension, and Windows app. Android and ChatGPT connections are still in preparation.",
     "pairingHighlightTitle": "Once you start logging, your timeline keeps going.",
     "pairingHighlightDesc": "Whether you open ottline on the web, in Toss, or as an installed app, your pairing code lets you continue the same timeline and keep logging and checking your history.",
     "platformsTitle": "Started on the web, opened in more places",
