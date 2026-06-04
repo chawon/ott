@@ -14,8 +14,9 @@ export async function generateMetadata({
     alternates: {
       canonical: "https://ottline.app/privacy",
       languages: {
-        ko: "https://ottline.app/ko/privacy",
+        ko: "https://ottline.app/privacy",
         en: "https://ottline.app/en/privacy",
+        "x-default": "https://ottline.app/privacy",
       },
     },
     openGraph: {
