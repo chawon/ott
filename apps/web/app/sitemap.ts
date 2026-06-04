@@ -3,7 +3,7 @@ import type { MetadataRoute } from "next";
 const baseUrl = "https://ottline.app";
 
 // Update this date when content pages are meaningfully changed
-const CONTENT_DATE = new Date("2026-03-16");
+const CONTENT_DATE = new Date("2026-06-04");
 
 export default function sitemap(): MetadataRoute.Sitemap {
   return [
