@@ -36,9 +36,12 @@ type DailyReport = {
   };
   internal: {
     dau: number;
-    logCreate: number;
+    titleSearchUsers: number;
+    titleSelectUsers: number;
+    loginUsers: number;
+    firstLogCreateUsers: number;
+    logCreateUsers: number;
     dbLogCreateCount: number;
-    newDevices: number;
   };
   kubernetes: {
     pods: PodStatus[];
@@ -46,6 +49,13 @@ type DailyReport = {
   };
 };
 
+function rate(numerator: number, denominator: number) {
+  if (denominator <= 0) return "-";
+  return new Intl.NumberFormat("ko-KR", {
+    maximumFractionDigits: 1,
+    style: "percent",
+  }).format(numerator / denominator);
+}
 
 export default async function AdminReportPage({ params, searchParams }: Props) {
   await params;
@@ -61,8 +71,12 @@ export default async function AdminReportPage({ params, searchParams }: Props) {
   if (!backendUrl) {
     return (
       <div className="space-y-2">
-        <h1 className="text-2xl font-bold tracking-tight">데일리 운영 리포트</h1>
-        <p className="text-sm text-red-500">BACKEND_URL 환경변수가 설정되지 않았습니다.</p>
+        <h1 className="text-2xl font-bold tracking-tight">
+          데일리 운영 리포트
+        </h1>
+        <p className="text-sm text-red-500">
+          BACKEND_URL 환경변수가 설정되지 않았습니다.
+        </p>
       </div>
     );
   }
@@ -87,9 +101,13 @@ export default async function AdminReportPage({ params, searchParams }: Props) {
   return (
     <div className="space-y-6">
       <section className="space-y-1">
-        <h1 className="text-2xl font-bold tracking-tight">📊 데일리 운영 리포트</h1>
+        <h1 className="text-2xl font-bold tracking-tight">
+          📊 데일리 운영 리포트
+        </h1>
         {report && (
-          <p className="text-sm text-muted-foreground">{report.date} 기준 (어제)</p>
+          <p className="text-sm text-muted-foreground">
+            {report.date} 기준 (어제)
+          </p>
         )}
       </section>
 
@@ -105,27 +123,54 @@ export default async function AdminReportPage({ params, searchParams }: Props) {
           <section className="rounded-2xl border border-border bg-card p-6 space-y-4">
             <div className="text-sm font-semibold">🌐 트래픽 (Cloudflare)</div>
             {report.cloudflare.error ? (
-              <p className="text-sm text-red-500">⚠ {report.cloudflare.error}</p>
+              <p className="text-sm text-red-500">
+                ⚠ {report.cloudflare.error}
+              </p>
             ) : (
               <div className="grid gap-3 sm:grid-cols-3">
-                <Stat label="요청수" value={report.cloudflare.requests.toLocaleString("ko-KR")} />
-                <Stat label="방문자" value={report.cloudflare.uniqueVisitors.toLocaleString("ko-KR")} />
-                <Stat label="페이지뷰" value={report.cloudflare.pageViews.toLocaleString("ko-KR")} />
+                <Stat
+                  label="요청수"
+                  value={report.cloudflare.requests.toLocaleString("ko-KR")}
+                />
+                <Stat
+                  label="방문자"
+                  value={report.cloudflare.uniqueVisitors.toLocaleString(
+                    "ko-KR",
+                  )}
+                />
+                <Stat
+                  label="페이지뷰"
+                  value={report.cloudflare.pageViews.toLocaleString("ko-KR")}
+                />
               </div>
             )}
           </section>
 
           {/* GA4 */}
           <section className="rounded-2xl border border-border bg-card p-6 space-y-4">
-            <div className="text-sm font-semibold">📈 사용자 (Google Analytics 4)</div>
+            <div className="text-sm font-semibold">
+              📈 사용자 (Google Analytics 4)
+            </div>
             {report.ga4.error ? (
               <p className="text-sm text-red-500">⚠ {report.ga4.error}</p>
             ) : (
               <div className="grid gap-3 sm:grid-cols-4">
-                <Stat label="세션" value={report.ga4.sessions.toLocaleString("ko-KR")} />
-                <Stat label="활성 사용자" value={report.ga4.activeUsers.toLocaleString("ko-KR")} />
-                <Stat label="페이지뷰" value={report.ga4.pageViews.toLocaleString("ko-KR")} />
-                <Stat label="신규 사용자" value={report.ga4.newUsers.toLocaleString("ko-KR")} />
+                <Stat
+                  label="세션"
+                  value={report.ga4.sessions.toLocaleString("ko-KR")}
+                />
+                <Stat
+                  label="활성 사용자"
+                  value={report.ga4.activeUsers.toLocaleString("ko-KR")}
+                />
+                <Stat
+                  label="페이지뷰"
+                  value={report.ga4.pageViews.toLocaleString("ko-KR")}
+                />
+                <Stat
+                  label="신규 사용자"
+                  value={report.ga4.newUsers.toLocaleString("ko-KR")}
+                />
               </div>
             )}
           </section>
@@ -133,11 +178,60 @@ export default async function AdminReportPage({ params, searchParams }: Props) {
           {/* 내부 지표 */}
           <section className="rounded-2xl border border-border bg-card p-6 space-y-4">
             <div className="text-sm font-semibold">🎯 앱 활동 (내부)</div>
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
+              <Stat
+                label="DAU"
+                value={report.internal.dau.toLocaleString("ko-KR")}
+              />
+              <Stat
+                label="제목 검색"
+                value={report.internal.titleSearchUsers.toLocaleString("ko-KR")}
+              />
+              <Stat
+                label="제목 선택"
+                value={report.internal.titleSelectUsers.toLocaleString("ko-KR")}
+              />
+              <Stat
+                label="기기 연결"
+                value={report.internal.loginUsers.toLocaleString("ko-KR")}
+              />
+              <Stat
+                label="첫 기록"
+                value={report.internal.firstLogCreateUsers.toLocaleString(
+                  "ko-KR",
+                )}
+              />
+              <Stat
+                label="기록 사용자"
+                value={report.internal.logCreateUsers.toLocaleString("ko-KR")}
+              />
+            </div>
             <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-              <Stat label="DAU" value={report.internal.dau.toLocaleString("ko-KR")} />
-              <Stat label="로그 생성 사용자" value={report.internal.logCreate.toLocaleString("ko-KR")} />
-              <Stat label="신규 로그 수(DB)" value={report.internal.dbLogCreateCount.toLocaleString("ko-KR")} />
-              <Stat label="신규 기기 등록" value={report.internal.newDevices.toLocaleString("ko-KR")} />
+              <Stat
+                label="방문→검색"
+                value={rate(
+                  report.internal.titleSearchUsers,
+                  report.internal.dau,
+                )}
+              />
+              <Stat
+                label="검색→선택"
+                value={rate(
+                  report.internal.titleSelectUsers,
+                  report.internal.titleSearchUsers,
+                )}
+              />
+              <Stat
+                label="방문→첫 기록"
+                value={rate(
+                  report.internal.firstLogCreateUsers,
+                  report.internal.dau,
+                )}
+              />
+              <Stat
+                label="신규 로그 수(DB)"
+                value={report.internal.dbLogCreateCount.toLocaleString("ko-KR")}
+              />
             </div>
           </section>
 
@@ -146,7 +240,9 @@ export default async function AdminReportPage({ params, searchParams }: Props) {
             <div className="flex items-center justify-between">
               <div className="text-sm font-semibold">
                 ☸️ 인프라 (Kubernetes / ott)
-                <span className="ml-2 text-xs font-normal text-muted-foreground">실시간</span>
+                <span className="ml-2 text-xs font-normal text-muted-foreground">
+                  실시간
+                </span>
               </div>
               <a
                 href="https://clarity.microsoft.com"
@@ -158,7 +254,9 @@ export default async function AdminReportPage({ params, searchParams }: Props) {
               </a>
             </div>
             {report.kubernetes.error ? (
-              <p className="text-sm text-red-500">⚠ {report.kubernetes.error}</p>
+              <p className="text-sm text-red-500">
+                ⚠ {report.kubernetes.error}
+              </p>
             ) : report.kubernetes.pods.length === 0 ? (
               <p className="text-sm text-muted-foreground">Pod 없음</p>
             ) : (
@@ -172,7 +270,9 @@ export default async function AdminReportPage({ params, searchParams }: Props) {
                       <span>{pod.phase === "Running" ? "✅" : "⚠️"}</span>
                       <span className="font-medium">{pod.name}</span>
                       {pod.imageTag && (
-                        <span className="text-xs text-muted-foreground font-mono">[{pod.imageTag}]</span>
+                        <span className="text-xs text-muted-foreground font-mono">
+                          [{pod.imageTag}]
+                        </span>
                       )}
                     </div>
                     {(pod.cpuUsage || pod.memoryUsage) && (

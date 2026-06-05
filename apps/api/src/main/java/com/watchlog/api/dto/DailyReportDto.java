@@ -27,9 +27,12 @@ public record DailyReportDto(
 
     public record InternalStatsDto(
             long dau,
-            long logCreate,
-            long dbLogCreateCount,
-            long newDevices
+            long titleSearchUsers,
+            long titleSelectUsers,
+            long loginUsers,
+            long firstLogCreateUsers,
+            long logCreateUsers,
+            long dbLogCreateCount
     ) {}
 
     public record K8sStatusDto(

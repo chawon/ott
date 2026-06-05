@@ -341,6 +341,13 @@ feature/* ──PR──→ main ──→ [자동] staging.ottline.app
 5. `GET /api/admin/analytics/migration-status`
    1. 헤더: `X-Admin-Token` 필요
    2. 응답: `totalActiveUsers`, `migratedUsers`, `notMigratedUsers`, `migrationRate`, `recentMigrations`
+6. `GET /api/admin/report/daily`
+   1. 헤더: `X-Admin-Token` 필요
+   2. 매일 KST 기준 전일 리포트를 반환한다.
+   3. 내부 지표는 admin analytics와 같은 관리자 UUID를 제외하고 `dau`, `titleSearchUsers`, `titleSelectUsers`, `loginUsers`, `firstLogCreateUsers`, `logCreateUsers`, `dbLogCreateCount`를 포함한다.
+7. `POST /api/admin/report/daily/send`
+   1. 헤더: `X-Admin-Token` 필요
+   2. 현재 데일리 리포트를 Telegram으로 수동 발송한다.
 
 ### Sync
 1. `POST /api/sync/push`
