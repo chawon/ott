@@ -22,6 +22,13 @@ type BrowserFamily =
   | "in_app"
   | "unknown";
 type InstallState = "browser" | "pwa_installed" | "twa";
+type UtmProperties = Partial<{
+  utmSource: string;
+  utmMedium: string;
+  utmCampaign: string;
+  utmTerm: string;
+  utmContent: string;
+}>;
 
 function detectPlatform(): AnalyticsPlatform {
   if (typeof window === "undefined") return "web";
@@ -76,13 +83,82 @@ function detectInstallState(platform: AnalyticsPlatform): InstallState {
   return "browser";
 }
 
+function sessionValue(key: string, fallback: () => string) {
+  if (typeof sessionStorage === "undefined") return fallback();
+  const existing = sessionStorage.getItem(key);
+  if (existing) return existing;
+  const next = fallback();
+  sessionStorage.setItem(key, next);
+  return next;
+}
+
+function getLandingPath() {
+  if (typeof window === "undefined") return "unknown";
+  return sessionValue(
+    "watchlog.analytics.landingPath",
+    () => window.location.pathname || "/",
+  );
+}
+
+function getReferrerOrigin() {
+  if (typeof document === "undefined") return "unknown";
+  return sessionValue("watchlog.analytics.referrer", () => {
+    if (!document.referrer) return "direct";
+    try {
+      return new URL(document.referrer).origin;
+    } catch {
+      return "unknown";
+    }
+  });
+}
+
+function getUtmProperties(): UtmProperties {
+  if (typeof window === "undefined" || typeof sessionStorage === "undefined") {
+    return {};
+  }
+  const key = "watchlog.analytics.utm";
+  const existing = sessionStorage.getItem(key);
+  if (existing) {
+    try {
+      return JSON.parse(existing) as UtmProperties;
+    } catch {
+      return {};
+    }
+  }
+  const params = new URLSearchParams(window.location.search);
+  const next: UtmProperties = {};
+  const mappings = [
+    ["utm_source", "utmSource"],
+    ["utm_medium", "utmMedium"],
+    ["utm_campaign", "utmCampaign"],
+    ["utm_term", "utmTerm"],
+    ["utm_content", "utmContent"],
+  ] as const;
+  for (const [param, prop] of mappings) {
+    const value = params.get(param)?.trim();
+    if (value) next[prop] = value.slice(0, 128);
+  }
+  sessionStorage.setItem(key, JSON.stringify(next));
+  return next;
+}
+
 function buildContextProperties(platform: AnalyticsPlatform) {
   return {
-    hostname: typeof window !== "undefined" ? window.location.hostname : "unknown",
+    hostname:
+      typeof window !== "undefined" ? window.location.hostname : "unknown",
+    landingPath: getLandingPath(),
+    referrer: getReferrerOrigin(),
+    locale:
+      typeof document !== "undefined"
+        ? document.documentElement.lang || "unknown"
+        : "unknown",
+    browserLocale:
+      typeof navigator !== "undefined" ? navigator.language : "unknown",
     deviceType: detectDeviceType(),
     osFamily: detectOsFamily(),
     browserFamily: detectBrowserFamily(),
     installState: detectInstallState(platform),
+    ...getUtmProperties(),
   };
 }
 
@@ -101,8 +177,9 @@ export async function trackEvent(
     | "app_open"
     | "login_success"
     | "log_create"
-    | "share_action"
-    | "migration_complete"
+    | "first_log_create"
+    | "title_search"
+    | "title_select"
     | "recommendation_open"
     | "recommendation_refresh"
     | "recommendation_dismiss",

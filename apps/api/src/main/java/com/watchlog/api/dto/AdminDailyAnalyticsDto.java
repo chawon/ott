@@ -6,7 +6,9 @@ public record AdminDailyAnalyticsDto(
         LocalDate day,
         long events,
         long appOpenUsers,
+        long titleSearchUsers,
+        long titleSelectUsers,
         long loginUsers,
-        long logCreateUsers,
-        long shareActionUsers
+        long firstLogCreateUsers,
+        long logCreateUsers
 ) {}

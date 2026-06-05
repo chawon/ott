@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import TitleSearchBox from "@/components/TitleSearchBox";
 import { trackEvent } from "@/lib/analytics";
 import { api, apiWithAuth } from "@/lib/api";
@@ -304,6 +304,41 @@ export default function QuickLogCard({
   const platformCustomKey = isBookMode ? BOOK_CUSTOM_KEY : VIDEO_CUSTOM_KEY;
   const selectedLocalTitleId =
     selected?.provider === "LOCAL" ? selected.titleId : null;
+  const handleTitleSearchComplete = useCallback(
+    (result: {
+      contentType: "video" | "book";
+      queryLength: number;
+      resultCount: number;
+      success: boolean;
+    }) => {
+      void trackEvent("title_search", {
+        contentType: result.contentType,
+        queryLength: result.queryLength,
+        resultCount: result.resultCount,
+        success: result.success,
+      });
+    },
+    [],
+  );
+  const handleTitleSelectAnalytics = useCallback(
+    (result: {
+      item: TitleSearchItem;
+      contentType: "video" | "book";
+      source: "search_result" | "recent_discussion";
+      queryLength: number;
+      resultRank?: number;
+    }) => {
+      void trackEvent("title_select", {
+        contentType: result.contentType,
+        titleType: result.item.type,
+        provider: result.item.provider,
+        source: result.source,
+        queryLength: result.queryLength,
+        resultRank: result.resultRank ?? null,
+      });
+    },
+    [],
+  );
 
   function clearSelectedTitleState() {
     setSelected(null);
@@ -506,6 +541,7 @@ export default function QuickLogCard({
       const existingTitle = selected.titleId
         ? null
         : await findTitleByProvider(selected.provider, selected.providerId);
+      const logCountBeforeSave = await countLogsLocal();
       const newLocalTitleId =
         selected.titleId ?? existingTitle?.id ?? safeUUID();
       const newLocalLogId = safeUUID();
@@ -597,12 +633,19 @@ export default function QuickLogCard({
           },
         },
       });
-      await trackEvent("log_create", {
+      const logCreateProperties = {
+        entryPoint: "quick_log",
         titleType: selected.type,
+        status: clickedStatus,
         hasRating: false,
         hasNote: false,
         hasOtt: false,
-      });
+        isFirstLog: logCountBeforeSave === 0,
+      };
+      await trackEvent("log_create", logCreateProperties);
+      if (logCountBeforeSave === 0) {
+        await trackEvent("first_log_create", logCreateProperties);
+      }
       onCreated(localLog);
       await syncOutbox();
 
@@ -874,6 +917,8 @@ export default function QuickLogCard({
               <TitleSearchBox
                 key={contentType}
                 onSelect={(item) => setSelected(item)}
+                onSearchComplete={handleTitleSearchComplete}
+                onSelectAnalytics={handleTitleSelectAnalytics}
                 placeholder={
                   isBookMode
                     ? tQuick("searchPlaceholderBook")

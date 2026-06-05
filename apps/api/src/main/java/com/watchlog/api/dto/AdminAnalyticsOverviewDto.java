@@ -12,7 +12,10 @@ public record AdminAnalyticsOverviewDto(
         long wau,
         long mau,
         long funnelAppOpenUsers,
+        long funnelTitleSearchUsers,
+        long funnelTitleSelectUsers,
         long funnelLoginUsers,
+        long funnelFirstLogCreateUsers,
         long funnelLogCreateUsers,
         List<AdminPlatformSummaryDto> platforms,
         List<AdminDimensionSummaryDto> deviceTypes,
@@ -21,6 +24,5 @@ public record AdminAnalyticsOverviewDto(
         List<AdminDimensionSummaryDto> installStates,
         List<AdminDimensionSummaryDto> domains,
         List<AdminEventBreakdownDto> eventBreakdown,
-        AdminOldDomainUsageDto oldDomainUsage,
         List<AdminDailyAnalyticsDto> daily
 ) {}
