@@ -16,7 +16,7 @@ ottline 웹서비스 운영 현황을 매일 한 곳에서 확인하고 싶음.
 |------|--------|------|
 | Cloudflare | 요청수, 방문자, 대역폭, 위협 차단 | CF GraphQL Analytics API |
 | GA4 | 세션, 활성 사용자, 페이지뷰, 신규 사용자 | GA4 Data API (서비스 계정) |
-| 내부 analytics + DB | DAU, 로그 생성 사용자, 서버 반영 신규 로그 수, 신규 등록 | `analytics_events` + `watch_logs.created_at` |
+| 내부 analytics + DB | DAU, 제목 검색/선택, 기기 연결, 첫 기록, 기록 사용자, 서버 반영 신규 로그 수 | `analytics_events` + `watch_logs.created_at` |
 | Kubernetes | Pod 상태, Deployment 이미지, CPU/Memory (실시간) | K8s API (in-cluster config) + Metrics Server |
 
 ### 2026-04-15 집계 정의 조정
@@ -24,11 +24,16 @@ ottline 웹서비스 운영 현황을 매일 한 곳에서 확인하고 싶음.
 - API/스키마 영향: 없음. 기존 `GET /api/admin/report/daily` 응답 DTO에 내부 지표 필드만 확장
 - 집계 정의:
   - `DAU`: 기존과 동일하게 `analytics_events.event_name = 'app_open'`의 고유 행위자 수
-  - `로그 생성 사용자`: `analytics_events.event_name = 'log_create'`의 고유 행위자 수
+  - `제목 검색`: `analytics_events.event_name = 'title_search'`의 고유 행위자 수
+  - `제목 선택`: `analytics_events.event_name = 'title_select'`의 고유 행위자 수
+  - `기기 연결`: `analytics_events.event_name = 'login_success'`의 고유 행위자 수
+  - `첫 기록`: `analytics_events.event_name = 'first_log_create'`의 고유 행위자 수
+  - `기록 사용자`: `analytics_events.event_name = 'log_create'`의 고유 행위자 수
   - `신규 로그 수 (DB)`: `watch_logs.created_at`이 전일 KST 범위에 포함되는 row 수
-  - `신규 기기`: 기존과 동일하게 `analytics_events.event_name = 'login_success'`의 고유 행위자 수
+  - 내부 지표는 관리자 analytics와 같은 관리자 UUID를 제외한다.
 - 해석 원칙:
-  - `로그 생성 사용자`는 사용 행태 추적용 지표이며, 전송 실패나 오프라인 상황에 따라 실제 DB 반영 수와 다를 수 있다.
+  - `제목 검색`과 `제목 선택`은 새 이벤트 배포 이후부터 의미 있게 쌓인다.
+  - `기록 사용자`는 사용 행태 추적용 지표이며, 전송 실패나 오프라인 상황에 따라 실제 DB 반영 수와 다를 수 있다.
   - `신규 로그 수 (DB)`는 서버에 실제 반영된 신규 로그 수다.
   - sync로 늦게 올라온 오프라인 기록은 사용자가 어제 작성했더라도 서버 반영 시점 날짜로 잡힌다.
 
@@ -116,8 +121,10 @@ ottline 웹서비스 운영 현황을 매일 한 곳에서 확인하고 싶음.
 • 페이지뷰: 2,345 | 신규: 234
 
 🎯 앱 활동 (내부)
-• DAU: 89 | 로그 생성 사용자: 63
-• 신규 로그 수(DB): 123 | 신규 등록: 5
+• 방문: 89 | 검색: 34 | 선택: 21
+• 기기 연결: 5 | 첫 기록: 3 | 기록 사용자: 8
+• 전환: 방문→검색 38.2% | 검색→선택 61.8% | 방문→첫 기록 3.4%
+• 신규 로그 수(DB): 123
 
 ☸️ 인프라 (K8s / ott ns)
 • ott-web ✅ Running  [이미지 태그]

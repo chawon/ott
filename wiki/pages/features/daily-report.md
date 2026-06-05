@@ -19,6 +19,7 @@ ottline 운영 현황을 매일 한 곳에서 확인: Cloudflare(트래픽), GA4
 - 2026-04-15: `로그 생성` 표기를 `로그 생성 사용자`로 명확화
 - 2026-04-15: `watch_logs.created_at` 기준 `신규 로그 수(DB)` 추가
 - 2026-04-15: staging 배포 완료 후 동일 SHA(`a63ae1d393d04a366dc1377699b01f7c48c80a17`)로 production web/api 배포 완료
+- 2026-06-05: 내부 지표를 제품 퍼널 기준(방문 → 제목 검색 → 제목 선택 → 기기 연결 → 첫 기록 → 기록 사용자)으로 확장하고, 관리자 analytics와 같은 관리자 UUID 제외 기준을 적용
 
 ---
 
@@ -28,7 +29,7 @@ ottline 운영 현황을 매일 한 곳에서 확인: Cloudflare(트래픽), GA4
 |---|---|---|
 | Cloudflare | 요청수, 방문자, 대역폭, 위협 차단 | CF GraphQL Analytics API |
 | GA4 | 세션, 활성 사용자, 페이지뷰, 신규 사용자 | GA4 Data API (서비스 계정) |
-| 내부 analytics + DB | DAU, 로그 생성 사용자, 서버 반영 신규 로그 수, 신규 등록 | `analytics_events` + `watch_logs.created_at` |
+| 내부 analytics + DB | DAU, 제목 검색/선택, 기기 연결, 첫 기록, 기록 사용자, 서버 반영 신규 로그 수 | `analytics_events` + `watch_logs.created_at` |
 | Kubernetes | Pod 상태, 이미지 태그, CPU/Memory | K8s API (in-cluster) + Metrics Server |
 
 ---
@@ -36,12 +37,17 @@ ottline 운영 현황을 매일 한 곳에서 확인: Cloudflare(트래픽), GA4
 ## 내부 지표 정의
 
 - `DAU`: `analytics_events.event_name = 'app_open'`의 고유 행위자 수
-- `로그 생성 사용자`: `analytics_events.event_name = 'log_create'`의 고유 행위자 수
+- `제목 검색`: `analytics_events.event_name = 'title_search'`의 고유 행위자 수
+- `제목 선택`: `analytics_events.event_name = 'title_select'`의 고유 행위자 수
+- `기기 연결`: `analytics_events.event_name = 'login_success'`의 고유 행위자 수
+- `첫 기록`: `analytics_events.event_name = 'first_log_create'`의 고유 행위자 수
+- `기록 사용자`: `analytics_events.event_name = 'log_create'`의 고유 행위자 수
 - `신규 로그 수(DB)`: `watch_logs.created_at`이 전일 KST 범위에 포함되는 row 수
-- `신규 기기`: `analytics_events.event_name = 'login_success'`의 고유 행위자 수
+- 내부 지표는 관리자 analytics와 같은 관리자 UUID를 제외한다.
 
 해석 메모:
-- `로그 생성 사용자`는 이벤트 전송 성공 여부에 영향을 받는 사용 행태 추적 지표다.
+- `제목 검색`과 `제목 선택`은 새 이벤트 배포 이후부터 의미 있게 쌓인다.
+- `기록 사용자`는 이벤트 전송 성공 여부에 영향을 받는 사용 행태 추적 지표다.
 - `신규 로그 수(DB)`는 서버에 실제 반영된 신규 로그 수다.
 - 오프라인 기록이 다음날 sync되면 사용자가 어제 작성했더라도 서버 반영 날짜 기준으로 집계된다.
 
@@ -102,8 +108,10 @@ report:
 • 페이지뷰: 2,345 | 신규: 234
 
 🎯 앱 활동 (내부)
-• DAU: 89 | 로그 생성 사용자: 63
-• 신규 로그 수(DB): 123 | 신규 등록: 5
+• 방문: 89 | 검색: 34 | 선택: 21
+• 기기 연결: 5 | 첫 기록: 3 | 기록 사용자: 8
+• 전환: 방문→검색 38.2% | 검색→선택 61.8% | 방문→첫 기록 3.4%
+• 신규 로그 수(DB): 123
 
 ☸️ 인프라 (K8s / ott ns)
 • ott-web ✅ Running  [이미지 태그]
