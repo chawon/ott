@@ -9,7 +9,6 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { trackEvent } from "@/lib/analytics";
 import { avatarSrc, isPersonaKey, isProfileComplete } from "@/lib/profile";
 import { downloadBlob, fetchShareCardBlob, shareBlob } from "@/lib/share";
 import type { WatchLog } from "@/lib/types";
@@ -151,11 +150,6 @@ export default function ShareBottomSheet({
       setBusy(true);
       const blob = await buildBlob();
       await downloadBlob(blob, filenameFor(log));
-      await trackEvent("share_action", {
-        action: "download",
-        format,
-        titleType: log.title?.type ?? null,
-      });
     } finally {
       setBusy(false);
     }
@@ -169,11 +163,6 @@ export default function ShareBottomSheet({
       const filename = filenameFor(log);
       const text = tShare("shareText", { title: log.title.name });
       const shared = await shareBlob(blob, filename, log.title.name, text);
-      await trackEvent("share_action", {
-        action: shared ? "share" : "fallback_download",
-        format,
-        titleType: log.title?.type ?? null,
-      });
       if (!shared) {
         await downloadBlob(blob, filename);
       }

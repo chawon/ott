@@ -7,6 +7,7 @@ import { useEffect, useMemo, useState } from "react";
 import { trackEvent } from "@/lib/analytics";
 import { api, apiWithAuth } from "@/lib/api";
 import {
+  countLogsLocal,
   enqueueCreateLog,
   getDeviceId,
   getUserId,
@@ -147,6 +148,7 @@ export default function DiscussionReactionChips({
   async function ensureLocalRecord(type: DiscussionReactionType) {
     const existing = await listLogsByTitleLocal(title.id, 1);
     if (existing.length > 0) return "exists" as const;
+    const logCountBeforeSave = await countLogsLocal();
 
     const now = new Date().toISOString();
     const logId = safeUUID();
@@ -200,11 +202,16 @@ export default function DiscussionReactionChips({
         },
       },
     });
-    await trackEvent("log_create", {
+    const logCreateProperties = {
       titleType: title.type,
-      source: "public_reaction",
+      entryPoint: "public_reaction",
       reactionType: type,
-    });
+      isFirstLog: logCountBeforeSave === 0,
+    };
+    await trackEvent("log_create", logCreateProperties);
+    if (logCountBeforeSave === 0) {
+      await trackEvent("first_log_create", logCreateProperties);
+    }
     if (typeof window !== "undefined") {
       window.dispatchEvent(new CustomEvent("sync:updated"));
     }

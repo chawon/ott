@@ -37,7 +37,7 @@
 13. 기기 unlink 후 서버 API 차단 + 로컬 캐시 초기화 적용
 14. Next.js 16 대응 `middleware` -> `proxy` 전환 완료
 15. ottline 브랜딩 전면 적용: 신규 아이콘/파비콘, 헤더 로고, 브랜드명, 슬로건, OG 이미지, 공유카드 watermark
-16. 관리자 analytics에 마이그레이션 현황 + 구 도메인 잔존 사용(`oldDomainUsage`) 표시
+16. 관리자 analytics에 제품 퍼널(방문 → 제목 검색 → 제목 선택 → 기기 연결 → 첫 기록 → 기록 사용자), 유입 컨텍스트, 디바이스/도메인 세그먼트 표시
 17. 낙장불입 정책 확정: 사용자용 개별 기록 삭제 없음, 설정의 로컬 초기화와 서버 데이터 전체 삭제를 분리
 18. 설정에서 계정 단위 서버 데이터 전체 삭제(기록/댓글/문의/analytics/기기 연결) 지원
 19. ChatGPT App v1 운영 배포 + OpenAI 앱 심사 진행 중(`2026-04-23` 기준): `timeline.list_recent_logs` 기반 읽기 전용 recent-history connector + OAuth/PKCE + 도메인 검증 경로 반영
@@ -62,9 +62,9 @@
 1. **다국어(i18n) 및 글로벌 서비스화**: `next-intl` 적용, 전체 UI 번역, 백엔드 데이터 연동 완료.
 2. **도메인 이전 및 마이그레이션**: `ottline.app` 신규 도메인 연결 및 리다이렉트 기반 인증 정보 이식 완료.
 3. **ottline 브랜딩 적용 (Phase 2)**: 아이콘/파비콘 교체, 헤더 로고(텍스트 조합), 레트로 모드 제거, 브랜드명·슬로건·OG이미지·공유카드 watermark 전면 반영 완료.
-4. **마이그레이션 현황 추적**: `migration_complete` 이벤트 서버 적재, `/api/admin/analytics/migration-status` 엔드포인트 추가, admin 페이지 마이그레이션 현황 섹션 표시.
+4. **마이그레이션 현황 추적**: `migration_complete` 기반 `/api/admin/analytics/migration-status` 엔드포인트는 유지하지만, admin analytics 기본 화면에서는 제품 퍼널에 집중하기 위해 마이그레이션 섹션을 제거했다.
 5. **도메인별 접속 분석**: `app_open` 이벤트에 `hostname` 프로퍼티 추가, admin 통계에 domain(hostname) 세그먼트 표시.
-6. **구 도메인 잔존 사용 지표 분리**: admin analytics overview에 `oldDomainUsage` 응답 추가, `login_success`·`log_create`·`share_action`·`known user`를 old domain 기준으로 분리 표시.
+6. **제품 퍼널 통계 정리**: admin analytics overview에서 구 도메인 `oldDomainUsage`와 `share_action` 표시를 제거하고, `title_search`·`title_select`·`first_log_create` 기반 전환 흐름을 표시한다.
 7. **구 도메인 301 전환 완료**: `2026-04-18`부터 `ott.preview.pe.kr/*`는 Cloudflare에서 `https://ottline.app/*`로 301 리다이렉트한다. 기존 MigrationBanner 기반 자발적 이전 유도는 종료했다.
 8. **레트로 모드 통계 제거**: admin analytics에서 retro 관련 섹션(레트로 현황, 주간 레트로 트렌드) 제거. `SyncWorker`의 `app_open` 이벤트에서 `isRetro` 프로퍼티 제거.
 9. **브라우저 확장 ottline 브랜딩 및 스토어 배포**: `manifest.json`, `popup.html`, `popup.js` 브랜드명·URL을 ottline으로 전환, 아이콘 교체(512px 원본 리사이즈), Chrome Web Store/Edge Add-ons Store 배포 완료.
@@ -328,13 +328,14 @@ feature/* ──PR──→ main ──→ [자동] staging.ottline.app
 1. `POST /api/analytics/events`
    1. 익명 방문도 수집 가능
    2. 헤더: `X-Client-Id`(optional), `X-User-Id`(optional)
-   3. 이벤트 종류: `app_open`, `login_success`, `log_create`, `share_action`, `migration_complete`
-   4. `app_open` properties: `hostname`, `deviceType`, `osFamily`, `browserFamily`, `installState`
+   3. 주요 이벤트 종류: `app_open`, `title_search`, `title_select`, `login_success`, `first_log_create`, `log_create`, `recommendation_open`, `recommendation_refresh`, `recommendation_dismiss`
+   4. 공통 properties: `hostname`, `landingPath`, `referrer`, `locale`, `browserLocale`, `deviceType`, `osFamily`, `browserFamily`, `installState`, `utmSource`, `utmMedium`, `utmCampaign`, `utmTerm`, `utmContent`
 2. `GET /api/analytics/me/report`
    1. 헤더: `X-User-Id` 필요
 3. `GET /api/admin/analytics/overview?days=`
    1. 헤더: `X-Admin-Token` 필요
-   2. 응답에 `oldDomainUsage` 포함 (`appOpenUsers`, `appOpenEvents`, `knownUsers`, `userBoundEvents`, `loginSuccessUsers`, `logCreateUsers`, `shareActionUsers`, `lastSeenAt`, `lastMeaningfulActionAt`, `installStates`, `browserFamilies`)
+   2. 응답에 제품 퍼널 필드 포함: `funnelAppOpenUsers`, `funnelTitleSearchUsers`, `funnelTitleSelectUsers`, `funnelLoginUsers`, `funnelFirstLogCreateUsers`, `funnelLogCreateUsers`
+   3. `daily` 응답은 `appOpenUsers`, `titleSearchUsers`, `titleSelectUsers`, `loginUsers`, `firstLogCreateUsers`, `logCreateUsers`를 포함한다.
 4. `GET /api/admin/analytics/events?days=&limit=&eventName=&platform=`
    1. 헤더: `X-Admin-Token` 필요
 5. `GET /api/admin/analytics/migration-status`

@@ -8,7 +8,6 @@ import com.watchlog.api.dto.AdminDailyAnalyticsDto;
 import com.watchlog.api.dto.AdminDimensionSummaryDto;
 import com.watchlog.api.dto.AdminEventBreakdownDto;
 import com.watchlog.api.dto.AdminEventRowDto;
-import com.watchlog.api.dto.AdminOldDomainUsageDto;
 import com.watchlog.api.dto.AdminPlatformSummaryDto;
 import com.watchlog.api.dto.AdminMigrationStatusDto;
 import com.watchlog.api.dto.PersonalAnalyticsReportDto;
@@ -36,7 +35,6 @@ public class AnalyticsService {
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     private static final String EXCLUDED_ADMIN_ID = "2777a431-5ccb-4761-9c8a-2b17a34ff566";
-    private static final String OLD_DOMAIN_HOSTNAME = "ott.preview.pe.kr";
 
     private final JdbcTemplate jdbcTemplate;
     private final WatchLogRepository watchLogRepository;
@@ -183,7 +181,10 @@ public class AnalyticsService {
         long mau = countDistinctActorsByEventSince("app_open", to.minusDays(30));
 
         long funnelAppOpenUsers = countDistinctActorsByEventSince("app_open", from);
+        long funnelTitleSearchUsers = countDistinctActorsByEventSince("title_search", from);
+        long funnelTitleSelectUsers = countDistinctActorsByEventSince("title_select", from);
         long funnelLoginUsers = countDistinctActorsByEventSince("login_success", from);
+        long funnelFirstLogCreateUsers = countDistinctActorsByEventSince("first_log_create", from);
         long funnelLogCreateUsers = countDistinctActorsByEventSince("log_create", from);
 
         List<AdminPlatformSummaryDto> platforms = jdbcTemplate.query("""
@@ -226,16 +227,16 @@ public class AnalyticsService {
                 from,
                 EXCLUDED_ADMIN_ID
         );
-        AdminOldDomainUsageDto oldDomainUsage = buildOldDomainUsage(from);
-
         List<AdminDailyAnalyticsDto> daily = jdbcTemplate.query("""
                 select
                     date_trunc('day', occurred_at at time zone 'Asia/Seoul')::date as day,
                     count(*) as events,
                     count(distinct coalesce(client_id::text, user_id::text, session_id)) filter (where event_name = 'app_open') as app_open_users,
+                    count(distinct coalesce(client_id::text, user_id::text, session_id)) filter (where event_name = 'title_search') as title_search_users,
+                    count(distinct coalesce(client_id::text, user_id::text, session_id)) filter (where event_name = 'title_select') as title_select_users,
                     count(distinct coalesce(client_id::text, user_id::text, session_id)) filter (where event_name = 'login_success') as login_users,
-                    count(distinct coalesce(client_id::text, user_id::text, session_id)) filter (where event_name = 'log_create') as log_create_users,
-                    count(distinct coalesce(client_id::text, user_id::text, session_id)) filter (where event_name = 'share_action') as share_action_users
+                    count(distinct coalesce(client_id::text, user_id::text, session_id)) filter (where event_name = 'first_log_create') as first_log_create_users,
+                    count(distinct coalesce(client_id::text, user_id::text, session_id)) filter (where event_name = 'log_create') as log_create_users
                 from analytics_events
                 where occurred_at >= ?
                   and (user_id is null or user_id::text != ?)
@@ -246,9 +247,11 @@ public class AnalyticsService {
                         rs.getObject("day", LocalDate.class),
                         rs.getLong("events"),
                         rs.getLong("app_open_users"),
+                        rs.getLong("title_search_users"),
+                        rs.getLong("title_select_users"),
                         rs.getLong("login_users"),
-                        rs.getLong("log_create_users"),
-                        rs.getLong("share_action_users")
+                        rs.getLong("first_log_create_users"),
+                        rs.getLong("log_create_users")
                 ),
                 from,
                 EXCLUDED_ADMIN_ID
@@ -263,7 +266,10 @@ public class AnalyticsService {
                 wau,
                 mau,
                 funnelAppOpenUsers,
+                funnelTitleSearchUsers,
+                funnelTitleSelectUsers,
                 funnelLoginUsers,
+                funnelFirstLogCreateUsers,
                 funnelLogCreateUsers,
                 platforms,
                 deviceTypes,
@@ -272,7 +278,6 @@ public class AnalyticsService {
                 installStates,
                 domains,
                 eventBreakdown,
-                oldDomainUsage,
                 daily
         );
     }
@@ -342,17 +347,6 @@ public class AnalyticsService {
                 """, eventName, since, EXCLUDED_ADMIN_ID);
     }
 
-    private long countDistinctActorsByEventSinceAndHostname(String eventName, OffsetDateTime since, String hostname) {
-        return queryLong("""
-                select count(distinct coalesce(client_id::text, user_id::text, session_id))
-                from analytics_events
-                where event_name = ?
-                  and occurred_at >= ?
-                  and coalesce(nullif(properties->>'hostname', ''), 'unknown') = ?
-                  and (user_id is null or user_id::text != ?)
-                """, eventName, since, hostname, EXCLUDED_ADMIN_ID);
-    }
-
     private long queryLong(String sql, Object... args) {
         Long value = jdbcTemplate.queryForObject(sql, Long.class, args);
         return value == null ? 0L : value;
@@ -383,97 +377,6 @@ public class AnalyticsService {
                 propertyKey,
                 from,
                 EXCLUDED_ADMIN_ID
-        );
-    }
-
-    private List<AdminDimensionSummaryDto> queryAppOpenDimensionSummaryByHostname(
-            String propertyKey,
-            OffsetDateTime from,
-            String hostname
-    ) {
-        return jdbcTemplate.query("""
-                select
-                    coalesce(nullif(properties->>?, ''), 'unknown') as dim_key,
-                    count(*) as events,
-                    count(distinct coalesce(client_id::text, user_id::text, session_id)) as active_users
-                from analytics_events
-                where event_name = 'app_open'
-                  and occurred_at >= ?
-                  and coalesce(nullif(properties->>'hostname', ''), 'unknown') = ?
-                  and (user_id is null or user_id::text != ?)
-                group by 1
-                order by events desc, dim_key asc
-                """,
-                (rs, rowNum) -> new AdminDimensionSummaryDto(
-                        rs.getString("dim_key"),
-                        rs.getLong("events"),
-                        rs.getLong("active_users")
-                ),
-                propertyKey,
-                from,
-                hostname,
-                EXCLUDED_ADMIN_ID
-        );
-    }
-
-    private AdminOldDomainUsageDto buildOldDomainUsage(OffsetDateTime from) {
-        long appOpenEvents = queryLong("""
-                select count(*)
-                from analytics_events
-                where event_name = 'app_open'
-                  and occurred_at >= ?
-                  and coalesce(nullif(properties->>'hostname', ''), 'unknown') = ?
-                  and (user_id is null or user_id::text != ?)
-                """, from, OLD_DOMAIN_HOSTNAME, EXCLUDED_ADMIN_ID);
-        long appOpenUsers = countDistinctActorsByEventSinceAndHostname("app_open", from, OLD_DOMAIN_HOSTNAME);
-        long knownUsers = queryLong("""
-                select count(distinct user_id)
-                from analytics_events
-                where occurred_at >= ?
-                  and coalesce(nullif(properties->>'hostname', ''), 'unknown') = ?
-                  and user_id is not null
-                  and user_id::text != ?
-                """, from, OLD_DOMAIN_HOSTNAME, EXCLUDED_ADMIN_ID);
-        long userBoundEvents = queryLong("""
-                select count(*)
-                from analytics_events
-                where occurred_at >= ?
-                  and coalesce(nullif(properties->>'hostname', ''), 'unknown') = ?
-                  and user_id is not null
-                  and user_id::text != ?
-                """, from, OLD_DOMAIN_HOSTNAME, EXCLUDED_ADMIN_ID);
-        long loginSuccessUsers = countDistinctActorsByEventSinceAndHostname("login_success", from, OLD_DOMAIN_HOSTNAME);
-        long logCreateUsers = countDistinctActorsByEventSinceAndHostname("log_create", from, OLD_DOMAIN_HOSTNAME);
-        long shareActionUsers = countDistinctActorsByEventSinceAndHostname("share_action", from, OLD_DOMAIN_HOSTNAME);
-        OffsetDateTime lastSeenAt = queryOffsetDateTime("""
-                select max(occurred_at)
-                from analytics_events
-                where occurred_at >= ?
-                  and coalesce(nullif(properties->>'hostname', ''), 'unknown') = ?
-                  and (user_id is null or user_id::text != ?)
-                """, from, OLD_DOMAIN_HOSTNAME, EXCLUDED_ADMIN_ID);
-        OffsetDateTime lastMeaningfulActionAt = queryOffsetDateTime("""
-                select max(occurred_at)
-                from analytics_events
-                where occurred_at >= ?
-                  and coalesce(nullif(properties->>'hostname', ''), 'unknown') = ?
-                  and event_name in ('login_success', 'log_create', 'share_action')
-                  and (user_id is null or user_id::text != ?)
-                """, from, OLD_DOMAIN_HOSTNAME, EXCLUDED_ADMIN_ID);
-
-        return new AdminOldDomainUsageDto(
-                OLD_DOMAIN_HOSTNAME,
-                appOpenEvents,
-                appOpenUsers,
-                knownUsers,
-                userBoundEvents,
-                loginSuccessUsers,
-                logCreateUsers,
-                shareActionUsers,
-                lastSeenAt,
-                lastMeaningfulActionAt,
-                queryAppOpenDimensionSummaryByHostname("installState", from, OLD_DOMAIN_HOSTNAME),
-                queryAppOpenDimensionSummaryByHostname("browserFamily", from, OLD_DOMAIN_HOSTNAME)
         );
     }
 
@@ -580,5 +483,3 @@ public class AnalyticsService {
     }
 
 }
-
-    // Temporarily appending - will be inserted before closing brace

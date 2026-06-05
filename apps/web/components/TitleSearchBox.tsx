@@ -12,6 +12,8 @@ function errorMessage(error: unknown, fallback: string) {
 
 export default function TitleSearchBox({
   onSelect,
+  onSearchComplete,
+  onSelectAnalytics,
   placeholder,
   showRecentDiscussions = true,
   contentType = "video",
@@ -19,6 +21,19 @@ export default function TitleSearchBox({
   autoFocus = false,
 }: {
   onSelect: (item: TitleSearchItem) => void;
+  onSearchComplete?: (result: {
+    contentType: "video" | "book";
+    queryLength: number;
+    resultCount: number;
+    success: boolean;
+  }) => void;
+  onSelectAnalytics?: (result: {
+    item: TitleSearchItem;
+    contentType: "video" | "book";
+    source: "search_result" | "recent_discussion";
+    queryLength: number;
+    resultRank?: number;
+  }) => void;
   placeholder?: string;
   showRecentDiscussions?: boolean;
   contentType?: "video" | "book";
@@ -75,12 +90,24 @@ export default function TitleSearchBox({
         if (!cancelled) {
           setItems(res);
           setActiveIndex(0);
+          onSearchComplete?.({
+            contentType,
+            queryLength: query.length,
+            resultCount: res.length,
+            success: true,
+          });
         }
       } catch (e: unknown) {
         if (!cancelled) {
           setItems([]);
           setActiveIndex(0);
           setErr(errorMessage(e, "Search failed"));
+          onSearchComplete?.({
+            contentType,
+            queryLength: query.length,
+            resultCount: 0,
+            success: false,
+          });
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -91,7 +118,7 @@ export default function TitleSearchBox({
       cancelled = true;
       clearTimeout(t);
     };
-  }, [query, open, contentType]);
+  }, [query, open, contentType, onSearchComplete]);
 
   useEffect(() => {
     if (!open || !showRecentDiscussions) return;
@@ -139,7 +166,18 @@ export default function TitleSearchBox({
     };
   }, [open]);
 
-  function pick(item: TitleSearchItem) {
+  function pick(
+    item: TitleSearchItem,
+    source: "search_result" | "recent_discussion" = "search_result",
+    resultRank?: number,
+  ) {
+    onSelectAnalytics?.({
+      item,
+      contentType,
+      source,
+      queryLength: query.length,
+      resultRank,
+    });
     onSelect(item);
     setQ("");
     setOpen(false);
@@ -197,7 +235,11 @@ export default function TitleSearchBox({
             setActiveIndex((i) => (i - 1 + items.length) % items.length);
           }
           if (e.key === "Enter" && items.length > 0) {
-            pick(items[Math.max(0, Math.min(activeIndex, items.length - 1))]);
+            pick(
+              items[Math.max(0, Math.min(activeIndex, items.length - 1))],
+              "search_result",
+              activeIndex + 1,
+            );
           }
         }}
         placeholder={modernPlaceholder}
@@ -264,7 +306,7 @@ export default function TitleSearchBox({
                     <button
                       key={d.id}
                       type="button"
-                      onClick={() => pick(item)}
+                      onClick={() => pick(item, "recent_discussion")}
                       className={cn(
                         "flex w-full items-center gap-4 px-4 py-3 text-left transition-colors",
                         "hover:bg-muted",
@@ -353,7 +395,7 @@ export default function TitleSearchBox({
                 <button
                   key={key}
                   type="button"
-                  onClick={() => pick(t)}
+                  onClick={() => pick(t, "search_result", idx + 1)}
                   onMouseEnter={() => setActiveIndex(idx)}
                   className={cn(
                     "flex w-full items-center gap-4 px-4 py-3 text-left transition-colors",
