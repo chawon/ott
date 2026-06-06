@@ -288,3 +288,8 @@ adb install -r apps/twa/app/build/outputs/apk/debug/app-debug.apk
   - `Android 테스트 의견` CTA와 테스트 체크리스트는 더 이상 노출하지 않음
   - Google Play TWA 세션의 Android 전용 설정 영역에는 사용자용 `시청 기록 알림 설정` 진입만 유지
   - 기존 `/feedback?source=android-alpha` preset은 구버전 앱/직접 URL 호환을 위해 유지
+  - PR: `#50`
+  - Main SHA: `e41b202f82d68851ec8bce7bb3ff07cc1fe69672`
+  - Web staging deploy run: `27063829325`
+  - Web production deploy run: `27063911077`
+  - Production 확인: ArgoCD `ott-app` `Synced Healthy`, `ott-web` 이미지 태그 `e41b202f82d68851ec8bce7bb3ff07cc1fe69672`, `1/1 ready`
