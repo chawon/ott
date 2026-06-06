@@ -303,7 +303,7 @@
     "groupConnectionTitle": "Device Connection",
     "groupConnectionDesc": "Use pairing codes to keep the same timeline across devices.",
     "groupSupportTitle": "Support",
-    "groupSupportDesc": "Find your inbox and testing feedback in one place.",
+    "groupSupportDesc": "Use your inbox to send questions and check replies.",
     "groupDataTitle": "Data Management",
     "groupDataDesc": "Export, local reset, and server data deletion live here.",
     "profileTitle": "My Profile",
@@ -386,16 +386,10 @@
     "feedbackTitle": "Contact Inbox",
     "feedbackDesc": "Leave questions or issues in your personal inbox and check replies there.",
     "feedbackAction": "Open My Inbox",
-    "androidTestTitle": "Android Test Feedback",
-    "androidTestDesc": "Tell us how the widget, shortcuts, and shared logging flow worked during closed testing.",
-    "androidTestChecklistTitle": "Test checklist",
-    "androidTestChecklistWidget": "Open video, book, and timeline actions from the home widget",
-    "androidTestChecklistShortcut": "Open launcher long-press shortcuts",
-    "androidTestChecklistShare": "Share from an OTT app and confirm QuickLog is prefilled",
-    "androidTestChecklistFeedback": "Send feedback from the in-app inbox",
+    "androidAppTitle": "Android App Settings",
+    "androidAppDesc": "Manage Android-only settings from the Google Play app.",
     "androidWatchReminderAction": "Watch reminder settings",
-    "androidWatchReminderDesc": "Choose whether to receive a reminder after leaving an OTT app. Usage access must be enabled manually in Android settings.",
-    "androidTestAction": "Send Android Test Feedback"
+    "androidWatchReminderDesc": "Choose whether to receive a reminder after leaving an OTT app. Usage access must be enabled manually in Android settings."
   },
   "Profile": {
     "promptTitle": "Create My Timeline Profile",

@@ -283,3 +283,8 @@ adb install -r apps/twa/app/build/outputs/apk/debug/app-debug.apk
   - 릴리스 노트 패치 edit: `00037560185306179315`
   - 최종 확인: `gplay tracks get --package app.ottline --edit 06376773073496914728 --track production`
   - 임시 확인용 edit은 확인 후 삭제
+
+- Google Play production 전환 후 설정 화면의 Android 비공개 테스트 피드백 카드는 종료
+  - `Android 테스트 의견` CTA와 테스트 체크리스트는 더 이상 노출하지 않음
+  - Google Play TWA 세션의 Android 전용 설정 영역에는 사용자용 `시청 기록 알림 설정` 진입만 유지
+  - 기존 `/feedback?source=android-alpha` preset은 구버전 앱/직접 URL 호환을 위해 유지

@@ -303,7 +303,7 @@
     "groupConnectionTitle": "기기 연결",
     "groupConnectionDesc": "페어링 코드로 다른 기기와 같은 타임라인을 이어서 써요.",
     "groupSupportTitle": "지원",
-    "groupSupportDesc": "문의함과 테스트 의견을 한곳에서 확인해요.",
+    "groupSupportDesc": "문의함에서 질문과 답변을 확인해요.",
     "groupDataTitle": "데이터 관리",
     "groupDataDesc": "내보내기, 로컬 초기화, 서버 데이터 삭제를 관리해요.",
     "profileTitle": "내 프로필",
@@ -386,16 +386,10 @@
     "feedbackTitle": "문의함",
     "feedbackDesc": "사용 중 질문이나 불편한 점이 있으면 내 문의함에 남겨주세요.",
     "feedbackAction": "내 문의함 열기",
-    "androidTestTitle": "Android 테스트 의견",
-    "androidTestDesc": "비공개 테스트 중 확인한 위젯, 바로가기, 공유 기록 흐름을 알려주세요.",
-    "androidTestChecklistTitle": "이번 테스트 항목",
-    "androidTestChecklistWidget": "홈 화면 위젯에서 영상, 책, 타임라인 진입 확인",
-    "androidTestChecklistShortcut": "앱 아이콘 길게 누르기 바로가기 확인",
-    "androidTestChecklistShare": "OTT 앱 공유로 QuickLog 검색창 자동 채움 확인",
-    "androidTestChecklistFeedback": "문의함에서 테스트 의견 등록 확인",
+    "androidAppTitle": "Android 앱 설정",
+    "androidAppDesc": "Google Play 앱에서 Android 전용 설정을 관리해요.",
     "androidWatchReminderAction": "시청 기록 알림 설정",
-    "androidWatchReminderDesc": "OTT 앱 사용 종료 후 기록 알림을 받을지 설정합니다. 사용 정보 접근 권한은 Android 설정에서 직접 허용해야 합니다.",
-    "androidTestAction": "Android 테스트 의견 보내기"
+    "androidWatchReminderDesc": "OTT 앱 사용 종료 후 기록 알림을 받을지 설정합니다. 사용 정보 접근 권한은 Android 설정에서 직접 허용해야 합니다."
   },
   "Profile": {
     "promptTitle": "내 타임라인 프로필 만들기",
