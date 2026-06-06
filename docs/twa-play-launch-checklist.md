@@ -199,10 +199,10 @@
 - [ ] 사용자 의견 수집 및 조치 이력 정리
 - [x] `alpha` 업데이트 배포 (`1.0.5`, `versionCode=9`)
 - [x] `alpha` version-only refresh 배포 (`1.0.6`, `versionCode=10`)
-- [ ] 프로덕션 액세스 재신청
-- [ ] Play 심사 승인 및 production 트랙 릴리즈 노출 확인
+- [x] 프로덕션 액세스 재신청
+- [x] Play 심사 승인 및 production 트랙 릴리즈 노출 확인
 - [ ] 실제 Google Play 설치 가능 여부 확인
-- [ ] 점진 배포(예: 10% -> 50% -> 100%) 상태 확인
+- [x] 점진 배포(예: 10% -> 50% -> 100%) 상태 확인
 - [ ] 롤백 기준/담당자 사전 합의
 
 ### 진행 업데이트 (2026-05-03, 프로덕션 출시 제출)
@@ -316,6 +316,19 @@
   - `alpha`: `1.0.9` (`versionCode=13`), `status=completed`
   - 확인: `gplay tracks get --package app.ottline --edit 02477569053389061690 --track alpha`
   - 임시 확인용 edit은 확인 후 삭제
+
+### 진행 업데이트 (2026-06-06, 프로덕션 액세스 승인 및 production 등록)
+- [x] Google Play 프로덕션 액세스 심사 통과 확인
+- [x] `alpha`의 `1.0.9` (`versionCode=13`)를 `production` 트랙으로 승격
+  - 명령: `gplay promote --package app.ottline --from alpha --to production --status completed --rollout 1.0`
+  - Promotion edit: `05051990928368745494`
+- [x] Play production 트랙에서 `1.0.9` 반영 확인
+  - `production`: `1.0.9` (`versionCode=13`), `status=completed`
+  - Production 릴리스 노트: `Adds Apple TV as a supported watch reminder app.`
+  - 릴리스 노트 패치 edit: `00037560185306179315`
+  - 최종 확인: `gplay tracks get --package app.ottline --edit 06376773073496914728 --track production`
+  - 임시 확인용 edit은 확인 후 삭제
+- [ ] 실제 Google Play 스토어 설치 가능 여부 확인
 
 ## 8) 출시 후 모니터링
 - [ ] Crash/ANR 모니터링 (출시 직후 24~72시간 집중)

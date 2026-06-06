@@ -7,7 +7,7 @@
 ## 진행 상황
 - GitHub Actions에서 디버그 APK 빌드 성공 및 기기 설치 확인 완료
 - 현재 개발 환경(WSL on ARM Linux)에서는 Android Gradle 로컬 빌드 호환 이슈가 있어, APK/AAB 빌드는 GitHub Actions만 정식 검증/배포 경로로 사용
-- Google Play 프로덕션 액세스는 아직 부여되지 않았으며, 2026-05-21 `1.0.6` alpha refresh 기준으로 실제 테스터 대상 14일 비공개 테스트를 다시 진행 중
+- Google Play 프로덕션 액세스는 2026-06-06 심사 통과했으며, `1.0.9` (`versionCode=13`)가 production 트랙에 `completed` 상태로 등록됨
 
 ### 진행 업데이트 (2026-02-15)
 - TWA 공유 인텐트 MVP 반영 완료 (main 머지)
@@ -272,3 +272,14 @@ adb install -r apps/twa/app/build/outputs/apk/debug/app-debug.apk
   - Google Play `alpha`: `1.0.9` (`versionCode=13`), `status=completed`
   - 추가 대상 앱: Apple TV (`com.apple.atve.androidtv.appletv`)
   - Play alpha release notes 입력 및 `gplay tracks get` 확인 완료
+
+### 진행 업데이트 (2026-06-06)
+- Google Play 프로덕션 액세스 심사 통과 및 production 트랙 등록 완료
+  - 승격 대상: `alpha`의 `1.0.9` (`versionCode=13`)
+  - 명령: `gplay promote --package app.ottline --from alpha --to production --status completed --rollout 1.0`
+  - Promotion edit: `05051990928368745494`
+  - Google Play `production`: `1.0.9` (`versionCode=13`), `status=completed`
+  - Production 릴리스 노트: `Adds Apple TV as a supported watch reminder app.`
+  - 릴리스 노트 패치 edit: `00037560185306179315`
+  - 최종 확인: `gplay tracks get --package app.ottline --edit 06376773073496914728 --track production`
+  - 임시 확인용 edit은 확인 후 삭제
