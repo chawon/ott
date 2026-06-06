@@ -1,5 +1,10 @@
 "use client";
 
+import {
+  type AndroidAppContext,
+  readAndroidAppContext,
+  readAndroidAppContextFromCurrentUrl,
+} from "@/lib/androidAppContext";
 import { ensureAnalyticsClientId, getUserId } from "@/lib/localStore";
 import { safeUUID } from "@/lib/utils";
 
@@ -22,6 +27,17 @@ type BrowserFamily =
   | "in_app"
   | "unknown";
 type InstallState = "browser" | "pwa_installed" | "twa";
+type AndroidTwaSignal =
+  | "android_referrer"
+  | "versioned_launch_url"
+  | "android_webview"
+  | "android_standalone_context"
+  | "session";
+type RuntimeContext = {
+  platform: AnalyticsPlatform;
+  androidAppContext: AndroidAppContext | null;
+  androidTwaSignal?: AndroidTwaSignal;
+};
 type UtmProperties = Partial<{
   utmSource: string;
   utmMedium: string;
@@ -30,14 +46,83 @@ type UtmProperties = Partial<{
   utmContent: string;
 }>;
 
-function detectPlatform(): AnalyticsPlatform {
-  if (typeof window === "undefined") return "web";
+const ANDROID_TWA_SESSION_KEY = "ottline.analytics.androidTwaSession";
+const ANDROID_APP_CONTEXT_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
+
+function hasAndroidAppVersionContext(context: AndroidAppContext | null) {
+  return Boolean(context?.versionName || context?.versionCode);
+}
+
+function isRecentAndroidAppContext(context: AndroidAppContext | null) {
+  if (!hasAndroidAppVersionContext(context)) return false;
+  const recordedAt = Date.parse(context?.recordedAt ?? "");
+  if (!Number.isFinite(recordedAt)) return false;
+  return Date.now() - recordedAt <= ANDROID_APP_CONTEXT_MAX_AGE_MS;
+}
+
+function readAndroidTwaSessionFlag() {
+  try {
+    return sessionStorage.getItem(ANDROID_TWA_SESSION_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function markAndroidTwaSession() {
+  try {
+    sessionStorage.setItem(ANDROID_TWA_SESSION_KEY, "1");
+  } catch {
+    // Ignore storage failures. Analytics should keep the app usable.
+  }
+}
+
+function detectRuntimeContext(): RuntimeContext {
+  if (typeof window === "undefined") {
+    return { platform: "web", androidAppContext: null };
+  }
   const ua = window.navigator.userAgent.toLowerCase();
   const ref = document.referrer.toLowerCase();
-  if (ref.startsWith("android-app://")) return "twa";
-  if (window.matchMedia?.("(display-mode: standalone)").matches) return "pwa";
-  if (ua.includes("android") && ua.includes(" wv")) return "twa";
-  return "web";
+  const currentAndroidAppContext = readAndroidAppContextFromCurrentUrl();
+  const storedAndroidAppContext = readAndroidAppContext();
+  const androidAppContext = currentAndroidAppContext ?? storedAndroidAppContext;
+  const isAndroid = ua.includes("android");
+  const isStandalone = window.matchMedia?.(
+    "(display-mode: standalone)",
+  ).matches;
+  const hasCurrentVersionContext = hasAndroidAppVersionContext(
+    currentAndroidAppContext,
+  );
+  const hasRecentStoredVersionContext = isRecentAndroidAppContext(
+    storedAndroidAppContext,
+  );
+
+  let androidTwaSignal: AndroidTwaSignal | undefined;
+  if (ref.startsWith("android-app://")) {
+    androidTwaSignal = "android_referrer";
+  } else if (hasCurrentVersionContext) {
+    androidTwaSignal = "versioned_launch_url";
+  } else if (isAndroid && ua.includes(" wv")) {
+    androidTwaSignal = "android_webview";
+  } else if (isAndroid && isStandalone && hasRecentStoredVersionContext) {
+    androidTwaSignal = "android_standalone_context";
+  } else if (readAndroidTwaSessionFlag()) {
+    androidTwaSignal = "session";
+  }
+
+  if (androidTwaSignal) {
+    markAndroidTwaSession();
+    return {
+      platform: "twa",
+      androidAppContext,
+      androidTwaSignal,
+    };
+  }
+
+  if (isStandalone) {
+    return { platform: "pwa", androidAppContext };
+  }
+
+  return { platform: "web", androidAppContext };
 }
 
 function detectDeviceType(): DeviceType {
@@ -142,7 +227,25 @@ function getUtmProperties(): UtmProperties {
   return next;
 }
 
-function buildContextProperties(platform: AnalyticsPlatform) {
+function buildAndroidAppProperties(context: RuntimeContext) {
+  const androidAppContext = context.androidAppContext;
+  if (!context.androidTwaSignal) return {};
+
+  return {
+    ...(androidAppContext?.versionName
+      ? { androidAppVersion: androidAppContext.versionName }
+      : {}),
+    ...(androidAppContext?.versionCode
+      ? { androidAppVersionCode: androidAppContext.versionCode }
+      : {}),
+    ...(context.androidTwaSignal
+      ? { androidTwaSignal: context.androidTwaSignal }
+      : {}),
+  };
+}
+
+function buildContextProperties(context: RuntimeContext) {
+  const platform = context.platform;
   return {
     hostname:
       typeof window !== "undefined" ? window.location.hostname : "unknown",
@@ -158,6 +261,7 @@ function buildContextProperties(platform: AnalyticsPlatform) {
     osFamily: detectOsFamily(),
     browserFamily: detectBrowserFamily(),
     installState: detectInstallState(platform),
+    ...buildAndroidAppProperties(context),
     ...getUtmProperties(),
   };
 }
@@ -186,7 +290,8 @@ export async function trackEvent(
   properties?: Record<string, unknown>,
 ) {
   try {
-    const platform = detectPlatform();
+    const runtimeContext = detectRuntimeContext();
+    const platform = runtimeContext.platform;
     const userId = getUserId();
     const clientId = ensureAnalyticsClientId();
 
@@ -206,7 +311,7 @@ export async function trackEvent(
         clientVersion: "web",
         occurredAt: new Date().toISOString(),
         properties: {
-          ...buildContextProperties(platform),
+          ...buildContextProperties(runtimeContext),
           ...(properties ?? {}),
         },
       }),

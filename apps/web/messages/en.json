@@ -769,6 +769,7 @@
     "activeUsersLabel": "Active users",
     "byPlatform": "By Platform",
     "deviceSegments": "Device Segments (based on app_open)",
+    "androidAppSegments": "Android App Segments (based on app_open)",
     "eventDetails": "Details by Event Type",
     "dailyDetails": "Daily Details",
     "weekStartNotice": "Based on Monday start, last {days} days",

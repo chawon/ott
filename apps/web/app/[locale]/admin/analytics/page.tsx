@@ -36,6 +36,21 @@ type AdminOverview = {
   browserFamilies: Array<{ key: string; events: number; activeUsers: number }>;
   installStates: Array<{ key: string; events: number; activeUsers: number }>;
   domains: Array<{ key: string; events: number; activeUsers: number }>;
+  androidAppVersions?: Array<{
+    key: string;
+    events: number;
+    activeUsers: number;
+  }>;
+  androidAppVersionCodes?: Array<{
+    key: string;
+    events: number;
+    activeUsers: number;
+  }>;
+  androidTwaSignals?: Array<{
+    key: string;
+    events: number;
+    activeUsers: number;
+  }>;
   eventBreakdown: Array<{ eventName: string; events: number; actors: number }>;
   daily: Array<{
     day: string;
@@ -142,6 +157,9 @@ export default async function AdminAnalyticsPage({
   const visibleRecentEvents = recentEvents.filter(
     (row) => !isHiddenEvent(row.eventName),
   );
+  const androidAppVersions = overview?.androidAppVersions ?? [];
+  const androidAppVersionCodes = overview?.androidAppVersionCodes ?? [];
+  const androidTwaSignals = overview?.androidTwaSignals ?? [];
   const numberFormatter = new Intl.NumberFormat(
     locale === "ko" ? "ko-KR" : "en-US",
   );
@@ -395,6 +413,68 @@ export default async function AdminAnalyticsPage({
                 </div>
                 <div className="space-y-1.5 text-sm">
                   {overview.domains.map((row) => (
+                    <div
+                      key={row.key}
+                      className="flex items-center justify-between"
+                    >
+                      <span className="font-medium">{row.key}</span>
+                      <span className="text-muted-foreground">
+                        events {row.events} · active {row.activeUsers}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section className="rounded-2xl border border-border bg-card p-6">
+            <div className="text-sm font-semibold">
+              {t("androidAppSegments")}
+            </div>
+            <div className="mt-3 grid gap-4 lg:grid-cols-3">
+              <div className="rounded-xl border border-border p-3">
+                <div className="mb-2 text-xs font-semibold text-muted-foreground">
+                  android_app_version
+                </div>
+                <div className="space-y-1.5 text-sm">
+                  {androidAppVersions.map((row) => (
+                    <div
+                      key={row.key}
+                      className="flex items-center justify-between"
+                    >
+                      <span className="font-medium">{row.key}</span>
+                      <span className="text-muted-foreground">
+                        events {row.events} · active {row.activeUsers}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="rounded-xl border border-border p-3">
+                <div className="mb-2 text-xs font-semibold text-muted-foreground">
+                  android_app_version_code
+                </div>
+                <div className="space-y-1.5 text-sm">
+                  {androidAppVersionCodes.map((row) => (
+                    <div
+                      key={row.key}
+                      className="flex items-center justify-between"
+                    >
+                      <span className="font-medium">{row.key}</span>
+                      <span className="text-muted-foreground">
+                        events {row.events} · active {row.activeUsers}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="rounded-xl border border-border p-3">
+                <div className="mb-2 text-xs font-semibold text-muted-foreground">
+                  android_twa_signal
+                </div>
+                <div className="space-y-1.5 text-sm">
+                  {androidTwaSignals.map((row) => (
                     <div
                       key={row.key}
                       className="flex items-center justify-between"
