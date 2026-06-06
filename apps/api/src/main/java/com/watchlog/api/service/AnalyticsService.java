@@ -207,6 +207,9 @@ public class AnalyticsService {
         List<AdminDimensionSummaryDto> browserFamilies = queryAppOpenDimensionSummary("browserFamily", from);
         List<AdminDimensionSummaryDto> installStates = queryAppOpenDimensionSummary("installState", from);
         List<AdminDimensionSummaryDto> domains = queryAppOpenDimensionSummary("hostname", from);
+        List<AdminDimensionSummaryDto> androidAppVersions = queryAndroidAppOpenDimensionSummary("androidAppVersion", from);
+        List<AdminDimensionSummaryDto> androidAppVersionCodes = queryAndroidAppOpenDimensionSummary("androidAppVersionCode", from);
+        List<AdminDimensionSummaryDto> androidTwaSignals = queryAndroidAppOpenDimensionSummary("androidTwaSignal", from);
 
         List<AdminEventBreakdownDto> eventBreakdown = jdbcTemplate.query("""
                 select
@@ -277,6 +280,9 @@ public class AnalyticsService {
                 browserFamilies,
                 installStates,
                 domains,
+                androidAppVersions,
+                androidAppVersionCodes,
+                androidTwaSignals,
                 eventBreakdown,
                 daily
         );
@@ -366,6 +372,35 @@ public class AnalyticsService {
                 where event_name = 'app_open'
                   and occurred_at >= ?
                   and (user_id is null or user_id::text != ?)
+                group by 1
+                order by events desc, dim_key asc
+                """,
+                (rs, rowNum) -> new AdminDimensionSummaryDto(
+                        rs.getString("dim_key"),
+                        rs.getLong("events"),
+                        rs.getLong("active_users")
+                ),
+                propertyKey,
+                from,
+                EXCLUDED_ADMIN_ID
+        );
+    }
+
+    private List<AdminDimensionSummaryDto> queryAndroidAppOpenDimensionSummary(String propertyKey, OffsetDateTime from) {
+        return jdbcTemplate.query("""
+                select
+                    coalesce(nullif(properties->>?, ''), 'unknown') as dim_key,
+                    count(*) as events,
+                    count(distinct coalesce(client_id::text, user_id::text, session_id)) as active_users
+                from analytics_events
+                where event_name = 'app_open'
+                  and occurred_at >= ?
+                  and (user_id is null or user_id::text != ?)
+                  and (
+                    platform = 'twa'
+                    or properties->>'androidAppVersion' is not null
+                    or properties->>'androidTwaSignal' is not null
+                  )
                 group by 1
                 order by events desc, dim_key asc
                 """,

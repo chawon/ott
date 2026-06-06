@@ -23,6 +23,9 @@ public record AdminAnalyticsOverviewDto(
         List<AdminDimensionSummaryDto> browserFamilies,
         List<AdminDimensionSummaryDto> installStates,
         List<AdminDimensionSummaryDto> domains,
+        List<AdminDimensionSummaryDto> androidAppVersions,
+        List<AdminDimensionSummaryDto> androidAppVersionCodes,
+        List<AdminDimensionSummaryDto> androidTwaSignals,
         List<AdminEventBreakdownDto> eventBreakdown,
         List<AdminDailyAnalyticsDto> daily
 ) {}

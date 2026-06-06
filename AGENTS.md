@@ -325,17 +325,20 @@ feature/* ──PR──→ main ──→ [자동] staging.ottline.app
    2. 설정: `TELEGRAM_NOTIFY_ENABLED`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `TELEGRAM_SERVICE_NAME`
 
 ### Analytics
-1. `POST /api/analytics/events`
-   1. 익명 방문도 수집 가능
-   2. 헤더: `X-Client-Id`(optional), `X-User-Id`(optional)
-   3. 주요 이벤트 종류: `app_open`, `title_search`, `title_select`, `login_success`, `first_log_create`, `log_create`, `recommendation_open`, `recommendation_refresh`, `recommendation_dismiss`
-   4. 공통 properties: `hostname`, `landingPath`, `referrer`, `locale`, `browserLocale`, `deviceType`, `osFamily`, `browserFamily`, `installState`, `utmSource`, `utmMedium`, `utmCampaign`, `utmTerm`, `utmContent`
-2. `GET /api/analytics/me/report`
+1. `POST /api/nalytic/events`
+   1. 브라우저/확장 프로그램이 일반 analytics 수집 API로 인식해 차단하는 것을 줄이기 위해 실제 수집 경로는 `/api/analytics/events`가 아니라 `/api/nalytic/events`를 사용한다.
+   2. 익명 방문도 수집 가능
+   3. 헤더: `X-Client-Id`(optional), `X-User-Id`(optional)
+   4. 주요 이벤트 종류: `app_open`, `title_search`, `title_select`, `login_success`, `first_log_create`, `log_create`, `recommendation_open`, `recommendation_refresh`, `recommendation_dismiss`
+   5. 공통 properties: `hostname`, `landingPath`, `referrer`, `locale`, `browserLocale`, `deviceType`, `osFamily`, `browserFamily`, `installState`, `utmSource`, `utmMedium`, `utmCampaign`, `utmTerm`, `utmContent`
+   6. Android TWA 앱 접근은 `platform=twa`, `installState=twa`, `osFamily=android`로 집계한다. Google Play TWA에서 referrer가 비는 경우를 보완하기 위해 `android_app_version`/`android_app_version_code` launch URL 파라미터와 최근 Android 앱 컨텍스트를 함께 사용하며, `properties`에 `androidAppVersion`, `androidAppVersionCode`, `androidTwaSignal`을 저장한다.
+2. `GET /api/nalytic/me/report`
    1. 헤더: `X-User-Id` 필요
 3. `GET /api/admin/analytics/overview?days=`
    1. 헤더: `X-Admin-Token` 필요
    2. 응답에 제품 퍼널 필드 포함: `funnelAppOpenUsers`, `funnelTitleSearchUsers`, `funnelTitleSelectUsers`, `funnelLoginUsers`, `funnelFirstLogCreateUsers`, `funnelLogCreateUsers`
    3. `daily` 응답은 `appOpenUsers`, `titleSearchUsers`, `titleSelectUsers`, `loginUsers`, `firstLogCreateUsers`, `logCreateUsers`를 포함한다.
+   4. Android 앱 세그먼트 응답은 `androidAppVersions`, `androidAppVersionCodes`, `androidTwaSignals`를 포함한다.
 4. `GET /api/admin/analytics/events?days=&limit=&eventName=&platform=`
    1. 헤더: `X-Admin-Token` 필요
 5. `GET /api/admin/analytics/migration-status`

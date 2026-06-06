@@ -35,6 +35,14 @@
 - `client_version` (웹 배포 버전 또는 앱 버전명)
 - `properties` (jsonb, 옵션)
 
+현재 수집 API의 실제 공개 경로는 `/api/nalytic/events`다. 브라우저/확장 프로그램이 일반적인 analytics 수집 API로 인식해 차단하는 것을 줄이기 위해 `analytics` 대신 `nalytic` 이름을 사용한다.
+
+Android TWA 앱은 Bubblewrap launch URL의 `android_app_version`, `android_app_version_code` 파라미터와 TWA referrer/standalone 세션 신호를 조합해 `platform=twa`로 분류한다. `properties`에는 Android 앱 통계용으로 아래 값을 추가한다.
+
+- `androidAppVersion`
+- `androidAppVersionCode`
+- `androidTwaSignal` (`android_referrer` | `versioned_launch_url` | `android_webview` | `android_standalone_context` | `session`)
+
 ## 테이블 예시 (PostgreSQL)
 ```sql
 create table if not exists analytics_events (
