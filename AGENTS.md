@@ -37,7 +37,7 @@
 13. 기기 unlink 후 서버 API 차단 + 로컬 캐시 초기화 적용
 14. Next.js 16 대응 `middleware` -> `proxy` 전환 완료
 15. ottline 브랜딩 전면 적용: 신규 아이콘/파비콘, 헤더 로고, 브랜드명, 슬로건, OG 이미지, 공유카드 watermark
-16. 관리자 analytics에 제품 퍼널(방문 → 제목 검색 → 제목 선택 → 기기 연결 → 첫 기록 → 기록 사용자), 유입 컨텍스트, 디바이스/도메인 세그먼트 표시
+16. 관리자 analytics에 제품 퍼널(방문 → 제목 검색 → 제목 선택 → 기기 연결 → 첫 기록 → 기록 사용자), 유입 컨텍스트, 디바이스/도메인/Android 앱 버전·TWA 신호 세그먼트 표시
 17. 낙장불입 정책 확정: 사용자용 개별 기록 삭제 없음, 설정의 로컬 초기화와 서버 데이터 전체 삭제를 분리
 18. 설정에서 계정 단위 서버 데이터 전체 삭제(기록/댓글/문의/analytics/기기 연결) 지원
 19. ChatGPT App v1 운영 배포 + OpenAI 앱 심사 진행 중(`2026-04-23` 기준): `timeline.list_recent_logs` 기반 읽기 전용 recent-history connector + OAuth/PKCE + 도메인 검증 경로 반영
@@ -74,6 +74,7 @@
 13. **서비스 소개 채널 정리 및 토스 인앱 출시 반영**: 토스 인앱 미니앱은 `2026-05-18` 승인 및 출시 완료(`내 OTT 타임라인`). `/about` 페이지에 웹/PWA·토스·브라우저 확장·Windows 링크 노출, Android·ChatGPT `준비 중` 표기, 페어링 코드 연속성 메시지 반영 완료.
 14. **페어링 코드 복구 카드 저장 UX**: 설정 > 기기 연결에서 개인 보관용 복구 카드 PNG를 브라우저 Canvas로 로컬 생성해 저장하도록 반영 완료. 서버 이메일 발송, 서버 이미지 렌더링, 공개 공유 UX는 제외했다. `2026-05-23` web production run `26329158127`로 `b5b30af29731aae89ddc3bd336ad3752feddc666` 배포 완료.
 15. **홈 함께 기록 인기 작품 보충**: 홈의 실제 공개 기록이 6개 미만이면 `/api/titles/popular` 기반 인기 작품으로 부족분만 채운다. 한국어 fallback은 TMDB 주간 트렌드 최대 5페이지에서 `original_language=ko` 또는 `origin_country=KR`인 항목만 필터링하고, 비한국어 fallback은 region/watch availability 기반 discover를 사용한다. `2026-05-23` web/API production run `26331154875`/`26331157652`로 `9a3fcdf28ef142f2021c143da3a00598762a6053` 배포 완료.
+16. **Android production analytics 세그먼트 보강**: Google Play TWA의 빈 referrer 케이스를 보완하기 위해 launch URL 앱 버전 컨텍스트, Android referrer, WebView, standalone context, session 신호를 조합해 `platform=twa`로 분류한다. 관리자 analytics overview에는 Android 앱 버전, versionCode, TWA 판별 신호 세그먼트를 표시한다. `2026-06-06` PR `#49`, main SHA `fa528c2f82a4ded2c02fac97919155add2a61f5f`, staging run `27063419471`/`27063419474`, production run `27063488252`/`27063487861`로 배포 완료했고 ArgoCD `ott-app` `Synced Healthy`, production `ott-web`/`ott-api` 이미지 태그 `fa528c2f82a4ded2c02fac97919155add2a61f5f`를 확인했다.
 
 ### P1
 1. 문의함 운영 후속 작업

@@ -43,6 +43,8 @@ Android TWA 앱은 Bubblewrap launch URL의 `android_app_version`, `android_app_
 - `androidAppVersionCode`
 - `androidTwaSignal` (`android_referrer` | `versioned_launch_url` | `android_webview` | `android_standalone_context` | `session`)
 
+`2026-06-06` 기준 PR `#49`로 관리자 analytics Android 앱 세그먼트까지 production 반영 완료. 배포 SHA는 `fa528c2f82a4ded2c02fac97919155add2a61f5f`, staging run은 web `27063419471` / API `27063419474`, production run은 web `27063488252` / API `27063487861`이다.
+
 ## 테이블 예시 (PostgreSQL)
 ```sql
 create table if not exists analytics_events (
