@@ -1,11 +1,23 @@
 "use client";
 
 import { useEffect } from "react";
-import { recordAndroidAppContextFromCurrentUrl } from "@/lib/androidAppContext";
+import {
+  readAndroidInstallTokenFromCurrentUrl,
+  recordAndroidAppContextFromCurrentUrl,
+  removeAndroidInstallTokenFromCurrentUrl,
+} from "@/lib/androidAppContext";
+import { bindAndroidNotificationDevice } from "@/lib/androidNotifications";
 
 export default function AndroidAppContextRecorder() {
   useEffect(() => {
-    recordAndroidAppContextFromCurrentUrl();
+    const installToken = readAndroidInstallTokenFromCurrentUrl();
+    const context = recordAndroidAppContextFromCurrentUrl();
+    if (installToken) {
+      removeAndroidInstallTokenFromCurrentUrl();
+      bindAndroidNotificationDevice(installToken, context).catch(() => {
+        // Binding must not block the app shell. The next Android launch can retry.
+      });
+    }
   }, []);
 
   return null;

@@ -293,3 +293,14 @@ adb install -r apps/twa/app/build/outputs/apk/debug/app-debug.apk
   - Web staging deploy run: `27063829325`
   - Web production deploy run: `27063911077`
   - Production 확인: ArgoCD `ott-app` `Synced Healthy`, `ott-web` 이미지 태그 `e41b202f82d68851ec8bce7bb3ff07cc1fe69672`, `1/1 ready`
+
+### 진행 업데이트 (2026-06-07, 개발 브랜치)
+- Android 기록 회고 리마인드 v1 구현을 시작했다.
+  - 브랜치: `feature/android-revisit-reminders`
+  - 범위: Android 네이티브 회고 리마인드, 서버 후보 계산 API, 웹 `/me/report` 회고 카드, 주간/월간 묶음 공유카드
+  - 새 서버 저장소: `android_notification_devices`, `android_notification_deliveries`
+  - 새 Android 후보 타입: `WEEKLY_RECAP`, `MONTHLY_GENRE`, `SEVEN_DAY_GAP`, `SERIES_CONTINUE`
+  - token 원문은 서버 DB, 웹 localStorage, analytics properties에 저장하지 않고 서버에는 SHA-256 hash만 저장한다.
+  - Web Push/PWA 푸시는 v1 범위에서 제외하고 Android TWA 네이티브 알림을 우선한다.
+  - 관련 설계 메모: `docs/android-revisit-reminders-2026-06-07.md`
+  - 배포 및 Play 제출은 아직 진행 전이다.

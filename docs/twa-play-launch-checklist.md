@@ -330,6 +330,26 @@
   - 임시 확인용 edit은 확인 후 삭제
 - [ ] 실제 Google Play 스토어 설치 가능 여부 확인
 
+### 진행 업데이트 (2026-06-07, Android 회고 리마인드 개발)
+- [x] 서버 기록 기반 Android 회고 리마인드 API 구현
+  - [x] Android 설치 token hash 저장
+  - [x] 사용자/기기 bind API 추가
+  - [x] 주간 회고, 월간 장르, 7일 기록 공백, 시리즈 이어보기 후보 계산
+  - [x] delivery dedupe 및 delivered/opened ack 추가
+- [x] 웹 리포트와 공유카드 확장
+  - [x] `/me/report`에 재방문 이유 카드 추가
+  - [x] 주간/월간 묶음 공유카드 payload 추가
+  - [x] Android install token을 bind 후 URL에서 제거
+- [x] Android 네이티브 리마인드 워커 구현
+  - [x] 설치별 opaque token 생성
+  - [x] TWA launch URL에 Android app context와 install token 추가
+  - [x] 하루 주기 후보 조회 worker 추가
+  - [x] 알림 클릭 opened ack receiver 추가
+  - [x] 네이티브 설정 화면에 `회고 리마인드` 토글 추가
+- [ ] GitHub Actions `Build TWA Release AAB`로 `1.0.10` (`versionCode=14`) 후보 빌드
+- [ ] Play production 또는 staged rollout 제출 여부 결정
+- [ ] 실제 Play 설치본에서 token bind, 회고 리마인드 토글, 알림 표시, 알림 탭 이동 확인
+
 ## 8) 출시 후 모니터링
 - [ ] Crash/ANR 모니터링 (출시 직후 24~72시간 집중)
 - [ ] 로그인/기록 저장 성공률 점검

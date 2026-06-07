@@ -26,8 +26,11 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
+import java.time.DayOfWeek;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
+import java.time.temporal.ChronoUnit;
+import java.time.temporal.TemporalAdjusters;
 import java.util.*;
 
 @Service
@@ -102,7 +105,7 @@ public class AnalyticsService {
                 .filter(l -> l.getDeletedAt() == null)
                 .toList();
         if (logs.isEmpty()) {
-            return new PersonalAnalyticsReportDto(0, 0, 0, 0, 0, "-", "-", "-", 0, 0, null);
+            return new PersonalAnalyticsReportDto(0, 0, 0, 0, 0, "-", "-", "-", 0, 0, null, 0, "-", 0, 0, null, null, null, null);
         }
 
         ZoneId kst = ZoneId.of("Asia/Seoul");
@@ -115,13 +118,30 @@ public class AnalyticsService {
         Map<String, Integer> typeCounts = new HashMap<>();
         Map<String, Integer> placeCounts = new HashMap<>();
         Map<String, Integer> occasionCounts = new HashMap<>();
+        Map<String, Integer> monthlyGenreCounts = new HashMap<>();
         Set<LocalDate> activeDays = new HashSet<>();
+        LocalDate today = now.toLocalDate();
+        LocalDate thisMonday = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+        LocalDate previousMonday = thisMonday.minusWeeks(1);
+        int previousWeekLogs = 0;
+        WatchLogEntity continueSeriesLog = null;
 
         for (WatchLogEntity log : logs) {
             OffsetDateTime watchedAt = log.getWatchedAt();
+            LocalDate watchedDate = watchedAt.atZoneSameInstant(kst).toLocalDate();
             if (watchedAt.atZoneSameInstant(kst).getYear() == now.getYear() && 
                 watchedAt.atZoneSameInstant(kst).getMonthValue() == now.getMonthValue()) {
                 thisMonthLogs += 1;
+                if (log.getTitle() != null && log.getTitle().getGenres() != null) {
+                    for (String genre : log.getTitle().getGenres()) {
+                        if (genre != null && !genre.isBlank()) {
+                            monthlyGenreCounts.merge(genre.trim(), 1, Integer::sum);
+                        }
+                    }
+                }
+            }
+            if (!watchedDate.isBefore(previousMonday) && watchedDate.isBefore(thisMonday)) {
+                previousWeekLogs += 1;
             }
             if (log.getStatus() != null && "DONE".equals(log.getStatus().name())) {
                 doneCount += 1;
@@ -144,10 +164,17 @@ public class AnalyticsService {
             if (log.getOccasion() != null) {
                 occasionCounts.merge(log.getOccasion().name(), 1, Integer::sum);
             }
-            activeDays.add(watchedAt.atZoneSameInstant(kst).toLocalDate());
+            activeDays.add(watchedDate);
+            if (isSeriesContinueCandidate(log, watchedDate, today)
+                    && (continueSeriesLog == null || watchedAt.isAfter(continueSeriesLog.getWatchedAt()))) {
+                continueSeriesLog = log;
+            }
         }
 
         Streak streak = calculateStreak(activeDays, now.toLocalDate());
+        LocalDate lastLoggedDate = lastLoggedAt == null ? null : lastLoggedAt.atZoneSameInstant(kst).toLocalDate();
+        int daysSinceLastLog = lastLoggedDate == null ? 0 : Math.max(0, (int) ChronoUnit.DAYS.between(lastLoggedDate, today));
+        TopCount monthlyTopGenre = topCount(monthlyGenreCounts);
 
         return new PersonalAnalyticsReportDto(
                 logs.size(),
@@ -160,8 +187,26 @@ public class AnalyticsService {
                 topKey(occasionCounts),
                 streak.currentDays(),
                 streak.longestDays(),
-                lastLoggedAt
+                lastLoggedAt,
+                previousWeekLogs,
+                monthlyTopGenre.label(),
+                monthlyTopGenre.count(),
+                daysSinceLastLog,
+                continueSeriesLog == null ? null : continueSeriesLog.getTitle().getId(),
+                continueSeriesLog == null ? null : continueSeriesLog.getTitle().getName(),
+                continueSeriesLog == null ? null : continueSeriesLog.getSeasonNumber(),
+                continueSeriesLog == null ? null : continueSeriesLog.getEpisodeNumber()
         );
+    }
+
+    private boolean isSeriesContinueCandidate(WatchLogEntity log, LocalDate watchedDate, LocalDate today) {
+        if (log.getTitle() == null || log.getTitle().getType() == null || !"series".equals(log.getTitle().getType().name())) {
+            return false;
+        }
+        if (!"IN_PROGRESS".equals(log.getStatus().name()) && log.getSeasonNumber() == null && log.getEpisodeNumber() == null) {
+            return false;
+        }
+        return !watchedDate.isBefore(today.minusDays(14)) && !watchedDate.isAfter(today.minusDays(2));
     }
 
     @Transactional(readOnly = true)
@@ -449,6 +494,16 @@ public class AnalyticsService {
                 .orElse("-");
     }
 
+    private TopCount topCount(Map<String, Integer> counts) {
+        return counts.entrySet().stream()
+                .filter(entry -> entry.getValue() > 0)
+                .sorted(Map.Entry.<String, Integer>comparingByValue().reversed()
+                        .thenComparing(Map.Entry.comparingByKey()))
+                .map(entry -> new TopCount(entry.getKey(), entry.getValue()))
+                .findFirst()
+                .orElse(new TopCount("-", 0));
+    }
+
     private Streak calculateStreak(Set<LocalDate> activeDays, LocalDate today) {
         if (activeDays.isEmpty()) {
             return new Streak(0, 0);
@@ -478,6 +533,8 @@ public class AnalyticsService {
 
         return new Streak(current, longest);
     }
+
+    private record TopCount(String label, int count) {}
 
     private record Streak(int currentDays, int longestDays) {}
     public AdminMigrationStatusDto adminMigrationStatus(String token) {
