@@ -363,7 +363,7 @@ export default function AccountPage() {
   const headerTitle = tAccount("titleModern");
 
   return (
-    <div className="mx-auto max-w-2xl space-y-8">
+    <div className="space-y-8">
       <header className="space-y-1">
         <h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight">
           <Settings className="h-6 w-6" />
