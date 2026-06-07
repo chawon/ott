@@ -14,7 +14,7 @@ export default async function AppFooter() {
       )}
     >
       <div className="mx-auto max-w-5xl px-4">
-        <div className="grid grid-cols-1 gap-10 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-1 gap-10 md:grid-cols-3">
           <div className="space-y-4">
             <div
               className={cn(
@@ -29,34 +29,6 @@ export default async function AppFooter() {
             >
               {t("descriptionModern")}
             </p>
-          </div>
-
-          <div className="space-y-4">
-            <h3
-              className={cn(
-                "text-xs font-bold uppercase tracking-widest",
-                "text-foreground",
-              )}
-            >
-              {t("sectionServiceModern")}
-            </h3>
-            <ul className={cn("space-y-2 text-xs", "text-muted-foreground")}>
-              <li>
-                <IntlLink href="/" className="hover:underline">
-                  {t("linkLogModern")}
-                </IntlLink>
-              </li>
-              <li>
-                <IntlLink href="/timeline" className="hover:underline">
-                  {t("linkTimelineModern")}
-                </IntlLink>
-              </li>
-              <li>
-                <IntlLink href="/public" className="hover:underline">
-                  {t("linkPublicModern")}
-                </IntlLink>
-              </li>
-            </ul>
           </div>
 
           <div className="space-y-4">
