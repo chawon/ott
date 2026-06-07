@@ -66,7 +66,9 @@ export default function AboutPage() {
     {
       title: tAbout("platformAndroidTitle"),
       description: tAbout("platformAndroidDesc"),
-      status: tAbout("platformPreparing"),
+      href: "https://play.google.com/store/apps/details?id=app.ottline",
+      linkLabel: tAbout("platformAndroidLink"),
+      external: true,
     },
     {
       title: tAbout("platformChatGptTitle"),
