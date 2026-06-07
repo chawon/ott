@@ -1,7 +1,12 @@
 "use client";
 
-import { Download, Settings, Smartphone, UserRound } from "lucide-react";
-import Link from "next/link";
+import {
+  ChevronDown,
+  Download,
+  Settings,
+  Smartphone,
+  UserRound,
+} from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { type ReactNode, useCallback, useEffect, useState } from "react";
 import ProfileEditor from "@/components/ProfileEditor";
@@ -64,6 +69,63 @@ function SettingsGroup({
   );
 }
 
+function SettingsAccordionCard({
+  title,
+  description,
+  meta,
+  icon,
+  open,
+  onOpenChange,
+  children,
+}: {
+  title: string;
+  description: string;
+  meta?: string;
+  icon?: ReactNode;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  children: ReactNode;
+}) {
+  return (
+    <section className={SETTINGS_CARD_CLASS}>
+      <button
+        type="button"
+        aria-expanded={open}
+        onClick={() => onOpenChange(!open)}
+        className="flex w-full items-start justify-between gap-3 text-left"
+      >
+        <div className="flex min-w-0 items-start gap-3">
+          {icon ? (
+            <div className="shrink-0 rounded-2xl bg-sky-50 p-2 text-sky-700 dark:bg-sky-950/40 dark:text-sky-200">
+              {icon}
+            </div>
+          ) : null}
+          <div className="min-w-0 space-y-1">
+            <div className="text-base font-semibold">{title}</div>
+            <p className="text-sm text-muted-foreground">{description}</p>
+          </div>
+        </div>
+        <div className="flex shrink-0 items-center gap-2">
+          {meta ? (
+            <span className="rounded-full border border-border bg-muted px-2 py-1 text-[11px] font-semibold text-muted-foreground">
+              {meta}
+            </span>
+          ) : null}
+          <ChevronDown
+            className={cn(
+              "mt-1 h-5 w-5 text-muted-foreground transition-transform",
+              open && "rotate-180",
+            )}
+          />
+        </div>
+      </button>
+      {open ? (
+        <div className="border-t border-border pt-4">{children}</div>
+      ) : null}
+    </section>
+  );
+}
+
 function isGooglePlayTwaContext() {
   if (typeof window === "undefined") return false;
   const ref = document.referrer.toLowerCase();
@@ -116,6 +178,8 @@ export default function AccountPage() {
     null,
   );
   const [showAndroidAppSection, setShowAndroidAppSection] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [devicesOpen, setDevicesOpen] = useState(false);
   const { profile } = useUserProfile();
 
   const loadDevices = useCallback(async () => {
@@ -314,20 +378,13 @@ export default function AccountPage() {
         title={tAccount("groupPersonalTitle")}
         description={tAccount("groupPersonalDesc")}
       >
-        <section className={SETTINGS_CARD_CLASS}>
-          <div className="flex items-start gap-3">
-            <div className="rounded-2xl bg-sky-50 p-2 text-sky-700 dark:bg-sky-950/40 dark:text-sky-200">
-              <UserRound className="h-5 w-5" />
-            </div>
-            <div className="min-w-0 space-y-1">
-              <div className="text-base font-semibold">
-                {tAccount("profileTitle")}
-              </div>
-              <p className="text-sm text-muted-foreground">
-                {tAccount("profileDesc")}
-              </p>
-            </div>
-          </div>
+        <SettingsAccordionCard
+          title={tAccount("profileTitle")}
+          description={tAccount("profileDesc")}
+          icon={<UserRound className="h-5 w-5" />}
+          open={profileOpen}
+          onOpenChange={setProfileOpen}
+        >
           {userId ? (
             <ProfileEditor profile={profile} />
           ) : (
@@ -335,42 +392,7 @@ export default function AccountPage() {
               {tAccount("profileUnavailable")}
             </div>
           )}
-        </section>
-
-        <section className={SETTINGS_CARD_CLASS}>
-          <div className="text-base font-semibold">
-            {tAccount("sectionReport")}
-          </div>
-          <p className="text-sm text-muted-foreground">
-            {logs.length > 0
-              ? tAccount("reportDescModern")
-              : tAccount("reportDescEmpty")}
-          </p>
-          {logs.length > 0 ? (
-            <div className="flex flex-col gap-2">
-              <Link
-                href="/me/report"
-                className={cn(
-                  "inline-flex items-center justify-center gap-2 py-3 text-sm font-bold transition-all",
-                  "rounded-2xl bg-indigo-600 text-white shadow-lg shadow-indigo-500/20 hover:bg-indigo-700",
-                )}
-              >
-                {tAccount("viewReport")}
-              </Link>
-            </div>
-          ) : (
-            <div className="flex flex-col gap-2 opacity-50 pointer-events-none">
-              <div
-                className={cn(
-                  "inline-flex items-center justify-center gap-2 py-3 text-sm font-bold",
-                  "rounded-2xl bg-neutral-100 text-neutral-400",
-                )}
-              >
-                {tAccount("viewReport")}
-              </div>
-            </div>
-          )}
-        </section>
+        </SettingsAccordionCard>
       </SettingsGroup>
 
       <SettingsGroup
@@ -462,10 +484,13 @@ export default function AccountPage() {
           </div>
         </section>
 
-        <section className={SETTINGS_CARD_CLASS}>
-          <div className="text-sm font-semibold">
-            {tAccount("connectedDevices")}
-          </div>
+        <SettingsAccordionCard
+          title={tAccount("connectedDevices")}
+          description={tAccount("connectedDevicesDesc")}
+          meta={tAccount("connectedDevicesCount", { count: devices.length })}
+          open={devicesOpen}
+          onOpenChange={setDevicesOpen}
+        >
           <div className="space-y-3">
             {devices.length === 0 ? (
               <div className="flex h-32 flex-col items-center justify-center rounded-xl border border-dashed border-border bg-muted/30 p-6 text-center text-sm text-muted-foreground">
@@ -536,7 +561,7 @@ export default function AccountPage() {
               </button>
             )}
           </div>
-        </section>
+        </SettingsAccordionCard>
 
         <section className={SETTINGS_CARD_CLASS}>
           <div className="text-sm font-semibold">

@@ -1,12 +1,13 @@
 "use client";
 
-import { Clock, Download, Sparkles, X } from "lucide-react";
+import { BarChart3, Clock, Download, Sparkles, X } from "lucide-react";
 import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useState } from "react";
 import FiltersBar from "@/components/FiltersBar";
 import LogCard from "@/components/LogCard";
 import ShareBottomSheet from "@/components/ShareBottomSheet";
+import { Link as IntlLink } from "@/i18n/routing";
 import { trackEvent } from "@/lib/analytics";
 import { apiWithAuth } from "@/lib/api";
 import { downloadTimelineCsv } from "@/lib/export";
@@ -618,6 +619,26 @@ export default function TimelinePage() {
         />
       ) : (
         <>
+          {logs.length > 0 ? (
+            <IntlLink
+              href="/me/report"
+              className="flex min-h-[64px] items-center justify-between gap-3 rounded-2xl border border-border bg-card px-4 py-3 shadow-sm transition-colors hover:bg-muted"
+            >
+              <div className="min-w-0">
+                <div className="text-sm font-semibold text-foreground">
+                  {tTimeline("reportShortcutTitle")}
+                </div>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  {tTimeline("reportShortcutDesc")}
+                </p>
+              </div>
+              <div className="flex shrink-0 items-center gap-2 rounded-xl bg-indigo-50 px-3 py-2 text-xs font-bold text-indigo-700 dark:bg-indigo-950/30 dark:text-indigo-200">
+                <BarChart3 className="h-4 w-4" />
+                {tTimeline("reportShortcutAction")}
+              </div>
+            </IntlLink>
+          ) : null}
+
           <FiltersBar
             status={status}
             setStatus={setStatus}
