@@ -1,9 +1,34 @@
+import {
+  Bot,
+  ExternalLink,
+  Globe,
+  type LucideIcon,
+  MonitorDown,
+  Puzzle,
+  Smartphone,
+  Store,
+  Wallet,
+} from "lucide-react";
 import type { Metadata } from "next";
-
 import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { getTranslations } from "next-intl/server";
 import { Link as IntlLink } from "@/i18n/routing";
+
+type PlatformLink = {
+  href: string;
+  label: string;
+  external: boolean;
+  icon: LucideIcon;
+};
+
+type PlatformItem = {
+  title: string;
+  description: string;
+  icon: LucideIcon;
+  links?: PlatformLink[];
+  status?: string;
+};
 
 export async function generateMetadata({
   params,
@@ -34,45 +59,88 @@ export async function generateMetadata({
 
 export default function AboutPage() {
   const tAbout = useTranslations("About");
-  const platforms = [
+  const platforms: PlatformItem[] = [
     {
       title: tAbout("platformWebTitle"),
       description: tAbout("platformWebDesc"),
-      href: "/",
-      linkLabel: tAbout("platformWebLink"),
-      external: false,
+      icon: Globe,
+      links: [
+        {
+          href: "/",
+          label: tAbout("platformWebLink"),
+          external: false,
+          icon: Globe,
+        },
+      ],
     },
     {
       title: tAbout("platformAndroidTitle"),
       description: tAbout("platformAndroidDesc"),
-      href: "https://play.google.com/store/apps/details?id=app.ottline",
-      linkLabel: tAbout("platformAndroidLink"),
-      external: true,
+      icon: Smartphone,
+      links: [
+        {
+          href: "https://play.google.com/store/apps/details?id=app.ottline",
+          label: tAbout("platformAndroidLink"),
+          external: true,
+          icon: Store,
+        },
+      ],
     },
     {
       title: tAbout("platformWindowsTitle"),
       description: tAbout("platformWindowsDesc"),
-      href: "https://apps.microsoft.com/detail/9nsvnzgdmgf5",
-      linkLabel: tAbout("platformWindowsLink"),
-      external: true,
+      icon: MonitorDown,
+      links: [
+        {
+          href: "https://apps.microsoft.com/detail/9nsvnzgdmgf5",
+          label: tAbout("platformWindowsLink"),
+          external: true,
+          icon: Store,
+        },
+      ],
     },
     {
       title: tAbout("platformExtensionTitle"),
       description: tAbout("platformExtensionDesc"),
-      href: "https://chromewebstore.google.com/detail/achangjgnpbideilpolbohbkmmkmojpo",
-      linkLabel: tAbout("platformExtensionLink"),
-      external: true,
+      icon: Puzzle,
+      links: [
+        {
+          href: "https://chromewebstore.google.com/detail/achangjgnpbideilpolbohbkmmkmojpo",
+          label: tAbout("platformExtensionChromeLink"),
+          external: true,
+          icon: Store,
+        },
+        {
+          href: "https://microsoftedge.microsoft.com/addons/detail/egghbkekjopgknhggoeiekgdooofihbo?hl=ko",
+          label: tAbout("platformExtensionEdgeLink"),
+          external: true,
+          icon: Store,
+        },
+        {
+          href: "https://store.whale.naver.com/detail/fdifiinpckjcafdndikchfhmkejhdfhc",
+          label: tAbout("platformExtensionWhaleLink"),
+          external: true,
+          icon: Store,
+        },
+      ],
     },
     {
       title: tAbout("platformTossTitle"),
       description: tAbout("platformTossDesc"),
-      href: "https://minion.toss.im/XYvjpUB2",
-      linkLabel: tAbout("platformTossLink"),
-      external: true,
+      icon: Wallet,
+      links: [
+        {
+          href: "https://minion.toss.im/XYvjpUB2",
+          label: tAbout("platformTossLink"),
+          external: true,
+          icon: Wallet,
+        },
+      ],
     },
     {
       title: tAbout("platformChatGptTitle"),
       description: tAbout("platformChatGptDesc"),
+      icon: Bot,
       status: tAbout("platformPreparing"),
     },
   ];
@@ -105,44 +173,71 @@ export default function AboutPage() {
           </p>
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
-          {platforms.map((platform, index) => (
-            <article
-              key={platform.title}
-              className="rounded-2xl border border-border bg-muted/30 p-5"
-            >
-              <div className="text-xs font-semibold tracking-[0.18em] text-muted-foreground">
-                {String(index + 1).padStart(2, "0")}
-              </div>
-              <h3 className="mt-3 font-medium">{platform.title}</h3>
-              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-                {platform.description}
-              </p>
-              {platform.href ? (
-                platform.external ? (
-                  <a
-                    href={platform.href}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="mt-4 inline-flex items-center rounded-full border border-border px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-background"
-                  >
-                    {platform.linkLabel}
-                  </a>
-                ) : (
-                  <IntlLink
-                    href={platform.href}
-                    className="mt-4 inline-flex items-center rounded-full border border-border px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-background"
-                  >
-                    {platform.linkLabel}
-                  </IntlLink>
-                )
-              ) : null}
-              {platform.status ? (
-                <div className="mt-4 inline-flex items-center rounded-full bg-amber-100 px-3 py-1.5 text-xs font-medium text-amber-900">
-                  {platform.status}
+          {platforms.map((platform, index) => {
+            const PlatformIcon = platform.icon;
+
+            return (
+              <article
+                key={platform.title}
+                className="rounded-2xl border border-border bg-muted/30 p-5"
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <div className="text-xs font-semibold tracking-[0.18em] text-muted-foreground">
+                    {String(index + 1).padStart(2, "0")}
+                  </div>
+                  <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-border bg-background text-foreground">
+                    <PlatformIcon className="h-4 w-4" />
+                  </div>
                 </div>
-              ) : null}
-            </article>
-          ))}
+                <h3 className="mt-3 font-medium">{platform.title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                  {platform.description}
+                </p>
+                {platform.links ? (
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {platform.links.map((link) => {
+                      const LinkIcon = link.icon;
+                      const content = (
+                        <>
+                          <LinkIcon className="h-3.5 w-3.5" />
+                          <span>{link.label}</span>
+                          {link.external ? (
+                            <ExternalLink className="h-3 w-3" />
+                          ) : null}
+                        </>
+                      );
+                      const className =
+                        "inline-flex min-h-9 items-center gap-1.5 rounded-full border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-card";
+                      return link.external ? (
+                        <a
+                          key={link.href}
+                          href={link.href}
+                          target="_blank"
+                          rel="noreferrer"
+                          className={className}
+                        >
+                          {content}
+                        </a>
+                      ) : (
+                        <IntlLink
+                          key={link.href}
+                          href={link.href}
+                          className={className}
+                        >
+                          {content}
+                        </IntlLink>
+                      );
+                    })}
+                  </div>
+                ) : null}
+                {platform.status ? (
+                  <div className="mt-4 inline-flex items-center rounded-full bg-amber-100 px-3 py-1.5 text-xs font-medium text-amber-900">
+                    {platform.status}
+                  </div>
+                ) : null}
+              </article>
+            );
+          })}
         </div>
       </section>
 

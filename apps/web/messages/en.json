@@ -456,13 +456,13 @@
     "shareText": "My log share: {title}"
   },
   "Metadata": {
-    "titleDefault": "ottline | OTT Watch Logs in 10 Seconds",
+    "titleDefault": "ottline | Video and Book Logs in 10 Seconds",
     "titleTemplate": "%s | ottline",
     "description": "Log OTT watch history, movies, series, and books in 10 seconds without sign-up. Build your own personal timeline."
   },
   "About": {
-    "title": "OTT Watch Log App & How to Use",
-    "subtitle": "OTT watch logs, movie logs, and book timelines without sign-up",
+    "title": "Video and Book Log App & How to Use",
+    "subtitle": "Video and book timelines without sign-up",
     "description": "ottline helps you quickly log OTT watch history from services like Netflix, TVING, and Disney+, plus movies, series, and books, into your own timeline. Start on the web without tedious sign-up, then continue through the same flow on the installable PWA, Toss in-app mini app, browser extension, Windows app, and Android app. The ChatGPT connection is still in preparation.",
     "pairingHighlightTitle": "Once you start logging, your timeline keeps going.",
     "pairingHighlightDesc": "Whether you open ottline on the web, in Toss, or as an installed app, your pairing code lets you continue the same timeline and keep logging and checking your history.",
@@ -475,8 +475,10 @@
     "platformTossDesc": "Open your OTT timeline directly inside Toss without installing another app.",
     "platformTossLink": "Open in Toss",
     "platformExtensionTitle": "Desktop Browser Extension",
-    "platformExtensionDesc": "A helper that reads the title from supported OTT pages and sends you into ottline QuickLog on the web. It is currently available on the Chrome Web Store.",
-    "platformExtensionLink": "Chrome Web Store",
+    "platformExtensionDesc": "A helper that reads the title from supported OTT pages and sends you into ottline QuickLog on the web. It is available on the Chrome Web Store, Edge Add-ons, and Whale Store.",
+    "platformExtensionChromeLink": "Chrome Web Store",
+    "platformExtensionEdgeLink": "Edge Add-ons",
+    "platformExtensionWhaleLink": "Whale Store",
     "platformWindowsTitle": "Windows App",
     "platformWindowsDesc": "The same web app is also available through Microsoft Store packaging, so the desktop flow stays familiar.",
     "platformWindowsLink": "Microsoft Store",
