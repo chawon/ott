@@ -106,9 +106,10 @@
    8. `2026-06-01` 기준 `1.0.9` (`versionCode=13`)을 Google Play `alpha`에 업로드했다. PR `#43`, main SHA `54d531d`, TWA release run `26735136175`이며 `gplay tracks get`으로 `alpha`의 `1.0.9`/`13`/`completed` 반영을 확인했다. `2026-06-06` 기준 같은 `1.0.9`를 production 트랙으로 승격했다.
    9. Google Play production access 통과 후 설정 화면의 `Android 테스트 의견` 카드와 비공개 테스트 체크리스트는 종료하고, Google Play TWA 세션에는 사용자용 `시청 기록 알림 설정` 진입만 유지한다. `2026-06-06` PR `#50`, main SHA `e41b202f82d68851ec8bce7bb3ff07cc1fe69672`, web staging run `27063829325`, web production run `27063911077`로 배포 완료했고 ArgoCD `ott-app` `Synced Healthy`, production `ott-web` 이미지 태그 `e41b202f82d68851ec8bce7bb3ff07cc1fe69672`를 확인했다.
    10. `2026-06-07` 기준 Android 회고 리마인드 v1을 production에 배포했다. PR `#53`의 merged SHA `325c60197334578091490c26213b750e542a9e61`로 web/api staging run `27082422961`/`27082422982`, production run `27082848234`/`27082772693`를 완료했고, production `ott-web`/`ott-api` 이미지 태그와 `APP_VERSION=325c601`, ArgoCD `ott-app` `Synced Healthy`를 확인했다. Android AAB 첫 실행 run `27083022387`은 `BuildConfig` 생성 비활성화로 실패했고, PR `#54` main SHA `4720fa7a19214ce0d770b4776aaf25bf7a0babec`에서 `buildConfig true`를 반영한 뒤 TWA release run `27083202447`로 Google Play `production` `1.0.10`/`14`/`completed` 반영을 확인했다.
-   11. 현재 로컬 작업환경(WSL on ARM Linux)에서는 Android Gradle 빌드(`assembleDebug`, `bundleRelease`)가 `aapt2` 바이너리 호환 문제로 실패하는 것이 정상 제약이다. 로컬 Android 빌드 실패를 회귀로 보지 말고, APK/AAB 산출물 검증과 Play 배포는 GitHub Actions를 source of truth로 사용한다.
-   12. 로컬 Gradle은 필요 시 `apps/twa`에서 `GRADLE_USER_HOME=./.gradle ./gradlew :app:generateShorcutsFile --no-daemon` 같은 리소스 생성 확인까지만 제한적으로 사용한다.
-   13. `feat/native-mobile-app`의 `apps/native`는 React Native + Expo 후보 앱이며, main 미머지 상태이고 배포 파이프라인은 아직 없음
+   11. `2026-06-07` 기준 OTT 시청 감지 불안정성 이슈를 해결하기 위해 자동 감지의 pendingCandidate 체크 누락 수정, AUTO_CANDIDATE_WINDOW_MS 2시간 연장, queryUsageSnapshots의 48시간 누적 집계 방식에서 최신 단일 버킷 참조 방식으로 전환을 반영했다. PR `#57` main SHA `18e42e7`로 병합을 완료했고, Google Play 공개 테스트(beta) 배포를 위해 TWA release run `27090728553`로 `1.0.11` (`versionCode=15`) 빌드/배포를 진행 중이다.
+   12. 현재 로컬 작업환경(WSL on ARM Linux)에서는 Android Gradle 빌드(`assembleDebug`, `bundleRelease`)가 `aapt2` 바이너리 호환 문제로 실패하는 것이 정상 제약이다. 로컬 Android 빌드 실패를 회귀로 보지 말고, APK/AAB 산출물 검증과 Play 배포는 GitHub Actions를 source of truth로 사용한다.
+   13. 로컬 Gradle은 필요 시 `apps/twa`에서 `GRADLE_USER_HOME=./.gradle ./gradlew :app:generateShorcutsFile --no-daemon` 같은 리소스 생성 확인까지만 제한적으로 사용한다.
+   14. `feat/native-mobile-app`의 `apps/native`는 React Native + Expo 후보 앱이며, main 미머지 상태이고 배포 파이프라인은 아직 없음
 
 ### P1
 1. Public repo 보안 후속 정리
