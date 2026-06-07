@@ -18,7 +18,7 @@ public final class WatchReminderWorker extends Worker {
     private static final long GLOBAL_COOLDOWN_MS = 3L * 60L * 60L * 1000L;
     private static final long APP_COOLDOWN_MS = 24L * 60L * 60L * 1000L;
     private static final long USAGE_STATS_LOOKBACK_MS = 48L * 60L * 60L * 1000L;
-    private static final long AUTO_CANDIDATE_WINDOW_MS = 15L * 60L * 1000L;
+    private static final long AUTO_CANDIDATE_WINDOW_MS = 2L * 60L * 60L * 1000L;
     private static final long MANUAL_CANDIDATE_WINDOW_MS = 6L * 60L * 60L * 1000L;
 
     public WatchReminderWorker(
@@ -85,10 +85,11 @@ public final class WatchReminderWorker extends Worker {
             return scanManualNow(context, prefs, usageStatsManager, now, lastQueryAt);
         }
 
+        Candidate pendingCandidate = readPendingCandidate(prefs);
         Map<String, UsageSnapshot> usageSnapshots = queryUsageSnapshots(usageStatsManager, now, true);
         Candidate usageStatsCandidate = findUsageStatsCandidate(prefs, usageSnapshots, now);
         Candidate lastSeenCandidate = findLastSeenCandidate(usageSnapshots, now, lastQueryAt);
-        Candidate latestCandidate = usageStatsCandidate;
+        Candidate latestCandidate = chooseLatest(pendingCandidate, usageStatsCandidate);
         String usageDebug = buildUsageDebug(
                 prefs,
                 usageSnapshots,
@@ -97,7 +98,7 @@ public final class WatchReminderWorker extends Worker {
                 null,
                 usageStatsCandidate,
                 lastSeenCandidate,
-                "자동 감지는 5분 이상 foreground 증가분만 후보"
+                "자동 감지는 5분 이상 foreground 증가분(또는 보류 후보)만 대상"
         );
 
         SharedPreferences.Editor editor = prefs.edit()
@@ -278,10 +279,13 @@ public final class WatchReminderWorker extends Worker {
             UsageSnapshot snapshot = snapshots.get(packageName);
             if (snapshot == null) {
                 snapshot = new UsageSnapshot();
+                snapshot.totalForegroundMs = usageStats.getTotalTimeInForeground();
+                snapshot.lastTimeUsed = usageStats.getLastTimeUsed();
                 snapshots.put(packageName, snapshot);
+            } else if (usageStats.getLastTimeUsed() > snapshot.lastTimeUsed) {
+                snapshot.totalForegroundMs = usageStats.getTotalTimeInForeground();
+                snapshot.lastTimeUsed = usageStats.getLastTimeUsed();
             }
-            snapshot.totalForegroundMs += usageStats.getTotalTimeInForeground();
-            snapshot.lastTimeUsed = Math.max(snapshot.lastTimeUsed, usageStats.getLastTimeUsed());
         }
         return snapshots;
     }
