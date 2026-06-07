@@ -41,10 +41,11 @@
 17. 낙장불입 정책 확정: 사용자용 개별 기록 삭제 없음, 설정의 로컬 초기화와 서버 데이터 전체 삭제를 분리
 18. 설정에서 계정 단위 서버 데이터 전체 삭제(기록/댓글/문의/analytics/기기 연결) 지원
 19. ChatGPT App v1 운영 배포 + OpenAI 앱 심사 진행 중(`2026-04-23` 기준): `timeline.list_recent_logs` 기반 읽기 전용 recent-history connector + OAuth/PKCE + 도메인 검증 경로 반영
-20. 토스 인앱 미니앱 승인 및 출시 완료(`2026-05-18`, 표시명 `내 OTT 타임라인`) + `/about` 서비스 소개에 웹/PWA·토스·브라우저 확장·Windows 채널 반영, 페어링 코드 연속성 메시지 정리
+20. 토스 인앱 미니앱 승인 및 출시 완료(`2026-05-18`, 표시명 `내 OTT 타임라인`) + `/about` 서비스 소개에 웹/PWA·Android·Windows·브라우저 확장·토스·ChatGPT 채널 순서 반영, 페어링 코드 연속성 메시지 정리
 21. 무로그인 개인 프로필 v1: 기존 페어링 계정에 닉네임, 성향 타이틀, 프리셋 아바타를 저장하고 본인 화면(헤더/홈/타임라인/리포트/설정)에만 노출
 22. 페어링 코드 복구 카드: 설정의 기기 연결 영역에서 페어링 코드를 개인 보관용 PNG 카드로 로컬 생성·저장(`2026-05-23` production 반영, web SHA `b5b30af`)
 23. 홈 함께 기록 인기 작품 보충: 실제 `요즘 함께 하는 기록들`이 6개 미만이면 TMDB 기반 인기 작품으로 부족분을 채우고, 한국어 화면은 주간 트렌드 중 한국 콘텐츠만 overfetch/필터링해 노출(`2026-05-23` production 반영, web/api SHA `9a3fcdf`)
+24. 설정/타임라인/푸터 IA 정리: 이용 리포트 진입은 설정에서 타임라인 상단으로 옮겼고, 내 프로필과 연결된 기기는 접기/펼치기 카드로 정리했다. 푸터는 중복 서비스 메뉴를 제거해 안내 중심으로 단순화했다. `/about` 서비스 소개는 스토어 링크 버튼에 아이콘을 붙이고 Chrome·Edge·Whale 확장 링크를 분리했으며, 메타 타이틀은 영상·책 기록을 함께 담도록 정리했다(`2026-06-07` production 반영, web SHA `4fcfd6d`).
 
 ### 제품 방향
 1. 추천 기능은 현재 범위에서 제외한다.
@@ -67,14 +68,15 @@
 6. **제품 퍼널 통계 정리**: admin analytics overview에서 구 도메인 `oldDomainUsage`와 `share_action` 표시를 제거하고, `title_search`·`title_select`·`first_log_create` 기반 전환 흐름을 표시한다.
 7. **구 도메인 301 전환 완료**: `2026-04-18`부터 `ott.preview.pe.kr/*`는 Cloudflare에서 `https://ottline.app/*`로 301 리다이렉트한다. 기존 MigrationBanner 기반 자발적 이전 유도는 종료했다.
 8. **레트로 모드 통계 제거**: admin analytics에서 retro 관련 섹션(레트로 현황, 주간 레트로 트렌드) 제거. `SyncWorker`의 `app_open` 이벤트에서 `isRetro` 프로퍼티 제거.
-9. **브라우저 확장 ottline 브랜딩 및 스토어 배포**: `manifest.json`, `popup.html`, `popup.js` 브랜드명·URL을 ottline으로 전환, 아이콘 교체(512px 원본 리사이즈), Chrome Web Store/Edge Add-ons Store 배포 완료.
+9. **브라우저 확장 ottline 브랜딩 및 스토어 배포**: `manifest.json`, `popup.html`, `popup.js` 브랜드명·URL을 ottline으로 전환, 아이콘 교체(512px 원본 리사이즈), Chrome Web Store/Edge Add-ons Store/Whale Store 배포 완료.
 10. **Microsoft Store PWA 배포**: PWABuilder 기반 Windows 패키지 인증 심사 통과 및 배포 완료. 브랜드명 `On the Timeline` 기준.
 11. **설정의 서버 데이터 전체 삭제 추가**: `DELETE /api/auth/account` 기반으로 계정 단위 서버 기록/댓글/문의/analytics/기기 연결 삭제 지원.
 12. **ChatGPT App v1 배포 및 제출**: `ottline.app/chatgpt` 운영 배포, OAuth/PKCE 연결, review 계정/도메인 검증/제출 문서 정리 완료, `2026-04-23` 기준 OpenAI 앱 심사 진행 중.
-13. **서비스 소개 채널 정리 및 토스 인앱/Google Play 출시 반영**: 토스 인앱 미니앱은 `2026-05-18` 승인 및 출시 완료(`내 OTT 타임라인`). Android 앱은 Google Play production 출시 완료(`app.ottline`) 상태로 `/about` 페이지에 Google Play 링크를 노출한다. `/about` 페이지에는 웹/PWA·토스·브라우저 확장·Windows·Android 링크를 노출하고, ChatGPT만 `준비 중`으로 표기한다. 페어링 코드 연속성 메시지 반영 완료. `2026-06-07` PR `#51`, main SHA `536774478497cae3f5ae230d46b69b6d0f236892`, web staging run `27079271629`, web production run `27079312890`로 배포 완료했고 ArgoCD `ott-app` `Synced Healthy`, production `ott-web` 이미지 태그 `536774478497cae3f5ae230d46b69b6d0f236892`를 확인했다.
+13. **서비스 소개 채널 정리 및 토스 인앱/Google Play 출시 반영**: 토스 인앱 미니앱은 `2026-05-18` 승인 및 출시 완료(`내 OTT 타임라인`). Android 앱은 Google Play production 출시 완료(`app.ottline`) 상태로 `/about` 페이지에 Google Play 링크를 노출한다. `/about` 페이지에는 웹/PWA·Android·Windows·브라우저 확장·토스·ChatGPT 순서로 채널을 노출하고, ChatGPT만 `준비 중`으로 표기한다. 브라우저 확장은 Chrome Web Store, Edge Add-ons, Whale Store 링크를 각각 아이콘 버튼으로 노출한다. 페어링 코드 연속성 메시지 반영 완료. `2026-06-07` PR `#51`, main SHA `536774478497cae3f5ae230d46b69b6d0f236892`, web staging run `27079271629`, web production run `27079312890`로 Google Play 링크를 먼저 배포했다. 이후 `2026-06-07` PR `#55`, main SHA `4fcfd6dd07243a6ad0bf112b00982b2dc4113122`, web staging run `27089185975`, web production run `27089241013`로 스토어 아이콘 버튼과 영상·책 메타 타이틀을 배포했고 ArgoCD `ott-app` `Synced Healthy`, production `ott-web` 이미지 태그 `4fcfd6dd07243a6ad0bf112b00982b2dc4113122`, `APP_VERSION=4fcfd6d`를 확인했다.
 14. **페어링 코드 복구 카드 저장 UX**: 설정 > 기기 연결에서 개인 보관용 복구 카드 PNG를 브라우저 Canvas로 로컬 생성해 저장하도록 반영 완료. 서버 이메일 발송, 서버 이미지 렌더링, 공개 공유 UX는 제외했다. `2026-05-23` web production run `26329158127`로 `b5b30af29731aae89ddc3bd336ad3752feddc666` 배포 완료.
 15. **홈 함께 기록 인기 작품 보충**: 홈의 실제 공개 기록이 6개 미만이면 `/api/titles/popular` 기반 인기 작품으로 부족분만 채운다. 한국어 fallback은 TMDB 주간 트렌드 최대 5페이지에서 `original_language=ko` 또는 `origin_country=KR`인 항목만 필터링하고, 비한국어 fallback은 region/watch availability 기반 discover를 사용한다. `2026-05-23` web/API production run `26331154875`/`26331157652`로 `9a3fcdf28ef142f2021c143da3a00598762a6053` 배포 완료.
 16. **Android production analytics 세그먼트 보강**: Google Play TWA의 빈 referrer 케이스를 보완하기 위해 launch URL 앱 버전 컨텍스트, Android referrer, WebView, standalone context, session 신호를 조합해 `platform=twa`로 분류한다. 관리자 analytics overview에는 Android 앱 버전, versionCode, TWA 판별 신호 세그먼트를 표시한다. `2026-06-06` PR `#49`, main SHA `fa528c2f82a4ded2c02fac97919155add2a61f5f`, staging run `27063419471`/`27063419474`, production run `27063488252`/`27063487861`로 배포 완료했고 ArgoCD `ott-app` `Synced Healthy`, production `ott-web`/`ott-api` 이미지 태그 `fa528c2f82a4ded2c02fac97919155add2a61f5f`를 확인했다.
+17. **설정/타임라인/푸터 IA 정리**: 이용 리포트 진입은 설정에서 타임라인 상단 보조 CTA로 옮겼고, 내 프로필과 연결된 기기 영역은 접기/펼치기 카드로 정리했다. 푸터는 중복 서비스 항목을 제거하고 안내/문의/정책 중심으로 유지한다. 같은 배포에서 `/about` 스토어 링크 버튼에 아이콘을 붙이고 브라우저 확장은 Chrome·Edge·Whale 링크를 분리했으며, 사이트 메타 타이틀은 `OTT 시청 기록` 한정에서 `영상·책 기록` 표현으로 정리했다. `2026-06-07` PR `#55`, main SHA `4fcfd6dd07243a6ad0bf112b00982b2dc4113122`, staging run `27089185975`, production run `27089241013`, production manifest commit `d79453e5e13972719176ef7764cd3df61a7b1deb`로 배포 완료했고 ArgoCD `ott-app` `Synced Healthy`, production `ott-web` 이미지 태그 `4fcfd6dd07243a6ad0bf112b00982b2dc4113122`, `APP_VERSION=4fcfd6d`를 확인했다. 공개 도메인 직접 `curl`은 Cloudflare 403으로 막혔지만, production Pod 내부 `/about` HTML에서 `영상·책`, `Edge Add-ons`, `Whale Store` 반영을 확인했다.
 
 ### P1
 1. 문의함 운영 후속 작업
@@ -88,7 +90,7 @@
 2. 현재 기준
    1. Chrome Web Store 배포 완료 (`ottline-helper-0.1.0`, 2026-03-26)
    2. Microsoft Edge Add-ons Store 배포 완료 (`ottline-helper-0.1.0`)
-   3. Whale Store 제출 완료 (`2026-04-13`), 심사 중
+   3. Whale Store 배포 완료 (`ottline-helper-0.1.0`, `https://store.whale.naver.com/detail/fdifiinpckjcafdndikchfhmkejhdfhc`)
    4. 남은 작업: Netflix 모달 selector 정밀화, 사이트별 캡처 정확도 검증, locale/base URL 설정 페이지 검토
 
 ### P1

@@ -40,3 +40,15 @@
 - Staging Web deploy success: GitHub Actions run `27079271629`
 - Production Web deploy success: GitHub Actions run `27079312890`
 - Production 확인: ArgoCD `ott-app` `Synced Healthy`, `ott-web` 이미지 태그 `536774478497cae3f5ae230d46b69b6d0f236892`, `1/1 ready`
+
+### 스토어 버튼 및 영상·책 카피 정리 (2026-06-07)
+- PR: `#55` (`feat: simplify settings and about navigation`)
+- main merge commit: `4fcfd6dd07243a6ad0bf112b00982b2dc4113122`
+- Production manifest commit: `d79453e5e13972719176ef7764cd3df61a7b1deb`
+- Staging Web deploy success: GitHub Actions run `27089185975`
+- Production Web deploy success: GitHub Actions run `27089241013`
+- `/about` 플랫폼 순서: 웹/PWA, Android, Windows, 브라우저 확장, 토스 인앱, ChatGPT
+- 브라우저 확장 링크를 Chrome Web Store, Edge Add-ons, Whale Store 3개 아이콘 버튼으로 분리했다.
+- Google Play, Microsoft Store, Chrome, Edge, Whale, Toss 링크 버튼에 아이콘을 붙였다.
+- 메타 타이틀과 서비스 소개 제목을 `OTT 시청 기록` 한정에서 `영상·책 기록` 기준으로 정리했다.
+- Production 확인: ArgoCD `ott-app` `Synced Healthy`, `ott-web` 이미지 태그 `4fcfd6dd07243a6ad0bf112b00982b2dc4113122`, `APP_VERSION=4fcfd6d`, production Pod 내부 `/about` HTML에서 `영상·책`, `Edge Add-ons`, `Whale Store` 반영 확인
