@@ -43,17 +43,10 @@ export default function AboutPage() {
       external: false,
     },
     {
-      title: tAbout("platformTossTitle"),
-      description: tAbout("platformTossDesc"),
-      href: "https://minion.toss.im/XYvjpUB2",
-      linkLabel: tAbout("platformTossLink"),
-      external: true,
-    },
-    {
-      title: tAbout("platformExtensionTitle"),
-      description: tAbout("platformExtensionDesc"),
-      href: "https://chromewebstore.google.com/detail/achangjgnpbideilpolbohbkmmkmojpo",
-      linkLabel: tAbout("platformExtensionLink"),
+      title: tAbout("platformAndroidTitle"),
+      description: tAbout("platformAndroidDesc"),
+      href: "https://play.google.com/store/apps/details?id=app.ottline",
+      linkLabel: tAbout("platformAndroidLink"),
       external: true,
     },
     {
@@ -64,10 +57,17 @@ export default function AboutPage() {
       external: true,
     },
     {
-      title: tAbout("platformAndroidTitle"),
-      description: tAbout("platformAndroidDesc"),
-      href: "https://play.google.com/store/apps/details?id=app.ottline",
-      linkLabel: tAbout("platformAndroidLink"),
+      title: tAbout("platformExtensionTitle"),
+      description: tAbout("platformExtensionDesc"),
+      href: "https://chromewebstore.google.com/detail/achangjgnpbideilpolbohbkmmkmojpo",
+      linkLabel: tAbout("platformExtensionLink"),
+      external: true,
+    },
+    {
+      title: tAbout("platformTossTitle"),
+      description: tAbout("platformTossDesc"),
+      href: "https://minion.toss.im/XYvjpUB2",
+      linkLabel: tAbout("platformTossLink"),
       external: true,
     },
     {
