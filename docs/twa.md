@@ -294,13 +294,24 @@ adb install -r apps/twa/app/build/outputs/apk/debug/app-debug.apk
   - Web production deploy run: `27063911077`
   - Production 확인: ArgoCD `ott-app` `Synced Healthy`, `ott-web` 이미지 태그 `e41b202f82d68851ec8bce7bb3ff07cc1fe69672`, `1/1 ready`
 
-### 진행 업데이트 (2026-06-07, 개발 브랜치)
-- Android 기록 회고 리마인드 v1 구현을 시작했다.
-  - 브랜치: `feature/android-revisit-reminders`
+### 진행 업데이트 (2026-06-07)
+- Android 기록 회고 리마인드 v1 production 배포 완료
+  - 버전: `1.0.10` (`versionCode=14`)
+  - PR: `#53`, BuildConfig hotfix PR: `#54`
+  - Web/API deploy SHA: `325c60197334578091490c26213b750e542a9e61`
+  - Hotfix main SHA: `4720fa7a19214ce0d770b4776aaf25bf7a0babec`
+  - Web staging deploy run: `27082422961`
+  - API staging deploy run: `27082422982`
+  - Web production deploy run: `27082848234`
+  - API production deploy run: `27082772693`
+  - TWA release run: `27083202447`
+  - Google Play `production`: `1.0.10` (`versionCode=14`), `status=completed`
+  - Production 릴리스 노트: `Adds Android revisit reminders for weekly recaps, monthly genre summaries, record gaps, and series continuation.`
   - 범위: Android 네이티브 회고 리마인드, 서버 후보 계산 API, 웹 `/me/report` 회고 카드, 주간/월간 묶음 공유카드
   - 새 서버 저장소: `android_notification_devices`, `android_notification_deliveries`
   - 새 Android 후보 타입: `WEEKLY_RECAP`, `MONTHLY_GENRE`, `SEVEN_DAY_GAP`, `SERIES_CONTINUE`
   - token 원문은 서버 DB, 웹 localStorage, analytics properties에 저장하지 않고 서버에는 SHA-256 hash만 저장한다.
   - Web Push/PWA 푸시는 v1 범위에서 제외하고 Android TWA 네이티브 알림을 우선한다.
+  - Production 확인: ArgoCD `ott-app` `Synced Healthy`, `ott-web`/`ott-api` 이미지 태그 `325c60197334578091490c26213b750e542a9e61`, `APP_VERSION=325c601`
+  - 첫 TWA release run `27083022387`은 Android Gradle `BuildConfig` 생성 비활성화로 실패했고, PR `#54`에서 `buildConfig true`를 반영해 재배포했다.
   - 관련 설계 메모: `docs/android-revisit-reminders-2026-06-07.md`
-  - 배포 및 Play 제출은 아직 진행 전이다.

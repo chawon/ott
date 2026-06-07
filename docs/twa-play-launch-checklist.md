@@ -346,8 +346,12 @@
   - [x] 하루 주기 후보 조회 worker 추가
   - [x] 알림 클릭 opened ack receiver 추가
   - [x] 네이티브 설정 화면에 `회고 리마인드` 토글 추가
-- [ ] GitHub Actions `Build TWA Release AAB`로 `1.0.10` (`versionCode=14`) 후보 빌드
-- [ ] Play production 또는 staged rollout 제출 여부 결정
+- [x] GitHub Actions `Build TWA Release AAB`로 `1.0.10` (`versionCode=14`) production 배포
+  - 첫 실행 run `27083022387`은 Android Gradle `BuildConfig` 생성 비활성화로 실패
+  - PR `#54`에서 `apps/twa/app/build.gradle`에 `buildConfig true` 반영
+  - 성공 run: `27083202447`
+  - Google Play `production`: `1.0.10` (`versionCode=14`), `status=completed`
+  - Release notes: `Adds Android revisit reminders for weekly recaps, monthly genre summaries, record gaps, and series continuation.`
 - [ ] 실제 Play 설치본에서 token bind, 회고 리마인드 토글, 알림 표시, 알림 탭 이동 확인
 
 ## 8) 출시 후 모니터링

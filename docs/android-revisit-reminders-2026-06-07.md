@@ -39,6 +39,20 @@ Android Google Play TWA 설치본에서 기록을 다시 열어볼 이유를 네
 - Biome: `node_modules/@biomejs/cli-linux-arm64/biome check ...`
 - Android AAB/APK: 로컬 WSL ARM 환경은 AAPT2/Gradle wrapper 제약이 있으므로 GitHub Actions `Build TWA Release AAB`가 source of truth다.
 
-## 릴리스 메모 초안
+## 릴리스 상태
+
+- `2026-06-07` production 배포 완료
+- PR: `#53`
+- BuildConfig hotfix PR: `#54`
+- Web/API deploy SHA: `325c60197334578091490c26213b750e542a9e61`
+- Hotfix main SHA: `4720fa7a19214ce0d770b4776aaf25bf7a0babec`
+- Web/API staging run: `27082422961` / `27082422982`
+- Web/API production run: `27082848234` / `27082772693`
+- TWA release run: `27083202447`
+- Google Play `production`: `1.0.10` (`versionCode=14`), `status=completed`
+- Production 확인: ArgoCD `ott-app` `Synced Healthy`, `ott-web`/`ott-api` 이미지 태그 `325c60197334578091490c26213b750e542a9e61`, `APP_VERSION=325c601`
+- 남은 확인: 실제 Play 설치본에서 token bind, 회고 리마인드 토글, 알림 표시, 알림 탭 이동
+
+## 릴리스 메모
 
 `Adds Android revisit reminders for weekly recaps, monthly genre summaries, record gaps, and series continuation.`
