@@ -33,3 +33,10 @@
 - main merge commit: `005481c20587222e86e9e610e999ff611797d32a`
 - Staging Web deploy success: GitHub Actions run `24726936985`
 - Production Web deploy success: GitHub Actions run `24727095919`
+
+### Google Play 링크 반영 (2026-06-07)
+- PR: `#51` (`feat: add Google Play link to about page`)
+- main merge commit: `536774478497cae3f5ae230d46b69b6d0f236892`
+- Staging Web deploy success: GitHub Actions run `27079271629`
+- Production Web deploy success: GitHub Actions run `27079312890`
+- Production 확인: ArgoCD `ott-app` `Synced Healthy`, `ott-web` 이미지 태그 `536774478497cae3f5ae230d46b69b6d0f236892`, `1/1 ready`
