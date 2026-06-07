@@ -466,7 +466,7 @@
   "About": {
     "title": "OTT Watch Log App & How to Use",
     "subtitle": "OTT watch logs, movie logs, and book timelines without sign-up",
-    "description": "ottline helps you quickly log OTT watch history from services like Netflix, TVING, and Disney+, plus movies, series, and books, into your own timeline. Start on the web without tedious sign-up, then continue through the same flow on the installable PWA, Toss in-app mini app, browser extension, and Windows app. Android and ChatGPT connections are still in preparation.",
+    "description": "ottline helps you quickly log OTT watch history from services like Netflix, TVING, and Disney+, plus movies, series, and books, into your own timeline. Start on the web without tedious sign-up, then continue through the same flow on the installable PWA, Toss in-app mini app, browser extension, Windows app, and Android app. The ChatGPT connection is still in preparation.",
     "pairingHighlightTitle": "Once you start logging, your timeline keeps going.",
     "pairingHighlightDesc": "Whether you open ottline on the web, in Toss, or as an installed app, your pairing code lets you continue the same timeline and keep logging and checking your history.",
     "platformsTitle": "Started on the web, opened in more places",
@@ -484,7 +484,8 @@
     "platformWindowsDesc": "The same web app is also available through Microsoft Store packaging, so the desktop flow stays familiar.",
     "platformWindowsLink": "Microsoft Store",
     "platformAndroidTitle": "Android App",
-    "platformAndroidDesc": "Google Play release is still in preparation. Once public, it will support quicker entry from the home screen and widget.",
+    "platformAndroidDesc": "Install it from Google Play to enter the logging flow faster from the home screen, widget, and watch reminder settings.",
+    "platformAndroidLink": "Google Play",
     "platformChatGptTitle": "ChatGPT Connection",
     "platformChatGptDesc": "A read-only ChatGPT connection is still in preparation for bringing recent logs into the conversation.",
     "platformPreparing": "Coming soon",

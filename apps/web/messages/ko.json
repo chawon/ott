@@ -466,7 +466,7 @@
   "About": {
     "title": "OTT 기록 앱 소개 및 사용법",
     "subtitle": "로그인 없이 남기는 OTT 시청 기록·영상·책 타임라인",
-    "description": "ottline은 넷플릭스, 티빙, 디즈니+ 같은 OTT 시청 기록과 영화·드라마·책 감상 기록을 빠르게 남겨 내 타임라인으로 쌓는 서비스입니다. 번거로운 가입 없이 웹에서 바로 시작하고, 설치형 PWA·토스 인앱·브라우저 확장·Windows 앱까지 같은 기록 흐름으로 이어집니다. Android 앱과 ChatGPT 연결도 준비 중입니다.",
+    "description": "ottline은 넷플릭스, 티빙, 디즈니+ 같은 OTT 시청 기록과 영화·드라마·책 감상 기록을 빠르게 남겨 내 타임라인으로 쌓는 서비스입니다. 번거로운 가입 없이 웹에서 바로 시작하고, 설치형 PWA·토스 인앱·브라우저 확장·Windows 앱·Android 앱까지 같은 기록 흐름으로 이어집니다. ChatGPT 연결은 준비 중입니다.",
     "pairingHighlightTitle": "기록은 한 번 시작하면 계속 이어집니다.",
     "pairingHighlightDesc": "웹, 토스, 설치형 앱 어디서 열어도 페어링 코드만 입력하면 같은 타임라인을 이어서 기록하고 확인할 수 있습니다.",
     "platformsTitle": "웹에서 시작해, 더 다양한 곳으로",
@@ -484,7 +484,8 @@
     "platformWindowsDesc": "같은 웹 앱을 Microsoft Store 배포 형태로 열 수 있어 데스크톱 환경에서도 자연스럽게 이어집니다.",
     "platformWindowsLink": "Microsoft Store",
     "platformAndroidTitle": "Android 앱",
-    "platformAndroidDesc": "Google Play 배포를 준비 중입니다. 공개되면 홈 화면과 위젯에서 빠르게 기록 화면으로 들어갈 수 있습니다.",
+    "platformAndroidDesc": "Google Play에서 설치해 홈 화면, 위젯, 시청 기록 알림 설정으로 더 빠르게 기록 화면에 들어갈 수 있습니다.",
+    "platformAndroidLink": "Google Play",
     "platformChatGptTitle": "ChatGPT 연결",
     "platformChatGptDesc": "ChatGPT 대화에 최근 기록을 불러오는 읽기 전용 연결을 준비 중입니다.",
     "platformPreparing": "준비 중",
