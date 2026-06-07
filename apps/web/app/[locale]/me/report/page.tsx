@@ -1,11 +1,18 @@
 "use client";
 
+import { Download, Share2 } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { listAllLogsLocal } from "@/lib/localStore";
 import { isProfileComplete } from "@/lib/profile";
 import { buildPersonalReport, type PersonalReport } from "@/lib/report";
+import {
+  downloadBlob,
+  fetchShareCardBlob,
+  type RecapShareCardPayload,
+  shareBlob,
+} from "@/lib/share";
 import type { Occasion, Place } from "@/lib/types";
 import { useUserProfile } from "@/lib/useUserProfile";
 import { occasionLabel, placeLabel } from "@/lib/utils";
@@ -33,6 +40,7 @@ export default function MyReportPage() {
   const [source, setSource] = useState<"server" | "local">("server");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [shareBusy, setShareBusy] = useState<"weekly" | "monthly" | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -90,6 +98,98 @@ export default function MyReportPage() {
   const personaLabel = profileComplete
     ? tProfile(`personas.${profile?.personaKey}`)
     : null;
+  const previousWeekLogs = report.previousWeekLogs ?? 0;
+  const monthlyTopGenre = report.monthlyTopGenre ?? "-";
+  const monthlyTopGenreCount = report.monthlyTopGenreCount ?? 0;
+  const daysSinceLastLog = report.daysSinceLastLog ?? 0;
+  const continueSeriesTitle = report.continueSeriesTitle ?? null;
+  const continueSeriesEpisode =
+    typeof report.continueSeriesSeasonNumber === "number" &&
+    typeof report.continueSeriesEpisodeNumber === "number"
+      ? `S${report.continueSeriesSeasonNumber} · E${report.continueSeriesEpisodeNumber}`
+      : typeof report.continueSeriesSeasonNumber === "number"
+        ? `S${report.continueSeriesSeasonNumber}`
+        : typeof report.continueSeriesEpisodeNumber === "number"
+          ? `E${report.continueSeriesEpisodeNumber}`
+          : null;
+
+  async function handleRecapShare(kind: "weekly" | "monthly") {
+    if (!report || shareBusy) return;
+    try {
+      setShareBusy(kind);
+      const payload = buildRecapSharePayload(kind);
+      const blob = await fetchShareCardBlob(payload);
+      const filename = `ottline-${kind}-recap.png`;
+      const title = payload.title;
+      const shared = await shareBlob(
+        blob,
+        filename,
+        title,
+        t("recapShareText", { title }),
+      );
+      if (!shared) {
+        await downloadBlob(blob, filename);
+      }
+    } finally {
+      setShareBusy(null);
+    }
+  }
+
+  function buildRecapSharePayload(
+    kind: "weekly" | "monthly",
+  ): RecapShareCardPayload {
+    const currentReport = report;
+    if (!currentReport) {
+      throw new Error("Report is not ready");
+    }
+    if (kind === "weekly") {
+      return {
+        cardType: "recap",
+        recapKind: "weekly",
+        format: "story",
+        title: t("weeklyRecapCardTitle"),
+        subtitle: t("weeklyRecapCardSubtitle", {
+          count: previousWeekLogs,
+        }),
+        stats: [
+          { label: t("weeklyRecords"), value: String(previousWeekLogs) },
+          { label: t("totalRecords"), value: String(currentReport.totalLogs) },
+          { label: t("streak"), value: String(currentReport.streakDays) },
+        ],
+        footer: "ottline.app",
+        watermark: "ottline.app",
+        theme: "default",
+      };
+    }
+
+    return {
+      cardType: "recap",
+      recapKind: "monthly",
+      format: "story",
+      title: t("monthlyRecapCardTitle"),
+      subtitle:
+        monthlyTopGenre !== "-"
+          ? t("monthlyRecapCardSubtitle", {
+              genre: monthlyTopGenre,
+              count: monthlyTopGenreCount,
+            })
+          : t("monthlyRecapCardSubtitleEmpty"),
+      stats: [
+        {
+          label: t("monthlyRecords"),
+          value: String(currentReport.thisMonthLogs),
+        },
+        {
+          label: t("monthlyTopGenre"),
+          value: monthlyTopGenre !== "-" ? monthlyTopGenre : "-",
+        },
+        { label: t("memoRate"), value: `${currentReport.noteFillPct}%` },
+      ],
+      footer: "ottline.app",
+      watermark: "ottline.app",
+      theme: "default",
+    };
+  }
 
   return (
     <div className="space-y-6">
@@ -153,6 +253,77 @@ export default function MyReportPage() {
               : "-"}
           </div>
         </article>
+      </section>
+
+      <section className="space-y-3">
+        <div>
+          <h2 className="text-lg font-semibold">{t("revisitTitle")}</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {t("revisitDesc")}
+          </p>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <article className="rounded-2xl border border-border bg-card p-4">
+            <div className="text-xs text-muted-foreground">
+              {t("weeklyRecords")}
+            </div>
+            <div className="mt-1 text-2xl font-semibold">
+              {previousWeekLogs}
+            </div>
+            <button
+              type="button"
+              onClick={() => handleRecapShare("weekly")}
+              disabled={shareBusy !== null}
+              className="mt-4 inline-flex items-center gap-2 rounded-2xl border border-border px-3 py-2 text-xs font-medium hover:bg-muted disabled:opacity-50"
+            >
+              <Share2 className="h-3.5 w-3.5" />
+              {shareBusy === "weekly" ? t("sharing") : t("weeklyShareAction")}
+            </button>
+          </article>
+          <article className="rounded-2xl border border-border bg-card p-4">
+            <div className="text-xs text-muted-foreground">
+              {t("monthlyTopGenre")}
+            </div>
+            <div className="mt-1 text-2xl font-semibold">
+              {monthlyTopGenre !== "-" ? monthlyTopGenre : "-"}
+            </div>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {monthlyTopGenre !== "-"
+                ? t("monthlyTopGenreDesc", { count: monthlyTopGenreCount })
+                : t("monthlyTopGenreEmpty")}
+            </p>
+            <button
+              type="button"
+              onClick={() => handleRecapShare("monthly")}
+              disabled={shareBusy !== null}
+              className="mt-4 inline-flex items-center gap-2 rounded-2xl border border-border px-3 py-2 text-xs font-medium hover:bg-muted disabled:opacity-50"
+            >
+              <Download className="h-3.5 w-3.5" />
+              {shareBusy === "monthly" ? t("sharing") : t("monthlyShareAction")}
+            </button>
+          </article>
+          <article className="rounded-2xl border border-border bg-card p-4">
+            <div className="text-xs text-muted-foreground">
+              {t("daysSinceLastLog")}
+            </div>
+            <div className="mt-1 text-2xl font-semibold">
+              {t("daysSinceLastLogValue", { count: daysSinceLastLog })}
+            </div>
+          </article>
+          <article className="rounded-2xl border border-border bg-card p-4">
+            <div className="text-xs text-muted-foreground">
+              {t("continueSeries")}
+            </div>
+            <div className="mt-1 text-lg font-semibold">
+              {continueSeriesTitle ?? t("continueSeriesEmpty")}
+            </div>
+            {continueSeriesEpisode ? (
+              <p className="mt-1 text-xs text-muted-foreground">
+                {continueSeriesEpisode}
+              </p>
+            ) : null}
+          </article>
+        </div>
       </section>
 
       <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">

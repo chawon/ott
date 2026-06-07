@@ -9,6 +9,7 @@ export type AndroidAppContext = {
 const STORAGE_KEY = "ottline.androidAppContext";
 const VERSION_NAME_PARAM = "android_app_version";
 const VERSION_CODE_PARAM = "android_app_version_code";
+const INSTALL_TOKEN_PARAM = "android_install_token";
 
 function cleanValue(value: string | null) {
   const normalized = value?.replace(/\s+/g, " ").trim();
@@ -39,10 +40,28 @@ export function readAndroidAppContextFromCurrentUrl() {
   return {
     versionName,
     versionCode,
-    launchPath: `${window.location.pathname}${window.location.search}`,
+    launchPath: sanitizedCurrentPath(),
     recordedAt: new Date().toISOString(),
     referrer: cleanValue(document.referrer),
   } satisfies AndroidAppContext;
+}
+
+export function readAndroidInstallTokenFromCurrentUrl() {
+  if (typeof window === "undefined") return null;
+  const params = new URLSearchParams(window.location.search);
+  return cleanValue(params.get(INSTALL_TOKEN_PARAM));
+}
+
+export function removeAndroidInstallTokenFromCurrentUrl() {
+  if (typeof window === "undefined") return;
+  const url = new URL(window.location.href);
+  if (!url.searchParams.has(INSTALL_TOKEN_PARAM)) return;
+  url.searchParams.delete(INSTALL_TOKEN_PARAM);
+  window.history.replaceState(
+    window.history.state,
+    "",
+    `${url.pathname}${url.search}${url.hash}`,
+  );
 }
 
 export function readAndroidAppContext(): AndroidAppContext | null {
@@ -57,4 +76,10 @@ export function readAndroidAppContext(): AndroidAppContext | null {
   } catch {
     return null;
   }
+}
+
+function sanitizedCurrentPath() {
+  const url = new URL(window.location.href);
+  url.searchParams.delete(INSTALL_TOKEN_PARAM);
+  return `${url.pathname}${url.search}`;
 }

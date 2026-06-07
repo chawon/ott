@@ -26,6 +26,7 @@ public class AccountDeletionService {
     private final UserDeviceRepository userDeviceRepository;
     private final UserRepository userRepository;
     private final JdbcTemplate jdbcTemplate;
+    private final AndroidReminderService androidReminderService;
 
     public AccountDeletionService(
             RecommendationCacheRepository recommendationCacheRepository,
@@ -36,7 +37,8 @@ public class AccountDeletionService {
             WatchLogRepository watchLogRepository,
             UserDeviceRepository userDeviceRepository,
             UserRepository userRepository,
-            JdbcTemplate jdbcTemplate
+            JdbcTemplate jdbcTemplate,
+            AndroidReminderService androidReminderService
     ) {
         this.recommendationCacheRepository = recommendationCacheRepository;
         this.feedbackThreadRepository = feedbackThreadRepository;
@@ -47,12 +49,14 @@ public class AccountDeletionService {
         this.userDeviceRepository = userDeviceRepository;
         this.userRepository = userRepository;
         this.jdbcTemplate = jdbcTemplate;
+        this.androidReminderService = androidReminderService;
     }
 
     @Transactional
     public void deleteAccount(UUID userId) {
         if (userId == null) return;
 
+        androidReminderService.revokeByUser(userId);
         recommendationCacheRepository.deleteByUserId(userId);
         jdbcTemplate.update("delete from analytics_events where user_id = ?", userId);
         feedbackThreadRepository.deleteByUserId(userId);

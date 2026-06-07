@@ -1,4 +1,5 @@
-export type ShareCardPayload = {
+export type LogShareCardPayload = {
+  cardType?: "log";
   title: string;
   titleType?: "movie" | "series" | "book";
   format?: "story" | "feed";
@@ -15,6 +16,20 @@ export type ShareCardPayload = {
   watermark: string;
   theme: "default";
 };
+
+export type RecapShareCardPayload = {
+  cardType: "recap";
+  recapKind: "weekly" | "monthly";
+  format?: "story" | "feed";
+  title: string;
+  subtitle: string;
+  stats: Array<{ label: string; value: string }>;
+  footer: string;
+  watermark: string;
+  theme: "default";
+};
+
+export type ShareCardPayload = LogShareCardPayload | RecapShareCardPayload;
 
 export async function fetchShareCardBlob(payload: ShareCardPayload) {
   const res = await fetch("/og/share-card", {

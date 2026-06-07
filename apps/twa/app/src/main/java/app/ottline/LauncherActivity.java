@@ -52,30 +52,30 @@ public class LauncherActivity
         // Get the original launch Url.
         Uri uri = super.getLaunchingUrl();
         Intent intent = getIntent();
-        if (intent == null) return uri;
+        if (intent == null) return withAndroidLaunchContext(uri);
 
         Uri data = intent.getData();
         if (isOttlineUrl(data)) {
-            return data;
+            return withAndroidLaunchContext(data);
         }
 
         String quickType = intent.getStringExtra(EXTRA_QUICK_TYPE);
         if (!TextUtils.isEmpty(quickType)) {
             if (QUICK_TYPE_TIMELINE.equals(quickType)) {
-                return uri.buildUpon().path("/timeline").build();
+                return withAndroidLaunchContext(uri.buildUpon().path("/timeline").build());
             }
             if (QUICK_TYPE_RECORD.equals(quickType)) {
-                return uri.buildUpon()
+                return withAndroidLaunchContext(uri.buildUpon()
                         .appendQueryParameter("quick", "1")
                         .appendQueryParameter("quick_focus", "1")
-                        .build();
+                        .build());
             }
             if (QUICK_TYPE_VIDEO.equals(quickType) || QUICK_TYPE_BOOK.equals(quickType)) {
-                return uri.buildUpon()
+                return withAndroidLaunchContext(uri.buildUpon()
                         .appendQueryParameter("quick", "1")
                         .appendQueryParameter("quick_type", quickType)
                         .appendQueryParameter("quick_focus", "1")
-                        .build();
+                        .build());
             }
         }
 
@@ -94,16 +94,36 @@ public class LauncherActivity
                 if (sharedMime != null && !sharedMime.isBlank()) {
                     builder.appendQueryParameter("shared_mime", sharedMime);
                 }
-                return builder.build();
+                return withAndroidLaunchContext(builder.build());
             }
         }
 
-        return uri;
+        return withAndroidLaunchContext(uri);
     }
 
     private boolean isOttlineUrl(Uri uri) {
         return uri != null
                 && "https".equals(uri.getScheme())
                 && "ottline.app".equals(uri.getHost());
+    }
+
+    private Uri withAndroidLaunchContext(Uri uri) {
+        if (uri == null || !isOttlineUrl(uri)) return uri;
+
+        Uri.Builder builder = uri.buildUpon();
+        boolean changed = false;
+        if (TextUtils.isEmpty(uri.getQueryParameter("android_app_version"))) {
+            builder.appendQueryParameter("android_app_version", BuildConfig.VERSION_NAME);
+            changed = true;
+        }
+        if (TextUtils.isEmpty(uri.getQueryParameter("android_app_version_code"))) {
+            builder.appendQueryParameter("android_app_version_code", String.valueOf(BuildConfig.VERSION_CODE));
+            changed = true;
+        }
+        if (TextUtils.isEmpty(uri.getQueryParameter("android_install_token"))) {
+            builder.appendQueryParameter("android_install_token", AndroidInstallToken.get(this));
+            changed = true;
+        }
+        return changed ? builder.build() : uri;
     }
 }

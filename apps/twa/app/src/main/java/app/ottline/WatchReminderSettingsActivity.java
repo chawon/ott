@@ -61,6 +61,7 @@ public class WatchReminderSettingsActivity extends Activity {
     @Override
     protected void onResume() {
         super.onResume();
+        RevisitReminderScheduler.syncAutoState(this);
         renderSafely();
     }
 
@@ -72,6 +73,7 @@ public class WatchReminderSettingsActivity extends Activity {
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (requestCode == NOTIFICATION_PERMISSION_REQUEST) {
+            RevisitReminderScheduler.syncAutoState(this);
             renderSafely();
         }
     }
@@ -83,6 +85,7 @@ public class WatchReminderSettingsActivity extends Activity {
         boolean usageAccess = WatchReminderAccess.hasUsageAccess(this);
         boolean notifications = WatchReminderAccess.canPostNotifications(this);
         boolean ready = usageAccess && notifications;
+        boolean revisitEnabled = RevisitReminderScheduler.isEnabled(this);
         boolean showDebugControls = showDebugControls();
 
         addHeader(enabled, usageAccess, notifications);
@@ -132,6 +135,29 @@ public class WatchReminderSettingsActivity extends Activity {
             );
         } else {
             addDisabledButton("권한을 먼저 허용해 주세요");
+        }
+
+        addStepCard(
+                "4",
+                "회고 리마인드",
+                "주간 회고, 월간 장르, 기록 공백, 시리즈 이어보기를 알려드립니다.",
+                revisitEnabled && notifications ? "켜짐" : "꺼짐",
+                revisitEnabled && notifications
+        );
+        if (notifications) {
+            addActionButton(
+                    revisitEnabled ? "회고 리마인드 끄기" : "회고 리마인드 켜기",
+                    !revisitEnabled,
+                    v -> {
+                        RevisitReminderScheduler.setEnabled(
+                                this,
+                                !RevisitReminderScheduler.isEnabled(this)
+                        );
+                        renderSafely();
+                    }
+            );
+        } else {
+            addDisabledButton("알림 권한을 먼저 허용해 주세요");
         }
 
         if (showDebugControls) {
@@ -185,6 +211,13 @@ public class WatchReminderSettingsActivity extends Activity {
                 WatchReminderScheduler.KEY_LAST_USAGE_DEBUG,
                 "아직 없음"
         ));
+        addStatus(
+                "마지막 회고 리마인드",
+                RevisitReminderScheduler.prefs(this).getString(
+                        RevisitReminderScheduler.KEY_LAST_RESULT,
+                        "아직 없음"
+                )
+        );
 
         addActionButton("테스트 알림 보내기", false, v -> {
             WatchReminderTargets.Target target = WatchReminderTargets.find("com.netflix.mediaclient");

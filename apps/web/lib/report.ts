@@ -1,4 +1,4 @@
-import { WatchLog } from "./types";
+import type { WatchLog } from "./types";
 
 type CounterMap = Record<string, number>;
 
@@ -14,6 +14,14 @@ export type PersonalReport = {
   streakDays: number;
   longestStreakDays: number;
   lastLoggedAt: string | null;
+  previousWeekLogs: number;
+  monthlyTopGenre: string;
+  monthlyTopGenreCount: number;
+  daysSinceLastLog: number;
+  continueSeriesTitleId: string | null;
+  continueSeriesTitle: string | null;
+  continueSeriesSeasonNumber: number | null;
+  continueSeriesEpisodeNumber: number | null;
 };
 
 function pct(numerator: number, denominator: number): number {
@@ -34,6 +42,24 @@ function dayKey(iso: string): string {
   const m = String(d.getMonth() + 1).padStart(2, "0");
   const day = String(d.getDate()).padStart(2, "0");
   return `${y}-${m}-${day}`;
+}
+
+function localDate(iso: string): Date {
+  const d = new Date(iso);
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+}
+
+function daysBetween(from: Date, to: Date): number {
+  const start = new Date(from.getFullYear(), from.getMonth(), from.getDate());
+  const end = new Date(to.getFullYear(), to.getMonth(), to.getDate());
+  return Math.max(0, Math.round((end.getTime() - start.getTime()) / 86400000));
+}
+
+function weekMonday(date: Date): Date {
+  const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const day = d.getDay() || 7;
+  d.setDate(d.getDate() - day + 1);
+  return d;
 }
 
 function calcStreak(
@@ -71,7 +97,7 @@ function calcStreak(
   if (!activeStartKey) return { current: 0, longest };
 
   current = 1;
-  let cursor = new Date(`${activeStartKey}T00:00:00`);
+  const cursor = new Date(`${activeStartKey}T00:00:00`);
   while (true) {
     cursor.setDate(cursor.getDate() - 1);
     const key = dayKey(cursor.toISOString());
@@ -98,28 +124,51 @@ export function buildPersonalReport(
       streakDays: 0,
       longestStreakDays: 0,
       lastLoggedAt: null,
+      previousWeekLogs: 0,
+      monthlyTopGenre: "-",
+      monthlyTopGenreCount: 0,
+      daysSinceLastLog: 0,
+      continueSeriesTitleId: null,
+      continueSeriesTitle: null,
+      continueSeriesSeasonNumber: null,
+      continueSeriesEpisodeNumber: null,
     };
   }
 
   const currentYear = now.getFullYear();
   const currentMonth = now.getMonth();
+  const today = localDate(now.toISOString());
+  const thisMonday = weekMonday(today);
+  const previousMonday = new Date(thisMonday);
+  previousMonday.setDate(previousMonday.getDate() - 7);
   let thisMonthLogs = 0;
+  let previousWeekLogs = 0;
   let doneCount = 0;
   let ratingCount = 0;
   let noteCount = 0;
   let lastLoggedAt = logs[0].watchedAt;
+  let continueSeries: WatchLog | null = null;
   const types: CounterMap = {};
   const places: CounterMap = {};
   const occasions: CounterMap = {};
+  const monthlyGenres: CounterMap = {};
   const days: string[] = [];
 
   for (const log of logs) {
     const watchedDate = new Date(log.watchedAt);
+    const watchedDay = localDate(log.watchedAt);
     if (
       watchedDate.getFullYear() === currentYear &&
       watchedDate.getMonth() === currentMonth
     ) {
       thisMonthLogs += 1;
+      for (const genre of log.title?.genres ?? []) {
+        if (genre?.trim())
+          monthlyGenres[genre] = (monthlyGenres[genre] ?? 0) + 1;
+      }
+    }
+    if (watchedDay >= previousMonday && watchedDay < thisMonday) {
+      previousWeekLogs += 1;
     }
     if (log.status === "DONE") doneCount += 1;
     if (typeof log.rating === "number") ratingCount += 1;
@@ -136,9 +185,24 @@ export function buildPersonalReport(
     if (new Date(lastLoggedAt).getTime() < watchedDate.getTime()) {
       lastLoggedAt = log.watchedAt;
     }
+    const seriesCandidate =
+      log.title?.type === "series" &&
+      (log.status === "IN_PROGRESS" ||
+        typeof log.seasonNumber === "number" ||
+        typeof log.episodeNumber === "number") &&
+      daysBetween(watchedDay, today) >= 2 &&
+      daysBetween(watchedDay, today) <= 14;
+    if (
+      seriesCandidate &&
+      (!continueSeries ||
+        new Date(continueSeries.watchedAt).getTime() < watchedDate.getTime())
+    ) {
+      continueSeries = log;
+    }
   }
 
   const streak = calcStreak(days, now);
+  const monthlyTopGenre = maxEntry(monthlyGenres);
 
   return {
     totalLogs: logs.length,
@@ -152,5 +216,14 @@ export function buildPersonalReport(
     streakDays: streak.current,
     longestStreakDays: streak.longest,
     lastLoggedAt,
+    previousWeekLogs,
+    monthlyTopGenre,
+    monthlyTopGenreCount:
+      monthlyTopGenre === "-" ? 0 : (monthlyGenres[monthlyTopGenre] ?? 0),
+    daysSinceLastLog: daysBetween(localDate(lastLoggedAt), today),
+    continueSeriesTitleId: continueSeries?.title.id ?? null,
+    continueSeriesTitle: continueSeries?.title.name ?? null,
+    continueSeriesSeasonNumber: continueSeries?.seasonNumber ?? null,
+    continueSeriesEpisodeNumber: continueSeries?.episodeNumber ?? null,
   };
 }

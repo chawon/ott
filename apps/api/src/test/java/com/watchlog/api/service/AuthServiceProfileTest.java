@@ -35,7 +35,8 @@ class AuthServiceProfileTest {
                 userDeviceRepository,
                 mock(WatchLogRepository.class),
                 mock(CommentRepository.class),
-                mock(DiscussionReactionRepository.class)
+                mock(DiscussionReactionRepository.class),
+                mock(AndroidReminderService.class)
         );
     }
 

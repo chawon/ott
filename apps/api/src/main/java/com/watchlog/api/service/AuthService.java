@@ -42,6 +42,7 @@ public class AuthService {
     private final WatchLogRepository watchLogRepository;
     private final CommentRepository commentRepository;
     private final DiscussionReactionRepository discussionReactionRepository;
+    private final AndroidReminderService androidReminderService;
     private final SecureRandom random = new SecureRandom();
 
     public AuthService(
@@ -49,13 +50,15 @@ public class AuthService {
             UserDeviceRepository userDeviceRepository,
             WatchLogRepository watchLogRepository,
             CommentRepository commentRepository,
-            DiscussionReactionRepository discussionReactionRepository
+            DiscussionReactionRepository discussionReactionRepository,
+            AndroidReminderService androidReminderService
     ) {
         this.userRepository = userRepository;
         this.userDeviceRepository = userDeviceRepository;
         this.watchLogRepository = watchLogRepository;
         this.commentRepository = commentRepository;
         this.discussionReactionRepository = discussionReactionRepository;
+        this.androidReminderService = androidReminderService;
     }
 
     @Transactional
@@ -104,12 +107,14 @@ public class AuthService {
     public void revokeDevice(java.util.UUID userId, java.util.UUID deviceId) {
         var device = userDeviceRepository.findByIdAndUser_Id(deviceId, userId)
                 .orElseThrow(() -> new IllegalArgumentException("Device not found"));
+        androidReminderService.revokeByDevice(userId, deviceId);
         userDeviceRepository.delete(device);
     }
 
     @Transactional
     public void revokeAllDevices(java.util.UUID userId) {
         if (userId == null) return;
+        androidReminderService.revokeByUser(userId);
         userDeviceRepository.deleteByUser_Id(userId);
     }
 

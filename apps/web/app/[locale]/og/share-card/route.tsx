@@ -14,6 +14,7 @@ import type { PersonaKey } from "@/lib/types";
 export const runtime = "nodejs";
 
 type ShareCardPayload = {
+  cardType?: "log";
   title: string;
   titleType?: "movie" | "series" | "book";
   format?: "story" | "feed";
@@ -31,52 +32,69 @@ type ShareCardPayload = {
   theme: "default";
 };
 
+type RecapShareCardPayload = {
+  cardType: "recap";
+  recapKind: "weekly" | "monthly";
+  format?: "story" | "feed";
+  title: string;
+  subtitle: string;
+  stats: Array<{ label: string; value: string }>;
+  footer: string;
+  watermark: string;
+  theme: "default";
+};
+
+async function loadShareCardFonts() {
+  const fonts: Array<{
+    name: string;
+    data: ArrayBuffer;
+    weight: 400 | 700;
+    style: "normal";
+  }> = [];
+
+  const fontPaths = [
+    {
+      name: "NanumSquare",
+      weight: 400 as const,
+      paths: [
+        "/usr/share/fonts/truetype/nanum/NanumSquareR.ttf",
+        "./public/fonts/NanumSquareR.ttf",
+      ],
+    },
+    {
+      name: "NanumSquare",
+      weight: 700 as const,
+      paths: [
+        "/usr/share/fonts/truetype/nanum/NanumSquareB.ttf",
+        "./public/fonts/NanumSquareB.ttf",
+      ],
+    },
+  ];
+
+  for (const fontInfo of fontPaths) {
+    for (const path of fontInfo.paths) {
+      try {
+        const data = await fs.readFile(path);
+        fonts.push({
+          name: fontInfo.name,
+          data: data.buffer.slice(
+            data.byteOffset,
+            data.byteOffset + data.byteLength,
+          ),
+          weight: fontInfo.weight,
+          style: "normal",
+        });
+        break;
+      } catch {}
+    }
+  }
+
+  return fonts;
+}
+
 async function renderShareCard(body: ShareCardPayload) {
   try {
-    const fonts: Array<{
-      name: string;
-      data: ArrayBuffer;
-      weight: 400 | 700;
-      style: "normal";
-    }> = [];
-
-    // Try multiple paths for fonts (System path and Project path)
-    const fontPaths = [
-      {
-        name: "NanumSquare",
-        weight: 400 as const,
-        paths: [
-          "/usr/share/fonts/truetype/nanum/NanumSquareR.ttf",
-          "./public/fonts/NanumSquareR.ttf",
-        ],
-      },
-      {
-        name: "NanumSquare",
-        weight: 700 as const,
-        paths: [
-          "/usr/share/fonts/truetype/nanum/NanumSquareB.ttf",
-          "./public/fonts/NanumSquareB.ttf",
-        ],
-      },
-    ];
-
-    for (const fontInfo of fontPaths) {
-      for (const path of fontInfo.paths) {
-        try {
-          const data = await fs.readFile(path);
-          fonts.push({
-            name: fontInfo.name,
-            data: data.buffer.slice(
-              data.byteOffset,
-              data.byteOffset + data.byteLength,
-            ),
-            weight: fontInfo.weight,
-            style: "normal",
-          });
-          break; // Use the first successful one
-        } catch {}
-      }
-    }
+    const fonts = await loadShareCardFonts();
 
     const rawTitle = body.title ?? "";
     const isBook = body.titleType === "book";
@@ -411,6 +429,137 @@ async function renderShareCard(body: ShareCardPayload) {
   }
 }
 
+async function renderRecapShareCard(body: RecapShareCardPayload) {
+  try {
+    const fonts = await loadShareCardFonts();
+    const format = body.format ?? "story";
+    const isFeed = format === "feed";
+    const scale = isFeed ? 0.8 : 1;
+    const s = (value: number) => Math.round(value * scale);
+    const width = 1080;
+    const height = isFeed ? 1350 : 1920;
+    const stats = (body.stats ?? []).slice(0, 4);
+    const accent = body.recapKind === "monthly" ? "#f97316" : "#38bdf8";
+
+    return new ImageResponse(
+      <div
+        style={{
+          width: "100%",
+          height: "100%",
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "space-between",
+          padding: `${s(88)}px`,
+          backgroundColor: "#111827",
+          color: "#ffffff",
+          fontFamily: "NanumSquare, sans-serif",
+        }}
+      >
+        <div style={{ display: "flex", flexDirection: "column", gap: s(24) }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              fontSize: s(28),
+              color: "#cbd5e1",
+            }}
+          >
+            <span>{body.watermark ?? "ottline.app"}</span>
+            <span style={{ color: accent, fontWeight: 700 }}>
+              {body.recapKind === "monthly" ? "MONTHLY" : "WEEKLY"}
+            </span>
+          </div>
+          <div
+            style={{
+              display: "flex",
+              height: s(10),
+              width: s(128),
+              borderRadius: 999,
+              backgroundColor: accent,
+            }}
+          />
+        </div>
+
+        <div style={{ display: "flex", flexDirection: "column", gap: s(40) }}>
+          <div
+            style={{
+              display: "flex",
+              fontSize: s(isFeed ? 72 : 88),
+              lineHeight: 1.08,
+              fontWeight: 700,
+              whiteSpace: "pre-wrap",
+            }}
+          >
+            {clampText(body.title ?? "", 54)}
+          </div>
+          <div
+            style={{
+              display: "flex",
+              fontSize: s(38),
+              lineHeight: 1.35,
+              color: "#dbeafe",
+              whiteSpace: "pre-wrap",
+            }}
+          >
+            {clampText(body.subtitle ?? "", 90)}
+          </div>
+        </div>
+
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: s(18),
+          }}
+        >
+          {stats.map((stat) => (
+            <div
+              key={stat.label}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                padding: `${s(24)}px ${s(28)}px`,
+                borderRadius: s(24),
+                backgroundColor: "rgba(255,255,255,0.08)",
+                border: "1px solid rgba(255,255,255,0.14)",
+              }}
+            >
+              <span style={{ fontSize: s(30), color: "#cbd5e1" }}>
+                {clampText(stat.label, 28)}
+              </span>
+              <span style={{ fontSize: s(38), fontWeight: 700 }}>
+                {clampText(stat.value, 26)}
+              </span>
+            </div>
+          ))}
+        </div>
+
+        <div
+          style={{
+            display: "flex",
+            fontSize: s(28),
+            color: "rgba(255,255,255,0.62)",
+          }}
+        >
+          {clampText(body.footer ?? "ottline.app", 80)}
+        </div>
+      </div>,
+      {
+        width,
+        height,
+        fonts,
+      },
+    );
+  } catch (error) {
+    return new Response(
+      `Recap card error: ${error instanceof Error ? error.message : "unknown"}`,
+      { status: 500 },
+    );
+  }
+}
+
 function clampText(text: string, maxLen: number) {
   if (text.length <= maxLen) return text;
   return `${text.slice(0, maxLen - 1)}…`;
@@ -491,7 +640,10 @@ async function imageDataUrlForShareCard(
 }
 
 export async function POST(req: Request) {
-  const body = (await req.json()) as ShareCardPayload;
+  const body = (await req.json()) as ShareCardPayload | RecapShareCardPayload;
+  if (body.cardType === "recap") {
+    return renderRecapShareCard(body);
+  }
   return renderShareCard(body);
 }
 
