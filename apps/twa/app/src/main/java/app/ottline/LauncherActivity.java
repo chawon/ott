@@ -15,6 +15,7 @@
  */
 package app.ottline;
 
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
 import android.net.Uri;
@@ -31,6 +32,7 @@ public class LauncherActivity
     static final String QUICK_TYPE_VIDEO = "video";
     static final String QUICK_TYPE_BOOK = "book";
     static final String QUICK_TYPE_TIMELINE = "timeline";
+    static final String EXTRA_REVISIT_DELIVERY_ID = "revisit_delivery_id";
 
 
     @Override
@@ -53,6 +55,7 @@ public class LauncherActivity
         Uri uri = super.getLaunchingUrl();
         Intent intent = getIntent();
         if (intent == null) return withAndroidLaunchContext(uri);
+        markRevisitReminderOpened(intent);
 
         Uri data = intent.getData();
         if (isOttlineUrl(data)) {
@@ -99,6 +102,20 @@ public class LauncherActivity
         }
 
         return withAndroidLaunchContext(uri);
+    }
+
+    private void markRevisitReminderOpened(Intent intent) {
+        String deliveryId = intent.getStringExtra(EXTRA_REVISIT_DELIVERY_ID);
+        if (TextUtils.isEmpty(deliveryId)) return;
+
+        intent.removeExtra(EXTRA_REVISIT_DELIVERY_ID);
+        Context appContext = getApplicationContext();
+        new Thread(() -> {
+            try {
+                RevisitReminderApiClient.markOpened(appContext, deliveryId);
+            } catch (Throwable ignored) {
+            }
+        }).start();
     }
 
     private boolean isOttlineUrl(Uri uri) {
