@@ -6,6 +6,7 @@ import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Build;
 
 final class RevisitReminderNotifier {
@@ -31,19 +32,23 @@ final class RevisitReminderNotifier {
             manager.createNotificationChannel(channel);
         }
 
-        Intent openIntent = new Intent(context, RevisitReminderOpenReceiver.class);
-        openIntent.setAction("app.ottline.REVISIT_REMINDER_OPEN");
-        openIntent.putExtra(RevisitReminderOpenReceiver.EXTRA_DELIVERY_ID, reminder.deliveryId);
-        openIntent.putExtra(RevisitReminderOpenReceiver.EXTRA_DEEP_LINK, reminder.deepLink);
+        Intent launchIntent = new Intent(context, LauncherActivity.class);
+        launchIntent.setAction(Intent.ACTION_VIEW);
+        launchIntent.setData(buildLaunchUri(reminder.deepLink));
+        launchIntent.putExtra(LauncherActivity.EXTRA_REVISIT_DELIVERY_ID, reminder.deliveryId);
+        launchIntent.addFlags(
+                Intent.FLAG_ACTIVITY_NEW_TASK
+                        | Intent.FLAG_ACTIVITY_CLEAR_TOP
+        );
 
         int flags = PendingIntent.FLAG_UPDATE_CURRENT;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             flags |= PendingIntent.FLAG_IMMUTABLE;
         }
-        PendingIntent pendingIntent = PendingIntent.getBroadcast(
+        PendingIntent pendingIntent = PendingIntent.getActivity(
                 context,
                 NOTIFICATION_ID,
-                openIntent,
+                launchIntent,
                 flags
         );
 
@@ -59,5 +64,16 @@ final class RevisitReminderNotifier {
 
         manager.notify(NOTIFICATION_ID, builder.build());
         return true;
+    }
+
+    private static Uri buildLaunchUri(String deepLink) {
+        Uri fallback = Uri.parse("https://ottline.app/me/report?source=android-revisit-reminder");
+        if (deepLink == null || deepLink.trim().isEmpty()) return fallback;
+
+        Uri uri = Uri.parse(deepLink);
+        if ("https".equals(uri.getScheme()) && "ottline.app".equals(uri.getHost())) {
+            return uri;
+        }
+        return fallback;
     }
 }
