@@ -22,18 +22,13 @@
 - Play 배포 이력:
   - internal track 배포 성공 (`versionName=1.0.0`, `versionCode=4`)
   - `twa-release.yml` 기준 `gplay release` 자동 업로드 경로 유지
-- 현재 운영 상태(2026-05-21):
-  - `versionName=1.0.6`, `versionCode=10` AAB 빌드 완료
-  - Play `alpha` 트랙에 `10 (1.0.6)` 반영 완료 (`status=completed`)
-  - `1.0.6`은 기능 추가가 아니라 Google Play production access 재신청 전 14일 closed-test 재시작을 위한 version-only refresh
-  - 런처 shortcuts, PWA/TWA Web Share Target, 홈 위젯 영상/책/타임라인 액션 분리 반영
-  - Google Play TWA 세션에서만 보이는 설정 화면 Android 테스트 체크리스트, 문의함 preset, QuickLog 공유 진입 성공/실패 안내 반영
-  - 모바일 실기기에서 위젯, 롱프레스 shortcuts, OTT 앱 공유 후 QuickLog 조회 정상 확인
-  - Google Play 프로덕션 액세스 신청 결과 권한 미부여
-  - Play 검토 사유: 비공개 테스트 중 실제 테스터 참여 없음, 사용자 의견 수집/조치/앱 업데이트 같은 테스트 권장사항 미충족
-  - `gplay` 조회 기준 게시된 production 트랙 릴리즈는 없고, `alpha` 테스터 그룹은 `ottline-beta-testers@googlegroups.com`
-  - 재신청 전 실제 테스터 12명 이상 opt-in, 14일 연속 유지, 참여/피드백/조치 이력 확보 필요
-  - 모든 필수 테스터가 2026-05-21에 opt-in했다는 전제에서 가장 빠른 재신청 기준일은 2026-06-04 이후
+- 현재 운영 상태(2026-06-10):
+  - Google Play 프로덕션 액세스 심사 통과 및 production 출시 완료
+  - Play `production`: `1.0.12` (`versionCode=16`, `status=completed`)
+  - TWA release run: `27256880845`
+  - Main SHA: `27bb8941aa703699e32045041b5aa27705dbbdd0`
+  - 범위: Android 회고 리마인드, OTT 시청 감지 안정화, 회고 리마인드 알림 탭 시 앱 이동 수정
+  - `alpha` 테스터 그룹은 `ottline-beta-testers@googlegroups.com`
 - `1.0.5` 업데이트(2026-05-11):
   - 목적: 재진행 중인 비공개 테스트에서 테스터 의견 수집과 조치 이력을 남기기 위한 피드백 루프 보강
   - Google Play TWA 세션에서만 설정 화면에 Android 테스트 체크리스트와 `Android 테스트 의견 보내기` 진입 추가
@@ -74,14 +69,14 @@
 ## Google Play 배포 현황
 
 - 내부 테스트 트랙 배포 이력 있음 (`track=internal`, `versionName=1.0.0`, `versionCode=4`)
-- 2026-05-21 기준 최신 반영:
-  - `internal`: `6 (1.0.2)`, `status=completed`
-  - `alpha`: `10 (1.0.6)`, `status=completed`
+- 2026-06-10 기준 최신 반영:
+  - `production`: `16 (1.0.12)`, `status=completed`
+  - `beta`: `15 (1.0.11)`, `status=completed`
+  - `alpha`: `13 (1.0.9)`, `status=completed`
   - `alpha` 테스터 그룹: `ottline-beta-testers@googlegroups.com`
-  - production: 프로덕션 액세스 미부여, 게시된 릴리즈 없음
-  - 남은 작업: 실제 테스터 대상 14일 비공개 테스트 재진행, 사용자 의견/조치 이력 정리, 프로덕션 액세스 재신청
 - 2026-05-11 `1.0.5` (`versionCode=9`) alpha 업데이트는 GitHub Actions run `25656711609`로 배포했고, `gplay` 확인 기준 `status=completed`
 - 2026-05-21 `1.0.6` (`versionCode=10`) alpha refresh는 GitHub Actions run `26228374153`로 배포했고, `gplay` 확인 기준 `status=completed`
+- 2026-06-10 `1.0.12` (`versionCode=16`) production 업데이트는 GitHub Actions run `27256880845`로 배포했고, `gplay` 확인 기준 `status=completed`
 - GitHub Actions `twa-release.yml` — AAB 빌드 후 `gplay release`
 - 관련 Secret:
   - `TWA_KEYSTORE_BASE64`

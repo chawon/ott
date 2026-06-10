@@ -7,7 +7,7 @@
 ## 진행 상황
 - GitHub Actions에서 디버그 APK 빌드 성공 및 기기 설치 확인 완료
 - 현재 개발 환경(WSL on ARM Linux)에서는 Android Gradle 로컬 빌드 호환 이슈가 있어, APK/AAB 빌드는 GitHub Actions만 정식 검증/배포 경로로 사용
-- Google Play 프로덕션 액세스는 2026-06-06 심사 통과했으며, `1.0.9` (`versionCode=13`)가 production 트랙에 `completed` 상태로 등록됨
+- Google Play 프로덕션 액세스는 2026-06-06 심사 통과했으며, 2026-06-10 기준 `1.0.12` (`versionCode=16`)가 production 트랙에 `completed` 상태로 등록됨
 
 ### 진행 업데이트 (2026-02-15)
 - TWA 공유 인텐트 MVP 반영 완료 (main 머지)
@@ -315,3 +315,13 @@ adb install -r apps/twa/app/build/outputs/apk/debug/app-debug.apk
   - Production 확인: ArgoCD `ott-app` `Synced Healthy`, `ott-web`/`ott-api` 이미지 태그 `325c60197334578091490c26213b750e542a9e61`, `APP_VERSION=325c601`
   - 첫 TWA release run `27083022387`은 Android Gradle `BuildConfig` 생성 비활성화로 실패했고, PR `#54`에서 `buildConfig true`를 반영해 재배포했다.
   - 관련 설계 메모: `docs/android-revisit-reminders-2026-06-07.md`
+
+### 진행 업데이트 (2026-06-10)
+- Android 회고 리마인드 알림 탭 이동 수정 production 배포 완료
+  - 버전: `1.0.12` (`versionCode=16`)
+  - PR: `#58`
+  - Main SHA: `27bb8941aa703699e32045041b5aa27705dbbdd0`
+  - TWA release run: `27256880845`
+  - Google Play `production`: `1.0.12` (`versionCode=16`), `status=completed`
+  - Production 릴리스 노트: `Fix reminder reliability and ensure recap reminder notifications open ottline.`
+  - 범위: `1.0.11`의 OTT 시청 감지 안정화와 회고 리마인드 알림 탭 시 `BroadcastReceiver` trampoline 대신 `LauncherActivity`를 직접 여는 수정 포함

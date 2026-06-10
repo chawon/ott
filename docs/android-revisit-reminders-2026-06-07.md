@@ -51,8 +51,11 @@ Android Google Play TWA 설치본에서 기록을 다시 열어볼 이유를 네
 - TWA release run: `27083202447`
 - Google Play `production`: `1.0.10` (`versionCode=14`), `status=completed`
 - Production 확인: ArgoCD `ott-app` `Synced Healthy`, `ott-web`/`ott-api` 이미지 태그 `325c60197334578091490c26213b750e542a9e61`, `APP_VERSION=325c601`
-- 남은 확인: 실제 Play 설치본에서 token bind, 회고 리마인드 토글, 알림 표시, 알림 탭 이동
+- 후속 수정: `2026-06-10` PR `#58`, main SHA `27bb8941aa703699e32045041b5aa27705dbbdd0`, TWA release run `27256880845`로 Google Play `production` `1.0.12` (`versionCode=16`, `status=completed`) 배포 완료. 회고 리마인드 알림 탭은 `BroadcastReceiver` trampoline 대신 `LauncherActivity`를 직접 여는 `PendingIntent.getActivity()` 경로를 사용한다.
+- 남은 확인: 실제 Play 설치본 업데이트 후 token bind, 회고 리마인드 토글, 알림 표시, 알림 탭 이동
 
 ## 릴리스 메모
 
 `Adds Android revisit reminders for weekly recaps, monthly genre summaries, record gaps, and series continuation.`
+
+`Fix reminder reliability and ensure recap reminder notifications open ottline.`

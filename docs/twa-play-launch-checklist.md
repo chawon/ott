@@ -344,7 +344,7 @@
   - [x] 설치별 opaque token 생성
   - [x] TWA launch URL에 Android app context와 install token 추가
   - [x] 하루 주기 후보 조회 worker 추가
-  - [x] 알림 클릭 opened ack receiver 추가
+  - [x] 알림 클릭 opened ack 처리 추가
   - [x] 네이티브 설정 화면에 `회고 리마인드` 토글 추가
 - [x] GitHub Actions `Build TWA Release AAB`로 `1.0.10` (`versionCode=14`) production 배포
   - 첫 실행 run `27083022387`은 Android Gradle `BuildConfig` 생성 비활성화로 실패
@@ -352,7 +352,12 @@
   - 성공 run: `27083202447`
   - Google Play `production`: `1.0.10` (`versionCode=14`), `status=completed`
   - Release notes: `Adds Android revisit reminders for weekly recaps, monthly genre summaries, record gaps, and series continuation.`
-- [ ] 실제 Play 설치본에서 token bind, 회고 리마인드 토글, 알림 표시, 알림 탭 이동 확인
+- [x] GitHub Actions `Build TWA Release AAB`로 `1.0.12` (`versionCode=16`) production 배포
+  - PR `#58`에서 회고 리마인드 알림 탭이 앱으로 이동하지 않고 사라지는 문제 수정
+  - 성공 run: `27256880845`
+  - Google Play `production`: `1.0.12` (`versionCode=16`), `status=completed`
+  - Release notes: `Fix reminder reliability and ensure recap reminder notifications open ottline.`
+- [ ] 실제 Play 설치본 업데이트 후 token bind, 회고 리마인드 토글, 알림 표시, 알림 탭 이동 확인
 
 ## 8) 출시 후 모니터링
 - [ ] Crash/ANR 모니터링 (출시 직후 24~72시간 집중)

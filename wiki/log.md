@@ -1,5 +1,14 @@
 # Wiki Log
 
+## [2026-06-10] update: Android production 1.0.12 회고 알림 탭 수정 배포
+- 대상: PR #58, GitHub Actions TWA release run `27256880845`, `gplay tracks get`
+- 생성/수정: AGENTS.md, docs/twa.md, docs/twa-play-launch-checklist.md, docs/android-revisit-reminders-2026-06-07.md, platforms/twa.md, index.md, log.md
+- 노트:
+  - PR `#58`을 main SHA `27bb8941aa703699e32045041b5aa27705dbbdd0`로 병합
+  - Google Play `production`에 `1.0.12` (`versionCode=16`, `status=completed`) 반영 확인
+  - 회고 리마인드 알림 탭은 `BroadcastReceiver` trampoline 대신 `LauncherActivity`를 직접 여는 경로로 수정
+  - 릴리스 노트: `Fix reminder reliability and ensure recap reminder notifications open ottline.`
+
 ## [2026-05-23] update: 페어링 코드 보안 후속 안건 정리
 - 대상: AGENTS.md, docs/pairing-recovery-card.md, features/pairing-recovery-card.md
 - 생성/수정: AGENTS.md, docs/pairing-recovery-card.md, features/pairing-recovery-card.md, log.md
