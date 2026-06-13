@@ -252,6 +252,8 @@
   "TitleSearchBox": {
     "defaultPlaceholder": "작품 검색 (예: 듄, 더 베어)",
     "recentModern": "요즘 함께 하는 작품들",
+    "popularModern": "요즘 인기 작품",
+    "popularSource": "인기 작품",
     "loading": "불러오는 중...",
     "empty": "아직 없어요",
     "searchLoading": "검색 중...",
