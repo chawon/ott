@@ -29,6 +29,21 @@
 - 새 백엔드 API 추가
 - TMDB 인기 작품 DB 저장
 
+## 구현 상태
+
+- 2026-06-13 기준 PR #59로 production 반영 완료.
+- 배포 SHA: `c7f8d574ed97565941b4d4f69e6bbfe2eb050c1f`
+- staging workflow:
+  - `Deploy Web to Staging` run `27452174436`
+  - staging manifest commit `8efbb2176b377871e210c0a9f8e5641e1307d3bc`
+- production workflow:
+  - `Deploy Web to Production` run `27452282319`
+  - production manifest commit `a52995d31d9498053a7b56fcaa0c59ba6aec39cc`
+- production 확인:
+  - ArgoCD `ott-app`: `Synced Healthy`
+  - `ott-web` image: `yny.ocir.io/axvqyylkrvmi/ott-web:c7f8d574ed97565941b4d4f69e6bbfe2eb050c1f`
+  - `APP_VERSION`: `c7f8d57`
+
 ## 검증 시나리오
 
 1. 영상 탭에서 실제 함께 기록이 6개 이상이면 인기 작품 섹션이 표시되지 않는다.
