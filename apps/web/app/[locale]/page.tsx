@@ -26,6 +26,7 @@ import {
   parseShareIntentText,
   sanitizeResolvedTitle,
 } from "@/lib/shareIntent";
+import { selectPopularTitleFillers } from "@/lib/titleFallback";
 import type {
   DiscussionListItem,
   TitleSearchItem,
@@ -35,58 +36,6 @@ import { useUserProfile } from "@/lib/useUserProfile";
 
 type ShareImportStatus = "imported" | "unresolved";
 const HOME_DISCUSSION_LIMIT = 6;
-
-function titleFallbackKey({
-  type,
-  name,
-  year,
-}: {
-  type: string;
-  name: string;
-  year?: number | null;
-}) {
-  return `${type}:${name.trim().toLowerCase()}:${year ?? ""}`;
-}
-
-function selectTrendingFillers(
-  discussions: DiscussionListItem[],
-  trends: TitleSearchItem[],
-  limit: number,
-) {
-  const providerKeys = new Set(
-    discussions
-      .map((item) =>
-        item.titleProvider && item.titleProviderId
-          ? `${item.titleProvider}:${item.titleProviderId}`
-          : null,
-      )
-      .filter((key): key is string => Boolean(key)),
-  );
-  const fallbackKeys = new Set(
-    discussions.map((item) =>
-      titleFallbackKey({
-        type: item.titleType,
-        name: item.titleName,
-        year: item.titleYear,
-      }),
-    ),
-  );
-  const selected: TitleSearchItem[] = [];
-
-  for (const item of trends) {
-    if (selected.length >= limit) break;
-    const providerKey = `${item.provider}:${item.providerId}`;
-    const fallbackKey = titleFallbackKey(item);
-    if (providerKeys.has(providerKey) || fallbackKeys.has(fallbackKey)) {
-      continue;
-    }
-    providerKeys.add(providerKey);
-    fallbackKeys.add(fallbackKey);
-    selected.push(item);
-  }
-
-  return selected;
-}
 
 function feedbackHref(source: string) {
   const params = new URLSearchParams({ source, from: "home" });
@@ -223,9 +172,12 @@ export default function HomePage() {
       const captureTitle = params.get("capture_title")?.trim();
       const captureType = params.get("capture_type");
       const capturePlatform =
-        platformFromCaptureKey(params.get("capture_platform_key")?.trim(), tQuick) ??
-        params.get("capture_platform")?.trim();
-      const fromWatchReminder = params.get("source") === "android-watch-reminder";
+        platformFromCaptureKey(
+          params.get("capture_platform_key")?.trim(),
+          tQuick,
+        ) ?? params.get("capture_platform")?.trim();
+      const fromWatchReminder =
+        params.get("source") === "android-watch-reminder";
 
       if (quickEnabled) {
         if (!cancelled) {
@@ -315,7 +267,7 @@ export default function HomePage() {
     return () => {
       cancelled = true;
     };
-  }, [refreshProfilePromptState]);
+  }, [refreshProfilePromptState, tQuick]);
 
   const loadDiscussions = useCallback(async () => {
     setDiscussionsLoading(true);
@@ -334,7 +286,9 @@ export default function HomePage() {
         const trends = await api<TitleSearchItem[]>(
           `/titles/popular?limit=${HOME_DISCUSSION_LIMIT * 2}`,
         );
-        setTrendingTitles(selectTrendingFillers(latest, trends, missingCount));
+        setTrendingTitles(
+          selectPopularTitleFillers(latest, trends, missingCount),
+        );
       } catch {
         setTrendingTitles([]);
       }

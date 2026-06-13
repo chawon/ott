@@ -1,13 +1,34 @@
 "use client";
 
+import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "@/lib/api";
+import { selectPopularTitleFillers } from "@/lib/titleFallback";
 import type { DiscussionListItem, TitleSearchItem } from "@/lib/types";
 import { cn, tmdbResize } from "@/lib/utils";
 
+const TITLE_SUGGESTION_LIMIT = 6;
+
+type TitleSelectSource =
+  | "search_result"
+  | "recent_discussion"
+  | "popular_title";
+
 function errorMessage(error: unknown, fallback: string) {
   return error instanceof Error ? error.message : fallback;
+}
+
+function filterRecentDiscussions(
+  discussions: DiscussionListItem[],
+  contentType: "video" | "book",
+) {
+  if (contentType === "book") {
+    return discussions.filter((d) => d.titleType === "book");
+  }
+  return discussions.filter(
+    (d) => d.titleType === "movie" || d.titleType === "series",
+  );
 }
 
 export default function TitleSearchBox({
@@ -30,7 +51,7 @@ export default function TitleSearchBox({
   onSelectAnalytics?: (result: {
     item: TitleSearchItem;
     contentType: "video" | "book";
-    source: "search_result" | "recent_discussion";
+    source: TitleSelectSource;
     queryLength: number;
     resultRank?: number;
   }) => void;
@@ -48,6 +69,9 @@ export default function TitleSearchBox({
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [recent, setRecent] = useState<DiscussionListItem[]>([]);
+  const [popularSuggestions, setPopularSuggestions] = useState<
+    TitleSearchItem[]
+  >([]);
   const [recentLoading, setRecentLoading] = useState(false);
   const [recentErr, setRecentErr] = useState<string | null>(null);
   const rootRef = useRef<HTMLDivElement | null>(null);
@@ -128,14 +152,43 @@ export default function TitleSearchBox({
     (async () => {
       setRecentLoading(true);
       setRecentErr(null);
+      setPopularSuggestions([]);
       try {
         const res = await api<DiscussionListItem[]>(
-          "/discussions/latest?limit=6&days=14",
+          `/discussions/latest?limit=${TITLE_SUGGESTION_LIMIT}&days=14`,
         );
-        if (!cancelled) setRecent(res);
+        if (cancelled) return;
+
+        setRecent(res);
+
+        if (contentType !== "video") return;
+
+        const videoRecent = filterRecentDiscussions(res, contentType).slice(
+          0,
+          TITLE_SUGGESTION_LIMIT,
+        );
+        const missingCount = Math.max(
+          0,
+          TITLE_SUGGESTION_LIMIT - videoRecent.length,
+        );
+        if (missingCount === 0) return;
+
+        try {
+          const trends = await api<TitleSearchItem[]>(
+            `/titles/popular?limit=${TITLE_SUGGESTION_LIMIT * 2}`,
+          );
+          if (!cancelled) {
+            setPopularSuggestions(
+              selectPopularTitleFillers(videoRecent, trends, missingCount),
+            );
+          }
+        } catch {
+          if (!cancelled) setPopularSuggestions([]);
+        }
       } catch (e: unknown) {
         if (!cancelled) {
           setRecent([]);
+          setPopularSuggestions([]);
           setRecentErr(errorMessage(e, "Failed to load discussions"));
         }
       } finally {
@@ -146,7 +199,7 @@ export default function TitleSearchBox({
     return () => {
       cancelled = true;
     };
-  }, [open, query, showRecentDiscussions]);
+  }, [open, query, showRecentDiscussions, contentType]);
 
   useEffect(() => {
     if (!open) return;
@@ -168,7 +221,7 @@ export default function TitleSearchBox({
 
   function pick(
     item: TitleSearchItem,
-    source: "search_result" | "recent_discussion" = "search_result",
+    source: TitleSelectSource = "search_result",
     resultRank?: number,
   ) {
     onSelectAnalytics?.({
@@ -187,17 +240,19 @@ export default function TitleSearchBox({
   }
 
   const filteredRecent = useMemo(() => {
-    if (contentType === "book")
-      return recent.filter((d) => d.titleType === "book");
-    return recent.filter(
-      (d) => d.titleType === "movie" || d.titleType === "series",
+    return filterRecentDiscussions(recent, contentType).slice(
+      0,
+      TITLE_SUGGESTION_LIMIT,
     );
   }, [contentType, recent]);
 
   const showRecentPanel =
     showRecentDiscussions &&
     !query &&
-    (recentLoading || recentErr || filteredRecent.length > 0);
+    (recentLoading ||
+      recentErr ||
+      filteredRecent.length > 0 ||
+      popularSuggestions.length > 0);
   const showPanel =
     open && (loading || err || items.length > 0 || showRecentPanel);
 
@@ -259,14 +314,16 @@ export default function TitleSearchBox({
         >
           {showRecentPanel ? (
             <div className={cn("border-b border-border")}>
-              <div
-                className={cn(
-                  "px-4 py-2 text-[10px] font-bold uppercase tracking-widest",
-                  "text-muted-foreground",
-                )}
-              >
-                {tTitleSearch("recentModern")}
-              </div>
+              {recentLoading || recentErr || filteredRecent.length > 0 ? (
+                <div
+                  className={cn(
+                    "px-4 py-2 text-[10px] font-bold uppercase tracking-widest",
+                    "text-muted-foreground",
+                  )}
+                >
+                  {tTitleSearch("recentModern")}
+                </div>
+              ) : null}
               {recentLoading ? (
                 <div className="px-4 py-3 text-sm font-bold">
                   {tTitleSearch("loading")}
@@ -277,7 +334,10 @@ export default function TitleSearchBox({
                   {recentErr}
                 </div>
               ) : null}
-              {!recentLoading && !recentErr && recent.length === 0 ? (
+              {!recentLoading &&
+              !recentErr &&
+              filteredRecent.length === 0 &&
+              popularSuggestions.length === 0 ? (
                 <div className="px-4 py-3 text-sm font-bold text-muted-foreground">
                   {tTitleSearch("empty")}
                 </div>
@@ -353,6 +413,87 @@ export default function TitleSearchBox({
                     </button>
                   );
                 })}
+              {!recentLoading && !recentErr && popularSuggestions.length > 0 ? (
+                <div
+                  className={cn(
+                    filteredRecent.length > 0
+                      ? "border-t border-border"
+                      : undefined,
+                  )}
+                >
+                  <div
+                    className={cn(
+                      "px-4 py-2 text-[10px] font-bold uppercase tracking-widest",
+                      "text-muted-foreground",
+                    )}
+                  >
+                    {tTitleSearch("popularModern")}
+                  </div>
+                  {popularSuggestions.map((t) => {
+                    const key = `popular:${t.provider}:${t.providerId}`;
+                    const typeLabel =
+                      t.type === "movie"
+                        ? tTitleSearch("typeMovie")
+                        : t.type === "series"
+                          ? tTitleSearch("typeSeries")
+                          : tTitleSearch("typeBook");
+                    const meta = `${typeLabel}${t.year ? ` · ${t.year}` : ""}`;
+
+                    return (
+                      <button
+                        key={key}
+                        type="button"
+                        onClick={() => pick(t, "popular_title")}
+                        className={cn(
+                          "flex w-full items-center gap-4 px-4 py-3 text-left transition-colors",
+                          "hover:bg-muted",
+                        )}
+                      >
+                        <div
+                          className={cn(
+                            "h-20 w-14 shrink-0 overflow-hidden bg-muted",
+                            "rounded-lg shadow-sm border border-border",
+                          )}
+                        >
+                          {t.posterUrl ? (
+                            <Image
+                              src={
+                                tmdbResize(t.posterUrl, "w185") ?? t.posterUrl
+                              }
+                              alt={t.name}
+                              width={56}
+                              height={80}
+                              className={cn("h-full w-full object-cover")}
+                              loading="lazy"
+                            />
+                          ) : null}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className={cn("truncate text-sm font-bold")}>
+                            {t.name}
+                          </div>
+                          <div
+                            className={cn(
+                              "mt-0.5",
+                              "text-[10px] font-bold text-muted-foreground",
+                            )}
+                          >
+                            {meta}
+                          </div>
+                          <div
+                            className={cn(
+                              "mt-1 text-xs font-semibold",
+                              "text-muted-foreground",
+                            )}
+                          >
+                            {tTitleSearch("popularSource")}
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : null}
             </div>
           ) : null}
 
@@ -447,13 +588,14 @@ export default function TitleSearchBox({
               );
             })}
 
-          {!loading && !err && items.length === 0 && (
+          {query && !loading && !err && items.length === 0 && (
             <div className="px-4 py-3 text-sm font-bold text-muted-foreground">
               {tTitleSearch("searchEmpty")}
             </div>
           )}
 
-          {query && contentType === "video" ? (
+          {contentType === "video" &&
+          (query || popularSuggestions.length > 0) ? (
             <div
               className={cn(
                 "px-4 py-2 text-[8px] font-bold text-muted-foreground",

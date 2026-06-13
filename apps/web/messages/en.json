@@ -252,6 +252,8 @@
   "TitleSearchBox": {
     "defaultPlaceholder": "Search titles (e.g., Dune, The Bear)",
     "recentModern": "Titles shared together",
+    "popularModern": "Popular now",
+    "popularSource": "Popular title",
     "loading": "Loading...",
     "empty": "Nothing here yet",
     "searchLoading": "Searching...",

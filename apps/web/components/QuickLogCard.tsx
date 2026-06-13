@@ -324,7 +324,7 @@ export default function QuickLogCard({
     (result: {
       item: TitleSearchItem;
       contentType: "video" | "book";
-      source: "search_result" | "recent_discussion";
+      source: "search_result" | "recent_discussion" | "popular_title";
       queryLength: number;
       resultRank?: number;
     }) => {
