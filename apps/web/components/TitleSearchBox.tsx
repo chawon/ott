@@ -300,7 +300,7 @@ export default function TitleSearchBox({
         placeholder={modernPlaceholder}
         className={cn(
           "w-full transition-all outline-none",
-          "min-h-12 rounded-xl border border-border bg-card px-4 py-3 text-sm text-foreground focus:ring-2 focus:ring-ring/40 focus:border-border placeholder:text-muted-foreground",
+          "min-h-12 rounded-xl border border-border bg-card px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary/30 focus:ring-2 focus:ring-primary/10",
         )}
       />
 
@@ -308,7 +308,7 @@ export default function TitleSearchBox({
         <div
           className={cn(
             "absolute z-50 mt-2 w-full max-h-[calc(100dvh-var(--mobile-bottom-nav-height)-9rem)] overflow-auto bg-card text-card-foreground sm:max-h-[70vh]",
-            "rounded-xl border border-border shadow-xl",
+            "rounded-2xl border border-border shadow-[0_20px_56px_rgba(52,45,37,0.14)]",
           )}
           data-onboarding-target="title-search-panel"
         >
@@ -369,13 +369,13 @@ export default function TitleSearchBox({
                       onClick={() => pick(item, "recent_discussion")}
                       className={cn(
                         "flex w-full items-center gap-4 px-4 py-3 text-left transition-colors",
-                        "hover:bg-muted",
+                        "hover:bg-ott-paper-strong",
                       )}
                     >
                       <div
                         className={cn(
                           "h-20 w-14 shrink-0 overflow-hidden bg-muted",
-                          "rounded-lg shadow-sm border border-border",
+                          "rounded-lg border border-border shadow-sm",
                         )}
                       >
                         {d.posterUrl ? (
@@ -446,13 +446,13 @@ export default function TitleSearchBox({
                         onClick={() => pick(t, "popular_title")}
                         className={cn(
                           "flex w-full items-center gap-4 px-4 py-3 text-left transition-colors",
-                          "hover:bg-muted",
+                          "hover:bg-ott-paper-strong",
                         )}
                       >
                         <div
                           className={cn(
                             "h-20 w-14 shrink-0 overflow-hidden bg-muted",
-                            "rounded-lg shadow-sm border border-border",
+                            "rounded-lg border border-border shadow-sm",
                           )}
                         >
                           {t.posterUrl ? (
@@ -540,13 +540,15 @@ export default function TitleSearchBox({
                   onMouseEnter={() => setActiveIndex(idx)}
                   className={cn(
                     "flex w-full items-center gap-4 px-4 py-3 text-left transition-colors",
-                    idx === activeIndex ? "bg-muted" : "hover:bg-muted",
+                    idx === activeIndex
+                      ? "bg-ott-paper-strong"
+                      : "hover:bg-ott-paper-strong",
                   )}
                 >
                   <div
                     className={cn(
                       "h-24 w-16 shrink-0 overflow-hidden bg-muted",
-                      "rounded-lg shadow-sm border border-border",
+                      "rounded-lg border border-border shadow-sm",
                     )}
                   >
                     {t.posterUrl ? (

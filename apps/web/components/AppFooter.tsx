@@ -10,7 +10,7 @@ export default async function AppFooter() {
     <footer
       className={cn(
         "mt-20 border-t py-12 pb-[var(--mobile-bottom-content-padding)] sm:pb-12",
-        "border-border bg-muted/60 dark:bg-card/80",
+        "border-border bg-ott-paper-strong/70 dark:bg-card/80",
       )}
     >
       <div className="mx-auto max-w-5xl px-4">

@@ -12,9 +12,10 @@ import {
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
-import { type ComponentProps, startTransition } from "react";
+import { startTransition } from "react";
 import { useTheme } from "@/context/ThemeContext";
 import { Link as IntlLink, usePathname, useRouter } from "@/i18n/routing";
+import { getMatchedNavHref, type NavHref } from "@/lib/navigation";
 import { isProfileComplete } from "@/lib/profile";
 import { useUserProfile } from "@/lib/useUserProfile";
 import { cn } from "@/lib/utils";
@@ -49,27 +50,29 @@ function NavLink({
   label,
   icon: Icon,
 }: {
-  href: ComponentProps<typeof IntlLink>["href"];
+  href: NavHref;
   label: string;
   icon?: React.ComponentType<{ className?: string }>;
 }) {
   const pathname = usePathname();
-  const active =
-    href === "/"
-      ? pathname === "/"
-      : pathname === href || pathname.startsWith(`${href}/`);
+  const active = getMatchedNavHref(pathname) === href;
 
   return (
     <IntlLink
       href={href}
       className={cn(
-        "w-full rounded-lg px-2 py-2 text-xs transition sm:w-auto sm:px-3 sm:text-sm",
+        "w-full rounded-xl px-1.5 py-2 text-[11px] font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF9933]/40 sm:w-auto sm:px-3 sm:text-sm",
         active
-          ? "bg-foreground text-background"
-          : "text-muted-foreground hover:bg-muted",
+          ? "shadow-sm"
+          : "text-muted-foreground hover:bg-ott-paper-strong hover:text-foreground",
       )}
+      style={
+        active ? { backgroundColor: "#FF9933", color: "#0F0F0F" } : undefined
+      }
+      aria-current={active ? "page" : undefined}
+      data-active={active ? "true" : "false"}
     >
-      <span className="flex items-center justify-center gap-2 sm:justify-start">
+      <span className="flex items-center justify-center gap-1.5 whitespace-nowrap sm:justify-start sm:gap-2">
         {Icon ? <Icon className="h-4 w-4" /> : null}
         {label}
       </span>
@@ -114,12 +117,12 @@ export default function AppHeader() {
   };
 
   return (
-    <header className="sticky top-0 z-50 border-b border-border bg-card/80 dark:bg-card/90 backdrop-blur-md transition-colors duration-200">
+    <header className="sticky top-0 z-50 border-b border-border bg-card/85 backdrop-blur-md transition-colors duration-200">
       <div className="mx-auto flex max-w-5xl flex-col gap-4 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex w-full items-center justify-between gap-3 sm:w-auto">
           <IntlLink
             href="/"
-            className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+            className="flex items-center gap-2 rounded-2xl transition-opacity hover:opacity-85"
           >
             <Image
               src="/ottline_logo.png"
@@ -137,7 +140,7 @@ export default function AppHeader() {
               </span>
               <span
                 className="block text-[9px] font-semibold tracking-widest uppercase"
-                style={{ color: "#38BDF8" }}
+                style={{ color: "#FF9933" }}
               >
                 On the Timeline
               </span>
@@ -146,7 +149,7 @@ export default function AppHeader() {
 
           <div className="flex items-center gap-2">
             <fieldset
-              className="flex items-center rounded-full border border-border bg-background/80 p-0.5"
+              className="flex items-center rounded-full border border-border bg-ott-paper/90 p-0.5"
               aria-label={t("languageSwitcher")}
             >
               <legend className="sr-only">{t("languageSwitcher")}</legend>
@@ -163,9 +166,14 @@ export default function AppHeader() {
                     className={cn(
                       "inline-flex h-7 min-w-7 items-center justify-center rounded-full px-2 text-[9px] font-semibold uppercase tracking-[0.1em] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:h-6 sm:min-w-6",
                       active
-                        ? "bg-foreground text-background"
-                        : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                        ? "shadow-sm"
+                        : "text-muted-foreground hover:bg-ott-paper-strong hover:text-foreground",
                     )}
+                    style={
+                      active
+                        ? { backgroundColor: "#FF9933", color: "#0F0F0F" }
+                        : undefined
+                    }
                     aria-pressed={active}
                     aria-label={
                       active
@@ -187,7 +195,7 @@ export default function AppHeader() {
             <button
               type="button"
               onClick={toggleTheme}
-              className="flex min-h-11 min-w-11 items-center justify-center rounded-md p-2 text-foreground/70 transition hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:min-h-9 sm:min-w-9"
+              className="flex min-h-11 min-w-11 items-center justify-center rounded-xl p-2 text-foreground/70 transition hover:bg-ott-paper-strong hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:min-h-9 sm:min-w-9"
               title={t("themeClickToChange", { theme: themeLabel })}
               aria-label={t("themeChangeCurrent", { theme: themeLabel })}
             >
@@ -196,7 +204,7 @@ export default function AppHeader() {
             {hasProfile ? (
               <IntlLink
                 href="/account"
-                className="flex min-h-11 min-w-11 items-center justify-center rounded-md p-1 text-foreground/70 transition hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:hidden"
+                className="flex min-h-11 min-w-11 items-center justify-center rounded-xl p-1 text-foreground/70 transition hover:bg-ott-paper-strong hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:hidden"
                 title={t("profileLink")}
                 aria-label={t("profileLink")}
               >
@@ -210,7 +218,7 @@ export default function AppHeader() {
           </div>
         </div>
 
-        <nav className="app-top-nav w-full grid-cols-4 items-center gap-1 sm:w-auto sm:flex-nowrap sm:gap-2">
+        <nav className="app-top-nav hidden w-full items-center gap-1 sm:flex sm:w-auto sm:flex-nowrap sm:gap-2">
           <NavLink href="/" label={t("navLogModern")} icon={PencilLine} />
           <NavLink
             href="/timeline"

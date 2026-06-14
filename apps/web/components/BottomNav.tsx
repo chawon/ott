@@ -2,40 +2,57 @@
 
 import { Clock, MessageCircle, PencilLine, Settings } from "lucide-react";
 import { useTranslations } from "next-intl";
-import type { ComponentProps } from "react";
+import {
+  type ComponentType,
+  type SyntheticEvent,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { Link as IntlLink, usePathname } from "@/i18n/routing";
+import { getMatchedNavHref, isNavHref, type NavHref } from "@/lib/navigation";
 import { cn } from "@/lib/utils";
 
 function NavLink({
   href,
   label,
   icon: Icon,
+  active,
+  onActivate,
 }: {
-  href: ComponentProps<typeof IntlLink>["href"];
+  href: NavHref;
   label: string;
-  icon: React.ComponentType<{ className?: string }>;
+  icon: ComponentType<{ className?: string }>;
+  active: boolean;
+  onActivate: (href: NavHref) => void;
 }) {
-  const pathname = usePathname();
-  const active =
-    href === "/"
-      ? pathname === "/"
-      : pathname === href || pathname.startsWith(`${href}/`);
-
   return (
     <IntlLink
       href={href}
+      onClick={() => onActivate(href)}
+      onMouseDown={() => onActivate(href)}
+      onPointerDown={() => onActivate(href)}
+      onTouchStart={() => onActivate(href)}
+      data-bottom-nav-href={href}
       className={cn(
-        "flex min-h-16 flex-1 flex-col items-center justify-center gap-1 px-1 py-2 text-[10px] font-medium transition-colors",
+        "group flex min-h-14 flex-1 touch-manipulation select-none flex-col items-center justify-center gap-1 rounded-2xl px-1 py-1.5 text-[10px] font-medium transition-colors [-webkit-tap-highlight-color:transparent] active:bg-transparent focus:outline-none focus-visible:ring-2 focus-visible:ring-[#FF9933]/40",
         active
           ? "text-foreground"
-          : "text-muted-foreground hover:text-foreground/80",
+          : "text-muted-foreground hover:bg-ott-paper-strong/70 hover:text-foreground/80 active:text-[#4A4A4A]",
       )}
+      style={active ? { color: "#0F0F0F" } : undefined}
+      aria-current={active ? "page" : undefined}
+      data-active={active ? "true" : "false"}
     >
       <div
         className={cn(
-          "flex h-8 w-14 items-center justify-center rounded-full transition-colors",
-          active ? "bg-foreground/10" : "bg-transparent",
+          "flex h-8 w-12 items-center justify-center rounded-full transition-all",
+          active ? "shadow-sm" : "bg-transparent group-hover:bg-card/80",
         )}
+        style={
+          active ? { backgroundColor: "#FF9933", color: "#FFFFFF" } : undefined
+        }
       >
         <Icon
           className={cn(
@@ -44,24 +61,128 @@ function NavLink({
           )}
         />
       </div>
-      <span className="truncate">{label}</span>
+      <span
+        className={cn(
+          "bottom-nav-label max-w-full truncate rounded-full px-1.5 leading-5",
+          active ? "font-semibold" : "text-[#4A4A4A] dark:text-[#D8CFC4]",
+        )}
+        data-active={active ? "true" : "false"}
+        style={
+          active
+            ? {
+                backgroundColor: "rgb(255 248 239 / 0.94)",
+                color: "#0F0F0F",
+              }
+            : undefined
+        }
+      >
+        {label}
+      </span>
     </IntlLink>
   );
 }
 
 export default function BottomNav() {
   const t = useTranslations("AppHeader");
+  const pathname = usePathname();
+  const navRef = useRef<HTMLElement | null>(null);
+  const [pendingHref, setPendingHref] = useState<NavHref | null>(null);
+  const currentHref = getMatchedNavHref(pathname) ?? "/";
+  const activeHref = pendingHref ?? currentHref;
+
+  const activateFromTarget = useCallback((target: EventTarget | null) => {
+    const href = getNavHrefFromTarget(target);
+    if (href) {
+      setPendingHref(href);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (currentHref) {
+      setPendingHref(null);
+    }
+  }, [currentHref]);
+
+  useEffect(() => {
+    if (!pendingHref) return;
+
+    const timeout = window.setTimeout(() => {
+      setPendingHref(null);
+    }, 4000);
+
+    return () => window.clearTimeout(timeout);
+  }, [pendingHref]);
+
+  useEffect(() => {
+    const nav = navRef.current;
+    if (!nav) return;
+
+    const handlePressStart = (event: Event) => {
+      activateFromTarget(event.target);
+    };
+
+    nav.addEventListener("pointerdown", handlePressStart);
+    nav.addEventListener("touchstart", handlePressStart);
+    nav.addEventListener("mousedown", handlePressStart);
+
+    return () => {
+      nav.removeEventListener("pointerdown", handlePressStart);
+      nav.removeEventListener("touchstart", handlePressStart);
+      nav.removeEventListener("mousedown", handlePressStart);
+    };
+  }, [activateFromTarget]);
+
+  const handleActivate = (href: NavHref) => {
+    setPendingHref(href);
+  };
+
+  const handleNavCapture = (event: SyntheticEvent<HTMLElement>) => {
+    activateFromTarget(event.target);
+  };
 
   return (
-    <nav className="app-bottom-nav fixed bottom-0 left-0 right-0 z-50 min-h-[var(--mobile-bottom-nav-height)] border-t border-border bg-card/90 pb-[var(--mobile-safe-area-bottom)] backdrop-blur-md transition-colors duration-200">
-      <NavLink href="/" label={t("navLogModern")} icon={PencilLine} />
-      <NavLink href="/timeline" label={t("navTimelineModern")} icon={Clock} />
+    <nav
+      ref={navRef}
+      className="app-bottom-nav fixed left-3 right-3 bottom-[calc(var(--mobile-safe-area-bottom)+0.75rem)] z-50 flex min-h-16 rounded-[28px] border border-[#FF9933]/25 bg-card/95 p-1.5 shadow-[0_18px_50px_rgba(255,153,51,0.2)] backdrop-blur-xl transition-colors duration-200 dark:bg-card/90 sm:hidden"
+      onPointerDownCapture={handleNavCapture}
+      onTouchStartCapture={handleNavCapture}
+    >
+      <NavLink
+        href="/"
+        label={t("navLogModern")}
+        icon={PencilLine}
+        active={activeHref === "/"}
+        onActivate={handleActivate}
+      />
+      <NavLink
+        href="/timeline"
+        label={t("navTimelineModern")}
+        icon={Clock}
+        active={activeHref === "/timeline"}
+        onActivate={handleActivate}
+      />
       <NavLink
         href="/public"
         label={t("navPublicModern")}
         icon={MessageCircle}
+        active={activeHref === "/public"}
+        onActivate={handleActivate}
       />
-      <NavLink href="/account" label={t("navAccountModern")} icon={Settings} />
+      <NavLink
+        href="/account"
+        label={t("navAccountModern")}
+        icon={Settings}
+        active={activeHref === "/account"}
+        onActivate={handleActivate}
+      />
     </nav>
   );
+}
+
+function getNavHrefFromTarget(target: EventTarget | null) {
+  if (!(target instanceof HTMLElement)) return null;
+
+  const link = target.closest<HTMLElement>("[data-bottom-nav-href]");
+  const href = link?.dataset.bottomNavHref;
+  return isNavHref(href) ? href : null;
 }

@@ -1,4 +1,5 @@
 import type { Viewport } from "next";
+import Script from "next/script";
 import "../globals.css";
 import { NextIntlClientProvider } from "next-intl";
 import { getMessages, getTranslations } from "next-intl/server";
@@ -61,7 +62,9 @@ export async function generateMetadata({
 }
 
 export const viewport: Viewport = {
-  themeColor: "#1E4D8C",
+  width: "device-width",
+  initialScale: 1,
+  themeColor: "#FF9933",
   viewportFit: "cover",
 };
 
@@ -78,7 +81,7 @@ export default async function RootLayout({
   const themeInitScript = `
 (() => {
   try {
-    const themeBackground = { light: "#ffffff", dark: "#1f1f1f" };
+    const themeBackground = { light: "#F8F6F2", dark: "#15120F" };
     const root = document.documentElement;
     const mode = localStorage.getItem("theme-mode") || "system";
     const prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
@@ -89,15 +92,6 @@ export default async function RootLayout({
     root.dataset.theme = resolvedTheme;
     root.style.colorScheme = resolvedTheme;
     root.style.backgroundColor = background;
-    const applyBodyBackground = () => {
-      if (document.body) {
-        document.body.style.backgroundColor = background;
-      }
-    };
-    applyBodyBackground();
-    if (!document.body) {
-      document.addEventListener("DOMContentLoaded", applyBodyBackground, { once: true });
-    }
     let themeColor = document.querySelector('meta[name="theme-color"]');
     if (!themeColor) {
       themeColor = document.createElement("meta");
@@ -122,80 +116,81 @@ export default async function RootLayout({
   return (
     <html lang={locale} suppressHydrationWarning>
       <head>
-        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
+        <Script id="theme-init" strategy="beforeInteractive">
+          {themeInitScript}
+        </Script>
         <meta
           name="naver-site-verification"
           content="d48c8e320c660f8e8f1291f6cad71bc39e268d10"
         />
-        <script
+        <Script
+          id="organization-json-ld"
+          strategy="beforeInteractive"
           type="application/ld+json"
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify({
-              "@context": "https://schema.org",
-              "@type": "Organization",
-              name: "ottline",
-              url: "https://ottline.app",
-              logo: {
-                "@type": "ImageObject",
-                url: "https://ottline.app/og-image-20260418.png",
-                width: 1200,
-                height: 630,
-              },
-              description:
-                "가입 없이 영상·책 기록을 10초 만에 남기고 타임라인으로 모아보세요. 영상과 책을 가장 빠르게 기록하는 방법.",
-              inLanguage: "ko-KR",
-              sameAs: ["https://www.wikidata.org/wiki/Q138822579"],
-            }),
-          }}
-        />
-        <script
+        >
+          {JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "Organization",
+            name: "ottline",
+            url: "https://ottline.app",
+            logo: {
+              "@type": "ImageObject",
+              url: "https://ottline.app/og-image-20260418.png",
+              width: 1200,
+              height: 630,
+            },
+            description:
+              "가입 없이 영상·책 기록을 10초 만에 남기고 타임라인으로 모아보세요. 영상과 책을 가장 빠르게 기록하는 방법.",
+            inLanguage: "ko-KR",
+            sameAs: ["https://www.wikidata.org/wiki/Q138822579"],
+          })}
+        </Script>
+        <Script
+          id="software-json-ld"
+          strategy="beforeInteractive"
           type="application/ld+json"
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify({
-              "@context": "https://schema.org",
-              "@type": "SoftwareApplication",
-              name: "ottline",
-              url: "https://ottline.app",
-              description:
-                "가입 없이 영상·책 기록을 10초 만에 남기고 타임라인으로 모아보세요.",
-              inLanguage: "ko-KR",
-              applicationCategory: "LifestyleApplication",
-              applicationSubCategory: "Entertainment",
-              operatingSystem: "Web, Android (PWA), iOS (PWA)",
-              offers: { "@type": "Offer", price: "0", priceCurrency: "KRW" },
-              isAccessibleForFree: true,
-              featureList: [
-                "로그인 없는 영상·책 기록",
-                "로컬 퍼스트 데이터 저장 (IndexedDB)",
-                "타임라인 뷰",
-                "페어링 코드로 기기 간 동기화",
-                "CSV 내보내기",
-                "PWA 설치 지원",
-              ],
-            }),
-          }}
-        />
+        >
+          {JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "SoftwareApplication",
+            name: "ottline",
+            url: "https://ottline.app",
+            description:
+              "가입 없이 영상·책 기록을 10초 만에 남기고 타임라인으로 모아보세요.",
+            inLanguage: "ko-KR",
+            applicationCategory: "LifestyleApplication",
+            applicationSubCategory: "Entertainment",
+            operatingSystem: "Web, Android (PWA), iOS (PWA)",
+            offers: { "@type": "Offer", price: "0", priceCurrency: "KRW" },
+            isAccessibleForFree: true,
+            featureList: [
+              "로그인 없는 영상·책 기록",
+              "로컬 퍼스트 데이터 저장 (IndexedDB)",
+              "타임라인 뷰",
+              "페어링 코드로 기기 간 동기화",
+              "CSV 내보내기",
+              "PWA 설치 지원",
+            ],
+          })}
+        </Script>
         {/* Google tag (gtag.js) */}
-        <script
-          async
+        <Script
+          id="gtag-src"
+          strategy="afterInteractive"
           src="https://www.googletagmanager.com/gtag/js?id=G-61XBJHSN8G"
         />
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `window.dataLayer = window.dataLayer || [];function gtag(){dataLayer.push(arguments);}gtag('js', new Date());gtag('config', 'G-61XBJHSN8G');`,
-          }}
-        />
+        <Script id="gtag-init" strategy="afterInteractive">
+          {`window.dataLayer = window.dataLayer || [];function gtag(){dataLayer.push(arguments);}gtag('js', new Date());gtag('config', 'G-61XBJHSN8G');`}
+        </Script>
         {/* Microsoft Clarity */}
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `(function(c,l,a,r,i,t,y){c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);})(window,document,"clarity","script","vwj7yzqkow");`,
-          }}
-        />
+        <Script id="clarity-init" strategy="afterInteractive">
+          {`(function(c,l,a,r,i,t,y){c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);})(window,document,"clarity","script","vwj7yzqkow");`}
+        </Script>
         {process.env.NODE_ENV === "production" &&
         process.env.APP_ENV !== "staging" ? (
-          <script
-            dangerouslySetInnerHTML={{ __html: serviceWorkerInitScript }}
-          />
+          <Script id="service-worker-init" strategy="afterInteractive">
+            {serviceWorkerInitScript}
+          </Script>
         ) : null}
       </head>
       <body className="min-h-screen bg-background text-foreground font-sans antialiased">
@@ -212,7 +207,7 @@ export default async function RootLayout({
             <SwipeNav />
             <PwaInstallBanner />
             <SyncWorker />
-            <main className="mx-auto max-w-5xl px-4 py-8 pb-[var(--mobile-bottom-content-padding)] sm:pb-8">
+            <main className="mx-auto max-w-5xl px-4 py-8 pb-[var(--mobile-bottom-content-padding)] sm:py-10 sm:pb-10">
               {children}
             </main>
             <AppFooter />

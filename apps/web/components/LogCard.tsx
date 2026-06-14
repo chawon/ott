@@ -61,8 +61,8 @@ function renderBody(text: string) {
 function chip(label: string, tone: "place" | "occasion") {
   const toneClass =
     tone === "place"
-      ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-      : "bg-amber-50 text-amber-700 border-amber-200";
+      ? "border-ott-sage bg-ott-sage/50 text-ott-sage-foreground"
+      : "border-ott-warm bg-ott-warm/55 text-ott-warm-foreground";
   return (
     <span className={`rounded-full border px-3 py-1 text-xs ${toneClass}`}>
       {label}
@@ -133,19 +133,19 @@ export default function LogCard({
   return (
     <article
       className={cn(
-        "rounded-2xl border border-border bg-card p-5 text-card-foreground shadow-sm transition-all flex gap-5",
+        "flex gap-5 rounded-2xl border border-border bg-card/90 p-5 text-card-foreground shadow-sm transition-colors duration-150 hover:border-primary/20",
         isBook &&
-          "bg-emerald-50/30 ring-1 ring-emerald-100/80 dark:bg-emerald-950/25 dark:ring-emerald-900/60",
+          "bg-ott-sage/20 ring-1 ring-ott-sage/50 dark:bg-emerald-950/25 dark:ring-emerald-900/60",
         isBook &&
           !isCommentOrigin &&
-          "border-emerald-200 dark:border-emerald-900/50",
+          "border-ott-sage dark:border-emerald-900/50",
         isCommentOrigin
-          ? "border-amber-300 bg-amber-50/40 dark:border-amber-800 dark:bg-amber-950/30"
+          ? "border-ott-warm bg-ott-warm/35 dark:border-amber-800 dark:bg-amber-950/30"
           : "hover:border-border/80",
       )}
     >
       <div className="shrink-0">
-        <div className="h-32 w-20 overflow-hidden rounded-xl bg-muted shadow-sm border border-border">
+        <div className="h-32 w-20 overflow-hidden rounded-xl border border-border bg-muted shadow-sm">
           {(log.seasonPosterUrl ?? t.posterUrl) ? (
             <img
               src={
@@ -179,17 +179,17 @@ export default function LogCard({
             </Link>
             <div className="mt-1 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
               {isBook ? (
-                <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200/80 bg-emerald-50/70 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/40 dark:text-emerald-200">
+                <span className="inline-flex items-center gap-1 rounded-full border border-ott-sage bg-ott-sage/55 px-2 py-0.5 text-[10px] font-semibold text-ott-sage-foreground dark:border-emerald-900/60 dark:bg-emerald-950/40 dark:text-emerald-200">
                   <BookOpen className="h-3 w-3" />
                   BOOK
                 </span>
               ) : t.type === "movie" ? (
-                <span className="inline-flex items-center gap-1 rounded-full border border-indigo-200/80 bg-indigo-50/70 px-2 py-0.5 text-[10px] font-semibold text-indigo-700 dark:border-indigo-900/60 dark:bg-indigo-950/40 dark:text-indigo-200">
+                <span className="inline-flex items-center gap-1 rounded-full border border-ott-sky-soft bg-ott-sky-soft px-2 py-0.5 text-[10px] font-semibold text-primary dark:border-indigo-900/60 dark:bg-indigo-950/40 dark:text-indigo-200">
                   <Film className="h-3 w-3" />
                   MOVIE
                 </span>
               ) : (
-                <span className="inline-flex items-center gap-1 rounded-full border border-amber-200/80 bg-amber-50/70 px-2 py-0.5 text-[10px] font-semibold text-amber-700 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-200">
+                <span className="inline-flex items-center gap-1 rounded-full border border-ott-warm bg-ott-warm/60 px-2 py-0.5 text-[10px] font-semibold text-ott-warm-foreground dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-200">
                   <Tv className="h-3 w-3" />
                   SERIES
                 </span>
@@ -206,13 +206,13 @@ export default function LogCard({
               {log.ott ? (
                 <>
                   <span className="text-muted-foreground/60">·</span>
-                  <span className="text-indigo-600/80">{log.ott}</span>
+                  <span className="text-primary/80">{log.ott}</span>
                 </>
               ) : null}
             </div>
           </div>
           {typeof log.rating === "number" ? (
-            <div className="shrink-0 rounded-xl bg-foreground px-2.5 py-1 text-xs font-bold text-background shadow-sm">
+            <div className="shrink-0 rounded-xl bg-primary px-2.5 py-1 text-xs font-bold text-primary-foreground shadow-sm">
               {log.rating.toFixed(1)}
             </div>
           ) : null}
@@ -255,7 +255,7 @@ export default function LogCard({
                 e.preventDefault();
                 onShareCard();
               }}
-              className="inline-flex items-center gap-1.5 rounded-full border border-neutral-200/60 bg-neutral-50 px-2.5 py-1 text-[11px] font-medium text-neutral-600 transition-colors hover:bg-neutral-100 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-300"
+              className="inline-flex items-center gap-1.5 rounded-full border border-border bg-ott-paper px-2.5 py-1 text-[11px] font-medium text-muted-foreground transition-colors hover:bg-ott-paper-strong hover:text-foreground dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-300"
             >
               <Share2 className="h-3 w-3" />
               {tQuick("createShareCard")}
@@ -273,7 +273,7 @@ export default function LogCard({
                 "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors",
                 isShared
                   ? "border-emerald-200/60 bg-emerald-50 text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-950/40 dark:text-emerald-400"
-                  : "border-neutral-200/60 bg-neutral-50 text-neutral-600 hover:bg-neutral-100 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-300 disabled:opacity-50",
+                  : "border-border bg-ott-paper text-muted-foreground hover:bg-ott-paper-strong hover:text-foreground dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-300 disabled:opacity-50",
               )}
             >
               <MessageSquare className="h-3 w-3" />
@@ -284,7 +284,7 @@ export default function LogCard({
           ) : (
             <Link
               href={`/title/${t.id}`}
-              className="inline-flex items-center gap-1.5 rounded-full border border-blue-200/50 bg-blue-50 px-2.5 py-1 text-[11px] font-medium text-blue-600 transition-colors hover:bg-blue-100 dark:border-blue-900/50 dark:bg-blue-950/40 dark:text-blue-400"
+              className="inline-flex items-center gap-1.5 rounded-full border border-ott-sky-soft bg-ott-sky-soft px-2.5 py-1 text-[11px] font-medium text-primary transition-colors hover:bg-accent dark:border-blue-900/50 dark:bg-blue-950/40 dark:text-blue-400"
             >
               <MessageSquare className="h-3 w-3" />+ {tCommon("addMoreDetails")}
             </Link>
