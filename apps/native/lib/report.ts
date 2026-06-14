@@ -1,0 +1,194 @@
+import type { PersonalReport, WatchLog } from './types';
+
+type CounterMap = Record<string, number>;
+
+function pct(numerator: number, denominator: number): number {
+  if (!denominator) return 0;
+  return Math.round((numerator / denominator) * 1000) / 10;
+}
+
+function maxEntry(counter: CounterMap): string {
+  const entries = Object.entries(counter);
+  if (!entries.length) return '-';
+  entries.sort((a, b) => b[1] - a[1]);
+  return entries[0][0];
+}
+
+function dayKey(iso: string): string {
+  const d = new Date(iso);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+function localDate(iso: string): Date {
+  const d = new Date(iso);
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+}
+
+function daysBetween(from: Date, to: Date): number {
+  const start = new Date(from.getFullYear(), from.getMonth(), from.getDate());
+  const end = new Date(to.getFullYear(), to.getMonth(), to.getDate());
+  return Math.max(0, Math.round((end.getTime() - start.getTime()) / 86400000));
+}
+
+function weekMonday(date: Date): Date {
+  const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const day = d.getDay() || 7;
+  d.setDate(d.getDate() - day + 1);
+  return d;
+}
+
+function calcStreak(days: string[], today = new Date()): { current: number; longest: number } {
+  if (!days.length) return { current: 0, longest: 0 };
+  const sortedUnique = Array.from(new Set(days)).sort();
+
+  let longest = 1;
+  let run = 1;
+  for (let i = 1; i < sortedUnique.length; i += 1) {
+    const prev = new Date(`${sortedUnique[i - 1]}T00:00:00`);
+    const curr = new Date(`${sortedUnique[i]}T00:00:00`);
+    const diff = Math.round((curr.getTime() - prev.getTime()) / 86400000);
+    if (diff === 1) {
+      run += 1;
+      if (run > longest) longest = run;
+    } else {
+      run = 1;
+    }
+  }
+
+  const todayKey = dayKey(today.toISOString());
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yesterdayKey = dayKey(yesterday.toISOString());
+
+  const activeStartKey = sortedUnique.includes(todayKey)
+    ? todayKey
+    : sortedUnique.includes(yesterdayKey)
+      ? yesterdayKey
+      : null;
+  if (!activeStartKey) return { current: 0, longest };
+
+  let current = 1;
+  const cursor = new Date(`${activeStartKey}T00:00:00`);
+  while (true) {
+    cursor.setDate(cursor.getDate() - 1);
+    const key = dayKey(cursor.toISOString());
+    if (!sortedUnique.includes(key)) break;
+    current += 1;
+  }
+  return { current, longest };
+}
+
+export function buildPersonalReport(logs: WatchLog[], now = new Date()): PersonalReport {
+  if (!logs.length) {
+    return {
+      totalLogs: 0,
+      thisMonthLogs: 0,
+      doneRatePct: 0,
+      ratingFillPct: 0,
+      noteFillPct: 0,
+      topType: '-',
+      topPlace: '-',
+      topOccasion: '-',
+      streakDays: 0,
+      longestStreakDays: 0,
+      lastLoggedAt: null,
+      previousWeekLogs: 0,
+      monthlyTopGenre: '-',
+      monthlyTopGenreCount: 0,
+      daysSinceLastLog: 0,
+      continueSeriesTitleId: null,
+      continueSeriesTitle: null,
+      continueSeriesSeasonNumber: null,
+      continueSeriesEpisodeNumber: null,
+    };
+  }
+
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth();
+  const today = localDate(now.toISOString());
+  const thisMonday = weekMonday(today);
+  const previousMonday = new Date(thisMonday);
+  previousMonday.setDate(previousMonday.getDate() - 7);
+  let thisMonthLogs = 0;
+  let previousWeekLogs = 0;
+  let doneCount = 0;
+  let ratingCount = 0;
+  let noteCount = 0;
+  let lastLoggedAt = logs[0].watchedAt;
+  let continueSeries: WatchLog | null = null;
+  const types: CounterMap = {};
+  const places: CounterMap = {};
+  const occasions: CounterMap = {};
+  const monthlyGenres: CounterMap = {};
+  const days: string[] = [];
+
+  for (const log of logs) {
+    const watchedDate = new Date(log.watchedAt);
+    const watchedDay = localDate(log.watchedAt);
+    if (watchedDate.getFullYear() === currentYear && watchedDate.getMonth() === currentMonth) {
+      thisMonthLogs += 1;
+      for (const genre of log.title.genres ?? []) {
+        if (genre?.trim()) monthlyGenres[genre.trim()] = (monthlyGenres[genre.trim()] ?? 0) + 1;
+      }
+    }
+    if (watchedDay >= previousMonday && watchedDay < thisMonday) {
+      previousWeekLogs += 1;
+    }
+    if (log.status === 'DONE') doneCount += 1;
+    if (typeof log.rating === 'number') ratingCount += 1;
+    if (typeof log.note === 'string' && log.note.trim().length > 0) noteCount += 1;
+
+    const typeKey = log.title.type ?? 'unknown';
+    types[typeKey] = (types[typeKey] ?? 0) + 1;
+    if (log.place) places[log.place] = (places[log.place] ?? 0) + 1;
+    if (log.occasion) occasions[log.occasion] = (occasions[log.occasion] ?? 0) + 1;
+
+    days.push(dayKey(log.watchedAt));
+    if (new Date(lastLoggedAt).getTime() < watchedDate.getTime()) {
+      lastLoggedAt = log.watchedAt;
+    }
+
+    const daysFromWatched = daysBetween(watchedDay, today);
+    const seriesCandidate =
+      log.title.type === 'series' &&
+      (log.status === 'IN_PROGRESS' ||
+        typeof log.seasonNumber === 'number' ||
+        typeof log.episodeNumber === 'number') &&
+      daysFromWatched >= 2 &&
+      daysFromWatched <= 14;
+    if (
+      seriesCandidate &&
+      (!continueSeries || new Date(continueSeries.watchedAt).getTime() < watchedDate.getTime())
+    ) {
+      continueSeries = log;
+    }
+  }
+
+  const streak = calcStreak(days, now);
+  const monthlyTopGenre = maxEntry(monthlyGenres);
+
+  return {
+    totalLogs: logs.length,
+    thisMonthLogs,
+    doneRatePct: pct(doneCount, logs.length),
+    ratingFillPct: pct(ratingCount, logs.length),
+    noteFillPct: pct(noteCount, logs.length),
+    topType: maxEntry(types),
+    topPlace: maxEntry(places),
+    topOccasion: maxEntry(occasions),
+    streakDays: streak.current,
+    longestStreakDays: streak.longest,
+    lastLoggedAt,
+    previousWeekLogs,
+    monthlyTopGenre,
+    monthlyTopGenreCount: monthlyTopGenre === '-' ? 0 : (monthlyGenres[monthlyTopGenre] ?? 0),
+    daysSinceLastLog: daysBetween(localDate(lastLoggedAt), today),
+    continueSeriesTitleId: continueSeries?.title.id ?? null,
+    continueSeriesTitle: continueSeries?.title.name ?? null,
+    continueSeriesSeasonNumber: continueSeries?.seasonNumber ?? null,
+    continueSeriesEpisodeNumber: continueSeries?.episodeNumber ?? null,
+  };
+}

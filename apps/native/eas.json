@@ -1,0 +1,26 @@
+{
+  "cli": {
+    "version": ">= 15.0.0"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal"
+    },
+    "testflight": {
+      "distribution": "store",
+      "autoIncrement": true
+    },
+    "production": {
+      "distribution": "store",
+      "autoIncrement": true
+    }
+  },
+  "submit": {
+    "testflight": {
+      "ios": {
+        "ascAppId": "TODO_ASC_APP_ID"
+      }
+    }
+  }
+}

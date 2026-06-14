@@ -14,7 +14,7 @@ public record TrackAnalyticsEventRequest(
         @Pattern(regexp = "^[a-z0-9_]{2,64}$", message = "eventName must match ^[a-z0-9_]{2,64}$")
         String eventName,
         @NotBlank(message = "platform is required")
-        @Pattern(regexp = "^(web|pwa|twa)$", message = "platform must be one of web, pwa, twa")
+        @Pattern(regexp = "^(web|pwa|twa|ios_native)$", message = "platform must be one of web, pwa, twa, ios_native")
         String platform,
         @Size(max = 128, message = "sessionId must be <= 128 chars")
         String sessionId,
