@@ -11,14 +11,13 @@ import { fetchUserProfile } from "./profileApi";
 import type { UserProfile } from "./types";
 
 export function useUserProfile() {
-  const [profile, setProfile] = useState<UserProfile | null>(() =>
-    getCachedUserProfile(),
-  );
+  const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(false);
 
   const refresh = useCallback(async () => {
     if (!getUserId() || !getDeviceId()) {
       setProfile(null);
+      setCachedUserProfile(null);
       return null;
     }
     setLoading(true);
@@ -34,6 +33,9 @@ export function useUserProfile() {
   }, []);
 
   useEffect(() => {
+    if (getUserId() && getDeviceId()) {
+      setProfile(getCachedUserProfile());
+    }
     refresh();
 
     function handleProfileUpdated(event: Event) {

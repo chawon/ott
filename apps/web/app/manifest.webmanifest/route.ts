@@ -17,8 +17,8 @@ export function GET(request: NextRequest) {
       start_url: "/",
       display: "standalone",
       orientation: "portrait",
-      background_color: "#F0F6FF",
-      theme_color: "#1E4D8C",
+      background_color: "#F8F6F2",
+      theme_color: "#FF9933",
       lang: isEn ? "en" : "ko",
       categories: ["entertainment", "books", "lifestyle", "productivity"],
       icons: [
