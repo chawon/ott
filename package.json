@@ -14,5 +14,8 @@
     "native:testflight:check:structure": "npm run testflight:check:structure --workspace native",
     "native:typecheck": "npm run typecheck --workspace native",
     "native:test": "npm run test --workspace native -- --runInBand"
+  },
+  "devDependencies": {
+    "node-gyp": "^12.4.0"
   }
 }
