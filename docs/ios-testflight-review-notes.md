@@ -57,6 +57,8 @@ The app does not read video playback contents from other apps. iOS recap reminde
 
 ## Internal TestFlight 확인 항목
 
+- Apple Developer Program approval is active. (`2026-06-15` 완료)
+- App Store Connect app record for `ottline` / `app.ottline` is created.
 - App Store Connect `ascAppId` is set in `apps/native/eas.json`.
 - EAS project id is set in `apps/native/app.json`.
 - EAS iOS signing credentials are configured.
