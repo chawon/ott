@@ -50,7 +50,7 @@
 | [[gitops]] | OKE + ArgoCD 기반 GitOps 배포 자동화 가이드 |
 | [[ottline-branding]] | ott.preview.pe.kr → ottline.app 도메인 전환 및 브랜드 일괄 적용, 2026-04-18 old domain 301 컷오버 및 루트 OG 최신화 반영 |
 | [[security]] | 코드 리뷰 발견 보안 이슈 및 사고 대응 체크리스트, 2026-04-18 public repo 후속 정리 메모 포함 |
-| [[staging]] | OKE 별도 namespace + Cloudflare Access 접근 제한 스테이징 환경 |
+| [[staging]] | 상시 staging 종료 후 production 수동 배포와 on-demand staging 원칙 |
 | [[ux-copy]] | 서비스 전반 사용자 노출 문구 톤/용어/형식 표준화 가이드 |
 | [[ux-reviews]] | 서비스 UX 검토 및 개선 사항 통합 (2026-02-06, 2026-02-10) |
 | [[design-review]] | ui-ux-pro-max 기반 디자인 점검 — primary 컬러 미연결, cursor-pointer 누락 등 (2026-04-07) |

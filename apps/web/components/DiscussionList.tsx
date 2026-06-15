@@ -37,7 +37,7 @@ export default function DiscussionList({
     return (
       <div
         className={cn(
-          "rounded-2xl border border-border bg-card p-5 text-sm text-muted-foreground shadow-sm",
+          "rounded-2xl border border-border bg-card/85 p-5 text-sm text-muted-foreground shadow-sm",
         )}
       >
         {emptyText || tList("defaultEmpty")}
@@ -46,12 +46,12 @@ export default function DiscussionList({
   }
 
   return (
-    <div className="rounded-2xl border border-border bg-card p-4 shadow-sm text-card-foreground">
+    <div className="rounded-2xl border border-border bg-card/85 p-4 text-card-foreground shadow-sm">
       <div className="space-y-3">
         {items.map((d) => (
           <article
             key={d.id}
-            className="rounded-xl px-2 py-2 transition hover:bg-muted/60"
+            className="rounded-xl px-2 py-2 transition hover:bg-ott-paper-strong/80"
           >
             <Link
               href={
@@ -61,7 +61,7 @@ export default function DiscussionList({
               }
               className="flex items-center gap-4"
             >
-              <div className="h-16 w-12 shrink-0 overflow-hidden rounded-lg bg-muted border border-border">
+              <div className="h-16 w-12 shrink-0 overflow-hidden rounded-lg border border-border bg-muted">
                 {d.posterUrl ? (
                   <img
                     src={tmdbResize(d.posterUrl, "w185") ?? d.posterUrl}
@@ -112,14 +112,14 @@ export default function DiscussionList({
         {trendingItems.map((item) => (
           <article
             key={`${item.provider}:${item.providerId}`}
-            className="rounded-xl px-2 py-2 transition hover:bg-muted/60"
+            className="rounded-xl px-2 py-2 transition hover:bg-ott-paper-strong/80"
           >
             <button
               type="button"
               onClick={() => onTrendingSelect?.(item)}
               className="flex w-full items-center gap-4 text-left"
             >
-              <div className="h-16 w-12 shrink-0 overflow-hidden rounded-lg bg-muted border border-border">
+              <div className="h-16 w-12 shrink-0 overflow-hidden rounded-lg border border-border bg-muted">
                 {item.posterUrl ? (
                   <img
                     src={tmdbResize(item.posterUrl, "w185") ?? item.posterUrl}
@@ -143,7 +143,7 @@ export default function DiscussionList({
                 </div>
               </div>
               <div className="shrink-0 text-right">
-                <div className="inline-flex rounded-full border border-blue-100 bg-blue-50 px-2 py-1 text-[10px] font-semibold text-blue-700">
+                <div className="inline-flex rounded-full border border-ott-warm bg-ott-warm/60 px-2 py-1 text-[10px] font-semibold text-ott-warm-foreground">
                   {tList("trendingBadge")}
                 </div>
                 <div className="mt-1 text-xs font-medium text-muted-foreground">

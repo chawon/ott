@@ -384,15 +384,15 @@ export default function HomePage() {
                 />
               ) : null}
               <div className="min-w-0 space-y-1">
-                <h1 className="text-xl font-semibold flex items-center gap-2">
+                <h1 className="flex items-center gap-2 text-2xl font-semibold text-foreground">
                   {!profileComplete ? <PencilLine className="h-4 w-4" /> : null}
                   <span className="truncate">{heroTitle}</span>
                 </h1>
                 <p
                   className={
                     profileComplete
-                      ? "text-sm text-muted-foreground"
-                      : "text-sm text-muted-foreground ml-6"
+                      ? "text-sm leading-relaxed text-muted-foreground"
+                      : "ml-6 text-sm leading-relaxed text-muted-foreground"
                   }
                 >
                   {heroDescription}
@@ -429,13 +429,13 @@ export default function HomePage() {
         </section>
         <section className="space-y-3">
           <div className="flex items-baseline justify-between">
-            <div className="text-base font-semibold flex items-center gap-2">
+            <div className="flex items-center gap-2 text-base font-semibold">
               <NotebookPen className="h-4 w-4" />
               {recordsTitle}
             </div>
             <Link
               href="/timeline"
-              className="text-sm text-neutral-700 hover:underline"
+              className="text-sm font-medium text-primary hover:underline"
             >
               {tHome("viewAll")}
             </Link>
@@ -449,7 +449,7 @@ export default function HomePage() {
           ) : null}
 
           {!loading && logs.length === 0 ? (
-            <div className="rounded-2xl border border-border bg-card p-5 text-sm text-muted-foreground shadow-sm">
+            <div className="rounded-2xl border border-border bg-card/85 p-5 text-sm text-muted-foreground shadow-sm">
               {tHome("emptyRecords")}
             </div>
           ) : null}
@@ -485,7 +485,7 @@ export default function HomePage() {
           </div>
           <Link
             href="/public"
-            className="text-sm text-neutral-700 hover:underline"
+            className="text-sm font-medium text-primary hover:underline"
           >
             {tHome("viewAll")}
           </Link>

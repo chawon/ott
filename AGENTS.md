@@ -1,5 +1,13 @@
 # AGENTS.md
 
+<!-- omd:start v=1 hash=be71c8d154c9 -->
+## Design System (oh-my-design)
+
+**Before any UI, styling, copy, or motion change, open and read `./DESIGN.md` in full.** It is the authoritative brand/design spec. Treat its tokens, voice, and component rules as binding unless the user overrides in chat.
+
+If present, read `./.omd/preferences.md` — pending corrections not yet folded into DESIGN.md. Apply them; flag conflicts.
+<!-- omd:end -->
+
 ## 1) 문서 목적
 이 문서는 Codex(에이전트)가 바로 실행 가능한 상태로 일하기 위한 운영 가이드다.
 핵심은 아래 3가지를 항상 고정하는 것이다.
@@ -60,6 +68,15 @@
 
 ## 3) 이번 사이클 목표 (우선순위 고정)
 
+### P0
+1. **OCI Always Free 축소 대응 및 인프라 right-sizing**
+2. 현재 기준
+   1. `2026-06-15` 기준 OCI A1 사용량은 DB 인스턴스 `1 OCPU / 6GB`, OKE worker node `3 OCPU / 18GB`로 총 `4 OCPU / 24GB`였다.
+   2. 비용/Free Tier 한도 대응을 위해 `n8n` namespace와 상시 `ott-staging` 환경은 제거했다. `deploy/oke-staging/*` 삭제, `ott-staging-app` ArgoCD Application 삭제, `ott-staging` namespace 삭제, `staging.ottline.app` ingress 제거까지 완료했고, 배포 전략은 PR/CI 검증 후 production 수동 배포로 전환했다.
+   3. 남은 최우선 작업은 전체 A1 사용량을 `2 OCPU / 12GB` 안에 맞추는 것이다. 우선 후보는 DB를 `1 OCPU / 2GB` 수준으로 줄이고, OKE worker node를 `1 OCPU / 10GB` 수준으로 줄이는 조합이다.
+   4. DB 인스턴스 축소는 재부팅이 발생하므로 작업 전 백업/스냅샷과 점검 시간을 확보한다. OKE worker node 축소는 단일 노드 환경에서 pod 재스케줄링과 짧은 서비스 영향 가능성이 있으므로 production 상태와 메모리 여유를 확인한 뒤 진행한다.
+   5. 상세 운영 계획과 체크리스트는 `docs/oci-always-free-rightsizing.md`를 기준으로 한다.
+
 ### 완료
 1. **다국어(i18n) 및 글로벌 서비스화**: `next-intl` 적용, 전체 UI 번역, 백엔드 데이터 연동 완료.
 2. **도메인 이전 및 마이그레이션**: `ottline.app` 신규 도메인 연결 및 리다이렉트 기반 인증 정보 이식 완료.
@@ -117,7 +134,7 @@
 ### P1
 1. Public repo 보안 후속 정리
 2. 현재 기준
-   1. `deploy/oke/registry-secret.yaml`, `deploy/oke-staging/registry-secret.yaml`에 OCIR pull secret이 남아 있어 ESO/Vault 기반 관리로 전환 필요
+   1. `deploy/oke/registry-secret.yaml`에 OCIR pull secret이 남아 있어 ESO/Vault 기반 관리로 전환 필요
    2. `apps/api/src/main/resources/application-local.yaml`의 TMDB 개발용 토큰은 env 참조로 치환 필요
    3. 문서에 남은 운영 자격증명/토큰 표기는 scrub 필요
    4. 관련 credential 회전 후 git history 정리는 별도 후속 작업으로 처리
@@ -142,17 +159,15 @@
 ### 브랜치 구조
 
 ```
-feature/* ──PR──→ main ──→ [자동] staging.ottline.app
-                                  ↓
-                         GitHub Actions workflow_dispatch
-                         (SHA 입력)
-                                  ↓
-                            ottline.app (프로덕션)
+feature/* ──PR/CI──→ main ──→ GitHub Actions workflow_dispatch
+                                      (main SHA 입력)
+                                      ↓
+                                 ottline.app (프로덕션)
 ```
 
 | 브랜치 | 용도 | 직접 푸시 |
 |---|---|---|
-| `main` | 스테이징 자동 배포 트리거 | PR만 (문서-only는 직접 푸시 허용) |
+| `main` | 프로덕션 배포 가능한 기준 브랜치 | PR만 (문서-only는 직접 푸시 허용) |
 | `feature/*` | 기능 개발 | ✅ |
 | `fix/*` | 버그 수정 | ✅ |
 | `hotfix/*` | 긴급 수정 (스테이징 생략 가능) | ✅ |
@@ -161,29 +176,27 @@ feature/* ──PR──→ main ──→ [자동] staging.ottline.app
 
 1. **새 기능/수정 작업은 반드시 브랜치 먼저**: 작업 시작 전 `feature/작업명` 또는 `fix/작업명` 브랜치를 만든다.
 2. **main 직접 커밋 금지**: main에는 PR(머지)로만 반영한다. 단, 문서-only 변경은 사용자의 상시 허용에 따라 브랜치/PR 없이 main에 직접 커밋·푸시한다.
-3. **스테이징 먼저, 프로덕션은 수동**: main 머지 = 스테이징 자동 배포. 프로덕션은 사용자가 직접 `workflow_dispatch`로 수동 트리거.
-4. **hotfix 예외**: 긴급 수정은 `hotfix/*` 브랜치에서 main으로 직접 PR 가능. 이때 사용자에게 스테이징 생략 여부를 먼저 확인한다.
+3. **상시 스테이징 없음**: main 머지는 클러스터에 자동 배포하지 않는다. PR/CI 검증 후 프로덕션은 사용자가 직접 `workflow_dispatch`로 수동 트리거한다.
+4. **hotfix 예외**: 긴급 수정은 `hotfix/*` 브랜치에서 main으로 직접 PR 가능. 배포 전 사용자에게 프로덕션 즉시 반영 여부를 확인한다.
 
 ### 프로덕션 배포 방법
 
-1. staging 배포 워크플로우 완료 후 **Summary 탭**에서 SHA 복사
-2. GitHub Actions → **Deploy Web to Production** / **Deploy API to Production** → `Run workflow`
-3. `sha` 입력란에 복사한 SHA 붙여넣기
-
-> SHA를 모를 때: `deploy/oke-staging/{web,api}-deployment.yaml`의 이미지 태그에서 `staging-` 뒤 값이 SHA
+1. PR CI 또는 main 검증 워크플로우가 성공했는지 확인한다.
+2. 배포할 main 커밋 SHA를 확인한다.
+3. GitHub Actions → **Deploy Web to Production** / **Deploy API to Production** → `Run workflow`
+4. `sha` 입력란에 main 커밋 SHA를 붙여넣는다.
 
 ### 이미지 태그 규칙
 
 | 환경 | 태그 형식 | 워크플로우 |
 |---|---|---|
-| 스테이징 | `staging-{full-sha}` | `deploy-web.yml` / `deploy-api.yml` (main push 자동) |
 | 프로덕션 | `{full-sha}` | `deploy-web-production.yml` / `deploy-api-production.yml` (수동) |
+| 검증 CI | 이미지 push 없음 | `deploy-web.yml` / `deploy-api.yml` (PR/main 검증) |
 
 ### 인프라 구성 요약
 
-- **스테이징**: `ott-staging` 네임스페이스, `staging.ottline.app`, Cloudflare Access로 접근 제한
 - **프로덕션**: `ott` 네임스페이스, `ottline.app`
-- **GitOps**: ArgoCD가 `deploy/oke/`, `deploy/oke-staging/` 디렉토리를 main HEAD에 자동 동기화
+- **GitOps**: ArgoCD가 `deploy/oke/` 디렉토리를 main HEAD에 자동 동기화
 - **시크릿 관리**: OCI Vault → ESO (git에 시크릿 실제 값 커밋 절대 금지)
 - **TLS**: Cloudflare Origin Certificate (cert-manager/Let's Encrypt 아님)
 - **버전 표시**: Footer에 `web {sha} · api {sha}` 형식으로 현재 배포 버전 표시

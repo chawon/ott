@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       sha:
-        description: 'Git SHA to deploy (must already be deployed to staging)'
+        description: 'Git SHA to deploy (must be merged to main and verified by CI)'
         required: true
         type: string
 

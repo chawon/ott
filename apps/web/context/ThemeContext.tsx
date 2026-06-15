@@ -20,8 +20,8 @@ type ThemeContextType = {
 
 const STORAGE_KEY = "theme-mode";
 const THEME_BACKGROUND = {
-  light: "#ffffff",
-  dark: "#1f1f1f",
+  light: "#F8F6F2",
+  dark: "#15120F",
 } as const;
 const useIsomorphicLayoutEffect =
   typeof window === "undefined" ? useEffect : useLayoutEffect;

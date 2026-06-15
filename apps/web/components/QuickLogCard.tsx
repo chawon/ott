@@ -63,9 +63,9 @@ const OTT_CUSTOM_VALUE = "__custom__";
 const VIDEO_CUSTOM_KEY = "watchlog.ott.custom";
 const BOOK_CUSTOM_KEY = "watchlog.book.platform.custom";
 const fieldControlClass =
-  "min-h-[40px] w-full select-base rounded-xl px-3 py-2 text-sm outline-none transition-all focus:ring-2 focus:ring-neutral-900/5";
+  "min-h-[40px] w-full select-base rounded-xl px-3 py-2 text-sm outline-none transition-all focus:border-primary/30 focus:ring-2 focus:ring-primary/10";
 const selectControlClass =
-  "flex h-10 w-full items-center select-base rounded-xl px-3 py-0 text-sm outline-none transition-all focus:ring-2 focus:ring-neutral-900/5";
+  "flex h-10 w-full items-center select-base rounded-xl px-3 py-0 text-sm outline-none transition-all focus:border-primary/30 focus:ring-2 focus:ring-primary/10";
 const disabledControlClass = "cursor-not-allowed opacity-50";
 type QuickLogTranslator = ReturnType<typeof useTranslations>;
 
@@ -827,16 +827,18 @@ export default function QuickLogCard({
     const active = contentType === type;
     return cn(
       "inline-flex h-10 items-center justify-center rounded-xl px-4 text-xs font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-      active && type === "video" && "bg-foreground text-background shadow-sm",
+      active &&
+        type === "video" &&
+        "bg-primary text-primary-foreground shadow-sm",
       !active &&
         type === "video" &&
-        "bg-muted text-muted-foreground hover:bg-muted/80",
+        "bg-ott-paper-strong text-muted-foreground hover:bg-ott-sky-soft hover:text-foreground",
       active &&
         type === "book" &&
-        "border border-emerald-700 bg-emerald-700 text-white shadow-sm dark:bg-emerald-600 dark:border-emerald-600",
+        "border border-ott-sage-foreground bg-ott-sage-foreground text-white shadow-sm dark:bg-emerald-700 dark:border-emerald-700",
       !active &&
         type === "book" &&
-        "border border-emerald-200/70 bg-emerald-50/60 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-900/60 dark:bg-emerald-950/40 dark:text-emerald-300 dark:hover:bg-emerald-950/60",
+        "border border-ott-sage bg-ott-sage/55 text-ott-sage-foreground hover:bg-ott-sage dark:border-emerald-900/60 dark:bg-emerald-950/40 dark:text-emerald-300 dark:hover:bg-emerald-950/60",
     );
   }
 
@@ -844,9 +846,9 @@ export default function QuickLogCard({
     <>
       <section
         className={cn(
-          "rounded-2xl border border-border bg-card p-6 text-card-foreground shadow-sm space-y-4 transition-all hover:border-border/80",
+          "space-y-4 rounded-3xl border border-border bg-card/90 p-5 text-card-foreground shadow-[0_18px_60px_rgba(52,45,37,0.08)] transition-all hover:border-primary/20 sm:p-6",
           isBookMode &&
-            "bg-emerald-50/30 ring-1 ring-emerald-100/80 border-emerald-200/70 dark:bg-emerald-950/25 dark:ring-emerald-900/60 dark:border-emerald-900/50",
+            "border-ott-sage bg-ott-sage/25 ring-1 ring-ott-sage/50 dark:border-emerald-900/50 dark:bg-emerald-950/25 dark:ring-emerald-900/60",
         )}
       >
         {!selected ? (
@@ -879,9 +881,9 @@ export default function QuickLogCard({
 
             <div
               data-onboarding-target="title-search"
-              className="rounded-xl border border-blue-200 bg-blue-50/70 p-3 ring-2 ring-blue-100 shadow-sm"
+              className="rounded-2xl border border-ott-warm bg-ott-paper p-3 shadow-inner shadow-white/60 ring-1 ring-ott-warm/70 dark:shadow-none"
             >
-              <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-blue-700">
+              <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-primary">
                 <ArrowRight className="h-4 w-4" />
                 {tQuick("searchStartModern")}
               </div>
@@ -890,8 +892,8 @@ export default function QuickLogCard({
                   className={cn(
                     "mb-3 rounded-xl border px-3 py-2 text-xs leading-relaxed",
                     shareImportStatus === "imported"
-                      ? "border-blue-200 bg-white/80 text-blue-800 dark:border-blue-900/60 dark:bg-blue-950/30 dark:text-blue-200"
-                      : "border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-100",
+                      ? "border-ott-sky-soft bg-card/85 text-primary dark:border-blue-900/60 dark:bg-blue-950/30 dark:text-blue-200"
+                      : "border-ott-warm bg-ott-warm/60 text-ott-warm-foreground dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-100",
                   )}
                 >
                   <div className="font-semibold">
@@ -907,7 +909,7 @@ export default function QuickLogCard({
                   {shareImportFeedbackHref ? (
                     <Link
                       href={shareImportFeedbackHref}
-                      className="mt-1.5 inline-flex min-h-9 items-center font-semibold text-blue-700 underline underline-offset-4 dark:text-blue-200"
+                      className="mt-1.5 inline-flex min-h-9 items-center font-semibold text-primary underline underline-offset-4 dark:text-blue-200"
                     >
                       {tQuick("shareImportFeedbackAction")}
                     </Link>
@@ -936,11 +938,11 @@ export default function QuickLogCard({
         {selected ? (
           <div className="animate-in slide-in-from-top-2 duration-300 fade-in space-y-4">
             <div
-              className="rounded-xl border border-border bg-muted p-4 transition-colors"
+              className="rounded-2xl border border-border bg-ott-paper p-4 transition-colors"
               data-onboarding-target="selected-title"
             >
               <div className="flex items-center gap-5">
-                <div className="h-32 w-20 shrink-0 overflow-hidden rounded-lg bg-muted shadow-sm border border-border">
+                <div className="h-32 w-20 shrink-0 overflow-hidden rounded-xl border border-border bg-muted shadow-sm">
                   {(seasonPosterUrl ?? selected.posterUrl) ? (
                     <img
                       src={
@@ -992,7 +994,7 @@ export default function QuickLogCard({
                         {selected.genres.map((g) => (
                           <span
                             key={g}
-                            className="rounded-full border border-neutral-200 bg-neutral-50 px-2 py-0.5 text-[10px] text-neutral-600 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-400"
+                            className="rounded-full border border-border bg-card/80 px-2 py-0.5 text-[10px] text-muted-foreground dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-400"
                           >
                             {g}
                           </span>
@@ -1023,7 +1025,7 @@ export default function QuickLogCard({
                   type="button"
                   aria-label={tQuick("cancelAction")}
                   onClick={handleCancel}
-                  className="flex min-h-12 min-w-12 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                  className="flex min-h-12 min-w-12 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-ott-paper-strong hover:text-foreground"
                 >
                   <X className="h-5 w-5" />
                 </button>
@@ -1032,7 +1034,7 @@ export default function QuickLogCard({
 
             {!localLogId ? (
               <div className="space-y-4 pt-4 pb-2 animate-in fade-in duration-300">
-                <div className="text-sm font-semibold text-center text-foreground">
+                <div className="text-center text-sm font-semibold text-foreground">
                   {tQuick("statusPrompt")}
                 </div>
                 <div className="grid grid-cols-3 gap-2">
@@ -1040,7 +1042,7 @@ export default function QuickLogCard({
                     type="button"
                     onClick={() => handleInitialSave("DONE")}
                     disabled={saving}
-                    className="min-h-[52px] rounded-xl bg-foreground text-background font-bold text-sm transition-all active:scale-[0.98] disabled:opacity-50"
+                    className="min-h-[52px] rounded-xl bg-primary text-sm font-bold text-primary-foreground transition-all active:scale-[0.98] disabled:opacity-50"
                   >
                     {isBookMode
                       ? tQuick("statusDoneBook")
@@ -1050,7 +1052,7 @@ export default function QuickLogCard({
                     type="button"
                     onClick={() => handleInitialSave("IN_PROGRESS")}
                     disabled={saving}
-                    className="min-h-[52px] rounded-xl bg-muted text-foreground font-bold text-sm transition-all active:scale-[0.98] disabled:opacity-50"
+                    className="min-h-[52px] rounded-xl bg-ott-sky-soft text-sm font-bold text-primary transition-all active:scale-[0.98] disabled:opacity-50"
                   >
                     {isBookMode
                       ? tQuick("statusInProgressBook")
@@ -1060,7 +1062,7 @@ export default function QuickLogCard({
                     type="button"
                     onClick={() => handleInitialSave("WISHLIST")}
                     disabled={saving}
-                    className="min-h-[52px] rounded-xl border border-border bg-card text-foreground font-bold text-sm transition-all active:scale-[0.98] disabled:opacity-50"
+                    className="min-h-[52px] rounded-xl border border-ott-warm bg-ott-warm/55 text-sm font-bold text-ott-warm-foreground transition-all active:scale-[0.98] disabled:opacity-50"
                   >
                     {isBookMode
                       ? tQuick("statusWishlistBook")
@@ -1073,17 +1075,17 @@ export default function QuickLogCard({
               </div>
             ) : (
               <div className="space-y-6 pt-2 animate-in slide-in-from-top-4 fade-in duration-300">
-                <div className="text-sm font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 p-4 rounded-2xl text-center border border-emerald-200 dark:border-emerald-900/50">
+                <div className="rounded-2xl border border-ott-sage bg-ott-sage/45 p-4 text-center text-sm font-semibold text-ott-sage-foreground dark:border-emerald-900/50 dark:bg-emerald-950/40 dark:text-emerald-400">
                   {tQuick("saveSuccessPrompt")}
                 </div>
 
                 <div>
-                  <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-4 ml-1">
+                  <div className="mb-4 ml-1 text-xs font-bold uppercase tracking-wider text-muted-foreground">
                     {tQuick("optionalDetailsTitle")}
                   </div>
                   <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
                     <div className="space-y-2">
-                      <div className="text-xs font-medium text-neutral-500 ml-1 flex items-center gap-1.5">
+                      <div className="ml-1 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
                         <Clock className="h-3 w-3" />
                         {tQuick("detailStatus")}
                       </div>
@@ -1103,7 +1105,7 @@ export default function QuickLogCard({
                     {selected?.type === "series" ? (
                       <>
                         <div className="space-y-2">
-                          <div className="text-xs font-medium text-neutral-500 ml-1">
+                          <div className="ml-1 text-xs font-medium text-muted-foreground">
                             {tQuick("seasonLabel")}
                           </div>
                           <select
@@ -1129,7 +1131,7 @@ export default function QuickLogCard({
                             ))}
                           </select>
                           {seasonLoading ? (
-                            <div className="text-[11px] text-neutral-400">
+                            <div className="text-[11px] text-muted-foreground">
                               {tQuick("loadingSeasons")}
                             </div>
                           ) : null}
@@ -1141,7 +1143,7 @@ export default function QuickLogCard({
                         </div>
 
                         <div className="space-y-2">
-                          <div className="text-xs font-medium text-neutral-500 ml-1">
+                          <div className="ml-1 text-xs font-medium text-muted-foreground">
                             {tQuick("episodeLabel")}
                           </div>
                           <select
@@ -1170,7 +1172,7 @@ export default function QuickLogCard({
                             ))}
                           </select>
                           {episodeLoading ? (
-                            <div className="text-[11px] text-neutral-400">
+                            <div className="text-[11px] text-muted-foreground">
                               {tQuick("loadingEpisodes")}
                             </div>
                           ) : null}
@@ -1179,7 +1181,7 @@ export default function QuickLogCard({
                     ) : null}
 
                     <div className="space-y-2">
-                      <div className="text-xs font-medium text-neutral-500 ml-1 flex items-center gap-1.5">
+                      <div className="ml-1 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
                         <Star className="h-3 w-3" />
                         {tQuick("detailRating")}
                       </div>
@@ -1206,7 +1208,7 @@ export default function QuickLogCard({
                     </div>
 
                     <div className="md:col-span-2 space-y-2">
-                      <div className="text-xs font-medium text-neutral-500 ml-1 flex items-center gap-1.5">
+                      <div className="ml-1 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
                         <MonitorPlay className="h-3 w-3" />
                         {tQuick("detailPlatform")}
                       </div>
@@ -1261,7 +1263,7 @@ export default function QuickLogCard({
                     </div>
 
                     <div className="space-y-2">
-                      <div className="text-xs font-medium text-neutral-500 ml-1 flex items-center gap-1.5">
+                      <div className="ml-1 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
                         <MapPin className="h-3 w-3" />
                         {tQuick("detailPlace")}
                       </div>
@@ -1284,7 +1286,7 @@ export default function QuickLogCard({
                     </div>
 
                     <div className="space-y-2">
-                      <div className="text-xs font-medium text-neutral-500 ml-1 flex items-center gap-1.5">
+                      <div className="ml-1 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
                         <Users className="h-3 w-3" />
                         {tQuick("detailOccasion")}
                       </div>
@@ -1314,8 +1316,8 @@ export default function QuickLogCard({
                         className={cn(
                           "flex min-h-[52px] items-center gap-2 rounded-xl px-2 text-xs font-medium transition-colors",
                           useWatchedAt
-                            ? "text-neutral-900"
-                            : "text-neutral-400 hover:text-neutral-600",
+                            ? "text-foreground"
+                            : "text-muted-foreground hover:text-foreground",
                         )}
                       >
                         <Calendar className="h-3.5 w-3.5" />
@@ -1334,7 +1336,7 @@ export default function QuickLogCard({
                     </div>
 
                     <div className="md:col-span-2 space-y-2">
-                      <div className="text-xs font-medium text-neutral-500 ml-1 flex items-center gap-1.5">
+                      <div className="ml-1 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
                         <MessageSquare className="h-3 w-3" />
                         {tQuick("detailNote")}
                       </div>
@@ -1356,12 +1358,12 @@ export default function QuickLogCard({
                     data-onboarding-target="status-save"
                   >
                     <div className="space-y-1">
-                      <div className="text-xs font-medium text-neutral-500 ml-1 flex items-center gap-1.5">
+                      <div className="ml-1 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
                         <Share2 className="h-3 w-3" />
                         {tQuick("saveAndShare")}
                       </div>
-                      <div className="flex flex-row flex-nowrap items-center rounded-xl border border-border bg-muted/30 px-4 sm:px-6 py-2 overflow-x-auto no-scrollbar">
-                        <label className="flex min-h-[40px] cursor-pointer items-center whitespace-nowrap text-xs font-medium text-neutral-700">
+                      <div className="flex flex-row flex-nowrap items-center overflow-x-auto rounded-xl border border-border bg-ott-paper px-4 py-2 no-scrollbar sm:px-6">
+                        <label className="flex min-h-[40px] cursor-pointer items-center whitespace-nowrap text-xs font-medium text-foreground/80">
                           <input
                             type="checkbox"
                             checked={shareToDiscussion}
@@ -1378,7 +1380,7 @@ export default function QuickLogCard({
                           <span>{tQuick("shareToPublic")}</span>
                         </label>
                         <div className="w-10 sm:w-24 shrink-0" />
-                        <label className="flex min-h-[40px] cursor-pointer items-center whitespace-nowrap text-xs font-medium text-neutral-700">
+                        <label className="flex min-h-[40px] cursor-pointer items-center whitespace-nowrap text-xs font-medium text-foreground/80">
                           <input
                             type="checkbox"
                             checked={shareCard}
@@ -1399,7 +1401,7 @@ export default function QuickLogCard({
                       type="button"
                       disabled={!canSave}
                       onClick={handleUpdateSave}
-                      className="flex h-12 sm:h-14 min-h-[48px] sm:min-h-[56px] w-full items-center justify-center whitespace-nowrap rounded-2xl bg-neutral-900 px-8 text-sm font-semibold text-white transition-all hover:bg-neutral-800 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-40"
+                      className="flex h-12 min-h-[48px] w-full items-center justify-center whitespace-nowrap rounded-2xl bg-primary px-8 text-sm font-semibold text-primary-foreground transition-all hover:bg-primary/90 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-40 sm:h-14 sm:min-h-[56px]"
                     >
                       {saving ? tQuick("saving") : tQuick("saveActionModern")}
                     </button>
@@ -1413,17 +1415,17 @@ export default function QuickLogCard({
 
       {banner?.visible ? (
         <div className="fixed bottom-[var(--mobile-bottom-overlay-offset)] left-1/2 z-[100] w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 animate-in fade-in slide-in-from-bottom-4 duration-300 sm:bottom-6">
-          <div className="flex items-center justify-between gap-4 rounded-2xl border border-border bg-card/90 p-4 shadow-xl backdrop-blur-md">
+          <div className="flex items-center justify-between gap-4 rounded-2xl border border-border bg-card/95 p-4 shadow-xl backdrop-blur-md">
             <div className="text-sm font-medium text-foreground">
               {tQuick("successLike")}{" "}
-              <span className="font-bold text-blue-600">
+              <span className="font-bold text-primary">
                 {tQuick("successCount", { count: banner.count })}
               </span>
             </div>
             <Link
               href="/timeline"
               data-onboarding-target="timeline-confirm"
-              className="flex min-h-12 items-center gap-1 text-xs font-bold text-blue-600 hover:underline"
+              className="flex min-h-12 items-center gap-1 text-xs font-bold text-primary hover:underline"
             >
               {tQuick("viewTimeline")} <ArrowRight className="h-3 w-3" />
             </Link>
