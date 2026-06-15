@@ -68,6 +68,15 @@ If present, read `./.omd/preferences.md` — pending corrections not yet folded 
 
 ## 3) 이번 사이클 목표 (우선순위 고정)
 
+### P0
+1. **OCI Always Free 축소 대응 및 인프라 right-sizing**
+2. 현재 기준
+   1. `2026-06-15` 기준 OCI A1 사용량은 DB 인스턴스 `1 OCPU / 6GB`, OKE worker node `3 OCPU / 18GB`로 총 `4 OCPU / 24GB`였다.
+   2. 비용/Free Tier 한도 대응을 위해 `n8n` namespace와 상시 `ott-staging` 환경은 제거했다. `deploy/oke-staging/*` 삭제, `ott-staging-app` ArgoCD Application 삭제, `ott-staging` namespace 삭제, `staging.ottline.app` ingress 제거까지 완료했고, 배포 전략은 PR/CI 검증 후 production 수동 배포로 전환했다.
+   3. 남은 최우선 작업은 전체 A1 사용량을 `2 OCPU / 12GB` 안에 맞추는 것이다. 우선 후보는 DB를 `1 OCPU / 2GB` 수준으로 줄이고, OKE worker node를 `1 OCPU / 10GB` 수준으로 줄이는 조합이다.
+   4. DB 인스턴스 축소는 재부팅이 발생하므로 작업 전 백업/스냅샷과 점검 시간을 확보한다. OKE worker node 축소는 단일 노드 환경에서 pod 재스케줄링과 짧은 서비스 영향 가능성이 있으므로 production 상태와 메모리 여유를 확인한 뒤 진행한다.
+   5. 상세 운영 계획과 체크리스트는 `docs/oci-always-free-rightsizing.md`를 기준으로 한다.
+
 ### 완료
 1. **다국어(i18n) 및 글로벌 서비스화**: `next-intl` 적용, 전체 UI 번역, 백엔드 데이터 연동 완료.
 2. **도메인 이전 및 마이그레이션**: `ottline.app` 신규 도메인 연결 및 리다이렉트 기반 인증 정보 이식 완료.
