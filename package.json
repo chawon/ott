@@ -2,13 +2,17 @@
   "name": "ott-monorepo",
   "private": true,
   "workspaces": [
-    "apps/web"
+    "apps/*"
   ],
   "scripts": {
     "dev": "npm run dev --workspace ott",
     "build": "npm run build --workspace ott",
     "start": "npm run start --workspace ott",
     "lint": "npm run lint --workspace ott",
-    "format": "npm run format --workspace ott"
+    "format": "npm run format --workspace ott",
+    "native:testflight:check": "npm run testflight:check --workspace native",
+    "native:testflight:check:structure": "npm run testflight:check:structure --workspace native",
+    "native:typecheck": "npm run typecheck --workspace native",
+    "native:test": "npm run test --workspace native -- --runInBand"
   }
 }

@@ -784,6 +784,7 @@
     "activeUsersLabel": "활성 사용자",
     "byPlatform": "플랫폼별",
     "deviceSegments": "디바이스 세그먼트 (app_open 기준)",
+    "iosNativeSegments": "iOS 네이티브 세그먼트 (app_open 기준)",
     "androidAppSegments": "Android 앱 세그먼트 (app_open 기준)",
     "eventDetails": "이벤트 종류별 상세",
     "dailyDetails": "일자별 상세",

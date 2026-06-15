@@ -23,6 +23,8 @@ public record AdminAnalyticsOverviewDto(
         List<AdminDimensionSummaryDto> browserFamilies,
         List<AdminDimensionSummaryDto> installStates,
         List<AdminDimensionSummaryDto> domains,
+        List<AdminDimensionSummaryDto> iosAppVersions,
+        List<AdminDimensionSummaryDto> iosBuildNumbers,
         List<AdminDimensionSummaryDto> androidAppVersions,
         List<AdminDimensionSummaryDto> androidAppVersionCodes,
         List<AdminDimensionSummaryDto> androidTwaSignals,

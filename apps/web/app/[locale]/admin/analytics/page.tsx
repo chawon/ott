@@ -27,7 +27,7 @@ type AdminOverview = {
   funnelFirstLogCreateUsers: number;
   funnelLogCreateUsers: number;
   platforms: Array<{
-    platform: "web" | "pwa" | "twa";
+    platform: "web" | "pwa" | "twa" | "ios_native";
     events: number;
     activeUsers: number;
   }>;
@@ -36,6 +36,16 @@ type AdminOverview = {
   browserFamilies: Array<{ key: string; events: number; activeUsers: number }>;
   installStates: Array<{ key: string; events: number; activeUsers: number }>;
   domains: Array<{ key: string; events: number; activeUsers: number }>;
+  iosAppVersions?: Array<{
+    key: string;
+    events: number;
+    activeUsers: number;
+  }>;
+  iosBuildNumbers?: Array<{
+    key: string;
+    events: number;
+    activeUsers: number;
+  }>;
   androidAppVersions?: Array<{
     key: string;
     events: number;
@@ -69,7 +79,7 @@ type AdminEventRow = {
   userId: string | null;
   sessionId: string;
   eventName: string;
-  platform: "web" | "pwa" | "twa";
+  platform: "web" | "pwa" | "twa" | "ios_native";
   clientVersion: string | null;
   properties: string;
   occurredAt: string;
@@ -157,6 +167,8 @@ export default async function AdminAnalyticsPage({
   const visibleRecentEvents = recentEvents.filter(
     (row) => !isHiddenEvent(row.eventName),
   );
+  const iosAppVersions = overview?.iosAppVersions ?? [];
+  const iosBuildNumbers = overview?.iosBuildNumbers ?? [];
   const androidAppVersions = overview?.androidAppVersions ?? [];
   const androidAppVersionCodes = overview?.androidAppVersionCodes ?? [];
   const androidTwaSignals = overview?.androidTwaSignals ?? [];
@@ -413,6 +425,50 @@ export default async function AdminAnalyticsPage({
                 </div>
                 <div className="space-y-1.5 text-sm">
                   {overview.domains.map((row) => (
+                    <div
+                      key={row.key}
+                      className="flex items-center justify-between"
+                    >
+                      <span className="font-medium">{row.key}</span>
+                      <span className="text-muted-foreground">
+                        events {row.events} · active {row.activeUsers}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section className="rounded-2xl border border-border bg-card p-6">
+            <div className="text-sm font-semibold">
+              {t("iosNativeSegments")}
+            </div>
+            <div className="mt-3 grid gap-4 lg:grid-cols-2">
+              <div className="rounded-xl border border-border p-3">
+                <div className="mb-2 text-xs font-semibold text-muted-foreground">
+                  ios_app_version
+                </div>
+                <div className="space-y-1.5 text-sm">
+                  {iosAppVersions.map((row) => (
+                    <div
+                      key={row.key}
+                      className="flex items-center justify-between"
+                    >
+                      <span className="font-medium">{row.key}</span>
+                      <span className="text-muted-foreground">
+                        events {row.events} · active {row.activeUsers}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="rounded-xl border border-border p-3">
+                <div className="mb-2 text-xs font-semibold text-muted-foreground">
+                  ios_build_number
+                </div>
+                <div className="space-y-1.5 text-sm">
+                  {iosBuildNumbers.map((row) => (
                     <div
                       key={row.key}
                       className="flex items-center justify-between"
