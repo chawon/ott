@@ -40,7 +40,7 @@
 ## Deployment notes
 
 - OpenAI registration, domain verification, and reviewer testing must use `ottline.app`.
-- `staging.ottline.app` is behind Cloudflare Access, so it is not suitable for OpenAI registration or review flows.
+- Always-on `staging.ottline.app` has been retired, and review flows must use production URLs unless an explicit temporary staging environment is created.
 - The domain verification token is served by `apps/web` from `OPENAI_APPS_CHALLENGE_TOKEN`, so changing that value requires the production `web` pod to roll out again.
 - The secret mapping for production is managed in `deploy/oke/external-secret.yaml`.
 

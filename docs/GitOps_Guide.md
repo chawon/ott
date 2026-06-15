@@ -6,7 +6,7 @@
 
 ### 주요 특징
 *   **GitOps:** GitHub 저장소의 `deploy/oke` 폴더가 진실의 원천(Source of Truth)입니다. ArgoCD가 이 폴더를 감지하여 클러스터 상태를 동기화합니다.
-*   **분리 배포 (Split Deployment):** Web(`apps/web`)과 API(`apps/api`)는 서로 다른 GitHub Actions 워크플로우를 통해 독립적으로 빌드되고 배포됩니다.
+*   **분리 배포 (Split Deployment):** Web(`apps/web`)과 API(`apps/api`)는 서로 다른 GitHub Actions 워크플로우를 통해 독립적으로 검증되고 수동 배포됩니다.
 *   **ARM64 지원:** OKE의 Ampere A1 (ARM64) 노드에서 실행되도록 `linux/arm64` 아키텍처로 도커 이미지를 빌드합니다. GitHub Actions는 **ARM64 호스티드 러너(ubuntu-24.04-arm)** 를 사용합니다.
 *   **비용 최적화:** ArgoCD 전용 Load Balancer 없이 기존 Traefik Ingress를 통해 통합 접속(`argocd.preview.pe.kr`)합니다.
 
@@ -22,9 +22,11 @@ graph TD
         CodeAPI[⚙️ API Code]
     end
 
-    subgraph "GitHub Actions (CI)"
-        ActionWeb[🚀 Deploy Web Workflow (ARM64 Runner)]
-        ActionAPI[🚀 Deploy API Workflow (ARM64 Runner)]
+	    subgraph "GitHub Actions"
+	        VerifyWeb[✅ Verify Web Workflow]
+	        VerifyAPI[✅ Verify API Workflow]
+	        DeployWeb[🚀 Deploy Web to Production]
+	        DeployAPI[🚀 Deploy API to Production]
     end
 
     subgraph "Repositories"
@@ -42,16 +44,19 @@ graph TD
     %% Flow
     Dev -->|Push apps/web| CodeWeb
     Dev -->|Push apps/api| CodeAPI
-    
-    CodeWeb --> ActionWeb
-    CodeAPI --> ActionAPI
-    
-    ActionWeb -->|Build & Push| OCIR
-    ActionWeb -->|Update Tag & Push| GitManifest
-    
-    ActionAPI -->|Build & Push| OCIR
-    ActionAPI -->|Update Tag & Push| GitManifest
-    
+
+    CodeWeb --> VerifyWeb
+    CodeAPI --> VerifyAPI
+
+    VerifyWeb -->|Build| GitSource
+    VerifyAPI -->|Build| GitSource
+
+    DeployWeb -->|Build & Push| OCIR
+    DeployWeb -->|Update Tag & Push| GitManifest
+
+    DeployAPI -->|Build & Push| OCIR
+    DeployAPI -->|Update Tag & Push| GitManifest
+
     ArgoCD -- "Watch deploy/oke" --> GitManifest
     ArgoCD -- "Sync" --> PodWeb & PodAPI
 ```
@@ -60,19 +65,24 @@ graph TD
 
 ## 3. GitHub Actions 워크플로우
 
-두 개의 독립된 워크플로우 파일이 존재합니다.
+검증과 프로덕션 배포 워크플로우를 분리한다.
 
 1.  **`deploy-web.yml`**:
-    *   **트리거:** `apps/web/**` 또는 `shared/**` 폴더 변경 시.
-    *   **동작:** Web Dockerfile 빌드 (`linux/arm64`) -> OCIR 푸시 -> `deploy/oke/web-deployment.yaml` 태그 업데이트 -> Git Push.
+    *   **트리거:** PR, main push, 수동 실행.
+    *   **동작:** Next.js build -> Dockerfile 빌드 검증 (`linux/arm64`).
     *   **러너:** `ubuntu-24.04-arm` (ARM64 호스티드 러너)
-    *   **yq:** 러너 아키텍처에 맞는 바이너리 다운로드 (arm64/amd64 자동 선택)
+    *   **주의:** OCIR push와 Kubernetes manifest 갱신은 하지 않는다.
 
 2.  **`deploy-api.yml`**:
-    *   **트리거:** `apps/api/**` 또는 `shared/**` 폴더 변경 시.
-    *   **동작:** API Dockerfile 빌드 (`linux/arm64`) -> OCIR 푸시 -> `deploy/oke/api-deployment.yaml` 태그 업데이트 -> Git Push.
+    *   **트리거:** PR, main push, 수동 실행.
+    *   **동작:** Gradle build -> Dockerfile 빌드 검증 (`linux/arm64`).
     *   **러너:** `ubuntu-24.04-arm` (ARM64 호스티드 러너)
-    *   **yq:** 러너 아키텍처에 맞는 바이너리 다운로드 (arm64/amd64 자동 선택)
+    *   **주의:** OCIR push와 Kubernetes manifest 갱신은 하지 않는다.
+
+3.  **`deploy-web-production.yml`** / **`deploy-api-production.yml`**:
+    *   **트리거:** `workflow_dispatch`.
+    *   **입력:** CI 검증이 끝난 main 커밋 SHA.
+    *   **동작:** production 이미지 빌드 및 OCIR push -> `deploy/oke/{web,api}-deployment.yaml` 태그 업데이트 -> Git Push.
 
 > **주의:** `deploy/` 폴더 내의 파일 수정은 CI를 트리거하지 않도록 설정되어 있습니다 (`paths-ignore` 효과). 이는 무한 배포 루프를 방지하기 위함입니다.
 
@@ -82,14 +92,13 @@ graph TD
 
 ### A. 새로운 버전 배포 방법 (Routine Deployment)
 
-개발자는 **소스 코드만 수정하고 푸시**하면 됩니다. 나머지는 자동입니다.
+main 머지는 클러스터에 자동 배포되지 않는다. 프로덕션 반영은 수동 workflow로 수행한다.
 
 1.  **코드 수정:** `apps/web` 또는 `apps/api` 코드를 수정합니다.
-2.  **Git Push:** `main` 브랜치로 푸시합니다.
-3.  **자동 배포:**
-    *   GitHub Actions가 자동으로 실행되어 이미지를 빌드합니다.
-    *   빌드가 성공하면 Manifest 파일(`deploy/oke/*.yaml`)의 이미지 태그가 자동으로 업데이트됩니다.
-    *   ArgoCD가 변경 사항을 감지하고 OKE 클러스터의 파드를 교체합니다.
+2.  **PR/CI 검증:** `deploy-web.yml` / `deploy-api.yml`이 빌드와 Dockerfile 검증을 수행합니다.
+3.  **main 머지:** 검증된 변경을 main에 병합합니다.
+4.  **수동 배포:** GitHub Actions에서 **Deploy Web/API to Production**을 실행하고 main SHA를 입력합니다.
+5.  **GitOps 적용:** workflow가 `deploy/oke/*.yaml`의 이미지 태그를 갱신하면 ArgoCD가 production 파드를 교체합니다.
 
 ### B. 환경 설정 변경 (Config/Secret)
 
@@ -105,8 +114,9 @@ graph TD
 
 ### C. 문제 발생 시 대응
 
-*   **배포 실패 (GitHub Actions):** Actions 탭에서 로그를 확인합니다. `npm build` 에러나 `docker push` 에러인지 확인하세요.
-*   **Git Push 충돌:** Web과 API가 동시에 배포될 경우 `git push` 단계에서 충돌이 날 수 있습니다. 워크플로우에는 `git pull --rebase` 로직이 포함되어 있어 자동으로 해결을 시도합니다.
+*   **검증 실패 (GitHub Actions):** Actions 탭에서 로그를 확인합니다. Web/API build와 Dockerfile build 중 어디서 실패했는지 먼저 분리하세요.
+*   **배포 실패 (Production workflows):** Docker push 또는 manifest 갱신 단계의 실패 여부를 확인합니다.
+*   **Git Push 충돌:** Web과 API production workflow가 동시에 배포될 경우 manifest push 단계에서 충돌이 날 수 있습니다. 워크플로우에는 `git pull --rebase` 로직이 포함되어 있어 자동으로 해결을 시도합니다.
 *   **파드 에러 (CrashLoopBackOff):** `kubectl logs -n ott <pod-name>`으로 로그를 확인하세요. DB 연결 정보나 환경 변수 문제일 수 있습니다.
 *   **롤백 (Rollback):**
     *   GitHub에서 문제가 발생하기 전의 커밋으로 `git revert` 합니다.
@@ -117,4 +127,4 @@ graph TD
 
 *   **서비스 주소:** `https://ottline.app`
 *   **ArgoCD 대시보드:** `https://argocd.preview.pe.kr`
-    *   계정: `admin` / `FZU-8L2G9Thq2nUC`
+    *   계정 정보는 Kubernetes secret 또는 운영 비밀번호 관리자에서 확인합니다.

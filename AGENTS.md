@@ -125,7 +125,7 @@ If present, read `./.omd/preferences.md` — pending corrections not yet folded 
 ### P1
 1. Public repo 보안 후속 정리
 2. 현재 기준
-   1. `deploy/oke/registry-secret.yaml`, `deploy/oke-staging/registry-secret.yaml`에 OCIR pull secret이 남아 있어 ESO/Vault 기반 관리로 전환 필요
+   1. `deploy/oke/registry-secret.yaml`에 OCIR pull secret이 남아 있어 ESO/Vault 기반 관리로 전환 필요
    2. `apps/api/src/main/resources/application-local.yaml`의 TMDB 개발용 토큰은 env 참조로 치환 필요
    3. 문서에 남은 운영 자격증명/토큰 표기는 scrub 필요
    4. 관련 credential 회전 후 git history 정리는 별도 후속 작업으로 처리
@@ -150,17 +150,15 @@ If present, read `./.omd/preferences.md` — pending corrections not yet folded 
 ### 브랜치 구조
 
 ```
-feature/* ──PR──→ main ──→ [자동] staging.ottline.app
-                                  ↓
-                         GitHub Actions workflow_dispatch
-                         (SHA 입력)
-                                  ↓
-                            ottline.app (프로덕션)
+feature/* ──PR/CI──→ main ──→ GitHub Actions workflow_dispatch
+                                      (main SHA 입력)
+                                      ↓
+                                 ottline.app (프로덕션)
 ```
 
 | 브랜치 | 용도 | 직접 푸시 |
 |---|---|---|
-| `main` | 스테이징 자동 배포 트리거 | PR만 (문서-only는 직접 푸시 허용) |
+| `main` | 프로덕션 배포 가능한 기준 브랜치 | PR만 (문서-only는 직접 푸시 허용) |
 | `feature/*` | 기능 개발 | ✅ |
 | `fix/*` | 버그 수정 | ✅ |
 | `hotfix/*` | 긴급 수정 (스테이징 생략 가능) | ✅ |
@@ -169,29 +167,27 @@ feature/* ──PR──→ main ──→ [자동] staging.ottline.app
 
 1. **새 기능/수정 작업은 반드시 브랜치 먼저**: 작업 시작 전 `feature/작업명` 또는 `fix/작업명` 브랜치를 만든다.
 2. **main 직접 커밋 금지**: main에는 PR(머지)로만 반영한다. 단, 문서-only 변경은 사용자의 상시 허용에 따라 브랜치/PR 없이 main에 직접 커밋·푸시한다.
-3. **스테이징 먼저, 프로덕션은 수동**: main 머지 = 스테이징 자동 배포. 프로덕션은 사용자가 직접 `workflow_dispatch`로 수동 트리거.
-4. **hotfix 예외**: 긴급 수정은 `hotfix/*` 브랜치에서 main으로 직접 PR 가능. 이때 사용자에게 스테이징 생략 여부를 먼저 확인한다.
+3. **상시 스테이징 없음**: main 머지는 클러스터에 자동 배포하지 않는다. PR/CI 검증 후 프로덕션은 사용자가 직접 `workflow_dispatch`로 수동 트리거한다.
+4. **hotfix 예외**: 긴급 수정은 `hotfix/*` 브랜치에서 main으로 직접 PR 가능. 배포 전 사용자에게 프로덕션 즉시 반영 여부를 확인한다.
 
 ### 프로덕션 배포 방법
 
-1. staging 배포 워크플로우 완료 후 **Summary 탭**에서 SHA 복사
-2. GitHub Actions → **Deploy Web to Production** / **Deploy API to Production** → `Run workflow`
-3. `sha` 입력란에 복사한 SHA 붙여넣기
-
-> SHA를 모를 때: `deploy/oke-staging/{web,api}-deployment.yaml`의 이미지 태그에서 `staging-` 뒤 값이 SHA
+1. PR CI 또는 main 검증 워크플로우가 성공했는지 확인한다.
+2. 배포할 main 커밋 SHA를 확인한다.
+3. GitHub Actions → **Deploy Web to Production** / **Deploy API to Production** → `Run workflow`
+4. `sha` 입력란에 main 커밋 SHA를 붙여넣는다.
 
 ### 이미지 태그 규칙
 
 | 환경 | 태그 형식 | 워크플로우 |
 |---|---|---|
-| 스테이징 | `staging-{full-sha}` | `deploy-web.yml` / `deploy-api.yml` (main push 자동) |
 | 프로덕션 | `{full-sha}` | `deploy-web-production.yml` / `deploy-api-production.yml` (수동) |
+| 검증 CI | 이미지 push 없음 | `deploy-web.yml` / `deploy-api.yml` (PR/main 검증) |
 
 ### 인프라 구성 요약
 
-- **스테이징**: `ott-staging` 네임스페이스, `staging.ottline.app`, Cloudflare Access로 접근 제한
 - **프로덕션**: `ott` 네임스페이스, `ottline.app`
-- **GitOps**: ArgoCD가 `deploy/oke/`, `deploy/oke-staging/` 디렉토리를 main HEAD에 자동 동기화
+- **GitOps**: ArgoCD가 `deploy/oke/` 디렉토리를 main HEAD에 자동 동기화
 - **시크릿 관리**: OCI Vault → ESO (git에 시크릿 실제 값 커밋 절대 금지)
 - **TLS**: Cloudflare Origin Certificate (cert-manager/Let's Encrypt 아님)
 - **버전 표시**: Footer에 `web {sha} · api {sha}` 형식으로 현재 배포 버전 표시

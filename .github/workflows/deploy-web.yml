@@ -1,93 +1,52 @@
-name: Deploy Web to Staging
+name: Verify Web
 
 on:
+  pull_request:
+    paths:
+      - 'apps/web/**'
+      - 'shared/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/deploy-web.yml'
   push:
     branches: ["main"]
     paths:
       - 'apps/web/**'
       - 'shared/**'
+      - 'package.json'
+      - 'package-lock.json'
       - '.github/workflows/deploy-web.yml'
+  workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  build-and-push-web:
+  verify-web:
     runs-on: ubuntu-24.04-arm
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build web
+        run: npm run build --workspace ott
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Login to OCIR
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ secrets.OCIR_REGISTRY }}
-          username: ${{ secrets.OCIR_USERNAME }}
-          password: ${{ secrets.OCIR_PASSWORD }}
-
-      - name: Build and push Web image (staging)
+      - name: Build web container
         uses: docker/build-push-action@v6
         with:
           context: .
           file: ./apps/web/Dockerfile
           platforms: linux/arm64
-          push: true
-          tags: |
-            ${{ secrets.OCIR_REGISTRY }}/${{ secrets.OCIR_NAMESPACE }}/ott-web:staging-${{ github.sha }}
-
-      - name: Update Staging Web Manifest
-        run: |
-          git config --global user.name "GitHub Actions"
-          git config --global user.email "actions@github.com"
-
-          ARCH=$(uname -m)
-          if [[ "$ARCH" == "x86_64" ]]; then YQ_ARCH="amd64"; elif [[ "$ARCH" == "aarch64" || "$ARCH" == "arm64" ]]; then YQ_ARCH="arm64"; else YQ_ARCH="$ARCH"; fi
-          wget https://github.com/mikefarah/yq/releases/download/v4.44.3/yq_linux_${YQ_ARCH} -O /usr/local/bin/yq
-          chmod +x /usr/local/bin/yq
-
-          NEW_TAG="staging-${{ github.sha }}"
-          SHORT_SHA="${{ github.sha }}"
-          SHORT_SHA="${SHORT_SHA:0:7}"
-          WEB_IMAGE="${{ secrets.OCIR_REGISTRY }}/${{ secrets.OCIR_NAMESPACE }}/ott-web:$NEW_TAG"
-
-          echo "Updating Staging Web image to: $WEB_IMAGE"
-          yq -i "select(.kind == \"Deployment\").spec.template.spec.containers[0].image = \"$WEB_IMAGE\"" deploy/oke-staging/web-deployment.yaml
-          yq -i "(select(.kind == \"Deployment\").spec.template.spec.containers[0].env[] | select(.name == \"APP_VERSION\")).value = \"staging-$SHORT_SHA\"" deploy/oke-staging/web-deployment.yaml
-
-          if [[ -n $(git status -s) ]]; then
-            git add deploy/oke-staging/web-deployment.yaml
-            git commit -m "chore(web): update staging image tag to ${{ github.sha }}"
-            git pull --rebase origin main
-            git push
-          else
-            echo "No changes to manifests."
-          fi
-
-      - name: Print production deploy SHA
-        run: |
-          echo "### Production Deploy SHA" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "Use this SHA to deploy web to production:" >> $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
-          echo "${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
-
-      - name: Notify IndexNow (Bing)
-        run: |
-          curl -s -o /dev/null -w "%{http_code}" -X POST "https://api.indexnow.org/indexnow" \
-            -H "Content-Type: application/json" \
-            -d '{
-              "host": "ottline.app",
-              "key": "9cdd845a2cc74943a9c950e5de656b48",
-              "keyLocation": "https://ottline.app/9cdd845a2cc74943a9c950e5de656b48.txt",
-              "urlList": [
-                "https://ottline.app",
-                "https://ottline.app/about",
-                "https://ottline.app/faq",
-                "https://ottline.app/public",
-                "https://ottline.app/privacy"
-              ]
-            }'
+          push: false
