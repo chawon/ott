@@ -38,6 +38,8 @@ jobs:
         run: npm ci
 
       - name: Build web
+        env:
+          BACKEND_URL: http://127.0.0.1:8080
         run: npm run build --workspace ott
 
       - name: Set up Docker Buildx

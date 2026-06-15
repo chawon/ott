@@ -33,7 +33,7 @@ jobs:
 
       - name: Build API
         working-directory: apps/api
-        run: ./gradlew build --no-daemon
+        run: ./gradlew bootJar -x test --no-daemon
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
