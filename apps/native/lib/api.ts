@@ -41,7 +41,10 @@ export function setAnalyticsTheme(theme: string | null | undefined) {
   currentAnalyticsTheme = theme || null;
 }
 
-function acceptLanguage() {
+async function acceptLanguage() {
+  const storedLocale = await SecureStore.getItemAsync(STORAGE_KEYS.localePreference);
+  if (storedLocale === 'ko' || storedLocale === 'en') return storedLocale;
+
   const locale = getLocales()[0];
   const language = (locale?.languageCode ?? locale?.languageTag ?? 'ko').toLowerCase();
   return language.startsWith('ko') ? 'ko' : 'en';
@@ -72,7 +75,7 @@ async function getHeaders(): Promise<Record<string, string>> {
   ]);
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
-    'Accept-Language': acceptLanguage(),
+    'Accept-Language': await acceptLanguage(),
     'X-Client-Id': clientId,
   };
   if (userId) headers['X-User-Id'] = userId;
@@ -160,7 +163,7 @@ export async function trackEvent(input: {
           appVersion,
           buildNumber: nativeBuildNumber(),
           installId,
-          locale: acceptLanguage(),
+          locale: await acceptLanguage(),
           route: currentAnalyticsRoute,
           sessionId: SESSION_ID,
           theme: currentAnalyticsTheme ?? Appearance.getColorScheme(),

@@ -6,6 +6,7 @@ export const STORAGE_KEYS = {
   deviceId: 'ottline.native.deviceId',
   pairingCode: 'ottline.native.pairingCode',
   analyticsClientId: 'ottline.native.analyticsClientId',
+  localePreference: 'ottline.native.localePreference',
   themePreference: 'ottline.native.themePreference',
 } as const;
 

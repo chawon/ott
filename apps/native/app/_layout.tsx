@@ -3,6 +3,7 @@ import * as Notifications from 'expo-notifications';
 import { Stack, router, usePathname } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { ActivityIndicator, View } from 'react-native';
+import { NativeAppHeader } from '../components/NativeAppHeader';
 import { useAuthStore } from '../store/authStore';
 import { initDb } from '../lib/localDb';
 import {
@@ -89,20 +90,23 @@ function RootLayoutContent() {
   }
 
   return (
-    <View style={{ flex: 1 }}>
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
       <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} backgroundColor={colors.background} />
-      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background } }}>
-        <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="title/[id]" />
-        <Stack.Screen name="public/[id]" />
-        <Stack.Screen name="me/report" />
-        <Stack.Screen name="feedback/index" />
-        <Stack.Screen name="feedback/[id]" />
-        <Stack.Screen name="about" />
-        <Stack.Screen name="faq" />
-        <Stack.Screen name="privacy" />
-        <Stack.Screen name="offline" />
-      </Stack>
+      <NativeAppHeader />
+      <View style={{ flex: 1 }}>
+        <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background } }}>
+          <Stack.Screen name="(tabs)" />
+          <Stack.Screen name="title/[id]" />
+          <Stack.Screen name="public/[id]" />
+          <Stack.Screen name="me/report" />
+          <Stack.Screen name="feedback/index" />
+          <Stack.Screen name="feedback/[id]" />
+          <Stack.Screen name="about" />
+          <Stack.Screen name="faq" />
+          <Stack.Screen name="privacy" />
+          <Stack.Screen name="offline" />
+        </Stack>
+      </View>
     </View>
   );
 }

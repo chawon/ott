@@ -21,6 +21,7 @@ type NativePreferences = {
   colorScheme: NativeColorScheme;
   colors: ThemeColors;
   locale: NativeLocale;
+  setLocalePreference: (preference: NativeLocale) => Promise<void>;
   setThemePreference: (preference: NativeThemePreference) => Promise<void>;
   systemColorScheme: NativeColorScheme;
   themePreference: NativeThemePreference;
@@ -36,15 +37,24 @@ export function NativePreferencesProvider({ children }: { children: ReactNode })
   const systemScheme = useColorScheme();
   const systemColorScheme: NativeColorScheme = systemScheme === 'dark' ? 'dark' : 'light';
   const [themePreference, setThemePreferenceState] = useState<NativeThemePreference>('system');
+  const [localePreference, setLocalePreferenceState] = useState<NativeLocale | null>(null);
   const colorScheme: NativeColorScheme = themePreference === 'system' ? systemColorScheme : themePreference;
   const deviceLocale = getLocales()[0];
-  const locale = resolveNativeLocale(deviceLocale?.languageTag ?? deviceLocale?.languageCode ?? null);
+  const systemLocale = resolveNativeLocale(deviceLocale?.languageTag ?? deviceLocale?.languageCode ?? null);
+  const locale = localePreference ?? systemLocale;
 
   useEffect(() => {
     let mounted = true;
-    SecureStore.getItemAsync(STORAGE_KEYS.themePreference)
-      .then((value) => {
-        if (mounted) setThemePreferenceState(resolveThemePreference(value));
+    Promise.all([
+      SecureStore.getItemAsync(STORAGE_KEYS.themePreference),
+      SecureStore.getItemAsync(STORAGE_KEYS.localePreference),
+    ])
+      .then(([storedTheme, storedLocale]) => {
+        if (!mounted) return;
+        setThemePreferenceState(resolveThemePreference(storedTheme));
+        if (storedLocale === 'ko' || storedLocale === 'en') {
+          setLocalePreferenceState(storedLocale);
+        }
       })
       .catch(() => null);
     return () => {
@@ -61,16 +71,22 @@ export function NativePreferencesProvider({ children }: { children: ReactNode })
     setThemePreferenceState(preference);
   }, []);
 
+  const setLocalePreference = useCallback(async (preference: NativeLocale) => {
+    await SecureStore.setItemAsync(STORAGE_KEYS.localePreference, preference);
+    setLocalePreferenceState(preference);
+  }, []);
+
   const value = useMemo(
     () => ({
       colorScheme,
       colors: getThemeColors(colorScheme),
       locale,
+      setLocalePreference,
       setThemePreference,
       systemColorScheme,
       themePreference,
     }),
-    [colorScheme, locale, setThemePreference, systemColorScheme, themePreference],
+    [colorScheme, locale, setLocalePreference, setThemePreference, systemColorScheme, themePreference],
   );
 
   return (

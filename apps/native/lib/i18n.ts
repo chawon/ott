@@ -21,16 +21,54 @@ export function resolveNativeLocale(languageTag?: string | null): NativeLocale {
 
 export const tabLabels: Record<NativeLocale, Record<'log' | 'timeline' | 'together' | 'account', string>> = {
   ko: {
-    log: '기록',
+    log: '기록하기',
     timeline: '타임라인',
     together: '함께',
-    account: '계정',
+    account: '설정',
   },
   en: {
     log: 'Log',
     timeline: 'Timeline',
     together: 'Together',
-    account: 'Account',
+    account: 'Settings',
+  },
+};
+
+export const appShellCopy: Record<
+  NativeLocale,
+  {
+    languageKorean: string;
+    languageEnglish: string;
+    languageSwitcher: string;
+    languageActive: string;
+    languageSwitchTo: string;
+    themeDark: string;
+    themeLight: string;
+    themeSystem: string;
+    themeToggle: string;
+  }
+> = {
+  ko: {
+    languageKorean: '한국어',
+    languageEnglish: '영어',
+    languageSwitcher: '언어 변경',
+    languageActive: '현재 언어',
+    languageSwitchTo: '언어 변경',
+    themeDark: '다크',
+    themeLight: '라이트',
+    themeSystem: '시스템',
+    themeToggle: '테마 변경',
+  },
+  en: {
+    languageKorean: 'Korean',
+    languageEnglish: 'English',
+    languageSwitcher: 'Switch language',
+    languageActive: 'Current language',
+    languageSwitchTo: 'Switch language',
+    themeDark: 'Dark',
+    themeLight: 'Light',
+    themeSystem: 'System',
+    themeToggle: 'Change theme',
   },
 };
 
