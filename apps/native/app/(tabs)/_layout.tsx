@@ -7,33 +7,37 @@ import { useNativePreferences } from '../../lib/nativePreferences';
 type TabName = 'log' | 'timeline' | 'together' | 'account';
 
 function TabBarIcon({ colors, name, active }: { colors: ThemeColors; name: TabName; active: boolean }) {
-  const color = active ? colors.secondary : colors.onSurfaceVariant;
+  const color = active ? '#FFFFFF' : colors.onSurfaceVariant;
 
   return (
-    <View style={[iconStyles.box, active && { backgroundColor: colors.surfaceMuted }]}>
+    <View style={[iconStyles.box, active && iconStyles.boxActive]}>
       {name === 'log' ? (
         <>
-          <View style={[iconStyles.plusHorizontal, { backgroundColor: color }]} />
-          <View style={[iconStyles.plusVertical, { backgroundColor: color }]} />
+          <View style={[iconStyles.pencilBody, { backgroundColor: color }]} />
+          <View style={[iconStyles.pencilTip, { borderLeftColor: color }]} />
         </>
       ) : null}
       {name === 'timeline' ? (
-        <View style={iconStyles.timeline}>
-          <View style={[iconStyles.timelineLine, { width: 16, backgroundColor: color }]} />
-          <View style={[iconStyles.timelineLine, { width: 20, backgroundColor: color }]} />
-          <View style={[iconStyles.timelineLine, { width: 13, backgroundColor: color }]} />
-        </View>
+        <>
+          <View style={[iconStyles.clockFace, { borderColor: color }]} />
+          <View style={[iconStyles.clockHour, { backgroundColor: color }]} />
+          <View style={[iconStyles.clockMinute, { backgroundColor: color }]} />
+        </>
       ) : null}
       {name === 'together' ? (
         <>
-          <View style={[iconStyles.togetherCircle, iconStyles.togetherCircleLeft, { borderColor: color }]} />
-          <View style={[iconStyles.togetherCircle, iconStyles.togetherCircleRight, { borderColor: color }]} />
+          <View style={[iconStyles.messageBubble, { borderColor: color }]} />
+          <View style={[iconStyles.messageTail, { borderTopColor: color }]} />
         </>
       ) : null}
       {name === 'account' ? (
         <>
-          <View style={[iconStyles.accountHead, { borderColor: color }]} />
-          <View style={[iconStyles.accountBody, { borderColor: color }]} />
+          <View style={[iconStyles.settingRing, { borderColor: color }]} />
+          <View style={[iconStyles.settingDot, { backgroundColor: color }]} />
+          <View style={[iconStyles.settingTooth, iconStyles.settingToothTop, { backgroundColor: color }]} />
+          <View style={[iconStyles.settingTooth, iconStyles.settingToothBottom, { backgroundColor: color }]} />
+          <View style={[iconStyles.settingToothSide, iconStyles.settingToothLeft, { backgroundColor: color }]} />
+          <View style={[iconStyles.settingToothSide, iconStyles.settingToothRight, { backgroundColor: color }]} />
         </>
       ) : null}
     </View>
@@ -132,7 +136,7 @@ function createStyles(colors: ThemeColors) {
     },
     label: {
       marginTop: 0,
-      fontSize: 11,
+      fontSize: 10,
       lineHeight: 14,
       fontWeight: '700',
       letterSpacing: 0,
@@ -142,65 +146,107 @@ function createStyles(colors: ThemeColors) {
 
 const iconStyles = StyleSheet.create({
   box: {
-    width: 30,
+    width: 42,
     height: 30,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 8,
+    borderRadius: 999,
   },
-  plusHorizontal: {
+  boxActive: {
+    backgroundColor: '#FF9933',
+  },
+  pencilBody: {
     position: 'absolute',
     width: 16,
-    height: 2,
-    borderRadius: 1,
+    height: 4,
+    borderRadius: 2,
+    transform: [{ rotate: '-34deg' }],
   },
-  plusVertical: {
+  pencilTip: {
+    position: 'absolute',
+    right: 10,
+    top: 9,
+    width: 0,
+    height: 0,
+    borderTopWidth: 4,
+    borderBottomWidth: 4,
+    borderLeftWidth: 6,
+    borderTopColor: 'transparent',
+    borderBottomColor: 'transparent',
+    transform: [{ rotate: '-34deg' }],
+  },
+  clockFace: {
+    width: 18,
+    height: 18,
+    borderWidth: 2,
+    borderRadius: 9,
+  },
+  clockHour: {
     position: 'absolute',
     width: 2,
-    height: 16,
+    height: 6,
     borderRadius: 1,
+    top: 8,
   },
-  timeline: {
-    width: 22,
-    height: 18,
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  timelineLine: {
+  clockMinute: {
+    position: 'absolute',
+    width: 6,
     height: 2,
     borderRadius: 1,
+    top: 13,
+    left: 20,
   },
-  togetherCircle: {
+  messageBubble: {
     position: 'absolute',
-    width: 13,
-    height: 13,
-    borderWidth: 2,
-    borderRadius: 7,
-  },
-  togetherCircleLeft: {
-    left: 6,
-    top: 7,
-  },
-  togetherCircleRight: {
-    right: 6,
-    top: 10,
-  },
-  accountHead: {
-    position: 'absolute',
-    top: 6,
-    width: 9,
-    height: 9,
+    width: 19,
+    height: 15,
     borderWidth: 2,
     borderRadius: 5,
   },
-  accountBody: {
+  messageTail: {
     position: 'absolute',
-    bottom: 6,
-    width: 17,
-    height: 9,
+    left: 17,
+    top: 18,
+    width: 0,
+    height: 0,
+    borderTopWidth: 6,
+    borderRightWidth: 5,
+    borderRightColor: 'transparent',
+  },
+  settingRing: {
+    width: 14,
+    height: 14,
     borderWidth: 2,
-    borderTopLeftRadius: 9,
-    borderTopRightRadius: 9,
-    borderBottomWidth: 0,
+    borderRadius: 7,
+  },
+  settingDot: {
+    position: 'absolute',
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+  },
+  settingTooth: {
+    position: 'absolute',
+    width: 3,
+    height: 5,
+    borderRadius: 2,
+  },
+  settingToothTop: {
+    top: 4,
+  },
+  settingToothBottom: {
+    bottom: 4,
+  },
+  settingToothSide: {
+    position: 'absolute',
+    width: 5,
+    height: 3,
+    borderRadius: 2,
+  },
+  settingToothLeft: {
+    left: 9,
+  },
+  settingToothRight: {
+    right: 9,
   },
 });

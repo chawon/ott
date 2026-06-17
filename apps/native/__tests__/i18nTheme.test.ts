@@ -22,8 +22,10 @@ describe('native i18n and theme foundations', () => {
   });
 
   it('provides localized tab and static info copy', () => {
-    expect(tabLabels.ko.log).toBe('기록');
+    expect(tabLabels.ko.log).toBe('기록하기');
+    expect(tabLabels.ko.account).toBe('설정');
     expect(tabLabels.en.log).toBe('Log');
+    expect(tabLabels.en.account).toBe('Settings');
     expect(timelineCopy.en.title).toBe('My Timeline');
     expect(timelineCopy.ko.title).toBe('내 타임라인');
     expect(logCopy.en.title).toBe('What will you log?');
