@@ -6,7 +6,7 @@ const PLACE_LABELS: Partial<Record<Place, string>> = {
   THEATER: '극장',
   TRANSIT: '이동 중',
   CAFE: '카페',
-  OFFICE: '사무실',
+  OFFICE: '직장',
   LIBRARY: '도서관',
   BOOKSTORE: '서점',
   SCHOOL: '학교',
@@ -38,12 +38,12 @@ type TimelineCsvRow = {
 
 const COLUMNS: Array<{ key: keyof TimelineCsvRow; label: string }> = [
   { key: 'watchedAt', label: '날짜' },
-  { key: 'type', label: '분류' },
+  { key: 'type', label: '구분' },
   { key: 'title', label: '제목' },
   { key: 'status', label: '상태' },
-  { key: 'rating', label: '별점' },
+  { key: 'rating', label: '평점' },
   { key: 'place', label: '장소' },
-  { key: 'occasion', label: '상황' },
+  { key: 'occasion', label: '누구와' },
   { key: 'ott_or_platform', label: '플랫폼' },
   { key: 'note', label: '메모' },
 ];

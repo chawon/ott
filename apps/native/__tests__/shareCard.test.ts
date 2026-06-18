@@ -53,7 +53,7 @@ describe('report share card content', () => {
       title: '지난주 기록 회고',
       stats: [
         { label: '지난주 기록', value: '2' },
-        { label: '전체 기록', value: '12' },
+        { label: '총 기록', value: '12' },
         { label: '연속 기록', value: '3' },
       ],
     });
@@ -67,23 +67,23 @@ describe('report share card content', () => {
       stats: [
         { label: '이번 달 기록', value: '4' },
         { label: '이번 달 최다 장르', value: 'Drama' },
-        { label: '메모 작성률', value: '25%' },
+        { label: '메모 입력률', value: '25%' },
       ],
     });
   });
 
   it('builds English report card content when requested', () => {
     expect(buildReportShareCardContent('weekly', report, 'en')).toMatchObject({
-      title: 'Weekly recap',
+      title: 'Weekly Record Recap',
       subtitle: 'A card with 2 logs from last week.',
       stats: [
-        { label: 'Previous week', value: '2' },
-        { label: 'Total logs', value: '12' },
-        { label: 'Streak', value: '3' },
+        { label: "Last week's records", value: '2' },
+        { label: 'Total Records', value: '12' },
+        { label: 'Logging Streak', value: '3' },
       ],
     });
     expect(buildReportShareCardContent('monthly', report, 'en')).toMatchObject({
-      title: 'Monthly genre recap',
+      title: 'Monthly Genre Recap',
       subtitle: 'Your most logged genre this month was Drama, with 3 logs.',
     });
   });

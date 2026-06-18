@@ -823,7 +823,7 @@ function createStyles(colors: ThemeColors) {
     recoveryPreview: {
       alignSelf: 'center',
       borderRadius: 18,
-      backgroundColor: '#f8fafc',
+      backgroundColor: '#f8f6f2',
     },
     recoveryButton: {
       minHeight: 50,
