@@ -7,7 +7,7 @@ import { useNativePreferences } from '../../lib/nativePreferences';
 type TabName = 'log' | 'timeline' | 'together' | 'account';
 
 function TabBarIcon({ colors, name, active }: { colors: ThemeColors; name: TabName; active: boolean }) {
-  const color = active ? '#FFFFFF' : colors.onSurfaceVariant;
+  const color = active ? '#0F0F0F' : colors.onSurfaceVariant;
 
   return (
     <View style={[iconStyles.box, active && iconStyles.boxActive]}>
@@ -119,7 +119,7 @@ function createStyles(colors: ThemeColors) {
       elevation: 8,
       shadowColor: '#000000',
       shadowOffset: { width: 0, height: 8 },
-      shadowOpacity: colors.background === '#0f172a' ? 0.3 : 0.12,
+      shadowOpacity: colors.background === '#15120f' ? 0.3 : 0.12,
       shadowRadius: 18,
     },
     item: {

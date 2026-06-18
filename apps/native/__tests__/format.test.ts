@@ -11,7 +11,7 @@ describe('format helpers', () => {
   it('formats status and type labels by locale', () => {
     expect(typeLabel('book')).toBe('책');
     expect(typeLabel('book', 'en')).toBe('Book');
-    expect(statusLabel('DONE', 'book')).toBe('다 읽음');
+    expect(statusLabel('DONE', 'book')).toBe('읽었어요');
     expect(statusLabel('DONE', 'book', 'en')).toBe('Read');
   });
 });

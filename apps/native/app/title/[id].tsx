@@ -759,7 +759,7 @@ function createStyles(colors: ThemeColors) {
       top: 0,
       width: 270,
       height: 480,
-      backgroundColor: '#0f172a',
+      backgroundColor: '#15120f',
     },
   });
 }

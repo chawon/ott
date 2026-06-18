@@ -23,7 +23,7 @@ describe('timeline CSV', () => {
   it('builds escaped CSV for local timeline logs', () => {
     const csv = buildTimelineCsv([baseLog]);
 
-    expect(csv.split('\r\n')[0]).toBe('날짜,분류,제목,상태,별점,장소,상황,플랫폼,메모');
+    expect(csv.split('\r\n')[0]).toBe('날짜,구분,제목,상태,평점,장소,누구와,플랫폼,메모');
     expect(csv).toContain('"Dune, Part Two"');
     expect(csv).toContain('"친구가 ""다시 보자""고 했다"');
     expect(csv).toContain('극장');

@@ -516,7 +516,7 @@ function createStyles(colors: ThemeColors) {
       top: 0,
       width: 270,
       height: 480,
-      backgroundColor: '#f8fafc',
+      backgroundColor: '#f8f6f2',
     },
   });
 }
