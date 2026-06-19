@@ -1,3 +1,4 @@
+import { router } from 'expo-router';
 import { Image, Pressable, SafeAreaView, StyleSheet, Text, View } from 'react-native';
 import type { ThemeColors } from '../constants/colors';
 import { appShellCopy, type NativeLocale } from '../lib/i18n';
@@ -66,13 +67,18 @@ export function NativeAppHeader() {
   return (
     <SafeAreaView style={stylesForTheme.safeArea}>
       <View style={stylesForTheme.header}>
-        <View style={styles.brand}>
+        <Pressable
+          accessibilityLabel="ottline"
+          accessibilityRole="button"
+          onPress={() => router.replace('/(tabs)/log')}
+          style={styles.brand}
+        >
           <Image source={logo} style={styles.logo} />
           <View style={styles.wordmark}>
             <Text style={styles.brandTitle}>ottline</Text>
             <Text style={styles.brandSubtitle}>On the Timeline</Text>
           </View>
-        </View>
+        </Pressable>
 
         <View style={styles.actions}>
           <View style={stylesForTheme.localeGroup} accessibilityLabel={copy.languageSwitcher}>

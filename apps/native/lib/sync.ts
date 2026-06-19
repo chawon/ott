@@ -11,6 +11,7 @@ import {
   upsertLogLocal,
   upsertTitleLocal,
 } from './localDb';
+import { notifyLogsChanged } from './syncEvents';
 import type { Title, WatchLog } from './types';
 import { useAuthStore } from '../store/authStore';
 
@@ -114,6 +115,7 @@ export async function syncNow(options: { registerIfNeeded?: boolean } = {}) {
     if (!userId || !deviceId) return { pushed: 0, pulled: 0, skipped: false };
 
     let pushed = 0;
+    let pulledDuringPush = 0;
     for (const item of outbox) {
       try {
         const result = await syncPush({
@@ -135,7 +137,8 @@ export async function syncNow(options: { registerIfNeeded?: boolean } = {}) {
         if (staleReject) {
           await removeOutboxItem(item.id);
           await setLogSyncStatus(item.logId, 'synced');
-          await pullChanges();
+          const stalePullResult = await pullChanges();
+          pulledDuringPush += stalePullResult.pulled;
           continue;
         }
         if (rejectedIds.has(item.logId) || rejectedIds.has(item.payload.title.id)) {
@@ -153,7 +156,9 @@ export async function syncNow(options: { registerIfNeeded?: boolean } = {}) {
     }
 
     const pullResult = await pullChanges();
-    return { pushed, pulled: pullResult.pulled, skipped: false };
+    const pulled = pulledDuringPush + pullResult.pulled;
+    if (pushed > 0 || pulled > 0) notifyLogsChanged();
+    return { pushed, pulled, skipped: false };
   } finally {
     syncing = false;
   }

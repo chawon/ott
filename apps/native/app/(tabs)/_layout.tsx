@@ -1,5 +1,6 @@
 import { Tabs } from 'expo-router';
 import { View, StyleSheet } from 'react-native';
+import Svg, { Circle, Line, Path } from 'react-native-svg';
 import type { ThemeColors } from '../../constants/colors';
 import { tabLabels } from '../../lib/i18n';
 import { useNativePreferences } from '../../lib/nativePreferences';
@@ -11,35 +12,40 @@ function TabBarIcon({ colors, name, active }: { colors: ThemeColors; name: TabNa
 
   return (
     <View style={[iconStyles.box, active && iconStyles.boxActive]}>
-      {name === 'log' ? (
-        <>
-          <View style={[iconStyles.pencilBody, { backgroundColor: color }]} />
-          <View style={[iconStyles.pencilTip, { borderLeftColor: color }]} />
-        </>
-      ) : null}
-      {name === 'timeline' ? (
-        <>
-          <View style={[iconStyles.clockFace, { borderColor: color }]} />
-          <View style={[iconStyles.clockHour, { backgroundColor: color }]} />
-          <View style={[iconStyles.clockMinute, { backgroundColor: color }]} />
-        </>
-      ) : null}
-      {name === 'together' ? (
-        <>
-          <View style={[iconStyles.messageBubble, { borderColor: color }]} />
-          <View style={[iconStyles.messageTail, { borderTopColor: color }]} />
-        </>
-      ) : null}
-      {name === 'account' ? (
-        <>
-          <View style={[iconStyles.settingRing, { borderColor: color }]} />
-          <View style={[iconStyles.settingDot, { backgroundColor: color }]} />
-          <View style={[iconStyles.settingTooth, iconStyles.settingToothTop, { backgroundColor: color }]} />
-          <View style={[iconStyles.settingTooth, iconStyles.settingToothBottom, { backgroundColor: color }]} />
-          <View style={[iconStyles.settingToothSide, iconStyles.settingToothLeft, { backgroundColor: color }]} />
-          <View style={[iconStyles.settingToothSide, iconStyles.settingToothRight, { backgroundColor: color }]} />
-        </>
-      ) : null}
+      <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
+        {name === 'log' ? (
+          <>
+            <Path d="M4 20h4.5L19 9.5 14.5 5 4 15.5V20Z" stroke={color} strokeWidth={2} strokeLinejoin="round" />
+            <Path d="M13.5 6 18 10.5" stroke={color} strokeWidth={2} strokeLinecap="round" />
+          </>
+        ) : null}
+        {name === 'timeline' ? (
+          <>
+            <Circle cx={12} cy={12} r={8} stroke={color} strokeWidth={2} />
+            <Line x1={12} y1={12} x2={12} y2={7.5} stroke={color} strokeWidth={2} strokeLinecap="round" />
+            <Line x1={12} y1={12} x2={15.5} y2={14} stroke={color} strokeWidth={2} strokeLinecap="round" />
+          </>
+        ) : null}
+        {name === 'together' ? (
+          <Path
+            d="M5 6.5h14v9H9l-4 3v-12Z"
+            stroke={color}
+            strokeWidth={2}
+            strokeLinejoin="round"
+            strokeLinecap="round"
+          />
+        ) : null}
+        {name === 'account' ? (
+          <>
+            <Line x1={5} y1={7} x2={19} y2={7} stroke={color} strokeWidth={2} strokeLinecap="round" />
+            <Line x1={5} y1={12} x2={19} y2={12} stroke={color} strokeWidth={2} strokeLinecap="round" />
+            <Line x1={5} y1={17} x2={19} y2={17} stroke={color} strokeWidth={2} strokeLinecap="round" />
+            <Circle cx={9} cy={7} r={2} fill={color} />
+            <Circle cx={15} cy={12} r={2} fill={color} />
+            <Circle cx={11} cy={17} r={2} fill={color} />
+          </>
+        ) : null}
+      </Svg>
     </View>
   );
 }
@@ -154,99 +160,5 @@ const iconStyles = StyleSheet.create({
   },
   boxActive: {
     backgroundColor: '#FF9933',
-  },
-  pencilBody: {
-    position: 'absolute',
-    width: 16,
-    height: 4,
-    borderRadius: 2,
-    transform: [{ rotate: '-34deg' }],
-  },
-  pencilTip: {
-    position: 'absolute',
-    right: 10,
-    top: 9,
-    width: 0,
-    height: 0,
-    borderTopWidth: 4,
-    borderBottomWidth: 4,
-    borderLeftWidth: 6,
-    borderTopColor: 'transparent',
-    borderBottomColor: 'transparent',
-    transform: [{ rotate: '-34deg' }],
-  },
-  clockFace: {
-    width: 18,
-    height: 18,
-    borderWidth: 2,
-    borderRadius: 9,
-  },
-  clockHour: {
-    position: 'absolute',
-    width: 2,
-    height: 6,
-    borderRadius: 1,
-    top: 8,
-  },
-  clockMinute: {
-    position: 'absolute',
-    width: 6,
-    height: 2,
-    borderRadius: 1,
-    top: 13,
-    left: 20,
-  },
-  messageBubble: {
-    position: 'absolute',
-    width: 19,
-    height: 15,
-    borderWidth: 2,
-    borderRadius: 5,
-  },
-  messageTail: {
-    position: 'absolute',
-    left: 17,
-    top: 18,
-    width: 0,
-    height: 0,
-    borderTopWidth: 6,
-    borderRightWidth: 5,
-    borderRightColor: 'transparent',
-  },
-  settingRing: {
-    width: 14,
-    height: 14,
-    borderWidth: 2,
-    borderRadius: 7,
-  },
-  settingDot: {
-    position: 'absolute',
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-  },
-  settingTooth: {
-    position: 'absolute',
-    width: 3,
-    height: 5,
-    borderRadius: 2,
-  },
-  settingToothTop: {
-    top: 4,
-  },
-  settingToothBottom: {
-    bottom: 4,
-  },
-  settingToothSide: {
-    position: 'absolute',
-    width: 5,
-    height: 3,
-    borderRadius: 2,
-  },
-  settingToothLeft: {
-    left: 9,
-  },
-  settingToothRight: {
-    right: 9,
   },
 });

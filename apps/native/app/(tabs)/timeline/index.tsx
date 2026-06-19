@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -24,6 +24,7 @@ import {
 } from '../../../lib/format';
 import { listLogsLocal } from '../../../lib/localDb';
 import { syncNow } from '../../../lib/sync';
+import { useLogRevision } from '../../../lib/syncEvents';
 import {
   filterTimelineLogs,
   type OccasionFilter,
@@ -80,6 +81,7 @@ export default function TimelineScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
+  const logRevision = useLogRevision();
   const statusFilters = useMemo(
     () =>
       STATUS_FILTER_VALUES.map((value) => ({
@@ -147,6 +149,10 @@ export default function TimelineScreen() {
       load();
     }, [load]),
   );
+
+  useEffect(() => {
+    load();
+  }, [load, logRevision]);
 
   async function refresh() {
     setRefreshing(true);
@@ -258,12 +264,6 @@ export default function TimelineScreen() {
       contentContainerStyle={styles.content}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.primaryContainer} />}
     >
-      <View style={styles.header}>
-        <Text style={styles.kicker}>{copy.kicker}</Text>
-        <Text style={styles.title}>{copy.title}</Text>
-        <Text style={styles.desc}>{copy.desc}</Text>
-      </View>
-
       <View style={styles.actionRow}>
         <Pressable onPress={() => router.push('/me/report')} style={styles.reportButton}>
           <Text style={styles.reportButtonText}>{copy.reportAction}</Text>
@@ -433,10 +433,7 @@ export default function TimelineScreen() {
 function createStyles(colors: ThemeColors) {
   return StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
-  content: { padding: 20, paddingTop: 64, paddingBottom: 120, gap: 16 },
-  header: { gap: 8 },
-  kicker: { ...Typography.accent, color: colors.secondary },
-  title: { ...Typography.headlineLg, color: colors.onSurface, fontSize: 30 },
+  content: { padding: 20, paddingTop: 12, paddingBottom: 120, gap: 14 },
   desc: { ...Typography.bodyMd, color: colors.onSurfaceVariant },
   actionRow: { flexDirection: 'row', gap: 10 },
   reportButton: {

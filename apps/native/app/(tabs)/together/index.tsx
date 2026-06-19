@@ -111,12 +111,6 @@ export default function TogetherScreen() {
       contentContainerStyle={styles.content}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} />}
     >
-      <View style={styles.header}>
-        <Text style={styles.kicker}>{copy.kicker}</Text>
-        <Text style={styles.title}>{copy.title}</Text>
-        <Text style={styles.desc}>{copy.desc}</Text>
-      </View>
-
       <TextInput
         value={query}
         onChangeText={setQuery}
@@ -216,10 +210,7 @@ export default function TogetherScreen() {
 function createStyles(colors: ThemeColors) {
   return StyleSheet.create({
     root: { flex: 1, backgroundColor: colors.background },
-    content: { padding: 20, paddingTop: 64, paddingBottom: 120, gap: 16 },
-    header: { gap: 8 },
-    kicker: { ...Typography.accent, color: colors.tertiary },
-    title: { ...Typography.headlineLg, color: colors.onBackground, fontSize: 30 },
+    content: { padding: 20, paddingTop: 12, paddingBottom: 120, gap: 14 },
     desc: { ...Typography.bodyMd, color: colors.onSurfaceVariant },
     searchInput: {
       minHeight: 52,
