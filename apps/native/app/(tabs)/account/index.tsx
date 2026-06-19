@@ -24,7 +24,7 @@ import {
   updateUserProfile,
 } from '../../../lib/api';
 import { accountCopy, type NativeLocale } from '../../../lib/i18n';
-import { clearLocalData } from '../../../lib/localDb';
+import { clearLocalData, setSetting } from '../../../lib/localDb';
 import { useNativePreferences, type NativeThemePreference } from '../../../lib/nativePreferences';
 import {
   disableRecapNotifications,
@@ -183,6 +183,7 @@ export default function AccountScreen() {
     setStatus(null);
     try {
       await pairWithCode(code);
+      await setSetting('lastSyncAt', null);
       await syncNow();
       await loadAccountData();
       setCode('');
@@ -447,6 +448,11 @@ export default function AccountScreen() {
 
   return (
     <ScrollView style={styles.root} contentContainerStyle={styles.content}>
+      <View style={styles.header}>
+        <Text style={styles.title}>{copy.title}</Text>
+        <Text style={styles.desc}>{copy.desc}</Text>
+      </View>
+
       <View style={styles.card}>
         <Text style={styles.sectionTitle}>{copy.appearanceTitle}</Text>
         <Text style={styles.desc}>{copy.appearanceDesc}</Text>
@@ -702,6 +708,8 @@ function createStyles(colors: ThemeColors) {
   return StyleSheet.create({
     root: { flex: 1, backgroundColor: colors.background },
     content: { padding: 20, paddingTop: 12, paddingBottom: 120, gap: 14 },
+    header: { gap: 5 },
+    title: { ...Typography.headlineLg, color: colors.onSurface, fontSize: 28 },
     desc: { ...Typography.bodyMd, color: colors.onSurfaceVariant },
     card: {
       borderRadius: 20,
