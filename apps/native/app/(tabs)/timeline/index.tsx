@@ -264,6 +264,11 @@ export default function TimelineScreen() {
       contentContainerStyle={styles.content}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.primaryContainer} />}
     >
+      <View style={styles.header}>
+        <Text style={styles.title}>{copy.title}</Text>
+        <Text style={styles.desc}>{copy.desc}</Text>
+      </View>
+
       <View style={styles.actionRow}>
         <Pressable onPress={() => router.push('/me/report')} style={styles.reportButton}>
           <Text style={styles.reportButtonText}>{copy.reportAction}</Text>
@@ -434,6 +439,8 @@ function createStyles(colors: ThemeColors) {
   return StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
   content: { padding: 20, paddingTop: 12, paddingBottom: 120, gap: 14 },
+  header: { gap: 5 },
+  title: { ...Typography.headlineLg, color: colors.onSurface, fontSize: 28 },
   desc: { ...Typography.bodyMd, color: colors.onSurfaceVariant },
   actionRow: { flexDirection: 'row', gap: 10 },
   reportButton: {

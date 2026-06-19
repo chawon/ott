@@ -347,6 +347,11 @@ export default function LogScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+        <View style={styles.header}>
+          <Text style={styles.title}>{copy.title}</Text>
+          <Text style={styles.desc}>{copy.desc}</Text>
+        </View>
+
         <View style={styles.searchBox}>
           <TextInput
             value={query}
@@ -591,6 +596,8 @@ function createStyles(colors: ThemeColors) {
   return StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
   content: { padding: 20, paddingTop: 12, paddingBottom: 120, gap: 14 },
+  header: { gap: 5 },
+  title: { ...Typography.headlineLg, color: colors.onSurface, fontSize: 28 },
   desc: { ...Typography.bodyMd, color: colors.onSurfaceVariant },
   searchBox: {
     minHeight: 56,
