@@ -1,13 +1,17 @@
 # iOS TestFlight Review Notes
 
-기준일: 2026-06-13
+기준일: 2026-06-20
 
-이 문서는 App Store Connect의 TestFlight beta review information과 내부 QA에 옮길 내용을 정리한다. 실제 App Store Connect 앱 생성, EAS project 연결, signing credentials 구성 후 최신 값으로 다시 확인한다.
+이 문서는 App Store Connect의 TestFlight beta review information과 내부 QA에 옮길 내용을 정리한다. App Store Connect 앱 생성, EAS project 연결, signing credentials, EAS Submit API key 구성은 완료됐으며, 실제 제출 전후의 값은 아래 기준으로 유지한다.
 
 ## App 정보 초안
 
 - App name: ottline
 - Bundle ID: `app.ottline`
+- Apple ID / ascAppId: `6780318110`
+- EAS project id: `efe8f7e5-75d8-45a9-9a4e-88bfeba07b98`
+- Current TestFlight build: `1.0.0 (7)`
+- Current source SHA: `667aafeb4546eb015a9ef7894f6cba9183db043e`
 - SKU: 외부 준비 시 결정
 - Primary language: Korean 우선, English 지원
 - Category: Entertainment 또는 Lifestyle 중 App Store Connect에서 최종 결정
@@ -60,11 +64,17 @@ The app does not read video playback contents from other apps. iOS recap reminde
 - Apple Developer Program approval is active. (`2026-06-15` 완료)
 - App Store Connect app record for `ottline` / `app.ottline` is created. (`2026-06-15` 완료)
 - App Store Connect `ascAppId` is set in `apps/native/eas.json`. (`6780318110`)
-- EAS project id is set in `apps/native/app.json`.
-- EAS iOS signing credentials are configured.
-- EAS App Store Connect API key is configured.
-- GitHub secret `EXPO_TOKEN` is present.
-- Native iOS TestFlight workflow succeeds.
-- App Store Connect build processing completes.
-- Internal tester can install the build from TestFlight.
-- iPhone checklist in `docs/ios-native-full-parity-testflight-plan.md` passes.
+- EAS project id is set in `apps/native/app.json`. (`efe8f7e5-75d8-45a9-9a4e-88bfeba07b98`)
+- EAS iOS signing credentials are configured. (`2026-06-18` 이후 TestFlight 제출 성공으로 확인)
+- EAS App Store Connect API key is configured. (`2026-06-18` 이후 TestFlight 제출 성공으로 확인)
+- GitHub secret `EXPO_TOKEN` is present. (`Native iOS TestFlight` workflow 성공으로 확인)
+- Native iOS TestFlight workflow succeeds. (`27805741470`, build `1.0.0 (7)`)
+- App Store Connect build processing completes. (Apple processing 완료 후 TestFlight 탭에서 확인)
+- Internal tester can install the build from TestFlight. (진행 중)
+- iPhone checklist in `docs/ios-native-full-parity-testflight-plan.md` passes. (진행 중)
+
+## 최근 TestFlight 제출 이력
+
+- `2026-06-18`: PR `#67`, main SHA `d18cfa6`, GitHub run `27745616062`, EAS build `455d8658-422e-4298-a023-37070d220622`, build `1.0.0 (5)`.
+- `2026-06-19`: PR `#68`, main SHA `24d2845`, GitHub run `27804770845`, build `1.0.0 (6)`. 하단 탭 아이콘, 타임라인 reload 이벤트, 로고 탭 이동 반영.
+- `2026-06-19`: PR `#69`, main SHA `667aafeb4546eb015a9ef7894f6cba9183db043e`, GitHub run `27805741470`, EAS build `7796ef11-75c1-4acb-95d7-96018e10bdbc`, EAS submission `2f02d6c8-2200-4078-b40b-b4ee0591bc54`, build `1.0.0 (7)`. 큰 탭 제목/설명 복원, 작은 중복 kicker 제거, 페어링 직후 `lastSyncAt` 초기화로 전체 pull 반영.

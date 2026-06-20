@@ -77,6 +77,19 @@ If present, read `./.omd/preferences.md` — pending corrections not yet folded 
    4. DB 인스턴스 축소는 재부팅이 발생하므로 작업 전 백업/스냅샷과 점검 시간을 확보한다. OKE worker node 축소는 단일 노드 환경에서 pod 재스케줄링과 짧은 서비스 영향 가능성이 있으므로 production 상태와 메모리 여유를 확인한 뒤 진행한다.
    5. 상세 운영 계획과 체크리스트는 `docs/oci-always-free-rightsizing.md`를 기준으로 한다.
 
+### P0
+1. **iOS TestFlight 실기기 QA 및 웹/Android parity 안정화**
+2. 현재 기준
+   1. `apps/native`는 Expo React Native 기반 iOS 네이티브 앱으로 `main`에 편입됐다. WebView/PWA/TWA 래퍼가 아니라 사용자 앱 화면을 네이티브 화면으로 구현한다.
+   2. App Store Connect 앱 레코드와 Apple ID `6780318110`, EAS project id `efe8f7e5-75d8-45a9-9a4e-88bfeba07b98`, iOS signing credentials, EAS Submit용 App Store Connect API key, GitHub `EXPO_TOKEN` 구성이 완료됐다.
+   3. GitHub Actions `Native iOS CI`와 수동 `Native iOS TestFlight` workflow가 동작한다. WSL 로컬 iOS 빌드는 기준에서 제외하고 GitHub Actions + EAS Build/Submit을 source of truth로 둔다.
+   4. `2026-06-18` PR `#67` main SHA `d18cfa6`로 첫 TestFlight 제출을 완료했고, build `1.0.0 (5)`가 App Store Connect에 업로드됐다.
+   5. `2026-06-19` PR `#68` main SHA `24d2845`로 하단 탭 아이콘을 `react-native-svg` 기반으로 교체하고, 설정 동기화 후 타임라인 reload 이벤트와 상단 로고/워드마크의 기록하기 탭 이동을 반영했다. TestFlight run `27804770845`로 build `1.0.0 (6)` 업로드를 완료했다.
+   6. `2026-06-19` PR `#69` main SHA `667aafeb4546eb015a9ef7894f6cba9183db043e`로 큰 탭 제목/설명은 복원하고 작은 중복 kicker 라벨만 제거했다. 페어링 코드 연결 직후 기존 `lastSyncAt` 체크포인트를 초기화해 새로 연결한 계정의 기존 타임라인을 전체 pull 하도록 수정했다. TestFlight run `27805741470`, EAS build `7796ef11-75c1-4acb-95d7-96018e10bdbc`로 build `1.0.0 (7)` App Store Connect 업로드를 완료했다.
+   7. 최근 검증 기준은 `npm run native:typecheck`, `npm run native:test`, `npm run native:testflight:check`, `git diff --check`, `npx expo-doctor`이며, build `1.0.0 (7)` 제출 전후로 모두 통과했다.
+   8. 남은 최우선 작업은 TestFlight 설치 빌드 기준 iPhone 실기기 QA와 웹/Android 앱 대비 기능, UI/UX, 문구 parity 확인이다. 특히 기록하기/타임라인/함께/설정의 탭 라벨, 상단 헤더, 동기화 후 목록 반영, 페어링 계정 전환 흐름을 우선 확인한다.
+   9. 상세 계획, 완료 증거, 실기기 체크리스트는 `docs/ios-native-full-parity-testflight-plan.md`와 `docs/ios-testflight-review-notes.md`를 기준으로 한다.
+
 ### 완료
 1. **다국어(i18n) 및 글로벌 서비스화**: `next-intl` 적용, 전체 UI 번역, 백엔드 데이터 연동 완료.
 2. **도메인 이전 및 마이그레이션**: `ottline.app` 신규 도메인 연결 및 리다이렉트 기반 인증 정보 이식 완료.
@@ -129,7 +142,7 @@ If present, read `./.omd/preferences.md` — pending corrections not yet folded 
    12. `2026-06-10` 기준 회고 리마인드 알림 탭이 앱으로 이동하지 않고 사라지는 문제를 수정했다. PR `#58` main SHA `27bb8941aa703699e32045041b5aa27705dbbdd0`로 병합했고, TWA release run `27256880845`로 Google Play `production` `1.0.12` (`versionCode=16`, `status=completed`) 반영을 확인했다. 릴리스 노트는 `Fix reminder reliability and ensure recap reminder notifications open ottline.`이다.
    13. 현재 로컬 작업환경(WSL on ARM Linux)에서는 Android Gradle 빌드(`assembleDebug`, `bundleRelease`)가 `aapt2` 바이너리 호환 문제로 실패하는 것이 정상 제약이다. 로컬 Android 빌드 실패를 회귀로 보지 말고, APK/AAB 산출물 검증과 Play 배포는 GitHub Actions를 source of truth로 사용한다.
    14. 로컬 Gradle은 필요 시 `apps/twa`에서 `GRADLE_USER_HOME=./.gradle ./gradlew :app:generateShorcutsFile --no-daemon` 같은 리소스 생성 확인까지만 제한적으로 사용한다.
-   15. `feat/native-mobile-app`의 `apps/native`는 React Native + Expo 후보 앱이며, main 미머지 상태이고 배포 파이프라인은 아직 없음
+   15. iOS 네이티브 앱은 `apps/native`로 분리되어 있으며, Android production 경로(`apps/twa`)와 별도로 Expo React Native + TestFlight-first 경로를 사용한다. Android TWA production 계약은 그대로 유지한다.
 
 ### P1
 1. Public repo 보안 후속 정리
