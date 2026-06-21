@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import ViewShot, { releaseCapture } from 'react-native-view-shot';
 import { LogShareCard, logShareCardCaptureSize } from '../../components/LogShareCard';
+import { NativeSelect } from '../../components/NativeSelect';
 import type { ThemeColors } from '../../constants/colors';
 import { Typography } from '../../constants/typography';
 import {
@@ -31,6 +32,13 @@ import {
   type NativeLocale,
 } from '../../lib/i18n';
 import { useNativePreferences } from '../../lib/nativePreferences';
+import {
+  occasionOptions,
+  placeOptionsForTitleType,
+  platformSectionsForTitleType,
+  ratingLabelForValue,
+  ratingOptionsForTitleType,
+} from '../../lib/logOptions';
 import { logShareCardFileName } from '../../lib/shareCard';
 import {
   enqueueUpdateLogOutbox,
@@ -46,10 +54,6 @@ import { buildUpdateLogPayload } from '../../lib/syncPayload';
 import type { Occasion, Place, Status, Title, WatchLog, WatchLogHistory } from '../../lib/types';
 
 const STATUSES: Status[] = ['DONE', 'IN_PROGRESS', 'WISHLIST'];
-const PLACES: Array<Place | ''> = ['', 'HOME', 'THEATER', 'CAFE', 'TRANSIT', 'LIBRARY', 'BOOKSTORE', 'ETC'];
-const OCCASIONS: Array<Occasion | ''> = ['', 'ALONE', 'FRIENDS', 'FAMILY', 'DATE', 'BREAK', 'ETC'];
-const VIDEO_PLATFORMS = ['Netflix', 'Disney+', 'TVING', 'Wavve', 'Watcha', 'Coupang Play', '극장'];
-const BOOK_PLATFORMS = ['밀리의서재', '리디', 'Kindle', '도서관', '서점'];
 
 type EditDraft = {
   status: Status;
@@ -171,6 +175,20 @@ export default function TitleDetailScreen() {
   const [discussionBusy, setDiscussionBusy] = useState(false);
   const [shareTargetLog, setShareTargetLog] = useState<WatchLog | null>(null);
   const shareCardRef = useRef<ViewShot>(null);
+  const optionTitleType = title?.type ?? 'movie';
+  const ratingOptions = useMemo(
+    () => ratingOptionsForTitleType(optionTitleType, locale),
+    [locale, optionTitleType],
+  );
+  const placeOptions = useMemo(
+    () => placeOptionsForTitleType(optionTitleType, locale),
+    [locale, optionTitleType],
+  );
+  const platformSections = useMemo(
+    () => platformSectionsForTitleType(optionTitleType, locale),
+    [locale, optionTitleType],
+  );
+  const occasionSelectOptions = useMemo(() => occasionOptions(locale), [locale]);
 
   const load = useCallback(async () => {
     if (!titleId) return;
@@ -494,16 +512,56 @@ export default function TitleDetailScreen() {
                         selectionColor={colors.primaryContainer}
                         style={styles.input}
                       />
-                      <TextInput
-                        value={draft.rating}
-                        onChangeText={(value) => updateDraft({ rating: value })}
-                        placeholder={copy.ratingPlaceholder}
-                        placeholderTextColor={colors.onSurfaceVariant}
-                        selectionColor={colors.primaryContainer}
-                        keyboardType="decimal-pad"
-                        style={styles.input}
-                      />
+                      <View style={styles.inlineSelect}>
+                        <NativeSelect
+                          colors={colors}
+                          label={copy.rating}
+                          selectedValue={draft.rating}
+                          valueLabel={ratingLabelForValue(draft.rating, log.title.type, locale)}
+                          placeholder={copy.noneRating}
+                          sections={[{ options: ratingOptions }]}
+                          onChange={(value) => updateDraft({ rating: value })}
+                          onClear={() => updateDraft({ rating: '' })}
+                          clearLabel={copy.noneRating}
+                        />
+                      </View>
                     </View>
+
+                    <NativeSelect
+                      colors={colors}
+                      label={log.title.type === 'book' ? copy.platformBookPlaceholder : copy.platformVideoPlaceholder}
+                      selectedValue={draft.ott}
+                      valueLabel={draft.ott || null}
+                      placeholder={log.title.type === 'book' ? copy.platformBookPlaceholder : copy.platformVideoPlaceholder}
+                      sections={platformSections}
+                      onChange={(value) => updateDraft({ ott: value })}
+                      onClear={() => updateDraft({ ott: '' })}
+                      clearLabel={log.title.type === 'book' ? copy.platformBookPlaceholder : copy.platformVideoPlaceholder}
+                    />
+
+                    <NativeSelect
+                      colors={colors}
+                      label={copy.place}
+                      selectedValue={draft.place}
+                      valueLabel={draft.place ? placeLabel(draft.place, locale) : null}
+                      placeholder={copy.nonePlace}
+                      sections={[{ options: placeOptions }]}
+                      onChange={(value) => updateDraft({ place: value as Place })}
+                      onClear={() => updateDraft({ place: '' })}
+                      clearLabel={copy.nonePlace}
+                    />
+
+                    <NativeSelect
+                      colors={colors}
+                      label={copy.occasion}
+                      selectedValue={draft.occasion}
+                      valueLabel={draft.occasion ? occasionLabel(draft.occasion, locale) : null}
+                      placeholder={copy.noneOccasion}
+                      sections={[{ options: occasionSelectOptions }]}
+                      onChange={(value) => updateDraft({ occasion: value as Occasion })}
+                      onClear={() => updateDraft({ occasion: '' })}
+                      clearLabel={copy.noneOccasion}
+                    />
 
                     {log.title.type === 'series' ? (
                       <View style={styles.inlineInputs}>
@@ -527,58 +585,6 @@ export default function TitleDetailScreen() {
                         />
                       </View>
                     ) : null}
-
-	                    <TextInput
-	                      value={draft.ott}
-	                      onChangeText={(value) => updateDraft({ ott: value })}
-	                      placeholder={log.title.type === 'book' ? copy.platformBookPlaceholder : copy.platformVideoPlaceholder}
-	                      placeholderTextColor={colors.onSurfaceVariant}
-	                      selectionColor={colors.primaryContainer}
-	                      style={styles.input}
-	                    />
-	                    <View style={styles.statusRow}>
-	                      {(log.title.type === 'book' ? BOOK_PLATFORMS : VIDEO_PLATFORMS).map((item) => (
-	                        <Pressable
-	                          key={item}
-	                          onPress={() => updateDraft({ ott: draft.ott === item ? '' : item })}
-	                          style={[styles.chip, draft.ott === item && styles.chipActive]}
-	                        >
-	                          <Text style={[styles.chipText, draft.ott === item && styles.chipTextActive]}>
-	                            {item}
-	                          </Text>
-	                        </Pressable>
-	                      ))}
-	                    </View>
-
-	                    <Text style={styles.fieldLabel}>{copy.place}</Text>
-                    <View style={styles.statusRow}>
-                      {PLACES.map((item) => (
-                        <Pressable
-                          key={item || 'none'}
-                          onPress={() => updateDraft({ place: item })}
-                          style={[styles.chip, draft.place === item && styles.chipActive]}
-                        >
-                          <Text style={[styles.chipText, draft.place === item && styles.chipTextActive]}>
-                            {placeLabel(item, locale)}
-                          </Text>
-                        </Pressable>
-                      ))}
-                    </View>
-
-                    <Text style={styles.fieldLabel}>{copy.occasion}</Text>
-                    <View style={styles.statusRow}>
-                      {OCCASIONS.map((item) => (
-                        <Pressable
-                          key={item || 'none'}
-                          onPress={() => updateDraft({ occasion: item })}
-                          style={[styles.chip, draft.occasion === item && styles.chipActive]}
-                        >
-                          <Text style={[styles.chipText, draft.occasion === item && styles.chipTextActive]}>
-                            {occasionLabel(item, locale)}
-                          </Text>
-                        </Pressable>
-                      ))}
-                    </View>
 
                     <TextInput
                       value={draft.note}
@@ -774,6 +780,7 @@ function createStyles(colors: ThemeColors) {
       gap: 10,
     },
     inlineInputs: { flexDirection: 'row', gap: 8 },
+    inlineSelect: { flex: 1 },
     input: {
       flex: 1,
       minHeight: 46,

@@ -55,10 +55,15 @@ import { avatarUri } from '../../../lib/avatar';
 import {
   accountCopy,
   logCopy,
-  occasionLabels,
-  placeLabels,
   type NativeLocale,
 } from '../../../lib/i18n';
+import {
+  occasionOptions,
+  placeOptionsForTitleType,
+  platformSectionsForTitleType,
+  ratingLabelForValue,
+  ratingOptionsForTitleType,
+} from '../../../lib/logOptions';
 import { useNativePreferences } from '../../../lib/nativePreferences';
 import type {
   Occasion,
@@ -82,11 +87,6 @@ type AccountCopy = (typeof accountCopy)[NativeLocale];
 const FILTER_VALUES: ContentFilter[] = ['video', 'book'];
 const STATUSES: Status[] = ['DONE', 'IN_PROGRESS', 'WISHLIST'];
 const TITLE_SUGGESTION_LIMIT = 6;
-
-const PLACE_VALUES: Place[] = ['HOME', 'THEATER', 'CAFE', 'TRANSIT', 'LIBRARY', 'BOOKSTORE'];
-const OCCASION_VALUES: Occasion[] = ['ALONE', 'FRIENDS', 'FAMILY', 'DATE', 'BREAK'];
-const OTT_BASE_OPTIONS = ['Netflix', 'Disney+', 'TVING', 'Wavve', 'Watcha', 'Coupang Play'];
-const RATING_VALUES = Array.from({ length: 10 }, (_, index) => (index + 1) / 2);
 
 function titleFromSearch(item: TitleSearchItem, id: string): Title {
   return {
@@ -239,22 +239,6 @@ export default function LogScreen() {
       })),
     [locale],
   );
-  const ratingOptions = useMemo(
-    () =>
-      RATING_VALUES.map((value) => ({
-        value: String(value),
-        label: `${value.toFixed(1)}/5`,
-      })),
-    [],
-  );
-  const places = useMemo(
-    () => PLACE_VALUES.map((value) => ({ value, label: placeLabels[locale][value] })),
-    [locale],
-  );
-  const occasions = useMemo(
-    () => OCCASION_VALUES.map((value) => ({ value, label: occasionLabels[locale][value] })),
-    [locale],
-  );
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<ContentFilter>('video');
   const [results, setResults] = useState<TitleSearchItem[]>([]);
@@ -289,6 +273,32 @@ export default function LogScreen() {
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const shareCardRef = useRef<ViewShot>(null);
 
+  const selectedOptionType = selected?.type ?? (filter === 'book' ? 'book' : 'movie');
+  const ratingOptions = useMemo(
+    () => ratingOptionsForTitleType(selectedOptionType, locale),
+    [locale, selectedOptionType],
+  );
+  const places = useMemo(
+    () => placeOptionsForTitleType(selectedOptionType, locale),
+    [locale, selectedOptionType],
+  );
+  const occasions = useMemo(() => occasionOptions(locale), [locale]);
+  const platformSections = useMemo(
+    () => platformSectionsForTitleType(selectedOptionType, locale),
+    [locale, selectedOptionType],
+  );
+
+  useEffect(() => {
+    if (!place) return;
+    if (!places.some((item) => item.value === place)) setPlace(null);
+  }, [place, places]);
+
+  useEffect(() => {
+    if (!ott) return;
+    const platformValues = platformSections.flatMap((section) => section.options.map((item) => item.value));
+    if (!platformValues.includes(ott)) setOtt(null);
+  }, [ott, platformSections]);
+
   useFocusEffect(
     useCallback(() => {
       let active = true;
@@ -305,32 +315,6 @@ export default function LogScreen() {
     }, []),
   );
 
-  const ottOptions = useMemo(() => {
-    if (filter === 'book') {
-      return [
-        copy.platformBookstore,
-        copy.platformLibrary,
-        copy.platformKyobo,
-        copy.platformYes24,
-        copy.platformAladin,
-        copy.platformRidi,
-        copy.platformMillie,
-        copy.platformWilla,
-      ];
-    }
-    return [...OTT_BASE_OPTIONS, copy.platformTheater];
-  }, [
-    copy.platformAladin,
-    copy.platformBookstore,
-    copy.platformKyobo,
-    copy.platformLibrary,
-    copy.platformMillie,
-    copy.platformRidi,
-    copy.platformTheater,
-    copy.platformWilla,
-    copy.platformYes24,
-    filter,
-  ]);
   const statusOptionsForSelect = useMemo(
     () =>
       statusOptions.map((item) => ({
@@ -1016,9 +1000,9 @@ export default function LogScreen() {
                     <View style={styles.dateField}>
                       <NativeSelect
                         colors={colors}
-                        label={copy.ratingPlaceholder}
+                        label={copy.rating}
                         selectedValue={rating}
-                        valueLabel={rating ? `${Number(rating).toFixed(1)}/5` : null}
+                        valueLabel={ratingLabelForValue(rating, selected.type, locale)}
                         placeholder={copy.none}
                         sections={[{ options: ratingOptions }]}
                         onChange={(value) => setRating(value)}
@@ -1058,7 +1042,7 @@ export default function LogScreen() {
                     selectedValue={ott ?? ''}
                     valueLabel={ott}
                     placeholder={copy.none}
-                    sections={[{ options: ottOptions.map((item) => ({ value: item, label: item })) }]}
+                    sections={platformSections}
                     onChange={(value) => setOtt(value)}
                     onClear={() => setOtt(null)}
                     clearLabel={copy.none}
