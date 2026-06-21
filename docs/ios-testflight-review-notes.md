@@ -39,11 +39,11 @@ If Apple requires preloaded data, create a review pairing code from a test accou
 ### Core Flows To Review
 
 - Search a movie, series, or book.
-- Save a log with status, rating, date, note, place, occasion, and platform.
-- Open Timeline, search/filter logs, and export CSV.
-- Open a title detail, edit a log, and view history.
+- Save a log by choosing a status first, then optionally add rating, date, note, place, occasion, season/episode, platform, public sharing, and a share card.
+- Open Timeline, search/filter logs, export CSV, create a log share card, and post a log to Together.
+- Open a title detail, edit a log, view history, and open the title's Together discussion.
 - Open Together, view a public post, add a comment, react, and use the report action.
-- Open Account, edit profile, issue a pairing code, create a recovery card, and manage local/server data.
+- Open Account, edit profile, issue a pairing code, create a recovery card, export CSV by type, and manage local/server data.
 - Open My Report and share a recap card.
 - Enable recap reminders and confirm permission UI.
 

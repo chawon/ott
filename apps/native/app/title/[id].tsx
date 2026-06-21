@@ -15,7 +15,13 @@ import ViewShot, { releaseCapture } from 'react-native-view-shot';
 import { LogShareCard, logShareCardCaptureSize } from '../../components/LogShareCard';
 import type { ThemeColors } from '../../constants/colors';
 import { Typography } from '../../constants/typography';
-import { getTitle, listLogHistory, trackEvent } from '../../lib/api';
+import {
+  createDiscussion,
+  getDiscussionByTitle,
+  getTitle,
+  listLogHistory,
+  trackEvent,
+} from '../../lib/api';
 import { formatShortDate, seasonEpisodeLabel, statusLabel, typeLabel } from '../../lib/format';
 import { uuid } from '../../lib/id';
 import {
@@ -42,6 +48,8 @@ import type { Occasion, Place, Status, Title, WatchLog, WatchLogHistory } from '
 const STATUSES: Status[] = ['DONE', 'IN_PROGRESS', 'WISHLIST'];
 const PLACES: Array<Place | ''> = ['', 'HOME', 'THEATER', 'CAFE', 'TRANSIT', 'LIBRARY', 'BOOKSTORE', 'ETC'];
 const OCCASIONS: Array<Occasion | ''> = ['', 'ALONE', 'FRIENDS', 'FAMILY', 'DATE', 'BREAK', 'ETC'];
+const VIDEO_PLATFORMS = ['Netflix', 'Disney+', 'TVING', 'Wavve', 'Watcha', 'Coupang Play', '극장'];
+const BOOK_PLATFORMS = ['밀리의서재', '리디', 'Kindle', '도서관', '서점'];
 
 type EditDraft = {
   status: Status;
@@ -160,6 +168,7 @@ export default function TitleDetailScreen() {
   const [historyLoadingId, setHistoryLoadingId] = useState<string | null>(null);
   const [historyErrorByLog, setHistoryErrorByLog] = useState<Record<string, string | null>>({});
   const [shareBusyId, setShareBusyId] = useState<string | null>(null);
+  const [discussionBusy, setDiscussionBusy] = useState(false);
   const [shareTargetLog, setShareTargetLog] = useState<WatchLog | null>(null);
   const shareCardRef = useRef<ViewShot>(null);
 
@@ -359,6 +368,31 @@ export default function TitleDetailScreen() {
     setShareBusyId(log.id);
   }
 
+  async function openTogetherDiscussion() {
+    if (!titleId || discussionBusy) return;
+    setDiscussionBusy(true);
+    try {
+      const existing = await getDiscussionByTitle(titleId).catch(() => null);
+      const discussion = existing ?? await createDiscussion(titleId);
+      trackEvent({
+        eventName: 'discussion_open',
+        properties: {
+          source: 'ios_native_title_detail',
+          titleType: title?.type ?? null,
+          created: !existing,
+        },
+      }).catch(() => null);
+      router.push({
+        pathname: '/public/[id]',
+        params: { id: discussion.id },
+      });
+    } catch (error) {
+      Alert.alert(copy.togetherErrorTitle, error instanceof Error ? error.message : copy.togetherErrorFallback);
+    } finally {
+      setDiscussionBusy(false);
+    }
+  }
+
   return (
     <ScrollView style={styles.root} contentContainerStyle={styles.content}>
       <View style={styles.headerRow}>
@@ -375,6 +409,24 @@ export default function TitleDetailScreen() {
           ) : null}
         </View>
       </View>
+
+      {title ? (
+        <View style={styles.togetherCard}>
+          <View style={styles.togetherBody}>
+            <Text style={styles.fieldLabel}>{copy.togetherTitle}</Text>
+            <Text style={styles.meta}>{copy.togetherDesc}</Text>
+          </View>
+          <Pressable
+            disabled={discussionBusy}
+            onPress={openTogetherDiscussion}
+            style={[styles.togetherButton, discussionBusy && styles.disabledButton]}
+          >
+            <Text style={styles.togetherButtonText}>
+              {discussionBusy ? copy.togetherBusy : copy.togetherAction}
+            </Text>
+          </Pressable>
+        </View>
+      ) : null}
 
       {loading ? (
         <View style={styles.center}>
@@ -476,16 +528,29 @@ export default function TitleDetailScreen() {
                       </View>
                     ) : null}
 
-                    <TextInput
-                      value={draft.ott}
-                      onChangeText={(value) => updateDraft({ ott: value })}
-                      placeholder={log.title.type === 'book' ? copy.platformBookPlaceholder : copy.platformVideoPlaceholder}
-                      placeholderTextColor={colors.onSurfaceVariant}
-                      selectionColor={colors.primaryContainer}
-                      style={styles.input}
-                    />
+	                    <TextInput
+	                      value={draft.ott}
+	                      onChangeText={(value) => updateDraft({ ott: value })}
+	                      placeholder={log.title.type === 'book' ? copy.platformBookPlaceholder : copy.platformVideoPlaceholder}
+	                      placeholderTextColor={colors.onSurfaceVariant}
+	                      selectionColor={colors.primaryContainer}
+	                      style={styles.input}
+	                    />
+	                    <View style={styles.statusRow}>
+	                      {(log.title.type === 'book' ? BOOK_PLATFORMS : VIDEO_PLATFORMS).map((item) => (
+	                        <Pressable
+	                          key={item}
+	                          onPress={() => updateDraft({ ott: draft.ott === item ? '' : item })}
+	                          style={[styles.chip, draft.ott === item && styles.chipActive]}
+	                        >
+	                          <Text style={[styles.chipText, draft.ott === item && styles.chipTextActive]}>
+	                            {item}
+	                          </Text>
+	                        </Pressable>
+	                      ))}
+	                    </View>
 
-                    <Text style={styles.fieldLabel}>{copy.place}</Text>
+	                    <Text style={styles.fieldLabel}>{copy.place}</Text>
                     <View style={styles.statusRow}>
                       {PLACES.map((item) => (
                         <Pressable
@@ -656,8 +721,25 @@ function createStyles(colors: ThemeColors) {
     backText: { fontSize: 30, lineHeight: 32, color: colors.primaryContainer },
     kicker: { ...Typography.accent, color: colors.tertiary },
     title: { ...Typography.headlineLg, color: colors.onBackground, fontSize: 28 },
-    desc: { ...Typography.bodyMd, color: colors.onSurfaceVariant },
-    center: { padding: 32, alignItems: 'center' },
+	    desc: { ...Typography.bodyMd, color: colors.onSurfaceVariant },
+	    togetherCard: {
+	      borderRadius: 18,
+	      borderWidth: 1,
+	      borderColor: colors.outlineVariant,
+	      backgroundColor: colors.surface,
+	      padding: 14,
+	      gap: 12,
+	    },
+	    togetherBody: { gap: 4 },
+	    togetherButton: {
+	      minHeight: 46,
+	      borderRadius: 14,
+	      backgroundColor: colors.primaryContainer,
+	      alignItems: 'center',
+	      justifyContent: 'center',
+	    },
+	    togetherButtonText: { ...Typography.labelLg, color: colors.background },
+	    center: { padding: 32, alignItems: 'center' },
     empty: {
       borderRadius: 20,
       borderWidth: 1,

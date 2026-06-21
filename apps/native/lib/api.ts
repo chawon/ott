@@ -77,6 +77,7 @@ async function getHeaders(): Promise<Record<string, string>> {
     'Content-Type': 'application/json',
     'Accept-Language': await acceptLanguage(),
     'X-Client-Id': clientId,
+    'X-Client-Platform': IOS_NATIVE_PLATFORM,
   };
   if (userId) headers['X-User-Id'] = userId;
   if (deviceId) headers['X-Device-Id'] = deviceId;
@@ -207,8 +208,10 @@ export async function listTvEpisodes(providerId: string, seasonNumber: number): 
 export async function listDiscussions(
   scope: 'latest' | 'all' = 'latest',
   limit = scope === 'all' ? 100 : 20,
+  days?: number,
 ): Promise<DiscussionListItem[]> {
   const params = new URLSearchParams({ limit: String(limit) });
+  if (typeof days === 'number') params.set('days', String(days));
   return request(`/api/discussions/${scope}?${params.toString()}`);
 }
 

@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { Image, StyleSheet, Text, View } from 'react-native';
 import { titleDetailCopy, type NativeLocale } from '../lib/i18n';
 import { formatShortDate, seasonEpisodeLabel, statusLabel, typeLabel } from '../lib/format';
 import type { WatchLog } from '../lib/types';
@@ -24,6 +24,7 @@ function ratingLabel(log: WatchLog, locale: NativeLocale) {
 export function LogShareCard({ log, locale = 'ko' }: LogShareCardProps) {
   const copy = titleDetailCopy[locale];
   const rating = ratingLabel(log, locale);
+  const posterUrl = log.seasonPosterUrl ?? log.title.posterUrl ?? null;
   const meta = [
     typeLabel(log.title.type, locale),
     statusLabel(log.status, log.title.type, locale),
@@ -34,8 +35,14 @@ export function LogShareCard({ log, locale = 'ko' }: LogShareCardProps) {
   return (
     <View style={styles.card}>
       <View style={styles.posterBlock}>
-        <Text style={styles.posterInitial}>{log.title.name.slice(0, 1)}</Text>
-        <Text style={styles.posterType}>{typeLabel(log.title.type, locale)}</Text>
+        {posterUrl ? (
+          <Image source={{ uri: posterUrl }} style={styles.posterImage} />
+        ) : (
+          <View style={styles.posterFallback}>
+            <Text style={styles.posterInitial}>{log.title.name.slice(0, 1)}</Text>
+            <Text style={styles.posterType}>{typeLabel(log.title.type, locale)}</Text>
+          </View>
+        )}
       </View>
 
       <View style={styles.body}>
@@ -94,6 +101,15 @@ const styles = StyleSheet.create({
   posterBlock: {
     height: 148,
     backgroundColor: '#ff9933',
+    overflow: 'hidden',
+  },
+  posterImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+  posterFallback: {
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,

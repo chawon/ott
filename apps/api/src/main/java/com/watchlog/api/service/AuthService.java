@@ -63,6 +63,11 @@ public class AuthService {
 
     @Transactional
     public AuthRegisterResponse register(String userAgent) {
+        return register(userAgent, null);
+    }
+
+    @Transactional
+    public AuthRegisterResponse register(String userAgent, String clientPlatform) {
         String code = generateCode();
         while (userRepository.findByPairingCode(code).isPresent()) {
             code = generateCode();
@@ -72,7 +77,7 @@ public class AuthService {
         userRepository.save(user);
 
         var device = new UserDeviceEntity(UUID.randomUUID(), user);
-        applyAgentInfo(device, userAgent);
+        applyAgentInfo(device, userAgent, clientPlatform);
         userDeviceRepository.save(device);
         watchLogRepository.assignUserToOrphanLogs(user.getId());
 
@@ -81,6 +86,11 @@ public class AuthService {
 
     @Transactional
     public AuthPairResponse pair(String code, java.util.UUID oldUserId, String userAgent) {
+        return pair(code, oldUserId, userAgent, null);
+    }
+
+    @Transactional
+    public AuthPairResponse pair(String code, java.util.UUID oldUserId, String userAgent, String clientPlatform) {
         if (code == null || code.trim().isEmpty()) {
             throw new IllegalArgumentException("Pairing code is required");
         }
@@ -88,7 +98,7 @@ public class AuthService {
                 .orElseThrow(() -> new IllegalArgumentException("Invalid pairing code"));
 
         var device = new UserDeviceEntity(UUID.randomUUID(), user);
-        applyAgentInfo(device, userAgent);
+        applyAgentInfo(device, userAgent, clientPlatform);
         userDeviceRepository.save(device);
 
         if (oldUserId != null && !oldUserId.equals(user.getId())) {
@@ -120,9 +130,15 @@ public class AuthService {
 
     @Transactional
     public void touchDevice(java.util.UUID userId, java.util.UUID deviceId) {
+        touchDevice(userId, deviceId, null, null);
+    }
+
+    @Transactional
+    public void touchDevice(java.util.UUID userId, java.util.UUID deviceId, String userAgent, String clientPlatform) {
         if (userId == null || deviceId == null) return;
         userDeviceRepository.findByIdAndUser_Id(deviceId, userId).ifPresent(d -> {
             d.touch();
+            applyAgentInfo(d, userAgent, clientPlatform);
         });
     }
 
@@ -194,11 +210,26 @@ public class AuthService {
         return sb.toString();
     }
 
-    private void applyAgentInfo(UserDeviceEntity device, String userAgent) {
+    private void applyAgentInfo(UserDeviceEntity device, String userAgent, String clientPlatform) {
+        if (isIosNativeClient(clientPlatform)) {
+            device.setUserAgent(normalizeMetadata(userAgent, clientPlatform));
+            device.setOs("iOS");
+            device.setBrowser("iOS App");
+            return;
+        }
         if (userAgent == null || userAgent.isBlank()) return;
         device.setUserAgent(userAgent);
         device.setOs(parseOs(userAgent));
         device.setBrowser(parseBrowser(userAgent));
+    }
+
+    private boolean isIosNativeClient(String clientPlatform) {
+        return clientPlatform != null && clientPlatform.trim().equalsIgnoreCase("ios_native");
+    }
+
+    private String normalizeMetadata(String userAgent, String fallback) {
+        if (userAgent != null && !userAgent.isBlank()) return userAgent;
+        return fallback;
     }
 
     private String parseOs(String ua) {
