@@ -25,26 +25,32 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public AuthRegisterResponse register(@RequestHeader(value = "User-Agent", required = false) String userAgent) {
-        return authService.register(userAgent);
+    public AuthRegisterResponse register(
+            @RequestHeader(value = "User-Agent", required = false) String userAgent,
+            @RequestHeader(value = "X-Client-Platform", required = false) String clientPlatform
+    ) {
+        return authService.register(userAgent, clientPlatform);
     }
 
     @PostMapping("/pair")
     public AuthPairResponse pair(
             @RequestBody AuthPairRequest req,
-            @RequestHeader(value = "User-Agent", required = false) String userAgent
+            @RequestHeader(value = "User-Agent", required = false) String userAgent,
+            @RequestHeader(value = "X-Client-Platform", required = false) String clientPlatform
     ) {
-        return authService.pair(req.code(), req.oldUserId(), userAgent);
+        return authService.pair(req.code(), req.oldUserId(), userAgent, clientPlatform);
     }
 
     @GetMapping("/devices")
     public List<DeviceDto> devices(
             @RequestHeader(value = "X-User-Id", required = false) java.util.UUID userId,
-            @RequestHeader(value = "X-Device-Id", required = false) java.util.UUID deviceId
+            @RequestHeader(value = "X-Device-Id", required = false) java.util.UUID deviceId,
+            @RequestHeader(value = "User-Agent", required = false) String userAgent,
+            @RequestHeader(value = "X-Client-Platform", required = false) String clientPlatform
     ) {
         if (userId == null) return List.of();
         authService.requireActiveDevice(userId, deviceId);
-        authService.touchDevice(userId, deviceId);
+        authService.touchDevice(userId, deviceId, userAgent, clientPlatform);
         return authService.listDevices(userId).stream().map(DeviceDto::from).toList();
     }
 

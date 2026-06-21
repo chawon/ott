@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import * as Sharing from 'expo-sharing';
 import {
   ActivityIndicator,
   Alert,
@@ -12,9 +13,14 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import ViewShot, { releaseCapture } from 'react-native-view-shot';
+import { LogShareCard, logShareCardCaptureSize } from '../../../components/LogShareCard';
 import type { ThemeColors } from '../../../constants/colors';
 import { Typography } from '../../../constants/typography';
 import {
+  createComment,
+  createDiscussion,
+  listDiscussions,
   listTvEpisodes,
   listTvSeasons,
   popularTitles,
@@ -29,9 +35,16 @@ import {
   typeLabel,
 } from '../../../lib/format';
 import { uuid } from '../../../lib/id';
-import { countLogsLocal, enqueueLogOutbox, upsertLogLocal } from '../../../lib/localDb';
+import {
+  countLogsLocal,
+  enqueueLogOutbox,
+  enqueueUpdateLogOutbox,
+  upsertHistoryLocal,
+  upsertLogLocal,
+} from '../../../lib/localDb';
 import { syncNow } from '../../../lib/sync';
-import { buildOutboxPayload } from '../../../lib/syncPayload';
+import { buildOutboxPayload, buildUpdateLogPayload } from '../../../lib/syncPayload';
+import { logShareCardFileName } from '../../../lib/shareCard';
 import {
   logCopy,
   occasionLabels,
@@ -42,18 +55,21 @@ import type {
   Occasion,
   Place,
   Status,
+  DiscussionListItem,
   Title,
   TitleSearchItem,
-  TitleType,
   TmdbEpisode,
   TmdbSeason,
   WatchLog,
+  WatchLogHistory,
 } from '../../../lib/types';
 
-type FilterType = 'ALL' | TitleType;
+type ContentFilter = 'video' | 'book';
+type TitleSelectSource = 'search' | 'recent_discussion' | 'popular_title';
 
-const FILTER_VALUES: FilterType[] = ['ALL', 'movie', 'series', 'book'];
+const FILTER_VALUES: ContentFilter[] = ['video', 'book'];
 const STATUSES: Status[] = ['DONE', 'IN_PROGRESS', 'WISHLIST'];
+const TITLE_SUGGESTION_LIMIT = 6;
 
 const PLACE_VALUES: Place[] = ['HOME', 'THEATER', 'CAFE', 'TRANSIT', 'LIBRARY', 'BOOKSTORE'];
 const OCCASION_VALUES: Occasion[] = ['ALONE', 'FRIENDS', 'FAMILY', 'DATE', 'BREAK'];
@@ -77,6 +93,84 @@ function titleFromSearch(item: TitleSearchItem, id: string): Title {
   };
 }
 
+function searchItemKey(item: TitleSearchItem) {
+  return `${item.provider}:${item.providerId}:${item.titleId ?? ''}`;
+}
+
+function titleFallbackKey(item: Pick<TitleSearchItem, 'type' | 'name' | 'year'>) {
+  return `${item.type}:${item.name.trim().toLowerCase()}:${item.year ?? ''}`;
+}
+
+function providerFromDiscussion(item: DiscussionListItem): TitleSearchItem['provider'] {
+  if (item.titleProvider === 'TMDB' || item.titleProvider === 'NAVER' || item.titleProvider === 'LOCAL') {
+    return item.titleProvider;
+  }
+  return 'LOCAL';
+}
+
+function searchItemFromDiscussion(item: DiscussionListItem): TitleSearchItem {
+  return {
+    provider: providerFromDiscussion(item),
+    providerId: item.titleProviderId ?? item.titleId,
+    titleId: item.titleId,
+    type: item.titleType,
+    name: item.titleName,
+    year: item.titleYear ?? null,
+    posterUrl: item.posterUrl ?? null,
+  };
+}
+
+function matchesFilter(item: Pick<TitleSearchItem, 'type'>, filter: ContentFilter) {
+  return filter === 'book' ? item.type === 'book' : item.type !== 'book';
+}
+
+function selectPopularFillers(
+  recent: TitleSearchItem[],
+  trends: TitleSearchItem[],
+  filter: ContentFilter,
+  limit: number,
+) {
+  const providerKeys = new Set(
+    recent.map((item) => `${item.provider}:${item.providerId}`),
+  );
+  const fallbackKeys = new Set(recent.map(titleFallbackKey));
+  const selected: TitleSearchItem[] = [];
+
+  for (const item of trends) {
+    if (selected.length >= limit) break;
+    if (!matchesFilter(item, filter)) continue;
+    const providerKey = `${item.provider}:${item.providerId}`;
+    const fallbackKey = titleFallbackKey(item);
+    if (providerKeys.has(providerKey) || fallbackKeys.has(fallbackKey)) continue;
+    providerKeys.add(providerKey);
+    fallbackKeys.add(fallbackKey);
+    selected.push(item);
+  }
+
+  return selected;
+}
+
+function historyFromLog(log: WatchLog, recordedAt: string): WatchLogHistory {
+  return {
+    id: uuid(),
+    logId: log.id,
+    recordedAt,
+    status: log.status,
+    rating: log.rating ?? null,
+    note: log.note ?? null,
+    spoiler: log.spoiler,
+    ott: log.ott ?? null,
+    seasonNumber: log.seasonNumber ?? null,
+    episodeNumber: log.episodeNumber ?? null,
+    seasonPosterUrl: log.seasonPosterUrl ?? null,
+    seasonYear: log.seasonYear ?? null,
+    origin: log.origin ?? 'LOG',
+    watchedAt: log.watchedAt,
+    place: log.place ?? null,
+    occasion: log.occasion ?? null,
+  };
+}
+
 export default function LogScreen() {
   const { colors, locale } = useNativePreferences();
   const copy = logCopy[locale];
@@ -85,9 +179,9 @@ export default function LogScreen() {
     () =>
       FILTER_VALUES.map((value) => ({
         value,
-        label: value === 'ALL' ? copy.all : typeLabel(value, locale),
+        label: value === 'video' ? copy.tabVideo : copy.tabBook,
       })),
-    [copy.all, locale],
+    [copy.tabBook, copy.tabVideo],
   );
   const places = useMemo(
     () => PLACE_VALUES.map((value) => ({ value, label: placeLabels[locale][value] })),
@@ -102,12 +196,19 @@ export default function LogScreen() {
     [copy.platformLibrary, copy.platformTheater],
   );
   const [query, setQuery] = useState('');
-  const [filter, setFilter] = useState<FilterType>('ALL');
+  const [filter, setFilter] = useState<ContentFilter>('video');
   const [results, setResults] = useState<TitleSearchItem[]>([]);
   const [popular, setPopular] = useState<TitleSearchItem[]>([]);
+  const [suggestionSources, setSuggestionSources] = useState<Record<string, TitleSelectSource>>({});
   const [selected, setSelected] = useState<TitleSearchItem | null>(null);
+  const [activeLog, setActiveLog] = useState<WatchLog | null>(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+  const [shareToDiscussion, setShareToDiscussion] = useState(false);
+  const [shareCard, setShareCard] = useState(false);
+  const [shareBusy, setShareBusy] = useState(false);
+  const [shareTargetLog, setShareTargetLog] = useState<WatchLog | null>(null);
   const [status, setStatus] = useState<Status>('DONE');
   const [rating, setRating] = useState('');
   const [note, setNote] = useState('');
@@ -125,26 +226,39 @@ export default function LogScreen() {
   const [episodeLoading, setEpisodeLoading] = useState(false);
   const [seasonError, setSeasonError] = useState<string | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const shareCardRef = useRef<ViewShot>(null);
 
   useEffect(() => {
     if (timer.current) clearTimeout(timer.current);
     if (!query.trim()) {
       setResults([]);
-      if (filter === 'book') {
-        setPopular([]);
-        return;
-      }
       timer.current = setTimeout(async () => {
         setLoading(true);
         try {
-          const items = await popularTitles(12);
-          setPopular(
-            items
-              .filter((item) => filter === 'ALL' || item.type === filter)
-              .slice(0, 6),
+          const discussions = await listDiscussions('latest', TITLE_SUGGESTION_LIMIT, 14);
+          const recent = discussions
+            .map(searchItemFromDiscussion)
+            .filter((item) => matchesFilter(item, filter))
+            .slice(0, TITLE_SUGGESTION_LIMIT);
+          const nextSources: Record<string, TitleSelectSource> = Object.fromEntries(
+            recent.map((item) => [searchItemKey(item), 'recent_discussion' as const]),
           );
+          const missingCount = Math.max(0, TITLE_SUGGESTION_LIMIT - recent.length);
+
+          if (filter !== 'book' && missingCount > 0) {
+            const trends = await popularTitles(TITLE_SUGGESTION_LIMIT * 2).catch(() => []);
+            const fillers = selectPopularFillers(recent, trends, filter, missingCount);
+            fillers.forEach((item) => {
+              nextSources[searchItemKey(item)] = 'popular_title';
+            });
+            setPopular([...recent, ...fillers]);
+          } else {
+            setPopular(recent);
+          }
+          setSuggestionSources(nextSources);
         } catch {
           setPopular([]);
+          setSuggestionSources({});
         } finally {
           setLoading(false);
         }
@@ -154,16 +268,19 @@ export default function LogScreen() {
     timer.current = setTimeout(async () => {
       setLoading(true);
       try {
-        const items = await searchTitles(query.trim(), filter);
-        setResults(items.slice(0, 20));
+        const searchType = filter === 'book' ? 'book' : 'ALL';
+        const items = await searchTitles(query.trim(), searchType);
+        const filteredItems = items.filter((item) => matchesFilter(item, filter));
+        setResults(filteredItems.slice(0, 20));
         setPopular([]);
+        setSuggestionSources({});
         trackEvent({
           eventName: 'title_search',
           properties: {
             source: 'ios_native_log',
             queryLength: query.trim().length,
             mediaType: filter,
-            resultCount: items.length,
+            resultCount: filteredItems.length,
           },
         }).catch(() => null);
       } catch {
@@ -249,87 +366,270 @@ export default function LogScreen() {
     return Math.min(5, Math.max(0.5, parsed));
   }, [rating]);
 
-  async function save() {
-    if (!selected) return;
-    setSaving(true);
+  function resetForm() {
+    setSelected(null);
+    setActiveLog(null);
+    setQuery('');
+    setResults([]);
+    setStatus('DONE');
+    setRating('');
+    setNote('');
+    setWatchedAt(todayInputValue());
+    setPlace(null);
+    setOccasion(null);
+    setOtt(null);
+    setSeasons([]);
+    setEpisodes([]);
+    setSelectedSeason(null);
+    setSelectedEpisode(null);
+    setSeasonPosterUrl(null);
+    setSeasonYear(null);
+    setSeasonError(null);
+    setShareToDiscussion(false);
+    setShareCard(false);
+    setMessage(null);
+  }
 
-    try {
-      const now = new Date().toISOString();
-      const isFirstLog = (await countLogsLocal()) === 0;
-      const title = titleFromSearch(selected, selected.titleId ?? uuid());
-      const log: WatchLog = {
-        id: uuid(),
-        title,
-        status,
-        rating: ratingValue,
-        note: note.trim() || null,
-        spoiler: false,
-        ott,
-        seasonNumber: selectedSeason,
-        episodeNumber: selectedEpisode,
-        seasonPosterUrl,
-        seasonYear,
-        origin: 'LOG',
-        watchedAt: inputDateToIso(watchedAt),
-        place,
-        occasion,
-        createdAt: now,
-        updatedAt: now,
-        syncStatus: 'pending',
-      };
+  async function persistNewLog(nextStatus: Status, includeDetails: boolean) {
+    if (!selected) return null;
+    const now = new Date().toISOString();
+    const isFirstLog = (await countLogsLocal()) === 0;
+    const title = titleFromSearch(selected, selected.titleId ?? uuid());
+    const log: WatchLog = {
+      id: uuid(),
+      title,
+      status: nextStatus,
+      rating: includeDetails ? ratingValue : null,
+      note: includeDetails ? note.trim() || null : null,
+      spoiler: false,
+      ott: includeDetails ? ott : null,
+      seasonNumber: includeDetails ? selectedSeason : null,
+      episodeNumber: includeDetails ? selectedEpisode : null,
+      seasonPosterUrl: includeDetails ? seasonPosterUrl : null,
+      seasonYear: includeDetails ? seasonYear : null,
+      origin: 'LOG',
+      watchedAt: inputDateToIso(watchedAt),
+      place: includeDetails ? place : null,
+      occasion: includeDetails ? occasion : null,
+      createdAt: now,
+      updatedAt: now,
+      syncStatus: 'pending',
+    };
 
-      await upsertLogLocal(log);
-      await enqueueLogOutbox(log, buildOutboxPayload(log, now));
-      await syncNow({ registerIfNeeded: true }).catch(() => null);
+    await upsertLogLocal(log);
+    await enqueueLogOutbox(log, buildOutboxPayload(log, now));
+    await syncNow({ registerIfNeeded: true }).catch(() => null);
+    trackEvent({
+      eventName: 'log_create',
+      properties: {
+        titleType: title.type,
+        status: nextStatus,
+        hasRating: includeDetails && ratingValue != null,
+        hasNote: includeDetails && !!note.trim(),
+        hasSeason: includeDetails && selectedSeason != null,
+        hasEpisode: includeDetails && selectedEpisode != null,
+        source: 'ios_native_log',
+      },
+    }).catch(() => null);
+    if (isFirstLog) {
       trackEvent({
-        eventName: 'log_create',
+        eventName: 'first_log_create',
         properties: {
           titleType: title.type,
-          status,
-          hasRating: ratingValue != null,
-          hasNote: !!note.trim(),
-          hasSeason: selectedSeason != null,
-          hasEpisode: selectedEpisode != null,
           source: 'ios_native_log',
         },
       }).catch(() => null);
-      if (isFirstLog) {
-        trackEvent({
-          eventName: 'first_log_create',
-          properties: {
-            titleType: title.type,
-            source: 'ios_native_log',
-          },
-        }).catch(() => null);
+    }
+    setActiveLog(log);
+    return log;
+  }
+
+  async function persistLogDetails(baseLog: WatchLog, nextStatus = status) {
+    const now = new Date().toISOString();
+    const updated: WatchLog = {
+      ...baseLog,
+      status: nextStatus,
+      rating: ratingValue,
+      note: note.trim() || null,
+      ott,
+      seasonNumber: selectedSeason,
+      episodeNumber: selectedEpisode,
+      seasonPosterUrl,
+      seasonYear,
+      watchedAt: inputDateToIso(watchedAt),
+      place,
+      occasion,
+      updatedAt: now,
+      syncStatus: 'pending',
+    };
+
+    const history = historyFromLog(updated, now);
+    await upsertLogLocal(updated);
+    await upsertHistoryLocal([history]);
+    await enqueueUpdateLogOutbox(updated, buildUpdateLogPayload(updated, now));
+    await syncNow({ registerIfNeeded: true }).catch(() => null);
+    trackEvent({
+      eventName: 'log_update',
+      properties: {
+        titleType: updated.title.type,
+        status: updated.status,
+        hasRating: ratingValue != null,
+        hasNote: !!note.trim(),
+        hasSeason: selectedSeason != null,
+        hasEpisode: selectedEpisode != null,
+        source: 'ios_native_log',
+      },
+    }).catch(() => null);
+    setActiveLog(updated);
+    return updated;
+  }
+
+  async function publishLogToDiscussion(log: WatchLog) {
+    const discussion = await createDiscussion(log.title.id);
+    if (log.note?.trim()) {
+      await createComment(discussion.id, {
+        body: log.note.trim(),
+        mentions: [],
+        syncLog: false,
+      });
+    }
+    trackEvent({
+      eventName: 'discussion_share',
+      properties: {
+        source: 'ios_native_log',
+        titleType: log.title.type,
+        hasNote: Boolean(log.note?.trim()),
+      },
+    }).catch(() => null);
+  }
+
+  async function saveStatusChoice(nextStatus: Status) {
+    setStatus(nextStatus);
+    setSaving(true);
+    setMessage(null);
+    try {
+      if (activeLog) {
+        await persistLogDetails(activeLog, nextStatus);
+      } else {
+        await persistNewLog(nextStatus, false);
       }
-      setSelected(null);
-      setQuery('');
-      setResults([]);
-      setStatus('DONE');
-      setRating('');
-      setNote('');
-      setWatchedAt(todayInputValue());
-      setPlace(null);
-      setOccasion(null);
-      setOtt(null);
-      setSeasons([]);
-      setEpisodes([]);
-      setSelectedSeason(null);
-      setSelectedEpisode(null);
-      setSeasonPosterUrl(null);
-      setSeasonYear(null);
-      setSeasonError(null);
-      Alert.alert(copy.saveSuccessTitle, copy.saveSuccessMessage);
+      setMessage(copy.quickSaveDone);
     } catch (error) {
-      const message = error instanceof Error ? error.message : copy.saveErrorMessage;
-      Alert.alert(copy.saveErrorTitle, message);
+      const nextMessage = error instanceof Error ? error.message : copy.saveErrorMessage;
+      Alert.alert(copy.saveErrorTitle, nextMessage);
     } finally {
       setSaving(false);
     }
   }
 
-  function selectTitle(item: TitleSearchItem, source: 'search' | 'popular_title') {
+  async function saveDetails() {
+    if (!selected) return;
+    setSaving(true);
+    setMessage(null);
+
+    try {
+      const log = activeLog
+        ? await persistLogDetails(activeLog)
+        : await persistNewLog(status, true);
+      if (!log) return;
+
+      let optionalActionFailed = false;
+      if (shareToDiscussion) {
+        try {
+          await publishLogToDiscussion(log);
+        } catch (error) {
+          optionalActionFailed = true;
+          Alert.alert(
+            copy.publicShareErrorTitle,
+            error instanceof Error ? error.message : copy.publicShareErrorFallback,
+          );
+        }
+      }
+      if (shareCard) {
+        setShareTargetLog(log);
+        setShareBusy(true);
+      }
+
+      resetForm();
+      if (!shareCard && !optionalActionFailed) Alert.alert(copy.saveSuccessTitle, copy.saveSuccessMessage);
+    } catch (error) {
+      const nextMessage = error instanceof Error ? error.message : copy.saveErrorMessage;
+      Alert.alert(copy.saveErrorTitle, nextMessage);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  useEffect(() => {
+    if (!shareTargetLog || !shareBusy) return;
+
+    const logToShare = shareTargetLog;
+    let cancelled = false;
+    let capturedUri: string | null = null;
+
+    async function captureAndShare() {
+      try {
+        const available = await Sharing.isAvailableAsync();
+        if (!available) throw new Error(copy.shareUnavailable);
+        await new Promise((resolve) => setTimeout(resolve, 0));
+        if (cancelled) return;
+
+        capturedUri = await shareCardRef.current?.capture?.() ?? null;
+        if (!capturedUri) throw new Error(copy.shareCaptureError);
+
+        await Sharing.shareAsync(capturedUri, {
+          mimeType: 'image/png',
+          UTI: 'public.png',
+          dialogTitle: logShareCardFileName(logToShare),
+        });
+        trackEvent({
+          eventName: 'share_card_create',
+          properties: {
+            source: 'ios_native_log',
+            titleType: logToShare.title.type,
+            hasNote: Boolean(logToShare.note?.trim()),
+            hasRating: typeof logToShare.rating === 'number',
+          },
+        }).catch(() => null);
+      } catch (error) {
+        Alert.alert(copy.shareErrorTitle, error instanceof Error ? error.message : copy.shareErrorFallback);
+      } finally {
+        if (capturedUri) releaseCapture(capturedUri);
+        if (!cancelled) {
+          setShareBusy(false);
+          setShareTargetLog(null);
+        }
+      }
+    }
+
+    captureAndShare();
+
+    return () => {
+      cancelled = true;
+      if (capturedUri) releaseCapture(capturedUri);
+    };
+  }, [
+    copy.shareCaptureError,
+    copy.shareErrorFallback,
+    copy.shareErrorTitle,
+    copy.shareUnavailable,
+    shareBusy,
+    shareTargetLog,
+  ]);
+
+  function selectTitle(item: TitleSearchItem, source: TitleSelectSource) {
     setSelected(item);
+    setActiveLog(null);
+    setStatus('DONE');
+    setRating('');
+    setNote('');
+    setWatchedAt(todayInputValue());
+    setPlace(null);
+    setOccasion(null);
+    setOtt(null);
+    setMessage(null);
+    setShareToDiscussion(false);
+    setShareCard(false);
     trackEvent({
       eventName: 'title_select',
       properties: {
@@ -356,7 +656,7 @@ export default function LogScreen() {
           <TextInput
             value={query}
             onChangeText={setQuery}
-            placeholder={copy.searchPlaceholder}
+            placeholder={filter === 'book' ? copy.searchBookPlaceholder : copy.searchVideoPlaceholder}
             placeholderTextColor={colors.onSurfaceVariant}
             style={styles.input}
             autoCapitalize="none"
@@ -392,14 +692,16 @@ export default function LogScreen() {
                 .filter(Boolean)
                 .join(' · ')}
             </Text>
+            {message ? <Text style={styles.successText}>{message}</Text> : null}
 
             <Text style={styles.fieldLabel}>{copy.status}</Text>
             <View style={styles.optionRow}>
               {STATUSES.map((item) => (
                 <Pressable
                   key={item}
-                  onPress={() => setStatus(item)}
-                  style={[styles.chip, status === item && styles.chipActive]}
+                  disabled={saving}
+                  onPress={() => saveStatusChoice(item)}
+                  style={[styles.chip, status === item && styles.chipActive, saving && styles.disabledButton]}
                 >
                   <Text style={[styles.chipText, status === item && styles.chipTextActive]}>
                     {statusLabel(item, selected.type, locale)}
@@ -540,29 +842,56 @@ export default function LogScreen() {
               style={[styles.input, styles.noteInput]}
             />
 
+            <Text style={styles.fieldLabel}>{copy.saveAndShare}</Text>
+            <View style={styles.toggleRow}>
+              <Pressable
+                onPress={() => setShareToDiscussion((value) => !value)}
+                style={[styles.toggleButton, shareToDiscussion && styles.toggleButtonActive]}
+              >
+                <Text style={[styles.toggleText, shareToDiscussion && styles.toggleTextActive]}>
+                  {shareToDiscussion ? '✓ ' : ''}{copy.shareToPublic}
+                </Text>
+              </Pressable>
+              <Pressable
+                onPress={() => setShareCard((value) => !value)}
+                style={[styles.toggleButton, shareCard && styles.toggleButtonActive]}
+              >
+                <Text style={[styles.toggleText, shareCard && styles.toggleTextActive]}>
+                  {shareCard ? '✓ ' : ''}{copy.createShareCard}
+                </Text>
+              </Pressable>
+            </View>
+
             <View style={styles.actionRow}>
-              <Pressable onPress={() => setSelected(null)} style={styles.secondaryButton}>
+              <Pressable onPress={resetForm} style={styles.secondaryButton}>
                 <Text style={styles.secondaryButtonText}>{copy.cancelSelection}</Text>
               </Pressable>
               <Pressable
-                onPress={save}
+                onPress={saveDetails}
                 disabled={saving}
                 style={[styles.primaryButton, saving && styles.disabledButton]}
               >
-                <Text style={styles.primaryButtonText}>{saving ? copy.saving : copy.saveAction}</Text>
+                <Text style={styles.primaryButtonText}>
+                  {saving ? copy.saving : activeLog ? copy.saveDetailsAction : copy.saveAction}
+                </Text>
               </Pressable>
             </View>
           </View>
         ) : (
           <View style={styles.results}>
             {!query.trim() && popular.length > 0 ? (
-              <Text style={styles.sectionLabel}>{copy.popularTitle}</Text>
+              <Text style={styles.sectionLabel}>{copy.suggestionsTitle}</Text>
             ) : null}
             {(query.trim() ? results : popular).map((item) => (
               <Pressable
-                key={`${item.provider}:${item.providerId}`}
+                key={searchItemKey(item)}
                 style={styles.result}
-                onPress={() => selectTitle(item, query.trim() ? 'search' : 'popular_title')}
+                onPress={() =>
+                  selectTitle(
+                    item,
+                    query.trim() ? 'search' : suggestionSources[searchItemKey(item)] ?? 'popular_title',
+                  )
+                }
               >
                 {item.posterUrl ? (
                   <Image source={{ uri: item.posterUrl }} style={styles.poster} />
@@ -588,6 +917,21 @@ export default function LogScreen() {
           </View>
         )}
       </ScrollView>
+      {shareTargetLog ? (
+        <ViewShot
+          ref={shareCardRef}
+          options={{
+            format: 'png',
+            quality: 1,
+            result: 'tmpfile',
+            width: logShareCardCaptureSize.width,
+            height: logShareCardCaptureSize.height,
+          }}
+          style={styles.shareCaptureArea}
+        >
+          <LogShareCard log={shareTargetLog} locale={locale} />
+        </ViewShot>
+      ) : null}
     </KeyboardAvoidingView>
   );
 }
@@ -647,6 +991,14 @@ function createStyles(colors: ThemeColors) {
   resultBody: { flex: 1, justifyContent: 'center', gap: 4 },
   resultTitle: { ...Typography.headlineSm, color: colors.onSurface },
   meta: { ...Typography.bodyMd, color: colors.onSurfaceVariant },
+  successText: {
+    ...Typography.labelLg,
+    color: colors.primaryContainer,
+    borderRadius: 12,
+    backgroundColor: colors.surfaceMuted,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+  },
   emptyBox: {
     borderRadius: 16,
     borderWidth: 1,
@@ -702,6 +1054,24 @@ function createStyles(colors: ThemeColors) {
     paddingTop: 12,
     textAlignVertical: 'top',
   },
+  toggleRow: { flexDirection: 'row', gap: 8 },
+  toggleButton: {
+    flex: 1,
+    minHeight: 48,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: colors.outlineVariant,
+    backgroundColor: colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 10,
+  },
+  toggleButtonActive: {
+    borderColor: colors.primaryContainer,
+    backgroundColor: colors.surfaceMuted,
+  },
+  toggleText: { ...Typography.labelLg, color: colors.onSurfaceVariant, textAlign: 'center' },
+  toggleTextActive: { color: colors.primaryContainer },
   actionRow: { flexDirection: 'row', gap: 10, marginTop: 4 },
   primaryButton: {
     flex: 1,
@@ -722,5 +1092,13 @@ function createStyles(colors: ThemeColors) {
   },
   secondaryButtonText: { color: colors.onSurface, fontWeight: '800' },
   disabledButton: { opacity: 0.55 },
+  shareCaptureArea: {
+    position: 'absolute',
+    left: -10000,
+    top: 0,
+    width: 270,
+    height: 480,
+    backgroundColor: '#15120f',
+  },
 });
 }

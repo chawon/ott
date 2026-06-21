@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import * as Notifications from 'expo-notifications';
 import { Stack, router, usePathname } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { ActivityIndicator, View } from 'react-native';
+import { ActivityIndicator, AppState, View } from 'react-native';
 import { NativeAppHeader } from '../components/NativeAppHeader';
 import { useAuthStore } from '../store/authStore';
 import { initDb } from '../lib/localDb';
@@ -15,6 +15,7 @@ import {
   NativePreferencesProvider,
   useNativePreferences,
 } from '../lib/nativePreferences';
+import { syncNow } from '../lib/sync';
 
 export default function RootLayout() {
   return (
@@ -55,6 +56,17 @@ function RootLayoutContent() {
       },
     }).catch(() => null);
   }, [pathname, ready]);
+
+  useEffect(() => {
+    if (!ready) return;
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state !== 'active') return;
+      syncNow().catch(() => null);
+    });
+    return () => {
+      subscription.remove();
+    };
+  }, [ready]);
 
   useEffect(() => {
     if (!ready) return;

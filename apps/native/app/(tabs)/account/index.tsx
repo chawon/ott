@@ -1,4 +1,5 @@
 import { router, useFocusEffect } from 'expo-router';
+import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import {
@@ -24,7 +25,7 @@ import {
   updateUserProfile,
 } from '../../../lib/api';
 import { accountCopy, type NativeLocale } from '../../../lib/i18n';
-import { clearLocalData, setSetting } from '../../../lib/localDb';
+import { clearLocalData, listLogsLocal, setSetting } from '../../../lib/localDb';
 import { useNativePreferences, type NativeThemePreference } from '../../../lib/nativePreferences';
 import {
   disableRecapNotifications,
@@ -33,7 +34,8 @@ import {
   type RecapNotificationState,
 } from '../../../lib/notifications';
 import { syncNow } from '../../../lib/sync';
-import type { DeviceSummary, PersonaKey, UserProfile } from '../../../lib/types';
+import { buildTimelineCsv, timelineCsvFileName } from '../../../lib/timelineCsv';
+import type { DeviceSummary, PersonaKey, TitleType, UserProfile } from '../../../lib/types';
 import { useAuthStore } from '../../../store/authStore';
 
 const PERSONAS: PersonaKey[] = [
@@ -45,6 +47,7 @@ const PERSONAS: PersonaKey[] = [
   'archive_collector',
 ];
 const THEME_PREFERENCES: NativeThemePreference[] = ['system', 'light', 'dark'];
+const EXPORT_RANGES: Array<'ALL' | TitleType> = ['ALL', 'movie', 'series', 'book'];
 
 type AccountCopy = (typeof accountCopy)[NativeLocale];
 
@@ -105,6 +108,13 @@ function themePreferenceLabel(value: NativeThemePreference, copy: AccountCopy) {
   return copy.themeSystem;
 }
 
+function exportRangeLabel(value: 'ALL' | TitleType, copy: AccountCopy) {
+  if (value === 'movie') return copy.exportMovies;
+  if (value === 'series') return copy.exportSeries;
+  if (value === 'book') return copy.exportBooks;
+  return copy.exportAll;
+}
+
 export default function AccountScreen() {
   const { colorScheme, colors, locale, setThemePreference, themePreference } = useNativePreferences();
   const copy = accountCopy[locale];
@@ -117,6 +127,8 @@ export default function AccountScreen() {
   const [recoveryCardBusy, setRecoveryCardBusy] = useState(false);
   const [notificationBusy, setNotificationBusy] = useState(false);
   const [themeBusy, setThemeBusy] = useState(false);
+  const [exportBusy, setExportBusy] = useState(false);
+  const [exportRange, setExportRange] = useState<'ALL' | TitleType>('ALL');
   const [status, setStatus] = useState<string | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [nickname, setNickname] = useState('');
@@ -342,6 +354,45 @@ export default function AccountScreen() {
       setStatus(copy.themeSaveError);
     } finally {
       setThemeBusy(false);
+    }
+  }
+
+  async function exportLogs() {
+    setExportBusy(true);
+    setStatus(null);
+    try {
+      const logs = await listLogsLocal();
+      const selectedLogs = exportRange === 'ALL'
+        ? logs
+        : logs.filter((log) => log.title.type === exportRange);
+      if (selectedLogs.length === 0) {
+        setStatus(copy.exportEmpty);
+        return;
+      }
+
+      const filename = timelineCsvFileName();
+      const file = new FileSystem.File(FileSystem.Paths.cache, filename);
+      file.write(buildTimelineCsv(selectedLogs), {
+        encoding: 'utf8',
+      });
+      await Sharing.shareAsync(file.uri, {
+        dialogTitle: filename,
+        mimeType: 'text/csv',
+        UTI: 'public.comma-separated-values-text',
+      });
+      trackEvent({
+        eventName: 'timeline_export',
+        properties: {
+          source: 'ios_native_account',
+          count: selectedLogs.length,
+          typeFilter: exportRange,
+        },
+      }).catch(() => null);
+      setStatus(formatCopy(copy.exportSuccess, { count: selectedLogs.length }));
+    } catch {
+      setStatus(copy.exportError);
+    } finally {
+      setExportBusy(false);
     }
   }
 
@@ -691,6 +742,29 @@ export default function AccountScreen() {
 
       <View style={styles.card}>
         <Text style={styles.sectionTitle}>{copy.dataTitle}</Text>
+        <Text style={styles.desc}>{copy.exportDesc}</Text>
+        <View style={styles.optionRow}>
+          {EXPORT_RANGES.map((item) => (
+            <Pressable
+              key={item}
+              onPress={() => setExportRange(item)}
+              style={[styles.chip, exportRange === item && styles.chipActive]}
+            >
+              <Text style={[styles.chipText, exportRange === item && styles.chipTextActive]}>
+                {exportRangeLabel(item, copy)}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+        <Pressable
+          disabled={exportBusy}
+          onPress={exportLogs}
+          style={[styles.secondaryButton, exportBusy && styles.disabledButton]}
+        >
+          <Text style={styles.secondaryButtonText}>
+            {exportBusy ? copy.exporting : copy.exportAction}
+          </Text>
+        </Pressable>
         <Pressable onPress={resetLocal} style={styles.secondaryButton}>
           <Text style={styles.secondaryButtonText}>{copy.localResetAction}</Text>
         </Pressable>
