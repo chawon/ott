@@ -10,8 +10,8 @@
 - Bundle ID: `app.ottline`
 - Apple ID / ascAppId: `6780318110`
 - EAS project id: `efe8f7e5-75d8-45a9-9a4e-88bfeba07b98`
-- Current TestFlight build: `1.0.0 (7)`
-- Current source SHA: `667aafeb4546eb015a9ef7894f6cba9183db043e`
+- Current committed build baseline: `1.0.0 (9)`
+- Current source SHA: `aa77a6b62cd8ab63994cd19c6e969986bbac140d`
 - SKU: 외부 준비 시 결정
 - Primary language: Korean 우선, English 지원
 - Category: Entertainment 또는 Lifestyle 중 App Store Connect에서 최종 결정
@@ -69,6 +69,7 @@ The app does not read video playback contents from other apps. iOS recap reminde
 - EAS App Store Connect API key is configured. (`2026-06-18` 이후 TestFlight 제출 성공으로 확인)
 - GitHub secret `EXPO_TOKEN` is present. (`Native iOS TestFlight` workflow 성공으로 확인)
 - Native iOS TestFlight workflow succeeds. (`27805741470`, build `1.0.0 (7)`)
+- Before every new TestFlight dispatch, bump `apps/native/app.json` `ios.buildNumber` to the next unused integer. Do not rely on `autoIncrement` alone after a failed upload or a previously submitted build number.
 - App Store Connect build processing completes. (Apple processing 완료 후 TestFlight 탭에서 확인)
 - Internal tester can install the build from TestFlight. (진행 중)
 - iPhone checklist in `docs/ios-native-full-parity-testflight-plan.md` passes. (진행 중)
