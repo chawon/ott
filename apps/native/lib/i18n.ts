@@ -214,6 +214,7 @@ export const timelineCopy = {
     syncFailed: '동기화 재시도 필요',
     syncPending: '동기화 대기 중',
     title: '내 타임라인',
+    titlePersonalized: '{nickname}의 타임라인',
     watchedAtSort: '감상일순',
   },
   en: {
@@ -269,6 +270,7 @@ export const timelineCopy = {
     syncFailed: 'Sync retry needed',
     syncPending: 'Waiting to sync',
     title: 'My Timeline',
+    titlePersonalized: "{nickname}'s Timeline",
     watchedAtSort: 'Watch date order',
   },
 } as const satisfies Record<NativeLocale, Record<string, string>>;

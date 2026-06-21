@@ -28,6 +28,8 @@ describe('native i18n and theme foundations', () => {
     expect(tabLabels.en.account).toBe('Settings');
     expect(timelineCopy.en.title).toBe('My Timeline');
     expect(timelineCopy.ko.title).toBe('내 타임라인');
+    expect(timelineCopy.en.titlePersonalized).toBe("{nickname}'s Timeline");
+    expect(timelineCopy.ko.titlePersonalized).toBe('{nickname}의 타임라인');
     expect(logCopy.en.title).toBe('Find what you want to remember');
     expect(logCopy.ko.title).toBe('오늘 남길 작품을 찾아볼게요');
     expect(logCopy.en.profileVideoTitle).toBe("Keep a video on {nickname}'s timeline");

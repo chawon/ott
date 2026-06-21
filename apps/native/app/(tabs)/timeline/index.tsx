@@ -14,13 +14,14 @@ import {
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
+import Svg, { Path } from 'react-native-svg';
 import ViewShot, { releaseCapture } from 'react-native-view-shot';
 import { LogShareCard, logShareCardCaptureSize } from '../../../components/LogShareCard';
 import { NativeSelect } from '../../../components/NativeSelect';
 import { SwipeableTabScreen } from '../../../components/SwipeableTabScreen';
 import type { ThemeColors } from '../../../constants/colors';
 import { Typography } from '../../../constants/typography';
-import { createComment, createDiscussion, trackEvent } from '../../../lib/api';
+import { createComment, createDiscussion, getUserProfile, trackEvent } from '../../../lib/api';
 import {
   formatShortDate,
   seasonEpisodeLabel,
@@ -41,7 +42,7 @@ import {
 } from '../../../lib/timelineFilters';
 import { buildTimelineCsv, timelineCsvFileName } from '../../../lib/timelineCsv';
 import { logShareCardFileName } from '../../../lib/shareCard';
-import type { Occasion, Place, WatchLog } from '../../../lib/types';
+import type { Occasion, Place, UserProfile, WatchLog } from '../../../lib/types';
 import {
   occasionLabels,
   placeLabels,
@@ -69,6 +70,23 @@ const PLACE_FILTER_VALUES: PlaceFilter[] = [
 const OCCASION_FILTER_VALUES: OccasionFilter[] = ['ALL', 'ALONE', 'DATE', 'FAMILY', 'FRIENDS', 'BREAK', 'ETC'];
 const SORT_FILTER_VALUES: TimelineSort[] = ['history', 'watchedAt'];
 
+function formatCopy(template: string, values: Record<string, string | number>) {
+  return Object.entries(values).reduce(
+    (result, [key, value]) => result.replace(`{${key}}`, String(value)),
+    template,
+  );
+}
+
+function DownloadIcon({ color }: { color: string }) {
+  return (
+    <Svg width={22} height={22} viewBox="0 0 24 24" fill="none">
+      <Path d="M12 4v10" stroke={color} strokeWidth={2} strokeLinecap="round" />
+      <Path d="m7.5 10.5 4.5 4.5 4.5-4.5" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+      <Path d="M5 19h14" stroke={color} strokeWidth={2} strokeLinecap="round" />
+    </Svg>
+  );
+}
+
 export default function TimelineScreen() {
   const { colors, locale } = useNativePreferences();
   const copy = timelineCopy[locale];
@@ -87,6 +105,7 @@ export default function TimelineScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [shareBusyId, setShareBusyId] = useState<string | null>(null);
   const [publishBusyId, setPublishBusyId] = useState<string | null>(null);
@@ -155,15 +174,26 @@ export default function TimelineScreen() {
     setLoading(false);
   }, []);
 
+  const loadProfile = useCallback(async () => {
+    const nextProfile = await getUserProfile().catch(() => null);
+    setProfile(nextProfile);
+  }, []);
+
   useFocusEffect(
     useCallback(() => {
       load();
-    }, [load]),
+      loadProfile();
+    }, [load, loadProfile]),
   );
 
   useEffect(() => {
     load();
   }, [load, logRevision]);
+
+  const profileNickname = profile?.nickname?.trim() ?? '';
+  const headerTitle = profileNickname
+    ? formatCopy(copy.titlePersonalized, { nickname: profileNickname })
+    : copy.title;
 
   async function refresh() {
     setRefreshing(true);
@@ -401,7 +431,9 @@ export default function TimelineScreen() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.primaryContainer} />}
       >
       <View style={styles.header}>
-        <Text style={styles.title}>{copy.title}</Text>
+        <Text style={styles.title} numberOfLines={1} ellipsizeMode="tail">
+          {headerTitle}
+        </Text>
         <Text style={styles.desc}>{copy.desc}</Text>
       </View>
 
@@ -410,11 +442,16 @@ export default function TimelineScreen() {
           <Text style={styles.reportButtonText}>{copy.reportAction}</Text>
         </Pressable>
         <Pressable
+          accessibilityLabel={copy.csvShare}
           disabled={exporting || visibleLogs.length === 0}
           onPress={shareCsv}
           style={[styles.csvButton, (exporting || visibleLogs.length === 0) && styles.disabledButton]}
         >
-          <Text style={styles.csvButtonText}>{exporting ? copy.sharing : copy.csvShare}</Text>
+          {exporting ? (
+            <ActivityIndicator color={colors.primaryContainer} />
+          ) : (
+            <DownloadIcon color={colors.primaryContainer} />
+          )}
         </Pressable>
       </View>
 
@@ -647,9 +684,9 @@ export default function TimelineScreen() {
 function createStyles(colors: ThemeColors) {
   return StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
-  content: { padding: 20, paddingTop: 12, paddingBottom: 120, gap: 14 },
+  content: { padding: 20, paddingTop: 24, paddingBottom: 120, gap: 14 },
   header: { gap: 5 },
-  title: { ...Typography.headlineLg, color: colors.onSurface, fontSize: 28 },
+  title: { ...Typography.headlineLg, color: colors.onSurface },
   desc: { ...Typography.bodyMd, color: colors.onSurfaceVariant },
   actionRow: { flexDirection: 'row', gap: 10 },
   reportButton: {
@@ -663,14 +700,14 @@ function createStyles(colors: ThemeColors) {
   reportButtonText: { color: colors.background, fontWeight: '800' },
   csvButton: {
     minHeight: 50,
-    minWidth: 104,
+    width: 50,
     borderRadius: 16,
-    backgroundColor: colors.surfaceMuted,
+    borderWidth: 1,
+    borderColor: colors.primaryContainer,
+    backgroundColor: colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 12,
   },
-  csvButtonText: { color: colors.onSurface, fontWeight: '800' },
   disabledButton: { opacity: 0.5 },
   searchInput: {
     minHeight: 52,

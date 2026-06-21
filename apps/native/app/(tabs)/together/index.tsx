@@ -167,9 +167,9 @@ export default function TogetherScreen() {
 function createStyles(colors: ThemeColors) {
   return StyleSheet.create({
     root: { flex: 1, backgroundColor: colors.background },
-    content: { padding: 20, paddingTop: 12, paddingBottom: 120, gap: 14 },
+    content: { padding: 20, paddingTop: 24, paddingBottom: 120, gap: 14 },
     header: { gap: 5 },
-    title: { ...Typography.headlineLg, color: colors.onSurface, fontSize: 28 },
+    title: { ...Typography.headlineLg, color: colors.onSurface },
     desc: { ...Typography.bodyMd, color: colors.onSurfaceVariant },
     searchInput: {
       minHeight: 52,
