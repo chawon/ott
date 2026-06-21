@@ -78,7 +78,7 @@ If present, read `./.omd/preferences.md` — pending corrections not yet folded 
    5. 상세 운영 계획과 체크리스트는 `docs/oci-always-free-rightsizing.md`를 기준으로 한다.
 
 ### P0
-1. **iOS TestFlight 실기기 QA 및 웹/Android parity 안정화**
+1. **iOS TestFlight 실기기 QA, 웹/Android parity 안정화, App Store 심사 제출 준비**
 2. 현재 기준
    1. `apps/native`는 Expo React Native 기반 iOS 네이티브 앱으로 `main`에 편입됐다. WebView/PWA/TWA 래퍼가 아니라 사용자 앱 화면을 네이티브 화면으로 구현한다.
    2. App Store Connect 앱 레코드와 Apple ID `6780318110`, EAS project id `efe8f7e5-75d8-45a9-9a4e-88bfeba07b98`, iOS signing credentials, EAS Submit용 App Store Connect API key, GitHub `EXPO_TOKEN` 구성이 완료됐다.
@@ -86,9 +86,12 @@ If present, read `./.omd/preferences.md` — pending corrections not yet folded 
    4. `2026-06-18` PR `#67` main SHA `d18cfa6`로 첫 TestFlight 제출을 완료했고, build `1.0.0 (5)`가 App Store Connect에 업로드됐다.
    5. `2026-06-19` PR `#68` main SHA `24d2845`로 하단 탭 아이콘을 `react-native-svg` 기반으로 교체하고, 설정 동기화 후 타임라인 reload 이벤트와 상단 로고/워드마크의 기록하기 탭 이동을 반영했다. TestFlight run `27804770845`로 build `1.0.0 (6)` 업로드를 완료했다.
    6. `2026-06-19` PR `#69` main SHA `667aafeb4546eb015a9ef7894f6cba9183db043e`로 큰 탭 제목/설명은 복원하고 작은 중복 kicker 라벨만 제거했다. 페어링 코드 연결 직후 기존 `lastSyncAt` 체크포인트를 초기화해 새로 연결한 계정의 기존 타임라인을 전체 pull 하도록 수정했다. TestFlight run `27805741470`, EAS build `7796ef11-75c1-4acb-95d7-96018e10bdbc`로 build `1.0.0 (7)` App Store Connect 업로드를 완료했다.
-   7. 최근 검증 기준은 `npm run native:typecheck`, `npm run native:test`, `npm run native:testflight:check`, `git diff --check`, `npx expo-doctor`이며, build `1.0.0 (7)` 제출 전후로 모두 통과했다.
-   8. 남은 최우선 작업은 TestFlight 설치 빌드 기준 iPhone 실기기 QA와 웹/Android 앱 대비 기능, UI/UX, 문구 parity 확인이다. 특히 기록하기/타임라인/함께/설정의 탭 라벨, 상단 헤더, 동기화 후 목록 반영, 페어링 계정 전환 흐름을 우선 확인한다.
-   9. 상세 계획, 완료 증거, 실기기 체크리스트는 `docs/ios-native-full-parity-testflight-plan.md`와 `docs/ios-testflight-review-notes.md`를 기준으로 한다.
+   7. `2026-06-21` build `1.0.0 (14)`를 TestFlight QA 기준으로 사용 중이다. 이후 build `1.0.0 (15)` 재시도는 GitHub run `27902317186`에서 EAS Free plan iOS build quota exhausted로 build/upload 전 실패했다.
+   8. 다음 TestFlight 재시도는 EAS quota reset 이후인 `2026-07-01`에 진행한다. 재시도 기준 SHA는 `76d82da9526d8ce97b7c09dda65286eef1479f26`이며, `apps/native/app.json`의 committed `ios.buildNumber`는 `14`로 유지한다. 현재 workflow는 EAS `autoIncrement: true`가 실제 build `15`를 만들기 때문이다.
+   9. 최근 검증 기준은 `npm run native:typecheck`, `npm run native:test`, `npm run native:testflight:check`, `git diff --check`, `npx expo-doctor`다.
+   10. 남은 최우선 작업은 TestFlight 설치 빌드 기준 iPhone 실기기 QA, 웹/Android 앱 대비 기능/UI/UX/문구 parity 확인, App Store 심사 제출 준비다. 특히 기록하기/타임라인/함께/설정의 탭 라벨, 상단 헤더, 동기화 후 목록 반영, 페어링 계정 전환 흐름을 우선 확인한다.
+   11. App Store 정식 심사 제출 전 공개 글/댓글 UGC 신고/차단 UX는 P0 리스크다. 현재 iOS 공개 상세에는 신고 진입점과 사용자 차단/뮤트 UX가 없으므로, review notes에 해당 기능이 있다고 쓰면 안 된다.
+   12. 상세 계획, 완료 증거, 실기기 체크리스트는 `docs/ios-native-full-parity-testflight-plan.md`, `docs/ios-testflight-review-notes.md`, `docs/ios-app-store-submission-prep.md`를 기준으로 한다.
 
 ### 완료
 1. **다국어(i18n) 및 글로벌 서비스화**: `next-intl` 적용, 전체 UI 번역, 백엔드 데이터 연동 완료.
