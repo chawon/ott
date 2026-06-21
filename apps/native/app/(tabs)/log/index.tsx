@@ -52,13 +52,16 @@ import { buildOutboxPayload, buildUpdateLogPayload } from '../../../lib/syncPayl
 import { logShareCardFileName } from '../../../lib/shareCard';
 import { avatarUri } from '../../../lib/avatar';
 import {
+  accountCopy,
   logCopy,
   occasionLabels,
   placeLabels,
+  type NativeLocale,
 } from '../../../lib/i18n';
 import { useNativePreferences } from '../../../lib/nativePreferences';
 import type {
   Occasion,
+  PersonaKey,
   Place,
   Status,
   DiscussionListItem,
@@ -73,6 +76,7 @@ import type {
 
 type ContentFilter = 'video' | 'book';
 type TitleSelectSource = 'search' | 'recent_discussion' | 'popular_title';
+type AccountCopy = (typeof accountCopy)[NativeLocale];
 
 const FILTER_VALUES: ContentFilter[] = ['video', 'book'];
 const STATUSES: Status[] = ['DONE', 'IN_PROGRESS', 'WISHLIST'];
@@ -106,6 +110,31 @@ function titleFromSearch(item: TitleSearchItem, id: string): Title {
 
 function bookMeta(item: Pick<TitleSearchItem, 'author' | 'publisher' | 'year'>) {
   return [item.author, item.publisher, item.year ? String(item.year) : null].filter(Boolean).join(' · ');
+}
+
+function formatCopy(template: string, values: Record<string, string | number>) {
+  return Object.entries(values).reduce(
+    (result, [key, value]) => result.replace(`{${key}}`, String(value)),
+    template,
+  );
+}
+
+function personaLabel(value: PersonaKey | null | undefined, copy: AccountCopy) {
+  switch (value) {
+    case 'book_drifter':
+      return copy.personaBookDrifter;
+    case 'deep_watcher':
+      return copy.personaDeepWatcher;
+    case 'midnight_logger':
+      return copy.personaMidnightLogger;
+    case 'weekend_curator':
+      return copy.personaWeekendCurator;
+    case 'archive_collector':
+      return copy.personaArchiveCollector;
+    case 'cinema_keeper':
+    default:
+      return copy.personaCinemaKeeper;
+  }
 }
 
 function searchItemKey(item: TitleSearchItem) {
@@ -189,6 +218,7 @@ function historyFromLog(log: WatchLog, recordedAt: string): WatchLogHistory {
 export default function LogScreen() {
   const { colors, locale } = useNativePreferences();
   const copy = logCopy[locale];
+  const accountText = accountCopy[locale];
   const styles = useMemo(() => createStyles(colors), [colors]);
   const params = useLocalSearchParams<{ reset?: string | string[] }>();
   const resetToken = Array.isArray(params.reset) ? params.reset[0] : params.reset;
@@ -759,6 +789,15 @@ export default function LogScreen() {
     }).catch(() => null);
   }
 
+  const profileNickname = profile?.nickname?.trim() ?? '';
+  const profileComplete = Boolean(profileNickname && profile?.personaKey);
+  const headerTitle = profileComplete
+    ? formatCopy(filter === 'book' ? copy.profileBookTitle : copy.profileVideoTitle, { nickname: profileNickname })
+    : copy.title;
+  const headerDescription = profileComplete
+    ? formatCopy(copy.profileDesc, { persona: personaLabel(profile?.personaKey, accountText) })
+    : copy.desc;
+
   return (
     <SwipeableTabScreen routeKey="/(tabs)/log">
       <KeyboardAvoidingView
@@ -767,16 +806,15 @@ export default function LogScreen() {
       >
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
           <View style={styles.header}>
-            <Text style={styles.title}>{copy.title}</Text>
-            <Text style={styles.desc}>{copy.desc}</Text>
-            {profile?.nickname?.trim() ? (
-              <View style={styles.profilePill}>
-                <Image source={{ uri: avatarUri(profile.personaKey) }} style={styles.profileAvatar} />
-                <Text style={styles.profileName} numberOfLines={1} ellipsizeMode="tail">
-                  {profile.nickname.trim()}
-                </Text>
-              </View>
+            {profileComplete ? (
+              <Image source={{ uri: avatarUri(profile?.personaKey) }} style={styles.headerAvatar} />
             ) : null}
+            <View style={styles.headerText}>
+              <Text style={styles.title} numberOfLines={1} ellipsizeMode="tail">
+                {headerTitle}
+              </Text>
+              <Text style={styles.desc}>{headerDescription}</Text>
+            </View>
           </View>
 
           <View style={styles.segment}>
@@ -1137,31 +1175,16 @@ function createStyles(colors: ThemeColors) {
   return StyleSheet.create({
     root: { flex: 1, backgroundColor: colors.background },
     content: { padding: 20, paddingTop: 12, paddingBottom: 120, gap: 14 },
-    header: { gap: 5 },
-    title: { ...Typography.headlineLg, color: colors.onSurface, fontSize: 28 },
-    desc: { ...Typography.bodyMd, color: colors.onSurfaceVariant },
-    profilePill: {
-      alignSelf: 'flex-start',
-      minHeight: 42,
-      maxWidth: '100%',
-      borderRadius: 12,
-      borderWidth: 1,
-      borderColor: colors.outlineVariant,
-      backgroundColor: colors.surface,
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 9,
-      paddingHorizontal: 10,
-      paddingVertical: 6,
-      marginTop: 5,
-    },
-    profileAvatar: {
-      width: 28,
-      height: 28,
-      borderRadius: 8,
+    header: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+    headerAvatar: {
+      width: 52,
+      height: 52,
+      borderRadius: 16,
       backgroundColor: colors.surfaceMuted,
     },
-    profileName: { ...Typography.labelLg, color: colors.onSurface, flexShrink: 1 },
+    headerText: { flex: 1, minWidth: 0, gap: 5 },
+    title: { ...Typography.headlineLg, color: colors.onSurface, fontSize: 28 },
+    desc: { ...Typography.bodyMd, color: colors.onSurfaceVariant },
     searchBox: {
       minHeight: 56,
       borderRadius: 16,

@@ -30,6 +30,8 @@ describe('native i18n and theme foundations', () => {
     expect(timelineCopy.ko.title).toBe('내 타임라인');
     expect(logCopy.en.title).toBe('Find what you want to remember');
     expect(logCopy.ko.title).toBe('오늘 남길 작품을 찾아볼게요');
+    expect(logCopy.en.profileVideoTitle).toBe("Keep a video on {nickname}'s timeline");
+    expect(logCopy.ko.profileVideoTitle).toBe('{nickname}의 타임라인에 남겨두기');
     expect(togetherCopy.en.title).toBe('Together Footprints');
     expect(togetherCopy.ko.title).toBe('함께 하는 발자취');
     expect(accountCopy.en.title).toBe('Settings');
