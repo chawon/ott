@@ -1,6 +1,6 @@
 import { Tabs } from 'expo-router';
-import { View, StyleSheet } from 'react-native';
-import Svg, { Circle, Line, Path } from 'react-native-svg';
+import { StyleSheet } from 'react-native';
+import { NativeTabIcon } from '../../components/NativeTabIcon';
 import type { ThemeColors } from '../../constants/colors';
 import { tabLabels } from '../../lib/i18n';
 import { useNativePreferences } from '../../lib/nativePreferences';
@@ -8,46 +8,7 @@ import { useNativePreferences } from '../../lib/nativePreferences';
 type TabName = 'log' | 'timeline' | 'together' | 'account';
 
 function TabBarIcon({ colors, name, active }: { colors: ThemeColors; name: TabName; active: boolean }) {
-  const color = active ? '#0F0F0F' : colors.onSurfaceVariant;
-
-  return (
-    <View style={[iconStyles.box, active && iconStyles.boxActive]}>
-      <Svg width={26} height={26} viewBox="0 0 24 24" fill="none">
-        {name === 'log' ? (
-          <>
-            <Path d="M4 20h4.5L19 9.5 14.5 5 4 15.5V20Z" stroke={color} strokeWidth={2} strokeLinejoin="round" />
-            <Path d="M13.5 6 18 10.5" stroke={color} strokeWidth={2} strokeLinecap="round" />
-          </>
-        ) : null}
-        {name === 'timeline' ? (
-          <>
-            <Circle cx={12} cy={12} r={8} stroke={color} strokeWidth={2} />
-            <Line x1={12} y1={12} x2={12} y2={7.5} stroke={color} strokeWidth={2} strokeLinecap="round" />
-            <Line x1={12} y1={12} x2={15.5} y2={14} stroke={color} strokeWidth={2} strokeLinecap="round" />
-          </>
-        ) : null}
-        {name === 'together' ? (
-          <Path
-            d="M5 6.5h14v9H9l-4 3v-12Z"
-            stroke={color}
-            strokeWidth={2}
-            strokeLinejoin="round"
-            strokeLinecap="round"
-          />
-        ) : null}
-        {name === 'account' ? (
-          <>
-            <Line x1={5} y1={7} x2={19} y2={7} stroke={color} strokeWidth={2} strokeLinecap="round" />
-            <Line x1={5} y1={12} x2={19} y2={12} stroke={color} strokeWidth={2} strokeLinecap="round" />
-            <Line x1={5} y1={17} x2={19} y2={17} stroke={color} strokeWidth={2} strokeLinecap="round" />
-            <Circle cx={9} cy={7} r={2} fill={color} />
-            <Circle cx={15} cy={12} r={2} fill={color} />
-            <Circle cx={11} cy={17} r={2} fill={color} />
-          </>
-        ) : null}
-      </Svg>
-    </View>
-  );
+  return <NativeTabIcon active={active} colors={colors} name={name} />;
 }
 
 export default function TabsLayout() {
@@ -114,9 +75,9 @@ function createStyles(colors: ThemeColors) {
       bottom: 16,
       left: 16,
       right: 16,
-      height: 82,
+      height: 88,
       paddingTop: 8,
-      paddingBottom: 8,
+      paddingBottom: 9,
       backgroundColor: colors.surface,
       borderTopWidth: 0,
       borderWidth: 1,
@@ -129,21 +90,21 @@ function createStyles(colors: ThemeColors) {
       shadowRadius: 18,
     },
     item: {
-      height: 70,
+      height: 72,
       marginHorizontal: 4,
-      paddingTop: 2,
-      paddingBottom: 6,
+      paddingTop: 3,
+      paddingBottom: 5,
       borderRadius: 8,
       justifyContent: 'center',
     },
     iconSlot: {
       width: 52,
-      height: 38,
-      marginTop: -2,
-      marginBottom: -3,
+      height: 40,
+      marginTop: 0,
+      marginBottom: 0,
     },
     label: {
-      marginTop: -1,
+      marginTop: 4,
       fontSize: 10,
       lineHeight: 13,
       fontWeight: '600',
@@ -151,16 +112,3 @@ function createStyles(colors: ThemeColors) {
     },
   });
 }
-
-const iconStyles = StyleSheet.create({
-  box: {
-    width: 52,
-    height: 38,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 999,
-  },
-  boxActive: {
-    backgroundColor: '#FF9933',
-  },
-});

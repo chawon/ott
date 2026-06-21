@@ -15,6 +15,7 @@ import {
 import ViewShot, { releaseCapture } from 'react-native-view-shot';
 import { PairingRecoveryCard, recoveryCardCaptureSize } from '../../../components/PairingRecoveryCard';
 import { SwipeableTabScreen } from '../../../components/SwipeableTabScreen';
+import { NativeTabIcon } from '../../../components/NativeTabIcon';
 import type { ThemeColors } from '../../../constants/colors';
 import { Typography } from '../../../constants/typography';
 import {
@@ -507,7 +508,12 @@ export default function AccountScreen() {
     <SwipeableTabScreen routeKey="/(tabs)/account">
       <ScrollView style={styles.root} contentContainerStyle={styles.content}>
       <View style={styles.header}>
-        <Text style={styles.title}>{copy.title}</Text>
+        <View style={styles.titleRow}>
+          <NativeTabIcon active boxHeight={28} boxWidth={32} colors={colors} name="account" size={18} />
+          <Text style={styles.title} numberOfLines={1} ellipsizeMode="tail">
+            {copy.title}
+          </Text>
+        </View>
         <Text style={styles.desc}>{copy.desc}</Text>
       </View>
 
@@ -798,7 +804,8 @@ function createStyles(colors: ThemeColors) {
     root: { flex: 1, backgroundColor: colors.background },
     content: { padding: 20, paddingTop: 24, paddingBottom: 120, gap: 14 },
     header: { gap: 5 },
-    title: { ...Typography.headlineLg, color: colors.onSurface },
+    titleRow: { flexDirection: 'row', alignItems: 'center', gap: 8, minWidth: 0 },
+    title: { ...Typography.headlineLg, color: colors.onSurface, flexShrink: 1 },
     desc: { ...Typography.bodyMd, color: colors.onSurfaceVariant },
     card: {
       borderRadius: 20,
