@@ -13,7 +13,6 @@ import {
 } from 'react-native';
 import type { ThemeColors } from '../../../constants/colors';
 import { Typography } from '../../../constants/typography';
-import { NativeSelect } from '../../../components/NativeSelect';
 import { SwipeableTabScreen } from '../../../components/SwipeableTabScreen';
 import { listDiscussions } from '../../../lib/api';
 import { formatShortDate, typeLabel } from '../../../lib/format';
@@ -21,8 +20,6 @@ import { togetherCopy, type NativeLocale } from '../../../lib/i18n';
 import { useNativePreferences } from '../../../lib/nativePreferences';
 import type { DiscussionListItem } from '../../../lib/types';
 
-type Scope = 'latest' | 'all';
-type Sort = 'latest' | 'comments';
 type TogetherCopy = (typeof togetherCopy)[NativeLocale];
 
 function formatCount(template: string, count: number) {
@@ -45,8 +42,6 @@ export default function TogetherScreen() {
   const copy = togetherCopy[locale];
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [items, setItems] = useState<DiscussionListItem[]>([]);
-  const [scope, setScope] = useState<Scope>('latest');
-  const [sort, setSort] = useState<Sort>('latest');
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -55,7 +50,7 @@ export default function TogetherScreen() {
   const load = useCallback(async () => {
     setError(null);
     try {
-      const next = await listDiscussions(scope, scope === 'all' ? 100 : 20);
+      const next = await listDiscussions('latest', 20);
       setItems(next);
     } catch (err) {
       setItems([]);
@@ -63,7 +58,7 @@ export default function TogetherScreen() {
     } finally {
       setLoading(false);
     }
-  }, [copy.errorFallback, scope]);
+  }, [copy.errorFallback]);
 
   useFocusEffect(
     useCallback(() => {
@@ -86,26 +81,8 @@ export default function TogetherScreen() {
     const filtered = q
       ? items.filter((item) => item.titleName.toLowerCase().includes(q))
       : items;
-    return [...filtered].sort((a, b) => {
-      if (sort === 'comments') return b.commentCount - a.commentCount;
-      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-    });
-  }, [items, query, sort]);
-
-  const scopes = useMemo(
-    () => [
-      { value: 'latest' as const, label: copy.latest },
-      { value: 'all' as const, label: copy.allScope },
-    ],
-    [copy.latest, copy.allScope],
-  );
-  const sorts = useMemo(
-    () => [
-      { value: 'latest' as const, label: copy.latestSort },
-      { value: 'comments' as const, label: copy.commentsSort },
-    ],
-    [copy.latestSort, copy.commentsSort],
-  );
+    return [...filtered].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }, [items, query]);
 
   return (
     <SwipeableTabScreen routeKey="/(tabs)/together">
@@ -127,29 +104,6 @@ export default function TogetherScreen() {
         selectionColor={colors.primaryContainer}
         style={styles.searchInput}
       />
-
-      <View style={styles.filterBlock}>
-        <NativeSelect
-          colors={colors}
-          label={copy.latest}
-          selectedValue={scope}
-          valueLabel={scopes.find((item) => item.value === scope)?.label ?? null}
-          placeholder={copy.latest}
-          sections={[{ options: scopes }]}
-          onChange={(value) => setScope(value as Scope)}
-          clearLabel={copy.latest}
-        />
-        <NativeSelect
-          colors={colors}
-          label={copy.latestSort}
-          selectedValue={sort}
-          valueLabel={sorts.find((item) => item.value === sort)?.label ?? null}
-          placeholder={copy.latestSort}
-          sections={[{ options: sorts }]}
-          onChange={(value) => setSort(value as Sort)}
-          clearLabel={copy.latestSort}
-        />
-      </View>
 
       {loading ? (
         <View style={styles.center}>
@@ -227,19 +181,6 @@ function createStyles(colors: ThemeColors) {
       color: colors.onSurface,
       ...Typography.bodyLg,
     },
-    filterBlock: { gap: 8 },
-    segment: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-    chip: {
-      borderRadius: 999,
-      borderWidth: 1,
-      borderColor: colors.outlineVariant,
-      backgroundColor: colors.surface,
-      paddingHorizontal: 12,
-      paddingVertical: 8,
-    },
-    chipActive: { borderColor: colors.primaryContainer, backgroundColor: colors.surfaceStrong },
-    chipText: { ...Typography.labelLg, color: colors.onSurface },
-    chipTextActive: { color: colors.primaryContainer },
     center: { padding: 32, alignItems: 'center' },
     empty: {
       borderRadius: 20,

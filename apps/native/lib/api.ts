@@ -23,6 +23,7 @@ import type {
   TmdbEpisode,
   TmdbSeason,
   TitleSearchItem,
+  TitleType,
   UpdateUserProfileRequest,
   UserProfile,
   WatchLogHistory,
@@ -190,6 +191,13 @@ export async function popularTitles(limit = 6): Promise<TitleSearchItem[]> {
 
 export async function getTitle(id: string): Promise<Title> {
   return request(`/api/titles/${encodeURIComponent(id)}`);
+}
+
+export async function getTmdbDetails(
+  type: Exclude<TitleType, 'book'>,
+  providerId: string,
+): Promise<Pick<Title, 'name' | 'year' | 'overview' | 'posterUrl' | 'genres' | 'directors' | 'cast'>> {
+  return request(`/api/tmdb/${encodeURIComponent(type)}/${encodeURIComponent(providerId)}`);
 }
 
 export async function listLogHistory(logId: string, limit = 50): Promise<WatchLogHistory[]> {

@@ -356,41 +356,6 @@ export default function PublicDiscussionDetailScreen() {
     );
   }
 
-  function openReportFeedback(target: 'post' | 'comment', comment?: Comment) {
-    if (!discussionId || !detail) return;
-    const titleName = detail.titleName;
-    const subject = target === 'post'
-      ? formatCopy(copy.reportPostSubject, { title: titleName })
-      : formatCopy(copy.reportCommentSubject, { title: titleName });
-    const reportBody = target === 'post'
-      ? formatCopy(copy.reportPostBody, { discussionId, title: titleName })
-      : formatCopy(copy.reportCommentBody, {
-          body: formatCommentBody(comment?.body ?? ''),
-          commentId: comment?.id ?? '-',
-          discussionId,
-          title: titleName,
-        });
-
-    trackEvent({
-      eventName: 'ugc_report_open',
-      properties: {
-        source: 'ios_native_public_detail',
-        target,
-        discussionId,
-        commentId: comment?.id ?? null,
-      },
-    }).catch(() => null);
-    router.push({
-      pathname: '/feedback',
-      params: {
-        body: reportBody,
-        category: 'OTHER',
-        source: 'ios_native_ugc_report',
-        subject,
-      },
-    });
-  }
-
   if (!discussionId) {
     return (
       <View style={[styles.root, styles.center]}>
@@ -405,16 +370,6 @@ export default function PublicDiscussionDetailScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <ScrollView style={styles.root} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <View style={styles.headerRow}>
-          <Pressable onPress={() => router.back()} style={styles.backButton}>
-            <Text style={styles.backText}>‹</Text>
-          </Pressable>
-          <View style={styles.headerBody}>
-            <Text style={styles.kicker}>{copy.kicker}</Text>
-            <Text style={styles.title}>{detail?.titleName ?? copy.defaultTitle}</Text>
-          </View>
-        </View>
-
         {loading ? (
           <View style={styles.center}>
             <ActivityIndicator color={colors.primaryContainer} />
@@ -450,9 +405,6 @@ export default function PublicDiscussionDetailScreen() {
                   style={styles.linkButton}
                 >
                   <Text style={styles.linkButtonText}>{copy.viewMyLogs}</Text>
-                </Pressable>
-                <Pressable onPress={() => openReportFeedback('post')} style={styles.reportButton}>
-                  <Text style={styles.reportButtonText}>{copy.reportPostAction}</Text>
                 </Pressable>
               </View>
             </View>
@@ -502,9 +454,6 @@ export default function PublicDiscussionDetailScreen() {
                           <Text style={styles.date}>{formatShortDate(comment.createdAt, locale)}</Text>
                         </View>
                         <Text style={styles.commentBody}>{formatCommentBody(comment.body)}</Text>
-                        <Pressable onPress={() => openReportFeedback('comment', comment)} style={styles.commentReportButton}>
-                          <Text style={styles.reportButtonText}>{copy.reportCommentAction}</Text>
-                        </Pressable>
                       </View>
                     );
                   })
@@ -590,20 +539,7 @@ export default function PublicDiscussionDetailScreen() {
 function createStyles(colors: ThemeColors) {
   return StyleSheet.create({
     root: { flex: 1, backgroundColor: colors.background },
-    content: { padding: 20, paddingTop: 56, paddingBottom: 120, gap: 16 },
-    headerRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-    headerBody: { flex: 1, gap: 5 },
-    backButton: {
-      width: 42,
-      height: 42,
-      borderRadius: 21,
-      alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor: colors.surface,
-    },
-    backText: { fontSize: 30, lineHeight: 32, color: colors.primaryContainer },
-    kicker: { ...Typography.accent, color: colors.tertiary },
-    title: { ...Typography.headlineLg, color: colors.onBackground, fontSize: 28 },
+    content: { padding: 20, paddingTop: 0, paddingBottom: 120, gap: 16 },
     desc: { ...Typography.bodyMd, color: colors.onSurfaceVariant },
     center: { padding: 32, alignItems: 'center', justifyContent: 'center' },
     heroCard: {
@@ -636,15 +572,6 @@ function createStyles(colors: ThemeColors) {
       paddingVertical: 8,
     },
     linkButtonText: { ...Typography.labelLg, color: colors.primaryContainer },
-    reportButton: {
-      alignSelf: 'flex-start',
-      borderRadius: 999,
-      borderWidth: 1,
-      borderColor: colors.outlineVariant,
-      paddingHorizontal: 12,
-      paddingVertical: 8,
-    },
-    reportButtonText: { ...Typography.labelLg, color: colors.onSurfaceVariant },
     card: {
       borderRadius: 20,
       borderWidth: 1,
@@ -682,7 +609,6 @@ function createStyles(colors: ThemeColors) {
     author: { ...Typography.labelLg, color: colors.onSurface },
     date: { ...Typography.labelLg, color: colors.onSurfaceVariant },
     commentBody: { ...Typography.bodyMd, color: colors.onSurface },
-    commentReportButton: { alignSelf: 'flex-start', paddingTop: 2 },
     mentionBox: {
       borderRadius: 16,
       backgroundColor: colors.surfaceMuted,

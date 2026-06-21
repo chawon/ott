@@ -44,8 +44,6 @@ describe('native i18n and theme foundations', () => {
     expect(recapNotificationCopy.ko.weeklyTitle).toBe('지난주 기록을 돌아볼 시간');
     expect(publicDiscussionCopy.en.defaultTitle).toBe('Public log');
     expect(publicDiscussionCopy.ko.defaultTitle).toBe('함께 기록');
-    expect(publicDiscussionCopy.en.reportPostAction).toBe('Report post');
-    expect(publicDiscussionCopy.ko.reportPostAction).toBe('공개 글 신고');
     expect(titleDetailCopy.en.defaultTitle).toBe('Title detail');
     expect(titleDetailCopy.ko.defaultTitle).toBe('작품 상세');
     expect(staticInfoFor('en', 'about').title).toBe('Video and Book Log App & How to Use');

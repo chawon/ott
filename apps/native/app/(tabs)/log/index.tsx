@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import * as Sharing from 'expo-sharing';
+import { useFocusEffect, useLocalSearchParams } from 'expo-router';
 import {
   ActivityIndicator,
   Alert,
@@ -22,6 +23,8 @@ import { Typography } from '../../../constants/typography';
 import {
   createComment,
   createDiscussion,
+  getTmdbDetails,
+  getUserProfile,
   listDiscussions,
   listTvEpisodes,
   listTvSeasons,
@@ -47,13 +50,13 @@ import {
 import { syncNow } from '../../../lib/sync';
 import { buildOutboxPayload, buildUpdateLogPayload } from '../../../lib/syncPayload';
 import { logShareCardFileName } from '../../../lib/shareCard';
+import { avatarUri } from '../../../lib/avatar';
 import {
   logCopy,
   occasionLabels,
   placeLabels,
 } from '../../../lib/i18n';
 import { useNativePreferences } from '../../../lib/nativePreferences';
-import { useLocalSearchParams } from 'expo-router';
 import type {
   Occasion,
   Place,
@@ -63,6 +66,7 @@ import type {
   TitleSearchItem,
   TmdbEpisode,
   TmdbSeason,
+  UserProfile,
   WatchLog,
   WatchLogHistory,
 } from '../../../lib/types';
@@ -92,9 +96,16 @@ function titleFromSearch(item: TitleSearchItem, id: string): Title {
     isbn10: item.isbn10 ?? null,
     isbn13: item.isbn13 ?? null,
     pubdate: item.pubdate ?? null,
+    genres: item.genres ?? null,
+    directors: item.directors ?? null,
+    cast: item.cast ?? null,
     provider: item.provider,
     providerId: item.providerId,
   };
+}
+
+function bookMeta(item: Pick<TitleSearchItem, 'author' | 'publisher' | 'year'>) {
+  return [item.author, item.publisher, item.year ? String(item.year) : null].filter(Boolean).join(' · ');
 }
 
 function searchItemKey(item: TitleSearchItem) {
@@ -219,6 +230,7 @@ export default function LogScreen() {
   const [popular, setPopular] = useState<TitleSearchItem[]>([]);
   const [suggestionSources, setSuggestionSources] = useState<Record<string, TitleSelectSource>>({});
   const [selected, setSelected] = useState<TitleSearchItem | null>(null);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
   const [activeLog, setActiveLog] = useState<WatchLog | null>(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -245,6 +257,22 @@ export default function LogScreen() {
   const [seasonError, setSeasonError] = useState<string | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const shareCardRef = useRef<ViewShot>(null);
+
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      getUserProfile()
+        .then((nextProfile) => {
+          if (active) setProfile(nextProfile);
+        })
+        .catch(() => {
+          if (active) setProfile(null);
+        });
+      return () => {
+        active = false;
+      };
+    }, []),
+  );
 
   const ottOptions = useMemo(() => {
     if (filter === 'book') {
@@ -343,6 +371,36 @@ export default function LogScreen() {
       }
     }, 350);
   }, [query, filter]);
+
+  useEffect(() => {
+    if (!selected || selected.type === 'book' || selected.provider !== 'TMDB' || selected.genres) return;
+    let cancelled = false;
+    const selectedType = selected.type;
+    const providerId = selected.providerId;
+
+    getTmdbDetails(selectedType, providerId)
+      .then((details) => {
+        if (cancelled) return;
+        setSelected((current) => {
+          if (!current || current.provider !== 'TMDB' || current.providerId !== providerId) return current;
+          return {
+            ...current,
+            name: details.name ?? current.name,
+            year: details.year ?? current.year,
+            overview: details.overview ?? current.overview,
+            posterUrl: details.posterUrl ?? current.posterUrl,
+            genres: details.genres ?? current.genres ?? null,
+            directors: details.directors ?? current.directors ?? null,
+            cast: details.cast ?? current.cast ?? null,
+          };
+        });
+      })
+      .catch(() => null);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selected?.genres, selected?.provider, selected?.providerId, selected?.type]);
 
   useEffect(() => {
     let cancelled = false;
@@ -711,6 +769,14 @@ export default function LogScreen() {
           <View style={styles.header}>
             <Text style={styles.title}>{copy.title}</Text>
             <Text style={styles.desc}>{copy.desc}</Text>
+            {profile?.nickname?.trim() ? (
+              <View style={styles.profilePill}>
+                <Image source={{ uri: avatarUri(profile.personaKey) }} style={styles.profileAvatar} />
+                <Text style={styles.profileName} numberOfLines={1} ellipsizeMode="tail">
+                  {profile.nickname.trim()}
+                </Text>
+              </View>
+            ) : null}
           </View>
 
           <View style={styles.segment}>
@@ -752,17 +818,58 @@ export default function LogScreen() {
 
           {selected ? (
             <View style={styles.card}>
-              <Text style={styles.sectionTitle}>{selected.name}</Text>
-              <Text style={styles.meta}>
-                {[
-                  typeLabel(selected.type, locale),
-                  seasonYear ?? selected.year,
-                  selected.author,
-                  seasonEpisodeLabel(selectedSeason, selectedEpisode),
-                ]
-                  .filter(Boolean)
-                  .join(' · ')}
-              </Text>
+              <View style={styles.selectedHero}>
+                {(seasonPosterUrl ?? selected.posterUrl) ? (
+                  <Image
+                    source={{ uri: seasonPosterUrl ?? selected.posterUrl ?? '' }}
+                    style={styles.selectedPoster}
+                  />
+                ) : (
+                  <View style={styles.selectedPosterEmpty}>
+                    <Text style={styles.posterEmptyText}>{typeLabel(selected.type, locale)}</Text>
+                  </View>
+                )}
+                <View style={styles.selectedBody}>
+                  <Text style={styles.sectionTitle} numberOfLines={1} ellipsizeMode="tail">
+                    {selected.name}
+                  </Text>
+                  <Text style={styles.meta}>
+                    {selected.type === 'book'
+                      ? [typeLabel(selected.type, locale), bookMeta(selected)].filter(Boolean).join(' · ')
+                      : [
+                          typeLabel(selected.type, locale),
+                          seasonYear ?? selected.year,
+                          seasonEpisodeLabel(selectedSeason, selectedEpisode),
+                        ]
+                          .filter(Boolean)
+                          .join(' · ')}
+                  </Text>
+                  {selected.genres && selected.genres.length > 0 ? (
+                    <View style={styles.genreRow}>
+                      {selected.genres.slice(0, 4).map((genre) => (
+                        <Text key={genre} style={styles.genreChip} numberOfLines={1}>
+                          {genre}
+                        </Text>
+                      ))}
+                    </View>
+                  ) : null}
+                  {selected.directors && selected.directors.length > 0 ? (
+                    <Text style={styles.detailMeta} numberOfLines={1} ellipsizeMode="tail">
+                      {locale === 'ko' ? '감독' : 'Director'} · {selected.directors.join(', ')}
+                    </Text>
+                  ) : null}
+                  {selected.cast && selected.cast.length > 0 ? (
+                    <Text style={styles.detailMeta} numberOfLines={1} ellipsizeMode="tail">
+                      {locale === 'ko' ? '주연' : 'Cast'} · {selected.cast.join(', ')}
+                    </Text>
+                  ) : null}
+                  {selected.type === 'book' && selected.overview ? (
+                    <Text style={styles.overview} numberOfLines={2} ellipsizeMode="tail">
+                      {selected.overview}
+                    </Text>
+                  ) : null}
+                </View>
+              </View>
               {message ? <Text style={styles.successText}>{message}</Text> : null}
 
               {!activeLog ? (
@@ -1033,6 +1140,28 @@ function createStyles(colors: ThemeColors) {
     header: { gap: 5 },
     title: { ...Typography.headlineLg, color: colors.onSurface, fontSize: 28 },
     desc: { ...Typography.bodyMd, color: colors.onSurfaceVariant },
+    profilePill: {
+      alignSelf: 'flex-start',
+      minHeight: 42,
+      maxWidth: '100%',
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: colors.outlineVariant,
+      backgroundColor: colors.surface,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 9,
+      paddingHorizontal: 10,
+      paddingVertical: 6,
+      marginTop: 5,
+    },
+    profileAvatar: {
+      width: 28,
+      height: 28,
+      borderRadius: 8,
+      backgroundColor: colors.surfaceMuted,
+    },
+    profileName: { ...Typography.labelLg, color: colors.onSurface, flexShrink: 1 },
     searchBox: {
       minHeight: 56,
       borderRadius: 16,
@@ -1107,6 +1236,32 @@ function createStyles(colors: ThemeColors) {
       gap: 12,
     },
     sectionTitle: { ...Typography.headlineMd, color: colors.onSurface },
+    selectedHero: { flexDirection: 'row', gap: 14, alignItems: 'flex-start' },
+    selectedPoster: { width: 80, height: 128, borderRadius: 12, backgroundColor: colors.surfaceMuted },
+    selectedPosterEmpty: {
+      width: 80,
+      height: 128,
+      borderRadius: 12,
+      backgroundColor: colors.surfaceMuted,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingHorizontal: 6,
+    },
+    selectedBody: { flex: 1, gap: 6, minWidth: 0 },
+    genreRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 5 },
+    genreChip: {
+      maxWidth: 96,
+      borderRadius: 999,
+      borderWidth: 1,
+      borderColor: colors.outlineVariant,
+      backgroundColor: colors.surfaceMuted,
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+      ...Typography.labelSm,
+      color: colors.onSurfaceVariant,
+    },
+    detailMeta: { ...Typography.labelSm, color: colors.onSurfaceVariant },
+    overview: { ...Typography.labelSm, color: colors.onSurfaceVariant, lineHeight: 17 },
     fieldLabel: { ...Typography.labelLg, color: colors.onSurfaceVariant, marginTop: 4 },
     statusPrompt: { gap: 8 },
     statusRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },

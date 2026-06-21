@@ -575,7 +575,9 @@ export default function TimelineScreen() {
                     </View>
                     <Text style={styles.date}>{formatShortDate(log.watchedAt, locale)}</Text>
                   </View>
-                  <Text style={styles.logTitle}>{log.title.name}</Text>
+                  <Text style={styles.logTitle} numberOfLines={1} ellipsizeMode="tail">
+                    {log.title.name}
+                  </Text>
                   <Text style={styles.meta}>
                     {[
                       statusLabel(log.status, log.title.type, locale),
@@ -789,11 +791,13 @@ function createStyles(colors: ThemeColors) {
 	    flex: 1,
 	    minHeight: 42,
 	    borderRadius: 12,
-	    backgroundColor: colors.surfaceMuted,
+	    borderWidth: 1,
+	    borderColor: colors.primaryContainer,
+	    backgroundColor: colors.surface,
 	    alignItems: 'center',
 	    justifyContent: 'center',
 	  },
-	  smallActionText: { ...Typography.labelLg, color: colors.onSurface },
+	  smallActionText: { ...Typography.labelLg, color: colors.primaryContainer },
 	  smallPrimaryButton: {
 	    flex: 1,
 	    minHeight: 42,
