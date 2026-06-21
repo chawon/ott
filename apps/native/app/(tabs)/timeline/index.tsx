@@ -16,6 +16,8 @@ import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import ViewShot, { releaseCapture } from 'react-native-view-shot';
 import { LogShareCard, logShareCardCaptureSize } from '../../../components/LogShareCard';
+import { NativeSelect } from '../../../components/NativeSelect';
+import { SwipeableTabScreen } from '../../../components/SwipeableTabScreen';
 import type { ThemeColors } from '../../../constants/colors';
 import { Typography } from '../../../constants/typography';
 import { createComment, createDiscussion, trackEvent } from '../../../lib/api';
@@ -392,11 +394,12 @@ export default function TimelineScreen() {
   }
 
   return (
-    <ScrollView
-      style={styles.root}
-      contentContainerStyle={styles.content}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.primaryContainer} />}
-    >
+    <SwipeableTabScreen routeKey="/(tabs)/timeline">
+      <ScrollView
+        style={styles.root}
+        contentContainerStyle={styles.content}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.primaryContainer} />}
+      >
       <View style={styles.header}>
         <Text style={styles.title}>{copy.title}</Text>
         <Text style={styles.desc}>{copy.desc}</Text>
@@ -442,65 +445,53 @@ export default function TimelineScreen() {
 
         {filtersOpen ? (
           <View style={styles.filterPanel}>
-            <Text style={styles.filterGroupLabel}>{copy.filterStatus}</Text>
-            <View style={styles.segment}>
-              {statusFilters.map((item) => (
-                <Pressable
-                  key={item.value}
-                  onPress={() => setStatusFilter(item.value)}
-                  style={[styles.chip, statusFilter === item.value && styles.chipActive]}
-                >
-                  <Text style={[styles.chipText, statusFilter === item.value && styles.chipTextActive]}>
-                    {item.label}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
+            <NativeSelect
+              colors={colors}
+              label={copy.filterStatus}
+              selectedValue={statusFilter}
+              valueLabel={statusFilter === 'ALL' ? copy.all : statusFilters.find((item) => item.value === statusFilter)?.label ?? null}
+              placeholder={copy.all}
+              sections={[{ options: statusFilters.map((item) => ({ value: item.value, label: item.label })) }]}
+              onChange={(value) => setStatusFilter(value as StatusFilter)}
+              onClear={() => setStatusFilter('ALL')}
+              clearLabel={copy.all}
+            />
 
-            <Text style={styles.filterGroupLabel}>{copy.filterType}</Text>
-            <View style={styles.segment}>
-              {typeFilters.map((item) => (
-                <Pressable
-                  key={item.value}
-                  onPress={() => setTypeFilter(item.value)}
-                  style={[styles.chip, typeFilter === item.value && styles.chipActive]}
-                >
-                  <Text style={[styles.chipText, typeFilter === item.value && styles.chipTextActive]}>
-                    {item.label}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
+            <NativeSelect
+              colors={colors}
+              label={copy.filterType}
+              selectedValue={typeFilter}
+              valueLabel={typeFilter === 'ALL' ? copy.all : typeFilters.find((item) => item.value === typeFilter)?.label ?? null}
+              placeholder={copy.all}
+              sections={[{ options: typeFilters.map((item) => ({ value: item.value, label: item.label })) }]}
+              onChange={(value) => setTypeFilter(value as TypeFilter)}
+              onClear={() => setTypeFilter('ALL')}
+              clearLabel={copy.all}
+            />
 
-            <Text style={styles.filterGroupLabel}>{copy.filterOrigin}</Text>
-            <View style={styles.segment}>
-              {originFilters.map((item) => (
-                <Pressable
-                  key={item.value}
-                  onPress={() => setOriginFilter(item.value)}
-                  style={[styles.chip, originFilter === item.value && styles.chipActive]}
-                >
-                  <Text style={[styles.chipText, originFilter === item.value && styles.chipTextActive]}>
-                    {item.label}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
+            <NativeSelect
+              colors={colors}
+              label={copy.filterOrigin}
+              selectedValue={originFilter}
+              valueLabel={originFilter === 'ALL' ? copy.all : originFilters.find((item) => item.value === originFilter)?.label ?? null}
+              placeholder={copy.all}
+              sections={[{ options: originFilters.map((item) => ({ value: item.value, label: item.label })) }]}
+              onChange={(value) => setOriginFilter(value as OriginFilter)}
+              onClear={() => setOriginFilter('ALL')}
+              clearLabel={copy.all}
+            />
 
-            <Text style={styles.filterGroupLabel}>{copy.filterSort}</Text>
-            <View style={styles.segment}>
-              {sortFilters.map((item) => (
-                <Pressable
-                  key={item.value}
-                  onPress={() => setSortFilter(item.value)}
-                  style={[styles.chip, sortFilter === item.value && styles.chipActive]}
-                >
-                  <Text style={[styles.chipText, sortFilter === item.value && styles.chipTextActive]}>
-                    {item.label}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
+            <NativeSelect
+              colors={colors}
+              label={copy.filterSort}
+              selectedValue={sortFilter}
+              valueLabel={sortFilter === 'history' ? copy.historySort : copy.watchedAtSort}
+              placeholder={copy.historySort}
+              sections={[{ options: sortFilters.map((item) => ({ value: item.value, label: item.label })) }]}
+              onChange={(value) => setSortFilter(value as TimelineSort)}
+              onClear={() => setSortFilter('history')}
+              clearLabel={copy.historySort}
+            />
 
             <Text style={styles.filterGroupLabel}>{copy.filterPlatform}</Text>
             <TextInput
@@ -511,35 +502,29 @@ export default function TimelineScreen() {
               style={styles.searchInput}
             />
 
-            <Text style={styles.filterGroupLabel}>{copy.filterPlace}</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalSegment}>
-              {placeFilters.map((item) => (
-                <Pressable
-                  key={item.value}
-                  onPress={() => setPlaceFilter(item.value)}
-                  style={[styles.chip, placeFilter === item.value && styles.chipActive]}
-                >
-                  <Text style={[styles.chipText, placeFilter === item.value && styles.chipTextActive]}>
-                    {item.label}
-                  </Text>
-                </Pressable>
-              ))}
-            </ScrollView>
+            <NativeSelect
+              colors={colors}
+              label={copy.filterPlace}
+              selectedValue={placeFilter}
+              valueLabel={placeFilter === 'ALL' ? copy.placeAll : placeFilters.find((item) => item.value === placeFilter)?.label ?? null}
+              placeholder={copy.placeAll}
+              sections={[{ options: placeFilters.map((item) => ({ value: item.value, label: item.label })) }]}
+              onChange={(value) => setPlaceFilter(value as PlaceFilter)}
+              onClear={() => setPlaceFilter('ALL')}
+              clearLabel={copy.placeAll}
+            />
 
-            <Text style={styles.filterGroupLabel}>{copy.filterOccasion}</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalSegment}>
-              {occasionFilters.map((item) => (
-                <Pressable
-                  key={item.value}
-                  onPress={() => setOccasionFilter(item.value)}
-                  style={[styles.chip, occasionFilter === item.value && styles.chipActive]}
-                >
-                  <Text style={[styles.chipText, occasionFilter === item.value && styles.chipTextActive]}>
-                    {item.label}
-                  </Text>
-                </Pressable>
-              ))}
-            </ScrollView>
+            <NativeSelect
+              colors={colors}
+              label={copy.filterOccasion}
+              selectedValue={occasionFilter}
+              valueLabel={occasionFilter === 'ALL' ? copy.occasionAll : occasionFilters.find((item) => item.value === occasionFilter)?.label ?? null}
+              placeholder={copy.occasionAll}
+              sections={[{ options: occasionFilters.map((item) => ({ value: item.value, label: item.label })) }]}
+              onChange={(value) => setOccasionFilter(value as OccasionFilter)}
+              onClear={() => setOccasionFilter('ALL')}
+              clearLabel={copy.occasionAll}
+            />
 
             <Pressable onPress={clearFilters} style={styles.clearFilterButton}>
               <Text style={styles.clearFilterText}>{copy.clearFilters}</Text>
@@ -558,9 +543,15 @@ export default function TimelineScreen() {
           <Text style={styles.desc}>{copy.emptyDesc}</Text>
         </View>
       ) : (
-        <View style={styles.list}>
-          {visibleLogs.map((log) => (
-            <View key={log.id} style={styles.card}>
+          <View style={styles.list}>
+          {visibleLogs.map((log) => {
+            const isBook = log.title.type === 'book';
+            const isComment = log.origin === 'COMMENT';
+            return (
+            <View
+              key={log.id}
+              style={[styles.card, isBook && styles.cardBook, isComment && styles.cardComment]}
+            >
               <Pressable
                 style={styles.cardPressArea}
                 onPress={() =>
@@ -627,7 +618,8 @@ export default function TimelineScreen() {
                 </Pressable>
               </View>
             </View>
-          ))}
+            );
+          })}
         </View>
       )}
       {shareTargetLog ? (
@@ -645,7 +637,8 @@ export default function TimelineScreen() {
           <LogShareCard log={shareTargetLog} locale={locale} />
         </ViewShot>
       ) : null}
-    </ScrollView>
+      </ScrollView>
+    </SwipeableTabScreen>
   );
 }
 
@@ -751,28 +744,34 @@ function createStyles(colors: ThemeColors) {
   },
   emptyTitle: { ...Typography.headlineSm, color: colors.onSurface },
   list: { gap: 10 },
-	  card: {
-	    borderRadius: 18,
-	    borderWidth: 1,
-	    borderColor: colors.outlineVariant,
-	    backgroundColor: colors.surface,
-	    padding: 14,
-	    gap: 10,
-	  },
-	  cardPressArea: { flexDirection: 'row', gap: 12 },
-	  cardBody: { flex: 1, gap: 5 },
-	  poster: { width: 64, height: 92, borderRadius: 10, backgroundColor: colors.surfaceMuted },
-	  posterEmpty: {
-	    width: 64,
-	    height: 92,
-	    borderRadius: 10,
-	    backgroundColor: colors.surfaceMuted,
-	    alignItems: 'center',
-	    justifyContent: 'center',
-	    paddingHorizontal: 6,
-	  },
+    card: {
+      borderRadius: 18,
+      borderWidth: 1,
+      borderColor: colors.outlineVariant,
+      backgroundColor: colors.surface,
+      padding: 16,
+      gap: 10,
+    },
+    cardBook: {
+      backgroundColor: colors.surfaceMuted,
+    },
+    cardComment: {
+      backgroundColor: colors.surface,
+    },
+    cardPressArea: { flexDirection: 'row', gap: 14, alignItems: 'flex-start' },
+    cardBody: { flex: 1, gap: 5 },
+    poster: { width: 80, height: 128, borderRadius: 12, backgroundColor: colors.surfaceMuted },
+    posterEmpty: {
+      width: 80,
+      height: 128,
+      borderRadius: 12,
+      backgroundColor: colors.surfaceMuted,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingHorizontal: 6,
+    },
 	  posterEmptyText: { ...Typography.labelSm, color: colors.onSurfaceVariant, textAlign: 'center' },
-	  cardTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+    cardTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8 },
   badge: {
     borderRadius: 999,
     backgroundColor: colors.surfaceMuted,
@@ -781,7 +780,7 @@ function createStyles(colors: ThemeColors) {
   },
   badgeText: { ...Typography.labelSm, color: colors.primaryContainer },
   date: { ...Typography.labelLg, color: colors.onSurfaceVariant },
-	  logTitle: { ...Typography.headlineSm, color: colors.onSurface },
+    logTitle: { ...Typography.headlineSm, color: colors.onSurface },
 	  meta: { ...Typography.bodyMd, color: colors.onSurfaceVariant },
 	  note: { ...Typography.bodyMd, color: colors.onSurface, marginTop: 4 },
 	  syncState: { ...Typography.labelLg, color: colors.warning, marginTop: 4 },

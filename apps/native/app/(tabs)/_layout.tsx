@@ -12,7 +12,7 @@ function TabBarIcon({ colors, name, active }: { colors: ThemeColors; name: TabNa
 
   return (
     <View style={[iconStyles.box, active && iconStyles.boxActive]}>
-      <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
+      <Svg width={22} height={22} viewBox="0 0 24 24" fill="none">
         {name === 'log' ? (
           <>
             <Path d="M4 20h4.5L19 9.5 14.5 5 4 15.5V20Z" stroke={color} strokeWidth={2} strokeLinejoin="round" />
@@ -114,9 +114,9 @@ function createStyles(colors: ThemeColors) {
       bottom: 16,
       left: 16,
       right: 16,
-      height: 76,
-      paddingTop: 8,
-      paddingBottom: 8,
+      height: 82,
+      paddingTop: 10,
+      paddingBottom: 10,
       backgroundColor: colors.surface,
       borderTopWidth: 0,
       borderWidth: 1,
@@ -129,21 +129,21 @@ function createStyles(colors: ThemeColors) {
       shadowRadius: 18,
     },
     item: {
-      height: 60,
+      height: 66,
       marginHorizontal: 4,
       paddingTop: 4,
       paddingBottom: 3,
       borderRadius: 8,
     },
     iconSlot: {
-      width: 32,
-      height: 30,
+      width: 38,
+      height: 34,
       marginTop: 0,
     },
     label: {
       marginTop: 0,
-      fontSize: 10,
-      lineHeight: 14,
+      fontSize: 11,
+      lineHeight: 15,
       fontWeight: '700',
       letterSpacing: 0,
     },
@@ -152,8 +152,8 @@ function createStyles(colors: ThemeColors) {
 
 const iconStyles = StyleSheet.create({
   box: {
-    width: 42,
-    height: 30,
+    width: 48,
+    height: 34,
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 999,

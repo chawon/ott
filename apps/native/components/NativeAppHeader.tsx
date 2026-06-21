@@ -70,7 +70,12 @@ export function NativeAppHeader() {
         <Pressable
           accessibilityLabel="ottline"
           accessibilityRole="button"
-          onPress={() => router.replace('/(tabs)/log')}
+          onPress={() =>
+            router.replace({
+              pathname: '/(tabs)/log',
+              params: { reset: String(Date.now()) },
+            })
+          }
           style={styles.brand}
         >
           <Image source={logo} style={styles.logo} />

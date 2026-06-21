@@ -15,6 +15,8 @@ import {
 } from 'react-native';
 import ViewShot, { releaseCapture } from 'react-native-view-shot';
 import { LogShareCard, logShareCardCaptureSize } from '../../../components/LogShareCard';
+import { NativeSelect } from '../../../components/NativeSelect';
+import { SwipeableTabScreen } from '../../../components/SwipeableTabScreen';
 import type { ThemeColors } from '../../../constants/colors';
 import { Typography } from '../../../constants/typography';
 import {
@@ -51,6 +53,7 @@ import {
   placeLabels,
 } from '../../../lib/i18n';
 import { useNativePreferences } from '../../../lib/nativePreferences';
+import { useLocalSearchParams } from 'expo-router';
 import type {
   Occasion,
   Place,
@@ -74,6 +77,7 @@ const TITLE_SUGGESTION_LIMIT = 6;
 const PLACE_VALUES: Place[] = ['HOME', 'THEATER', 'CAFE', 'TRANSIT', 'LIBRARY', 'BOOKSTORE'];
 const OCCASION_VALUES: Occasion[] = ['ALONE', 'FRIENDS', 'FAMILY', 'DATE', 'BREAK'];
 const OTT_BASE_OPTIONS = ['Netflix', 'Disney+', 'TVING', 'Wavve', 'Watcha', 'Coupang Play'];
+const RATING_VALUES = Array.from({ length: 10 }, (_, index) => (index + 1) / 2);
 
 function titleFromSearch(item: TitleSearchItem, id: string): Title {
   return {
@@ -175,6 +179,8 @@ export default function LogScreen() {
   const { colors, locale } = useNativePreferences();
   const copy = logCopy[locale];
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const params = useLocalSearchParams<{ reset?: string | string[] }>();
+  const resetToken = Array.isArray(params.reset) ? params.reset[0] : params.reset;
   const filters = useMemo(
     () =>
       FILTER_VALUES.map((value) => ({
@@ -183,6 +189,22 @@ export default function LogScreen() {
       })),
     [copy.tabBook, copy.tabVideo],
   );
+  const statusOptions = useMemo(
+    () =>
+      STATUSES.map((value) => ({
+        value,
+        label: statusLabel(value, 'movie', locale),
+      })),
+    [locale],
+  );
+  const ratingOptions = useMemo(
+    () =>
+      RATING_VALUES.map((value) => ({
+        value: String(value),
+        label: `${value.toFixed(1)}/5`,
+      })),
+    [],
+  );
   const places = useMemo(
     () => PLACE_VALUES.map((value) => ({ value, label: placeLabels[locale][value] })),
     [locale],
@@ -190,10 +212,6 @@ export default function LogScreen() {
   const occasions = useMemo(
     () => OCCASION_VALUES.map((value) => ({ value, label: occasionLabels[locale][value] })),
     [locale],
-  );
-  const ottOptions = useMemo(
-    () => [...OTT_BASE_OPTIONS, copy.platformTheater, copy.platformLibrary],
-    [copy.platformLibrary, copy.platformTheater],
   );
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<ContentFilter>('video');
@@ -227,6 +245,41 @@ export default function LogScreen() {
   const [seasonError, setSeasonError] = useState<string | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const shareCardRef = useRef<ViewShot>(null);
+
+  const ottOptions = useMemo(() => {
+    if (filter === 'book') {
+      return [
+        copy.platformBookstore,
+        copy.platformLibrary,
+        copy.platformKyobo,
+        copy.platformYes24,
+        copy.platformAladin,
+        copy.platformRidi,
+        copy.platformMillie,
+        copy.platformWilla,
+      ];
+    }
+    return [...OTT_BASE_OPTIONS, copy.platformTheater];
+  }, [
+    copy.platformAladin,
+    copy.platformBookstore,
+    copy.platformKyobo,
+    copy.platformLibrary,
+    copy.platformMillie,
+    copy.platformRidi,
+    copy.platformTheater,
+    copy.platformWilla,
+    copy.platformYes24,
+    filter,
+  ]);
+  const statusOptionsForSelect = useMemo(
+    () =>
+      statusOptions.map((item) => ({
+        ...item,
+        label: statusLabel(item.value, selected?.type ?? 'movie', locale),
+      })),
+    [locale, selected?.type, statusOptions],
+  );
 
   useEffect(() => {
     if (timer.current) clearTimeout(timer.current);
@@ -367,6 +420,7 @@ export default function LogScreen() {
   }, [rating]);
 
   function resetForm() {
+    setFilter('video');
     setSelected(null);
     setActiveLog(null);
     setQuery('');
@@ -389,6 +443,11 @@ export default function LogScreen() {
     setShareCard(false);
     setMessage(null);
   }
+
+  useEffect(() => {
+    if (!resetToken) return;
+    resetForm();
+  }, [resetToken]);
 
   async function persistNewLog(nextStatus: Status, includeDetails: boolean) {
     if (!selected) return null;
@@ -620,6 +679,7 @@ export default function LogScreen() {
   function selectTitle(item: TitleSearchItem, source: TitleSelectSource) {
     setSelected(item);
     setActiveLog(null);
+    setFilter(item.type === 'book' ? 'book' : 'video');
     setStatus('DONE');
     setRating('');
     setNote('');
@@ -642,463 +702,498 @@ export default function LogScreen() {
   }
 
   return (
-    <KeyboardAvoidingView
-      style={styles.root}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <View style={styles.header}>
-          <Text style={styles.title}>{copy.title}</Text>
-          <Text style={styles.desc}>{copy.desc}</Text>
-        </View>
-
-        <View style={styles.searchBox}>
-          <TextInput
-            value={query}
-            onChangeText={setQuery}
-            placeholder={filter === 'book' ? copy.searchBookPlaceholder : copy.searchVideoPlaceholder}
-            placeholderTextColor={colors.onSurfaceVariant}
-            style={styles.input}
-            autoCapitalize="none"
-            autoCorrect={false}
-          />
-          {loading ? <ActivityIndicator color={colors.secondary} /> : null}
-        </View>
-
-        <View style={styles.segment}>
-          {filters.map((item) => (
-            <Pressable
-              key={item.value}
-              onPress={() => setFilter(item.value)}
-              style={[styles.segmentItem, filter === item.value && styles.segmentItemActive]}
-            >
-              <Text style={[styles.segmentText, filter === item.value && styles.segmentTextActive]}>
-                {item.label}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
-
-        {selected ? (
-          <View style={styles.card}>
-            <Text style={styles.sectionTitle}>{selected.name}</Text>
-            <Text style={styles.meta}>
-              {[
-                typeLabel(selected.type, locale),
-                seasonYear ?? selected.year,
-                selected.author,
-                seasonEpisodeLabel(selectedSeason, selectedEpisode),
-              ]
-                .filter(Boolean)
-                .join(' · ')}
-            </Text>
-            {message ? <Text style={styles.successText}>{message}</Text> : null}
-
-            <Text style={styles.fieldLabel}>{copy.status}</Text>
-            <View style={styles.optionRow}>
-              {STATUSES.map((item) => (
-                <Pressable
-                  key={item}
-                  disabled={saving}
-                  onPress={() => saveStatusChoice(item)}
-                  style={[styles.chip, status === item && styles.chipActive, saving && styles.disabledButton]}
-                >
-                  <Text style={[styles.chipText, status === item && styles.chipTextActive]}>
-                    {statusLabel(item, selected.type, locale)}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
-
-            {selected.type === 'series' ? (
-              <>
-                <Text style={styles.fieldLabel}>{copy.season}</Text>
-                {seasonLoading ? <Text style={styles.loadingText}>{copy.seasonLoading}</Text> : null}
-                {seasonError ? <Text style={styles.errorText}>{seasonError}</Text> : null}
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.horizontalOptions}
-                >
-                  <Pressable
-                    onPress={() => setSelectedSeason(null)}
-                    style={[styles.chip, selectedSeason == null && styles.chipActive]}
-                  >
-                    <Text style={[styles.chipText, selectedSeason == null && styles.chipTextActive]}>{copy.none}</Text>
-                  </Pressable>
-                  {seasons.map((item) => (
-                    <Pressable
-                      key={item.seasonNumber}
-                      onPress={() => setSelectedSeason(item.seasonNumber)}
-                      style={[styles.chip, selectedSeason === item.seasonNumber && styles.chipActive]}
-                    >
-                      <Text style={[styles.chipText, selectedSeason === item.seasonNumber && styles.chipTextActive]}>
-                        {copy.season} {item.seasonNumber}
-                        {item.name ? ` · ${item.name}` : ''}
-                      </Text>
-                    </Pressable>
-                  ))}
-                </ScrollView>
-
-                <Text style={styles.fieldLabel}>{copy.episode}</Text>
-                {episodeLoading ? <Text style={styles.loadingText}>{copy.episodeLoading}</Text> : null}
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.horizontalOptions}
-                >
-                  <Pressable
-                    disabled={selectedSeason == null}
-                    onPress={() => setSelectedEpisode(null)}
-                    style={[
-                      styles.chip,
-                      selectedEpisode == null && styles.chipActive,
-                      selectedSeason == null && styles.disabledButton,
-                    ]}
-                  >
-                    <Text style={[styles.chipText, selectedEpisode == null && styles.chipTextActive]}>{copy.none}</Text>
-                  </Pressable>
-                  {episodes.map((item) => (
-                    <Pressable
-                      key={item.episodeNumber}
-                      onPress={() => setSelectedEpisode(item.episodeNumber)}
-                      style={[styles.chip, selectedEpisode === item.episodeNumber && styles.chipActive]}
-                    >
-                      <Text style={[styles.chipText, selectedEpisode === item.episodeNumber && styles.chipTextActive]}>
-                        EP {item.episodeNumber}
-                        {item.name ? ` · ${item.name}` : ''}
-                      </Text>
-                    </Pressable>
-                  ))}
-                </ScrollView>
-              </>
-            ) : null}
-
-            <Text style={styles.fieldLabel}>{copy.dateAndRating}</Text>
-            <View style={styles.inlineInputs}>
-              <TextInput value={watchedAt} onChangeText={setWatchedAt} style={styles.smallInput} />
-              <TextInput
-                value={rating}
-                onChangeText={setRating}
-                placeholder={copy.ratingPlaceholder}
-                placeholderTextColor={colors.onSurfaceVariant}
-                keyboardType="decimal-pad"
-                style={styles.smallInput}
-              />
-            </View>
-
-            <Text style={styles.fieldLabel}>{copy.place}</Text>
-            <View style={styles.optionRow}>
-              {places.map((item) => (
-                <Pressable
-                  key={item.value}
-                  onPress={() => setPlace(place === item.value ? null : item.value)}
-                  style={[styles.chip, place === item.value && styles.chipActive]}
-                >
-                  <Text style={[styles.chipText, place === item.value && styles.chipTextActive]}>
-                    {item.label}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
-
-            <Text style={styles.fieldLabel}>{copy.occasion}</Text>
-            <View style={styles.optionRow}>
-              {occasions.map((item) => (
-                <Pressable
-                  key={item.value}
-                  onPress={() => setOccasion(occasion === item.value ? null : item.value)}
-                  style={[styles.chip, occasion === item.value && styles.chipActive]}
-                >
-                  <Text style={[styles.chipText, occasion === item.value && styles.chipTextActive]}>
-                    {item.label}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
-
-            <Text style={styles.fieldLabel}>{copy.platform}</Text>
-            <View style={styles.optionRow}>
-              {ottOptions.map((item) => (
-                <Pressable
-                  key={item}
-                  onPress={() => setOtt(ott === item ? null : item)}
-                  style={[styles.chip, ott === item && styles.chipActive]}
-                >
-                  <Text style={[styles.chipText, ott === item && styles.chipTextActive]}>
-                    {item}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
-
-            <Text style={styles.fieldLabel}>{copy.note}</Text>
-            <TextInput
-              value={note}
-              onChangeText={setNote}
-              multiline
-              placeholder={copy.notePlaceholder}
-              placeholderTextColor={colors.onSurfaceVariant}
-              style={[styles.input, styles.noteInput]}
-            />
-
-            <Text style={styles.fieldLabel}>{copy.saveAndShare}</Text>
-            <View style={styles.toggleRow}>
-              <Pressable
-                onPress={() => setShareToDiscussion((value) => !value)}
-                style={[styles.toggleButton, shareToDiscussion && styles.toggleButtonActive]}
-              >
-                <Text style={[styles.toggleText, shareToDiscussion && styles.toggleTextActive]}>
-                  {shareToDiscussion ? '✓ ' : ''}{copy.shareToPublic}
-                </Text>
-              </Pressable>
-              <Pressable
-                onPress={() => setShareCard((value) => !value)}
-                style={[styles.toggleButton, shareCard && styles.toggleButtonActive]}
-              >
-                <Text style={[styles.toggleText, shareCard && styles.toggleTextActive]}>
-                  {shareCard ? '✓ ' : ''}{copy.createShareCard}
-                </Text>
-              </Pressable>
-            </View>
-
-            <View style={styles.actionRow}>
-              <Pressable onPress={resetForm} style={styles.secondaryButton}>
-                <Text style={styles.secondaryButtonText}>{copy.cancelSelection}</Text>
-              </Pressable>
-              <Pressable
-                onPress={saveDetails}
-                disabled={saving}
-                style={[styles.primaryButton, saving && styles.disabledButton]}
-              >
-                <Text style={styles.primaryButtonText}>
-                  {saving ? copy.saving : activeLog ? copy.saveDetailsAction : copy.saveAction}
-                </Text>
-              </Pressable>
-            </View>
+    <SwipeableTabScreen routeKey="/(tabs)/log">
+      <KeyboardAvoidingView
+        style={styles.root}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+          <View style={styles.header}>
+            <Text style={styles.title}>{copy.title}</Text>
+            <Text style={styles.desc}>{copy.desc}</Text>
           </View>
-        ) : (
-          <View style={styles.results}>
-            {!query.trim() && popular.length > 0 ? (
-              <Text style={styles.sectionLabel}>{copy.suggestionsTitle}</Text>
-            ) : null}
-            {(query.trim() ? results : popular).map((item) => (
+
+          <View style={styles.segment}>
+            {filters.map((item) => (
               <Pressable
-                key={searchItemKey(item)}
-                style={styles.result}
-                onPress={() =>
-                  selectTitle(
-                    item,
-                    query.trim() ? 'search' : suggestionSources[searchItemKey(item)] ?? 'popular_title',
-                  )
-                }
+                key={item.value}
+                onPress={() => {
+                  if (filter !== item.value) {
+                    setFilter(item.value);
+                    setSelected(null);
+                    setActiveLog(null);
+                    setResults([]);
+                    setPopular([]);
+                    setQuery('');
+                    setMessage(null);
+                  }
+                }}
+                style={[styles.segmentItem, filter === item.value && styles.segmentItemActive]}
               >
-                {item.posterUrl ? (
-                  <Image source={{ uri: item.posterUrl }} style={styles.poster} />
-                ) : (
-                  <View style={styles.posterEmpty}>
-                    <Text style={styles.posterEmptyText}>{typeLabel(item.type, locale)}</Text>
-                  </View>
-                )}
-                <View style={styles.resultBody}>
-                  <Text style={styles.resultTitle}>{item.name}</Text>
-                  <Text style={styles.meta}>
-                    {[typeLabel(item.type, locale), item.year, item.author].filter(Boolean).join(' · ')}
-                  </Text>
-                </View>
+                <Text style={[styles.segmentText, filter === item.value && styles.segmentTextActive]}>
+                  {item.label}
+                </Text>
               </Pressable>
             ))}
-            {!loading && query.trim() && results.length === 0 ? (
-              <View style={styles.emptyBox}>
-                <Text style={styles.emptyTitle}>{copy.noResultsTitle}</Text>
-                <Text style={styles.desc}>{copy.noResultsDesc}</Text>
-              </View>
-            ) : null}
           </View>
-        )}
-      </ScrollView>
-      {shareTargetLog ? (
-        <ViewShot
-          ref={shareCardRef}
-          options={{
-            format: 'png',
-            quality: 1,
-            result: 'tmpfile',
-            width: logShareCardCaptureSize.width,
-            height: logShareCardCaptureSize.height,
-          }}
-          style={styles.shareCaptureArea}
-        >
-          <LogShareCard log={shareTargetLog} locale={locale} />
-        </ViewShot>
-      ) : null}
-    </KeyboardAvoidingView>
+
+          <View style={styles.searchBox}>
+            <TextInput
+              value={query}
+              onChangeText={setQuery}
+              placeholder={filter === 'book' ? copy.searchBookPlaceholder : copy.searchVideoPlaceholder}
+              placeholderTextColor={colors.onSurfaceVariant}
+              style={styles.input}
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+            {loading ? <ActivityIndicator color={colors.secondary} /> : null}
+          </View>
+
+          {selected ? (
+            <View style={styles.card}>
+              <Text style={styles.sectionTitle}>{selected.name}</Text>
+              <Text style={styles.meta}>
+                {[
+                  typeLabel(selected.type, locale),
+                  seasonYear ?? selected.year,
+                  selected.author,
+                  seasonEpisodeLabel(selectedSeason, selectedEpisode),
+                ]
+                  .filter(Boolean)
+                  .join(' · ')}
+              </Text>
+              {message ? <Text style={styles.successText}>{message}</Text> : null}
+
+              {!activeLog ? (
+                <View style={styles.statusPrompt}>
+                  <Text style={styles.fieldLabel}>{copy.status}</Text>
+                  <View style={styles.statusRow}>
+                    {STATUSES.map((item) => (
+                      <Pressable
+                        key={item}
+                        disabled={saving}
+                        onPress={() => saveStatusChoice(item)}
+                        style={[styles.chip, status === item && styles.chipActive, saving && styles.disabledButton]}
+                      >
+                        <Text style={[styles.chipText, status === item && styles.chipTextActive]}>
+                          {statusLabel(item, selected.type, locale)}
+                        </Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                </View>
+              ) : (
+                <View style={styles.detailStack}>
+                  <NativeSelect
+                    colors={colors}
+                    label={copy.status}
+                    selectedValue={status}
+                    valueLabel={statusOptionsForSelect.find((item) => item.value === status)?.label ?? null}
+                    placeholder={copy.none}
+                    sections={[{ options: statusOptionsForSelect }]}
+                    onChange={(value) => setStatus(value as Status)}
+                    clearLabel={copy.none}
+                  />
+
+                  {selected.type === 'series' ? (
+                    <>
+                      <NativeSelect
+                        colors={colors}
+                        label={copy.season}
+                        selectedValue={String(selectedSeason ?? '')}
+                        valueLabel={selectedSeason == null ? null : `${copy.season} ${selectedSeason}`}
+                        placeholder={copy.none}
+                        sections={[
+                          {
+                            options: [
+                              { value: '', label: copy.none },
+                              ...seasons.map((item) => ({
+                                value: String(item.seasonNumber),
+                                label: `${copy.season} ${item.seasonNumber}${item.name ? ` · ${item.name}` : ''}`,
+                              })),
+                            ],
+                          },
+                        ]}
+                        onChange={(value) => {
+                          if (!value) {
+                            setSelectedSeason(null);
+                            return;
+                          }
+                          setSelectedSeason(Number(value));
+                        }}
+                        onClear={() => setSelectedSeason(null)}
+                        clearLabel={copy.none}
+                        helperText={seasonLoading ? copy.seasonLoading : seasonError}
+                      />
+
+                      <NativeSelect
+                        colors={colors}
+                        label={copy.episode}
+                        selectedValue={String(selectedEpisode ?? '')}
+                        valueLabel={selectedEpisode == null ? null : `EP ${selectedEpisode}`}
+                        placeholder={copy.none}
+                        sections={[
+                          {
+                            options: [
+                              { value: '', label: copy.none },
+                              ...episodes.map((item) => ({
+                                value: String(item.episodeNumber),
+                                label: `EP ${item.episodeNumber}${item.name ? ` · ${item.name}` : ''}`,
+                              })),
+                            ],
+                          },
+                        ]}
+                        onChange={(value) => {
+                          if (!value) {
+                            setSelectedEpisode(null);
+                            return;
+                          }
+                          setSelectedEpisode(Number(value));
+                        }}
+                        onClear={() => setSelectedEpisode(null)}
+                        clearLabel={copy.none}
+                        disabled={selectedSeason == null}
+                        helperText={episodeLoading ? copy.episodeLoading : null}
+                      />
+                    </>
+                  ) : null}
+
+                  <View style={styles.dateRow}>
+                    <View style={styles.dateField}>
+                      <Text style={styles.fieldLabel}>{copy.dateAndRating}</Text>
+                      <TextInput value={watchedAt} onChangeText={setWatchedAt} style={styles.smallInput} />
+                    </View>
+                    <View style={styles.dateField}>
+                      <NativeSelect
+                        colors={colors}
+                        label={copy.ratingPlaceholder}
+                        selectedValue={rating}
+                        valueLabel={rating ? `${Number(rating).toFixed(1)}/5` : null}
+                        placeholder={copy.none}
+                        sections={[{ options: ratingOptions }]}
+                        onChange={(value) => setRating(value)}
+                        onClear={() => setRating('')}
+                        clearLabel={copy.none}
+                      />
+                    </View>
+                  </View>
+
+                  <NativeSelect
+                    colors={colors}
+                    label={copy.place}
+                    selectedValue={place ?? ''}
+                    valueLabel={place ? places.find((item) => item.value === place)?.label ?? null : null}
+                    placeholder={copy.none}
+                    sections={[{ options: places }]}
+                    onChange={(value) => setPlace(value as Place)}
+                    onClear={() => setPlace(null)}
+                    clearLabel={copy.none}
+                  />
+
+                  <NativeSelect
+                    colors={colors}
+                    label={copy.occasion}
+                    selectedValue={occasion ?? ''}
+                    valueLabel={occasion ? occasions.find((item) => item.value === occasion)?.label ?? null : null}
+                    placeholder={copy.none}
+                    sections={[{ options: occasions }]}
+                    onChange={(value) => setOccasion(value as Occasion)}
+                    onClear={() => setOccasion(null)}
+                    clearLabel={copy.none}
+                  />
+
+                  <NativeSelect
+                    colors={colors}
+                    label={copy.platform}
+                    selectedValue={ott ?? ''}
+                    valueLabel={ott}
+                    placeholder={copy.none}
+                    sections={[{ options: ottOptions.map((item) => ({ value: item, label: item })) }]}
+                    onChange={(value) => setOtt(value)}
+                    onClear={() => setOtt(null)}
+                    clearLabel={copy.none}
+                  />
+
+                  <View style={styles.noteStack}>
+                    <Text style={styles.fieldLabel}>{copy.note}</Text>
+                    <TextInput
+                      value={note}
+                      onChangeText={setNote}
+                      multiline
+                      placeholder={copy.notePlaceholder}
+                      placeholderTextColor={colors.onSurfaceVariant}
+                      style={[styles.input, styles.noteInput]}
+                    />
+                  </View>
+
+                  <Text style={styles.fieldLabel}>{copy.saveAndShare}</Text>
+                  <View style={styles.toggleRow}>
+                    <Pressable
+                      onPress={() => setShareToDiscussion((value) => !value)}
+                      style={[styles.toggleButton, shareToDiscussion && styles.toggleButtonActive]}
+                    >
+                      <Text style={[styles.toggleText, shareToDiscussion && styles.toggleTextActive]}>
+                        {shareToDiscussion ? '✓ ' : ''}
+                        {copy.shareToPublic}
+                      </Text>
+                    </Pressable>
+                    <Pressable
+                      onPress={() => setShareCard((value) => !value)}
+                      style={[styles.toggleButton, shareCard && styles.toggleButtonActive]}
+                    >
+                      <Text style={[styles.toggleText, shareCard && styles.toggleTextActive]}>
+                        {shareCard ? '✓ ' : ''}
+                        {copy.createShareCard}
+                      </Text>
+                    </Pressable>
+                  </View>
+
+                  <View style={styles.actionRow}>
+                    <Pressable onPress={resetForm} style={styles.secondaryButton}>
+                      <Text style={styles.secondaryButtonText}>{copy.cancelSelection}</Text>
+                    </Pressable>
+                    <Pressable
+                      onPress={saveDetails}
+                      disabled={saving}
+                      style={[styles.primaryButton, saving && styles.disabledButton]}
+                    >
+                      <Text style={styles.primaryButtonText}>
+                        {saving ? copy.saving : copy.saveDetailsAction}
+                      </Text>
+                    </Pressable>
+                  </View>
+                </View>
+              )}
+            </View>
+          ) : (
+            <View style={styles.results}>
+              {!query.trim() && popular.length > 0 ? (
+                <Text style={styles.sectionLabel}>{copy.suggestionsTitle}</Text>
+              ) : null}
+              {(query.trim() ? results : popular).map((item) => (
+                <Pressable
+                  key={searchItemKey(item)}
+                  style={styles.result}
+                  onPress={() =>
+                    selectTitle(
+                      item,
+                      query.trim() ? 'search' : suggestionSources[searchItemKey(item)] ?? 'popular_title',
+                    )
+                  }
+                >
+                  {item.posterUrl ? (
+                    <Image source={{ uri: item.posterUrl }} style={styles.poster} />
+                  ) : (
+                    <View style={styles.posterEmpty}>
+                      <Text style={styles.posterEmptyText}>{typeLabel(item.type, locale)}</Text>
+                    </View>
+                  )}
+                  <View style={styles.resultBody}>
+                    <Text style={styles.resultTitle}>{item.name}</Text>
+                    <Text style={styles.meta}>
+                      {[typeLabel(item.type, locale), item.year, item.author].filter(Boolean).join(' · ')}
+                    </Text>
+                  </View>
+                </Pressable>
+              ))}
+              {!loading && query.trim() && results.length === 0 ? (
+                <View style={styles.emptyBox}>
+                  <Text style={styles.emptyTitle}>{copy.noResultsTitle}</Text>
+                  <Text style={styles.desc}>{copy.noResultsDesc}</Text>
+                </View>
+              ) : null}
+            </View>
+          )}
+        </ScrollView>
+        {shareTargetLog ? (
+          <ViewShot
+            ref={shareCardRef}
+            options={{
+              format: 'png',
+              quality: 1,
+              result: 'tmpfile',
+              width: logShareCardCaptureSize.width,
+              height: logShareCardCaptureSize.height,
+            }}
+            style={styles.shareCaptureArea}
+          >
+            <LogShareCard log={shareTargetLog} locale={locale} />
+          </ViewShot>
+        ) : null}
+      </KeyboardAvoidingView>
+    </SwipeableTabScreen>
   );
 }
 
 function createStyles(colors: ThemeColors) {
   return StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.background },
-  content: { padding: 20, paddingTop: 12, paddingBottom: 120, gap: 14 },
-  header: { gap: 5 },
-  title: { ...Typography.headlineLg, color: colors.onSurface, fontSize: 28 },
-  desc: { ...Typography.bodyMd, color: colors.onSurfaceVariant },
-  searchBox: {
-    minHeight: 56,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: colors.outlineVariant,
-    backgroundColor: colors.surface,
-    paddingHorizontal: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  input: { flex: 1, minHeight: 48, color: colors.onSurface, ...Typography.bodyLg },
-  segment: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  segmentItem: {
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: colors.outlineVariant,
-    paddingHorizontal: 14,
-    paddingVertical: 9,
-    backgroundColor: colors.surface,
-  },
-  segmentItemActive: { borderColor: colors.primaryContainer, backgroundColor: colors.surfaceMuted },
-  segmentText: { ...Typography.labelLg, color: colors.onSurfaceVariant },
-  segmentTextActive: { color: colors.primaryContainer },
-  results: { gap: 10 },
-  sectionLabel: { ...Typography.labelLg, color: colors.onSurfaceVariant },
-  result: {
-    flexDirection: 'row',
-    gap: 12,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: colors.outlineVariant,
-    backgroundColor: colors.surface,
-    padding: 10,
-  },
-  poster: { width: 56, height: 78, borderRadius: 10, backgroundColor: colors.surfaceMuted },
-  posterEmpty: {
-    width: 56,
-    height: 78,
-    borderRadius: 10,
-    backgroundColor: colors.surfaceMuted,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  posterEmptyText: { ...Typography.labelSm, color: colors.onSurfaceVariant },
-  resultBody: { flex: 1, justifyContent: 'center', gap: 4 },
-  resultTitle: { ...Typography.headlineSm, color: colors.onSurface },
-  meta: { ...Typography.bodyMd, color: colors.onSurfaceVariant },
-  successText: {
-    ...Typography.labelLg,
-    color: colors.primaryContainer,
-    borderRadius: 12,
-    backgroundColor: colors.surfaceMuted,
-    paddingHorizontal: 12,
-    paddingVertical: 9,
-  },
-  emptyBox: {
-    borderRadius: 16,
-    borderWidth: 1,
-    borderStyle: 'dashed',
-    borderColor: colors.outline,
-    padding: 18,
-    gap: 6,
-  },
-  emptyTitle: { ...Typography.headlineSm, color: colors.onSurface },
-  card: {
-    borderRadius: 20,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.outlineVariant,
-    padding: 16,
-    gap: 12,
-  },
-  sectionTitle: { ...Typography.headlineMd, color: colors.onSurface },
-  fieldLabel: { ...Typography.labelLg, color: colors.onSurfaceVariant, marginTop: 4 },
-  optionRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  horizontalOptions: { gap: 8, paddingRight: 4 },
-  loadingText: { ...Typography.bodyMd, color: colors.onSurfaceVariant },
-  errorText: { ...Typography.bodyMd, color: colors.error },
-  chip: {
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: colors.outlineVariant,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    backgroundColor: colors.surface,
-  },
-  chipActive: { borderColor: colors.primaryContainer, backgroundColor: colors.surfaceMuted },
-  chipText: { ...Typography.labelLg, color: colors.onSurfaceVariant },
-  chipTextActive: { color: colors.primaryContainer },
-  inlineInputs: { flexDirection: 'row', gap: 10 },
-  smallInput: {
-    flex: 1,
-    minHeight: 48,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: colors.outlineVariant,
-    backgroundColor: colors.surface,
-    paddingHorizontal: 12,
-    color: colors.onSurface,
-  },
-  noteInput: {
-    minHeight: 92,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: colors.outlineVariant,
-    backgroundColor: colors.surfaceMuted,
-    paddingHorizontal: 12,
-    paddingTop: 12,
-    textAlignVertical: 'top',
-  },
-  toggleRow: { flexDirection: 'row', gap: 8 },
-  toggleButton: {
-    flex: 1,
-    minHeight: 48,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: colors.outlineVariant,
-    backgroundColor: colors.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 10,
-  },
-  toggleButtonActive: {
-    borderColor: colors.primaryContainer,
-    backgroundColor: colors.surfaceMuted,
-  },
-  toggleText: { ...Typography.labelLg, color: colors.onSurfaceVariant, textAlign: 'center' },
-  toggleTextActive: { color: colors.primaryContainer },
-  actionRow: { flexDirection: 'row', gap: 10, marginTop: 4 },
-  primaryButton: {
-    flex: 1,
-    minHeight: 52,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.primaryContainer,
-  },
-  primaryButtonText: { color: colors.background, fontWeight: '800' },
-  secondaryButton: {
-    flex: 1,
-    minHeight: 52,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.surfaceMuted,
-  },
-  secondaryButtonText: { color: colors.onSurface, fontWeight: '800' },
-  disabledButton: { opacity: 0.55 },
-  shareCaptureArea: {
-    position: 'absolute',
-    left: -10000,
-    top: 0,
-    width: 270,
-    height: 480,
-    backgroundColor: '#15120f',
-  },
-});
+    root: { flex: 1, backgroundColor: colors.background },
+    content: { padding: 20, paddingTop: 12, paddingBottom: 120, gap: 14 },
+    header: { gap: 5 },
+    title: { ...Typography.headlineLg, color: colors.onSurface, fontSize: 28 },
+    desc: { ...Typography.bodyMd, color: colors.onSurfaceVariant },
+    searchBox: {
+      minHeight: 56,
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: colors.outlineVariant,
+      backgroundColor: colors.surface,
+      paddingHorizontal: 14,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
+    input: { flex: 1, minHeight: 48, color: colors.onSurface, ...Typography.bodyLg },
+    segment: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+    segmentItem: {
+      borderRadius: 999,
+      borderWidth: 1,
+      borderColor: colors.outlineVariant,
+      paddingHorizontal: 14,
+      paddingVertical: 9,
+      backgroundColor: colors.surface,
+    },
+    segmentItemActive: { borderColor: colors.primaryContainer, backgroundColor: colors.surfaceMuted },
+    segmentText: { ...Typography.labelLg, color: colors.onSurfaceVariant },
+    segmentTextActive: { color: colors.primaryContainer },
+    results: { gap: 10 },
+    sectionLabel: { ...Typography.labelLg, color: colors.onSurfaceVariant },
+    result: {
+      flexDirection: 'row',
+      gap: 12,
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: colors.outlineVariant,
+      backgroundColor: colors.surface,
+      padding: 10,
+    },
+    poster: { width: 56, height: 78, borderRadius: 10, backgroundColor: colors.surfaceMuted },
+    posterEmpty: {
+      width: 56,
+      height: 78,
+      borderRadius: 10,
+      backgroundColor: colors.surfaceMuted,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    posterEmptyText: { ...Typography.labelSm, color: colors.onSurfaceVariant },
+    resultBody: { flex: 1, justifyContent: 'center', gap: 4 },
+    resultTitle: { ...Typography.headlineSm, color: colors.onSurface },
+    meta: { ...Typography.bodyMd, color: colors.onSurfaceVariant },
+    successText: {
+      ...Typography.labelLg,
+      color: colors.primaryContainer,
+      borderRadius: 12,
+      backgroundColor: colors.surfaceMuted,
+      paddingHorizontal: 12,
+      paddingVertical: 9,
+    },
+    emptyBox: {
+      borderRadius: 16,
+      borderWidth: 1,
+      borderStyle: 'dashed',
+      borderColor: colors.outline,
+      padding: 18,
+      gap: 6,
+    },
+    emptyTitle: { ...Typography.headlineSm, color: colors.onSurface },
+    card: {
+      borderRadius: 20,
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.outlineVariant,
+      padding: 16,
+      gap: 12,
+    },
+    sectionTitle: { ...Typography.headlineMd, color: colors.onSurface },
+    fieldLabel: { ...Typography.labelLg, color: colors.onSurfaceVariant, marginTop: 4 },
+    statusPrompt: { gap: 8 },
+    statusRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+    detailStack: { gap: 12 },
+    dateRow: { flexDirection: 'row', gap: 10, alignItems: 'flex-start' },
+    dateField: { flex: 1, gap: 6 },
+    noteStack: { gap: 6 },
+    optionRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+    horizontalOptions: { gap: 8, paddingRight: 4 },
+    loadingText: { ...Typography.bodyMd, color: colors.onSurfaceVariant },
+    errorText: { ...Typography.bodyMd, color: colors.error },
+    chip: {
+      borderRadius: 999,
+      borderWidth: 1,
+      borderColor: colors.outlineVariant,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      backgroundColor: colors.surface,
+    },
+    chipActive: { borderColor: colors.primaryContainer, backgroundColor: colors.surfaceMuted },
+    chipText: { ...Typography.labelLg, color: colors.onSurfaceVariant },
+    chipTextActive: { color: colors.primaryContainer },
+    inlineInputs: { flexDirection: 'row', gap: 10 },
+    smallInput: {
+      minHeight: 48,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: colors.outlineVariant,
+      backgroundColor: colors.surface,
+      paddingHorizontal: 12,
+      color: colors.onSurface,
+    },
+    noteInput: {
+      minHeight: 92,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: colors.outlineVariant,
+      backgroundColor: colors.surfaceMuted,
+      paddingHorizontal: 12,
+      paddingTop: 12,
+      textAlignVertical: 'top',
+    },
+    toggleRow: { flexDirection: 'row', gap: 8 },
+    toggleButton: {
+      flex: 1,
+      minHeight: 48,
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor: colors.outlineVariant,
+      backgroundColor: colors.surface,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingHorizontal: 10,
+    },
+    toggleButtonActive: {
+      borderColor: colors.primaryContainer,
+      backgroundColor: colors.surfaceMuted,
+    },
+    toggleText: { ...Typography.labelLg, color: colors.onSurfaceVariant, textAlign: 'center' },
+    toggleTextActive: { color: colors.primaryContainer },
+    actionRow: { flexDirection: 'row', gap: 10, marginTop: 4 },
+    primaryButton: {
+      flex: 1,
+      minHeight: 52,
+      borderRadius: 14,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.primaryContainer,
+    },
+    primaryButtonText: { color: colors.background, fontWeight: '800' },
+    secondaryButton: {
+      flex: 1,
+      minHeight: 52,
+      borderRadius: 14,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.surfaceMuted,
+    },
+    secondaryButtonText: { color: colors.onSurface, fontWeight: '800' },
+    disabledButton: { opacity: 0.55 },
+    shareCaptureArea: {
+      position: 'absolute',
+      left: -10000,
+      top: 0,
+      width: 270,
+      height: 480,
+      backgroundColor: '#15120f',
+    },
+  });
 }

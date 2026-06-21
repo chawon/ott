@@ -4,6 +4,7 @@ import * as Sharing from 'expo-sharing';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import {
   Alert,
+  Image,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -13,6 +14,7 @@ import {
 } from 'react-native';
 import ViewShot, { releaseCapture } from 'react-native-view-shot';
 import { PairingRecoveryCard, recoveryCardCaptureSize } from '../../../components/PairingRecoveryCard';
+import { SwipeableTabScreen } from '../../../components/SwipeableTabScreen';
 import type { ThemeColors } from '../../../constants/colors';
 import { Typography } from '../../../constants/typography';
 import {
@@ -25,6 +27,7 @@ import {
   updateUserProfile,
 } from '../../../lib/api';
 import { accountCopy, type NativeLocale } from '../../../lib/i18n';
+import { avatarUri } from '../../../lib/avatar';
 import { clearLocalData, listLogsLocal, setSetting } from '../../../lib/localDb';
 import { useNativePreferences, type NativeThemePreference } from '../../../lib/nativePreferences';
 import {
@@ -85,8 +88,10 @@ function personaLabel(value: PersonaKey, copy: AccountCopy) {
   }
 }
 
-function formatDeviceLabel(device: DeviceSummary, copy: AccountCopy) {
-  return [device.os, device.browser].filter(Boolean).join(' · ') || copy.deviceLabelFallback;
+function formatDeviceLabel(device: DeviceSummary, copy: AccountCopy, isCurrent: boolean) {
+  const label = [device.os, device.browser].filter(Boolean).join(' · ');
+  if (label) return label;
+  return isCurrent ? copy.deviceLabelNative : copy.deviceLabelFallback;
 }
 
 function formatProfileUpdated(profile: UserProfile | null, locale: NativeLocale, copy: AccountCopy) {
@@ -136,6 +141,7 @@ export default function AccountScreen() {
   const [devices, setDevices] = useState<DeviceSummary[]>([]);
   const [notificationState, setNotificationState] = useState<RecapNotificationState | null>(null);
   const recoveryCardRef = useRef<ViewShot>(null);
+  const avatarSource = avatarUri(personaKey);
 
   const loadAccountData = useCallback(async () => {
     const current = useAuthStore.getState();
@@ -498,7 +504,8 @@ export default function AccountScreen() {
   }
 
   return (
-    <ScrollView style={styles.root} contentContainerStyle={styles.content}>
+    <SwipeableTabScreen routeKey="/(tabs)/account">
+      <ScrollView style={styles.root} contentContainerStyle={styles.content}>
       <View style={styles.header}>
         <Text style={styles.title}>{copy.title}</Text>
         <Text style={styles.desc}>{copy.desc}</Text>
@@ -531,6 +538,13 @@ export default function AccountScreen() {
       <View style={styles.card}>
         <Text style={styles.sectionTitle}>{copy.profileTitle}</Text>
         <Text style={styles.desc}>{copy.profileDesc}</Text>
+        <View style={styles.profilePreview}>
+          <Image source={{ uri: avatarSource }} style={styles.avatar} />
+          <View style={styles.profilePreviewText}>
+            <Text style={styles.profileNickname}>{nickname.trim() || copy.nicknamePlaceholder}</Text>
+            <Text style={styles.profilePersona}>{personaLabel(personaKey, copy)}</Text>
+          </View>
+        </View>
         <TextInput
           value={nickname}
           onChangeText={setNickname}
@@ -636,7 +650,7 @@ export default function AccountScreen() {
                   <Text style={styles.deviceTitle}>
                     {current ? copy.currentDevice : copy.linkedDevice} · {shortId(device.id)}
                   </Text>
-                  <Text style={styles.desc}>{formatDeviceLabel(device, copy)}</Text>
+                  <Text style={styles.desc}>{formatDeviceLabel(device, copy, current)}</Text>
                   <Text style={styles.date}>
                     {formatCopy(copy.lastSeen, {
                       date: formatDeviceLastSeen(device.lastSeenAt, locale),
@@ -774,7 +788,8 @@ export default function AccountScreen() {
       </View>
 
       {status ? <Text style={styles.status}>{status}</Text> : null}
-    </ScrollView>
+      </ScrollView>
+    </SwipeableTabScreen>
   );
 }
 
@@ -794,6 +809,25 @@ function createStyles(colors: ThemeColors) {
       gap: 12,
     },
     sectionTitle: { ...Typography.headlineSm, color: colors.onSurface },
+    profilePreview: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: colors.outlineVariant,
+      backgroundColor: colors.surfaceMuted,
+      padding: 12,
+    },
+    avatar: {
+      width: 56,
+      height: 56,
+      borderRadius: 14,
+      backgroundColor: colors.surface,
+    },
+    profilePreviewText: { flex: 1, gap: 3 },
+    profileNickname: { ...Typography.headlineSm, color: colors.onSurface },
+    profilePersona: { ...Typography.bodyMd, color: colors.onSurfaceVariant },
     codeBox: {
       minHeight: 58,
       borderRadius: 16,

@@ -13,6 +13,8 @@ import {
 } from 'react-native';
 import type { ThemeColors } from '../../../constants/colors';
 import { Typography } from '../../../constants/typography';
+import { NativeSelect } from '../../../components/NativeSelect';
+import { SwipeableTabScreen } from '../../../components/SwipeableTabScreen';
 import { listDiscussions } from '../../../lib/api';
 import { formatShortDate, typeLabel } from '../../../lib/format';
 import { togetherCopy, type NativeLocale } from '../../../lib/i18n';
@@ -106,11 +108,12 @@ export default function TogetherScreen() {
   );
 
   return (
-    <ScrollView
-      style={styles.root}
-      contentContainerStyle={styles.content}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} />}
-    >
+    <SwipeableTabScreen routeKey="/(tabs)/together">
+      <ScrollView
+        style={styles.root}
+        contentContainerStyle={styles.content}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} />}
+      >
       <View style={styles.header}>
         <Text style={styles.title}>{copy.title}</Text>
         <Text style={styles.desc}>{copy.desc}</Text>
@@ -126,32 +129,26 @@ export default function TogetherScreen() {
       />
 
       <View style={styles.filterBlock}>
-        <View style={styles.segment}>
-          {scopes.map((item) => (
-            <Pressable
-              key={item.value}
-              onPress={() => setScope(item.value)}
-              style={[styles.chip, scope === item.value && styles.chipActive]}
-            >
-              <Text style={[styles.chipText, scope === item.value && styles.chipTextActive]}>
-                {item.label}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
-        <View style={styles.segment}>
-          {sorts.map((item) => (
-            <Pressable
-              key={item.value}
-              onPress={() => setSort(item.value)}
-              style={[styles.chip, sort === item.value && styles.chipActive]}
-            >
-              <Text style={[styles.chipText, sort === item.value && styles.chipTextActive]}>
-                {item.label}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
+        <NativeSelect
+          colors={colors}
+          label={copy.latest}
+          selectedValue={scope}
+          valueLabel={scopes.find((item) => item.value === scope)?.label ?? null}
+          placeholder={copy.latest}
+          sections={[{ options: scopes }]}
+          onChange={(value) => setScope(value as Scope)}
+          clearLabel={copy.latest}
+        />
+        <NativeSelect
+          colors={colors}
+          label={copy.latestSort}
+          selectedValue={sort}
+          valueLabel={sorts.find((item) => item.value === sort)?.label ?? null}
+          placeholder={copy.latestSort}
+          sections={[{ options: sorts }]}
+          onChange={(value) => setSort(value as Sort)}
+          clearLabel={copy.latestSort}
+        />
       </View>
 
       {loading ? (
@@ -208,7 +205,8 @@ export default function TogetherScreen() {
           })}
         </View>
       )}
-    </ScrollView>
+      </ScrollView>
+    </SwipeableTabScreen>
   );
 }
 
