@@ -1,6 +1,12 @@
 export type Status = "DONE" | "IN_PROGRESS" | "WISHLIST";
 export type TitleType = "movie" | "series" | "book";
 export type Provider = "TMDB" | "LOCAL" | "NAVER";
+export type TitleSelectSource =
+  | "search_result"
+  | "recent_discussion"
+  | "popular_title"
+  | "activation_recent_discussion"
+  | "activation_popular_title";
 export type DiscussionReactionType = "DONE" | "CURIOUS" | "SAVE";
 export type PersonaKey =
   | "cinema_keeper"

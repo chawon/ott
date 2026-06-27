@@ -5,15 +5,14 @@ import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "@/lib/api";
 import { selectPopularTitleFillers } from "@/lib/titleFallback";
-import type { DiscussionListItem, TitleSearchItem } from "@/lib/types";
+import type {
+  DiscussionListItem,
+  TitleSearchItem,
+  TitleSelectSource,
+} from "@/lib/types";
 import { cn, tmdbResize } from "@/lib/utils";
 
 const TITLE_SUGGESTION_LIMIT = 6;
-
-type TitleSelectSource =
-  | "search_result"
-  | "recent_discussion"
-  | "popular_title";
 
 function errorMessage(error: unknown, fallback: string) {
   return error instanceof Error ? error.message : fallback;
@@ -40,6 +39,7 @@ export default function TitleSearchBox({
   contentType = "video",
   initialQuery,
   autoFocus = false,
+  focusSignal = 0,
 }: {
   onSelect: (item: TitleSearchItem) => void;
   onSearchComplete?: (result: {
@@ -60,6 +60,7 @@ export default function TitleSearchBox({
   contentType?: "video" | "book";
   initialQuery?: string;
   autoFocus?: boolean;
+  focusSignal?: number;
 }) {
   const tTitleSearch = useTranslations("TitleSearchBox");
   const [q, setQ] = useState("");
@@ -257,10 +258,10 @@ export default function TitleSearchBox({
     open && (loading || err || items.length > 0 || showRecentPanel);
 
   useEffect(() => {
-    if (!autoFocus) return;
+    if (!autoFocus && focusSignal === 0) return;
     inputRef.current?.focus();
     setOpen(true);
-  }, [autoFocus]);
+  }, [autoFocus, focusSignal]);
 
   const modernPlaceholder = placeholder || tTitleSearch("defaultPlaceholder");
 
