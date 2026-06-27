@@ -34,6 +34,7 @@ import type {
   Status,
   Title,
   TitleSearchItem,
+  TitleSelectSource,
   WatchLog,
 } from "@/lib/types";
 import {
@@ -57,6 +58,15 @@ type SeasonOption = {
 type EpisodeOption = {
   episodeNumber: number;
   name: string;
+};
+
+type ActivationTitleSelection = {
+  item: TitleSearchItem;
+  source: Extract<
+    TitleSelectSource,
+    "activation_recent_discussion" | "activation_popular_title"
+  >;
+  nonce: number;
 };
 
 const OTT_CUSTOM_VALUE = "__custom__";
@@ -148,8 +158,11 @@ export default function QuickLogCard({
   initialSearchQuery,
   initialPlatform,
   autoFocusSearch = false,
+  searchFocusSignal = 0,
   shareImportStatus,
   shareImportFeedbackHref,
+  activationTitleSelection,
+  highlightedStatus,
 }: {
   onCreated: (log: WatchLog, options?: { shareCard: boolean }) => void;
   onContentTypeChange?: (type: "video" | "book") => void;
@@ -157,8 +170,11 @@ export default function QuickLogCard({
   initialSearchQuery?: string;
   initialPlatform?: string;
   autoFocusSearch?: boolean;
+  searchFocusSignal?: number;
   shareImportStatus?: "imported" | "unresolved" | null;
   shareImportFeedbackHref?: string;
+  activationTitleSelection?: ActivationTitleSelection | null;
+  highlightedStatus?: Status | null;
 }) {
   const tQuick = useTranslations("QuickLogCard");
   const tCommon = useTranslations("Common");
@@ -324,7 +340,7 @@ export default function QuickLogCard({
     (result: {
       item: TitleSearchItem;
       contentType: "video" | "book";
-      source: "search_result" | "recent_discussion" | "popular_title";
+      source: TitleSelectSource;
       queryLength: number;
       resultRank?: number;
     }) => {
@@ -340,7 +356,7 @@ export default function QuickLogCard({
     [],
   );
 
-  function clearSelectedTitleState() {
+  const clearSelectedTitleState = useCallback(() => {
     setSelected(null);
     setLocalLogId(null);
     setLocalTitleId(null);
@@ -350,7 +366,27 @@ export default function QuickLogCard({
     setSelectedEpisode("");
     setSeasonPosterUrl(null);
     setSeasonYear(null);
-  }
+  }, []);
+
+  useEffect(() => {
+    if (!activationTitleSelection) return;
+    const item = activationTitleSelection.item;
+    const nextContentType = item.type === "book" ? "book" : "video";
+
+    clearSelectedTitleState();
+    setContentType(nextContentType);
+    setSelected(item);
+    handleTitleSelectAnalytics({
+      item,
+      contentType: nextContentType,
+      source: activationTitleSelection.source,
+      queryLength: 0,
+    });
+  }, [
+    activationTitleSelection,
+    clearSelectedTitleState,
+    handleTitleSelectAnalytics,
+  ]);
 
   useEffect(() => {
     if (useWatchedAt && !watchedDate) {
@@ -842,6 +878,14 @@ export default function QuickLogCard({
     );
   }
 
+  function statusButtonClass(value: Status, className: string) {
+    return cn(
+      className,
+      highlightedStatus === value &&
+        "ring-2 ring-primary/40 ring-offset-2 ring-offset-card",
+    );
+  }
+
   return (
     <>
       <section
@@ -930,6 +974,7 @@ export default function QuickLogCard({
                 contentType={isBookMode ? "book" : "video"}
                 initialQuery={initialSearchQuery}
                 autoFocus={autoFocusSearch}
+                focusSignal={searchFocusSignal}
               />
             </div>
           </>
@@ -1042,7 +1087,10 @@ export default function QuickLogCard({
                     type="button"
                     onClick={() => handleInitialSave("DONE")}
                     disabled={saving}
-                    className="min-h-[52px] rounded-xl bg-primary text-sm font-bold text-primary-foreground transition-all active:scale-[0.98] disabled:opacity-50"
+                    className={statusButtonClass(
+                      "DONE",
+                      "min-h-[52px] rounded-xl bg-primary text-sm font-bold text-primary-foreground transition-all active:scale-[0.98] disabled:opacity-50",
+                    )}
                   >
                     {isBookMode
                       ? tQuick("statusDoneBook")
@@ -1052,7 +1100,10 @@ export default function QuickLogCard({
                     type="button"
                     onClick={() => handleInitialSave("IN_PROGRESS")}
                     disabled={saving}
-                    className="min-h-[52px] rounded-xl bg-ott-sky-soft text-sm font-bold text-primary transition-all active:scale-[0.98] disabled:opacity-50"
+                    className={statusButtonClass(
+                      "IN_PROGRESS",
+                      "min-h-[52px] rounded-xl bg-ott-sky-soft text-sm font-bold text-primary transition-all active:scale-[0.98] disabled:opacity-50",
+                    )}
                   >
                     {isBookMode
                       ? tQuick("statusInProgressBook")
@@ -1062,7 +1113,10 @@ export default function QuickLogCard({
                     type="button"
                     onClick={() => handleInitialSave("WISHLIST")}
                     disabled={saving}
-                    className="min-h-[52px] rounded-xl border border-ott-warm bg-ott-warm/55 text-sm font-bold text-ott-warm-foreground transition-all active:scale-[0.98] disabled:opacity-50"
+                    className={statusButtonClass(
+                      "WISHLIST",
+                      "min-h-[52px] rounded-xl border border-ott-warm bg-ott-warm/55 text-sm font-bold text-ott-warm-foreground transition-all active:scale-[0.98] disabled:opacity-50",
+                    )}
                   >
                     {isBookMode
                       ? tQuick("statusWishlistBook")

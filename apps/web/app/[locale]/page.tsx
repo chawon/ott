@@ -3,17 +3,21 @@
 import { MessageCircle, NotebookPen, PencilLine } from "lucide-react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import DiscussionList from "@/components/DiscussionList";
+import FirstLogActivationPanel from "@/components/FirstLogActivationPanel";
 import LogCard from "@/components/LogCard";
 import ProfileAvatar from "@/components/ProfileAvatar";
 import ProfilePromptCard from "@/components/ProfilePromptCard";
 import QuickLogCard from "@/components/QuickLogCard";
 import ShareBottomSheet from "@/components/ShareBottomSheet";
+import { trackEvent } from "@/lib/analytics";
 import { api, apiWithAuth } from "@/lib/api";
 import {
+  countLogsLocal,
   dismissProfilePrompt,
   getDeviceId,
+  getPairingCode,
   getUserId,
   isProfilePromptDismissed,
   listLogsLocal,
@@ -29,13 +33,26 @@ import {
 import { selectPopularTitleFillers } from "@/lib/titleFallback";
 import type {
   DiscussionListItem,
+  Status,
   TitleSearchItem,
+  TitleSelectSource,
   WatchLog,
 } from "@/lib/types";
 import { useUserProfile } from "@/lib/useUserProfile";
 
 type ShareImportStatus = "imported" | "unresolved";
+type ActivationContentType = "video" | "book";
+type ActivationTitleSelection = {
+  item: TitleSearchItem;
+  source: Extract<
+    TitleSelectSource,
+    "activation_recent_discussion" | "activation_popular_title"
+  >;
+  nonce: number;
+};
+
 const HOME_DISCUSSION_LIMIT = 6;
+const ACTIVATION_DISMISSED_KEY = "ottline.activation.dismissed";
 
 function feedbackHref(source: string) {
   const params = new URLSearchParams({ source, from: "home" });
@@ -138,6 +155,9 @@ export default function HomePage() {
   const [loading, setLoading] = useState(true);
   const [discussions, setDiscussions] = useState<DiscussionListItem[]>([]);
   const [trendingTitles, setTrendingTitles] = useState<TitleSearchItem[]>([]);
+  const [activationPopularTitles, setActivationPopularTitles] = useState<
+    TitleSearchItem[]
+  >([]);
   const [discussionsLoading, setDiscussionsLoading] = useState(true);
   const [quickType, setQuickType] = useState<"video" | "book">("video");
   const [shareOpen, setShareOpen] = useState(false);
@@ -152,11 +172,59 @@ export default function HomePage() {
   const [autoFocusSearch, setAutoFocusSearch] = useState(false);
   const [hasAccount, setHasAccount] = useState(false);
   const [profilePromptHidden, setProfilePromptHidden] = useState(true);
+  const [activationContentType, setActivationContentType] =
+    useState<ActivationContentType>("video");
+  const [activationEligible, setActivationEligible] = useState(false);
+  const [activationDismissed, setActivationDismissed] = useState(false);
+  const [activationForcedBypass, setActivationForcedBypass] = useState(false);
+  const [activationTitleSelection, setActivationTitleSelection] =
+    useState<ActivationTitleSelection | null>(null);
+  const [, setActivationSelectionNonce] = useState(0);
+  const [highlightedStatus, setHighlightedStatus] = useState<Status | null>(
+    null,
+  );
+  const [searchFocusSignal, setSearchFocusSignal] = useState(0);
+  const quickLogRef = useRef<HTMLDivElement | null>(null);
   const { profile } = useUserProfile();
 
   const refreshProfilePromptState = useCallback(() => {
     setHasAccount(Boolean(getUserId() && getDeviceId()));
     setProfilePromptHidden(isProfilePromptDismissed());
+  }, []);
+
+  const refreshActivationEligibility = useCallback(async () => {
+    const localCount = await countLogsLocal();
+    setActivationEligible(localCount === 0 && !getPairingCode());
+  }, []);
+
+  const focusQuickLog = useCallback(() => {
+    window.requestAnimationFrame(() => {
+      quickLogRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    });
+  }, []);
+
+  const hideActivationCurrent = useCallback(() => {
+    setActivationDismissed(true);
+  }, []);
+
+  const dismissActivationForSession = useCallback(() => {
+    if (typeof window !== "undefined") {
+      window.sessionStorage.setItem(ACTIVATION_DISMISSED_KEY, "1");
+    }
+    setActivationDismissed(true);
+    void trackEvent("activation_dismiss", {
+      contentType: activationContentType,
+    });
+  }, [activationContentType]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    setActivationDismissed(
+      window.sessionStorage.getItem(ACTIVATION_DISMISSED_KEY) === "1",
+    );
   }, []);
 
   useEffect(() => {
@@ -178,6 +246,23 @@ export default function HomePage() {
         ) ?? params.get("capture_platform")?.trim();
       const fromWatchReminder =
         params.get("source") === "android-watch-reminder";
+      const rawShared = [params.get("shared_text"), params.get("shared_url")]
+        .filter((v): v is string => Boolean(v?.trim()))
+        .join("\n");
+      const rawSubject = params.get("shared_subject");
+      const hasSharedInput = Boolean(rawShared.trim() || rawSubject?.trim());
+
+      if (!cancelled) {
+        setActivationForcedBypass(
+          quickEnabled ||
+            quickFocus ||
+            Boolean(captureTitle) ||
+            Boolean(captureType) ||
+            Boolean(capturePlatform) ||
+            fromWatchReminder ||
+            hasSharedInput,
+        );
+      }
 
       if (quickEnabled) {
         if (!cancelled) {
@@ -209,11 +294,6 @@ export default function HomePage() {
         setAutoFocusSearch(true);
       }
 
-      const rawShared = [params.get("shared_text"), params.get("shared_url")]
-        .filter((v): v is string => Boolean(v?.trim()))
-        .join("\n");
-      const rawSubject = params.get("shared_subject");
-      const hasSharedInput = Boolean(rawShared.trim() || rawSubject?.trim());
       const platform = inferShareIntentPlatform(rawShared, rawSubject);
       if (platform && !cancelled) setSharedPlatform(platform);
       const parsed = parseShareIntentText(rawShared, rawSubject);
@@ -277,8 +357,17 @@ export default function HomePage() {
       );
       setDiscussions(latest);
       const missingCount = Math.max(0, HOME_DISCUSSION_LIMIT - latest.length);
-      if (missingCount === 0) {
+      const latestVideo = latest.filter(
+        (item) => item.titleType === "movie" || item.titleType === "series",
+      );
+      const activationMissingCount = Math.max(
+        0,
+        HOME_DISCUSSION_LIMIT - latestVideo.length,
+      );
+
+      if (missingCount === 0 && activationMissingCount === 0) {
         setTrendingTitles([]);
+        setActivationPopularTitles([]);
         return;
       }
 
@@ -289,12 +378,21 @@ export default function HomePage() {
         setTrendingTitles(
           selectPopularTitleFillers(latest, trends, missingCount),
         );
+        setActivationPopularTitles(
+          selectPopularTitleFillers(
+            latestVideo,
+            trends,
+            activationMissingCount,
+          ),
+        );
       } catch {
         setTrendingTitles([]);
+        setActivationPopularTitles([]);
       }
     } catch {
       setDiscussions([]);
       setTrendingTitles([]);
+      setActivationPopularTitles([]);
     } finally {
       setDiscussionsLoading(false);
     }
@@ -310,18 +408,81 @@ export default function HomePage() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, []);
 
+  const handleActivationVideoSelect = useCallback(
+    (
+      item: TitleSearchItem,
+      source: Extract<
+        TitleSelectSource,
+        "activation_recent_discussion" | "activation_popular_title"
+      >,
+    ) => {
+      setQuickType("video");
+      setHighlightedStatus(null);
+      setSharedQuery("");
+      setSharedPlatform("");
+      setShareImportStatus(null);
+      hideActivationCurrent();
+      setActivationSelectionNonce((nonce) => {
+        const next = nonce + 1;
+        setActivationTitleSelection({ item, source, nonce: next });
+        return next;
+      });
+      focusQuickLog();
+    },
+    [focusQuickLog, hideActivationCurrent],
+  );
+
+  const handleActivationBookStatusSelect = useCallback(
+    (status: Status) => {
+      setActivationContentType("book");
+      setQuickType("book");
+      setHighlightedStatus(status);
+      setSharedQuery("");
+      setSharedPlatform("");
+      setShareImportStatus(null);
+      hideActivationCurrent();
+      setAutoFocusSearch(true);
+      setSearchFocusSignal((value) => value + 1);
+      focusQuickLog();
+    },
+    [focusQuickLog, hideActivationCurrent],
+  );
+
+  const handleActivationFindOther = useCallback(
+    (type: ActivationContentType) => {
+      setActivationContentType(type);
+      setQuickType(type);
+      setHighlightedStatus(null);
+      setSharedQuery("");
+      setSharedPlatform("");
+      setShareImportStatus(null);
+      hideActivationCurrent();
+      setAutoFocusSearch(true);
+      setSearchFocusSignal((value) => value + 1);
+      focusQuickLog();
+    },
+    [focusQuickLog, hideActivationCurrent],
+  );
+
+  const handleQuickTypeChange = useCallback((type: "video" | "book") => {
+    setQuickType(type);
+    if (type === "video") setHighlightedStatus(null);
+  }, []);
+
   useEffect(() => {
     (async () => {
       setLoading(true);
       try {
         const cached = await listLogsLocal({ limit: 8 });
         if (cached.length > 0) setLogs(cached);
+        await refreshActivationEligibility();
 
         if (getUserId()) {
           const l = await apiWithAuth<WatchLog[]>("/logs?limit=8");
           await upsertLogsLocal(l);
           const refreshed = await listLogsLocal({ limit: 8 });
           if (refreshed.length > 0) setLogs(refreshed);
+          await refreshActivationEligibility();
         }
       } catch {
         // keep cached logs if network fails
@@ -329,7 +490,7 @@ export default function HomePage() {
         setLoading(false);
       }
     })();
-  }, []);
+  }, [refreshActivationEligibility]);
 
   useEffect(() => {
     loadDiscussions();
@@ -340,16 +501,26 @@ export default function HomePage() {
       listLogsLocal({ limit: 8 }).then((cached) => setLogs(cached));
       loadDiscussions();
       refreshProfilePromptState();
+      void refreshActivationEligibility();
     }
     window.addEventListener("sync:updated", handleSync);
     return () => window.removeEventListener("sync:updated", handleSync);
-  }, [loadDiscussions, refreshProfilePromptState]);
+  }, [
+    loadDiscussions,
+    refreshActivationEligibility,
+    refreshProfilePromptState,
+  ]);
 
   const showProfilePrompt =
     logs.length > 0 &&
     hasAccount &&
     !profilePromptHidden &&
     !isProfileComplete(profile);
+  const activationRecentVideoItems = discussions
+    .filter((item) => item.titleType === "movie" || item.titleType === "series")
+    .slice(0, HOME_DISCUSSION_LIMIT);
+  const showActivationPanel =
+    activationEligible && !activationDismissed && !activationForcedBypass;
   const profileComplete = isProfileComplete(profile);
   const nickname = profile?.nickname ?? "";
   const heroTitle =
@@ -400,32 +571,52 @@ export default function HomePage() {
               </div>
             </div>
           </div>
-          <QuickLogCard
-            onCreated={async (created, options) => {
-              setLogs((prev) => {
-                const idx = prev.findIndex((l) => l.id === created.id);
-                if (idx >= 0) {
-                  const next = [...prev];
-                  next[idx] = created;
-                  return next;
+          {showActivationPanel ? (
+            <FirstLogActivationPanel
+              contentType={activationContentType}
+              recentVideoItems={activationRecentVideoItems}
+              popularVideoItems={activationPopularTitles}
+              loading={discussionsLoading}
+              onContentTypeChange={setActivationContentType}
+              onDismiss={dismissActivationForSession}
+              onVideoSelect={handleActivationVideoSelect}
+              onBookStatusSelect={handleActivationBookStatusSelect}
+              onFindOther={handleActivationFindOther}
+            />
+          ) : null}
+          <div ref={quickLogRef}>
+            <QuickLogCard
+              onCreated={async (created, options) => {
+                setActivationEligible(false);
+                setLogs((prev) => {
+                  const idx = prev.findIndex((l) => l.id === created.id);
+                  if (idx >= 0) {
+                    const next = [...prev];
+                    next[idx] = created;
+                    return next;
+                  }
+                  return [created, ...prev].slice(0, 8);
+                });
+                await upsertLogsLocal([created]);
+                await refreshActivationEligibility();
+                await loadDiscussions();
+                if (options?.shareCard) {
+                  setShareLog(created);
+                  setShareOpen(true);
                 }
-                return [created, ...prev].slice(0, 8);
-              });
-              await upsertLogsLocal([created]);
-              await loadDiscussions();
-              if (options?.shareCard) {
-                setShareLog(created);
-                setShareOpen(true);
-              }
-            }}
-            onContentTypeChange={setQuickType}
-            initialContentType={sharedQuery ? sharedContentType : quickType}
-            initialSearchQuery={sharedQuery}
-            initialPlatform={sharedPlatform}
-            autoFocusSearch={autoFocusSearch}
-            shareImportStatus={shareImportStatus}
-            shareImportFeedbackHref={feedbackHref("android-alpha-share")}
-          />
+              }}
+              onContentTypeChange={handleQuickTypeChange}
+              initialContentType={sharedQuery ? sharedContentType : quickType}
+              initialSearchQuery={sharedQuery}
+              initialPlatform={sharedPlatform}
+              autoFocusSearch={autoFocusSearch}
+              searchFocusSignal={searchFocusSignal}
+              shareImportStatus={shareImportStatus}
+              shareImportFeedbackHref={feedbackHref("android-alpha-share")}
+              activationTitleSelection={activationTitleSelection}
+              highlightedStatus={highlightedStatus}
+            />
+          </div>
         </section>
         <section className="space-y-3">
           <div className="flex items-baseline justify-between">
