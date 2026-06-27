@@ -67,6 +67,20 @@ Activation 패널은 아래 조건을 모두 만족할 때만 노출한다.
 2. 책 베스트셀러/글로벌 인기 도서 provider chain은 이번 범위에서 제외한다.
 3. 자동 저장, 자동 상태 적용, 추천 랭킹 기능은 만들지 않는다.
 
+## Rollout Status
+
+Production 배포 완료 기준은 아래와 같다.
+
+1. PR: `#72`
+2. Main SHA: `989aefc41b819458c494c95499d62fdad994906d`
+3. Web production workflow run: `28285754982`
+4. Production manifest commit: `800abc92dbe6681e796ec2163a1bfbf5cdb113f8`
+5. ArgoCD: `ott-app` `Synced Healthy`
+6. Production web image: `ott-web:989aefc41b819458c494c95499d62fdad994906d`
+7. `APP_VERSION`: `989aefc`
+
+공개 도메인 직접 `curl`은 edge allowlist 403으로 막혀 배포 검증 신호로 사용하지 않았다. GitHub Actions 성공, ArgoCD sync/health, production deployment image와 `APP_VERSION`을 기준으로 검증한다.
+
 ## Verification
 
 1. 신규/무기록 조건에서 activation 패널이 보인다.
