@@ -15,7 +15,7 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "app.ottline",
-      "buildNumber": "7",
+      "buildNumber": "18",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
@@ -29,7 +29,9 @@
       "expo-font",
       "expo-secure-store",
       "expo-localization",
-      "expo-notifications"
+      "expo-sharing",
+      "expo-sqlite",
+      "./plugins/with-local-notifications-only"
     ],
     "experiments": {
       "typedRoutes": false

@@ -14,6 +14,11 @@ import {
   View,
 } from 'react-native';
 import ViewShot, { releaseCapture } from 'react-native-view-shot';
+import {
+  DateOverrideField,
+  RatingSelector,
+  ratingOptionsForType,
+} from '../../../components/LogFormControls';
 import { LogShareCard, logShareCardCaptureSize } from '../../../components/LogShareCard';
 import type { ThemeColors } from '../../../constants/colors';
 import { Typography } from '../../../constants/typography';
@@ -209,10 +214,11 @@ export default function LogScreen() {
   const [shareCard, setShareCard] = useState(false);
   const [shareBusy, setShareBusy] = useState(false);
   const [shareTargetLog, setShareTargetLog] = useState<WatchLog | null>(null);
-  const [status, setStatus] = useState<Status>('DONE');
-  const [rating, setRating] = useState('');
+  const [status, setStatus] = useState<Status>('IN_PROGRESS');
+  const [rating, setRating] = useState<number | null>(null);
   const [note, setNote] = useState('');
   const [watchedAt, setWatchedAt] = useState(todayInputValue());
+  const [useWatchedAt, setUseWatchedAt] = useState(false);
   const [place, setPlace] = useState<Place | null>(null);
   const [occasion, setOccasion] = useState<Occasion | null>(null);
   const [ott, setOtt] = useState<string | null>(null);
@@ -227,6 +233,10 @@ export default function LogScreen() {
   const [seasonError, setSeasonError] = useState<string | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const shareCardRef = useRef<ViewShot>(null);
+  const ratingOptions = useMemo(
+    () => ratingOptionsForType(selected?.type, locale),
+    [locale, selected?.type],
+  );
 
   useEffect(() => {
     if (timer.current) clearTimeout(timer.current);
@@ -360,21 +370,19 @@ export default function LogScreen() {
     };
   }, [selected, selectedSeason, seasons]);
 
-  const ratingValue = useMemo(() => {
-    const parsed = Number(rating);
-    if (!Number.isFinite(parsed) || parsed <= 0) return null;
-    return Math.min(5, Math.max(0.5, parsed));
-  }, [rating]);
+  const ratingValue = rating;
+  const isWishlist = status === 'WISHLIST';
 
   function resetForm() {
     setSelected(null);
     setActiveLog(null);
     setQuery('');
     setResults([]);
-    setStatus('DONE');
-    setRating('');
+    setStatus('IN_PROGRESS');
+    setRating(null);
     setNote('');
     setWatchedAt(todayInputValue());
+    setUseWatchedAt(false);
     setPlace(null);
     setOccasion(null);
     setOtt(null);
@@ -408,7 +416,7 @@ export default function LogScreen() {
       seasonPosterUrl: includeDetails ? seasonPosterUrl : null,
       seasonYear: includeDetails ? seasonYear : null,
       origin: 'LOG',
-      watchedAt: inputDateToIso(watchedAt),
+      watchedAt: includeDetails && useWatchedAt ? inputDateToIso(watchedAt) : now,
       place: includeDetails ? place : null,
       occasion: includeDetails ? occasion : null,
       createdAt: now,
@@ -456,7 +464,7 @@ export default function LogScreen() {
       episodeNumber: selectedEpisode,
       seasonPosterUrl,
       seasonYear,
-      watchedAt: inputDateToIso(watchedAt),
+      watchedAt: useWatchedAt ? inputDateToIso(watchedAt) : baseLog.watchedAt,
       place,
       occasion,
       updatedAt: now,
@@ -519,6 +527,15 @@ export default function LogScreen() {
       Alert.alert(copy.saveErrorTitle, nextMessage);
     } finally {
       setSaving(false);
+    }
+  }
+
+  function updateStatusChoice(nextStatus: Status) {
+    setStatus(nextStatus);
+    if (nextStatus === 'WISHLIST') {
+      setRating(null);
+      setPlace(null);
+      setOccasion(null);
     }
   }
 
@@ -620,10 +637,11 @@ export default function LogScreen() {
   function selectTitle(item: TitleSearchItem, source: TitleSelectSource) {
     setSelected(item);
     setActiveLog(null);
-    setStatus('DONE');
-    setRating('');
+    setStatus('IN_PROGRESS');
+    setRating(null);
     setNote('');
     setWatchedAt(todayInputValue());
+    setUseWatchedAt(false);
     setPlace(null);
     setOccasion(null);
     setOtt(null);
@@ -639,6 +657,17 @@ export default function LogScreen() {
         providerId: item.providerId,
       },
     }).catch(() => null);
+  }
+
+  function statusActionLabel(item: Status, type: Title['type']) {
+    if (type === 'book') {
+      if (item === 'DONE') return copy.statusDoneBook;
+      if (item === 'IN_PROGRESS') return copy.statusInProgressBook;
+      return copy.statusWishlistBook;
+    }
+    if (item === 'DONE') return copy.statusDoneVideo;
+    if (item === 'IN_PROGRESS') return copy.statusInProgressVideo;
+    return copy.statusWishlistVideo;
   }
 
   return (
@@ -692,190 +721,230 @@ export default function LogScreen() {
                 .filter(Boolean)
                 .join(' · ')}
             </Text>
-            {message ? <Text style={styles.successText}>{message}</Text> : null}
-
-            <Text style={styles.fieldLabel}>{copy.status}</Text>
-            <View style={styles.optionRow}>
-              {STATUSES.map((item) => (
-                <Pressable
-                  key={item}
-                  disabled={saving}
-                  onPress={() => saveStatusChoice(item)}
-                  style={[styles.chip, status === item && styles.chipActive, saving && styles.disabledButton]}
-                >
-                  <Text style={[styles.chipText, status === item && styles.chipTextActive]}>
-                    {statusLabel(item, selected.type, locale)}
-                  </Text>
+            {!activeLog ? (
+              <View style={styles.initialSaveBox}>
+                <Text style={styles.statusPrompt}>{copy.statusPrompt}</Text>
+                <View style={styles.statusChoiceGrid}>
+                  {STATUSES.map((item) => (
+                    <Pressable
+                      key={item}
+                      disabled={saving}
+                      onPress={() => saveStatusChoice(item)}
+                      style={[styles.statusChoiceButton, saving && styles.disabledButton]}
+                    >
+                      <Text style={styles.statusChoiceText}>{statusActionLabel(item, selected.type)}</Text>
+                    </Pressable>
+                  ))}
+                </View>
+                <Text style={styles.helperText}>{copy.savedLocally}</Text>
+                <Pressable onPress={resetForm} style={styles.initialCancelButton}>
+                  <Text style={styles.secondaryButtonText}>{copy.cancelSelection}</Text>
                 </Pressable>
-              ))}
-            </View>
+              </View>
+            ) : (
+              <View style={styles.detailBox}>
+                <Text style={styles.successText}>{message ?? copy.saveSuccessPrompt}</Text>
+                <Text style={styles.sectionLabel}>{copy.optionalDetailsTitle}</Text>
 
-            {selected.type === 'series' ? (
+                <Text style={styles.fieldLabel}>{copy.detailStatus}</Text>
+                <View style={styles.optionRow}>
+                  {STATUSES.map((item) => (
+                    <Pressable
+                      key={item}
+                      disabled={saving}
+                      onPress={() => updateStatusChoice(item)}
+                      style={[styles.chip, status === item && styles.chipActive, saving && styles.disabledButton]}
+                    >
+                      <Text style={[styles.chipText, status === item && styles.chipTextActive]}>
+                        {statusLabel(item, selected.type, locale)}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+
+                {selected.type === 'series' ? (
+                  <>
+                    <Text style={styles.fieldLabel}>{copy.season}</Text>
+                    {seasonLoading ? <Text style={styles.loadingText}>{copy.seasonLoading}</Text> : null}
+                    {seasonError ? <Text style={styles.errorText}>{seasonError}</Text> : null}
+                    <ScrollView
+                      horizontal
+                      showsHorizontalScrollIndicator={false}
+                      contentContainerStyle={styles.horizontalOptions}
+                    >
+                      <Pressable
+                        onPress={() => setSelectedSeason(null)}
+                        style={[styles.chip, selectedSeason == null && styles.chipActive]}
+                      >
+                        <Text style={[styles.chipText, selectedSeason == null && styles.chipTextActive]}>{copy.none}</Text>
+                      </Pressable>
+                      {seasons.map((item) => (
+                        <Pressable
+                          key={item.seasonNumber}
+                          onPress={() => setSelectedSeason(item.seasonNumber)}
+                          style={[styles.chip, selectedSeason === item.seasonNumber && styles.chipActive]}
+                        >
+                          <Text style={[styles.chipText, selectedSeason === item.seasonNumber && styles.chipTextActive]}>
+                            {copy.season} {item.seasonNumber}
+                            {item.name ? ` · ${item.name}` : ''}
+                          </Text>
+                        </Pressable>
+                      ))}
+                    </ScrollView>
+
+                    <Text style={styles.fieldLabel}>{copy.episode}</Text>
+                    {episodeLoading ? <Text style={styles.loadingText}>{copy.episodeLoading}</Text> : null}
+                    <ScrollView
+                      horizontal
+                      showsHorizontalScrollIndicator={false}
+                      contentContainerStyle={styles.horizontalOptions}
+                    >
+                      <Pressable
+                        disabled={selectedSeason == null}
+                        onPress={() => setSelectedEpisode(null)}
+                        style={[
+                          styles.chip,
+                          selectedEpisode == null && styles.chipActive,
+                          selectedSeason == null && styles.disabledButton,
+                        ]}
+                      >
+                        <Text style={[styles.chipText, selectedEpisode == null && styles.chipTextActive]}>{copy.none}</Text>
+                      </Pressable>
+                      {episodes.map((item) => (
+                        <Pressable
+                          key={item.episodeNumber}
+                          onPress={() => setSelectedEpisode(item.episodeNumber)}
+                          style={[styles.chip, selectedEpisode === item.episodeNumber && styles.chipActive]}
+                        >
+                          <Text style={[styles.chipText, selectedEpisode === item.episodeNumber && styles.chipTextActive]}>
+                            EP {item.episodeNumber}
+                            {item.name ? ` · ${item.name}` : ''}
+                          </Text>
+                        </Pressable>
+                      ))}
+                    </ScrollView>
+                  </>
+                ) : null}
+
+                <Text style={styles.fieldLabel}>{copy.detailRating}</Text>
+                <RatingSelector
+                  colors={colors}
+                  disabled={isWishlist}
+                  noneLabel={copy.none}
+                  onChange={setRating}
+                  options={ratingOptions}
+                  value={rating}
+                />
+
+                <Text style={styles.fieldLabel}>{copy.detailPlatform}</Text>
+                <View style={styles.optionRow}>
+                  {ottOptions.map((item) => (
+                    <Pressable
+                      key={item}
+                      onPress={() => setOtt(ott === item ? null : item)}
+                      style={[styles.chip, ott === item && styles.chipActive]}
+                    >
+                      <Text style={[styles.chipText, ott === item && styles.chipTextActive]}>
+                        {item}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+
+                <Text style={styles.fieldLabel}>{copy.detailPlace}</Text>
+                <View style={[styles.optionRow, isWishlist && styles.disabledButton]}>
+                  {places.map((item) => (
+                    <Pressable
+                      key={item.value}
+                      disabled={isWishlist}
+                      onPress={() => setPlace(place === item.value ? null : item.value)}
+                      style={[styles.chip, place === item.value && styles.chipActive]}
+                    >
+                      <Text style={[styles.chipText, place === item.value && styles.chipTextActive]}>
+                        {item.label}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+
+                <Text style={styles.fieldLabel}>{copy.detailOccasion}</Text>
+                <View style={[styles.optionRow, isWishlist && styles.disabledButton]}>
+                  {occasions.map((item) => (
+                    <Pressable
+                      key={item.value}
+                      disabled={isWishlist}
+                      onPress={() => setOccasion(occasion === item.value ? null : item.value)}
+                      style={[styles.chip, occasion === item.value && styles.chipActive]}
+                    >
+                      <Text style={[styles.chipText, occasion === item.value && styles.chipTextActive]}>
+                        {item.label}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+
+                <DateOverrideField
+                  activeLabel={copy.dateSelecting}
+                  colors={colors}
+                  enabled={useWatchedAt}
+                  label={copy.dateOther}
+                  locale={locale}
+                  modalTitle={copy.detailDate}
+                  onChange={setWatchedAt}
+                  onToggle={setUseWatchedAt}
+                  value={watchedAt}
+                />
+
+                <Text style={styles.fieldLabel}>{copy.detailNote}</Text>
+                <TextInput
+                  value={note}
+                  onChangeText={setNote}
+                  multiline
+                  placeholder={copy.notePlaceholder}
+                  placeholderTextColor={colors.onSurfaceVariant}
+                  style={[styles.input, styles.noteInput]}
+                />
+              </View>
+            )}
+
+            {activeLog ? (
               <>
-                <Text style={styles.fieldLabel}>{copy.season}</Text>
-                {seasonLoading ? <Text style={styles.loadingText}>{copy.seasonLoading}</Text> : null}
-                {seasonError ? <Text style={styles.errorText}>{seasonError}</Text> : null}
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.horizontalOptions}
-                >
+                <Text style={styles.fieldLabel}>{copy.saveAndShare}</Text>
+                <View style={styles.toggleRow}>
                   <Pressable
-                    onPress={() => setSelectedSeason(null)}
-                    style={[styles.chip, selectedSeason == null && styles.chipActive]}
+                    onPress={() => setShareToDiscussion((value) => !value)}
+                    style={[styles.toggleButton, shareToDiscussion && styles.toggleButtonActive]}
                   >
-                    <Text style={[styles.chipText, selectedSeason == null && styles.chipTextActive]}>{copy.none}</Text>
+                    <Text style={[styles.toggleText, shareToDiscussion && styles.toggleTextActive]}>
+                      {shareToDiscussion ? '✓ ' : ''}{copy.shareToPublic}
+                    </Text>
                   </Pressable>
-                  {seasons.map((item) => (
-                    <Pressable
-                      key={item.seasonNumber}
-                      onPress={() => setSelectedSeason(item.seasonNumber)}
-                      style={[styles.chip, selectedSeason === item.seasonNumber && styles.chipActive]}
-                    >
-                      <Text style={[styles.chipText, selectedSeason === item.seasonNumber && styles.chipTextActive]}>
-                        {copy.season} {item.seasonNumber}
-                        {item.name ? ` · ${item.name}` : ''}
-                      </Text>
-                    </Pressable>
-                  ))}
-                </ScrollView>
+                  <Pressable
+                    onPress={() => setShareCard((value) => !value)}
+                    style={[styles.toggleButton, shareCard && styles.toggleButtonActive]}
+                  >
+                    <Text style={[styles.toggleText, shareCard && styles.toggleTextActive]}>
+                      {shareCard ? '✓ ' : ''}{copy.createShareCard}
+                    </Text>
+                  </Pressable>
+                </View>
 
-                <Text style={styles.fieldLabel}>{copy.episode}</Text>
-                {episodeLoading ? <Text style={styles.loadingText}>{copy.episodeLoading}</Text> : null}
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.horizontalOptions}
-                >
-                  <Pressable
-                    disabled={selectedSeason == null}
-                    onPress={() => setSelectedEpisode(null)}
-                    style={[
-                      styles.chip,
-                      selectedEpisode == null && styles.chipActive,
-                      selectedSeason == null && styles.disabledButton,
-                    ]}
-                  >
-                    <Text style={[styles.chipText, selectedEpisode == null && styles.chipTextActive]}>{copy.none}</Text>
+                <View style={styles.actionRow}>
+                  <Pressable onPress={resetForm} style={styles.secondaryButton}>
+                    <Text style={styles.secondaryButtonText}>{copy.cancelSelection}</Text>
                   </Pressable>
-                  {episodes.map((item) => (
-                    <Pressable
-                      key={item.episodeNumber}
-                      onPress={() => setSelectedEpisode(item.episodeNumber)}
-                      style={[styles.chip, selectedEpisode === item.episodeNumber && styles.chipActive]}
-                    >
-                      <Text style={[styles.chipText, selectedEpisode === item.episodeNumber && styles.chipTextActive]}>
-                        EP {item.episodeNumber}
-                        {item.name ? ` · ${item.name}` : ''}
-                      </Text>
-                    </Pressable>
-                  ))}
-                </ScrollView>
+                  <Pressable
+                    onPress={saveDetails}
+                    disabled={saving}
+                    style={[styles.primaryButton, saving && styles.disabledButton]}
+                  >
+                    <Text style={styles.primaryButtonText}>
+                      {saving ? copy.saving : copy.saveDetailsAction}
+                    </Text>
+                  </Pressable>
+                </View>
               </>
             ) : null}
-
-            <Text style={styles.fieldLabel}>{copy.dateAndRating}</Text>
-            <View style={styles.inlineInputs}>
-              <TextInput value={watchedAt} onChangeText={setWatchedAt} style={styles.smallInput} />
-              <TextInput
-                value={rating}
-                onChangeText={setRating}
-                placeholder={copy.ratingPlaceholder}
-                placeholderTextColor={colors.onSurfaceVariant}
-                keyboardType="decimal-pad"
-                style={styles.smallInput}
-              />
-            </View>
-
-            <Text style={styles.fieldLabel}>{copy.place}</Text>
-            <View style={styles.optionRow}>
-              {places.map((item) => (
-                <Pressable
-                  key={item.value}
-                  onPress={() => setPlace(place === item.value ? null : item.value)}
-                  style={[styles.chip, place === item.value && styles.chipActive]}
-                >
-                  <Text style={[styles.chipText, place === item.value && styles.chipTextActive]}>
-                    {item.label}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
-
-            <Text style={styles.fieldLabel}>{copy.occasion}</Text>
-            <View style={styles.optionRow}>
-              {occasions.map((item) => (
-                <Pressable
-                  key={item.value}
-                  onPress={() => setOccasion(occasion === item.value ? null : item.value)}
-                  style={[styles.chip, occasion === item.value && styles.chipActive]}
-                >
-                  <Text style={[styles.chipText, occasion === item.value && styles.chipTextActive]}>
-                    {item.label}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
-
-            <Text style={styles.fieldLabel}>{copy.platform}</Text>
-            <View style={styles.optionRow}>
-              {ottOptions.map((item) => (
-                <Pressable
-                  key={item}
-                  onPress={() => setOtt(ott === item ? null : item)}
-                  style={[styles.chip, ott === item && styles.chipActive]}
-                >
-                  <Text style={[styles.chipText, ott === item && styles.chipTextActive]}>
-                    {item}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
-
-            <Text style={styles.fieldLabel}>{copy.note}</Text>
-            <TextInput
-              value={note}
-              onChangeText={setNote}
-              multiline
-              placeholder={copy.notePlaceholder}
-              placeholderTextColor={colors.onSurfaceVariant}
-              style={[styles.input, styles.noteInput]}
-            />
-
-            <Text style={styles.fieldLabel}>{copy.saveAndShare}</Text>
-            <View style={styles.toggleRow}>
-              <Pressable
-                onPress={() => setShareToDiscussion((value) => !value)}
-                style={[styles.toggleButton, shareToDiscussion && styles.toggleButtonActive]}
-              >
-                <Text style={[styles.toggleText, shareToDiscussion && styles.toggleTextActive]}>
-                  {shareToDiscussion ? '✓ ' : ''}{copy.shareToPublic}
-                </Text>
-              </Pressable>
-              <Pressable
-                onPress={() => setShareCard((value) => !value)}
-                style={[styles.toggleButton, shareCard && styles.toggleButtonActive]}
-              >
-                <Text style={[styles.toggleText, shareCard && styles.toggleTextActive]}>
-                  {shareCard ? '✓ ' : ''}{copy.createShareCard}
-                </Text>
-              </Pressable>
-            </View>
-
-            <View style={styles.actionRow}>
-              <Pressable onPress={resetForm} style={styles.secondaryButton}>
-                <Text style={styles.secondaryButtonText}>{copy.cancelSelection}</Text>
-              </Pressable>
-              <Pressable
-                onPress={saveDetails}
-                disabled={saving}
-                style={[styles.primaryButton, saving && styles.disabledButton]}
-              >
-                <Text style={styles.primaryButtonText}>
-                  {saving ? copy.saving : activeLog ? copy.saveDetailsAction : copy.saveAction}
-                </Text>
-              </Pressable>
-            </View>
           </View>
         ) : (
           <View style={styles.results}>
@@ -954,7 +1023,7 @@ function createStyles(colors: ThemeColors) {
     alignItems: 'center',
     gap: 8,
   },
-  input: { flex: 1, minHeight: 48, color: colors.onSurface, ...Typography.bodyLg },
+  input: { ...Typography.bodyLg, flex: 1, minHeight: 48, color: colors.onSurface },
   segment: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   segmentItem: {
     borderRadius: 999,
@@ -1017,6 +1086,35 @@ function createStyles(colors: ThemeColors) {
     gap: 12,
   },
   sectionTitle: { ...Typography.headlineMd, color: colors.onSurface },
+  initialSaveBox: {
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.outlineVariant,
+    backgroundColor: colors.surfaceMuted,
+    padding: 14,
+    gap: 12,
+  },
+  statusPrompt: { ...Typography.bodyMd, color: colors.onSurface, textAlign: 'center', fontWeight: '700' },
+  statusChoiceGrid: { flexDirection: 'row', gap: 8 },
+  statusChoiceButton: {
+    flex: 1,
+    minHeight: 52,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.primaryContainer,
+    paddingHorizontal: 8,
+  },
+  statusChoiceText: { ...Typography.labelLg, color: colors.background, textAlign: 'center' },
+  helperText: { ...Typography.labelLg, color: colors.onSurfaceVariant, textAlign: 'center' },
+  initialCancelButton: {
+    minHeight: 46,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.surface,
+  },
+  detailBox: { gap: 12 },
   fieldLabel: { ...Typography.labelLg, color: colors.onSurfaceVariant, marginTop: 4 },
   optionRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   horizontalOptions: { gap: 8, paddingRight: 4 },

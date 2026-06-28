@@ -28,7 +28,8 @@ import type {
   WatchLogHistory,
 } from './types';
 
-const BASE_URL = 'https://ottline.app';
+const configuredBaseUrl = process.env.EXPO_PUBLIC_API_BASE_URL?.trim();
+const BASE_URL = (configuredBaseUrl || 'https://ottline.app').replace(/\/+$/, '');
 const SESSION_ID = `ios-${uuid()}`;
 let currentAnalyticsRoute: string | null = null;
 let currentAnalyticsTheme: string | null = null;

@@ -14,6 +14,8 @@ public class WebConfig implements WebMvcConfigurer {
                         "https://ottline.app",
                         "https://staging.ottline.app",
                         "https://ott.preview.pe.kr",
+                        "http://localhost:*",
+                        "http://127.0.0.1:*",
                         "http://localhost:3000",
                         "http://127.0.0.1:3000",
                         "http://172.24.75.199:3000",
