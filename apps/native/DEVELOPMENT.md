@@ -6,7 +6,7 @@ React Native + Expo Router 기반 iOS 네이티브 앱.
 
 ## 현재 범위
 
-- 현재 목표: TestFlight build `1.0.0 (7)` 기준 iPhone 실기기 QA와 웹/Android parity 안정화를 진행한다.
+- 현재 목표: Expo 기본 아이콘이 들어간 build `1.0.0 (16)`을 출시 후보에서 제외하고, ottline 브랜드 아이콘을 반영한 build `1.0.0 (18)`로 App Store 정식 출시 준비를 진행한다.
 - iOS bundle identifier: `app.ottline`
 - Android production 경로는 계속 `apps/twa`다. 이 앱은 Android 배포 경로가 아니다.
 - 구현 화면: 기록, 타임라인, 제목 상세/수정/history, 함께, 계정, 문의함, 내 리포트, 안내 화면
@@ -18,8 +18,8 @@ React Native + Expo Router 기반 iOS 네이티브 앱.
 
 ## 아직 부족한 범위
 
-- TestFlight build processing/available 상태를 App Store Connect TestFlight 탭에서 확인
-- 내부 테스터가 TestFlight에서 build `1.0.0 (7)`을 설치할 수 있는지 확인
+- TestFlight build `1.0.0 (18)` processing/available 상태를 App Store Connect TestFlight 탭에서 확인
+- 내부 테스터가 TestFlight에서 build `1.0.0 (18)`을 설치할 수 있는지 확인
 - 실제 iPhone에서 ko/en와 light/dark 조합 스크린 확인
 - iOS 알림의 실제 iPhone/TestFlight 수신 및 tap route 검증
 - locale/theme 기반은 `NativePreferencesProvider`와 `lib/i18n.ts`에 있다. 현재 탭 제목, 안내 화면, 기록하기, 타임라인, 제목 상세, 함께 목록, 공개 상세, 계정, 복구 카드, 문의함, 내 리포트, 리포트 공유 카드, 회고 알림, format helper, app shell dark theme까지 연결되어 있다. 계정 화면의 `system`/`light`/`dark` 수동 theme 설정은 SecureStore에 저장되며 analytics theme context에도 반영된다.
@@ -43,7 +43,7 @@ npm run native:testflight:check:structure
 ## TestFlight 준비
 
 EAS project, App Store Connect 앱 레코드, iOS signing credentials, EAS Submit API key, GitHub `EXPO_TOKEN` 구성은 완료됐다.
-현재 기준 최신 제출은 main SHA `667aafeb4546eb015a9ef7894f6cba9183db043e`, GitHub run `27805741470`, EAS build `7796ef11-75c1-4acb-95d7-96018e10bdbc`, App Store Connect build `1.0.0 (7)`이다.
+현재 기준 최신 App Store Connect 제출은 로컬 Mac EAS build 산출물 `apps/native/builds/direct/ottline-18.ipa`, EAS submission `a58c8aab-df08-4364-8259-64a375fcea1d`, App Store Connect build `1.0.0 (18)`이다. 이전 build `1.0.0 (16)`은 Expo 기본 아이콘을 포함하므로 출시 후보에서 제외한다.
 
 새 TestFlight build가 필요하면 다음 순서로 진행한다.
 

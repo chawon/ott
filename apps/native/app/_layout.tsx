@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import * as Notifications from 'expo-notifications';
 import { Stack, router, usePathname } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { ActivityIndicator, AppState, View } from 'react-native';
+import { ActivityIndicator, AppState, Platform, View } from 'react-native';
 import { NativeAppHeader } from '../components/NativeAppHeader';
 import { useAuthStore } from '../store/authStore';
 import { initDb } from '../lib/localDb';
@@ -70,6 +70,7 @@ function RootLayoutContent() {
 
   useEffect(() => {
     if (!ready) return;
+    if (Platform.OS === 'web') return;
     configureNotificationPresentation();
 
     function openNotificationRoute(response: Notifications.NotificationResponse | null | undefined) {

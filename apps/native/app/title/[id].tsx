@@ -12,6 +12,11 @@ import {
   View,
 } from 'react-native';
 import ViewShot, { releaseCapture } from 'react-native-view-shot';
+import {
+  DateOverrideField,
+  RatingSelector,
+  ratingOptionsForType,
+} from '../../components/LogFormControls';
 import { LogShareCard, logShareCardCaptureSize } from '../../components/LogShareCard';
 import type { ThemeColors } from '../../constants/colors';
 import { Typography } from '../../constants/typography';
@@ -53,10 +58,11 @@ const BOOK_PLATFORMS = ['밀리의서재', '리디', 'Kindle', '도서관', '서
 
 type EditDraft = {
   status: Status;
-  rating: string;
+  rating: number | null;
   note: string;
   ott: string;
   watchedAt: string;
+  useWatchedAt: boolean;
   place: Place | '';
   occasion: Occasion | '';
   seasonNumber: string;
@@ -101,19 +107,19 @@ function nullableNumber(value: string) {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
-function ratingValue(value: string) {
-  const parsed = nullableNumber(value);
-  if (parsed == null || parsed <= 0) return null;
-  return Math.min(5, Math.max(0.5, parsed));
+function ratingValue(value: number | null) {
+  if (typeof value !== 'number' || value <= 0) return null;
+  return Math.min(5, Math.max(0.5, value));
 }
 
 function draftFromLog(log: WatchLog): EditDraft {
   return {
     status: log.status,
-    rating: typeof log.rating === 'number' ? String(log.rating) : '',
+    rating: typeof log.rating === 'number' ? log.rating : null,
     note: log.note ?? '',
     ott: log.ott ?? '',
     watchedAt: inputDateValue(log.watchedAt),
+    useWatchedAt: false,
     place: log.place ?? '',
     occasion: log.occasion ?? '',
     seasonNumber: typeof log.seasonNumber === 'number' ? String(log.seasonNumber) : '',
@@ -171,6 +177,10 @@ export default function TitleDetailScreen() {
   const [discussionBusy, setDiscussionBusy] = useState(false);
   const [shareTargetLog, setShareTargetLog] = useState<WatchLog | null>(null);
   const shareCardRef = useRef<ViewShot>(null);
+  const ratingOptions = useMemo(
+    () => ratingOptionsForType(title?.type, locale),
+    [locale, title?.type],
+  );
 
   const load = useCallback(async () => {
     if (!titleId) return;
@@ -260,6 +270,13 @@ export default function TitleDetailScreen() {
     setDraft((prev) => (prev ? { ...prev, ...updates } : prev));
   }
 
+  function updateDraftStatus(status: Status) {
+    updateDraft({
+      status,
+      ...(status === 'WISHLIST' ? { rating: null, place: '', occasion: '' } : {}),
+    });
+  }
+
   async function saveDraft(log: WatchLog) {
     if (!draft || savingId) return;
     const seasonNumber = nullableNumber(draft.seasonNumber);
@@ -269,7 +286,7 @@ export default function TitleDetailScreen() {
       rating: ratingValue(draft.rating),
       note: draft.note.trim() || null,
       ott: draft.ott.trim() || null,
-      watchedAt: inputDateToIso(draft.watchedAt, log.watchedAt),
+      watchedAt: draft.useWatchedAt ? inputDateToIso(draft.watchedAt, log.watchedAt) : log.watchedAt,
       place: draft.place || null,
       occasion: draft.occasion || null,
       seasonNumber,
@@ -475,7 +492,7 @@ export default function TitleDetailScreen() {
                       {STATUSES.map((item) => (
                         <Pressable
                           key={item}
-                          onPress={() => updateDraft({ status: item })}
+                          onPress={() => updateDraftStatus(item)}
                           style={[styles.chip, draft.status === item && styles.chipActive]}
                         >
                           <Text style={[styles.chipText, draft.status === item && styles.chipTextActive]}>
@@ -485,76 +502,48 @@ export default function TitleDetailScreen() {
                       ))}
                     </View>
 
-                    <View style={styles.inlineInputs}>
-                      <TextInput
-                        value={draft.watchedAt}
-                        onChangeText={(value) => updateDraft({ watchedAt: value })}
-                        placeholder="YYYY-MM-DD"
-                        placeholderTextColor={colors.onSurfaceVariant}
-                        selectionColor={colors.primaryContainer}
-                        style={styles.input}
-                      />
-                      <TextInput
-                        value={draft.rating}
-                        onChangeText={(value) => updateDraft({ rating: value })}
-                        placeholder={copy.ratingPlaceholder}
-                        placeholderTextColor={colors.onSurfaceVariant}
-                        selectionColor={colors.primaryContainer}
-                        keyboardType="decimal-pad"
-                        style={styles.input}
-                      />
-                    </View>
-
                     {log.title.type === 'series' ? (
-                      <View style={styles.inlineInputs}>
-                        <TextInput
-                          value={draft.seasonNumber}
-                          onChangeText={(value) => updateDraft({ seasonNumber: value.replace(/[^0-9]/g, '') })}
-                          placeholder={copy.seasonPlaceholder}
-                          placeholderTextColor={colors.onSurfaceVariant}
-                          selectionColor={colors.primaryContainer}
-                          keyboardType="number-pad"
-                          style={styles.input}
-                        />
-                        <TextInput
-                          value={draft.episodeNumber}
-                          onChangeText={(value) => updateDraft({ episodeNumber: value.replace(/[^0-9]/g, '') })}
-                          placeholder={copy.episodePlaceholder}
-                          placeholderTextColor={colors.onSurfaceVariant}
-                          selectionColor={colors.primaryContainer}
-                          keyboardType="number-pad"
-                          style={styles.input}
-                        />
-                      </View>
+                      <>
+                        <Text style={styles.fieldLabel}>{copy.seasonPlaceholder}</Text>
+                        <View style={styles.inlineInputs}>
+                          <TextInput
+                            value={draft.seasonNumber}
+                            onChangeText={(value) => updateDraft({ seasonNumber: value.replace(/[^0-9]/g, '') })}
+                            placeholder={copy.seasonPlaceholder}
+                            placeholderTextColor={colors.onSurfaceVariant}
+                            selectionColor={colors.primaryContainer}
+                            keyboardType="number-pad"
+                            style={styles.input}
+                          />
+                          <TextInput
+                            value={draft.episodeNumber}
+                            onChangeText={(value) => updateDraft({ episodeNumber: value.replace(/[^0-9]/g, '') })}
+                            placeholder={copy.episodePlaceholder}
+                            placeholderTextColor={colors.onSurfaceVariant}
+                            selectionColor={colors.primaryContainer}
+                            keyboardType="number-pad"
+                            style={styles.input}
+                          />
+                        </View>
+                      </>
                     ) : null}
 
-	                    <TextInput
-	                      value={draft.ott}
-	                      onChangeText={(value) => updateDraft({ ott: value })}
-	                      placeholder={log.title.type === 'book' ? copy.platformBookPlaceholder : copy.platformVideoPlaceholder}
-	                      placeholderTextColor={colors.onSurfaceVariant}
-	                      selectionColor={colors.primaryContainer}
-	                      style={styles.input}
-	                    />
-	                    <View style={styles.statusRow}>
-	                      {(log.title.type === 'book' ? BOOK_PLATFORMS : VIDEO_PLATFORMS).map((item) => (
-	                        <Pressable
-	                          key={item}
-	                          onPress={() => updateDraft({ ott: draft.ott === item ? '' : item })}
-	                          style={[styles.chip, draft.ott === item && styles.chipActive]}
-	                        >
-	                          <Text style={[styles.chipText, draft.ott === item && styles.chipTextActive]}>
-	                            {item}
-	                          </Text>
-	                        </Pressable>
-	                      ))}
-	                    </View>
+                    <Text style={styles.fieldLabel}>{copy.rating}</Text>
+                    <RatingSelector
+                      colors={colors}
+                      disabled={draft.status === 'WISHLIST'}
+                      noneLabel={copy.none}
+                      onChange={(value) => updateDraft({ rating: value })}
+                      options={ratingOptions}
+                      value={draft.rating}
+                    />
 
-	                    <Text style={styles.fieldLabel}>{copy.place}</Text>
-                    <View style={styles.statusRow}>
+                    <Text style={styles.fieldLabel}>{copy.place}</Text>
+                    <View style={[styles.statusRow, draft.status === 'WISHLIST' && styles.disabledButton]}>
                       {PLACES.map((item) => (
                         <Pressable
                           key={item || 'none'}
+                          disabled={draft.status === 'WISHLIST'}
                           onPress={() => updateDraft({ place: item })}
                           style={[styles.chip, draft.place === item && styles.chipActive]}
                         >
@@ -566,10 +555,11 @@ export default function TitleDetailScreen() {
                     </View>
 
                     <Text style={styles.fieldLabel}>{copy.occasion}</Text>
-                    <View style={styles.statusRow}>
+                    <View style={[styles.statusRow, draft.status === 'WISHLIST' && styles.disabledButton]}>
                       {OCCASIONS.map((item) => (
                         <Pressable
                           key={item || 'none'}
+                          disabled={draft.status === 'WISHLIST'}
                           onPress={() => updateDraft({ occasion: item })}
                           style={[styles.chip, draft.occasion === item && styles.chipActive]}
                         >
@@ -580,6 +570,42 @@ export default function TitleDetailScreen() {
                       ))}
                     </View>
 
+                    <Text style={styles.fieldLabel}>{copy.platform}</Text>
+                    <TextInput
+                      value={draft.ott}
+                      onChangeText={(value) => updateDraft({ ott: value })}
+                      placeholder={log.title.type === 'book' ? copy.platformBookPlaceholder : copy.platformVideoPlaceholder}
+                      placeholderTextColor={colors.onSurfaceVariant}
+                      selectionColor={colors.primaryContainer}
+                      style={styles.input}
+                    />
+                    <View style={styles.statusRow}>
+                      {(log.title.type === 'book' ? BOOK_PLATFORMS : VIDEO_PLATFORMS).map((item) => (
+                        <Pressable
+                          key={item}
+                          onPress={() => updateDraft({ ott: draft.ott === item ? '' : item })}
+                          style={[styles.chip, draft.ott === item && styles.chipActive]}
+                        >
+                          <Text style={[styles.chipText, draft.ott === item && styles.chipTextActive]}>
+                            {item}
+                          </Text>
+                        </Pressable>
+                      ))}
+                    </View>
+
+                    <DateOverrideField
+                      activeLabel={copy.dateSelecting}
+                      colors={colors}
+                      enabled={draft.useWatchedAt}
+                      label={copy.dateOther}
+                      locale={locale}
+                      modalTitle={copy.date}
+                      onChange={(value) => updateDraft({ watchedAt: value })}
+                      onToggle={(enabled) => updateDraft({ useWatchedAt: enabled })}
+                      value={draft.watchedAt}
+                    />
+
+                    <Text style={styles.fieldLabel}>{copy.note}</Text>
                     <TextInput
                       value={draft.note}
                       onChangeText={(value) => updateDraft({ note: value })}
@@ -775,6 +801,7 @@ function createStyles(colors: ThemeColors) {
     },
     inlineInputs: { flexDirection: 'row', gap: 8 },
     input: {
+      ...Typography.bodyMd,
       flex: 1,
       minHeight: 46,
       borderRadius: 12,
@@ -783,7 +810,6 @@ function createStyles(colors: ThemeColors) {
       backgroundColor: colors.surface,
       color: colors.onSurface,
       paddingHorizontal: 12,
-      ...Typography.bodyMd,
     },
     noteInput: { minHeight: 90, paddingTop: 12, textAlignVertical: 'top' },
     actionRow: { flexDirection: 'row', gap: 8 },

@@ -678,6 +678,7 @@ function createStyles(colors: ThemeColors) {
   csvButtonText: { color: colors.onSurface, fontWeight: '800' },
   disabledButton: { opacity: 0.5 },
   searchInput: {
+    ...Typography.bodyLg,
     minHeight: 52,
     borderRadius: 16,
     borderWidth: 1,
@@ -685,7 +686,6 @@ function createStyles(colors: ThemeColors) {
     backgroundColor: colors.surface,
     paddingHorizontal: 14,
     color: colors.onSurface,
-    ...Typography.bodyLg,
   },
 	  filterBlock: { gap: 8 },
 	  filterBar: {
