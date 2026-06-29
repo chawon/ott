@@ -160,7 +160,7 @@ export default async function RootLayout({
             inLanguage: "ko-KR",
             applicationCategory: "LifestyleApplication",
             applicationSubCategory: "Entertainment",
-            operatingSystem: "Web, Android (PWA), iOS (PWA)",
+            operatingSystem: "Web, Android, iOS, Windows",
             offers: { "@type": "Offer", price: "0", priceCurrency: "KRW" },
             isAccessibleForFree: true,
             featureList: [

@@ -49,13 +49,14 @@ If present, read `./.omd/preferences.md` — pending corrections not yet folded 
 17. 낙장불입 정책 확정: 사용자용 개별 기록 삭제 없음, 설정의 로컬 초기화와 서버 데이터 전체 삭제를 분리
 18. 설정에서 계정 단위 서버 데이터 전체 삭제(기록/댓글/문의/analytics/기기 연결) 지원
 19. ChatGPT App v1 운영 배포 + OpenAI 앱 심사 진행 중(`2026-04-23` 기준): `timeline.list_recent_logs` 기반 읽기 전용 recent-history connector + OAuth/PKCE + 도메인 검증 경로 반영
-20. 토스 인앱 미니앱 승인 및 출시 완료(`2026-05-18`, 표시명 `내 OTT 타임라인`) + `/about` 서비스 소개에 웹/PWA·Android·Windows·브라우저 확장·토스·ChatGPT 채널 순서 반영, 페어링 코드 연속성 메시지 정리
+20. 토스 인앱 미니앱 승인 및 출시 완료(`2026-05-18`, 표시명 `내 OTT 타임라인`) + `/about` 서비스 소개에 웹/PWA·Android·iOS·Windows·브라우저 확장·토스·ChatGPT 채널 순서 반영, 페어링 코드 연속성 메시지 정리
 21. 무로그인 개인 프로필 v1: 기존 페어링 계정에 닉네임, 성향 타이틀, 프리셋 아바타를 저장하고 본인 화면(헤더/홈/타임라인/리포트/설정)에만 노출
 22. 페어링 코드 복구 카드: 설정의 기기 연결 영역에서 페어링 코드를 개인 보관용 PNG 카드로 로컬 생성·저장(`2026-05-23` production 반영, web SHA `b5b30af`)
 23. 홈 함께 기록 인기 작품 보충: 실제 `요즘 함께 하는 기록들`이 6개 미만이면 TMDB 기반 인기 작품으로 부족분을 채우고, 한국어 화면은 주간 트렌드 중 한국 콘텐츠만 overfetch/필터링해 노출(`2026-05-23` production 반영, web/api SHA `9a3fcdf`)
 24. 설정/타임라인/푸터 IA 정리: 이용 리포트 진입은 설정에서 타임라인 상단으로 옮겼고, 내 프로필과 연결된 기기는 접기/펼치기 카드로 정리했다. 푸터는 중복 서비스 메뉴를 제거해 안내 중심으로 단순화했다. `/about` 서비스 소개는 스토어 링크 버튼에 아이콘을 붙이고 Chrome·Edge·Whale 확장 링크를 분리했으며, 메타 타이틀은 영상·책 기록을 함께 담도록 정리했다(`2026-06-07` production 반영, web SHA `4fcfd6d`). 이후 설정 페이지의 내부 `max-w-2xl` 폭 제한을 제거해 기록하기/타임라인/함께와 같은 본문 폭을 사용하도록 맞췄다(`2026-06-07` production 반영, web SHA `73244e3`).
 25. 검색 추천 인기 작품 보충: QuickLog 영상 검색창의 빈 추천 패널에서 실제 함께 기록이 6개 미만이면 `/api/titles/popular` 기반 인기 작품으로 부족분만 채우고, 실제 함께 기록과 다른 `요즘 인기 작품` 섹션으로 구분한다. 검색어 입력 후 실제 검색 결과에는 인기 작품을 섞지 않고, 책 탭은 기존 함께 기록 추천만 유지한다(`2026-06-13` production 반영, web SHA `c7f8d57`).
 26. 신규/무기록 첫 기록 활성화 패널: 로컬 기록 0개, 페어링 코드 없음, 현재 세션 미닫힘, 강제 기록 진입 아님 조건에서 홈 QuickLog 위에 첫 기록 유도 패널을 보여준다. 영상이 기본이며 실제 함께 기록된 영상과 `/api/titles/popular` 기반 인기 작품 포스터를 함께 보여주고, 선택 시 기존 QuickLog의 상태 선택 화면으로 이동한다. 책은 읽는 상태를 먼저 묻고 책 검색창으로 유도하며 선택 상태는 저장 화면에서 강조만 한다(`2026-06-27` production 반영, web SHA `989aefc`).
+27. iOS 네이티브 앱 App Store 출시: Expo React Native 기반 iOS 네이티브 앱이 App Store 심사를 통과해 `2026-06-29` App Store에 공개됐다. 공개 링크는 `https://apps.apple.com/app/ottline/id6780318110`이며, 앱은 WebView/PWA 래퍼가 아니라 사용자 앱 화면을 네이티브 화면으로 구현한다.
 
 ### 제품 방향
 1. 추천 기능은 현재 범위에서 제외한다.
@@ -78,19 +79,6 @@ If present, read `./.omd/preferences.md` — pending corrections not yet folded 
    4. DB 인스턴스 축소는 재부팅이 발생하므로 작업 전 백업/스냅샷과 점검 시간을 확보한다. OKE worker node 축소는 단일 노드 환경에서 pod 재스케줄링과 짧은 서비스 영향 가능성이 있으므로 production 상태와 메모리 여유를 확인한 뒤 진행한다.
    5. 상세 운영 계획과 체크리스트는 `docs/oci-always-free-rightsizing.md`를 기준으로 한다.
 
-### P0
-1. **iOS TestFlight 실기기 QA 및 웹/Android parity 안정화**
-2. 현재 기준
-   1. `apps/native`는 Expo React Native 기반 iOS 네이티브 앱으로 `main`에 편입됐다. WebView/PWA/TWA 래퍼가 아니라 사용자 앱 화면을 네이티브 화면으로 구현한다.
-   2. App Store Connect 앱 레코드와 Apple ID `6780318110`, EAS project id `efe8f7e5-75d8-45a9-9a4e-88bfeba07b98`, iOS signing credentials, EAS Submit용 App Store Connect API key, GitHub `EXPO_TOKEN` 구성이 완료됐다.
-   3. GitHub Actions `Native iOS CI`와 수동 `Native iOS TestFlight` workflow가 동작한다. WSL 로컬 iOS 빌드는 기준에서 제외하고 GitHub Actions + EAS Build/Submit을 source of truth로 둔다.
-   4. `2026-06-18` PR `#67` main SHA `d18cfa6`로 첫 TestFlight 제출을 완료했고, build `1.0.0 (5)`가 App Store Connect에 업로드됐다.
-   5. `2026-06-19` PR `#68` main SHA `24d2845`로 하단 탭 아이콘을 `react-native-svg` 기반으로 교체하고, 설정 동기화 후 타임라인 reload 이벤트와 상단 로고/워드마크의 기록하기 탭 이동을 반영했다. TestFlight run `27804770845`로 build `1.0.0 (6)` 업로드를 완료했다.
-   6. `2026-06-19` PR `#69` main SHA `667aafeb4546eb015a9ef7894f6cba9183db043e`로 큰 탭 제목/설명은 복원하고 작은 중복 kicker 라벨만 제거했다. 페어링 코드 연결 직후 기존 `lastSyncAt` 체크포인트를 초기화해 새로 연결한 계정의 기존 타임라인을 전체 pull 하도록 수정했다. TestFlight run `27805741470`, EAS build `7796ef11-75c1-4acb-95d7-96018e10bdbc`로 build `1.0.0 (7)` App Store Connect 업로드를 완료했다.
-   7. 최근 검증 기준은 `npm run native:typecheck`, `npm run native:test`, `npm run native:testflight:check`, `git diff --check`, `npx expo-doctor`이며, build `1.0.0 (7)` 제출 전후로 모두 통과했다.
-   8. 남은 최우선 작업은 TestFlight 설치 빌드 기준 iPhone 실기기 QA와 웹/Android 앱 대비 기능, UI/UX, 문구 parity 확인이다. 특히 기록하기/타임라인/함께/설정의 탭 라벨, 상단 헤더, 동기화 후 목록 반영, 페어링 계정 전환 흐름을 우선 확인한다.
-   9. 상세 계획, 완료 증거, 실기기 체크리스트는 `docs/ios-native-full-parity-testflight-plan.md`와 `docs/ios-testflight-review-notes.md`를 기준으로 한다.
-
 ### 완료
 1. **다국어(i18n) 및 글로벌 서비스화**: `next-intl` 적용, 전체 UI 번역, 백엔드 데이터 연동 완료.
 2. **도메인 이전 및 마이그레이션**: `ottline.app` 신규 도메인 연결 및 리다이렉트 기반 인증 정보 이식 완료.
@@ -111,6 +99,7 @@ If present, read `./.omd/preferences.md` — pending corrections not yet folded 
 17. **설정/타임라인/푸터 IA 정리**: 이용 리포트 진입은 설정에서 타임라인 상단 보조 CTA로 옮겼고, 내 프로필과 연결된 기기 영역은 접기/펼치기 카드로 정리했다. 푸터는 중복 서비스 항목을 제거하고 안내/문의/정책 중심으로 유지한다. 같은 배포에서 `/about` 스토어 링크 버튼에 아이콘을 붙이고 브라우저 확장은 Chrome·Edge·Whale 링크를 분리했으며, 사이트 메타 타이틀은 `OTT 시청 기록` 한정에서 `영상·책 기록` 표현으로 정리했다. `2026-06-07` PR `#55`, main SHA `4fcfd6dd07243a6ad0bf112b00982b2dc4113122`, staging run `27089185975`, production run `27089241013`, production manifest commit `d79453e5e13972719176ef7764cd3df61a7b1deb`로 배포 완료했고 ArgoCD `ott-app` `Synced Healthy`, production `ott-web` 이미지 태그 `4fcfd6dd07243a6ad0bf112b00982b2dc4113122`, `APP_VERSION=4fcfd6d`를 확인했다. 공개 도메인 직접 `curl`은 Cloudflare 403으로 막혔지만, production Pod 내부 `/about` HTML에서 `영상·책`, `Edge Add-ons`, `Whale Store` 반영을 확인했다. 이후 `2026-06-07` PR `#56`, main SHA `73244e31bc2e00d6888eaeb423d2d2cd9cff7b72`, staging run `27090042194`, production run `27090105834`, production manifest commit `211e89f53e6e22e9f25a964fad37e5858be6437d`로 설정 페이지 내부 폭 제한을 제거해 기록하기/타임라인/함께와 같은 본문 폭을 쓰도록 맞췄고, ArgoCD `ott-app` `Synced Healthy`, production `ott-web` 이미지 태그 `73244e31bc2e00d6888eaeb423d2d2cd9cff7b72`, `APP_VERSION=73244e3`를 확인했다.
 18. **검색 추천 인기 작품 보충**: QuickLog 영상 검색창에서 검색어가 비어 있을 때 실제 함께 기록 추천을 우선 보여주고, 6개 미만이면 `/api/titles/popular` 기반 인기 작품으로 부족분만 채운다. 인기 작품은 `요즘 인기 작품` 섹션과 `popular_title` analytics source로 실제 함께 기록과 구분한다. `2026-06-13` PR `#59`, main SHA `c7f8d574ed97565941b4d4f69e6bbfe2eb050c1f`, web staging run `27452174436`, web production run `27452282319`, staging manifest commit `8efbb2176b377871e210c0a9f8e5641e1307d3bc`, production manifest commit `a52995d31d9498053a7b56fcaa0c59ba6aec39cc`로 배포 완료했고 ArgoCD `ott-app` `Synced Healthy`, production `ott-web` 이미지 태그 `c7f8d574ed97565941b4d4f69e6bbfe2eb050c1f`, `APP_VERSION=c7f8d57`를 확인했다.
 19. **신규/무기록 첫 기록 활성화 패널**: 신규/무기록 사용자의 첫 기록 전환을 높이기 위해 홈 QuickLog 위에 activation 패널을 추가했다. 노출 기준은 로컬 기록 0개, 페어링 코드 없음, 현재 세션 미닫힘, `quick=1`/공유 진입/Android watch reminder 같은 강제 기록 진입 아님이다. 영상은 실제 함께 기록된 작품을 우선 보여주고 부족분은 `/api/titles/popular`로 채우며, 포스터 선택 후 기존 QuickLog의 상태 선택 화면으로 이동한다. 책은 `읽는 중 / 다 읽었어요 / 읽고 싶어요`를 먼저 묻고 책 검색창으로 유도하며 선택한 상태는 저장 화면에서 강조만 한다. `2026-06-27` PR `#72`, main SHA `989aefc41b819458c494c95499d62fdad994906d`, web production run `28285754982`, production manifest commit `800abc92dbe6681e796ec2163a1bfbf5cdb113f8`로 배포 완료했고 ArgoCD `ott-app` `Synced Healthy`, production `ott-web` 이미지 태그 `989aefc41b819458c494c95499d62fdad994906d`, `APP_VERSION=989aefc`를 확인했다. 공개 도메인 직접 `curl`은 edge allowlist 403으로 막혀 GitHub Actions, ArgoCD, deployment image/`APP_VERSION`을 기준으로 검증했다.
+20. **iOS 네이티브 앱 App Store 출시**: `apps/native`는 Expo React Native 기반 iOS 네이티브 앱으로 `main`에 편입됐고, WebView/PWA/TWA 래퍼가 아니라 사용자 앱 화면을 네이티브 화면으로 구현한다. App Store Connect 앱 레코드와 Apple ID `6780318110`, EAS project id `efe8f7e5-75d8-45a9-9a4e-88bfeba07b98`, iOS signing credentials, EAS Submit용 App Store Connect API key, GitHub `EXPO_TOKEN` 구성을 완료했다. `2026-06-18` PR `#67` build `1.0.0 (5)`, `2026-06-19` PR `#68` build `1.0.0 (6)`, `2026-06-19` PR `#69` build `1.0.0 (7)`로 TestFlight 제출을 진행했고, `2026-06-28` PR `#73` main SHA `2ddb3bb`로 iOS QA parity와 launch prep을 마무리했다. `2026-06-29` App Store 심사를 통과해 `https://apps.apple.com/app/ottline/id6780318110`로 공개됐다.
 
 ### P1
 1. 문의함 운영 후속 작업
@@ -144,7 +133,7 @@ If present, read `./.omd/preferences.md` — pending corrections not yet folded 
    12. `2026-06-10` 기준 회고 리마인드 알림 탭이 앱으로 이동하지 않고 사라지는 문제를 수정했다. PR `#58` main SHA `27bb8941aa703699e32045041b5aa27705dbbdd0`로 병합했고, TWA release run `27256880845`로 Google Play `production` `1.0.12` (`versionCode=16`, `status=completed`) 반영을 확인했다. 릴리스 노트는 `Fix reminder reliability and ensure recap reminder notifications open ottline.`이다.
    13. 현재 로컬 작업환경(WSL on ARM Linux)에서는 Android Gradle 빌드(`assembleDebug`, `bundleRelease`)가 `aapt2` 바이너리 호환 문제로 실패하는 것이 정상 제약이다. 로컬 Android 빌드 실패를 회귀로 보지 말고, APK/AAB 산출물 검증과 Play 배포는 GitHub Actions를 source of truth로 사용한다.
    14. 로컬 Gradle은 필요 시 `apps/twa`에서 `GRADLE_USER_HOME=./.gradle ./gradlew :app:generateShorcutsFile --no-daemon` 같은 리소스 생성 확인까지만 제한적으로 사용한다.
-   15. iOS 네이티브 앱은 `apps/native`로 분리되어 있으며, Android production 경로(`apps/twa`)와 별도로 Expo React Native + TestFlight-first 경로를 사용한다. Android TWA production 계약은 그대로 유지한다.
+   15. iOS 네이티브 앱은 `apps/native`로 분리되어 있으며, Android production 경로(`apps/twa`)와 별도로 Expo React Native 기반 App Store 앱으로 출시됐다. Android TWA production 계약은 그대로 유지한다.
 
 ### P1
 1. Public repo 보안 후속 정리

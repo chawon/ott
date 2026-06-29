@@ -10,13 +10,13 @@
 
 ## 반영할 메시지
 1. ottline의 중심은 웹 타임라인이다.
-2. 같은 기록 흐름을 기반으로 설치형 PWA, 토스 인앱, PC 브라우저 확장, Windows 앱, Android 앱, ChatGPT 연결까지 열려 있다.
+2. 같은 기록 흐름을 기반으로 설치형 PWA, Android 앱, iOS 앱, Windows 앱, PC 브라우저 확장, 토스 인앱, ChatGPT 연결까지 열려 있다.
 3. 공개 중인 채널은 실제 진입 링크를 노출한다.
 4. 브라우저 확장은 기록 저장의 주체가 아니라 웹 QuickLog로 이어주는 보조 진입점으로 표현한다.
 5. 토스 인앱은 공개 링크(`https://minion.toss.im/XYvjpUB2`)를 노출한다.
 6. 상단 강조 문구는 토스 전용이 아니라 서비스 전반의 연속성 메시지로 유지하고, 페어링 코드는 어디서 열어도 같은 타임라인을 잇는 수단으로 표현한다.
 7. 토스 카드는 토스 진입점 자체만 설명하고, 페어링 코드 강조를 중복하지 않는다.
-8. Android 앱은 Google Play 출시 상태로 표현하고, ChatGPT 연결만 아직 공개 전이므로 `준비 중` 상태로 표현한다.
+8. Android 앱은 Google Play 출시 상태, iOS 앱은 App Store 출시 상태로 표현하고, ChatGPT 연결만 아직 공개 전이므로 `준비 중` 상태로 표현한다.
 
 ## 검증 시나리오
 1. `ko`, `en` `/about` 페이지에서 신규 소개 섹션이 자연스럽게 렌더링된다.
@@ -52,3 +52,8 @@
 - Google Play, Microsoft Store, Chrome, Edge, Whale, Toss 링크 버튼에 아이콘을 붙였다.
 - 메타 타이틀과 서비스 소개 제목을 `OTT 시청 기록` 한정에서 `영상·책 기록` 기준으로 정리했다.
 - Production 확인: ArgoCD `ott-app` `Synced Healthy`, `ott-web` 이미지 태그 `4fcfd6dd07243a6ad0bf112b00982b2dc4113122`, `APP_VERSION=4fcfd6d`, production Pod 내부 `/about` HTML에서 `영상·책`, `Edge Add-ons`, `Whale Store` 반영 확인
+
+### iOS App Store 링크 반영 (2026-06-29)
+- App Store 심사 통과 및 공개 링크: `https://apps.apple.com/app/ottline/id6780318110`
+- `/about` 플랫폼 순서: 웹/PWA, Android, iOS, Windows, 브라우저 확장, 토스 인앱, ChatGPT
+- 서비스 소개 설명과 구조화 데이터의 지원 플랫폼 표현에 iOS 앱을 반영한다.

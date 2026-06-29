@@ -465,7 +465,7 @@
   "About": {
     "title": "Video and Book Log App & How to Use",
     "subtitle": "Video and book timelines without sign-up",
-    "description": "ottline helps you quickly log OTT watch history from services like Netflix, TVING, and Disney+, plus movies, series, and books, into your own timeline. Start on the web without tedious sign-up, then continue through the same flow on the installable PWA, Toss in-app mini app, browser extension, Windows app, and Android app. The ChatGPT connection is still in preparation.",
+    "description": "ottline helps you quickly log OTT watch history from services like Netflix, TVING, and Disney+, plus movies, series, and books, into your own timeline. Start on the web without tedious sign-up, then continue through the same flow on the installable PWA, Android app, iOS app, Windows app, browser extension, and Toss in-app mini app. The ChatGPT connection is still in preparation.",
     "pairingHighlightTitle": "Once you start logging, your timeline keeps going.",
     "pairingHighlightDesc": "Whether you open ottline on the web, in Toss, or as an installed app, your pairing code lets you continue the same timeline and keep logging and checking your history.",
     "platformsTitle": "Started on the web, opened in more places",
@@ -487,6 +487,9 @@
     "platformAndroidTitle": "Android App",
     "platformAndroidDesc": "Install it from Google Play to enter the logging flow faster from the home screen, widget, and watch reminder settings.",
     "platformAndroidLink": "Google Play",
+    "platformIosTitle": "iOS App",
+    "platformIosDesc": "Install it from the App Store and continue the same logging flow and timeline on iPhone.",
+    "platformIosLink": "App Store",
     "platformChatGptTitle": "ChatGPT Connection",
     "platformChatGptDesc": "A read-only ChatGPT connection is still in preparation for bringing recent logs into the conversation.",
     "platformPreparing": "Coming soon",
