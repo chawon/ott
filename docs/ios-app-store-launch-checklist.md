@@ -185,6 +185,7 @@ xcrun simctl io booted screenshot screenshots/app-store/01-log.png
 ## 8. 출시 후 확인
 
 - [x] App Store 직접 링크 접근 확인. (`2026-06-29` 사용자 확인, `https://apps.apple.com/app/ottline/id6780318110`)
+- [x] `/about` 서비스 소개에 App Store 링크 production 반영 확인. (PR `#74`, main SHA `ec08179a229bc0e8b23df31d31e639651338d7f0`, production run `28379967425`, manifest commit `650a93a162e2537f4d2998f46c819edf7504a51f`, `APP_VERSION=ec08179`)
 - [ ] 실제 App Store 설치본 실행 확인.
 - [ ] 신규 설치 후 첫 기록 생성 확인.
 - [ ] 페어링 코드로 기존 계정 연결 확인.

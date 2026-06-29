@@ -57,3 +57,8 @@
 - App Store 심사 통과 및 공개 링크: `https://apps.apple.com/app/ottline/id6780318110`
 - `/about` 플랫폼 순서: 웹/PWA, Android, iOS, Windows, 브라우저 확장, 토스 인앱, ChatGPT
 - 서비스 소개 설명과 구조화 데이터의 지원 플랫폼 표현에 iOS 앱을 반영한다.
+- PR: `#74` (`Add iOS App Store link to about page`)
+- main merge commit: `ec08179a229bc0e8b23df31d31e639651338d7f0`
+- Production Web deploy success: GitHub Actions run `28379967425`
+- Production manifest commit: `650a93a162e2537f4d2998f46c819edf7504a51f`
+- Production 확인: ArgoCD `ott-app` `Synced Healthy`, `ott-web` 이미지 태그 `ec08179a229bc0e8b23df31d31e639651338d7f0`, `APP_VERSION=ec08179`, rollout `1/1 ready`
