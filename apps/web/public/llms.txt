@@ -3,7 +3,7 @@
 > ottline은 로그인 없이 영상과 책을 기록하는 무료 한국어 타임라인 서비스입니다.
 > A free, login-free timeline service for logging videos and books. All records are stored locally in the browser via IndexedDB — no data is transmitted to a server unless cross-device pairing is used. No account required.
 
-ottline은 Web, Android PWA, iOS PWA에서 무료로 이용 가능합니다.
+ottline은 Web, Android 앱, iOS 앱, Windows 앱, 설치형 PWA에서 무료로 이용 가능합니다.
 
 ## Key Features
 
@@ -12,7 +12,7 @@ ottline은 Web, Android PWA, iOS PWA에서 무료로 이용 가능합니다.
 - 타임라인 뷰: 기록된 콘텐츠를 시간순으로 모아보는 개인 타임라인
 - 페어링 코드 동기화: 기기 간 기록 이전 시 페어링 코드 사용 (최신 수정 내용 우선)
 - CSV 내보내기: 설정 > 내 기록 내보내기에서 기록 파일 다운로드
-- PWA 설치: Android·iOS 홈 화면에 앱처럼 설치 가능
+- 앱 설치: App Store, Google Play, Microsoft Store, 설치형 PWA로 앱처럼 사용 가능
 - 함께 보기: 다른 사용자의 공개 기록 열람 가능
 
 ## Core Pages
@@ -33,4 +33,4 @@ ottline은 Web, Android PWA, iOS PWA에서 무료로 이용 가능합니다.
 - 개인 기록 데이터는 서버에 저장되지 않음 (페어링 동기화 제외)
 - 브라우저 저장소(IndexedDB) 초기화 시 로컬 기록 삭제됨 (서버 백업 없음)
 - 지원 언어: 한국어 (ko-KR)
-- 지원 플랫폼: Web, Android PWA, iOS PWA
+- 지원 플랫폼: Web, Android 앱, iOS 앱, Windows 앱, 설치형 PWA

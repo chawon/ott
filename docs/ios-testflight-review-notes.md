@@ -1,8 +1,8 @@
 # iOS TestFlight Review Notes
 
-기준일: 2026-06-28
+기준일: 2026-06-29
 
-이 문서는 App Store Connect의 TestFlight beta review information과 내부 QA에 옮길 내용을 정리한다. App Store Connect 앱 생성, EAS project 연결, signing credentials, EAS Submit API key 구성은 완료됐으며, 실제 제출 전후의 값은 아래 기준으로 유지한다.
+이 문서는 App Store Connect의 TestFlight beta review information, 내부 QA, App Store 출시 이력을 정리한다. `2026-06-29` App Store 심사를 통과해 App Store에 공개됐으며, 출시 후 확인은 `docs/ios-app-store-launch-checklist.md`에서 이어간다.
 
 ## App 정보 초안
 
@@ -22,6 +22,7 @@
 - Support URL: `https://ottline.app/feedback`
 - Marketing URL: `https://ottline.app/about`
 - Privacy URL: `https://ottline.app/privacy`
+- App Store URL: `https://apps.apple.com/app/ottline/id6780318110`
 
 ## Beta App Description 초안
 
@@ -78,8 +79,8 @@ The app does not read video playback contents from other apps. iOS recap reminde
 - Native app icon is replaced from Expo default icon to ottline brand icon. (`2026-06-28`, build `1.0.0 (18)`)
 - Local Mac EAS build succeeds for icon-fixed build `1.0.0 (18)`. (`apps/native/builds/direct/ottline-18.ipa`)
 - EAS Submit uploads build `1.0.0 (18)` to App Store Connect. (`a58c8aab-df08-4364-8259-64a375fcea1d`)
-- App Store Connect build processing completes. (Apple processing 완료 후 TestFlight 탭에서 확인)
-- Internal tester can install build `1.0.0 (18)` from TestFlight. (확인 필요)
+- App Store Connect build processing completes. (`2026-06-29` 출시 완료로 확인)
+- Internal tester can install build `1.0.0 (18)` from TestFlight. (`2026-06-28` 사용자 확인)
 - iPhone checklist in `docs/ios-native-full-parity-testflight-plan.md` passes. (`2026-06-28` 사용자 확인 완료)
 
 ## 최근 TestFlight 제출 이력
@@ -89,3 +90,4 @@ The app does not read video playback contents from other apps. iOS recap reminde
 - `2026-06-19`: PR `#69`, main SHA `667aafeb4546eb015a9ef7894f6cba9183db043e`, GitHub run `27805741470`, EAS build `7796ef11-75c1-4acb-95d7-96018e10bdbc`, EAS submission `2f02d6c8-2200-4078-b40b-b4ee0591bc54`, build `1.0.0 (7)`. 큰 탭 제목/설명 복원, 작은 중복 kicker 제거, 페어링 직후 `lastSyncAt` 초기화로 전체 pull 반영.
 - `2026-06-28`: branch `native-ios-qa-parity`, local Mac EAS build artifact `apps/native/builds/direct/ottline-16.ipa`, EAS submission `5cddc021-ab3e-412c-99cb-f687f67dde30`, App Store Connect build `1.0.0 (16)`. Web/TWA parity에 맞춰 기록하기 입력 순서, 날짜 선택, 평점 입력 방식, 타임라인 수정 폼, 다크 모드 입력 색상, web preview guard와 SQLite wasm bundling을 보강했다.
 - `2026-06-28`: build `1.0.0 (16)`에서 Expo 기본 아이콘이 확인되어 출시 후보에서 제외했다. `apps/native/assets/icon.png`를 ottline 브랜드 아이콘으로 교체했고, EAS autoIncrement로 build `1.0.0 (18)`을 생성했다. Local artifact `apps/native/builds/direct/ottline-18.ipa`, EAS submission `a58c8aab-df08-4364-8259-64a375fcea1d`로 App Store Connect 업로드를 완료했다.
+- `2026-06-29`: PR `#73` main SHA `2ddb3bb` 기준 iOS launch prep이 main에 반영됐다. App Store 심사를 통과해 `https://apps.apple.com/app/ottline/id6780318110`로 공개됐다.

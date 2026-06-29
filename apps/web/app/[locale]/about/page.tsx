@@ -1,4 +1,5 @@
 import {
+  Apple,
   Bot,
   ExternalLink,
   Globe,
@@ -81,6 +82,19 @@ export default function AboutPage() {
         {
           href: "https://play.google.com/store/apps/details?id=app.ottline",
           label: tAbout("platformAndroidLink"),
+          external: true,
+          icon: Store,
+        },
+      ],
+    },
+    {
+      title: tAbout("platformIosTitle"),
+      description: tAbout("platformIosDesc"),
+      icon: Apple,
+      links: [
+        {
+          href: "https://apps.apple.com/app/ottline/id6780318110",
+          label: tAbout("platformIosLink"),
           external: true,
           icon: Store,
         },

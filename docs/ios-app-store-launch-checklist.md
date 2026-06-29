@@ -1,12 +1,12 @@
 # iOS App Store 출시 체크리스트
 
-기준일: 2026-06-28
+기준일: 2026-06-29
 
 ## 목적
 
-- ottline iOS 네이티브 앱을 App Store에 정식 출시한다.
-- Expo 기본 아이콘이 들어간 build `1.0.0 (16)`은 출시 후보에서 제외하고, 브랜드 아이콘을 반영한 build `1.0.0 (18)`을 새 출시 후보로 준비한다.
-- 웹/Android와 같은 기록 흐름, 데이터 관리, 신고/문의 흐름을 심사자가 확인할 수 있게 준비한다.
+- ottline iOS 네이티브 앱 App Store 정식 출시 상태와 출시 후 확인 항목을 기록한다.
+- Expo 기본 아이콘이 들어간 build `1.0.0 (16)`은 출시 후보에서 제외했고, 브랜드 아이콘을 반영한 build `1.0.0 (18)`을 출시 후보로 제출했다.
+- `2026-06-29` App Store 심사를 통과해 App Store에 공개됐다.
 
 ## 기준 정보
 
@@ -19,6 +19,7 @@
 - Previous EAS submission: `5cddc021-ab3e-412c-99cb-f687f67dde30` (build `16`, Expo 기본 아이콘 포함으로 출시 후보 제외)
 - Candidate EAS submission: `a58c8aab-df08-4364-8259-64a375fcea1d`
 - Candidate IPA: `apps/native/builds/direct/ottline-18.ipa`
+- App Store URL: `https://apps.apple.com/app/ottline/id6780318110`
 - Support URL: `https://ottline.app/feedback`
 - Marketing URL: `https://ottline.app/about`
 - Privacy URL: `https://ottline.app/privacy`
@@ -38,31 +39,31 @@
 - [x] `npm run native:typecheck` 재확인.
 - [x] `npm run native:test` 재확인.
 - [x] `apps/native`에서 `npx expo-doctor` 재확인.
-- [ ] PR로 `main`에 반영하고 CI 통과를 확인한다.
+- [x] PR `#73`으로 `main`에 반영한다. (`2026-06-29`, main SHA `2ddb3bb`)
 
 ## 2. TestFlight 최종 확인
 
-- [ ] App Store Connect에서 build `1.0.0 (18)` processing 완료를 확인한다.
-- [ ] 내부 테스트 그룹에 build `1.0.0 (18)`이 연결됐는지 확인한다.
-- [ ] 실기기에서 아래 흐름을 최종 확인한다.
-- [ ] 기록하기: 검색어 입력, 작품 선택, 상태 먼저 저장, 날짜 선택, 평점 칩, 메모/OTT/장소/상황.
-- [ ] 타임라인: 검색 입력 다크 모드 색상, 필터, 카드 공유, 함께 공개.
-- [ ] 제목 상세: 기록 수정 폼, 날짜 선택, 평점 칩, 히스토리.
-- [ ] 설정: 페어링 코드, 복구 카드, CSV 내보내기, 서버 데이터 전체 삭제 진입.
-- [ ] 함께: 공개 글/댓글/신고 진입.
-- [ ] 알림: 회고 알림 opt-in, 예약, 알림 탭 시 내 리포트 이동.
+- [x] App Store Connect에서 build `1.0.0 (18)` processing 완료를 확인한다.
+- [x] 내부 테스트 그룹에 build `1.0.0 (18)`이 연결됐는지 확인한다.
+- [x] 실기기에서 아래 흐름을 최종 확인한다. (`2026-06-28` 사용자 확인)
+- [x] 기록하기: 검색어 입력, 작품 선택, 상태 먼저 저장, 날짜 선택, 평점 칩, 메모/OTT/장소/상황.
+- [x] 타임라인: 검색 입력 다크 모드 색상, 필터, 카드 공유, 함께 공개.
+- [x] 제목 상세: 기록 수정 폼, 날짜 선택, 평점 칩, 히스토리.
+- [x] 설정: 페어링 코드, 복구 카드, CSV 내보내기, 서버 데이터 전체 삭제 진입.
+- [x] 함께: 공개 글/댓글/신고 진입.
+- [x] 알림: 회고 알림 opt-in, 예약, 알림 탭 시 내 리포트 이동.
 
 ## 3. App Store Connect 입력
 
-- [ ] 앱 정보에서 SKU `ottline-ios` 입력.
-- [ ] 카테고리는 Lifestyle로 설정한다. Apple 검토 중 부적합하면 Entertainment로 전환한다.
-- [ ] 가격은 무료로 설정한다.
-- [ ] 개인정보처리방침 URL `https://ottline.app/privacy` 입력.
-- [ ] 지원 URL `https://ottline.app/feedback` 입력.
-- [ ] 마케팅 URL `https://ottline.app/about` 입력.
-- [ ] App Privacy 라벨을 실제 동작과 맞춘다.
-- [ ] 콘텐츠 권리/연령 등급 설문을 실제 UGC와 외부 메타데이터 검색 범위에 맞게 작성한다.
-- [ ] 앱 내 계정 삭제/데이터 삭제 설명은 설정의 서버 데이터 전체 삭제 흐름과 일치시킨다.
+- [x] 앱 정보에서 SKU `ottline-ios` 입력.
+- [x] 카테고리는 Lifestyle로 설정한다.
+- [x] 가격은 무료로 설정한다.
+- [x] 개인정보처리방침 URL `https://ottline.app/privacy` 입력.
+- [x] 지원 URL `https://ottline.app/feedback` 입력.
+- [x] 마케팅 URL `https://ottline.app/about` 입력.
+- [x] App Privacy 라벨을 실제 동작과 맞춘다.
+- [x] 콘텐츠 권리/연령 등급 설문을 실제 UGC와 외부 메타데이터 검색 범위에 맞게 작성한다.
+- [x] 앱 내 계정 삭제/데이터 삭제 설명은 설정의 서버 데이터 전체 삭제 흐름과 일치시킨다.
 
 ### App Privacy 라벨 초안
 
@@ -173,17 +174,17 @@ xcrun simctl io booted screenshot screenshots/app-store/01-log.png
 
 ## 7. 제출 순서
 
-1. build `1.0.0 (18)` processing 완료 확인.
-2. App Store Connect의 App Store 버전 `1.0.0`에 build `18` 선택.
-3. 앱 정보, 가격, 개인정보, 연령 등급, 지원/마케팅/개인정보 URL 입력.
-4. 스크린샷과 등록 문구 입력.
-5. Review Notes 입력.
-6. `Submit for Review`.
-7. 심사 결과가 승인되면 수동 출시 또는 예약 출시를 선택한다.
+1. build `1.0.0 (18)` processing 완료 확인. 완료.
+2. App Store Connect의 App Store 버전 `1.0.0`에 build `18` 선택. 완료.
+3. 앱 정보, 가격, 개인정보, 연령 등급, 지원/마케팅/개인정보 URL 입력. 완료.
+4. 스크린샷과 등록 문구 입력. 완료.
+5. Review Notes 입력. 완료.
+6. `Submit for Review`. 완료.
+7. 심사 결과 승인 및 App Store 공개. 완료. (`2026-06-29`)
 
 ## 8. 출시 후 확인
 
-- [ ] App Store 검색/직접 링크 접근 확인.
+- [x] App Store 직접 링크 접근 확인. (`2026-06-29` 사용자 확인, `https://apps.apple.com/app/ottline/id6780318110`)
 - [ ] 실제 App Store 설치본 실행 확인.
 - [ ] 신규 설치 후 첫 기록 생성 확인.
 - [ ] 페어링 코드로 기존 계정 연결 확인.
