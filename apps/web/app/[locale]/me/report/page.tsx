@@ -3,8 +3,8 @@
 import { Download, Share2 } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
-import { api } from "@/lib/api";
 import { trackEvent } from "@/lib/analytics";
+import { api } from "@/lib/api";
 import { listAllLogsLocal } from "@/lib/localStore";
 import { isProfileComplete } from "@/lib/profile";
 import { buildPersonalReport, type PersonalReport } from "@/lib/report";
@@ -279,11 +279,6 @@ export default function MyReportPage() {
                       </span>
                     </div>
                   )}
-                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-2">
-                    <div className="line-clamp-1 text-xs font-semibold text-white">
-                      {item.title}
-                    </div>
-                  </div>
                 </div>
               ))}
             </div>
@@ -319,7 +314,9 @@ export default function MyReportPage() {
                   </div>
                 </div>
                 <div className="rounded-lg bg-white p-3">
-                  <div className="text-xs text-[#4A4A4A]">{t("h1NoteRate")}</div>
+                  <div className="text-xs text-[#4A4A4A]">
+                    {t("h1NoteRate")}
+                  </div>
                   <div className="mt-1 text-xl font-semibold text-[#0F0F0F]">
                     {report.seasonalRecap.noteFillPct}%
                   </div>

@@ -251,6 +251,9 @@ public class AnalyticsService {
             if (accumulator.posterUrl == null && preferredPoster != null) {
                 accumulator.posterUrl = preferredPoster;
             }
+            if (log.getRating() != null) {
+                accumulator.addRating(log.getRating().doubleValue());
+            }
             if (accumulator.lastLoggedAt == null || watchedAt.isAfter(accumulator.lastLoggedAt)) {
                 accumulator.lastLoggedAt = watchedAt;
             }
@@ -259,16 +262,7 @@ public class AnalyticsService {
         if (total == 0) return null;
 
         List<SeasonalRecapPosterDto> posters = posterCounts.values().stream()
-                .sorted((a, b) -> {
-                    int posterCompare = Boolean.compare(b.posterUrl != null, a.posterUrl != null);
-                    if (posterCompare != 0) return posterCompare;
-                    int countCompare = Integer.compare(b.count, a.count);
-                    if (countCompare != 0) return countCompare;
-                    if (a.lastLoggedAt == null && b.lastLoggedAt == null) return 0;
-                    if (a.lastLoggedAt == null) return 1;
-                    if (b.lastLoggedAt == null) return -1;
-                    return b.lastLoggedAt.compareTo(a.lastLoggedAt);
-                })
+                .sorted(this::compareSeasonalPoster)
                 .limit(6)
                 .map(item -> new SeasonalRecapPosterDto(
                         item.titleId,
@@ -294,6 +288,25 @@ public class AnalyticsService {
         );
     }
 
+    private int compareSeasonalPoster(PosterAccumulator a, PosterAccumulator b) {
+        int posterCompare = Boolean.compare(b.posterUrl != null, a.posterUrl != null);
+        if (posterCompare != 0) return posterCompare;
+        int ratingPresenceCompare = Boolean.compare(b.bestRating != null, a.bestRating != null);
+        if (ratingPresenceCompare != 0) return ratingPresenceCompare;
+        if (a.bestRating != null && b.bestRating != null) {
+            int ratingCompare = Double.compare(b.bestRating, a.bestRating);
+            if (ratingCompare != 0) return ratingCompare;
+            int ratedCountCompare = Integer.compare(b.ratedCount, a.ratedCount);
+            if (ratedCountCompare != 0) return ratedCountCompare;
+        }
+        int countCompare = Integer.compare(b.count, a.count);
+        if (countCompare != 0) return countCompare;
+        if (a.lastLoggedAt == null && b.lastLoggedAt == null) return 0;
+        if (a.lastLoggedAt == null) return 1;
+        if (b.lastLoggedAt == null) return -1;
+        return b.lastLoggedAt.compareTo(a.lastLoggedAt);
+    }
+
     private String firstNonBlank(String primary, String fallback) {
         if (primary != null && !primary.isBlank()) return primary;
         if (fallback != null && !fallback.isBlank()) return fallback;
@@ -307,11 +320,20 @@ public class AnalyticsService {
         private String posterUrl;
         private int count;
         private OffsetDateTime lastLoggedAt;
+        private Double bestRating;
+        private int ratedCount;
 
         private PosterAccumulator(UUID titleId, String title, String titleType) {
             this.titleId = titleId;
             this.title = title;
             this.titleType = titleType;
+        }
+
+        private void addRating(double rating) {
+            ratedCount += 1;
+            if (bestRating == null || rating > bestRating) {
+                bestRating = rating;
+            }
         }
     }
 

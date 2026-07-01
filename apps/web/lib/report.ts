@@ -282,6 +282,8 @@ export function buildSeasonalRecap(logs: WatchLog[]): SeasonalRecap | null {
       posterUrl: string | null;
       count: number;
       lastLoggedAt: string | null;
+      bestRating: number | null;
+      ratedCount: number;
     }
   >();
 
@@ -304,9 +306,17 @@ export function buildSeasonalRecap(logs: WatchLog[]): SeasonalRecap | null {
     if (!titleId) continue;
     const existing = posterMap.get(titleId);
     const posterUrl = firstNonEmpty(log.seasonPosterUrl, log.title?.posterUrl);
+    const rating = typeof log.rating === "number" ? log.rating : null;
     if (existing) {
       existing.count += 1;
       if (!existing.posterUrl && posterUrl) existing.posterUrl = posterUrl;
+      if (rating !== null) {
+        existing.ratedCount += 1;
+        existing.bestRating =
+          existing.bestRating === null
+            ? rating
+            : Math.max(existing.bestRating, rating);
+      }
       if (
         !existing.lastLoggedAt ||
         new Date(existing.lastLoggedAt).getTime() < watchedAt.getTime()
@@ -323,6 +333,8 @@ export function buildSeasonalRecap(logs: WatchLog[]): SeasonalRecap | null {
       posterUrl,
       count: 1,
       lastLoggedAt: log.watchedAt,
+      bestRating: rating,
+      ratedCount: rating === null ? 0 : 1,
     });
   }
 
@@ -330,8 +342,18 @@ export function buildSeasonalRecap(logs: WatchLog[]): SeasonalRecap | null {
 
   const posters = Array.from(posterMap.values())
     .sort((a, b) => {
-      const posterCompare = Number(Boolean(b.posterUrl)) - Number(Boolean(a.posterUrl));
+      const posterCompare =
+        Number(Boolean(b.posterUrl)) - Number(Boolean(a.posterUrl));
       if (posterCompare !== 0) return posterCompare;
+      const ratingPresenceCompare =
+        Number(b.bestRating !== null) - Number(a.bestRating !== null);
+      if (ratingPresenceCompare !== 0) return ratingPresenceCompare;
+      if (a.bestRating !== null && b.bestRating !== null) {
+        const ratingCompare = b.bestRating - a.bestRating;
+        if (ratingCompare !== 0) return ratingCompare;
+        const ratedCountCompare = b.ratedCount - a.ratedCount;
+        if (ratedCountCompare !== 0) return ratedCountCompare;
+      }
       const countCompare = b.count - a.count;
       if (countCompare !== 0) return countCompare;
       return (
@@ -339,7 +361,15 @@ export function buildSeasonalRecap(logs: WatchLog[]): SeasonalRecap | null {
         new Date(a.lastLoggedAt ?? 0).getTime()
       );
     })
-    .slice(0, 6);
+    .slice(0, 6)
+    .map((item) => ({
+      titleId: item.titleId,
+      title: item.title,
+      titleType: item.titleType,
+      posterUrl: item.posterUrl,
+      count: item.count,
+      lastLoggedAt: item.lastLoggedAt,
+    }));
 
   return {
     key: "2026-H1",

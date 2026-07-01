@@ -441,7 +441,7 @@ async function renderRecapShareCard(body: RecapShareCardPayload) {
     const fonts = await loadShareCardFonts();
     const format = body.format ?? "story";
     const isFeed = format === "feed";
-    const scale = isFeed ? 0.8 : 1;
+    const scale = 1;
     const s = (value: number) => Math.round(value * scale);
     const width = 1080;
     const height = isFeed ? 1350 : 1920;
@@ -452,8 +452,8 @@ async function renderRecapShareCard(body: RecapShareCardPayload) {
       posterItems.map((item) => imageDataUrlForRemoteImage(item.posterUrl)),
     );
     const hasPosters = posterItems.length > 0;
-    const heroHeight = isFeed ? 840 : 1220;
-    const cardHeight = isFeed ? 1350 : 1920;
+    const heroHeight = isFeed ? 690 : 1040;
+    const cardHeight = height;
     const mosaicSlots = [
       { left: 0, top: 0, width: 360, height: heroHeight * 0.55 },
       { left: 360, top: 0, width: 360, height: heroHeight * 0.45 },
@@ -498,7 +498,7 @@ async function renderRecapShareCard(body: RecapShareCardPayload) {
             display: "flex",
             position: "relative",
             overflow: "hidden",
-            backgroundColor: "#292724",
+            backgroundColor: hasPosters ? "#292724" : "#fef9ee",
           }}
         >
           {hasPosters
@@ -557,28 +557,38 @@ async function renderRecapShareCard(body: RecapShareCardPayload) {
               inset: 0,
               display: "flex",
               background:
-                "linear-gradient(180deg, rgba(0,0,0,0.08) 28%, rgba(0,0,0,0.78) 100%)",
+                "linear-gradient(180deg, rgba(248,246,242,0) 76%, rgba(248,246,242,0.2) 100%)",
             }}
           />
+        </div>
+
+        <div
+          style={{
+            height: s(cardHeight - heroHeight),
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "space-between",
+            padding: `${s(isFeed ? 44 : 62)}px ${s(72)}px ${s(isFeed ? 48 : 62)}px`,
+            backgroundColor: "#f8f6f2",
+          }}
+        >
           <div
             style={{
-              position: "absolute",
-              left: s(72),
-              bottom: s(64),
               display: "flex",
               flexDirection: "column",
-              gap: s(14),
-              color: "#ffffff",
+              gap: s(isFeed ? 16 : 22),
             }}
           >
             <div
               style={{
                 display: "flex",
                 alignSelf: "flex-start",
-                padding: `${s(12)}px ${s(18)}px`,
+                padding: `${s(10)}px ${s(16)}px`,
                 borderRadius: s(8),
-                backgroundColor: "rgba(15,15,15,0.72)",
-                fontSize: s(26),
+                backgroundColor: "#ffffff",
+                border: "1px solid #ecebe9",
+                color: accent,
+                fontSize: s(isFeed ? 22 : 26),
                 fontWeight: 700,
               }}
             >
@@ -589,38 +599,19 @@ async function renderRecapShareCard(body: RecapShareCardPayload) {
               style={{
                 display: "flex",
                 maxWidth: s(930),
-                fontSize: s(isFeed ? 70 : 84),
-                lineHeight: 1.02,
+                fontSize: s(isFeed ? 64 : 84),
+                lineHeight: 1.06,
                 fontWeight: 700,
+                color: "#0f0f0f",
                 whiteSpace: "pre-wrap",
               }}
             >
               {clampText(body.title ?? "", 46)}
             </div>
-          </div>
-        </div>
-
-        <div
-          style={{
-            height: s(cardHeight - heroHeight),
-            display: "flex",
-            flexDirection: "column",
-            justifyContent: "space-between",
-            padding: `${s(54)}px ${s(72)}px ${s(58)}px`,
-            backgroundColor: "#f8f6f2",
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: s(16),
-            }}
-          >
             <div
               style={{
                 display: "flex",
-                fontSize: s(38),
+                fontSize: s(isFeed ? 30 : 38),
                 lineHeight: 1.32,
                 color: "#4a4a4a",
                 whiteSpace: "pre-wrap",
@@ -642,7 +633,7 @@ async function renderRecapShareCard(body: RecapShareCardPayload) {
                     flex: 1,
                     flexDirection: "column",
                     justifyContent: "space-between",
-                    minHeight: s(132),
+                    minHeight: s(isFeed ? 118 : 142),
                     padding: `${s(22)}px`,
                     borderRadius: s(8),
                     backgroundColor: "#ffffff",
@@ -671,13 +662,28 @@ async function renderRecapShareCard(body: RecapShareCardPayload) {
               display: "flex",
               alignItems: "center",
               justifyContent: "space-between",
+              gap: s(24),
+              paddingTop: s(18),
+              borderTop: "1px solid #ecebe9",
               fontSize: s(27),
               fontWeight: 700,
               color: "#4a4a4a",
             }}
           >
             <span>{clampText(body.footer ?? "ottline.app", 64)}</span>
-            <span style={{ color: accent }}>{body.watermark ?? "ottline.app"}</span>
+            <span
+              style={{
+                display: "flex",
+                alignItems: "center",
+                padding: `${s(12)}px ${s(18)}px`,
+                borderRadius: s(8),
+                backgroundColor: "#ffffff",
+                border: "1px solid #ecebe9",
+                color: accent,
+              }}
+            >
+              {body.watermark ?? "ottline.app"}
+            </span>
           </div>
         </div>
       </div>,
