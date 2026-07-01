@@ -64,12 +64,85 @@ describe('buildPersonalReport', () => {
     expect(report.continueSeriesEpisodeNumber).toBe(3);
   });
 
+  it('builds the 2026 first-half recap from local logs', () => {
+    const report = buildPersonalReport(
+      [
+        log({
+          id: 'series-1',
+          title: {
+            id: 'title-series',
+            type: 'series',
+            name: 'Severance',
+            posterUrl: 'https://image.example/severance-main.jpg',
+          },
+          seasonPosterUrl: 'https://image.example/severance-season-2.jpg',
+          status: 'IN_PROGRESS',
+          note: '',
+          watchedAt: '2026-06-30T14:59:00.000Z',
+        }),
+        log({
+          id: 'series-2',
+          title: {
+            id: 'title-series',
+            type: 'series',
+            name: 'Severance',
+            posterUrl: 'https://image.example/severance-main.jpg',
+          },
+          status: 'DONE',
+          watchedAt: '2026-05-01T12:00:00.000Z',
+        }),
+        log({
+          id: 'book-1',
+          title: { id: 'title-book', type: 'book', name: 'Project Hail Mary' },
+          status: 'DONE',
+          note: null,
+          watchedAt: '2026-02-10T12:00:00.000Z',
+        }),
+        log({
+          id: 'july-1',
+          title: { id: 'title-movie', type: 'movie', name: 'F1' },
+          watchedAt: '2026-06-30T15:00:00.000Z',
+        }),
+      ],
+      new Date('2026-07-01T03:00:00.000Z'),
+    );
+
+    expect(report.seasonalRecap).toMatchObject({
+      key: '2026-H1',
+      startDate: '2026-01-01',
+      endDate: '2026-06-30',
+      totalLogs: 3,
+      topType: 'series',
+      topPlace: 'HOME',
+      topOccasion: 'ALONE',
+      doneRatePct: 66.7,
+      noteFillPct: 33.3,
+      posters: [
+        {
+          titleId: 'title-series',
+          title: 'Severance',
+          titleType: 'series',
+          posterUrl: 'https://image.example/severance-season-2.jpg',
+          count: 2,
+          lastLoggedAt: '2026-06-30T14:59:00.000Z',
+        },
+        {
+          titleId: 'title-book',
+          title: 'Project Hail Mary',
+          titleType: 'book',
+          count: 1,
+        },
+      ],
+    });
+  });
+
   it('returns a zero report for empty local logs', () => {
     expect(buildPersonalReport([])).toMatchObject({
       totalLogs: 0,
       thisMonthLogs: 0,
       topType: '-',
       continueSeriesTitle: null,
+      seasonalRecap: null,
     });
   });
 });

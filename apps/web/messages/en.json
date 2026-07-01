@@ -19,6 +19,9 @@
     "navPublicModern": "Together",
     "navAccountModern": "Settings",
     "profileLink": "Edit my profile",
+    "h1RecapNoticeTitle": "Ready to revisit the first half of 2026?",
+    "h1RecapNoticeAction": "View recap",
+    "h1RecapNoticeDismiss": "Dismiss",
     "titleModern": "ottline"
   },
   "AppFooter": {
@@ -650,6 +653,16 @@
     "monthlyRecapCardTitle": "Monthly Genre Recap",
     "monthlyRecapCardSubtitle": "Your most logged genre this month is {genre}, with {count} records.",
     "monthlyRecapCardSubtitleEmpty": "Log more this month to make your genre card richer.",
+    "h1RecapPeriod": "Jan 1 - Jun 30, 2026",
+    "h1RecapTitle": "Your 2026 First-Half Recap",
+    "h1RecapDesc": "{count} records from the first half of 2026, gathered with your posters.",
+    "h1TotalRecords": "First-half records",
+    "h1TopType": "Most logged type",
+    "h1NoteRate": "Memo Entry Rate",
+    "h1ShareAction": "Share First-Half Card",
+    "h1RecapCardTitle": "2026 First-Half Recap",
+    "h1RecapCardSubtitle": "A poster recap of your {count} records from the first half of 2026.",
+    "h1RecapFooter": "A first half of watching, reading, and remembering",
     "recapShareText": "ottline recap card: {title}"
   },
   "PwaInstall": {

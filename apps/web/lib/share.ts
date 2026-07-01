@@ -19,10 +19,17 @@ export type LogShareCardPayload = {
 
 export type RecapShareCardPayload = {
   cardType: "recap";
-  recapKind: "weekly" | "monthly";
+  recapKind: "weekly" | "monthly" | "half-year";
   format?: "story" | "feed";
   title: string;
   subtitle: string;
+  periodLabel?: string;
+  posterItems?: Array<{
+    title: string;
+    titleType?: string;
+    posterUrl?: string | null;
+    count?: number;
+  }>;
   stats: Array<{ label: string; value: string }>;
   footer: string;
   watermark: string;

@@ -2,6 +2,28 @@ import type { WatchLog } from "./types";
 
 type CounterMap = Record<string, number>;
 
+export type SeasonalRecapPoster = {
+  titleId: string;
+  title: string;
+  titleType: string;
+  posterUrl?: string | null;
+  count: number;
+  lastLoggedAt: string | null;
+};
+
+export type SeasonalRecap = {
+  key: "2026-H1";
+  startDate: string;
+  endDate: string;
+  totalLogs: number;
+  topType: string;
+  topPlace: string;
+  topOccasion: string;
+  doneRatePct: number;
+  noteFillPct: number;
+  posters: SeasonalRecapPoster[];
+};
+
 export type PersonalReport = {
   totalLogs: number;
   thisMonthLogs: number;
@@ -22,6 +44,7 @@ export type PersonalReport = {
   continueSeriesTitle: string | null;
   continueSeriesSeasonNumber: number | null;
   continueSeriesEpisodeNumber: number | null;
+  seasonalRecap?: SeasonalRecap | null;
 };
 
 function pct(numerator: number, denominator: number): number {
@@ -60,6 +83,17 @@ function weekMonday(date: Date): Date {
   const day = d.getDay() || 7;
   d.setDate(d.getDate() - day + 1);
   return d;
+}
+
+function firstNonEmpty<T>(...values: Array<T | null | undefined>): T | null {
+  for (const value of values) {
+    if (typeof value === "string") {
+      if (value.trim().length > 0) return value as T;
+      continue;
+    }
+    if (value !== null && typeof value !== "undefined") return value;
+  }
+  return null;
 }
 
 function calcStreak(
@@ -132,6 +166,7 @@ export function buildPersonalReport(
       continueSeriesTitle: null,
       continueSeriesSeasonNumber: null,
       continueSeriesEpisodeNumber: null,
+      seasonalRecap: null,
     };
   }
 
@@ -225,5 +260,97 @@ export function buildPersonalReport(
     continueSeriesTitle: continueSeries?.title.name ?? null,
     continueSeriesSeasonNumber: continueSeries?.seasonNumber ?? null,
     continueSeriesEpisodeNumber: continueSeries?.episodeNumber ?? null,
+    seasonalRecap: buildSeasonalRecap(logs),
+  };
+}
+
+export function buildSeasonalRecap(logs: WatchLog[]): SeasonalRecap | null {
+  const start = new Date("2026-01-01T00:00:00+09:00");
+  const endExclusive = new Date("2026-07-01T00:00:00+09:00");
+  let totalLogs = 0;
+  let doneCount = 0;
+  let noteCount = 0;
+  const types: CounterMap = {};
+  const places: CounterMap = {};
+  const occasions: CounterMap = {};
+  const posterMap = new Map<
+    string,
+    {
+      titleId: string;
+      title: string;
+      titleType: string;
+      posterUrl: string | null;
+      count: number;
+      lastLoggedAt: string | null;
+    }
+  >();
+
+  for (const log of logs) {
+    const watchedAt = new Date(log.watchedAt);
+    if (watchedAt < start || watchedAt >= endExclusive) continue;
+
+    totalLogs += 1;
+    if (log.status === "DONE") doneCount += 1;
+    if (typeof log.note === "string" && log.note.trim().length > 0)
+      noteCount += 1;
+
+    const typeKey = log.title?.type ?? "unknown";
+    types[typeKey] = (types[typeKey] ?? 0) + 1;
+    if (log.place) places[log.place] = (places[log.place] ?? 0) + 1;
+    if (log.occasion)
+      occasions[log.occasion] = (occasions[log.occasion] ?? 0) + 1;
+
+    const titleId = log.title?.id;
+    if (!titleId) continue;
+    const existing = posterMap.get(titleId);
+    const posterUrl = firstNonEmpty(log.seasonPosterUrl, log.title?.posterUrl);
+    if (existing) {
+      existing.count += 1;
+      if (!existing.posterUrl && posterUrl) existing.posterUrl = posterUrl;
+      if (
+        !existing.lastLoggedAt ||
+        new Date(existing.lastLoggedAt).getTime() < watchedAt.getTime()
+      ) {
+        existing.lastLoggedAt = log.watchedAt;
+      }
+      continue;
+    }
+
+    posterMap.set(titleId, {
+      titleId,
+      title: log.title?.name ?? "",
+      titleType: log.title?.type ?? "unknown",
+      posterUrl,
+      count: 1,
+      lastLoggedAt: log.watchedAt,
+    });
+  }
+
+  if (totalLogs === 0) return null;
+
+  const posters = Array.from(posterMap.values())
+    .sort((a, b) => {
+      const posterCompare = Number(Boolean(b.posterUrl)) - Number(Boolean(a.posterUrl));
+      if (posterCompare !== 0) return posterCompare;
+      const countCompare = b.count - a.count;
+      if (countCompare !== 0) return countCompare;
+      return (
+        new Date(b.lastLoggedAt ?? 0).getTime() -
+        new Date(a.lastLoggedAt ?? 0).getTime()
+      );
+    })
+    .slice(0, 6);
+
+  return {
+    key: "2026-H1",
+    startDate: "2026-01-01",
+    endDate: "2026-06-30",
+    totalLogs,
+    topType: maxEntry(types),
+    topPlace: maxEntry(places),
+    topOccasion: maxEntry(occasions),
+    doneRatePct: pct(doneCount, totalLogs),
+    noteFillPct: pct(noteCount, totalLogs),
+    posters,
   };
 }

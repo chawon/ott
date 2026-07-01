@@ -1,7 +1,9 @@
 import {
   buildReportShareCardContent,
+  buildSeasonalRecapShareCardPayload,
   logShareCardFileName,
   reportShareCardFileName,
+  seasonalRecapShareCardFileName,
 } from '../lib/shareCard';
 import type { PersonalReport, WatchLog } from '../lib/types';
 
@@ -44,6 +46,35 @@ const report: PersonalReport = {
   continueSeriesTitle: null,
   continueSeriesSeasonNumber: null,
   continueSeriesEpisodeNumber: null,
+  seasonalRecap: {
+    key: '2026-H1',
+    startDate: '2026-01-01',
+    endDate: '2026-06-30',
+    totalLogs: 9,
+    topType: 'series',
+    topPlace: 'HOME',
+    topOccasion: 'ALONE',
+    doneRatePct: 66.7,
+    noteFillPct: 44.4,
+    posters: [
+      {
+        titleId: 'title-series',
+        title: 'Severance',
+        titleType: 'series',
+        posterUrl: 'https://image.example/severance.jpg',
+        count: 3,
+        lastLoggedAt: '2026-06-20T12:00:00.000Z',
+      },
+      {
+        titleId: 'title-book',
+        title: 'Project Hail Mary',
+        titleType: 'book',
+        posterUrl: null,
+        count: 1,
+        lastLoggedAt: '2026-05-20T12:00:00.000Z',
+      },
+    ],
+  },
 };
 
 describe('report share card content', () => {
@@ -85,6 +116,51 @@ describe('report share card content', () => {
     expect(buildReportShareCardContent('monthly', report, 'en')).toMatchObject({
       title: 'Monthly Genre Recap',
       subtitle: 'Your most logged genre this month was Drama, with 3 logs.',
+    });
+  });
+
+  it('builds the 2026 first-half recap share payload', () => {
+    expect(seasonalRecapShareCardFileName()).toBe('ottline-2026-h1-recap.png');
+    expect(buildSeasonalRecapShareCardPayload(report)).toMatchObject({
+      cardType: 'recap',
+      recapKind: 'half-year',
+      format: 'story',
+      title: '2026년 상반기 돌아보기',
+      periodLabel: '2026.01.01 - 2026.06.30',
+      subtitle: '상반기에 남긴 9개의 기록을 포스터 카드로 모았어요.',
+      posterItems: [
+        {
+          title: 'Severance',
+          titleType: 'series',
+          posterUrl: 'https://image.example/severance.jpg',
+          count: 3,
+        },
+        {
+          title: 'Project Hail Mary',
+          titleType: 'book',
+          posterUrl: null,
+          count: 1,
+        },
+      ],
+      stats: [
+        { label: '상반기 기록', value: '9' },
+        { label: '가장 많이 남긴 종류', value: '시리즈' },
+        { label: '메모 입력률', value: '44.4%' },
+      ],
+      watermark: 'ottline.app',
+    });
+  });
+
+  it('builds English first-half recap share payload when requested', () => {
+    expect(buildSeasonalRecapShareCardPayload(report, 'en')).toMatchObject({
+      title: '2026 First-Half Recap',
+      periodLabel: 'Jan 1 - Jun 30, 2026',
+      subtitle: 'A poster recap of your 9 records from the first half of 2026.',
+      stats: [
+        { label: 'First-half records', value: '9' },
+        { label: 'Most logged type', value: 'Series' },
+        { label: 'Memo Entry Rate', value: '44.4%' },
+      ],
     });
   });
 });

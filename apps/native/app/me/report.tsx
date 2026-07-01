@@ -1,9 +1,11 @@
 import { router, useFocusEffect } from 'expo-router';
+import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Image,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -15,7 +17,7 @@ import ViewShot, { releaseCapture } from 'react-native-view-shot';
 import { ReportShareCard, reportShareCardCaptureSize } from '../../components/ReportShareCard';
 import type { ThemeColors } from '../../constants/colors';
 import { Typography } from '../../constants/typography';
-import { getPersonalReport, getUserProfile, trackEvent } from '../../lib/api';
+import { getPersonalReport, getUserProfile, trackEvent, webUrl } from '../../lib/api';
 import { typeLabel } from '../../lib/format';
 import {
   occasionLabels,
@@ -26,7 +28,12 @@ import {
 import { listLogsLocal } from '../../lib/localDb';
 import { useNativePreferences } from '../../lib/nativePreferences';
 import { buildPersonalReport } from '../../lib/report';
-import { reportShareCardFileName, type ReportShareKind } from '../../lib/shareCard';
+import {
+  buildSeasonalRecapShareCardPayload,
+  reportShareCardFileName,
+  seasonalRecapShareCardFileName,
+  type ReportShareKind,
+} from '../../lib/shareCard';
 import { syncNow } from '../../lib/sync';
 import type { Occasion, PersonalReport, Place, TitleType, UserProfile } from '../../lib/types';
 import { useAuthStore } from '../../store/authStore';
@@ -100,6 +107,7 @@ export default function ReportScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [shareKind, setShareKind] = useState<ReportShareKind | null>(null);
+  const [seasonalShareBusy, setSeasonalShareBusy] = useState(false);
   const shareCardRef = useRef<ViewShot>(null);
 
   const load = useCallback(async () => {
@@ -219,6 +227,47 @@ export default function ReportScreen() {
     setShareKind(kind);
   }
 
+  async function shareSeasonalRecapCard() {
+    if (!report?.seasonalRecap || seasonalShareBusy) return;
+    const payload = buildSeasonalRecapShareCardPayload(report, locale);
+    if (!payload) return;
+
+    setSeasonalShareBusy(true);
+    try {
+      const response = await fetch(webUrl('/og/share-card'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!response.ok) throw new Error(copy.shareErrorFallback);
+
+      const filename = seasonalRecapShareCardFileName();
+      const file = new FileSystem.File(FileSystem.Paths.cache, filename);
+      file.write(new Uint8Array(await response.arrayBuffer()));
+      await Sharing.shareAsync(file.uri, {
+        mimeType: 'image/png',
+        UTI: 'public.png',
+        dialogTitle: filename,
+      });
+      trackEvent({
+        eventName: 'h1_recap_share',
+        properties: {
+          source: 'ios_native_report',
+          totalLogs: report.seasonalRecap.totalLogs,
+          posterCount: report.seasonalRecap.posters.length,
+          reportSource: source,
+        },
+      }).catch(() => null);
+    } catch (shareError) {
+      Alert.alert(
+        copy.shareErrorTitle,
+        shareError instanceof Error ? shareError.message : copy.shareErrorFallback,
+      );
+    } finally {
+      setSeasonalShareBusy(false);
+    }
+  }
+
   const reportTitle = profile?.nickname?.trim()
     ? formatCopy(copy.namedReportTitle, { name: profile.nickname.trim() })
     : copy.myReportTitle;
@@ -256,6 +305,55 @@ export default function ReportScreen() {
         </View>
       ) : report ? (
         <>
+          {report.seasonalRecap ? (
+            <View style={styles.seasonalCard}>
+              <View style={styles.seasonalPosterGrid}>
+                {report.seasonalRecap.posters.slice(0, 6).map((item, index) => (
+                  <View key={`${item.titleId}-${index}`} style={styles.seasonalPosterSlot}>
+                    {item.posterUrl ? (
+                      <Image source={{ uri: item.posterUrl }} style={styles.seasonalPoster} />
+                    ) : (
+                      <View style={styles.seasonalPosterFallback}>
+                        <Text numberOfLines={3} style={styles.seasonalPosterFallbackText}>
+                          {item.title}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                ))}
+              </View>
+              <View style={styles.seasonalBody}>
+                <Text style={styles.seasonalKicker}>{copy.h1Period}</Text>
+                <Text style={styles.seasonalTitle}>{copy.h1Title}</Text>
+                <Text style={styles.desc}>
+                  {formatCopy(copy.h1Desc, { count: report.seasonalRecap.totalLogs })}
+                </Text>
+                <View style={styles.seasonalStats}>
+                  <InfoRow styles={styles} label={copy.h1TotalRecords} value={metric(report.seasonalRecap.totalLogs)} />
+                  <InfoRow
+                    styles={styles}
+                    label={copy.h1TopType}
+                    value={topTypeLabel(report.seasonalRecap.topType, locale)}
+                  />
+                  <InfoRow
+                    styles={styles}
+                    label={copy.h1NoteRate}
+                    value={percent(report.seasonalRecap.noteFillPct)}
+                  />
+                </View>
+                <Pressable
+                  disabled={seasonalShareBusy}
+                  onPress={shareSeasonalRecapCard}
+                  style={[styles.seasonalAction, seasonalShareBusy && styles.disabledButton]}
+                >
+                  <Text style={styles.seasonalActionText}>
+                    {seasonalShareBusy ? copy.cardGenerating : copy.h1ShareAction}
+                  </Text>
+                </Pressable>
+              </View>
+            </View>
+          ) : null}
+
           <View style={styles.metricsGrid}>
             <MetricCard styles={styles} label={copy.totalLogs} value={metric(report.totalLogs)} />
             <MetricCard styles={styles} label={copy.thisMonthLogs} value={metric(report.thisMonthLogs)} />
@@ -445,6 +543,54 @@ function createStyles(colors: ThemeColors) {
     },
     noticeText: { ...Typography.bodyMd, color: colors.onSurfaceVariant },
     center: { padding: 32, alignItems: 'center', justifyContent: 'center' },
+    seasonalCard: {
+      borderRadius: 8,
+      backgroundColor: '#fef9ee',
+      overflow: 'hidden',
+      borderWidth: 1,
+      borderColor: colors.outlineVariant,
+    },
+    seasonalPosterGrid: {
+      height: 260,
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 3,
+      backgroundColor: '#ecebe9',
+      padding: 3,
+    },
+    seasonalPosterSlot: {
+      width: '32.7%',
+      height: '49%',
+      borderRadius: 8,
+      overflow: 'hidden',
+      backgroundColor: '#faf5d7',
+    },
+    seasonalPoster: {
+      width: '100%',
+      height: '100%',
+    },
+    seasonalPosterFallback: {
+      flex: 1,
+      justifyContent: 'flex-end',
+      padding: 10,
+    },
+    seasonalPosterFallbackText: {
+      ...Typography.labelSm,
+      color: '#0f0f0f',
+    },
+    seasonalBody: { padding: 16, gap: 12 },
+    seasonalKicker: { ...Typography.accent, color: '#ff9933' },
+    seasonalTitle: { ...Typography.headlineLg, color: '#0f0f0f' },
+    seasonalStats: { gap: 10 },
+    seasonalAction: {
+      minHeight: 48,
+      borderRadius: 8,
+      backgroundColor: '#ff9933',
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginTop: 2,
+    },
+    seasonalActionText: { color: '#ffffff', fontWeight: '800', fontSize: 14 },
     metricsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
     metricCard: {
       width: '48%',

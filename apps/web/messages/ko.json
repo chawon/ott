@@ -19,6 +19,9 @@
     "navPublicModern": "함께",
     "navAccountModern": "설정",
     "profileLink": "내 프로필 설정",
+    "h1RecapNoticeTitle": "2026년 상반기를 돌아볼까요?",
+    "h1RecapNoticeAction": "리캡 보기",
+    "h1RecapNoticeDismiss": "닫기",
     "titleModern": "ottline"
   },
   "AppFooter": {
@@ -650,6 +653,16 @@
     "monthlyRecapCardTitle": "이번 달 장르 회고",
     "monthlyRecapCardSubtitle": "이번 달 가장 많이 남긴 장르는 {genre}입니다. 총 {count}회 기록했어요.",
     "monthlyRecapCardSubtitleEmpty": "이번 달 기록을 더 남기면 장르 회고 카드가 풍성해집니다.",
+    "h1RecapPeriod": "2026.01.01 - 2026.06.30",
+    "h1RecapTitle": "2026년 상반기 돌아보기",
+    "h1RecapDesc": "상반기에 남긴 {count}개의 기록을 포스터와 함께 모았습니다.",
+    "h1TotalRecords": "상반기 기록",
+    "h1TopType": "가장 많이 남긴 종류",
+    "h1NoteRate": "메모 입력률",
+    "h1ShareAction": "상반기 카드 공유",
+    "h1RecapCardTitle": "2026년 상반기 돌아보기",
+    "h1RecapCardSubtitle": "상반기에 남긴 {count}개의 기록을 포스터 카드로 모았어요.",
+    "h1RecapFooter": "보고, 읽고, 남긴 상반기",
     "recapShareText": "ottline 회고 카드: {title}"
   },
   "PwaInstall": {

@@ -1,5 +1,6 @@
 import { reportCopy, type NativeLocale } from './i18n';
-import type { PersonalReport, WatchLog } from './types';
+import { typeLabel } from './format';
+import type { PersonalReport, TitleType, WatchLog } from './types';
 
 export type ReportShareKind = 'weekly' | 'monthly';
 
@@ -7,6 +8,25 @@ export type ReportShareCardContent = {
   title: string;
   subtitle: string;
   stats: Array<{ label: string; value: string }>;
+};
+
+export type RecapShareCardPayload = {
+  cardType: 'recap';
+  recapKind: 'half-year';
+  format: 'story';
+  title: string;
+  subtitle: string;
+  periodLabel: string;
+  posterItems: Array<{
+    title: string;
+    titleType?: string;
+    posterUrl?: string | null;
+    count?: number;
+  }>;
+  stats: Array<{ label: string; value: string }>;
+  footer: string;
+  watermark: string;
+  theme: 'default';
 };
 
 export function logShareCardFileName(log: WatchLog, suffix = 'story') {
@@ -19,6 +39,10 @@ export function logShareCardFileName(log: WatchLog, suffix = 'story') {
 
 export function reportShareCardFileName(kind: ReportShareKind) {
   return `ottline-${kind}-recap.png`;
+}
+
+export function seasonalRecapShareCardFileName() {
+  return 'ottline-2026-h1-recap.png';
 }
 
 function formatCopy(template: string, values: Record<string, string | number>) {
@@ -63,5 +87,42 @@ export function buildReportShareCardContent(
       },
       { label: copy.memoRate, value: `${report.noteFillPct}%` },
     ],
+  };
+}
+
+export function buildSeasonalRecapShareCardPayload(
+  report: PersonalReport,
+  locale: NativeLocale = 'ko',
+): RecapShareCardPayload | null {
+  const recap = report.seasonalRecap;
+  if (!recap) return null;
+  const copy = reportCopy[locale];
+  return {
+    cardType: 'recap',
+    recapKind: 'half-year',
+    format: 'story',
+    title: copy.h1ShareTitle,
+    subtitle: formatCopy(copy.h1ShareSubtitle, { count: recap.totalLogs }),
+    periodLabel: copy.h1Period,
+    posterItems: recap.posters.map((item) => ({
+      title: item.title,
+      titleType: item.titleType,
+      posterUrl: item.posterUrl ?? null,
+      count: item.count,
+    })),
+    stats: [
+      { label: copy.h1TotalRecords, value: String(recap.totalLogs) },
+      {
+        label: copy.h1TopType,
+        value:
+          recap.topType === 'movie' || recap.topType === 'series' || recap.topType === 'book'
+            ? typeLabel(recap.topType as TitleType, locale)
+            : '-',
+      },
+      { label: copy.h1NoteRate, value: `${recap.noteFillPct}%` },
+    ],
+    footer: copy.h1ShareFooter,
+    watermark: 'ottline.app',
+    theme: 'default',
   };
 }

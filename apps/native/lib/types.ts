@@ -237,6 +237,28 @@ export interface DeviceSummary {
   browser?: string | null;
 }
 
+export interface SeasonalRecapPoster {
+  titleId: string;
+  title: string;
+  titleType: string;
+  posterUrl?: string | null;
+  count: number;
+  lastLoggedAt?: string | null;
+}
+
+export interface SeasonalRecap {
+  key: '2026-H1';
+  startDate: string;
+  endDate: string;
+  totalLogs: number;
+  topType: string;
+  topPlace: string;
+  topOccasion: string;
+  doneRatePct: number;
+  noteFillPct: number;
+  posters: SeasonalRecapPoster[];
+}
+
 export interface PersonalReport {
   totalLogs: number;
   thisMonthLogs: number;
@@ -257,6 +279,7 @@ export interface PersonalReport {
   continueSeriesTitle?: string | null;
   continueSeriesSeasonNumber?: number | null;
   continueSeriesEpisodeNumber?: number | null;
+  seasonalRecap?: SeasonalRecap | null;
 }
 
 export interface DiscussionReactionSummary {

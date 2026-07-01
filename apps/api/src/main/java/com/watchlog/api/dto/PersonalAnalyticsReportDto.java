@@ -22,5 +22,6 @@ public record PersonalAnalyticsReportDto(
         UUID continueSeriesTitleId,
         String continueSeriesTitle,
         Integer continueSeriesSeasonNumber,
-        Integer continueSeriesEpisodeNumber
+        Integer continueSeriesEpisodeNumber,
+        SeasonalRecapDto seasonalRecap
 ) {}
