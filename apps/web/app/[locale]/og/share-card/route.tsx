@@ -34,10 +34,17 @@ type ShareCardPayload = {
 
 type RecapShareCardPayload = {
   cardType: "recap";
-  recapKind: "weekly" | "monthly";
+  recapKind: "weekly" | "monthly" | "half-year";
   format?: "story" | "feed";
   title: string;
   subtitle: string;
+  periodLabel?: string;
+  posterItems?: Array<{
+    title: string;
+    titleType?: string;
+    posterUrl?: string | null;
+    count?: number;
+  }>;
   stats: Array<{ label: string; value: string }>;
   footer: string;
   watermark: string;
@@ -439,7 +446,37 @@ async function renderRecapShareCard(body: RecapShareCardPayload) {
     const width = 1080;
     const height = isFeed ? 1350 : 1920;
     const stats = (body.stats ?? []).slice(0, 4);
-    const accent = body.recapKind === "monthly" ? "#f97316" : "#38bdf8";
+    const accent = "#ff9933";
+    const posterItems = (body.posterItems ?? []).slice(0, 6);
+    const posterImageUrls = await Promise.all(
+      posterItems.map((item) => imageDataUrlForRemoteImage(item.posterUrl)),
+    );
+    const hasPosters = posterItems.length > 0;
+    const heroHeight = isFeed ? 840 : 1220;
+    const cardHeight = isFeed ? 1350 : 1920;
+    const mosaicSlots = [
+      { left: 0, top: 0, width: 360, height: heroHeight * 0.55 },
+      { left: 360, top: 0, width: 360, height: heroHeight * 0.45 },
+      { left: 720, top: 0, width: 360, height: heroHeight * 0.58 },
+      {
+        left: 0,
+        top: heroHeight * 0.55,
+        width: 360,
+        height: heroHeight * 0.45,
+      },
+      {
+        left: 360,
+        top: heroHeight * 0.45,
+        width: 360,
+        height: heroHeight * 0.55,
+      },
+      {
+        left: 720,
+        top: heroHeight * 0.58,
+        width: 360,
+        height: heroHeight * 0.42,
+      },
+    ];
 
     return new ImageResponse(
       <div
@@ -448,102 +485,200 @@ async function renderRecapShareCard(body: RecapShareCardPayload) {
           height: "100%",
           display: "flex",
           flexDirection: "column",
-          justifyContent: "space-between",
-          padding: `${s(88)}px`,
-          backgroundColor: "#111827",
-          color: "#ffffff",
+          backgroundColor: "#f8f6f2",
+          color: "#0f0f0f",
           fontFamily: "NanumSquare, sans-serif",
+          position: "relative",
         }}
       >
-        <div style={{ display: "flex", flexDirection: "column", gap: s(24) }}>
+        <div
+          style={{
+            width: "100%",
+            height: s(heroHeight),
+            display: "flex",
+            position: "relative",
+            overflow: "hidden",
+            backgroundColor: "#292724",
+          }}
+        >
+          {hasPosters
+            ? posterItems.map((item, index) => {
+                const slot = mosaicSlots[index] ?? mosaicSlots[0];
+                const posterUrl = posterImageUrls[index];
+                return (
+                  <div
+                    key={`${item.title}-${index}`}
+                    style={{
+                      position: "absolute",
+                      display: "flex",
+                      left: s(slot.left),
+                      top: s(slot.top),
+                      width: s(slot.width),
+                      height: s(slot.height),
+                      border: `${s(4)}px solid #f8f6f2`,
+                      backgroundColor: index % 2 === 0 ? "#211f1c" : "#3a332b",
+                      overflow: "hidden",
+                    }}
+                  >
+                    {posterUrl ? (
+                      <img
+                        src={posterUrl}
+                        alt=""
+                        style={{
+                          width: "100%",
+                          height: "100%",
+                          objectFit: "cover",
+                        }}
+                      />
+                    ) : (
+                      <div
+                        style={{
+                          display: "flex",
+                          width: "100%",
+                          height: "100%",
+                          alignItems: "flex-end",
+                          padding: s(28),
+                          color: "#fff8ef",
+                          fontSize: s(30),
+                          lineHeight: 1.18,
+                          fontWeight: 700,
+                        }}
+                      >
+                        {clampText(item.title, 32)}
+                      </div>
+                    )}
+                  </div>
+                );
+              })
+            : null}
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              display: "flex",
+              background:
+                "linear-gradient(180deg, rgba(0,0,0,0.08) 28%, rgba(0,0,0,0.78) 100%)",
+            }}
+          />
+          <div
+            style={{
+              position: "absolute",
+              left: s(72),
+              bottom: s(64),
+              display: "flex",
+              flexDirection: "column",
+              gap: s(14),
+              color: "#ffffff",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignSelf: "flex-start",
+                padding: `${s(12)}px ${s(18)}px`,
+                borderRadius: s(8),
+                backgroundColor: "rgba(15,15,15,0.72)",
+                fontSize: s(26),
+                fontWeight: 700,
+              }}
+            >
+              {body.periodLabel ??
+                (body.recapKind === "monthly" ? "MONTHLY" : "WEEKLY")}
+            </div>
+            <div
+              style={{
+                display: "flex",
+                maxWidth: s(930),
+                fontSize: s(isFeed ? 70 : 84),
+                lineHeight: 1.02,
+                fontWeight: 700,
+                whiteSpace: "pre-wrap",
+              }}
+            >
+              {clampText(body.title ?? "", 46)}
+            </div>
+          </div>
+        </div>
+
+        <div
+          style={{
+            height: s(cardHeight - heroHeight),
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "space-between",
+            padding: `${s(54)}px ${s(72)}px ${s(58)}px`,
+            backgroundColor: "#f8f6f2",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: s(16),
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                fontSize: s(38),
+                lineHeight: 1.32,
+                color: "#4a4a4a",
+                whiteSpace: "pre-wrap",
+              }}
+            >
+              {clampText(body.subtitle ?? "", 92)}
+            </div>
+            <div
+              style={{
+                display: "flex",
+                gap: s(14),
+              }}
+            >
+              {stats.slice(0, 3).map((stat) => (
+                <div
+                  key={stat.label}
+                  style={{
+                    display: "flex",
+                    flex: 1,
+                    flexDirection: "column",
+                    justifyContent: "space-between",
+                    minHeight: s(132),
+                    padding: `${s(22)}px`,
+                    borderRadius: s(8),
+                    backgroundColor: "#ffffff",
+                    border: "1px solid #ecebe9",
+                  }}
+                >
+                  <span style={{ fontSize: s(22), color: "#4a4a4a" }}>
+                    {clampText(stat.label, 16)}
+                  </span>
+                  <span
+                    style={{
+                      fontSize: s(42),
+                      lineHeight: 1.1,
+                      fontWeight: 700,
+                      color: "#0f0f0f",
+                    }}
+                  >
+                    {clampText(stat.value, 14)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
           <div
             style={{
               display: "flex",
               alignItems: "center",
               justifyContent: "space-between",
-              fontSize: s(28),
-              color: "#cbd5e1",
-            }}
-          >
-            <span>{body.watermark ?? "ottline.app"}</span>
-            <span style={{ color: accent, fontWeight: 700 }}>
-              {body.recapKind === "monthly" ? "MONTHLY" : "WEEKLY"}
-            </span>
-          </div>
-          <div
-            style={{
-              display: "flex",
-              height: s(10),
-              width: s(128),
-              borderRadius: 999,
-              backgroundColor: accent,
-            }}
-          />
-        </div>
-
-        <div style={{ display: "flex", flexDirection: "column", gap: s(40) }}>
-          <div
-            style={{
-              display: "flex",
-              fontSize: s(isFeed ? 72 : 88),
-              lineHeight: 1.08,
+              fontSize: s(27),
               fontWeight: 700,
-              whiteSpace: "pre-wrap",
+              color: "#4a4a4a",
             }}
           >
-            {clampText(body.title ?? "", 54)}
+            <span>{clampText(body.footer ?? "ottline.app", 64)}</span>
+            <span style={{ color: accent }}>{body.watermark ?? "ottline.app"}</span>
           </div>
-          <div
-            style={{
-              display: "flex",
-              fontSize: s(38),
-              lineHeight: 1.35,
-              color: "#dbeafe",
-              whiteSpace: "pre-wrap",
-            }}
-          >
-            {clampText(body.subtitle ?? "", 90)}
-          </div>
-        </div>
-
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: s(18),
-          }}
-        >
-          {stats.map((stat) => (
-            <div
-              key={stat.label}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                padding: `${s(24)}px ${s(28)}px`,
-                borderRadius: s(24),
-                backgroundColor: "rgba(255,255,255,0.08)",
-                border: "1px solid rgba(255,255,255,0.14)",
-              }}
-            >
-              <span style={{ fontSize: s(30), color: "#cbd5e1" }}>
-                {clampText(stat.label, 28)}
-              </span>
-              <span style={{ fontSize: s(38), fontWeight: 700 }}>
-                {clampText(stat.value, 26)}
-              </span>
-            </div>
-          ))}
-        </div>
-
-        <div
-          style={{
-            display: "flex",
-            fontSize: s(28),
-            color: "rgba(255,255,255,0.62)",
-          }}
-        >
-          {clampText(body.footer ?? "ottline.app", 80)}
         </div>
       </div>,
       {
@@ -557,6 +692,23 @@ async function renderRecapShareCard(body: RecapShareCardPayload) {
       `Recap card error: ${error instanceof Error ? error.message : "unknown"}`,
       { status: 500 },
     );
+  }
+}
+
+async function imageDataUrlForRemoteImage(
+  src: string | null | undefined,
+): Promise<string | null> {
+  if (!src) return null;
+  try {
+    const resized = tmdbResize(src, "w500") ?? src;
+    const res = await fetch(resized);
+    if (!res.ok) return null;
+    const arrayBuffer = await res.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    const contentType = res.headers.get("content-type") || "image/jpeg";
+    return `data:${contentType};base64,${buffer.toString("base64")}`;
+  } catch {
+    return null;
   }
 }
 
@@ -658,7 +810,8 @@ export async function GET(req: Request) {
   }
 
   // Extract locale from pathname (e.g., /en/og/share-card -> en)
-  const locale = pathname.split("/")[1] || "ko";
+  const localeSegment = pathname.split("/")[1] || "ko";
+  const locale = localeSegment === "en" ? "en" : "ko";
   const isBookSample = sample === "book";
   const tQuick = await getTranslations({ locale, namespace: "QuickLogCard" });
   const posterUrl = `${origin}/share-cards/${isBookSample ? "sample-book-poster.svg" : "sample-video-poster.svg"}`;

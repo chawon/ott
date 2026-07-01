@@ -2,8 +2,9 @@
 
 import { Download, Share2 } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { api } from "@/lib/api";
+import { trackEvent } from "@/lib/analytics";
 import { listAllLogsLocal } from "@/lib/localStore";
 import { isProfileComplete } from "@/lib/profile";
 import { buildPersonalReport, type PersonalReport } from "@/lib/report";
@@ -15,7 +16,7 @@ import {
 } from "@/lib/share";
 import type { Occasion, Place } from "@/lib/types";
 import { useUserProfile } from "@/lib/useUserProfile";
-import { occasionLabel, placeLabel } from "@/lib/utils";
+import { occasionLabel, placeLabel, tmdbResize } from "@/lib/utils";
 
 function errorMessage(error: unknown) {
   return error instanceof Error ? error.message : null;
@@ -40,7 +41,10 @@ export default function MyReportPage() {
   const [source, setSource] = useState<"server" | "local">("server");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [shareBusy, setShareBusy] = useState<"weekly" | "monthly" | null>(null);
+  const [shareBusy, setShareBusy] = useState<
+    "weekly" | "monthly" | "half-year" | null
+  >(null);
+  const h1ImpressionTracked = useRef(false);
 
   useEffect(() => {
     (async () => {
@@ -65,6 +69,17 @@ export default function MyReportPage() {
       }
     })();
   }, [t]);
+
+  const seasonalRecapForTracking = report?.seasonalRecap ?? null;
+  useEffect(() => {
+    if (!seasonalRecapForTracking || h1ImpressionTracked.current) return;
+    h1ImpressionTracked.current = true;
+    void trackEvent("h1_recap_impression", {
+      recapKey: seasonalRecapForTracking.key,
+      totalLogs: seasonalRecapForTracking.totalLogs,
+      posterCount: seasonalRecapForTracking.posters.length,
+    });
+  }, [seasonalRecapForTracking]);
 
   if (loading) {
     return (
@@ -113,7 +128,7 @@ export default function MyReportPage() {
           ? `E${report.continueSeriesEpisodeNumber}`
           : null;
 
-  async function handleRecapShare(kind: "weekly" | "monthly") {
+  async function handleRecapShare(kind: "weekly" | "monthly" | "half-year") {
     if (!report || shareBusy) return;
     try {
       setShareBusy(kind);
@@ -130,17 +145,50 @@ export default function MyReportPage() {
       if (!shared) {
         await downloadBlob(blob, filename);
       }
+      if (kind === "half-year") {
+        await trackEvent("h1_recap_share", {
+          totalLogs: report.seasonalRecap?.totalLogs ?? 0,
+          posterCount: report.seasonalRecap?.posters.length ?? 0,
+          source,
+        });
+      }
     } finally {
       setShareBusy(null);
     }
   }
 
   function buildRecapSharePayload(
-    kind: "weekly" | "monthly",
+    kind: "weekly" | "monthly" | "half-year",
   ): RecapShareCardPayload {
     const currentReport = report;
     if (!currentReport) {
       throw new Error("Report is not ready");
+    }
+    if (kind === "half-year") {
+      const recap = currentReport.seasonalRecap;
+      if (!recap) throw new Error("Seasonal recap is not ready");
+      return {
+        cardType: "recap",
+        recapKind: "half-year",
+        format: "story",
+        title: t("h1RecapCardTitle"),
+        subtitle: t("h1RecapCardSubtitle", { count: recap.totalLogs }),
+        periodLabel: t("h1RecapPeriod"),
+        posterItems: recap.posters.map((item) => ({
+          title: item.title,
+          titleType: item.titleType,
+          posterUrl: item.posterUrl ?? null,
+          count: item.count,
+        })),
+        stats: [
+          { label: t("h1TotalRecords"), value: String(recap.totalLogs) },
+          { label: t("h1TopType"), value: typeLabel(recap.topType) },
+          { label: t("h1NoteRate"), value: `${recap.noteFillPct}%` },
+        ],
+        footer: t("h1RecapFooter"),
+        watermark: "ottline.app",
+        theme: "default",
+      };
     }
     if (kind === "weekly") {
       return {
@@ -204,6 +252,92 @@ export default function MyReportPage() {
           {source === "server" ? t("syncNotice") : t("localNotice")}
         </p>
       </section>
+
+      {report.seasonalRecap ? (
+        <section
+          id="seasonal-recap"
+          className="scroll-mt-40 overflow-hidden rounded-lg bg-[#FEF9EE] shadow-sm"
+        >
+          <div className="grid gap-0 md:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
+            <div className="grid min-h-[280px] grid-cols-3 gap-1 bg-[#ECEBE9] p-1 sm:min-h-[320px]">
+              {report.seasonalRecap.posters.slice(0, 6).map((item, index) => (
+                <div
+                  key={`${item.titleId}-${index}`}
+                  className="relative overflow-hidden rounded-md bg-[#0F0F0F]"
+                >
+                  {item.posterUrl ? (
+                    <img
+                      src={tmdbResize(item.posterUrl, "w342") ?? item.posterUrl}
+                      alt=""
+                      className="h-full w-full object-cover"
+                      loading="lazy"
+                    />
+                  ) : (
+                    <div className="flex h-full items-end bg-[#FAF5D7] p-3">
+                      <span className="line-clamp-3 text-sm font-semibold text-[#0F0F0F]">
+                        {item.title}
+                      </span>
+                    </div>
+                  )}
+                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-2">
+                    <div className="line-clamp-1 text-xs font-semibold text-white">
+                      {item.title}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="flex flex-col justify-between gap-6 p-5 sm:p-6">
+              <div className="space-y-3">
+                <div className="text-xs font-semibold text-[#FF9933]">
+                  {t("h1RecapPeriod")}
+                </div>
+                <div className="space-y-2">
+                  <h2 className="text-2xl font-bold tracking-tight text-[#0F0F0F]">
+                    {t("h1RecapTitle")}
+                  </h2>
+                  <p className="text-sm leading-6 text-[#4A4A4A]">
+                    {t("h1RecapDesc", {
+                      count: report.seasonalRecap.totalLogs,
+                    })}
+                  </p>
+                </div>
+              </div>
+              <div className="grid gap-2 sm:grid-cols-3">
+                <div className="rounded-lg bg-white p-3">
+                  <div className="text-xs text-[#4A4A4A]">
+                    {t("h1TotalRecords")}
+                  </div>
+                  <div className="mt-1 text-xl font-semibold text-[#0F0F0F]">
+                    {report.seasonalRecap.totalLogs}
+                  </div>
+                </div>
+                <div className="rounded-lg bg-white p-3">
+                  <div className="text-xs text-[#4A4A4A]">{t("h1TopType")}</div>
+                  <div className="mt-1 text-base font-semibold text-[#0F0F0F]">
+                    {typeLabel(report.seasonalRecap.topType)}
+                  </div>
+                </div>
+                <div className="rounded-lg bg-white p-3">
+                  <div className="text-xs text-[#4A4A4A]">{t("h1NoteRate")}</div>
+                  <div className="mt-1 text-xl font-semibold text-[#0F0F0F]">
+                    {report.seasonalRecap.noteFillPct}%
+                  </div>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => handleRecapShare("half-year")}
+                disabled={shareBusy !== null}
+                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-lg bg-[#FF9933] px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#e88724] disabled:opacity-50"
+              >
+                <Share2 className="h-4 w-4" />
+                {shareBusy === "half-year" ? t("sharing") : t("h1ShareAction")}
+              </button>
+            </div>
+          </div>
+        </section>
+      ) : null}
 
       <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <article className="rounded-2xl border border-border bg-card p-4">

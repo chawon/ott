@@ -10,6 +10,9 @@ export default function proxy(request: NextRequest) {
   if (pathname === "/chatgpt" || pathname.startsWith("/chatgpt/")) {
     return NextResponse.next();
   }
+  if (pathname === "/og" || pathname.startsWith("/og/")) {
+    return NextResponse.next();
+  }
 
   return handleI18n(request);
 }

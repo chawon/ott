@@ -20,6 +20,7 @@ import { isProfileComplete } from "@/lib/profile";
 import { useUserProfile } from "@/lib/useUserProfile";
 import { cn } from "@/lib/utils";
 import ProfileAvatar from "./ProfileAvatar";
+import SeasonalRecapNotice from "./SeasonalRecapNotice";
 
 const localeOptions = [
   { value: "ko", shortLabel: "KO", labelKey: "languageKorean" },
@@ -237,6 +238,7 @@ export default function AppHeader() {
           />
         </nav>
       </div>
+      <SeasonalRecapNotice />
     </header>
   );
 }

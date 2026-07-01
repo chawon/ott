@@ -42,6 +42,10 @@ export function setAnalyticsTheme(theme: string | null | undefined) {
   currentAnalyticsTheme = theme || null;
 }
 
+export function webUrl(path: string) {
+  return `${BASE_URL}${path.startsWith('/') ? path : `/${path}`}`;
+}
+
 async function acceptLanguage() {
   const storedLocale = await SecureStore.getItemAsync(STORAGE_KEYS.localePreference);
   if (storedLocale === 'ko' || storedLocale === 'en') return storedLocale;

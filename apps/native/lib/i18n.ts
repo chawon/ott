@@ -46,6 +46,9 @@ export const appShellCopy: Record<
     themeLight: string;
     themeSystem: string;
     themeToggle: string;
+    h1RecapNoticeTitle: string;
+    h1RecapNoticeAction: string;
+    h1RecapNoticeDismiss: string;
   }
 > = {
   ko: {
@@ -58,6 +61,9 @@ export const appShellCopy: Record<
     themeLight: '라이트',
     themeSystem: '시스템',
     themeToggle: '테마 변경',
+    h1RecapNoticeTitle: '2026년 상반기를 돌아볼까요?',
+    h1RecapNoticeAction: '리캡 보기',
+    h1RecapNoticeDismiss: '닫기',
   },
   en: {
     languageKorean: 'Korean',
@@ -69,6 +75,9 @@ export const appShellCopy: Record<
     themeLight: 'Light',
     themeSystem: 'System',
     themeToggle: 'Change theme',
+    h1RecapNoticeTitle: 'Ready to revisit the first half of 2026?',
+    h1RecapNoticeAction: 'View recap',
+    h1RecapNoticeDismiss: 'Dismiss',
   },
 };
 
@@ -805,6 +814,16 @@ export const reportCopy = {
     emptyTitle: '아직 리포트가 없어요.',
     errorFallback: '이용 리포트를 불러오지 못했어요.',
     errorTitle: '불러오기 실패',
+    h1Desc: '상반기에 남긴 {count}개의 기록을 포스터와 함께 모았습니다.',
+    h1NoteRate: '메모 입력률',
+    h1Period: '2026.01.01 - 2026.06.30',
+    h1ShareAction: '상반기 카드 공유',
+    h1ShareFooter: '보고, 읽고, 남긴 상반기',
+    h1ShareSubtitle: '상반기에 남긴 {count}개의 기록을 포스터 카드로 모았어요.',
+    h1ShareTitle: '2026년 상반기 돌아보기',
+    h1Title: '2026년 상반기 돌아보기',
+    h1TopType: '가장 많이 남긴 종류',
+    h1TotalRecords: '상반기 기록',
     lastLog: '최근 기록',
     localNotice: '로컬 기록 기준으로 임시 집계한 리포트입니다.',
     memoRate: '메모 입력률',
@@ -854,6 +873,16 @@ export const reportCopy = {
     emptyTitle: 'No report yet.',
     errorFallback: 'Could not load your report.',
     errorTitle: 'Load failed',
+    h1Desc: '{count} records from the first half of 2026, gathered with your posters.',
+    h1NoteRate: 'Memo Entry Rate',
+    h1Period: 'Jan 1 - Jun 30, 2026',
+    h1ShareAction: 'Share First-Half Card',
+    h1ShareFooter: 'A first half of watching, reading, and remembering',
+    h1ShareSubtitle: 'A poster recap of your {count} records from the first half of 2026.',
+    h1ShareTitle: '2026 First-Half Recap',
+    h1Title: 'Your 2026 First-Half Recap',
+    h1TopType: 'Most logged type',
+    h1TotalRecords: 'First-half records',
     lastLog: 'Latest Record',
     localNotice: 'This report is temporarily based on local records.',
     memoRate: 'Memo Entry Rate',

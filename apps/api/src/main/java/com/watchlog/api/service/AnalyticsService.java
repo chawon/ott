@@ -11,6 +11,8 @@ import com.watchlog.api.dto.AdminEventRowDto;
 import com.watchlog.api.dto.AdminPlatformSummaryDto;
 import com.watchlog.api.dto.AdminMigrationStatusDto;
 import com.watchlog.api.dto.PersonalAnalyticsReportDto;
+import com.watchlog.api.dto.SeasonalRecapDto;
+import com.watchlog.api.dto.SeasonalRecapPosterDto;
 import com.watchlog.api.dto.TrackAnalyticsEventRequest;
 import com.watchlog.api.dto.TrackAnalyticsEventResponse;
 import com.watchlog.api.repo.UserRepository;
@@ -105,7 +107,7 @@ public class AnalyticsService {
                 .filter(l -> l.getDeletedAt() == null)
                 .toList();
         if (logs.isEmpty()) {
-            return new PersonalAnalyticsReportDto(0, 0, 0, 0, 0, "-", "-", "-", 0, 0, null, 0, "-", 0, 0, null, null, null, null);
+            return new PersonalAnalyticsReportDto(0, 0, 0, 0, 0, "-", "-", "-", 0, 0, null, 0, "-", 0, 0, null, null, null, null, null);
         }
 
         ZoneId kst = ZoneId.of("Asia/Seoul");
@@ -195,8 +197,122 @@ public class AnalyticsService {
                 continueSeriesLog == null ? null : continueSeriesLog.getTitle().getId(),
                 continueSeriesLog == null ? null : continueSeriesLog.getTitle().getName(),
                 continueSeriesLog == null ? null : continueSeriesLog.getSeasonNumber(),
-                continueSeriesLog == null ? null : continueSeriesLog.getEpisodeNumber()
+                continueSeriesLog == null ? null : continueSeriesLog.getEpisodeNumber(),
+                buildSeasonalRecap(logs, kst)
         );
+    }
+
+    private SeasonalRecapDto buildSeasonalRecap(List<WatchLogEntity> logs, ZoneId zone) {
+        LocalDate start = LocalDate.of(2026, 1, 1);
+        LocalDate endExclusive = LocalDate.of(2026, 7, 1);
+        Map<String, Integer> typeCounts = new HashMap<>();
+        Map<String, Integer> placeCounts = new HashMap<>();
+        Map<String, Integer> occasionCounts = new HashMap<>();
+        Map<UUID, PosterAccumulator> posterCounts = new HashMap<>();
+        int total = 0;
+        int doneCount = 0;
+        int noteCount = 0;
+
+        for (WatchLogEntity log : logs) {
+            OffsetDateTime watchedAt = log.getWatchedAt();
+            if (watchedAt == null) continue;
+            LocalDate watchedDate = watchedAt.atZoneSameInstant(zone).toLocalDate();
+            if (watchedDate.isBefore(start) || !watchedDate.isBefore(endExclusive)) continue;
+
+            total += 1;
+            if (log.getStatus() != null && "DONE".equals(log.getStatus().name())) {
+                doneCount += 1;
+            }
+            if (log.getNote() != null && !log.getNote().trim().isEmpty()) {
+                noteCount += 1;
+            }
+            if (log.getTitle() != null && log.getTitle().getType() != null) {
+                typeCounts.merge(log.getTitle().getType().name(), 1, Integer::sum);
+            }
+            if (log.getPlace() != null) {
+                placeCounts.merge(log.getPlace().name(), 1, Integer::sum);
+            }
+            if (log.getOccasion() != null) {
+                occasionCounts.merge(log.getOccasion().name(), 1, Integer::sum);
+            }
+
+            if (log.getTitle() == null) continue;
+            UUID titleId = log.getTitle().getId();
+            String preferredPoster = firstNonBlank(log.getSeasonPosterUrl(), log.getTitle().getPosterUrl());
+            PosterAccumulator accumulator = posterCounts.computeIfAbsent(
+                    titleId,
+                    ignored -> new PosterAccumulator(
+                            titleId,
+                            log.getTitle().getName(),
+                            log.getTitle().getType() == null ? "-" : log.getTitle().getType().name()
+                    )
+            );
+            accumulator.count += 1;
+            if (accumulator.posterUrl == null && preferredPoster != null) {
+                accumulator.posterUrl = preferredPoster;
+            }
+            if (accumulator.lastLoggedAt == null || watchedAt.isAfter(accumulator.lastLoggedAt)) {
+                accumulator.lastLoggedAt = watchedAt;
+            }
+        }
+
+        if (total == 0) return null;
+
+        List<SeasonalRecapPosterDto> posters = posterCounts.values().stream()
+                .sorted((a, b) -> {
+                    int posterCompare = Boolean.compare(b.posterUrl != null, a.posterUrl != null);
+                    if (posterCompare != 0) return posterCompare;
+                    int countCompare = Integer.compare(b.count, a.count);
+                    if (countCompare != 0) return countCompare;
+                    if (a.lastLoggedAt == null && b.lastLoggedAt == null) return 0;
+                    if (a.lastLoggedAt == null) return 1;
+                    if (b.lastLoggedAt == null) return -1;
+                    return b.lastLoggedAt.compareTo(a.lastLoggedAt);
+                })
+                .limit(6)
+                .map(item -> new SeasonalRecapPosterDto(
+                        item.titleId,
+                        item.title,
+                        item.titleType,
+                        item.posterUrl,
+                        item.count,
+                        item.lastLoggedAt
+                ))
+                .toList();
+
+        return new SeasonalRecapDto(
+                "2026-H1",
+                start.toString(),
+                endExclusive.minusDays(1).toString(),
+                total,
+                topKey(typeCounts),
+                topKey(placeCounts),
+                topKey(occasionCounts),
+                pct(doneCount, total),
+                pct(noteCount, total),
+                posters
+        );
+    }
+
+    private String firstNonBlank(String primary, String fallback) {
+        if (primary != null && !primary.isBlank()) return primary;
+        if (fallback != null && !fallback.isBlank()) return fallback;
+        return null;
+    }
+
+    private static class PosterAccumulator {
+        private final UUID titleId;
+        private final String title;
+        private final String titleType;
+        private String posterUrl;
+        private int count;
+        private OffsetDateTime lastLoggedAt;
+
+        private PosterAccumulator(UUID titleId, String title, String titleType) {
+            this.titleId = titleId;
+            this.title = title;
+            this.titleType = titleType;
+        }
     }
 
     private boolean isSeriesContinueCandidate(WatchLogEntity log, LocalDate watchedDate, LocalDate today) {

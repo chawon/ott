@@ -290,7 +290,12 @@ export async function trackEvent(
     | "title_select"
     | "recommendation_open"
     | "recommendation_refresh"
-    | "recommendation_dismiss",
+    | "recommendation_dismiss"
+    | "h1_recap_impression"
+    | "h1_recap_share"
+    | "h1_recap_notice_impression"
+    | "h1_recap_notice_click"
+    | "h1_recap_notice_dismiss",
   properties?: Record<string, unknown>,
 ) {
   try {

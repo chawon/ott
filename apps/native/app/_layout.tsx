@@ -4,6 +4,7 @@ import { Stack, router, usePathname } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { ActivityIndicator, AppState, Platform, View } from 'react-native';
 import { NativeAppHeader } from '../components/NativeAppHeader';
+import { SeasonalRecapNotice } from '../components/SeasonalRecapNotice';
 import { useAuthStore } from '../store/authStore';
 import { initDb } from '../lib/localDb';
 import {
@@ -106,6 +107,7 @@ function RootLayoutContent() {
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} backgroundColor={colors.background} />
       <NativeAppHeader />
+      <SeasonalRecapNotice />
       <View style={{ flex: 1 }}>
         <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background } }}>
           <Stack.Screen name="(tabs)" />
