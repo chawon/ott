@@ -376,6 +376,18 @@ iOS v1은 회고 리마인드 성격의 알림만 제공한다.
 
 관리자 analytics는 기존 세그먼트에 iOS를 optional로 추가한다. Android/TWA 분류 로직과 섞지 않는다.
 
+### 2026-07-01 출시 후 분석 도구 메모
+
+iOS 네이티브 앱은 WebView/PWA/TWA 래퍼가 아니므로 웹/TWA에서 쓰던 외부 분석 태그를 그대로 공유하지 않는다.
+
+- 현재 앱 내부 행동 퍼널의 우선 기준은 `/api/nalytic/events` 기반 내부 admin analytics다.
+- GA4가 필요하면 웹 `gtag.js`가 아니라 Firebase Analytics 또는 React Native Firebase 같은 iOS native SDK/app stream으로 붙인다.
+- Microsoft Clarity가 필요하면 웹 script가 아니라 React Native/iOS SDK로 붙인다. 기록, 프로필, 문의, 복구 코드 화면의 마스킹 정책을 먼저 정한다.
+- Cloudflare는 iOS 앱의 `https://ottline.app` API 호출과 edge 트래픽을 볼 수 있지만, native 화면 행동 분석 도구로 보지 않는다.
+- App Store Connect Analytics는 설치, 제품 페이지, 다운로드, 리텐션 같은 스토어 지표를 담당한다.
+
+후속 정리 후보: App Store 공개 이후에도 native analytics properties의 `installState`가 `app_store_testflight`로 고정되어 있다. 코드 변경 시 `app_store`로 바꾸거나, `installState`와 별개로 `distributionChannel=app_store|testflight`를 분리한다.
+
 ## 13. App Review / TestFlight 리스크
 
 Apple 공식 문서 기준으로 다음을 계획에 반영한다.
