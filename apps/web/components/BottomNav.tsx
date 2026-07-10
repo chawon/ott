@@ -36,23 +36,28 @@ function NavLink({
       onTouchStart={() => onActivate(href)}
       data-bottom-nav-href={href}
       className={cn(
-        "group flex min-h-14 flex-1 touch-manipulation select-none flex-col items-center justify-center gap-1 rounded-2xl px-1 py-1.5 text-[10px] font-medium transition-colors [-webkit-tap-highlight-color:transparent] active:bg-transparent focus:outline-none focus-visible:ring-2 focus-visible:ring-[#FF9933]/40",
+        "group relative flex min-h-14 flex-1 touch-manipulation select-none flex-col items-center justify-center gap-1 rounded-2xl px-1 py-1.5 text-[10px] font-medium transition-colors [-webkit-tap-highlight-color:transparent] active:bg-transparent focus:outline-none focus-visible:ring-2 focus-visible:ring-[#FF9933]/40",
         active
           ? "text-foreground"
           : "text-muted-foreground hover:bg-ott-paper-strong/70 hover:text-foreground/80 active:text-[#4A4A4A]",
       )}
-      style={active ? { color: "#0F0F0F" } : undefined}
       aria-current={active ? "page" : undefined}
       data-active={active ? "true" : "false"}
     >
+      <span
+        aria-hidden="true"
+        className={cn(
+          "absolute top-1 h-0.5 w-5 rounded-full bg-[#FF9933] transition-opacity",
+          active ? "opacity-100" : "opacity-0",
+        )}
+      />
       <div
         className={cn(
           "flex h-8 w-12 items-center justify-center rounded-full transition-all",
-          active ? "shadow-sm" : "bg-transparent group-hover:bg-card/80",
+          active
+            ? "bg-ott-paper-strong text-[#1E4D8C] shadow-sm ring-1 ring-border dark:text-foreground"
+            : "bg-transparent group-hover:bg-card/80",
         )}
-        style={
-          active ? { backgroundColor: "#FF9933", color: "#FFFFFF" } : undefined
-        }
       >
         <Icon
           className={cn(
@@ -67,14 +72,6 @@ function NavLink({
           active ? "font-semibold" : "text-[#4A4A4A] dark:text-[#D8CFC4]",
         )}
         data-active={active ? "true" : "false"}
-        style={
-          active
-            ? {
-                backgroundColor: "rgb(255 248 239 / 0.94)",
-                color: "#0F0F0F",
-              }
-            : undefined
-        }
       >
         {label}
       </span>
@@ -143,7 +140,7 @@ export default function BottomNav() {
   return (
     <nav
       ref={navRef}
-      className="app-bottom-nav fixed left-3 right-3 bottom-[calc(var(--mobile-safe-area-bottom)+0.75rem)] z-50 flex min-h-16 rounded-[28px] border border-[#FF9933]/25 bg-card/95 p-1.5 shadow-[0_18px_50px_rgba(255,153,51,0.2)] backdrop-blur-xl transition-colors duration-200 dark:bg-card/90 sm:hidden"
+      className="app-bottom-nav fixed left-3 right-3 bottom-[calc(var(--mobile-safe-area-bottom)+0.75rem)] z-50 flex min-h-16 rounded-[28px] border border-border bg-card/95 p-1.5 shadow-[0_18px_50px_rgba(15,15,15,0.12)] backdrop-blur-xl transition-colors duration-200 dark:bg-card/90 sm:hidden"
       onPointerDownCapture={handleNavCapture}
       onTouchStartCapture={handleNavCapture}
     >

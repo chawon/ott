@@ -80,7 +80,7 @@ export default function PwaInstallBanner() {
     <div className="fixed bottom-[var(--mobile-bottom-overlay-offset)] left-4 right-4 z-[100] animate-in fade-in slide-in-from-bottom-4 sm:bottom-6 sm:left-auto sm:right-6 sm:w-96">
       <div className="relative overflow-hidden rounded-2xl border border-border bg-card p-4 shadow-2xl backdrop-blur-md">
         <div className="flex items-start gap-4">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-indigo-500 text-white shadow-lg shadow-indigo-500/20">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-ott-paper-strong text-[#1E4D8C] dark:text-foreground">
             <Smartphone className="h-6 w-6" />
           </div>
           <div className="flex-1 pr-6">
@@ -99,7 +99,7 @@ export default function PwaInstallBanner() {
                   {t("installAction")}
                 </button>
               ) : platform === "ios" ? (
-                <div className="flex min-h-12 items-center gap-1.5 rounded-lg bg-indigo-50 px-3 text-[10px] font-bold text-indigo-600">
+                <div className="flex min-h-12 items-center gap-1.5 rounded-lg bg-ott-paper-strong px-3 text-[10px] font-bold text-[#1E4D8C] dark:text-foreground">
                   <Share className="h-3.5 w-3.5" />
                   <span>Safari &gt; Add to Home Screen</span>
                 </div>

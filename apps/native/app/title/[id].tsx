@@ -447,7 +447,7 @@ export default function TitleDetailScreen() {
 
       {loading ? (
         <View style={styles.center}>
-          <ActivityIndicator color={colors.primaryContainer} />
+          <ActivityIndicator color={colors.onSurfaceVariant} />
         </View>
       ) : logs.length === 0 ? (
         <View style={styles.empty}>
@@ -511,7 +511,7 @@ export default function TitleDetailScreen() {
                             onChangeText={(value) => updateDraft({ seasonNumber: value.replace(/[^0-9]/g, '') })}
                             placeholder={copy.seasonPlaceholder}
                             placeholderTextColor={colors.onSurfaceVariant}
-                            selectionColor={colors.primaryContainer}
+                            selectionColor={colors.focus}
                             keyboardType="number-pad"
                             style={styles.input}
                           />
@@ -520,7 +520,7 @@ export default function TitleDetailScreen() {
                             onChangeText={(value) => updateDraft({ episodeNumber: value.replace(/[^0-9]/g, '') })}
                             placeholder={copy.episodePlaceholder}
                             placeholderTextColor={colors.onSurfaceVariant}
-                            selectionColor={colors.primaryContainer}
+                            selectionColor={colors.focus}
                             keyboardType="number-pad"
                             style={styles.input}
                           />
@@ -576,7 +576,7 @@ export default function TitleDetailScreen() {
                       onChangeText={(value) => updateDraft({ ott: value })}
                       placeholder={log.title.type === 'book' ? copy.platformBookPlaceholder : copy.platformVideoPlaceholder}
                       placeholderTextColor={colors.onSurfaceVariant}
-                      selectionColor={colors.primaryContainer}
+                      selectionColor={colors.focus}
                       style={styles.input}
                     />
                     <View style={styles.statusRow}>
@@ -612,7 +612,7 @@ export default function TitleDetailScreen() {
                       multiline
                       placeholder={copy.notePlaceholder}
                       placeholderTextColor={colors.onSurfaceVariant}
-                      selectionColor={colors.primaryContainer}
+                      selectionColor={colors.focus}
                       style={[styles.input, styles.noteInput]}
                     />
 
@@ -744,8 +744,8 @@ function createStyles(colors: ThemeColors) {
       justifyContent: 'center',
       backgroundColor: colors.surface,
     },
-    backText: { fontSize: 30, lineHeight: 32, color: colors.primaryContainer },
-    kicker: { ...Typography.accent, color: colors.tertiary },
+    backText: { fontSize: 30, lineHeight: 32, color: colors.link },
+    kicker: { ...Typography.accent, color: colors.onSurfaceVariant },
     title: { ...Typography.headlineLg, color: colors.onBackground, fontSize: 28 },
 	    desc: { ...Typography.bodyMd, color: colors.onSurfaceVariant },
 	    togetherCard: {
@@ -760,11 +760,11 @@ function createStyles(colors: ThemeColors) {
 	    togetherButton: {
 	      minHeight: 46,
 	      borderRadius: 14,
-	      backgroundColor: colors.primaryContainer,
+	      backgroundColor: colors.selectedSurface,
 	      alignItems: 'center',
 	      justifyContent: 'center',
 	    },
-	    togetherButtonText: { ...Typography.labelLg, color: colors.background },
+	    togetherButtonText: { ...Typography.labelLg, color: colors.link },
 	    center: { padding: 32, alignItems: 'center' },
     empty: {
       borderRadius: 20,
@@ -821,18 +821,18 @@ function createStyles(colors: ThemeColors) {
       paddingVertical: 8,
       backgroundColor: colors.surface,
     },
-    chipActive: { borderColor: colors.primaryContainer, backgroundColor: colors.surfaceStrong },
+    chipActive: { borderColor: colors.link, backgroundColor: colors.selectedSurface },
     chipText: { ...Typography.labelLg, color: colors.onSurface },
-    chipTextActive: { color: colors.primaryContainer },
+    chipTextActive: { color: colors.link },
     primaryButton: {
       flex: 1,
       minHeight: 46,
       borderRadius: 14,
-      backgroundColor: colors.primaryContainer,
+      backgroundColor: colors.action,
       alignItems: 'center',
       justifyContent: 'center',
     },
-    primaryButtonText: { color: colors.background, fontWeight: '800' },
+    primaryButtonText: { color: colors.onAction, fontWeight: '800' },
     secondaryButton: {
       flex: 1,
       minHeight: 46,

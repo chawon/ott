@@ -168,11 +168,11 @@ export default function AboutPage() {
         </p>
       </section>
 
-      <section className="rounded-3xl border border-sky-200 bg-[linear-gradient(135deg,rgba(240,249,255,0.96),rgba(224,242,254,0.82))] p-6 text-slate-900">
-        <h2 className="text-lg font-semibold">
+      <section className="rounded-3xl border border-[#1E4D8C]/20 bg-ott-paper-strong p-6 text-foreground dark:border-border">
+        <h2 className="text-lg font-semibold text-[#1E4D8C] dark:text-foreground">
           {tAbout("pairingHighlightTitle")}
         </h2>
-        <p className="mt-2 text-sm leading-relaxed text-slate-700">
+        <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
           {tAbout("pairingHighlightDesc")}
         </p>
       </section>

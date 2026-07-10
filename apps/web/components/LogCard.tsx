@@ -133,7 +133,7 @@ export default function LogCard({
   return (
     <article
       className={cn(
-        "flex gap-5 rounded-2xl border border-border bg-card/90 p-5 text-card-foreground shadow-sm transition-colors duration-150 hover:border-primary/20",
+        "flex gap-5 rounded-2xl border border-border bg-card/90 p-5 text-card-foreground shadow-sm transition-colors duration-150 hover:border-muted-foreground/25",
         isBook &&
           "bg-ott-sage/20 ring-1 ring-ott-sage/50 dark:bg-emerald-950/25 dark:ring-emerald-900/60",
         isBook &&
@@ -179,17 +179,17 @@ export default function LogCard({
             </Link>
             <div className="mt-1 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
               {isBook ? (
-                <span className="inline-flex items-center gap-1 rounded-full border border-ott-sage bg-ott-sage/55 px-2 py-0.5 text-[10px] font-semibold text-ott-sage-foreground dark:border-emerald-900/60 dark:bg-emerald-950/40 dark:text-emerald-200">
+                <span className="inline-flex items-center gap-1 rounded-full border border-border bg-muted/60 px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
                   <BookOpen className="h-3 w-3" />
                   BOOK
                 </span>
               ) : t.type === "movie" ? (
-                <span className="inline-flex items-center gap-1 rounded-full border border-ott-sky-soft bg-ott-sky-soft px-2 py-0.5 text-[10px] font-semibold text-primary dark:border-indigo-900/60 dark:bg-indigo-950/40 dark:text-indigo-200">
+                <span className="inline-flex items-center gap-1 rounded-full border border-border bg-muted/60 px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
                   <Film className="h-3 w-3" />
                   MOVIE
                 </span>
               ) : (
-                <span className="inline-flex items-center gap-1 rounded-full border border-ott-warm bg-ott-warm/60 px-2 py-0.5 text-[10px] font-semibold text-ott-warm-foreground dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-200">
+                <span className="inline-flex items-center gap-1 rounded-full border border-border bg-muted/60 px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
                   <Tv className="h-3 w-3" />
                   SERIES
                 </span>
@@ -206,13 +206,13 @@ export default function LogCard({
               {log.ott ? (
                 <>
                   <span className="text-muted-foreground/60">·</span>
-                  <span className="text-primary/80">{log.ott}</span>
+                  <span>{log.ott}</span>
                 </>
               ) : null}
             </div>
           </div>
           {typeof log.rating === "number" ? (
-            <div className="shrink-0 rounded-xl bg-primary px-2.5 py-1 text-xs font-bold text-primary-foreground shadow-sm">
+            <div className="shrink-0 rounded-xl bg-accent px-2.5 py-1 text-xs font-bold text-accent-foreground">
               {log.rating.toFixed(1)}
             </div>
           ) : null}
@@ -284,7 +284,7 @@ export default function LogCard({
           ) : (
             <Link
               href={`/title/${t.id}`}
-              className="inline-flex items-center gap-1.5 rounded-full border border-ott-sky-soft bg-ott-sky-soft px-2.5 py-1 text-[11px] font-medium text-primary transition-colors hover:bg-accent dark:border-blue-900/50 dark:bg-blue-950/40 dark:text-blue-400"
+              className="inline-flex items-center gap-1.5 rounded-full border border-border bg-ott-paper px-2.5 py-1 text-[11px] font-medium text-muted-foreground transition-colors hover:bg-ott-paper-strong hover:text-foreground"
             >
               <MessageSquare className="h-3 w-3" />+ {tCommon("addMoreDetails")}
             </Link>

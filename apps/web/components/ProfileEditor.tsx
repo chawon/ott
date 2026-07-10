@@ -130,7 +130,7 @@ export default function ProfileEditor({
                 className={cn(
                   "flex min-h-[96px] flex-col items-center justify-center gap-2 rounded-xl border px-2 py-3 text-center text-xs font-semibold transition",
                   selected
-                    ? "border-sky-500 bg-sky-50 text-sky-800 shadow-sm dark:bg-sky-950/30 dark:text-sky-100"
+                    ? "border-[#1E4D8C]/40 bg-ott-paper-strong text-[#1E4D8C] shadow-sm ring-1 ring-[#1E4D8C]/15 dark:border-border dark:text-foreground dark:ring-border"
                     : "border-border bg-background text-muted-foreground hover:bg-muted",
                   "disabled:opacity-50",
                 )}
@@ -147,7 +147,9 @@ export default function ProfileEditor({
         <p className="text-xs font-medium text-red-600">{error}</p>
       ) : null}
       {message ? (
-        <p className="text-xs font-medium text-blue-600">{message}</p>
+        <p className="text-xs font-medium text-[#1E4D8C] dark:text-foreground">
+          {message}
+        </p>
       ) : null}
 
       <div className="flex flex-col gap-2 sm:flex-row">

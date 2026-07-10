@@ -62,14 +62,11 @@ function NavLink({
     <IntlLink
       href={href}
       className={cn(
-        "w-full rounded-xl px-1.5 py-2 text-[11px] font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF9933]/40 sm:w-auto sm:px-3 sm:text-sm",
+        "relative w-full rounded-xl px-1.5 py-2 text-[11px] font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF9933]/40 sm:w-auto sm:px-3 sm:text-sm",
         active
-          ? "shadow-sm"
+          ? "bg-ott-paper-strong text-foreground shadow-sm ring-1 ring-border"
           : "text-muted-foreground hover:bg-ott-paper-strong hover:text-foreground",
       )}
-      style={
-        active ? { backgroundColor: "#FF9933", color: "#0F0F0F" } : undefined
-      }
       aria-current={active ? "page" : undefined}
       data-active={active ? "true" : "false"}
     >
@@ -77,6 +74,13 @@ function NavLink({
         {Icon ? <Icon className="h-4 w-4" /> : null}
         {label}
       </span>
+      <span
+        aria-hidden="true"
+        className={cn(
+          "absolute bottom-0 left-1/2 h-0.5 w-5 -translate-x-1/2 rounded-full bg-[#FF9933] transition-opacity",
+          active ? "opacity-100" : "opacity-0",
+        )}
+      />
     </IntlLink>
   );
 }
@@ -167,14 +171,9 @@ export default function AppHeader() {
                     className={cn(
                       "inline-flex h-7 min-w-7 items-center justify-center rounded-full px-2 text-[9px] font-semibold uppercase tracking-[0.1em] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:h-6 sm:min-w-6",
                       active
-                        ? "shadow-sm"
+                        ? "bg-card text-foreground shadow-sm ring-1 ring-border"
                         : "text-muted-foreground hover:bg-ott-paper-strong hover:text-foreground",
                     )}
-                    style={
-                      active
-                        ? { backgroundColor: "#FF9933", color: "#0F0F0F" }
-                        : undefined
-                    }
                     aria-pressed={active}
                     aria-label={
                       active

@@ -626,7 +626,7 @@ export default function HomePage() {
             </div>
             <Link
               href="/timeline"
-              className="text-sm font-medium text-primary hover:underline"
+              className="text-sm font-medium text-[#1E4D8C] hover:underline dark:text-foreground"
             >
               {tHome("viewAll")}
             </Link>
@@ -676,7 +676,7 @@ export default function HomePage() {
           </div>
           <Link
             href="/public"
-            className="text-sm font-medium text-primary hover:underline"
+            className="text-sm font-medium text-[#1E4D8C] hover:underline dark:text-foreground"
           >
             {tHome("viewAll")}
           </Link>

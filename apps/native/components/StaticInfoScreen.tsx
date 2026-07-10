@@ -70,8 +70,8 @@ function createStyles(colors: ThemeColors) {
     justifyContent: 'center',
     backgroundColor: colors.surface,
   },
-  backText: { fontSize: 28, color: colors.primaryContainer, lineHeight: 32 },
-  kicker: { ...Typography.accent, color: colors.secondary },
+  backText: { fontSize: 28, color: colors.link, lineHeight: 32 },
+  kicker: { ...Typography.accent, color: colors.onSurfaceVariant },
   title: { ...Typography.headlineLg, color: colors.onSurface, fontSize: 30 },
   desc: { ...Typography.bodyMd, color: colors.onSurfaceVariant },
   card: {
@@ -85,7 +85,7 @@ function createStyles(colors: ThemeColors) {
   sectionTitle: { ...Typography.headlineSm, color: colors.onSurface },
   body: { ...Typography.bodyMd, color: colors.onSurfaceVariant },
   bulletRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
-  bulletMark: { ...Typography.bodyMd, color: colors.secondary, lineHeight: 20 },
+  bulletMark: { ...Typography.bodyMd, color: colors.onSurfaceVariant, lineHeight: 20 },
   bulletText: { ...Typography.bodyMd, color: colors.onSurfaceVariant, flex: 1 },
 });
 }

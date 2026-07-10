@@ -168,7 +168,7 @@ function createStyles(colors: ThemeColors) {
     icon: {
       ...Typography.bodyLg,
       flexShrink: 0,
-      color: colors.primaryContainer,
+      color: colors.link,
       fontWeight: '800',
     },
     title: {
@@ -183,12 +183,14 @@ function createStyles(colors: ThemeColors) {
       alignItems: 'center',
       justifyContent: 'center',
       borderRadius: 8,
-      backgroundColor: colors.primaryContainer,
+      borderWidth: 1,
+      borderColor: colors.link,
+      backgroundColor: colors.selectedSurface,
       paddingHorizontal: 14,
     },
     actionText: {
       ...Typography.labelLg,
-      color: '#ffffff',
+      color: colors.link,
       fontWeight: '800',
     },
     dismiss: {

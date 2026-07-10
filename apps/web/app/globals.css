@@ -12,7 +12,7 @@
     "Pretendard Variable", Pretendard, "Poppins", -apple-system, BlinkMacSystemFont, system-ui, Roboto, "Helvetica Neue", "Segoe UI", "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", sans-serif;
   --font-mono: var(--font-geist-mono);
 
-  --color-brand-navy: #ff9933;
+  --color-brand-navy: #1e4d8c;
   --color-brand-cyan: #e9b83f;
   --color-brand-bg-light: #f8f6f2;
   --color-brand-bg-dark: #211c18;
@@ -78,7 +78,7 @@
   --popover: #ffffff;
   --popover-foreground: #0f0f0f;
   --primary: #ff9933;
-  --primary-foreground: #ffffff;
+  --primary-foreground: #0f0f0f;
   --secondary: #fef9ee;
   --secondary-foreground: #0f0f0f;
   --muted: #ecebe9;
@@ -104,7 +104,7 @@
   --sidebar: #f8f6f2;
   --sidebar-foreground: #0f0f0f;
   --sidebar-primary: #ff9933;
-  --sidebar-primary-foreground: #ffffff;
+  --sidebar-primary-foreground: #0f0f0f;
   --sidebar-accent: #fef9ee;
   --sidebar-accent-foreground: #0f0f0f;
   --sidebar-border: #ecebe9;
@@ -208,8 +208,8 @@
   }
 
   .app-bottom-nav .bottom-nav-label[data-active="true"] {
-    color: #0f0f0f;
-    background: rgb(255 248 239 / 0.92);
-    box-shadow: inset 0 0 0 1px rgb(255 153 51 / 0.22);
+    color: var(--foreground);
+    background: var(--card);
+    box-shadow: inset 0 0 0 1px var(--border);
   }
 }

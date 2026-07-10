@@ -8,10 +8,12 @@ import { useNativePreferences } from '../../lib/nativePreferences';
 type TabName = 'log' | 'timeline' | 'together' | 'account';
 
 function TabBarIcon({ colors, name, active }: { colors: ThemeColors; name: TabName; active: boolean }) {
-  const color = active ? '#0F0F0F' : colors.onSurfaceVariant;
+  const color = active ? colors.link : colors.onSurfaceVariant;
+  const styles = createIconStyles(colors);
 
   return (
-    <View style={[iconStyles.box, active && iconStyles.boxActive]}>
+    <View style={[styles.box, active && styles.boxActive]}>
+      {active ? <View style={styles.activeIndicator} /> : null}
       <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
         {name === 'log' ? (
           <>
@@ -60,9 +62,9 @@ export default function TabsLayout() {
       screenOptions={{
         headerShown: false,
         tabBarStyle: styles.tabBar,
-        tabBarActiveTintColor: colors.secondary,
+        tabBarActiveTintColor: colors.link,
         tabBarInactiveTintColor: colors.onSurfaceVariant,
-        tabBarActiveBackgroundColor: colors.surfaceMuted,
+        tabBarActiveBackgroundColor: colors.selectedSurface,
         tabBarInactiveBackgroundColor: 'transparent',
         tabBarIconStyle: styles.iconSlot,
         tabBarItemStyle: styles.item,
@@ -150,15 +152,29 @@ function createStyles(colors: ThemeColors) {
   });
 }
 
-const iconStyles = StyleSheet.create({
-  box: {
-    width: 42,
-    height: 30,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 999,
-  },
-  boxActive: {
-    backgroundColor: '#FF9933',
-  },
-});
+function createIconStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    box: {
+      width: 42,
+      height: 30,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderRadius: 999,
+      borderWidth: 1,
+      borderColor: 'transparent',
+    },
+    boxActive: {
+      borderColor: colors.link,
+      backgroundColor: colors.selectedSurface,
+    },
+    activeIndicator: {
+      position: 'absolute',
+      top: -4,
+      left: 11,
+      width: 20,
+      height: 2,
+      borderRadius: 1,
+      backgroundColor: colors.action,
+    },
+  });
+}

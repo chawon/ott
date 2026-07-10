@@ -75,7 +75,7 @@ function PosterRail({
               key={key}
               type="button"
               onClick={() => onSelect(titleItem, source)}
-              className="group min-w-0 rounded-lg border border-border bg-card text-left transition-colors hover:border-primary/40 hover:bg-ott-paper-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+              className="group min-w-0 rounded-lg border border-border bg-card text-left transition-colors hover:border-muted-foreground/30 hover:bg-ott-paper-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
             >
               <div className="aspect-[2/3] w-full overflow-hidden rounded-t-lg bg-muted">
                 {titleItem.posterUrl ? (
@@ -170,7 +170,7 @@ export default function FirstLogActivationPanel({
     <section className="rounded-lg border border-border bg-card p-4 text-card-foreground shadow-sm sm:p-5">
       <div className="flex items-start gap-3">
         <div className="min-w-0 flex-1 space-y-1">
-          <div className="text-xs font-semibold text-primary">
+          <div className="text-xs font-semibold text-muted-foreground">
             {t("eyebrow")}
           </div>
           <h2 className="text-xl font-semibold leading-tight text-foreground">
@@ -199,8 +199,8 @@ export default function FirstLogActivationPanel({
           className={cn(
             "flex min-h-14 items-center justify-center gap-2 rounded-lg border px-3 text-sm font-semibold transition-colors",
             contentType === "video"
-              ? "border-primary bg-primary text-primary-foreground"
-              : "border-border bg-ott-paper text-foreground hover:bg-ott-paper-strong",
+              ? "border-[#1E4D8C]/40 bg-ott-paper-strong text-[#1E4D8C] shadow-sm ring-1 ring-[#1E4D8C]/15 dark:border-border dark:text-foreground dark:ring-border"
+              : "border-border bg-card text-muted-foreground hover:bg-ott-paper-strong hover:text-foreground",
           )}
         >
           <Film className="h-4 w-4" />
@@ -213,8 +213,8 @@ export default function FirstLogActivationPanel({
           className={cn(
             "flex min-h-14 items-center justify-center gap-2 rounded-lg border px-3 text-sm font-semibold transition-colors",
             contentType === "book"
-              ? "border-ott-sage bg-ott-sage text-ott-sage-foreground"
-              : "border-border bg-ott-paper text-foreground hover:bg-ott-paper-strong",
+              ? "border-[#1E4D8C]/40 bg-ott-paper-strong text-[#1E4D8C] shadow-sm ring-1 ring-[#1E4D8C]/15 dark:border-border dark:text-foreground dark:ring-border"
+              : "border-border bg-card text-muted-foreground hover:bg-ott-paper-strong hover:text-foreground",
           )}
         >
           <BookOpen className="h-4 w-4" />
@@ -274,7 +274,7 @@ export default function FirstLogActivationPanel({
           <button
             type="button"
             onClick={() => onFindOther("video")}
-            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-primary bg-card px-4 text-sm font-semibold text-primary transition-colors hover:bg-ott-paper-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-border bg-card px-4 text-sm font-semibold text-[#1E4D8C] transition-colors hover:bg-ott-paper-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 dark:text-foreground"
           >
             <Search className="h-4 w-4" />
             {t("findOtherVideo")}
@@ -294,21 +294,21 @@ export default function FirstLogActivationPanel({
             <button
               type="button"
               onClick={() => selectBookStatus("IN_PROGRESS")}
-              className="min-h-12 rounded-lg border border-ott-sage bg-ott-sage/45 px-3 text-sm font-semibold text-ott-sage-foreground transition-colors hover:bg-ott-sage/65 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+              className="min-h-12 rounded-lg border border-border bg-ott-paper px-3 text-sm font-semibold text-foreground transition-colors hover:bg-ott-paper-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
             >
               {t("bookStatusInProgress")}
             </button>
             <button
               type="button"
               onClick={() => selectBookStatus("DONE")}
-              className="min-h-12 rounded-lg bg-primary px-3 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+              className="min-h-12 rounded-lg border border-border bg-ott-paper px-3 text-sm font-semibold text-foreground transition-colors hover:bg-ott-paper-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
             >
               {t("bookStatusDone")}
             </button>
             <button
               type="button"
               onClick={() => selectBookStatus("WISHLIST")}
-              className="min-h-12 rounded-lg border border-ott-warm bg-ott-warm/60 px-3 text-sm font-semibold text-ott-warm-foreground transition-colors hover:bg-ott-warm/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+              className="min-h-12 rounded-lg border border-border bg-ott-paper px-3 text-sm font-semibold text-foreground transition-colors hover:bg-ott-paper-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
             >
               {t("bookStatusWishlist")}
             </button>
@@ -316,7 +316,7 @@ export default function FirstLogActivationPanel({
           <button
             type="button"
             onClick={() => onFindOther("book")}
-            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-border bg-card px-4 text-sm font-semibold text-foreground transition-colors hover:bg-ott-paper-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-border bg-card px-4 text-sm font-semibold text-[#1E4D8C] transition-colors hover:bg-ott-paper-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 dark:text-foreground"
           >
             <Search className="h-4 w-4" />
             {t("bookSearchAction")}

@@ -167,7 +167,7 @@ export default function FeedbackScreen() {
           onChangeText={setSubject}
           placeholder={copy.subjectPlaceholder}
           placeholderTextColor={colors.onSurfaceVariant}
-          selectionColor={colors.primaryContainer}
+          selectionColor={colors.focus}
           style={styles.input}
         />
         <TextInput
@@ -175,7 +175,7 @@ export default function FeedbackScreen() {
           onChangeText={setBody}
           placeholder={copy.bodyPlaceholder}
           placeholderTextColor={colors.onSurfaceVariant}
-          selectionColor={colors.primaryContainer}
+          selectionColor={colors.focus}
           multiline
           style={[styles.input, styles.bodyInput]}
         />
@@ -231,8 +231,8 @@ function createStyles(colors: ThemeColors) {
       justifyContent: 'center',
       backgroundColor: colors.surface,
     },
-    backText: { fontSize: 30, lineHeight: 32, color: colors.primaryContainer },
-    kicker: { ...Typography.accent, color: colors.tertiary },
+    backText: { fontSize: 30, lineHeight: 32, color: colors.link },
+    kicker: { ...Typography.accent, color: colors.onSurfaceVariant },
     title: { ...Typography.headlineLg, color: colors.onBackground, fontSize: 30 },
     card: {
       borderRadius: 20,
@@ -253,9 +253,9 @@ function createStyles(colors: ThemeColors) {
       paddingHorizontal: 12,
       paddingVertical: 8,
     },
-    chipActive: { borderColor: colors.primaryContainer, backgroundColor: colors.surfaceStrong },
+    chipActive: { borderColor: colors.link, backgroundColor: colors.selectedSurface },
     chipText: { ...Typography.labelLg, color: colors.onSurface },
-    chipTextActive: { color: colors.primaryContainer },
+    chipTextActive: { color: colors.link },
     input: {
       minHeight: 50,
       borderRadius: 14,
@@ -270,16 +270,16 @@ function createStyles(colors: ThemeColors) {
     primaryButton: {
       minHeight: 52,
       borderRadius: 14,
-      backgroundColor: colors.primaryContainer,
+      backgroundColor: colors.action,
       alignItems: 'center',
       justifyContent: 'center',
     },
-    primaryButtonText: { color: colors.background, fontWeight: '800' },
-    status: { ...Typography.bodyMd, color: colors.secondary },
+    primaryButtonText: { color: colors.onAction, fontWeight: '800' },
+    status: { ...Typography.bodyMd, color: colors.onSurfaceVariant },
     thread: { borderTopWidth: 1, borderTopColor: colors.outlineVariant, paddingTop: 12, gap: 4 },
     threadTop: { flexDirection: 'row', justifyContent: 'space-between', gap: 8 },
     threadSubject: { ...Typography.bodyLg, color: colors.onSurface, flex: 1, fontWeight: '700' },
-    threadStatus: { ...Typography.labelLg, color: colors.primaryContainer },
+    threadStatus: { ...Typography.labelLg, color: colors.onSurfaceVariant },
     date: { ...Typography.labelSm, color: colors.onSurfaceVariant },
   });
 }

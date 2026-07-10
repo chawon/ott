@@ -296,7 +296,7 @@ export default function ReportScreen() {
 
       {loading ? (
         <View style={styles.center}>
-          <ActivityIndicator color={colors.primaryContainer} />
+          <ActivityIndicator color={colors.onSurfaceVariant} />
         </View>
       ) : error ? (
         <View style={styles.empty}>
@@ -530,8 +530,8 @@ function createStyles(colors: ThemeColors) {
       justifyContent: 'center',
       backgroundColor: colors.surface,
     },
-    backText: { fontSize: 30, lineHeight: 32, color: colors.primaryContainer },
-    kicker: { ...Typography.accent, color: colors.tertiary },
+    backText: { fontSize: 30, lineHeight: 32, color: colors.link },
+    kicker: { ...Typography.accent, color: colors.onSurfaceVariant },
     title: { ...Typography.headlineLg, color: colors.onBackground, fontSize: 28 },
     desc: { ...Typography.bodyMd, color: colors.onSurfaceVariant },
     notice: {
@@ -545,7 +545,7 @@ function createStyles(colors: ThemeColors) {
     center: { padding: 32, alignItems: 'center', justifyContent: 'center' },
     seasonalCard: {
       borderRadius: 8,
-      backgroundColor: '#fef9ee',
+      backgroundColor: colors.selectedSurface,
       overflow: 'hidden',
       borderWidth: 1,
       borderColor: colors.outlineVariant,
@@ -555,7 +555,7 @@ function createStyles(colors: ThemeColors) {
       flexDirection: 'row',
       flexWrap: 'wrap',
       gap: 3,
-      backgroundColor: '#ecebe9',
+      backgroundColor: colors.outlineVariant,
       padding: 3,
     },
     seasonalPosterSlot: {
@@ -563,7 +563,7 @@ function createStyles(colors: ThemeColors) {
       height: '49%',
       borderRadius: 8,
       overflow: 'hidden',
-      backgroundColor: '#faf5d7',
+      backgroundColor: colors.surfaceMuted,
     },
     seasonalPoster: {
       width: '100%',
@@ -576,21 +576,21 @@ function createStyles(colors: ThemeColors) {
     },
     seasonalPosterFallbackText: {
       ...Typography.labelSm,
-      color: '#0f0f0f',
+      color: colors.onSelected,
     },
     seasonalBody: { padding: 16, gap: 12 },
-    seasonalKicker: { ...Typography.accent, color: '#ff9933' },
-    seasonalTitle: { ...Typography.headlineLg, color: '#0f0f0f' },
+    seasonalKicker: { ...Typography.accent, color: colors.onSurfaceVariant },
+    seasonalTitle: { ...Typography.headlineLg, color: colors.onSelected },
     seasonalStats: { gap: 10 },
     seasonalAction: {
       minHeight: 48,
       borderRadius: 8,
-      backgroundColor: '#ff9933',
+      backgroundColor: colors.action,
       alignItems: 'center',
       justifyContent: 'center',
       marginTop: 2,
     },
-    seasonalActionText: { color: '#ffffff', fontWeight: '800', fontSize: 14 },
+    seasonalActionText: { color: colors.onAction, fontWeight: '800', fontSize: 14 },
     metricsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
     metricCard: {
       width: '48%',
@@ -603,8 +603,8 @@ function createStyles(colors: ThemeColors) {
       justifyContent: 'space-between',
     },
     metricLabel: { ...Typography.labelLg, color: colors.onSurfaceVariant },
-    metricValue: { ...Typography.headlineLg, color: colors.primaryContainer },
-    metricValueCompact: { ...Typography.headlineSm, color: colors.primaryContainer },
+    metricValue: { ...Typography.headlineLg, color: colors.onSurface },
+    metricValueCompact: { ...Typography.headlineSm, color: colors.onSurface },
     card: {
       borderRadius: 20,
       borderWidth: 1,
@@ -625,12 +625,14 @@ function createStyles(colors: ThemeColors) {
     infoAction: {
       minHeight: 38,
       borderRadius: 12,
-      backgroundColor: colors.primaryContainer,
+      borderWidth: 1,
+      borderColor: colors.link,
+      backgroundColor: colors.selectedSurface,
       alignItems: 'center',
       justifyContent: 'center',
       marginTop: 4,
     },
-    infoActionText: { color: colors.background, fontWeight: '800', fontSize: 12 },
+    infoActionText: { color: colors.link, fontWeight: '800', fontSize: 12 },
     disabledButton: { opacity: 0.55 },
     infoRow: {
       flexDirection: 'row',

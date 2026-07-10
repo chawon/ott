@@ -98,7 +98,7 @@ function RootLayoutContent() {
   if (!ready) {
     return (
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.background }}>
-        <ActivityIndicator color={colors.primaryContainer} />
+        <ActivityIndicator color={colors.onSurfaceVariant} />
       </View>
     );
   }

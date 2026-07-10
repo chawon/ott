@@ -3,18 +3,17 @@ export type ThemeColors = {
   surface: string;
   surfaceMuted: string;
   surfaceStrong: string;
-  primary: string;
-  primaryContainer: string;
-  secondary: string;
-  tertiary: string;
+  action: string;
+  onAction: string;
+  selectedSurface: string;
+  onSelected: string;
+  link: string;
+  focus: string;
   onBackground: string;
   onSurface: string;
   onSurfaceVariant: string;
   outline: string;
   outlineVariant: string;
-  statusDone: string;
-  statusInProgress: string;
-  statusWishlist: string;
   success: string;
   warning: string;
   error: string;
@@ -25,18 +24,17 @@ export const LightColors: ThemeColors = {
   surface: '#ffffff',
   surfaceMuted: '#fef9ee',
   surfaceStrong: '#faf5d7',
-  primary: '#0f0f0f',
-  primaryContainer: '#ff9933',
-  secondary: '#ff9933',
-  tertiary: '#e9b83f',
+  action: '#ff9933',
+  onAction: '#0f0f0f',
+  selectedSurface: '#faf5d7',
+  onSelected: '#0f0f0f',
+  link: '#1e4d8c',
+  focus: '#ff9933',
   onBackground: '#0f0f0f',
   onSurface: '#0f0f0f',
   onSurfaceVariant: '#4a4a4a',
   outline: '#d8d2ca',
   outlineVariant: '#ecebe9',
-  statusDone: '#ff9933',
-  statusInProgress: '#e9b83f',
-  statusWishlist: '#4a4a4a',
   success: '#238a56',
   warning: '#b25e09',
   error: '#c83333',
@@ -47,18 +45,17 @@ export const DarkColors: ThemeColors = {
   surface: '#211c18',
   surfaceMuted: '#2b241f',
   surfaceStrong: '#3a3027',
-  primary: '#fff8ef',
-  primaryContainer: '#ff9933',
-  secondary: '#ff9933',
-  tertiary: '#e9b83f',
+  action: '#ff9933',
+  onAction: '#0f0f0f',
+  selectedSurface: '#3a3027',
+  onSelected: '#fff8ef',
+  link: '#d8cfc4',
+  focus: '#ff9933',
   onBackground: '#fff8ef',
   onSurface: '#fff8ef',
   onSurfaceVariant: '#d8cfc4',
   outline: '#5c5046',
   outlineVariant: '#3a3027',
-  statusDone: '#ff9933',
-  statusInProgress: '#e9b83f',
-  statusWishlist: '#d8cfc4',
   success: '#60d394',
   warning: '#f6b35d',
   error: '#ff8f8f',

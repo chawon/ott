@@ -60,6 +60,5 @@ export const Typography = {
   accent: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#ff9933',
   } as TextStyle,
 } as const;
