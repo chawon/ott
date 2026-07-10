@@ -4,8 +4,8 @@ import { Bell, ChevronRight, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
 import { Link as IntlLink, usePathname } from "@/i18n/routing";
-import { api } from "@/lib/api";
 import { trackEvent } from "@/lib/analytics";
+import { api } from "@/lib/api";
 import { listAllLogsLocal } from "@/lib/localStore";
 import { buildPersonalReport, type PersonalReport } from "@/lib/report";
 
@@ -118,14 +118,14 @@ export default function SeasonalRecapNotice() {
   return (
     <div className="border-t border-[#ECEBE9] bg-[#FEF9EE]">
       <div className="mx-auto flex min-h-16 max-w-5xl items-center gap-3 px-4 py-3.5 text-[15px] leading-5 text-[#0F0F0F] sm:min-h-[60px] sm:py-3">
-        <Bell className="h-5 w-5 shrink-0 text-[#FF9933]" />
+        <Bell className="h-5 w-5 shrink-0 text-[#4A4A4A]" />
         <div className="min-w-0 flex-1 font-semibold">
           {t("h1RecapNoticeTitle")}
         </div>
         <IntlLink
           href={"/me/report#seasonal-recap" as "/me/report"}
           onClick={handleOpen}
-          className="inline-flex min-h-10 shrink-0 items-center gap-1 rounded-lg bg-[#FF9933] px-4 text-sm font-semibold text-white transition-colors hover:bg-[#e88724] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF9933]/40"
+          className="inline-flex min-h-10 shrink-0 items-center gap-1 rounded-lg border border-[#1E4D8C]/30 bg-card px-4 text-sm font-semibold text-[#1E4D8C] shadow-sm transition-colors hover:bg-ott-paper-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF9933]/40 dark:border-border dark:text-foreground"
         >
           {t("h1RecapNoticeAction")}
           <ChevronRight className="h-4 w-4" />

@@ -536,7 +536,7 @@ export default function AccountScreen() {
           onChangeText={setNickname}
           placeholder={copy.nicknamePlaceholder}
           placeholderTextColor={colors.onSurfaceVariant}
-          selectionColor={colors.primaryContainer}
+          selectionColor={colors.focus}
           maxLength={32}
           style={styles.input}
         />
@@ -614,7 +614,7 @@ export default function AccountScreen() {
           onChangeText={(value) => setCode(value.toUpperCase())}
           placeholder={copy.connectPlaceholder}
           placeholderTextColor={colors.onSurfaceVariant}
-          selectionColor={colors.primaryContainer}
+          selectionColor={colors.focus}
           autoCapitalize="characters"
           style={styles.input}
         />
@@ -801,7 +801,7 @@ function createStyles(colors: ThemeColors) {
       justifyContent: 'center',
       backgroundColor: colors.surfaceMuted,
     },
-    codeText: { ...Typography.headlineMd, letterSpacing: 4, color: colors.primaryContainer },
+    codeText: { ...Typography.headlineMd, letterSpacing: 4, color: colors.onSurface },
     input: {
       minHeight: 52,
       borderRadius: 14,
@@ -821,17 +821,17 @@ function createStyles(colors: ThemeColors) {
       paddingVertical: 8,
       backgroundColor: colors.surface,
     },
-    chipActive: { borderColor: colors.primaryContainer, backgroundColor: colors.surfaceStrong },
+    chipActive: { borderColor: colors.link, backgroundColor: colors.selectedSurface },
     chipText: { ...Typography.labelLg, color: colors.onSurface },
-    chipTextActive: { color: colors.primaryContainer },
+    chipTextActive: { color: colors.link },
     primaryButton: {
       minHeight: 52,
       borderRadius: 14,
-      backgroundColor: colors.primaryContainer,
+      backgroundColor: colors.action,
       alignItems: 'center',
       justifyContent: 'center',
     },
-    primaryButtonText: { color: colors.background, fontWeight: '800' },
+    primaryButtonText: { color: colors.onAction, fontWeight: '800' },
     secondaryButton: {
       minHeight: 50,
       borderRadius: 14,
@@ -906,6 +906,6 @@ function createStyles(colors: ThemeColors) {
       justifyContent: 'center',
     },
     recoveryButtonText: { color: colors.background, fontWeight: '800' },
-    status: { ...Typography.bodyMd, color: colors.secondary, paddingHorizontal: 4 },
+    status: { ...Typography.bodyMd, color: colors.onSurfaceVariant, paddingHorizontal: 4 },
   });
 }

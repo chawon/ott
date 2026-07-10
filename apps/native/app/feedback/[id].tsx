@@ -143,7 +143,7 @@ export default function FeedbackDetailScreen() {
 
       {loading ? (
         <View style={styles.center}>
-          <ActivityIndicator color={colors.primaryContainer} />
+          <ActivityIndicator color={colors.onSurfaceVariant} />
         </View>
       ) : error ? (
         <View style={styles.empty}>
@@ -226,8 +226,8 @@ function createStyles(colors: ThemeColors) {
       justifyContent: 'center',
       backgroundColor: colors.surface,
     },
-    backText: { fontSize: 30, lineHeight: 32, color: colors.primaryContainer },
-    kicker: { ...Typography.accent, color: colors.tertiary },
+    backText: { fontSize: 30, lineHeight: 32, color: colors.link },
+    kicker: { ...Typography.accent, color: colors.onSurfaceVariant },
     title: { ...Typography.headlineLg, color: colors.onBackground, fontSize: 28 },
     desc: { ...Typography.bodyMd, color: colors.onSurfaceVariant },
     center: { padding: 32, alignItems: 'center', justifyContent: 'center' },
@@ -247,9 +247,9 @@ function createStyles(colors: ThemeColors) {
       paddingHorizontal: 10,
       paddingVertical: 6,
     },
-    badgeAnswered: { backgroundColor: colors.primaryContainer },
-    badgeText: { ...Typography.labelLg, color: colors.primaryContainer },
-    badgeAnsweredText: { color: colors.background },
+    badgeAnswered: { backgroundColor: colors.selectedSurface },
+    badgeText: { ...Typography.labelLg, color: colors.onSurfaceVariant },
+    badgeAnsweredText: { color: colors.onSelected },
     message: {
       borderRadius: 16,
       borderWidth: 1,
@@ -258,10 +258,10 @@ function createStyles(colors: ThemeColors) {
       padding: 12,
       gap: 8,
     },
-    adminMessage: { borderColor: colors.primaryContainer, backgroundColor: colors.surfaceStrong },
+    adminMessage: { borderColor: colors.outline, backgroundColor: colors.selectedSurface },
     messageTop: { flexDirection: 'row', justifyContent: 'space-between', gap: 8 },
     author: { ...Typography.labelLg, color: colors.onSurface },
-    adminAuthor: { color: colors.primaryContainer },
+    adminAuthor: { color: colors.onSelected },
     date: { ...Typography.labelLg, color: colors.onSurfaceVariant },
     messageBody: { ...Typography.bodyMd, color: colors.onSurface },
     empty: {

@@ -14,7 +14,7 @@ export default function ProfilePromptCard({
   return (
     <section className="rounded-2xl border border-border bg-card p-5 shadow-sm">
       <div className="flex items-start gap-3">
-        <div className="rounded-xl bg-sky-50 p-2 text-sky-700 dark:bg-sky-950/40 dark:text-sky-200">
+        <div className="rounded-xl bg-ott-paper-strong p-2 text-[#1E4D8C] dark:text-foreground">
           <UserRound className="h-5 w-5" />
         </div>
         <div className="min-w-0 flex-1 space-y-1">

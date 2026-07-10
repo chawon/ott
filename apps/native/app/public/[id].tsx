@@ -417,7 +417,7 @@ export default function PublicDiscussionDetailScreen() {
 
         {loading ? (
           <View style={styles.center}>
-            <ActivityIndicator color={colors.primaryContainer} />
+            <ActivityIndicator color={colors.onSurfaceVariant} />
           </View>
         ) : detail && title ? (
           <>
@@ -519,7 +519,7 @@ export default function PublicDiscussionDetailScreen() {
                   onChangeText={setMentionQuery}
                   placeholder={copy.mentionPlaceholder}
                   placeholderTextColor={colors.onSurfaceVariant}
-                  selectionColor={colors.primaryContainer}
+                  selectionColor={colors.focus}
                   style={styles.mentionInput}
                   autoCorrect={false}
                 />
@@ -563,7 +563,7 @@ export default function PublicDiscussionDetailScreen() {
                 onChangeText={setBody}
                 placeholder={copy.commentPlaceholder}
                 placeholderTextColor={colors.onSurfaceVariant}
-                selectionColor={colors.primaryContainer}
+                selectionColor={colors.focus}
                 multiline
                 style={styles.commentInput}
               />
@@ -601,8 +601,8 @@ function createStyles(colors: ThemeColors) {
       justifyContent: 'center',
       backgroundColor: colors.surface,
     },
-    backText: { fontSize: 30, lineHeight: 32, color: colors.primaryContainer },
-    kicker: { ...Typography.accent, color: colors.tertiary },
+    backText: { fontSize: 30, lineHeight: 32, color: colors.link },
+    kicker: { ...Typography.accent, color: colors.onSurfaceVariant },
     title: { ...Typography.headlineLg, color: colors.onBackground, fontSize: 28 },
     desc: { ...Typography.bodyMd, color: colors.onSurfaceVariant },
     center: { padding: 32, alignItems: 'center', justifyContent: 'center' },
@@ -635,7 +635,7 @@ function createStyles(colors: ThemeColors) {
       paddingHorizontal: 12,
       paddingVertical: 8,
     },
-    linkButtonText: { ...Typography.labelLg, color: colors.primaryContainer },
+    linkButtonText: { ...Typography.labelLg, color: colors.link },
     reportButton: {
       alignSelf: 'flex-start',
       borderRadius: 999,
@@ -664,10 +664,10 @@ function createStyles(colors: ThemeColors) {
       paddingHorizontal: 12,
       paddingVertical: 9,
     },
-    reactionChipActive: { borderColor: colors.primaryContainer, backgroundColor: colors.primaryContainer },
+    reactionChipActive: { borderColor: colors.link, backgroundColor: colors.selectedSurface },
     reactionText: { ...Typography.labelLg, color: colors.onSurface },
-    reactionTextActive: { color: colors.background },
-    message: { ...Typography.bodyMd, color: colors.secondary },
+    reactionTextActive: { color: colors.link },
+    message: { ...Typography.bodyMd, color: colors.onSurfaceVariant },
     comments: { gap: 10 },
     comment: {
       borderRadius: 16,
@@ -702,11 +702,13 @@ function createStyles(colors: ThemeColors) {
     mentionChips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
     mentionChip: {
       borderRadius: 999,
-      backgroundColor: colors.primaryContainer,
+      borderWidth: 1,
+      borderColor: colors.link,
+      backgroundColor: colors.selectedSurface,
       paddingHorizontal: 10,
       paddingVertical: 7,
     },
-    mentionChipText: { ...Typography.labelLg, color: colors.background },
+    mentionChipText: { ...Typography.labelLg, color: colors.link },
     mentionResults: { gap: 6 },
     mentionResult: {
       minHeight: 52,
@@ -722,7 +724,7 @@ function createStyles(colors: ThemeColors) {
     },
     mentionResultBody: { flex: 1, gap: 3 },
     mentionTitle: { ...Typography.bodyMd, color: colors.onSurface, fontWeight: '700' },
-    addText: { ...Typography.labelLg, color: colors.primaryContainer },
+    addText: { ...Typography.labelLg, color: colors.link },
     empty: {
       borderRadius: 20,
       borderWidth: 1,
@@ -754,11 +756,11 @@ function createStyles(colors: ThemeColors) {
     primaryButton: {
       minHeight: 52,
       borderRadius: 14,
-      backgroundColor: colors.primaryContainer,
+      backgroundColor: colors.action,
       alignItems: 'center',
       justifyContent: 'center',
     },
-    primaryButtonText: { color: colors.background, fontWeight: '800' },
+    primaryButtonText: { color: colors.onAction, fontWeight: '800' },
     disabled: { opacity: 0.5 },
   });
 }

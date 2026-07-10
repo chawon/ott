@@ -395,7 +395,7 @@ export default function TimelineScreen() {
     <ScrollView
       style={styles.root}
       contentContainerStyle={styles.content}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.primaryContainer} />}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.onSurfaceVariant} />}
     >
       <View style={styles.header}>
         <Text style={styles.title}>{copy.title}</Text>
@@ -550,7 +550,7 @@ export default function TimelineScreen() {
 
       {loading ? (
         <View style={styles.center}>
-          <ActivityIndicator color={colors.primaryContainer} />
+          <ActivityIndicator color={colors.onSurfaceVariant} />
         </View>
       ) : visibleLogs.length === 0 ? (
         <View style={styles.empty}>
@@ -661,11 +661,11 @@ function createStyles(colors: ThemeColors) {
     flex: 1,
     minHeight: 50,
     borderRadius: 16,
-    backgroundColor: colors.primaryContainer,
+    backgroundColor: colors.selectedSurface,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  reportButtonText: { color: colors.background, fontWeight: '800' },
+  reportButtonText: { color: colors.link, fontWeight: '800' },
   csvButton: {
     minHeight: 50,
     minWidth: 104,
@@ -698,7 +698,7 @@ function createStyles(colors: ThemeColors) {
 	  },
 	  filterHeaderRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
 	  filterHeaderText: { flex: 1, gap: 3 },
-	  filterSummary: { ...Typography.labelLg, color: colors.primaryContainer },
+	  filterSummary: { ...Typography.labelLg, color: colors.onSurfaceVariant },
 	  filterHint: { ...Typography.bodyMd, color: colors.onSurfaceVariant },
 	  filterToggleButton: {
 	    minHeight: 42,
@@ -726,9 +726,9 @@ function createStyles(colors: ThemeColors) {
     paddingHorizontal: 12,
     paddingVertical: 8,
   },
-  chipActive: { borderColor: colors.primaryContainer, backgroundColor: colors.surfaceMuted },
+  chipActive: { borderColor: colors.link, backgroundColor: colors.selectedSurface },
 	  chipText: { ...Typography.labelLg, color: colors.onSurfaceVariant },
-	  chipTextActive: { color: colors.primaryContainer },
+	  chipTextActive: { color: colors.link },
 	  clearFilterButton: {
 	    minHeight: 44,
 	    borderRadius: 12,
@@ -779,7 +779,7 @@ function createStyles(colors: ThemeColors) {
     paddingHorizontal: 10,
     paddingVertical: 5,
   },
-  badgeText: { ...Typography.labelSm, color: colors.primaryContainer },
+  badgeText: { ...Typography.labelSm, color: colors.onSelected },
   date: { ...Typography.labelLg, color: colors.onSurfaceVariant },
 	  logTitle: { ...Typography.headlineSm, color: colors.onSurface },
 	  meta: { ...Typography.bodyMd, color: colors.onSurfaceVariant },
@@ -799,11 +799,11 @@ function createStyles(colors: ThemeColors) {
 	    flex: 1,
 	    minHeight: 42,
 	    borderRadius: 12,
-	    backgroundColor: colors.primaryContainer,
+	    backgroundColor: colors.selectedSurface,
 	    alignItems: 'center',
 	    justifyContent: 'center',
 	  },
-	  smallPrimaryText: { ...Typography.labelLg, color: colors.background },
+	  smallPrimaryText: { ...Typography.labelLg, color: colors.link },
 	  shareCaptureArea: {
 	    position: 'absolute',
 	    left: -10000,

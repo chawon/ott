@@ -862,19 +862,10 @@ export default function QuickLogCard({
   function contentTypeButtonClass(type: "video" | "book") {
     const active = contentType === type;
     return cn(
-      "inline-flex h-10 items-center justify-center rounded-xl px-4 text-xs font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-      active &&
-        type === "video" &&
-        "bg-primary text-primary-foreground shadow-sm",
-      !active &&
-        type === "video" &&
-        "bg-ott-paper-strong text-muted-foreground hover:bg-ott-sky-soft hover:text-foreground",
-      active &&
-        type === "book" &&
-        "border border-ott-sage-foreground bg-ott-sage-foreground text-white shadow-sm dark:bg-emerald-700 dark:border-emerald-700",
-      !active &&
-        type === "book" &&
-        "border border-ott-sage bg-ott-sage/55 text-ott-sage-foreground hover:bg-ott-sage dark:border-emerald-900/60 dark:bg-emerald-950/40 dark:text-emerald-300 dark:hover:bg-emerald-950/60",
+      "inline-flex h-10 items-center justify-center rounded-xl border px-4 text-xs font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+      active
+        ? "border-[#1E4D8C]/40 bg-ott-paper-strong text-[#1E4D8C] shadow-sm ring-1 ring-[#1E4D8C]/15 dark:border-border dark:text-foreground dark:ring-border"
+        : "border-transparent bg-card text-muted-foreground hover:bg-ott-paper-strong hover:text-foreground",
     );
   }
 
@@ -882,7 +873,7 @@ export default function QuickLogCard({
     return cn(
       className,
       highlightedStatus === value &&
-        "ring-2 ring-primary/40 ring-offset-2 ring-offset-card",
+        "ring-2 ring-foreground/20 ring-offset-2 ring-offset-card",
     );
   }
 
@@ -890,7 +881,7 @@ export default function QuickLogCard({
     <>
       <section
         className={cn(
-          "space-y-4 rounded-3xl border border-border bg-card/90 p-5 text-card-foreground shadow-[0_18px_60px_rgba(52,45,37,0.08)] transition-all hover:border-primary/20 sm:p-6",
+          "space-y-4 rounded-3xl border border-border bg-card/90 p-5 text-card-foreground shadow-[0_18px_60px_rgba(52,45,37,0.08)] transition-all hover:border-muted-foreground/25 sm:p-6",
           isBookMode &&
             "border-ott-sage bg-ott-sage/25 ring-1 ring-ott-sage/50 dark:border-emerald-900/50 dark:bg-emerald-950/25 dark:ring-emerald-900/60",
         )}
@@ -927,7 +918,7 @@ export default function QuickLogCard({
               data-onboarding-target="title-search"
               className="rounded-2xl border border-ott-warm bg-ott-paper p-3 shadow-inner shadow-white/60 ring-1 ring-ott-warm/70 dark:shadow-none"
             >
-              <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-primary">
+              <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-foreground">
                 <ArrowRight className="h-4 w-4" />
                 {tQuick("searchStartModern")}
               </div>
@@ -936,7 +927,7 @@ export default function QuickLogCard({
                   className={cn(
                     "mb-3 rounded-xl border px-3 py-2 text-xs leading-relaxed",
                     shareImportStatus === "imported"
-                      ? "border-ott-sky-soft bg-card/85 text-primary dark:border-blue-900/60 dark:bg-blue-950/30 dark:text-blue-200"
+                      ? "border-border bg-card/85 text-foreground"
                       : "border-ott-warm bg-ott-warm/60 text-ott-warm-foreground dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-100",
                   )}
                 >
@@ -953,7 +944,7 @@ export default function QuickLogCard({
                   {shareImportFeedbackHref ? (
                     <Link
                       href={shareImportFeedbackHref}
-                      className="mt-1.5 inline-flex min-h-9 items-center font-semibold text-primary underline underline-offset-4 dark:text-blue-200"
+                      className="mt-1.5 inline-flex min-h-9 items-center font-semibold text-[#1E4D8C] underline underline-offset-4 dark:text-foreground"
                     >
                       {tQuick("shareImportFeedbackAction")}
                     </Link>
@@ -1102,7 +1093,7 @@ export default function QuickLogCard({
                     disabled={saving}
                     className={statusButtonClass(
                       "IN_PROGRESS",
-                      "min-h-[52px] rounded-xl bg-ott-sky-soft text-sm font-bold text-primary transition-all active:scale-[0.98] disabled:opacity-50",
+                      "min-h-[52px] rounded-xl bg-ott-sky-soft text-sm font-bold text-foreground transition-all active:scale-[0.98] disabled:opacity-50",
                     )}
                   >
                     {isBookMode
@@ -1472,14 +1463,14 @@ export default function QuickLogCard({
           <div className="flex items-center justify-between gap-4 rounded-2xl border border-border bg-card/95 p-4 shadow-xl backdrop-blur-md">
             <div className="text-sm font-medium text-foreground">
               {tQuick("successLike")}{" "}
-              <span className="font-bold text-primary">
+              <span className="font-bold text-foreground">
                 {tQuick("successCount", { count: banner.count })}
               </span>
             </div>
             <Link
               href="/timeline"
               data-onboarding-target="timeline-confirm"
-              className="flex min-h-12 items-center gap-1 text-xs font-bold text-primary hover:underline"
+              className="flex min-h-12 items-center gap-1 text-xs font-bold text-[#1E4D8C] hover:underline dark:text-foreground"
             >
               {tQuick("viewTimeline")} <ArrowRight className="h-3 w-3" />
             </Link>

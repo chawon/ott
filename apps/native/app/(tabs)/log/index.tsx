@@ -691,7 +691,7 @@ export default function LogScreen() {
             autoCapitalize="none"
             autoCorrect={false}
           />
-          {loading ? <ActivityIndicator color={colors.secondary} /> : null}
+          {loading ? <ActivityIndicator color={colors.onSurfaceVariant} /> : null}
         </View>
 
         <View style={styles.segment}>
@@ -1033,9 +1033,9 @@ function createStyles(colors: ThemeColors) {
     paddingVertical: 9,
     backgroundColor: colors.surface,
   },
-  segmentItemActive: { borderColor: colors.primaryContainer, backgroundColor: colors.surfaceMuted },
+  segmentItemActive: { borderColor: colors.link, backgroundColor: colors.selectedSurface },
   segmentText: { ...Typography.labelLg, color: colors.onSurfaceVariant },
-  segmentTextActive: { color: colors.primaryContainer },
+  segmentTextActive: { color: colors.link },
   results: { gap: 10 },
   sectionLabel: { ...Typography.labelLg, color: colors.onSurfaceVariant },
   result: {
@@ -1062,7 +1062,7 @@ function createStyles(colors: ThemeColors) {
   meta: { ...Typography.bodyMd, color: colors.onSurfaceVariant },
   successText: {
     ...Typography.labelLg,
-    color: colors.primaryContainer,
+    color: colors.success,
     borderRadius: 12,
     backgroundColor: colors.surfaceMuted,
     paddingHorizontal: 12,
@@ -1102,10 +1102,12 @@ function createStyles(colors: ThemeColors) {
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.primaryContainer,
+    borderWidth: 1,
+    borderColor: colors.link,
+    backgroundColor: colors.selectedSurface,
     paddingHorizontal: 8,
   },
-  statusChoiceText: { ...Typography.labelLg, color: colors.background, textAlign: 'center' },
+  statusChoiceText: { ...Typography.labelLg, color: colors.link, textAlign: 'center' },
   helperText: { ...Typography.labelLg, color: colors.onSurfaceVariant, textAlign: 'center' },
   initialCancelButton: {
     minHeight: 46,
@@ -1128,9 +1130,9 @@ function createStyles(colors: ThemeColors) {
     paddingVertical: 8,
     backgroundColor: colors.surface,
   },
-  chipActive: { borderColor: colors.primaryContainer, backgroundColor: colors.surfaceMuted },
+  chipActive: { borderColor: colors.link, backgroundColor: colors.selectedSurface },
   chipText: { ...Typography.labelLg, color: colors.onSurfaceVariant },
-  chipTextActive: { color: colors.primaryContainer },
+  chipTextActive: { color: colors.link },
   inlineInputs: { flexDirection: 'row', gap: 10 },
   smallInput: {
     flex: 1,
@@ -1165,11 +1167,11 @@ function createStyles(colors: ThemeColors) {
     paddingHorizontal: 10,
   },
   toggleButtonActive: {
-    borderColor: colors.primaryContainer,
-    backgroundColor: colors.surfaceMuted,
+    borderColor: colors.link,
+    backgroundColor: colors.selectedSurface,
   },
   toggleText: { ...Typography.labelLg, color: colors.onSurfaceVariant, textAlign: 'center' },
-  toggleTextActive: { color: colors.primaryContainer },
+  toggleTextActive: { color: colors.link },
   actionRow: { flexDirection: 'row', gap: 10, marginTop: 4 },
   primaryButton: {
     flex: 1,
@@ -1177,9 +1179,9 @@ function createStyles(colors: ThemeColors) {
     borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.primaryContainer,
+    backgroundColor: colors.action,
   },
-  primaryButtonText: { color: colors.background, fontWeight: '800' },
+  primaryButtonText: { color: colors.onAction, fontWeight: '800' },
   secondaryButton: {
     flex: 1,
     minHeight: 52,

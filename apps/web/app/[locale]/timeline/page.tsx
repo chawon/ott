@@ -64,12 +64,12 @@ function FutureLoadingSkeleton({
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center gap-2 text-sm text-primary px-1">
+      <div className="flex items-center gap-2 px-1 text-sm text-muted-foreground">
         <span className="flex gap-0.5">
           {[0, 1, 2].map((i) => (
             <span
               key={i}
-              className="inline-block h-1.5 w-1.5 rounded-full bg-primary animate-bounce"
+              className="inline-block h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground"
               style={{ animationDelay: `${i * 0.15}s` }}
             />
           ))}
@@ -80,7 +80,7 @@ function FutureLoadingSkeleton({
       {[1, 2, 3, 4].map((i) => (
         <div
           key={i}
-          className="rounded-2xl border border-dashed border-primary/20 bg-card/60 shadow-sm overflow-hidden"
+          className="overflow-hidden rounded-2xl border border-dashed border-border bg-card/60 shadow-sm"
         >
           <div className="flex gap-3 p-3">
             <div className="shrink-0 h-[84px] w-[56px] rounded-lg bg-muted animate-pulse" />
@@ -249,7 +249,7 @@ function FutureTimelineSection({
           {visible.map((item) => (
             <div
               key={`${item.type}:${item.name}`}
-              className="rounded-2xl border border-dashed border-primary/30 bg-card p-5 shadow-sm flex gap-5"
+              className="flex gap-5 rounded-2xl border border-dashed border-border bg-card p-5 shadow-sm"
             >
               <div className="h-32 w-20 shrink-0 overflow-hidden rounded-xl bg-muted shadow-sm border border-border">
                 {item.posterUrl ? (
@@ -281,7 +281,7 @@ function FutureTimelineSection({
                   </button>
                 </div>
                 <div className="flex flex-wrap gap-1.5 mb-3">
-                  <span className="rounded-full border border-primary/30 bg-primary/5 px-2 py-0.5 text-xs text-primary font-medium">
+                  <span className="rounded-full border border-border bg-muted/60 px-2 py-0.5 text-xs font-medium text-muted-foreground">
                     {typeLabel(item.type)}
                   </span>
                   {item.genres?.map((g) => (
@@ -553,7 +553,7 @@ export default function TimelinePage() {
         <div className="flex items-center justify-between gap-3 mb-1">
           <div className="flex items-center gap-2 text-lg sm:text-xl font-semibold whitespace-nowrap">
             {futureMode ? (
-              <Sparkles className="h-5 w-5 text-primary" />
+              <Sparkles className="h-5 w-5 text-[#1E4D8C] dark:text-foreground" />
             ) : (
               <Clock className="h-5 w-5" />
             )}
@@ -564,10 +564,7 @@ export default function TimelinePage() {
               <button
                 type="button"
                 onClick={enterFutureMode}
-                style={{
-                  background: "linear-gradient(to right, #7c3aed, #4f46e5)",
-                }}
-                className="flex h-9 sm:h-11 items-center justify-center rounded-xl px-3 sm:px-4 text-[11px] sm:text-xs font-bold text-white shadow-sm transition-all active:scale-[0.98] hover:opacity-90"
+                className="flex h-9 items-center justify-center rounded-xl border border-border bg-card px-3 text-[11px] font-bold text-[#1E4D8C] shadow-sm transition-all hover:bg-ott-paper-strong active:scale-[0.98] dark:text-foreground sm:h-11 sm:px-4 sm:text-xs"
               >
                 <span className="flex items-center gap-1.5">
                   <Sparkles className="h-3.5 w-3.5" />
@@ -632,7 +629,7 @@ export default function TimelinePage() {
                   {tTimeline("reportShortcutDesc")}
                 </p>
               </div>
-              <div className="flex shrink-0 items-center gap-2 rounded-xl bg-indigo-50 px-3 py-2 text-xs font-bold text-indigo-700 dark:bg-indigo-950/30 dark:text-indigo-200">
+              <div className="flex shrink-0 items-center gap-2 rounded-xl bg-ott-paper-strong px-3 py-2 text-xs font-bold text-[#1E4D8C] dark:text-foreground">
                 <BarChart3 className="h-4 w-4" />
                 {tTimeline("reportShortcutAction")}
               </div>
@@ -672,21 +669,21 @@ export default function TimelinePage() {
                   <div className="text-sm font-semibold text-muted-foreground">
                     {status === "ALL" ? (
                       <>
-                        <span className="font-bold text-slate-700">
+                        <span className="font-bold text-foreground">
                           {group.year}
                         </span>
                         <span> </span>
-                        <span className="font-bold text-indigo-600">
+                        <span className="font-bold text-[#1E4D8C] dark:text-foreground">
                           ({group.items.length})
                         </span>
                       </>
                     ) : (
                       <>
-                        <span className="font-bold text-slate-700">
+                        <span className="font-bold text-foreground">
                           {tTimeline("yearFormat", { year: group.year })}
                         </span>
                         <span>{tTimeline("yearSuffix")}</span>
-                        <span className="font-bold text-indigo-600">
+                        <span className="font-bold text-[#1E4D8C] dark:text-foreground">
                           {group.items.length}
                         </span>
                         <span>

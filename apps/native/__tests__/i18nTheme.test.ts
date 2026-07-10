@@ -61,4 +61,21 @@ describe('native i18n and theme foundations', () => {
     expect(getThemeColors('dark')).toBe(DarkColors);
     expect(getThemeColors(null)).toBe(LightColors);
   });
+
+  it('keeps actions, selections, and links semantically distinct', () => {
+    expect(LightColors.action).toBe('#ff9933');
+    expect(DarkColors.action).toBe('#ff9933');
+    expect(LightColors.onAction).toBe('#0f0f0f');
+    expect(DarkColors.onAction).toBe('#0f0f0f');
+    expect(LightColors.selectedSurface).toBe('#faf5d7');
+    expect(DarkColors.selectedSurface).toBe('#3a3027');
+    expect(LightColors.link).toBe('#1e4d8c');
+    expect(DarkColors.link).toBe(DarkColors.onSurfaceVariant);
+    expect(LightColors.selectedSurface).not.toBe(LightColors.action);
+    expect(LightColors.link).not.toBe(LightColors.action);
+    expect(LightColors.onSelected).not.toBe(LightColors.action);
+    expect(DarkColors.selectedSurface).not.toBe(DarkColors.action);
+    expect(DarkColors.link).not.toBe(DarkColors.action);
+    expect(DarkColors.onSelected).not.toBe(DarkColors.action);
+  });
 });

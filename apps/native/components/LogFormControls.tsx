@@ -337,11 +337,11 @@ function createStyles(colors: ThemeColors) {
       backgroundColor: colors.surface,
     },
     chipActive: {
-      borderColor: colors.primaryContainer,
-      backgroundColor: colors.surfaceMuted,
+      borderColor: colors.link,
+      backgroundColor: colors.selectedSurface,
     },
     chipText: { ...Typography.labelLg, color: colors.onSurfaceVariant },
-    chipTextActive: { color: colors.primaryContainer },
+    chipTextActive: { color: colors.link },
     disabled: { opacity: 0.5 },
     dateField: { gap: 8 },
     dateToggle: {
@@ -363,12 +363,12 @@ function createStyles(colors: ThemeColors) {
       backgroundColor: colors.surface,
     },
     checkboxActive: {
-      borderColor: colors.primaryContainer,
-      backgroundColor: colors.primaryContainer,
+      borderColor: colors.link,
+      backgroundColor: colors.selectedSurface,
     },
-    checkboxText: { color: colors.background, fontWeight: '900', lineHeight: 18 },
+    checkboxText: { color: colors.link, fontWeight: '900', lineHeight: 18 },
     dateToggleText: { ...Typography.labelLg, color: colors.onSurfaceVariant },
-    dateToggleTextActive: { color: colors.onSurface },
+    dateToggleTextActive: { color: colors.link },
     dateButton: {
       minHeight: 48,
       borderRadius: 12,
@@ -413,7 +413,7 @@ function createStyles(colors: ThemeColors) {
       justifyContent: 'center',
       backgroundColor: colors.surfaceMuted,
     },
-    monthButtonText: { color: colors.primaryContainer, fontSize: 28, lineHeight: 30 },
+    monthButtonText: { color: colors.link, fontSize: 28, lineHeight: 30 },
     weekRow: { flexDirection: 'row', gap: 4 },
     weekday: {
       flex: 1,
@@ -433,9 +433,9 @@ function createStyles(colors: ThemeColors) {
       backgroundColor: colors.surfaceMuted,
     },
     dayToday: { borderWidth: 1, borderColor: colors.outline },
-    daySelected: { backgroundColor: colors.primaryContainer },
+    daySelected: { backgroundColor: colors.selectedSurface, borderWidth: 1, borderColor: colors.link },
     dayText: { ...Typography.labelLg, color: colors.onSurface },
-    dayTextSelected: { color: colors.background },
+    dayTextSelected: { color: colors.link },
     modalFooter: { flexDirection: 'row', gap: 8 },
     footerButton: {
       flex: 1,

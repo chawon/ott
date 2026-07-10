@@ -96,7 +96,7 @@ function SettingsAccordionCard({
       >
         <div className="flex min-w-0 items-start gap-3">
           {icon ? (
-            <div className="shrink-0 rounded-2xl bg-sky-50 p-2 text-sky-700 dark:bg-sky-950/40 dark:text-sky-200">
+            <div className="shrink-0 rounded-2xl bg-ott-paper-strong p-2 text-[#1E4D8C] dark:text-foreground">
               {icon}
             </div>
           ) : null}
@@ -420,7 +420,7 @@ export default function AccountPage() {
                 : tAccount("pairingCodeDescEmpty")}
             </p>
             {!pairingCode && !initializing && (
-              <p className="mt-2 rounded-lg border border-indigo-100 bg-indigo-50/50 p-2 text-[11px] font-medium text-indigo-600">
+              <p className="mt-2 rounded-lg border border-[#1E4D8C]/20 bg-ott-paper-strong p-2 text-[11px] font-medium text-[#1E4D8C] dark:border-border dark:text-foreground">
                 {tAccount("pairingCodeNotice")}
               </p>
             )}
@@ -479,7 +479,9 @@ export default function AccountPage() {
               </button>
             </div>
             {status && (
-              <div className="text-xs font-medium text-blue-600">{status}</div>
+              <div className="text-xs font-medium text-[#1E4D8C] dark:text-foreground">
+                {status}
+              </div>
             )}
           </div>
         </section>
@@ -505,7 +507,7 @@ export default function AccountPage() {
                     className={cn(
                       "flex flex-col gap-3 rounded-xl border p-3 sm:flex-row sm:items-center sm:justify-between",
                       isCurrent
-                        ? "border-indigo-200 bg-indigo-50/30 dark:bg-indigo-950/10"
+                        ? "border-[#1E4D8C]/25 bg-ott-paper-strong dark:border-border"
                         : "border-border",
                     )}
                   >
@@ -541,7 +543,7 @@ export default function AccountPage() {
                         {tAccount("unlinkAction")}
                       </button>
                     ) : (
-                      <div className="shrink-0 rounded-full bg-indigo-50 px-2 py-0.5 text-[10px] font-bold uppercase text-indigo-600">
+                      <div className="shrink-0 rounded-full border border-[#1E4D8C]/20 bg-card px-2 py-0.5 text-[10px] font-bold uppercase text-[#1E4D8C] dark:border-border dark:text-foreground">
                         {tAccount("currentLabel")}
                       </div>
                     )}
@@ -606,9 +608,9 @@ export default function AccountPage() {
         </section>
 
         {showAndroidAppSection ? (
-          <section className="space-y-4 rounded-2xl border border-blue-200 bg-blue-50/70 p-6 shadow-sm dark:border-blue-900/60 dark:bg-blue-950/25">
+          <section className="space-y-4 rounded-2xl border border-[#1E4D8C]/20 bg-ott-paper-strong p-6 shadow-sm dark:border-border">
             <div className="flex items-start gap-3">
-              <div className="rounded-2xl bg-white p-2 text-blue-700 shadow-sm dark:bg-blue-950 dark:text-blue-200">
+              <div className="rounded-2xl bg-card p-2 text-[#1E4D8C] shadow-sm dark:text-foreground">
                 <Smartphone className="h-5 w-5" />
               </div>
               <div className="min-w-0 space-y-1">
@@ -624,7 +626,7 @@ export default function AccountPage() {
               href="ottline://watch-reminder"
               className={cn(
                 "flex w-full items-center justify-center gap-2 px-4 py-3 text-center text-sm font-bold transition-all break-keep",
-                "rounded-2xl border border-blue-200 bg-white text-blue-800 hover:bg-blue-100 dark:border-blue-900/50 dark:bg-blue-950/40 dark:text-blue-100",
+                "rounded-2xl border border-[#1E4D8C]/25 bg-card text-[#1E4D8C] hover:bg-ott-paper-strong dark:border-border dark:text-foreground",
               )}
             >
               <Settings className="h-4 w-4" />
@@ -667,7 +669,7 @@ export default function AccountPage() {
                     className={cn(
                       "min-h-[52px] rounded-xl border px-2 text-xs font-medium transition-all",
                       exportRange === r
-                        ? "border-indigo-600 bg-indigo-50 text-indigo-700 dark:bg-indigo-950/30"
+                        ? "border-[#1E4D8C]/40 bg-ott-paper-strong text-[#1E4D8C] shadow-sm ring-1 ring-[#1E4D8C]/15 dark:border-border dark:text-foreground dark:ring-border"
                         : "border-border bg-card text-muted-foreground hover:bg-muted",
                     )}
                   >
@@ -692,7 +694,7 @@ export default function AccountPage() {
               {exporting ? tAccount("exporting") : tAccount("exportAction")}
             </button>
             {exportStatus && (
-              <p className="text-center text-xs font-medium text-blue-600">
+              <p className="text-center text-xs font-medium text-[#1E4D8C] dark:text-foreground">
                 {exportStatus}
               </p>
             )}

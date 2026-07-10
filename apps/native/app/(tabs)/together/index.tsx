@@ -121,7 +121,7 @@ export default function TogetherScreen() {
         onChangeText={setQuery}
         placeholder={copy.searchPlaceholder}
         placeholderTextColor={colors.onSurfaceVariant}
-        selectionColor={colors.primaryContainer}
+        selectionColor={colors.focus}
         style={styles.searchInput}
       />
 
@@ -156,7 +156,7 @@ export default function TogetherScreen() {
 
       {loading ? (
         <View style={styles.center}>
-          <ActivityIndicator color={colors.primaryContainer} />
+          <ActivityIndicator color={colors.onSurfaceVariant} />
         </View>
       ) : error ? (
         <View style={styles.empty}>
@@ -239,9 +239,9 @@ function createStyles(colors: ThemeColors) {
       paddingHorizontal: 12,
       paddingVertical: 8,
     },
-    chipActive: { borderColor: colors.primaryContainer, backgroundColor: colors.surfaceStrong },
+    chipActive: { borderColor: colors.link, backgroundColor: colors.selectedSurface },
     chipText: { ...Typography.labelLg, color: colors.onSurface },
-    chipTextActive: { color: colors.primaryContainer },
+    chipTextActive: { color: colors.link },
     center: { padding: 32, alignItems: 'center' },
     empty: {
       borderRadius: 20,
@@ -274,10 +274,10 @@ function createStyles(colors: ThemeColors) {
     posterEmptyText: { ...Typography.labelSm, color: colors.onSurfaceVariant },
     cardBody: { flex: 1, gap: 5 },
     cardTop: { flexDirection: 'row', justifyContent: 'space-between', gap: 8 },
-    badgeText: { ...Typography.labelSm, color: colors.primaryContainer },
+    badgeText: { ...Typography.labelSm, color: colors.onSurfaceVariant },
     date: { ...Typography.labelLg, color: colors.onSurfaceVariant },
     itemTitle: { ...Typography.headlineSm, color: colors.onSurface },
     meta: { ...Typography.bodyMd, color: colors.onSurfaceVariant },
-    reactions: { ...Typography.labelLg, color: colors.secondary },
+    reactions: { ...Typography.labelLg, color: colors.onSurfaceVariant },
   });
 }

@@ -244,7 +244,7 @@ export default function MyReportPage() {
       <section className="space-y-2">
         <h1 className="text-2xl font-bold tracking-tight">{reportTitle}</h1>
         {personaLabel ? (
-          <p className="text-sm font-medium text-sky-700 dark:text-sky-200">
+          <p className="text-sm font-medium text-[#1E4D8C] dark:text-muted-foreground">
             {t("profileNotice", { persona: personaLabel })}
           </p>
         ) : null}
@@ -284,7 +284,7 @@ export default function MyReportPage() {
             </div>
             <div className="flex flex-col justify-between gap-6 p-5 sm:p-6">
               <div className="space-y-3">
-                <div className="text-xs font-semibold text-[#FF9933]">
+                <div className="text-xs font-semibold text-[#4A4A4A]">
                   {t("h1RecapPeriod")}
                 </div>
                 <div className="space-y-2">
@@ -326,7 +326,7 @@ export default function MyReportPage() {
                 type="button"
                 onClick={() => handleRecapShare("half-year")}
                 disabled={shareBusy !== null}
-                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-lg bg-[#FF9933] px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#e88724] disabled:opacity-50"
+                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-lg bg-[#FF9933] px-5 py-3 text-sm font-semibold text-[#0F0F0F] transition-colors hover:bg-[#e88724] disabled:opacity-50"
               >
                 <Share2 className="h-4 w-4" />
                 {shareBusy === "half-year" ? t("sharing") : t("h1ShareAction")}

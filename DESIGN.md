@@ -11,19 +11,20 @@ bootstrapped_at: 2026-06-14T00:00:00+09:00
 
 ottline is a personal recordbook for what people watch and read. Cookpad is the reference because it makes a repeated everyday act feel warm, low-pressure, and close at hand. For ottline, the interface should feel like a well-used shelf of memories rather than a blank form or productivity dashboard.
 
-The signature surface is a warm cream canvas, not pure white. Use `#F8F6F2` as the page background, white cards as the place where posters and notes sit, and friendly orange `#FF9933` as the primary action color. Orange is a pop for record actions, focus states, and small encouragement; it is not a wash across the whole product.
+The signature surface is a warm cream canvas, not pure white. Use `#F8F6F2` as the page background, white cards as the place where posters and notes sit, and friendly orange `#FF9933` as the final action color. Orange is a pop for record/save actions, focus states, and a thin current-navigation marker; it is not a wash across the whole product or a persistent selection fill.
 
 The mood is homey, familiar, and unintimidating. Posters, book covers, dates, and notes are the content equivalent of Cookpad's food photography. They should carry the emotional signal. Chrome should stay quiet, corners should stay soft at `8px`, and text should stay crisp with near-black `#0F0F0F` for primary content and charcoal `#4A4A4A` for secondary UI.
 
 **Key Characteristics:**
 - Warm off-white background `#F8F6F2` — never a clinical pure white canvas
 - Friendly orange `#FF9933` as the primary action and focus color
+- Restrained wordmark navy `#1E4D8C` for navigation, links, and selected-control outlines or text
 - White record tiles floating on the cream base for clear poster/card presentation
 - Near-black `#0F0F0F` for readable titles and notes; charcoal `#4A4A4A` for metadata
 - Soft, approachable `8px` border-radius on buttons, inputs, cards, badges, tabs, and dialogs
 - Poster-forward and cover-forward: visual media is the primary content anchor
 - Noto Sans-led system font stack; comfortable 16px body
-- Primary button: solid orange, white text, 16px weight 600
+- Primary button: solid orange, near-black text, 16px weight 600
 - Warm neutral tints (`#FEF9EE`, `#ECEBE9`, `#FAF5D7`) for highlights and quiet grouping
 - Warm, unpressured mood — keeping a record should feel easy to return to
 
@@ -32,8 +33,9 @@ The mood is homey, familiar, and unintimidating. Posters, book covers, dates, an
 Values below preserve the Cookpad reference and map them to ottline's recordbook surfaces.
 
 ### Brand
-- **Cookpad Orange** (`#FF9933`): Primary action color for "남기기", search focus, selected controls, and important CTAs.
-- **Orange on white**: primary button uses `#FF9933` background with `#FFFFFF` text.
+- **Cookpad Orange** (`#FF9933`): Final primary action color for record/save/share, input focus, and a thin or short marker on the current navigation item.
+- **Wordmark Navy** (`#1E4D8C`): Navigation, links, and selected-control outlines or text. The `ottline` wordmark stays navy while the `ON THE TIMELINE` subtitle stays orange.
+- **Orange foreground**: orange primary controls use near-black `#0F0F0F` text and icons.
 
 ### Surface
 - **Warm Off-White / Cream** (`#F8F6F2`): Signature page background.
@@ -44,7 +46,7 @@ Values below preserve the Cookpad reference and map them to ottline's recordbook
 ### Text
 - **Near-Black Text** (`#0F0F0F`): Primary titles, record notes, button-adjacent labels.
 - **Charcoal** (`#4A4A4A`): Metadata, secondary text, icons, placeholders, helper text.
-- **White** (`#FFFFFF`): Text on orange primary controls.
+- **White** (`#FFFFFF`): Card surfaces and text placed on sufficiently dark poster or cover media.
 
 ### Accent / Misc
 - **Warm Yellow** (`#E9B83F`): Small highlights, recap emphasis, gentle badges.
@@ -81,17 +83,17 @@ Cookpad leads with Noto Sans for clean Japanese and alphanumeric rendering. ottl
 
 **Primary**
 - Background: `#FF9933`
-- Text: `#FFFFFF`
+- Text: `#0F0F0F`
 - Radius: `8px`
 - Padding: `8px 24px`
 - Height: ~`48px`
 - Font: `16px` / `600`
-- Use: Main record actions — leave a log, search, save, continue writing
+- Use: One final record, save, or share action in the current work area
 
 **Secondary / Outline**
 - Background: `#FFFFFF`
-- Text: `#FF9933`
-- Border: `1px solid #FF9933`
+- Text: `#1E4D8C` or `#4A4A4A`
+- Border: `1px solid #1E4D8C` at low emphasis, or the standard neutral border
 - Radius: `8px`
 - Use: Lower-emphasis action beside a primary
 
@@ -109,7 +111,7 @@ Cookpad leads with Noto Sans for clean Japanese and alphanumeric rendering. ottl
 
 **Category Button**
 - Background: transparent or `#FEF9EE`
-- Text: `#0F0F0F`
+- Text: `#0F0F0F`; selected text or outline may use `#1E4D8C`
 - Radius: `8px`
 - Padding: `16px`
 - Height: ~`64px`
@@ -171,7 +173,7 @@ ottline should read soft and mostly flat. Depth comes from the warm cream backgr
 ## 7. Do's and Don'ts
 
 - **DO** put the interface on warm cream `#F8F6F2`. **DON'T** use a pure-white clinical canvas.
-- **DO** reserve orange `#FF9933` for primary actions and focus. **DON'T** flood the product with orange.
+- **DO** reserve orange `#FF9933` for final primary actions, focus, and a small active-navigation marker. **DON'T** use it as repeated navigation, selection, status, metric, or metadata fills and text.
 - **DO** let posters, covers, dates, and notes dominate record cards. **DON'T** clutter cards with chrome.
 - **DO** use `8px` radius consistently. **DON'T** use sharp corners or oversized pill cards.
 - **DO** use near-black `#0F0F0F` for primary text. **DON'T** make record titles low contrast.
@@ -197,20 +199,21 @@ ottline should read soft and mostly flat. Depth comes from the warm cream backgr
 
 ### Quick Color Reference
 - Primary / action: Cookpad Orange `#FF9933`
+- Navigation / link / selected outline: wordmark navy `#1E4D8C`
 - Page bg: warm cream `#F8F6F2`; card bg `#FFFFFF`
 - Text: `#0F0F0F`; chrome/secondary `#4A4A4A`
 - Warm accents: `#E9B83F`, `#FEF9EE`, `#FAF5D7`
 - Radius: `8px` everywhere
 
 ### Example Component Prompts
-- "Create an ottline primary button in Cookpad style: solid `#FF9933`, white text, `8px` radius, `8px 24px` padding, height about 48px, 16px weight 600."
+- "Create an ottline primary button in Cookpad style: solid `#FF9933`, near-black `#0F0F0F` text, `8px` radius, `8px 24px` padding, height about 48px, 16px weight 600."
 - "Build an ottline record card: white bg, `8px` radius, poster or cover media first, title below at 16px weight 600 `#0F0F0F`, metadata in `#4A4A4A`, floating on `#F8F6F2`."
 - "Design a Cookpad-style category grid for ottline: large tappable tiles around 64px tall, `8px` radius, 16px padding, icon + label at 16px `#0F0F0F`."
 - "Create an ottline title search bar: white field, `8px` radius, `#4A4A4A` placeholder, focus ring in `#FF9933`, placed on a `#F8F6F2` page."
 
 ### Iteration Guide
 1. Warm cream `#F8F6F2` background, never pure white.
-2. Orange `#FF9933` is a pop, not a wash.
+2. Orange `#FF9933` is a pop for final actions, focus, and the current-nav micro-marker, not a selection or metadata wash.
 3. Posters and covers are the content anchor.
 4. `8px` radius everywhere.
 5. Text `#0F0F0F` on cream/white for crisp readability.

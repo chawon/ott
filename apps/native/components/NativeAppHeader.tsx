@@ -89,12 +89,12 @@ export function NativeAppHeader() {
                 <Pressable
                   key={item.value}
                   onPress={() => setLocalePreference(item.value)}
-                  style={[styles.localeButton, active && styles.localeButtonActive]}
+                  style={[stylesForTheme.localeButton, active && stylesForTheme.localeButtonActive]}
                   accessibilityRole="button"
                   accessibilityState={{ selected: active }}
                   accessibilityLabel={`${active ? copy.languageActive : copy.languageSwitchTo}: ${languageLabel}`}
                 >
-                  <Text style={[stylesForTheme.localeText, active && styles.localeTextActive]}>{item.label}</Text>
+                  <Text style={[stylesForTheme.localeText, active && stylesForTheme.localeTextActive]}>{item.label}</Text>
                 </Pressable>
               );
             })}
@@ -153,6 +153,23 @@ function createStyles(colors: ThemeColors, colorScheme: string) {
       fontWeight: '800',
       letterSpacing: 0,
     },
+    localeButton: {
+      minWidth: 30,
+      height: 26,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderRadius: 999,
+      borderWidth: 1,
+      borderColor: 'transparent',
+      paddingHorizontal: 8,
+    },
+    localeButtonActive: {
+      borderColor: colors.link,
+      backgroundColor: colors.selectedSurface,
+    },
+    localeTextActive: {
+      color: colors.link,
+    },
     themeButton: {
       width: 40,
       height: 40,
@@ -203,20 +220,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-  },
-  localeButton: {
-    minWidth: 30,
-    height: 26,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 999,
-    paddingHorizontal: 8,
-  },
-  localeButtonActive: {
-    backgroundColor: '#FF9933',
-  },
-  localeTextActive: {
-    color: '#0F0F0F',
   },
   themeIconBox: {
     width: 22,
