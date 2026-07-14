@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 
 type Props = {
   params: Promise<{ locale: string }>;
@@ -17,6 +18,21 @@ type PodStatus = {
   imageTag: string | null;
   cpuUsage: string | null;
   memoryUsage: string | null;
+};
+
+type ActivityMetrics = {
+  rawAppOpenEvents: number;
+  appOpenSessions: number;
+  activeClients: number;
+  qualifiedActors: number;
+};
+
+type ReachMetrics = {
+  titleSearchActors: number;
+  titleSelectActors: number;
+  loginActors: number;
+  firstLogCreateActors: number;
+  logCreateActors: number;
 };
 
 type DailyReport = {
@@ -42,6 +58,8 @@ type DailyReport = {
     firstLogCreateUsers: number;
     logCreateUsers: number;
     dbLogCreateCount: number;
+    activity?: ActivityMetrics;
+    reach?: ReachMetrics;
   };
   kubernetes: {
     pods: PodStatus[];
@@ -49,16 +67,10 @@ type DailyReport = {
   };
 };
 
-function rate(numerator: number, denominator: number) {
-  if (denominator <= 0) return "-";
-  return new Intl.NumberFormat("ko-KR", {
-    maximumFractionDigits: 1,
-    style: "percent",
-  }).format(numerator / denominator);
-}
-
 export default async function AdminReportPage({ params, searchParams }: Props) {
-  await params;
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: "Admin" });
+  const numberLocale = locale === "ko" ? "ko-KR" : "en-US";
   const sp = searchParams ? await searchParams : {};
   const token = readToken(sp?.token);
   const expected = process.env.ADMIN_ANALYTICS_TOKEN?.trim() || null;
@@ -72,11 +84,9 @@ export default async function AdminReportPage({ params, searchParams }: Props) {
     return (
       <div className="space-y-2">
         <h1 className="text-2xl font-bold tracking-tight">
-          데일리 운영 리포트
+          {t("dailyReportTitle")}
         </h1>
-        <p className="text-sm text-red-500">
-          BACKEND_URL 환경변수가 설정되지 않았습니다.
-        </p>
+        <p className="text-sm text-red-500">{t("envError")}</p>
       </div>
     );
   }
@@ -90,184 +100,217 @@ export default async function AdminReportPage({ params, searchParams }: Props) {
       cache: "no-store",
     });
     if (!res.ok) {
-      loadError = `API 오류: ${res.status}`;
+      loadError = t("apiError", { status: res.status });
     } else {
       report = await res.json();
     }
   } catch (e: unknown) {
-    loadError = e instanceof Error ? e.message : "알 수 없는 오류";
+    loadError = e instanceof Error ? e.message : t("callError");
   }
+
+  const internalActivity = report?.internal.activity ?? null;
+  const internalReach = report?.internal.reach ?? null;
 
   return (
     <div className="space-y-6">
       <section className="space-y-1">
         <h1 className="text-2xl font-bold tracking-tight">
-          📊 데일리 운영 리포트
+          {t("dailyReportTitle")}
         </h1>
         {report && (
           <p className="text-sm text-muted-foreground">
-            {report.date} 기준 (어제)
+            {t("dailyReportDate", { date: report.date })}
           </p>
         )}
       </section>
 
       {loadError && (
-        <section className="rounded-2xl border border-border bg-card p-6 text-sm text-red-500">
+        <section className="rounded-lg border border-border bg-card p-6 text-sm text-red-500">
           {loadError}
         </section>
       )}
 
       {report && (
         <>
-          {/* Cloudflare */}
-          <section className="rounded-2xl border border-border bg-card p-6 space-y-4">
-            <div className="text-sm font-semibold">🌐 트래픽 (Cloudflare)</div>
+          <section className="space-y-4 rounded-lg border border-border bg-card p-6">
+            <div className="text-sm font-semibold">
+              {t("cloudflareTraffic")}
+            </div>
             {report.cloudflare.error ? (
-              <p className="text-sm text-red-500">
-                ⚠ {report.cloudflare.error}
-              </p>
+              <p className="text-sm text-red-500">{report.cloudflare.error}</p>
             ) : (
               <div className="grid gap-3 sm:grid-cols-3">
                 <Stat
-                  label="요청수"
-                  value={report.cloudflare.requests.toLocaleString("ko-KR")}
-                />
-                <Stat
-                  label="방문자"
-                  value={report.cloudflare.uniqueVisitors.toLocaleString(
-                    "ko-KR",
+                  label={t("requests")}
+                  value={report.cloudflare.requests.toLocaleString(
+                    numberLocale,
                   )}
                 />
                 <Stat
-                  label="페이지뷰"
-                  value={report.cloudflare.pageViews.toLocaleString("ko-KR")}
+                  label={t("visitors")}
+                  value={report.cloudflare.uniqueVisitors.toLocaleString(
+                    numberLocale,
+                  )}
+                />
+                <Stat
+                  label={t("pageViews")}
+                  value={report.cloudflare.pageViews.toLocaleString(
+                    numberLocale,
+                  )}
                 />
               </div>
             )}
           </section>
 
-          {/* GA4 */}
-          <section className="rounded-2xl border border-border bg-card p-6 space-y-4">
-            <div className="text-sm font-semibold">
-              📈 사용자 (Google Analytics 4)
-            </div>
+          <section className="space-y-4 rounded-lg border border-border bg-card p-6">
+            <div className="text-sm font-semibold">{t("ga4Users")}</div>
             {report.ga4.error ? (
-              <p className="text-sm text-red-500">⚠ {report.ga4.error}</p>
+              <p className="text-sm text-red-500">{report.ga4.error}</p>
             ) : (
               <div className="grid gap-3 sm:grid-cols-4">
                 <Stat
-                  label="세션"
-                  value={report.ga4.sessions.toLocaleString("ko-KR")}
+                  label={t("sessions")}
+                  value={report.ga4.sessions.toLocaleString(numberLocale)}
                 />
                 <Stat
-                  label="활성 사용자"
-                  value={report.ga4.activeUsers.toLocaleString("ko-KR")}
+                  label={t("ga4ActiveUsers")}
+                  value={report.ga4.activeUsers.toLocaleString(numberLocale)}
                 />
                 <Stat
-                  label="페이지뷰"
-                  value={report.ga4.pageViews.toLocaleString("ko-KR")}
+                  label={t("pageViews")}
+                  value={report.ga4.pageViews.toLocaleString(numberLocale)}
                 />
                 <Stat
-                  label="신규 사용자"
-                  value={report.ga4.newUsers.toLocaleString("ko-KR")}
+                  label={t("newUsers")}
+                  value={report.ga4.newUsers.toLocaleString(numberLocale)}
                 />
               </div>
             )}
           </section>
 
-          {/* 내부 지표 */}
-          <section className="rounded-2xl border border-border bg-card p-6 space-y-4">
-            <div className="text-sm font-semibold">🎯 앱 활동 (내부)</div>
-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
-              <Stat
-                label="DAU"
-                value={report.internal.dau.toLocaleString("ko-KR")}
-              />
-              <Stat
-                label="제목 검색"
-                value={report.internal.titleSearchUsers.toLocaleString("ko-KR")}
-              />
-              <Stat
-                label="제목 선택"
-                value={report.internal.titleSelectUsers.toLocaleString("ko-KR")}
-              />
-              <Stat
-                label="기기 연결"
-                value={report.internal.loginUsers.toLocaleString("ko-KR")}
-              />
-              <Stat
-                label="첫 기록"
-                value={report.internal.firstLogCreateUsers.toLocaleString(
-                  "ko-KR",
-                )}
-              />
-              <Stat
-                label="기록 사용자"
-                value={report.internal.logCreateUsers.toLocaleString("ko-KR")}
-              />
+          <section className="space-y-4 rounded-lg border border-border bg-card p-6">
+            <div className="space-y-1">
+              <div className="text-sm font-semibold">
+                {t("internalActivity")}
+              </div>
+              <p className="text-sm leading-6 text-muted-foreground">
+                {t("dailyInternalDesc")}
+              </p>
             </div>
-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-              <Stat
-                label="방문→검색"
-                value={rate(
-                  report.internal.titleSearchUsers,
-                  report.internal.dau,
-                )}
-              />
-              <Stat
-                label="검색→선택"
-                value={rate(
-                  report.internal.titleSelectUsers,
-                  report.internal.titleSearchUsers,
-                )}
-              />
-              <Stat
-                label="방문→첫 기록"
-                value={rate(
-                  report.internal.firstLogCreateUsers,
-                  report.internal.dau,
-                )}
-              />
-              <Stat
-                label="신규 로그 수(DB)"
-                value={report.internal.dbLogCreateCount.toLocaleString("ko-KR")}
-              />
-            </div>
+            {internalActivity && internalReach ? (
+              <>
+                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                  <Stat
+                    label={t("qualifiedActors")}
+                    value={internalActivity.qualifiedActors.toLocaleString(
+                      numberLocale,
+                    )}
+                  />
+                  <Stat
+                    label={t("activeClients")}
+                    value={internalActivity.activeClients.toLocaleString(
+                      numberLocale,
+                    )}
+                  />
+                  <Stat
+                    label={t("appOpenSessions")}
+                    value={internalActivity.appOpenSessions.toLocaleString(
+                      numberLocale,
+                    )}
+                  />
+                  <Stat
+                    label={t("rawAppOpenEvents")}
+                    value={internalActivity.rawAppOpenEvents.toLocaleString(
+                      numberLocale,
+                    )}
+                  />
+                </div>
+                <div className="space-y-1 border-t border-border pt-4">
+                  <div className="text-sm font-semibold">
+                    {t("periodReachTitle")}
+                  </div>
+                  <p className="text-sm leading-6 text-muted-foreground">
+                    {t("dailyReachDesc")}
+                  </p>
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                  <Stat
+                    label={t("reachTitleSearch")}
+                    value={internalReach.titleSearchActors.toLocaleString(
+                      numberLocale,
+                    )}
+                  />
+                  <Stat
+                    label={t("reachTitleSelect")}
+                    value={internalReach.titleSelectActors.toLocaleString(
+                      numberLocale,
+                    )}
+                  />
+                  <Stat
+                    label={t("reachConnected")}
+                    value={internalReach.loginActors.toLocaleString(
+                      numberLocale,
+                    )}
+                  />
+                  <Stat
+                    label={t("reachFirstLog")}
+                    value={internalReach.firstLogCreateActors.toLocaleString(
+                      numberLocale,
+                    )}
+                  />
+                  <Stat
+                    label={t("reachLogCreators")}
+                    value={internalReach.logCreateActors.toLocaleString(
+                      numberLocale,
+                    )}
+                  />
+                  <Stat
+                    label={t("dbLogCreateCount")}
+                    value={report.internal.dbLogCreateCount.toLocaleString(
+                      numberLocale,
+                    )}
+                  />
+                </div>
+              </>
+            ) : (
+              <p className="rounded-lg border border-border bg-secondary p-4 text-sm text-muted-foreground">
+                {t("metricsSchemaUnavailable")}
+              </p>
+            )}
           </section>
 
-          {/* K8s */}
-          <section className="rounded-2xl border border-border bg-card p-6 space-y-4">
+          <section className="space-y-4 rounded-lg border border-border bg-card p-6">
             <div className="flex items-center justify-between">
               <div className="text-sm font-semibold">
-                ☸️ 인프라 (Kubernetes / ott)
+                {t("kubernetesInfrastructure")}
                 <span className="ml-2 text-xs font-normal text-muted-foreground">
-                  실시간
+                  {t("realtime")}
                 </span>
               </div>
               <a
                 href="https://clarity.microsoft.com"
                 target="_blank"
                 rel="noreferrer"
-                className="text-xs text-muted-foreground hover:underline"
+                className="text-xs text-brand-navy underline-offset-4 hover:underline dark:text-muted-foreground"
               >
-                Microsoft Clarity →
+                {t("clarityLink")}
               </a>
             </div>
             {report.kubernetes.error ? (
-              <p className="text-sm text-red-500">
-                ⚠ {report.kubernetes.error}
-              </p>
+              <p className="text-sm text-red-500">{report.kubernetes.error}</p>
             ) : report.kubernetes.pods.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Pod 없음</p>
+              <p className="text-sm text-muted-foreground">{t("noPods")}</p>
             ) : (
               <div className="space-y-2">
                 {report.kubernetes.pods.map((pod) => (
                   <div
                     key={pod.name}
-                    className="flex items-center justify-between rounded-xl border border-border px-3 py-2 text-sm"
+                    className="flex flex-col gap-1 rounded-lg border border-border px-3 py-2 text-sm sm:flex-row sm:items-center sm:justify-between"
                   >
                     <div className="flex items-center gap-2">
-                      <span>{pod.phase === "Running" ? "✅" : "⚠️"}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {pod.phase}
+                      </span>
                       <span className="font-medium">{pod.name}</span>
                       {pod.imageTag && (
                         <span className="text-xs text-muted-foreground font-mono">
@@ -277,7 +320,10 @@ export default async function AdminReportPage({ params, searchParams }: Props) {
                     </div>
                     {(pod.cpuUsage || pod.memoryUsage) && (
                       <span className="text-xs text-muted-foreground">
-                        CPU {pod.cpuUsage ?? "-"} · Mem {pod.memoryUsage ?? "-"}
+                        {t("podResources", {
+                          cpu: pod.cpuUsage ?? "-",
+                          memory: pod.memoryUsage ?? "-",
+                        })}
                       </span>
                     )}
                   </div>
@@ -293,7 +339,7 @@ export default async function AdminReportPage({ params, searchParams }: Props) {
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <article className="rounded-2xl border border-border bg-card p-4">
+    <article className="rounded-lg border border-border bg-card p-4">
       <div className="text-xs text-muted-foreground">{label}</div>
       <div className="mt-1 text-2xl font-semibold">{value}</div>
     </article>

@@ -18,7 +18,7 @@ describe('native analytics context', () => {
     ).toEqual({
       platform: 'ios_native',
       deviceType: 'mobile',
-      osFamily: 'iOS',
+      osFamily: 'ios',
       installState: 'app_store_testflight',
       appVersion: '1.0.0',
       buildNumber: '12',

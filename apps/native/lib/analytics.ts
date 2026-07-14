@@ -17,7 +17,7 @@ export function buildAnalyticsProperties(
   return {
     platform: IOS_NATIVE_PLATFORM,
     deviceType: 'mobile',
-    osFamily: 'iOS',
+    osFamily: 'ios',
     installState: 'app_store_testflight',
     appVersion: context.appVersion ?? null,
     buildNumber: context.buildNumber ?? null,

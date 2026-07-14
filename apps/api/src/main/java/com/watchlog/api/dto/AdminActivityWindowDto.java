@@ -1,9 +1,6 @@
 package com.watchlog.api.dto;
 
-public record AdminPlatformSummaryDto(
-        String platform,
-        long events,
-        long activeUsers,
+public record AdminActivityWindowDto(
         long rawAppOpenEvents,
         long appOpenSessions,
         long activeClients,

@@ -32,7 +32,9 @@ public record DailyReportDto(
             long loginUsers,
             long firstLogCreateUsers,
             long logCreateUsers,
-            long dbLogCreateCount
+            long dbLogCreateCount,
+            AdminActivityWindowDto activity,
+            AdminReachSummaryDto reach
     ) {}
 
     public record K8sStatusDto(

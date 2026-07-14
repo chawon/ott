@@ -29,5 +29,7 @@ public record AdminAnalyticsOverviewDto(
         List<AdminDimensionSummaryDto> androidAppVersionCodes,
         List<AdminDimensionSummaryDto> androidTwaSignals,
         List<AdminEventBreakdownDto> eventBreakdown,
-        List<AdminDailyAnalyticsDto> daily
+        List<AdminDailyAnalyticsDto> daily,
+        AdminActivitySummaryDto activity,
+        AdminReachSummaryDto reach
 ) {}
