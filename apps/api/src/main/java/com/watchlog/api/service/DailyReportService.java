@@ -28,6 +28,7 @@ public class DailyReportService {
     private static final String EXCLUDED_ADMIN_ID = "2777a431-5ccb-4761-9c8a-2b17a34ff566";
 
     private final JdbcTemplate jdbcTemplate;
+    private final AnalyticsMetricsQuery analyticsMetricsQuery;
     private final CloudflareAnalyticsService cloudflareService;
     private final GoogleAnalyticsService ga4Service;
     private final KubernetesStatusService k8sService;
@@ -39,6 +40,7 @@ public class DailyReportService {
 
     public DailyReportService(
             JdbcTemplate jdbcTemplate,
+            AnalyticsMetricsQuery analyticsMetricsQuery,
             CloudflareAnalyticsService cloudflareService,
             GoogleAnalyticsService ga4Service,
             KubernetesStatusService k8sService,
@@ -46,6 +48,7 @@ public class DailyReportService {
             TelegramProperties telegramProperties
     ) {
         this.jdbcTemplate = jdbcTemplate;
+        this.analyticsMetricsQuery = analyticsMetricsQuery;
         this.cloudflareService = cloudflareService;
         this.ga4Service = ga4Service;
         this.k8sService = k8sService;
@@ -69,32 +72,22 @@ public class DailyReportService {
     }
 
     private InternalStatsDto buildInternalStats(ZonedDateTime from, ZonedDateTime to) {
-        long dau = countDistinctActors("app_open", from, to);
-        long titleSearchUsers = countDistinctActors("title_search", from, to);
-        long titleSelectUsers = countDistinctActors("title_select", from, to);
-        long loginUsers = countDistinctActors("login_success", from, to);
-        long firstLogCreateUsers = countDistinctActors("first_log_create", from, to);
-        long logCreateUsers = countDistinctActors("log_create", from, to);
+        AnalyticsMetricsQuery.PeriodSummary summary = analyticsMetricsQuery.summarize(
+                from.toOffsetDateTime(),
+                to.toOffsetDateTime()
+        );
         long dbLogCreateCount = countCreatedLogs(from, to);
         return new InternalStatsDto(
-                dau,
-                titleSearchUsers,
-                titleSelectUsers,
-                loginUsers,
-                firstLogCreateUsers,
-                logCreateUsers,
-                dbLogCreateCount
+                summary.appOpenActors(),
+                summary.reach().titleSearchActors(),
+                summary.reach().titleSelectActors(),
+                summary.reach().loginActors(),
+                summary.reach().firstLogCreateActors(),
+                summary.reach().logCreateActors(),
+                dbLogCreateCount,
+                summary.activity(),
+                summary.reach()
         );
-    }
-
-    private long countDistinctActors(String eventName, ZonedDateTime from, ZonedDateTime to) {
-        Long value = jdbcTemplate.queryForObject("""
-                select count(distinct coalesce(client_id::text, user_id::text, session_id))
-                from analytics_events
-                where event_name = ? and occurred_at >= ? and occurred_at < ?
-                  and (user_id is null or user_id::text != ?)
-                """, Long.class, eventName, from.toOffsetDateTime(), to.toOffsetDateTime(), EXCLUDED_ADMIN_ID);
-        return value == null ? 0L : value;
     }
 
     private long countCreatedLogs(ZonedDateTime from, ZonedDateTime to) {
@@ -171,15 +164,15 @@ public class DailyReportService {
         }
 
         sb.append("\n<b>🎯 앱 활동 (내부)</b>\n");
-        sb.append("• 방문: ").append(fmt(internal.dau()))
-          .append(" | 검색: ").append(fmt(internal.titleSearchUsers()))
-          .append(" | 선택: ").append(fmt(internal.titleSelectUsers())).append("\n");
-        sb.append("• 기기 연결: ").append(fmt(internal.loginUsers()))
-          .append(" | 첫 기록: ").append(fmt(internal.firstLogCreateUsers()))
-          .append(" | 기록 사용자: ").append(fmt(internal.logCreateUsers())).append("\n");
-        sb.append("• 전환: 방문→검색 ").append(rate(internal.titleSearchUsers(), internal.dau()))
-          .append(" | 검색→선택 ").append(rate(internal.titleSelectUsers(), internal.titleSearchUsers()))
-          .append(" | 방문→첫 기록 ").append(rate(internal.firstLogCreateUsers(), internal.dau())).append("\n");
+        sb.append("• 실행 세션: ").append(fmt(internal.activity().appOpenSessions()))
+          .append(" | 활성 클라이언트: ").append(fmt(internal.activity().activeClients())).append("\n");
+        sb.append("• 행동 사용자: ").append(fmt(internal.activity().qualifiedActors()))
+          .append(" | 원본 실행 이벤트: ").append(fmt(internal.activity().rawAppOpenEvents())).append("\n");
+        sb.append("• 검색 사용자: ").append(fmt(internal.reach().titleSearchActors()))
+          .append(" | 제목 선택 사용자: ").append(fmt(internal.reach().titleSelectActors())).append("\n");
+        sb.append("• 기기 연결 사용자: ").append(fmt(internal.reach().loginActors()))
+          .append(" | 첫 기록 사용자: ").append(fmt(internal.reach().firstLogCreateActors()))
+          .append(" | 기록 사용자: ").append(fmt(internal.reach().logCreateActors())).append("\n");
         sb.append("• 신규 로그 수(DB): ").append(fmt(internal.dbLogCreateCount())).append("\n");
 
         sb.append("\n<b>☸️ 인프라 (K8s / ott)</b>\n");
@@ -204,10 +197,4 @@ public class DailyReportService {
         return NumberFormat.getNumberInstance(Locale.KOREA).format(v);
     }
 
-    private String rate(long numerator, long denominator) {
-        if (denominator <= 0) return "-";
-        NumberFormat percentFormat = NumberFormat.getPercentInstance(Locale.KOREA);
-        percentFormat.setMaximumFractionDigits(1);
-        return percentFormat.format(numerator / (double) denominator);
-    }
 }

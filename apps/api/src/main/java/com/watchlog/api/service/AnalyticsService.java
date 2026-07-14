@@ -3,6 +3,7 @@ package com.watchlog.api.service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.watchlog.api.domain.WatchLogEntity;
+import com.watchlog.api.dto.AdminActivitySummaryDto;
 import com.watchlog.api.dto.AdminAnalyticsOverviewDto;
 import com.watchlog.api.dto.AdminDailyAnalyticsDto;
 import com.watchlog.api.dto.AdminDimensionSummaryDto;
@@ -24,13 +25,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.DayOfWeek;
 import java.time.ZoneId;
-import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.time.temporal.TemporalAdjusters;
 import java.util.*;
@@ -42,17 +40,20 @@ public class AnalyticsService {
     private static final String EXCLUDED_ADMIN_ID = "2777a431-5ccb-4761-9c8a-2b17a34ff566";
 
     private final JdbcTemplate jdbcTemplate;
+    private final AnalyticsMetricsQuery analyticsMetricsQuery;
     private final WatchLogRepository watchLogRepository;
     private final UserRepository userRepository;
     private final String adminAnalyticsToken;
 
     public AnalyticsService(
             JdbcTemplate jdbcTemplate,
+            AnalyticsMetricsQuery analyticsMetricsQuery,
             WatchLogRepository watchLogRepository,
             UserRepository userRepository,
             @Value("${admin.analytics.token:}") String adminAnalyticsToken
     ) {
         this.jdbcTemplate = jdbcTemplate;
+        this.analyticsMetricsQuery = analyticsMetricsQuery;
         this.watchLogRepository = watchLogRepository;
         this.userRepository = userRepository;
         this.adminAnalyticsToken = adminAnalyticsToken;
@@ -351,114 +352,103 @@ public class AnalyticsService {
     public AdminAnalyticsOverviewDto adminOverview(String token, int days) {
         verifyAdminToken(token);
 
-        ZoneId kst = ZoneId.of("Asia/Seoul");
-        int safeDays = Math.max(1, Math.min(days, 90));
-        OffsetDateTime to = OffsetDateTime.now(kst);
-        OffsetDateTime from = to.minusDays(safeDays);
-
-        long events = queryLong("select count(*) from analytics_events where occurred_at >= ? and (user_id is null or user_id::text != ?)", from, EXCLUDED_ADMIN_ID);
-
-        OffsetDateTime startOfTodayKst = LocalDate.now(kst).atStartOfDay(kst).toOffsetDateTime();
-        long dau = countDistinctActorsByEventSince("app_open", startOfTodayKst);
-        long wau = countDistinctActorsByEventSince("app_open", to.minusDays(7));
-        long mau = countDistinctActorsByEventSince("app_open", to.minusDays(30));
-
-        long funnelAppOpenUsers = countDistinctActorsByEventSince("app_open", from);
-        long funnelTitleSearchUsers = countDistinctActorsByEventSince("title_search", from);
-        long funnelTitleSelectUsers = countDistinctActorsByEventSince("title_select", from);
-        long funnelLoginUsers = countDistinctActorsByEventSince("login_success", from);
-        long funnelFirstLogCreateUsers = countDistinctActorsByEventSince("first_log_create", from);
-        long funnelLogCreateUsers = countDistinctActorsByEventSince("log_create", from);
-
-        List<AdminPlatformSummaryDto> platforms = jdbcTemplate.query("""
-                select
-                    platform,
-                    count(*) as events,
-                    count(distinct coalesce(client_id::text, user_id::text, session_id)) filter (where event_name = 'app_open') as active_users
-                from analytics_events
-                where occurred_at >= ?
-                  and (user_id is null or user_id::text != ?)
-                group by platform
-                order by platform asc
-                """,
-                (rs, rowNum) -> mapPlatformSummary(rs),
-                from,
-                EXCLUDED_ADMIN_ID
+        AnalyticsMetricsQuery.CalendarWindows windows = analyticsMetricsQuery.calendarWindows(
+                days,
+                OffsetDateTime.now(ZoneId.of("Asia/Seoul"))
         );
-        List<AdminDimensionSummaryDto> deviceTypes = queryAppOpenDimensionSummary("deviceType", from);
-        List<AdminDimensionSummaryDto> osFamilies = queryAppOpenDimensionSummary("osFamily", from);
-        List<AdminDimensionSummaryDto> browserFamilies = queryAppOpenDimensionSummary("browserFamily", from);
-        List<AdminDimensionSummaryDto> installStates = queryAppOpenDimensionSummary("installState", from);
-        List<AdminDimensionSummaryDto> domains = queryAppOpenDimensionSummary("hostname", from);
-        List<AdminDimensionSummaryDto> iosAppVersions = queryPlatformAppOpenDimensionSummary("ios_native", "appVersion", from);
-        List<AdminDimensionSummaryDto> iosBuildNumbers = queryPlatformAppOpenDimensionSummary("ios_native", "buildNumber", from);
-        List<AdminDimensionSummaryDto> androidAppVersions = queryAndroidAppOpenDimensionSummary("androidAppVersion", from);
-        List<AdminDimensionSummaryDto> androidAppVersionCodes = queryAndroidAppOpenDimensionSummary("androidAppVersionCode", from);
-        List<AdminDimensionSummaryDto> androidTwaSignals = queryAndroidAppOpenDimensionSummary("androidTwaSignal", from);
+        OffsetDateTime from = windows.periodFrom();
+        OffsetDateTime to = windows.to();
 
-        List<AdminEventBreakdownDto> eventBreakdown = jdbcTemplate.query("""
-                select
-                    event_name,
-                    count(*) as events,
-                    count(distinct coalesce(client_id::text, user_id::text, session_id)) as actors
-                from analytics_events
-                where occurred_at >= ?
-                  and (user_id is null or user_id::text != ?)
-                group by event_name
-                order by events desc, event_name asc
-                """,
-                (rs, rowNum) -> new AdminEventBreakdownDto(
-                        rs.getString("event_name"),
-                        rs.getLong("events"),
-                        rs.getLong("actors")
-                ),
-                from,
-                EXCLUDED_ADMIN_ID
+        AnalyticsMetricsQuery.PeriodSummary period = analyticsMetricsQuery.summarize(from, to);
+        AnalyticsMetricsQuery.PeriodSummary today = analyticsMetricsQuery.summarize(windows.todayFrom(), to);
+        AnalyticsMetricsQuery.PeriodSummary last7Days = analyticsMetricsQuery.summarize(windows.last7DaysFrom(), to);
+        AnalyticsMetricsQuery.PeriodSummary last30Days = analyticsMetricsQuery.summarize(windows.last30DaysFrom(), to);
+
+        List<AdminPlatformSummaryDto> platforms = analyticsMetricsQuery.summarizePlatforms(from, to).stream()
+                .map(summary -> new AdminPlatformSummaryDto(
+                        summary.platform(),
+                        summary.events(),
+                        summary.activeUsers(),
+                        summary.rawAppOpenEvents(),
+                        summary.appOpenSessions(),
+                        summary.activeClients(),
+                        summary.qualifiedActors()
+                ))
+                .toList();
+        List<AdminDimensionSummaryDto> deviceTypes = mapDimensionSummaries(
+                analyticsMetricsQuery.summarizeAppOpenDimension("deviceType", from, to)
         );
-        List<AdminDailyAnalyticsDto> daily = jdbcTemplate.query("""
-                select
-                    date_trunc('day', occurred_at at time zone 'Asia/Seoul')::date as day,
-                    count(*) as events,
-                    count(distinct coalesce(client_id::text, user_id::text, session_id)) filter (where event_name = 'app_open') as app_open_users,
-                    count(distinct coalesce(client_id::text, user_id::text, session_id)) filter (where event_name = 'title_search') as title_search_users,
-                    count(distinct coalesce(client_id::text, user_id::text, session_id)) filter (where event_name = 'title_select') as title_select_users,
-                    count(distinct coalesce(client_id::text, user_id::text, session_id)) filter (where event_name = 'login_success') as login_users,
-                    count(distinct coalesce(client_id::text, user_id::text, session_id)) filter (where event_name = 'first_log_create') as first_log_create_users,
-                    count(distinct coalesce(client_id::text, user_id::text, session_id)) filter (where event_name = 'log_create') as log_create_users
-                from analytics_events
-                where occurred_at >= ?
-                  and (user_id is null or user_id::text != ?)
-                group by 1
-                order by 1 desc
-                """,
-                (rs, rowNum) -> new AdminDailyAnalyticsDto(
-                        rs.getObject("day", LocalDate.class),
-                        rs.getLong("events"),
-                        rs.getLong("app_open_users"),
-                        rs.getLong("title_search_users"),
-                        rs.getLong("title_select_users"),
-                        rs.getLong("login_users"),
-                        rs.getLong("first_log_create_users"),
-                        rs.getLong("log_create_users")
-                ),
-                from,
-                EXCLUDED_ADMIN_ID
+        List<AdminDimensionSummaryDto> osFamilies = mapDimensionSummaries(
+                analyticsMetricsQuery.summarizeAppOpenDimension("osFamily", from, to)
+        );
+        List<AdminDimensionSummaryDto> browserFamilies = mapDimensionSummaries(
+                analyticsMetricsQuery.summarizeAppOpenDimension("browserFamily", from, to)
+        );
+        List<AdminDimensionSummaryDto> installStates = mapDimensionSummaries(
+                analyticsMetricsQuery.summarizeAppOpenDimension("installState", from, to)
+        );
+        List<AdminDimensionSummaryDto> domains = mapDimensionSummaries(
+                analyticsMetricsQuery.summarizeAppOpenDimension("hostname", from, to)
+        );
+        List<AdminDimensionSummaryDto> iosAppVersions = mapDimensionSummaries(
+                analyticsMetricsQuery.summarizePlatformAppOpenDimension("ios_native", "appVersion", from, to)
+        );
+        List<AdminDimensionSummaryDto> iosBuildNumbers = mapDimensionSummaries(
+                analyticsMetricsQuery.summarizePlatformAppOpenDimension("ios_native", "buildNumber", from, to)
+        );
+        List<AdminDimensionSummaryDto> androidAppVersions = mapDimensionSummaries(
+                analyticsMetricsQuery.summarizeAndroidAppOpenDimension("androidAppVersion", from, to)
+        );
+        List<AdminDimensionSummaryDto> androidAppVersionCodes = mapDimensionSummaries(
+                analyticsMetricsQuery.summarizeAndroidAppOpenDimension("androidAppVersionCode", from, to)
+        );
+        List<AdminDimensionSummaryDto> androidTwaSignals = mapDimensionSummaries(
+                analyticsMetricsQuery.summarizeAndroidAppOpenDimension("androidTwaSignal", from, to)
+        );
+
+        List<AdminEventBreakdownDto> eventBreakdown = analyticsMetricsQuery.summarizeEventBreakdown(from, to).stream()
+                .map(summary -> new AdminEventBreakdownDto(
+                        summary.eventName(),
+                        summary.events(),
+                        summary.actors()
+                ))
+                .toList();
+        List<AdminDailyAnalyticsDto> daily = analyticsMetricsQuery.summarizeDaily(from, to).stream()
+                .map(summary -> new AdminDailyAnalyticsDto(
+                        summary.day(),
+                        summary.events(),
+                        summary.appOpenActors(),
+                        summary.reach().titleSearchActors(),
+                        summary.reach().titleSelectActors(),
+                        summary.reach().loginActors(),
+                        summary.reach().firstLogCreateActors(),
+                        summary.reach().logCreateActors(),
+                        summary.activity(),
+                        summary.reach()
+                ))
+                .toList();
+
+        AdminActivitySummaryDto activity = new AdminActivitySummaryDto(
+                period.activity(),
+                today.activity(),
+                last7Days.activity(),
+                last30Days.activity()
         );
 
         return new AdminAnalyticsOverviewDto(
-                safeDays,
+                windows.days(),
                 from,
                 to,
-                events,
-                dau,
-                wau,
-                mau,
-                funnelAppOpenUsers,
-                funnelTitleSearchUsers,
-                funnelTitleSelectUsers,
-                funnelLoginUsers,
-                funnelFirstLogCreateUsers,
-                funnelLogCreateUsers,
+                period.events(),
+                today.appOpenActors(),
+                last7Days.appOpenActors(),
+                last30Days.appOpenActors(),
+                period.appOpenActors(),
+                period.reach().titleSearchActors(),
+                period.reach().titleSelectActors(),
+                period.reach().loginActors(),
+                period.reach().firstLogCreateActors(),
+                period.reach().logCreateActors(),
                 platforms,
                 deviceTypes,
                 osFamilies,
@@ -471,7 +461,9 @@ public class AnalyticsService {
                 androidAppVersionCodes,
                 androidTwaSignals,
                 eventBreakdown,
-                daily
+                daily,
+                activity,
+                period.reach()
         );
     }
 
@@ -487,7 +479,12 @@ public class AnalyticsService {
 
         int safeDays = Math.max(1, Math.min(days, 90));
         int safeLimit = Math.max(1, Math.min(limit, 500));
-        OffsetDateTime from = OffsetDateTime.now().minusDays(safeDays);
+        AnalyticsMetricsQuery.CalendarWindows windows = analyticsMetricsQuery.calendarWindows(
+                safeDays,
+                OffsetDateTime.now(ZoneId.of("Asia/Seoul"))
+        );
+        OffsetDateTime from = windows.periodFrom();
+        OffsetDateTime to = windows.to();
         String normalizedEventName = eventName == null || eventName.isBlank() ? null : eventName.trim();
         String normalizedPlatform = platform == null || platform.isBlank() ? null : platform.trim();
 
@@ -504,6 +501,7 @@ public class AnalyticsService {
                     created_at
                 from analytics_events
                 where occurred_at >= ?
+                  and occurred_at < ?
                   and (cast(? as text) is null or event_name = cast(? as text))
                   and (cast(? as text) is null or platform = cast(? as text))
                   and (user_id is null or user_id::text != ?)
@@ -522,6 +520,7 @@ public class AnalyticsService {
                         rs.getObject("created_at", OffsetDateTime.class)
                 ),
                 from,
+                to,
                 normalizedEventName,
                 normalizedEventName,
                 normalizedPlatform,
@@ -531,105 +530,23 @@ public class AnalyticsService {
         );
     }
 
-    private long countDistinctActorsByEventSince(String eventName, OffsetDateTime since) {
-        return queryLong("""
-                select count(distinct coalesce(client_id::text, user_id::text, session_id))
-                from analytics_events
-                where event_name = ? and occurred_at >= ?
-                  and (user_id is null or user_id::text != ?)
-                """, eventName, since, EXCLUDED_ADMIN_ID);
-    }
-
     private long queryLong(String sql, Object... args) {
         Long value = jdbcTemplate.queryForObject(sql, Long.class, args);
         return value == null ? 0L : value;
     }
 
-    private OffsetDateTime queryOffsetDateTime(String sql, Object... args) {
-        return jdbcTemplate.queryForObject(sql, OffsetDateTime.class, args);
-    }
-
-    private List<AdminDimensionSummaryDto> queryAppOpenDimensionSummary(String propertyKey, OffsetDateTime from) {
-        return jdbcTemplate.query("""
-                select
-                    coalesce(nullif(properties->>?, ''), 'unknown') as dim_key,
-                    count(*) as events,
-                    count(distinct coalesce(client_id::text, user_id::text, session_id)) as active_users
-                from analytics_events
-                where event_name = 'app_open'
-                  and occurred_at >= ?
-                  and (user_id is null or user_id::text != ?)
-                group by 1
-                order by events desc, dim_key asc
-                """,
-                (rs, rowNum) -> new AdminDimensionSummaryDto(
-                        rs.getString("dim_key"),
-                        rs.getLong("events"),
-                        rs.getLong("active_users")
-                ),
-                propertyKey,
-                from,
-                EXCLUDED_ADMIN_ID
-        );
-    }
-
-    private List<AdminDimensionSummaryDto> queryAndroidAppOpenDimensionSummary(String propertyKey, OffsetDateTime from) {
-        return jdbcTemplate.query("""
-                select
-                    coalesce(nullif(properties->>?, ''), 'unknown') as dim_key,
-                    count(*) as events,
-                    count(distinct coalesce(client_id::text, user_id::text, session_id)) as active_users
-                from analytics_events
-                where event_name = 'app_open'
-                  and occurred_at >= ?
-                  and (user_id is null or user_id::text != ?)
-                  and (
-                    platform = 'twa'
-                    or properties->>'androidAppVersion' is not null
-                    or properties->>'androidTwaSignal' is not null
-                  )
-                group by 1
-                order by events desc, dim_key asc
-                """,
-                (rs, rowNum) -> new AdminDimensionSummaryDto(
-                        rs.getString("dim_key"),
-                        rs.getLong("events"),
-                        rs.getLong("active_users")
-                ),
-                propertyKey,
-                from,
-                EXCLUDED_ADMIN_ID
-        );
-    }
-
-    private List<AdminDimensionSummaryDto> queryPlatformAppOpenDimensionSummary(
-            String platform,
-            String propertyKey,
-            OffsetDateTime from
+    private List<AdminDimensionSummaryDto> mapDimensionSummaries(
+            List<AnalyticsMetricsQuery.DimensionSummary> summaries
     ) {
-        return jdbcTemplate.query("""
-                select
-                    coalesce(nullif(properties->>?, ''), 'unknown') as dim_key,
-                    count(*) as events,
-                    count(distinct coalesce(client_id::text, user_id::text, session_id)) as active_users
-                from analytics_events
-                where event_name = 'app_open'
-                  and occurred_at >= ?
-                  and (user_id is null or user_id::text != ?)
-                  and platform = ?
-                group by 1
-                order by events desc, dim_key asc
-                """,
-                (rs, rowNum) -> new AdminDimensionSummaryDto(
-                        rs.getString("dim_key"),
-                        rs.getLong("events"),
-                        rs.getLong("active_users")
-                ),
-                propertyKey,
-                from,
-                EXCLUDED_ADMIN_ID,
-                platform
-        );
+        return summaries.stream()
+                .map(summary -> new AdminDimensionSummaryDto(
+                        summary.key(),
+                        summary.events(),
+                        summary.activeUsers(),
+                        summary.appOpenSessions(),
+                        summary.activeClients()
+                ))
+                .toList();
     }
 
     private void verifyAdminToken(String token) {
@@ -644,14 +561,6 @@ public class AnalyticsService {
     private UUID resolveKnownUserId(UUID userId) {
         if (userId == null) return null;
         return userRepository.existsById(userId) ? userId : null;
-    }
-
-    private AdminPlatformSummaryDto mapPlatformSummary(ResultSet rs) throws SQLException {
-        return new AdminPlatformSummaryDto(
-                rs.getString("platform"),
-                rs.getLong("events"),
-                rs.getLong("active_users")
-        );
     }
 
     private double pct(int numerator, int denominator) {

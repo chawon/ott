@@ -10,5 +10,7 @@ public record AdminDailyAnalyticsDto(
         long titleSelectUsers,
         long loginUsers,
         long firstLogCreateUsers,
-        long logCreateUsers
+        long logCreateUsers,
+        AdminActivityWindowDto activity,
+        AdminReachSummaryDto reach
 ) {}

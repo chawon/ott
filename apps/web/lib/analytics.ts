@@ -7,6 +7,15 @@ import {
 } from "@/lib/androidAppContext";
 import { ensureAnalyticsClientId, getUserId } from "@/lib/localStore";
 import { safeUUID } from "@/lib/utils";
+import {
+  parsePendingAppOpen,
+  shouldTrackAppOpenForSession,
+} from "./analytics-session.mjs";
+
+export {
+  parsePendingAppOpen,
+  shouldTrackAppOpenForSession,
+} from "./analytics-session.mjs";
 
 export type AnalyticsPlatform = "web" | "pwa" | "twa";
 type DeviceType = "mobile" | "tablet" | "desktop";
@@ -48,6 +57,15 @@ type UtmProperties = Partial<{
 
 const ANDROID_TWA_SESSION_KEY = "ottline.analytics.androidTwaSession";
 const ANDROID_APP_CONTEXT_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
+const ANALYTICS_SESSION_ID_KEY = "watchlog.analytics.sessionId";
+const APP_OPEN_SENT_SESSION_KEY = "watchlog.analytics.appOpenSentSessionId";
+const APP_OPEN_PENDING_KEY = "watchlog.analytics.appOpenPending";
+
+type PendingAppOpen = {
+  sessionId: string;
+  eventId: string;
+  occurredAt: string;
+};
 
 function hasAndroidAppVersionContext(context: AndroidAppContext | null) {
   return Boolean(context?.versionName || context?.versionCode);
@@ -268,11 +286,10 @@ function buildContextProperties(context: RuntimeContext) {
 
 function ensureSessionId(): string {
   if (typeof sessionStorage === "undefined") return `no-session-${safeUUID()}`;
-  const key = "watchlog.analytics.sessionId";
-  const existing = sessionStorage.getItem(key);
+  const existing = sessionStorage.getItem(ANALYTICS_SESSION_ID_KEY);
   if (existing) return existing;
   const created = safeUUID();
-  sessionStorage.setItem(key, created);
+  sessionStorage.setItem(ANALYTICS_SESSION_ID_KEY, created);
   return created;
 }
 
@@ -297,6 +314,7 @@ export async function trackEvent(
     | "h1_recap_notice_click"
     | "h1_recap_notice_dismiss",
   properties?: Record<string, unknown>,
+  options?: { eventId?: string; occurredAt?: string },
 ) {
   try {
     const runtimeContext = detectRuntimeContext();
@@ -313,12 +331,12 @@ export async function trackEvent(
       },
       cache: "no-store",
       body: JSON.stringify({
-        eventId: safeUUID(),
+        eventId: options?.eventId ?? safeUUID(),
         eventName,
         platform,
         sessionId: ensureSessionId(),
         clientVersion: "web",
-        occurredAt: new Date().toISOString(),
+        occurredAt: options?.occurredAt ?? new Date().toISOString(),
         properties: {
           ...buildContextProperties(runtimeContext),
           ...(properties ?? {}),
@@ -329,7 +347,41 @@ export async function trackEvent(
     if (!res.ok) {
       throw new Error(`Analytics ${res.status}`);
     }
+    return true;
   } catch {
     // analytics should not break UX
+    return false;
+  }
+}
+
+export async function trackAppOpenOnce() {
+  try {
+    if (typeof sessionStorage === "undefined") return;
+
+    const sessionId = ensureSessionId();
+    const trackedSessionId = sessionStorage.getItem(APP_OPEN_SENT_SESSION_KEY);
+    if (!shouldTrackAppOpenForSession(trackedSessionId, sessionId)) return;
+
+    let pending: PendingAppOpen | null = parsePendingAppOpen(
+      sessionStorage.getItem(APP_OPEN_PENDING_KEY),
+      sessionId,
+    );
+
+    if (!pending) {
+      pending = {
+        sessionId,
+        eventId: safeUUID(),
+        occurredAt: new Date().toISOString(),
+      };
+      sessionStorage.setItem(APP_OPEN_PENDING_KEY, JSON.stringify(pending));
+    }
+
+    const sent = await trackEvent("app_open", undefined, pending);
+    if (sent) {
+      sessionStorage.setItem(APP_OPEN_SENT_SESSION_KEY, sessionId);
+      sessionStorage.removeItem(APP_OPEN_PENDING_KEY);
+    }
+  } catch {
+    // Analytics should not break UX when session storage is unavailable.
   }
 }

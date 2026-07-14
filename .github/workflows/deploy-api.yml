@@ -31,9 +31,16 @@ jobs:
           java-version: "25"
           cache: gradle
 
+      - name: Verify Docker for PostgreSQL tests
+        run: docker info
+
+      - name: Test API
+        working-directory: apps/api
+        run: ./gradlew test --no-daemon
+
       - name: Build API
         working-directory: apps/api
-        run: ./gradlew bootJar -x test --no-daemon
+        run: ./gradlew bootJar --no-daemon
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3

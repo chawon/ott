@@ -1,9 +1,14 @@
 "use client";
 
 import { useEffect } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname } from "@/i18n/routing";
+import { trackAppOpenOnce } from "@/lib/analytics";
 import { syncOutbox } from "@/lib/sync";
-import { trackEvent } from "@/lib/analytics";
+
+function isAdminPath(pathname: string) {
+  return pathname === "/admin" || pathname.startsWith("/admin/");
+}
+
 export default function SyncWorker() {
   const pathname = usePathname();
 
@@ -32,21 +37,40 @@ export default function SyncWorker() {
   }, []);
 
   useEffect(() => {
-    if (pathname?.startsWith("/admin")) return;
+    if (!pathname) return;
+    void syncOutbox();
+  }, [pathname]);
 
-    (async () => {
-      await trackEvent("app_open");
-      await syncOutbox();
-    })();
-
+  useEffect(() => {
     function handleOnline() {
-      syncOutbox();
+      void syncOutbox();
     }
 
     function handleVisible() {
-      if (document.visibilityState === "visible") syncOutbox();
+      if (document.visibilityState === "visible") void syncOutbox();
     }
 
+    window.addEventListener("online", handleOnline);
+    document.addEventListener("visibilitychange", handleVisible);
+
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      document.removeEventListener("visibilitychange", handleVisible);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!pathname || isAdminPath(pathname)) return;
+
+    function handleOnline() {
+      void trackAppOpenOnce();
+    }
+
+    function handleVisible() {
+      if (document.visibilityState === "visible") void trackAppOpenOnce();
+    }
+
+    void trackAppOpenOnce();
     window.addEventListener("online", handleOnline);
     document.addEventListener("visibilitychange", handleVisible);
 

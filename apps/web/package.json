@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "biome check",
     "format": "biome format --write",
+    "test:analytics": "node --test lib/analytics-session.test.mjs",
     "indexnow": "node scripts/ping-indexnow.mjs",
     "generate:chatgpt-directory-screenshots": "node scripts/generate-chatgpt-directory-screenshots.mjs"
   },
