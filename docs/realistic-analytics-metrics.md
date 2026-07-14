@@ -126,7 +126,19 @@ PostgreSQL 전용 SQL은 Testcontainers PostgreSQL 통합 테스트로 검증한
 
 ## 출시와 관찰
 
-1. additive API와 새 수집부를 함께 배포한다.
+1. additive API와 새 수집부는 `2026-07-14` web/API production에 함께 배포했다.
 2. 관리자 화면에서 원본 실행 이벤트 대비 실행 세션·클라이언트·행동 사용자의 비율을 7일간 관찰한다.
 3. 기존 필드를 사용하는 외부 소비자가 없는지 확인한 뒤 별도 사이클에서 legacy DAU/WAU/MAU와 순차 funnel 필드 제거를 검토한다.
 4. App Store와 TestFlight의 실제 구분이 필요해지면 네이티브 영수증/배포 채널을 신뢰성 있게 판별하는 별도 설계를 먼저 진행한다.
+
+## 배포 결과 (2026-07-14)
+
+- PR: `#79`
+- main SHA: `b06bf4ceac410d8da37bdf764fa1afec4d2f8efa`
+- CI: API `29308192234`, Web `29308192262`, Native iOS `29308192271`
+- production: Web `29308658284`, API `29308658465`
+- production manifest: Web `83458e8`, API `4ff059a`
+- ArgoCD: `ott-app` `Synced Healthy`, revision `4ff059a40b52e66316921b3e7db1758d64138729`
+- production 이미지와 `APP_VERSION`: `ott-web`/`ott-api` 모두 SHA `b06bf4ceac410d8da37bdf764fa1afec4d2f8efa`, `b06bf4c`
+- live 검증: production API Pod에서 overview가 `activity`, `reach`, `appOpenSessions`, `qualifiedActors`를 반환했고, production Web Pod에서 관리자 화면의 `행동 사용자`, `앱 실행 세션`, 독립 행동 도달 안내 문구를 확인했다.
+- 네이티브 참고: `osFamily=ios` 코드는 main에 병합됐으나 다음 App Store 바이너리부터 사용자 이벤트에 반영된다. 서버 정규화로 기존 `iOS` 이벤트와 신규 `ios` 이벤트는 이미 같은 차원으로 집계된다.

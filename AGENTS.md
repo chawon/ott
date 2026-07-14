@@ -58,6 +58,7 @@ If present, read `./.omd/preferences.md` — pending corrections not yet folded 
 26. 신규/무기록 첫 기록 활성화 패널: 로컬 기록 0개, 페어링 코드 없음, 현재 세션 미닫힘, 강제 기록 진입 아님 조건에서 홈 QuickLog 위에 첫 기록 유도 패널을 보여준다. 영상이 기본이며 실제 함께 기록된 영상과 `/api/titles/popular` 기반 인기 작품 포스터를 함께 보여주고, 선택 시 기존 QuickLog의 상태 선택 화면으로 이동한다. 책은 읽는 상태를 먼저 묻고 책 검색창으로 유도하며 선택 상태는 저장 화면에서 강조만 한다(`2026-06-27` production 반영, web SHA `989aefc`).
 27. iOS 네이티브 앱 App Store 출시: Expo React Native 기반 iOS 네이티브 앱이 App Store 심사를 통과해 `2026-06-29` App Store에 공개됐다. 공개 링크는 `https://apps.apple.com/app/ottline/id6780318110`이며, 앱은 WebView/PWA 래퍼가 아니라 사용자 앱 화면을 네이티브 화면으로 구현한다.
 28. 2026년 상반기 리캡: 개인 이용 리포트에 `2026-H1` 리캡 데이터를 추가하고, 웹/네이티브 리포트에서 포스터 중심의 상반기 돌아보기와 SNS 공유용 카드 생성을 지원한다. 웹은 KST 기준 `2026-07-01`부터 `2026-07-31`까지 상단 바 아래에 `2026년 상반기를 돌아볼까요?` 노티를 노출해 리포트로 진입시킨다(`2026-07-01` production 반영, web/api SHA `9df9cb0`).
+29. 현실적인 관리자 통계 집계: 웹 `app_open`을 브라우저 탭 세션당 한 번으로 제한하고, 계정·클라이언트·세션을 안전하게 연결한 resolved actor 기준의 행동 사용자와 세션 기준 실행량을 추가했다. 관리자 화면과 데일리 리포트는 기존 DAU/WAU/MAU 및 순차 전환율 대신 행동 사용자·활성 클라이언트·앱 실행 세션·원본 실행 이벤트와 독립 행동 도달을 사용한다(`2026-07-14` production 반영, web/api SHA `b06bf4c`).
 
 ### 제품 방향
 1. 추천 기능은 현재 범위에서 제외한다.
@@ -102,6 +103,7 @@ If present, read `./.omd/preferences.md` — pending corrections not yet folded 
 19. **신규/무기록 첫 기록 활성화 패널**: 신규/무기록 사용자의 첫 기록 전환을 높이기 위해 홈 QuickLog 위에 activation 패널을 추가했다. 노출 기준은 로컬 기록 0개, 페어링 코드 없음, 현재 세션 미닫힘, `quick=1`/공유 진입/Android watch reminder 같은 강제 기록 진입 아님이다. 영상은 실제 함께 기록된 작품을 우선 보여주고 부족분은 `/api/titles/popular`로 채우며, 포스터 선택 후 기존 QuickLog의 상태 선택 화면으로 이동한다. 책은 `읽는 중 / 다 읽었어요 / 읽고 싶어요`를 먼저 묻고 책 검색창으로 유도하며 선택한 상태는 저장 화면에서 강조만 한다. `2026-06-27` PR `#72`, main SHA `989aefc41b819458c494c95499d62fdad994906d`, web production run `28285754982`, production manifest commit `800abc92dbe6681e796ec2163a1bfbf5cdb113f8`로 배포 완료했고 ArgoCD `ott-app` `Synced Healthy`, production `ott-web` 이미지 태그 `989aefc41b819458c494c95499d62fdad994906d`, `APP_VERSION=989aefc`를 확인했다. 공개 도메인 직접 `curl`은 edge allowlist 403으로 막혀 GitHub Actions, ArgoCD, deployment image/`APP_VERSION`을 기준으로 검증했다.
 20. **iOS 네이티브 앱 App Store 출시**: `apps/native`는 Expo React Native 기반 iOS 네이티브 앱으로 `main`에 편입됐고, WebView/PWA/TWA 래퍼가 아니라 사용자 앱 화면을 네이티브 화면으로 구현한다. App Store Connect 앱 레코드와 Apple ID `6780318110`, EAS project id `efe8f7e5-75d8-45a9-9a4e-88bfeba07b98`, iOS signing credentials, EAS Submit용 App Store Connect API key, GitHub `EXPO_TOKEN` 구성을 완료했다. `2026-06-18` PR `#67` build `1.0.0 (5)`, `2026-06-19` PR `#68` build `1.0.0 (6)`, `2026-06-19` PR `#69` build `1.0.0 (7)`로 TestFlight 제출을 진행했고, `2026-06-28` PR `#73` main SHA `2ddb3bb`로 iOS QA parity와 launch prep을 마무리했다. `2026-06-29` App Store 심사를 통과해 `https://apps.apple.com/app/ottline/id6780318110`로 공개됐다.
 21. **2026년 상반기 리캡 및 헤더 노티**: 개인 이용 리포트 API에 `seasonalRecap`을 추가해 KST 기준 `2026-01-01`부터 `2026-06-30`까지의 상반기 기록 수, 대표 장르, 대표 상태, 포스터 후보를 반환한다. 웹/네이티브 리포트에는 `2026년 상반기 돌아보기` 섹션과 포스터 중심의 SNS 공유 카드 payload를 추가했고, 웹/네이티브 모두 로컬 기록 기반 fallback 리캡을 지원한다. 웹은 `/og/share-card` 서버 렌더 경로를 추가하고, KST 기준 `2026-07-01`부터 `2026-07-31`까지 상단 바 아래에 `2026년 상반기를 돌아볼까요?` 노티를 노출한다. `2026-07-01` PR `#75`, main SHA `9df9cb05addf90d56a82042b5393baa29fe78349`, API production run `28494192890`, web production run `28494344708`, API manifest commit `048431dad4fe1ba9045e3db52b82d078e86849a9`, web manifest commit `5bc388385839fc08fcf7a16fd01c2f690904e156`로 배포 완료했고 ArgoCD `ott-app` `Synced Healthy`, production `ott-api`/`ott-web` 이미지 태그 `9df9cb05addf90d56a82042b5393baa29fe78349`, `APP_VERSION=9df9cb0`을 확인했다. iOS 네이티브 코드는 main에 병합됐지만 실제 App Store 사용자 배포는 별도 TestFlight/App Store 업데이트가 필요하다.
+22. **현실적인 analytics 집계 및 관리자 화면 개편**: `app_open`의 경로 이동 중복과 식별자 churn으로 부풀던 실행량을 원본 이벤트·실행 세션·활성 클라이언트·행동 사용자로 분리했다. 행동 사용자는 계정 우선, 단일 계정으로만 연결된 클라이언트, 클라이언트, 세션 순서의 resolved actor 규칙을 사용하고, 공유 클라이언트와 관리자 계정은 안전하게 처리한다. 검색·제목 선택·기기 연결·첫 기록·기록 생성은 순차 퍼널이 아닌 독립 행동 도달로 표시하며, 관리자 화면과 Telegram 데일리 리포트가 같은 `AnalyticsMetricsQuery`를 사용한다. `2026-07-14` PR `#79`, main SHA `b06bf4ceac410d8da37bdf764fa1afec4d2f8efa`, API/Web/Native CI run `29308192234`/`29308192262`/`29308192271`, web/API production run `29308658284`/`29308658465`, web/API manifest commit `83458e8`/`4ff059a`로 배포 완료했다. ArgoCD `ott-app` `Synced Healthy`, production `ott-web`/`ott-api` 이미지 태그 `b06bf4ceac410d8da37bdf764fa1afec4d2f8efa`, `APP_VERSION=b06bf4c`를 확인했고, production Pod 내부에서 overview 새 계약과 관리자 화면 새 지표 문구를 확인했다. 네이티브 `osFamily=ios` 수정은 main에 포함됐지만 실제 App Store 사용자 반영은 다음 네이티브 바이너리 배포가 필요하며, 서버는 기존 `iOS`와 신규 `ios`를 소문자로 정규화해 함께 집계한다.
 
 ### P1
 1. 문의함 운영 후속 작업
@@ -364,9 +366,10 @@ feature/* ──PR/CI──→ main ──→ GitHub Actions workflow_dispatch
    1. 헤더: `X-User-Id` 필요
 3. `GET /api/admin/analytics/overview?days=`
    1. 헤더: `X-Admin-Token` 필요
-   2. 응답에 제품 퍼널 필드 포함: `funnelAppOpenUsers`, `funnelTitleSearchUsers`, `funnelTitleSelectUsers`, `funnelLoginUsers`, `funnelFirstLogCreateUsers`, `funnelLogCreateUsers`
-   3. `daily` 응답은 `appOpenUsers`, `titleSearchUsers`, `titleSelectUsers`, `loginUsers`, `firstLogCreateUsers`, `logCreateUsers`를 포함한다.
-   4. Android 앱 세그먼트 응답은 `androidAppVersions`, `androidAppVersionCodes`, `androidTwaSignals`를 포함한다.
+   2. `activity.period`/`today`/`last7Days`/`last30Days`는 `rawAppOpenEvents`, `appOpenSessions`, `activeClients`, `qualifiedActors`를 포함한다.
+   3. `reach`는 순차 전환율이 아닌 독립 행동 도달로 `titleSearchActors`, `titleSelectActors`, `loginActors`, `firstLogCreateActors`, `logCreateActors`를 포함한다.
+   4. `daily`와 플랫폼 행도 같은 활동·도달 정의를 사용한다. 기존 `dau`/`wau`/`mau`, `activeUsers`, `funnel*` 필드는 하위 호환을 위해 한 릴리스 동안 유지하지만 새 관리자 화면과 운영 리포트에서는 사용하지 않는다.
+   5. Android 앱 세그먼트 응답은 `androidAppVersions`, `androidAppVersionCodes`, `androidTwaSignals`를 포함한다.
 4. `GET /api/admin/analytics/events?days=&limit=&eventName=&platform=`
    1. 헤더: `X-Admin-Token` 필요
 5. `GET /api/admin/analytics/migration-status`
@@ -375,7 +378,7 @@ feature/* ──PR/CI──→ main ──→ GitHub Actions workflow_dispatch
 6. `GET /api/admin/report/daily`
    1. 헤더: `X-Admin-Token` 필요
    2. 매일 KST 기준 전일 리포트를 반환한다.
-   3. 내부 지표는 admin analytics와 같은 관리자 UUID를 제외하고 `dau`, `titleSearchUsers`, `titleSelectUsers`, `loginUsers`, `firstLogCreateUsers`, `logCreateUsers`, `dbLogCreateCount`를 포함한다.
+   3. 내부 지표는 admin analytics와 같은 resolved actor 기준의 `activity`·`reach`와 `dbLogCreateCount`를 사용하고, 관리자 UUID를 제외한다.
 7. `POST /api/admin/report/daily/send`
    1. 헤더: `X-Admin-Token` 필요
    2. 현재 데일리 리포트를 Telegram으로 수동 발송한다.
