@@ -64,7 +64,11 @@ export async function generateMetadata({
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  themeColor: "#F8F6F2",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#F8F6F2" },
+    { media: "(prefers-color-scheme: dark)", color: "#15120F" },
+  ],
+  colorScheme: "light dark",
   viewportFit: "cover",
 };
 
@@ -92,13 +96,23 @@ export default async function RootLayout({
     root.dataset.theme = resolvedTheme;
     root.style.colorScheme = resolvedTheme;
     root.style.backgroundColor = background;
-    let themeColor = document.querySelector('meta[name="theme-color"]');
-    if (!themeColor) {
-      themeColor = document.createElement("meta");
+    const applyBodyBackground = () => {
+      if (document.body) {
+        document.body.style.backgroundColor = background;
+      }
+    };
+    applyBodyBackground();
+    if (!document.body) {
+      document.addEventListener("DOMContentLoaded", applyBodyBackground, { once: true });
+    }
+    let themeColors = document.querySelectorAll('meta[name="theme-color"]');
+    if (themeColors.length === 0) {
+      const themeColor = document.createElement("meta");
       themeColor.setAttribute("name", "theme-color");
       document.head.appendChild(themeColor);
+      themeColors = document.querySelectorAll('meta[name="theme-color"]');
     }
-    themeColor.setAttribute("content", background);
+    themeColors.forEach((themeColor) => themeColor.setAttribute("content", background));
   } catch (_) {}
 })();
 `;
@@ -106,19 +120,23 @@ export default async function RootLayout({
 (() => {
   if (!("serviceWorker" in navigator)) return;
   if (!window.isSecureContext) return;
-  window.addEventListener("load", () => {
-    navigator.serviceWorker.register("/sw.js").catch(() => {
+  const registerServiceWorker = () => {
+    navigator.serviceWorker.register("/sw.js", { updateViaCache: "none" }).catch(() => {
       // Ignore registration errors to avoid blocking runtime flows.
     });
-  }, { once: true });
+  };
+  if (document.readyState === "complete") {
+    registerServiceWorker();
+    return;
+  }
+  window.addEventListener("load", registerServiceWorker, { once: true });
 })();
 `;
   return (
     <html lang={locale} suppressHydrationWarning>
       <head>
-        <Script id="theme-init" strategy="beforeInteractive">
-          {themeInitScript}
-        </Script>
+        {/* biome-ignore lint/security/noDangerouslySetInnerHtml: Static theme code must run before the first paint. */}
+        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
         <meta
           name="naver-site-verification"
           content="d48c8e320c660f8e8f1291f6cad71bc39e268d10"

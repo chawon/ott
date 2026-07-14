@@ -19,18 +19,34 @@ function NavLink({
   label,
   icon: Icon,
   active,
+  current,
   onActivate,
 }: {
   href: NavHref;
   label: string;
   icon: ComponentType<{ className?: string }>;
   active: boolean;
+  current: boolean;
   onActivate: (href: NavHref) => void;
 }) {
   return (
     <IntlLink
       href={href}
-      onClick={() => onActivate(href)}
+      onClick={(event) => {
+        const isPlainPrimaryClick =
+          event.button === 0 &&
+          !event.altKey &&
+          !event.ctrlKey &&
+          !event.metaKey &&
+          !event.shiftKey;
+        if (current && isPlainPrimaryClick) {
+          event.preventDefault();
+          return;
+        }
+        if (!current) {
+          onActivate(href);
+        }
+      }}
       onMouseDown={() => onActivate(href)}
       onPointerDown={() => onActivate(href)}
       onTouchStart={() => onActivate(href)}
@@ -41,7 +57,7 @@ function NavLink({
           ? "text-foreground"
           : "text-muted-foreground hover:bg-ott-paper-strong/70 hover:text-foreground/80 active:text-[#4A4A4A]",
       )}
-      aria-current={active ? "page" : undefined}
+      aria-current={current ? "page" : undefined}
       data-active={active ? "true" : "false"}
     >
       <span
@@ -84,7 +100,7 @@ export default function BottomNav() {
   const pathname = usePathname();
   const navRef = useRef<HTMLElement | null>(null);
   const [pendingHref, setPendingHref] = useState<NavHref | null>(null);
-  const currentHref = getMatchedNavHref(pathname) ?? "/";
+  const currentHref = getMatchedNavHref(pathname);
   const activeHref = pendingHref ?? currentHref;
 
   const activateFromTarget = useCallback((target: EventTarget | null) => {
@@ -95,10 +111,10 @@ export default function BottomNav() {
   }, []);
 
   useEffect(() => {
-    if (currentHref) {
+    if (pathname.length > 0) {
       setPendingHref(null);
     }
-  }, [currentHref]);
+  }, [pathname]);
 
   useEffect(() => {
     if (!pendingHref) return;
@@ -149,6 +165,7 @@ export default function BottomNav() {
         label={t("navLogModern")}
         icon={PencilLine}
         active={activeHref === "/"}
+        current={currentHref === "/"}
         onActivate={handleActivate}
       />
       <NavLink
@@ -156,6 +173,7 @@ export default function BottomNav() {
         label={t("navTimelineModern")}
         icon={Clock}
         active={activeHref === "/timeline"}
+        current={currentHref === "/timeline"}
         onActivate={handleActivate}
       />
       <NavLink
@@ -163,6 +181,7 @@ export default function BottomNav() {
         label={t("navPublicModern")}
         icon={MessageCircle}
         active={activeHref === "/public"}
+        current={currentHref === "/public"}
         onActivate={handleActivate}
       />
       <NavLink
@@ -170,6 +189,7 @@ export default function BottomNav() {
         label={t("navAccountModern")}
         icon={Settings}
         active={activeHref === "/account"}
+        current={currentHref === "/account"}
         onActivate={handleActivate}
       />
     </nav>

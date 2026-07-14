@@ -9,6 +9,8 @@
     "lint": "biome check",
     "format": "biome format --write",
     "test:analytics": "node --test lib/analytics-session.test.mjs",
+    "test:client-recovery": "node --test lib/client-recovery.test.mjs lib/service-worker-cache.test.mjs",
+    "test:theme-first-paint": "node --test lib/theme-first-paint.test.mjs",
     "indexnow": "node scripts/ping-indexnow.mjs",
     "generate:chatgpt-directory-screenshots": "node scripts/generate-chatgpt-directory-screenshots.mjs"
   },
