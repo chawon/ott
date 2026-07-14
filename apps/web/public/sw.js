@@ -1,4 +1,5 @@
-const CACHE_NAME = "ottline-cache-v1";
+const CACHE_PREFIXES = ["ottline-cache-", "ott-pwa-"];
+const CACHE_NAME = "ottline-cache-v2";
 const PRECACHE_URLS = [
   "/",
   "/timeline",
@@ -11,9 +12,11 @@ const PRECACHE_URLS = [
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(PRECACHE_URLS)),
+    caches
+      .open(CACHE_NAME)
+      .then((cache) => cache.addAll(PRECACHE_URLS))
+      .then(() => self.skipWaiting()),
   );
-  self.skipWaiting();
 });
 
 self.addEventListener("activate", (event) => {
@@ -22,12 +25,27 @@ self.addEventListener("activate", (event) => {
       .keys()
       .then((keys) =>
         Promise.all(
-          keys.map((key) => (key === CACHE_NAME ? null : caches.delete(key))),
+          keys
+            .filter(
+              (key) =>
+                CACHE_PREFIXES.some((prefix) => key.startsWith(prefix)) &&
+                key !== CACHE_NAME,
+            )
+            .map((key) => caches.delete(key)),
         ),
-      ),
+      )
+      .then(() => self.clients.claim()),
   );
-  self.clients.claim();
 });
+
+function isNextRscRequest(request, url) {
+  return (
+    url.searchParams.has("_rsc") ||
+    request.headers.get("RSC") === "1" ||
+    request.headers.has("Next-Router-State-Tree") ||
+    request.headers.has("Next-Router-Prefetch")
+  );
+}
 
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") {
@@ -52,14 +70,20 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
+  if (isNextRscRequest(event.request, url)) {
+    return;
+  }
+
   if (event.request.mode === "navigate") {
     event.respondWith(
       fetch(event.request)
         .then((response) => {
-          const copy = response.clone();
-          caches
-            .open(CACHE_NAME)
-            .then((cache) => cache.put(event.request, copy));
+          if (response.ok) {
+            const copy = response.clone();
+            caches
+              .open(CACHE_NAME)
+              .then((cache) => cache.put(event.request, copy));
+          }
           return response;
         })
         .catch(() => caches.match("/offline")),
@@ -74,8 +98,12 @@ self.addEventListener("fetch", (event) => {
       }
 
       return fetch(event.request).then((response) => {
-        const copy = response.clone();
-        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
+        if (response.ok) {
+          const copy = response.clone();
+          caches
+            .open(CACHE_NAME)
+            .then((cache) => cache.put(event.request, copy));
+        }
         return response;
       });
     }),

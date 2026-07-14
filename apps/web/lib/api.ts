@@ -1,5 +1,28 @@
 import { ensureAuth } from "./auth"; // Import migration-aware auth
+import {
+  AUTH_RECOVERY_STORAGE_KEY,
+  shouldAttemptAuthRecovery,
+  shouldResetLocalAuth,
+} from "./client-recovery.mjs";
 import { getDeviceId, getUserId, resetLocalState } from "./localStore";
+
+let authRevocationInProgress = false;
+
+function shouldReloadAfterAuthReset() {
+  if (typeof window === "undefined") return false;
+  const now = Date.now();
+  try {
+    const previousAttempt = window.sessionStorage.getItem(
+      AUTH_RECOVERY_STORAGE_KEY,
+    );
+    if (!shouldAttemptAuthRecovery(previousAttempt, now)) return false;
+    window.sessionStorage.setItem(AUTH_RECOVERY_STORAGE_KEY, String(now));
+  } catch {
+    // Without a cross-reload guard, staying on the current page is safer.
+    return false;
+  }
+  return true;
+}
 
 function buildHeaders(init?: RequestInit) {
   const headers = new Headers(init?.headers ?? {});
@@ -32,18 +55,29 @@ function buildHeaders(init?: RequestInit) {
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const headers = buildHeaders(init);
   const res = await fetch(`/api${path}`, {
     ...init,
-    headers: buildHeaders(init),
+    headers,
     cache: "no-store",
   });
 
   if (!res.ok) {
-    if (res.status === 401 || res.status === 403) {
-      await resetLocalState();
-      if (typeof window !== "undefined") {
-        window.dispatchEvent(new CustomEvent("auth:revoked"));
-        window.location.reload();
+    const shouldResetAuth = shouldResetLocalAuth(
+      res.status,
+      headers.has("X-User-Id"),
+      headers.has("X-Device-Id"),
+    );
+    if (shouldResetAuth) {
+      if (!authRevocationInProgress) {
+        authRevocationInProgress = true;
+        await resetLocalState();
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new CustomEvent("auth:revoked"));
+          if (shouldReloadAfterAuthReset()) {
+            window.location.reload();
+          }
+        }
       }
       throw new Error("Device access has been revoked");
     }

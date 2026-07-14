@@ -38,8 +38,10 @@ function applyDocumentTheme(isDark: boolean) {
   root.style.backgroundColor = background;
   document.body.style.backgroundColor = background;
   document
-    .querySelector<HTMLMetaElement>('meta[name="theme-color"]')
-    ?.setAttribute("content", background);
+    .querySelectorAll<HTMLMetaElement>('meta[name="theme-color"]')
+    .forEach((themeColor) => {
+      themeColor.setAttribute("content", background);
+    });
 }
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
