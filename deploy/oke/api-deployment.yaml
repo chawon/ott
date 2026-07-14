@@ -19,12 +19,12 @@ spec:
         - name: ocir-pull-secret
       containers:
         - name: api
-          image: yny.ocir.io/axvqyylkrvmi/ott-api:d4deebf819b8bbe8b93cd0e2ed8b2bb425fd87ab
+          image: yny.ocir.io/axvqyylkrvmi/ott-api:b06bf4ceac410d8da37bdf764fa1afec4d2f8efa
           ports:
             - containerPort: 8080
           env:
             - name: APP_VERSION
-              value: "d4deebf"
+              value: "b06bf4c"
             - name: TELEGRAM_NOTIFY_ENABLED
               value: "true"
             - name: TELEGRAM_SERVICE_NAME
