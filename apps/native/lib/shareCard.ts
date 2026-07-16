@@ -1,8 +1,32 @@
 import { reportCopy, type NativeLocale } from './i18n';
 import { typeLabel } from './format';
-import type { PersonalReport, TitleType, WatchLog } from './types';
+import type { PersonalReport, PersonaKey, TitleType, WatchLog } from './types';
 
 export type ReportShareKind = 'weekly' | 'monthly';
+
+export type LogShareCardFormat = 'story' | 'feed';
+
+export type LogShareCardAction = 'save' | 'share';
+
+export type LogShareCardOptions = {
+  format: LogShareCardFormat;
+  showRatingLabel: boolean;
+  showNote: boolean;
+  showProfileSignature: boolean;
+  profileNickname?: string | null;
+  profilePersonaKey?: PersonaKey | null;
+};
+
+export function defaultLogShareCardOptions(log?: WatchLog | null): LogShareCardOptions {
+  return {
+    format: 'story',
+    showRatingLabel: true,
+    showNote: Boolean(log?.note?.trim()),
+    showProfileSignature: false,
+    profileNickname: null,
+    profilePersonaKey: null,
+  };
+}
 
 export type ReportShareCardContent = {
   title: string;
@@ -29,13 +53,24 @@ export type RecapShareCardPayload = {
   theme: 'default';
 };
 
-export function logShareCardFileName(log: WatchLog, suffix = 'story') {
+export function logShareCardFileName(log: WatchLog, suffix: LogShareCardFormat = 'story') {
   const safeTitle = log.title.name
     .replace(/[^a-zA-Z0-9가-힣_-]+/g, '_')
     .replace(/^_+|_+$/g, '')
     .slice(0, 40);
   return `ott-${safeTitle || 'share'}-${suffix}.png`;
 }
+
+export function getLogShareCardCaptureSize(format: LogShareCardFormat = 'story') {
+  return format === 'feed'
+    ? { width: 1080, height: 1350 }
+    : logShareCardCaptureSize;
+}
+
+export const logShareCardCaptureSize = {
+  width: 1080,
+  height: 1920,
+} as const;
 
 export function reportShareCardFileName(kind: ReportShareKind) {
   return `ottline-${kind}-recap.png`;

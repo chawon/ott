@@ -17,7 +17,8 @@ import {
   RatingSelector,
   ratingOptionsForType,
 } from '../../components/LogFormControls';
-import { LogShareCard, logShareCardCaptureSize } from '../../components/LogShareCard';
+import { LogShareCard } from '../../components/LogShareCard';
+import { ShareCardOptionsModal } from '../../components/ShareCardOptionsModal';
 import type { ThemeColors } from '../../constants/colors';
 import { Typography } from '../../constants/typography';
 import {
@@ -36,7 +37,13 @@ import {
   type NativeLocale,
 } from '../../lib/i18n';
 import { useNativePreferences } from '../../lib/nativePreferences';
-import { logShareCardFileName } from '../../lib/shareCard';
+import {
+  defaultLogShareCardOptions,
+  getLogShareCardCaptureSize,
+  logShareCardFileName,
+  type LogShareCardAction,
+  type LogShareCardOptions,
+} from '../../lib/shareCard';
 import {
   enqueueUpdateLogOutbox,
   getTitleLocal,
@@ -176,6 +183,11 @@ export default function TitleDetailScreen() {
   const [shareBusyId, setShareBusyId] = useState<string | null>(null);
   const [discussionBusy, setDiscussionBusy] = useState(false);
   const [shareTargetLog, setShareTargetLog] = useState<WatchLog | null>(null);
+  const [shareOptionsOpen, setShareOptionsOpen] = useState(false);
+  const [shareAction, setShareAction] = useState<LogShareCardAction>('share');
+  const [shareOptions, setShareOptions] = useState<LogShareCardOptions>(() =>
+    defaultLogShareCardOptions(),
+  );
   const shareCardRef = useRef<ViewShot>(null);
   const ratingOptions = useMemo(
     () => ratingOptionsForType(title?.type, locale),
@@ -329,6 +341,13 @@ export default function TitleDetailScreen() {
     }
   }
 
+  function confirmShareOptions(options: LogShareCardOptions, action: LogShareCardAction) {
+    setShareOptions(options);
+    setShareAction(action);
+    setShareOptionsOpen(false);
+    if (shareTargetLog) setShareBusyId(shareTargetLog.id);
+  }
+
   useEffect(() => {
     if (!shareTargetLog || shareBusyId !== shareTargetLog.id) return;
 
@@ -349,13 +368,18 @@ export default function TitleDetailScreen() {
         await Sharing.shareAsync(capturedUri, {
           mimeType: 'image/png',
           UTI: 'public.png',
-          dialogTitle: logShareCardFileName(logToShare),
+          dialogTitle: logShareCardFileName(logToShare, shareOptions.format),
         });
         trackEvent({
-          eventName: 'share_card_create',
+          eventName: shareAction === 'save' ? 'share_card_save' : 'share_card_create',
           properties: {
             source: 'ios_native_title_detail',
             titleType: logToShare.title.type,
+            action: shareAction,
+            format: shareOptions.format,
+            showRatingLabel: shareOptions.showRatingLabel,
+            showNote: shareOptions.showNote,
+            showProfileSignature: shareOptions.showProfileSignature,
             hasNote: Boolean(logToShare.note?.trim()),
             hasRating: typeof logToShare.rating === 'number',
           },
@@ -367,6 +391,7 @@ export default function TitleDetailScreen() {
         if (!cancelled) {
           setShareBusyId(null);
           setShareTargetLog(null);
+          setShareOptionsOpen(false);
         }
       }
     }
@@ -377,12 +402,12 @@ export default function TitleDetailScreen() {
       cancelled = true;
       if (capturedUri) releaseCapture(capturedUri);
     };
-  }, [copy.shareCaptureError, copy.shareErrorFallback, copy.shareErrorTitle, copy.shareUnavailable, shareBusyId, shareTargetLog]);
+  }, [copy.shareCaptureError, copy.shareErrorFallback, copy.shareErrorTitle, copy.shareUnavailable, shareAction, shareBusyId, shareOptions, shareTargetLog]);
 
   function shareLogCard(log: WatchLog) {
     if (shareBusyId) return;
     setShareTargetLog(log);
-    setShareBusyId(log.id);
+    setShareOptionsOpen(true);
   }
 
   async function openTogetherDiscussion() {
@@ -711,19 +736,36 @@ export default function TitleDetailScreen() {
         </View>
       )}
 
-      {shareTargetLog ? (
+      <ShareCardOptionsModal
+        colors={colors}
+        locale={locale}
+        log={shareTargetLog}
+        onCancel={() => {
+          setShareOptionsOpen(false);
+          setShareTargetLog(null);
+        }}
+        onConfirm={confirmShareOptions}
+        visible={shareOptionsOpen}
+      />
+      {shareTargetLog && shareBusyId ? (
         <ViewShot
           ref={shareCardRef}
           options={{
             format: 'png',
             quality: 1,
             result: 'tmpfile',
-            width: logShareCardCaptureSize.width,
-            height: logShareCardCaptureSize.height,
+            width: getLogShareCardCaptureSize(shareOptions.format).width,
+            height: getLogShareCardCaptureSize(shareOptions.format).height,
           }}
-          style={styles.shareCaptureArea}
+          style={[
+            styles.shareCaptureArea,
+            {
+              width: getLogShareCardCaptureSize(shareOptions.format).width / 4,
+              height: getLogShareCardCaptureSize(shareOptions.format).height / 4,
+            },
+          ]}
         >
-          <LogShareCard log={shareTargetLog} locale={locale} />
+          <LogShareCard log={shareTargetLog} locale={locale} options={shareOptions} />
         </ViewShot>
       ) : null}
     </ScrollView>

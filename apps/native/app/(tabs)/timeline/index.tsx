@@ -15,7 +15,8 @@ import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import ViewShot, { releaseCapture } from 'react-native-view-shot';
-import { LogShareCard, logShareCardCaptureSize } from '../../../components/LogShareCard';
+import { LogShareCard } from '../../../components/LogShareCard';
+import { ShareCardOptionsModal } from '../../../components/ShareCardOptionsModal';
 import type { ThemeColors } from '../../../constants/colors';
 import { Typography } from '../../../constants/typography';
 import { createComment, createDiscussion, trackEvent } from '../../../lib/api';
@@ -38,8 +39,14 @@ import {
   type TypeFilter,
 } from '../../../lib/timelineFilters';
 import { buildTimelineCsv, timelineCsvFileName } from '../../../lib/timelineCsv';
-import { logShareCardFileName } from '../../../lib/shareCard';
-import type { Occasion, Place, WatchLog } from '../../../lib/types';
+import {
+  defaultLogShareCardOptions,
+  getLogShareCardCaptureSize,
+  logShareCardFileName,
+  type LogShareCardAction,
+  type LogShareCardOptions,
+} from '../../../lib/shareCard';
+import type { WatchLog } from '../../../lib/types';
 import {
   occasionLabels,
   placeLabels,
@@ -89,6 +96,11 @@ export default function TimelineScreen() {
   const [shareBusyId, setShareBusyId] = useState<string | null>(null);
   const [publishBusyId, setPublishBusyId] = useState<string | null>(null);
   const [shareTargetLog, setShareTargetLog] = useState<WatchLog | null>(null);
+  const [shareOptionsOpen, setShareOptionsOpen] = useState(false);
+  const [shareAction, setShareAction] = useState<LogShareCardAction>('share');
+  const [shareOptions, setShareOptions] = useState<LogShareCardOptions>(() =>
+    defaultLogShareCardOptions(),
+  );
   const shareCardRef = useRef<ViewShot>(null);
   const logRevision = useLogRevision();
   const statusFilters = useMemo(
@@ -299,6 +311,13 @@ export default function TimelineScreen() {
     }
   }
 
+  function confirmShareOptions(options: LogShareCardOptions, action: LogShareCardAction) {
+    setShareOptions(options);
+    setShareAction(action);
+    setShareOptionsOpen(false);
+    if (shareTargetLog) setShareBusyId(shareTargetLog.id);
+  }
+
   useEffect(() => {
     if (!shareTargetLog || shareBusyId !== shareTargetLog.id) return;
 
@@ -319,13 +338,18 @@ export default function TimelineScreen() {
         await Sharing.shareAsync(capturedUri, {
           mimeType: 'image/png',
           UTI: 'public.png',
-          dialogTitle: logShareCardFileName(logToShare),
+          dialogTitle: logShareCardFileName(logToShare, shareOptions.format),
         });
         trackEvent({
-          eventName: 'share_card_create',
+          eventName: shareAction === 'save' ? 'share_card_save' : 'share_card_create',
           properties: {
             source: 'ios_native_timeline',
             titleType: logToShare.title.type,
+            action: shareAction,
+            format: shareOptions.format,
+            showRatingLabel: shareOptions.showRatingLabel,
+            showNote: shareOptions.showNote,
+            showProfileSignature: shareOptions.showProfileSignature,
             hasNote: Boolean(logToShare.note?.trim()),
             hasRating: typeof logToShare.rating === 'number',
           },
@@ -337,6 +361,7 @@ export default function TimelineScreen() {
         if (!cancelled) {
           setShareBusyId(null);
           setShareTargetLog(null);
+          setShareOptionsOpen(false);
         }
       }
     }
@@ -352,14 +377,16 @@ export default function TimelineScreen() {
     copy.shareErrorFallback,
     copy.shareErrorTitle,
     copy.shareUnavailable,
+    shareAction,
     shareBusyId,
+    shareOptions,
     shareTargetLog,
   ]);
 
   function shareLogCard(log: WatchLog) {
     if (shareBusyId) return;
     setShareTargetLog(log);
-    setShareBusyId(log.id);
+    setShareOptionsOpen(true);
   }
 
   async function publishLog(log: WatchLog) {
@@ -630,19 +657,36 @@ export default function TimelineScreen() {
           ))}
         </View>
       )}
-      {shareTargetLog ? (
+      <ShareCardOptionsModal
+        colors={colors}
+        locale={locale}
+        log={shareTargetLog}
+        onCancel={() => {
+          setShareOptionsOpen(false);
+          setShareTargetLog(null);
+        }}
+        onConfirm={confirmShareOptions}
+        visible={shareOptionsOpen}
+      />
+      {shareTargetLog && shareBusyId ? (
         <ViewShot
           ref={shareCardRef}
           options={{
             format: 'png',
             quality: 1,
             result: 'tmpfile',
-            width: logShareCardCaptureSize.width,
-            height: logShareCardCaptureSize.height,
+            width: getLogShareCardCaptureSize(shareOptions.format).width,
+            height: getLogShareCardCaptureSize(shareOptions.format).height,
           }}
-          style={styles.shareCaptureArea}
+          style={[
+            styles.shareCaptureArea,
+            {
+              width: getLogShareCardCaptureSize(shareOptions.format).width / 4,
+              height: getLogShareCardCaptureSize(shareOptions.format).height / 4,
+            },
+          ]}
         >
-          <LogShareCard log={shareTargetLog} locale={locale} />
+          <LogShareCard log={shareTargetLog} locale={locale} options={shareOptions} />
         </ViewShot>
       ) : null}
     </ScrollView>
