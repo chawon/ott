@@ -85,19 +85,45 @@ apps/api/gradlew -p apps/api test --no-daemon
 - `/robots.txt`, `/sitemap.xml`, `/llms.txt`
 - PWA 설치 상태에서 일반 탐색·기록·오프라인 복구가 기존과 같은지
 
+## 운영 배포 완료
+
+- PR: `#81`
+- 기능 merge SHA: `8303f4f51ccc12c1eda4a41efe58c79afd28f378`
+- main CI: Native iOS `29678410613`, API `29678410582`, Web `29678410578` 성공
+- production: API `29678500818`, Web `29678607528` 성공
+- manifest commit: API `9c3972b648cdbdcc05e596c31543cc1de248cc04`, Web `e8a9118fcc2610876dc56aa2e27db5815a390c97`
+- ArgoCD: `ott-app` revision `e8a9118fcc2610876dc56aa2e27db5815a390c97`, `Synced Healthy`
+- production image: `ott-web`, `ott-api` 모두 `8303f4f51ccc12c1eda4a41efe58c79afd28f378`
+- production `APP_VERSION`: Web/API 모두 `8303f4f`
+- API Flyway는 schema v28까지 적용됐고 앱이 정상 기동했다.
+- origin `/admin`은 Access JWT 없이 `403`, 인증된 내부 acquisition API는 `200`과 새 응답 계약을 반환했다.
+- 공개 `/.well-known/ottline-version`은 `8303f4f`, `robots.txt`는 `/admin` 차단과 sitemap 위치를 반환하며, sitemap은 공개 URL 19개를 제공한다.
+- Web production의 필수 live version 검증과 best-effort IndexNow 전송이 모두 성공했다.
+- Native iOS CI만 실행했으며 TestFlight/App Store 바이너리는 새로 빌드하거나 배포하지 않았다.
+
 ## 배포 후 검색 도구 확인
 
-1. Google Search Console에서 새 `sitemap.xml`을 다시 제출하고 한국어·영어 가이드 URL 검사를 요청한다.
-2. Bing Webmaster Tools에서도 sitemap 상태와 IndexNow 수신 상태를 확인한다.
-3. 7일 기준으로 색인된 페이지, 검색 노출, 클릭, 실제 유입 세션, 첫 기록 세션을 함께 기록한다.
-4. 30일 기준으로 채널·landing path·campaign별 세션과 첫 기록을 비교한다.
-5. 검색 노출·클릭은 Search Console을 source of truth로, 사이트 진입 이후 행동은 자체 acquisition 집계를 source of truth로 사용한다.
+최초 배포 뒤 한 번 확인하는 항목이며, 콘텐츠 URL이 추가되지 않은 일반 배포마다 반복할 필요는 없다.
 
-## 배포 전 차단 조건
+1. Google Search Console
+   1. `https://ottline.app/sitemap.xml`을 다시 제출한다.
+   2. URL 검사에서 `/`, 한국어 가이드 3개, 영어 가이드 3개의 색인 생성을 요청한다.
+2. Bing Webmaster Tools
+   1. sitemap 상태가 성공인지 확인한다.
+   2. IndexNow 화면에서 이번 배포 알림 수신 상태를 확인한다. 이후 Web production 배포가 sitemap URL을 자동 전송한다.
+3. 네이버 서치어드바이저
+   1. 사이트 소유 확인 상태를 점검하고 `https://ottline.app/sitemap.xml`을 제출한다.
+   2. robots.txt 검증에서 `/admin`만 차단되고 sitemap이 발견되는지 확인한다.
+   3. `/`와 한국어 가이드 3개의 수집을 요청한다.
+4. 7일 기준으로 색인된 페이지, 검색 노출, 클릭, 실제 유입 세션, 첫 기록 세션을 함께 기록한다.
+5. 30일 기준으로 채널·landing path·campaign별 세션과 첫 기록을 비교한다.
+6. 검색 노출·클릭은 Search Console을 source of truth로, 사이트 진입 이후 행동은 자체 acquisition 집계를 source of truth로 사용한다.
 
-- Cloudflare application path, account-member policy, 8시간 세션이 아직 없음
-- team domain 또는 AUD가 비어 있음
-- `/admin`, `/admin/analytics`, `/admin/report`, `/admin/feedback` 중 하나라도 Access 없이 열림
-- `/internal/admin/**`가 public ingress를 통해 API로 전달됨
-- sitemap에 개인·관리자 URL이 포함됨
-- 웹/API CI 또는 PWA cache 회귀 테스트 실패
+## 배포 전 차단 조건 확인 결과
+
+- Cloudflare application path `/admin`, account-member policy, 8시간 세션을 설정했다.
+- team domain과 AUD를 Web ConfigMap에 반영했다.
+- `/admin`, `/admin/analytics`, `/admin/report`, `/admin/feedback`은 Access 인증 전 로그인 화면으로 이동한다.
+- `/internal/admin/**`는 public `/api` ingress로 노출하지 않는다.
+- sitemap에는 공개 URL만 포함한다.
+- 웹/API CI와 PWA cache 회귀 테스트가 모두 성공했다.

@@ -1,5 +1,15 @@
 # Wiki Log
 
+## [2026-07-19] update: SEO·검색 유입 기반 및 관리자 접근 경계 production 배포
+- 대상: PR `#81`, main SHA `8303f4f51ccc12c1eda4a41efe58c79afd28f378`, API/Web production run `29678500818`/`29678607528`
+- 생성/수정: AGENTS.md, docs/seo-acquisition-foundation-2026-07-19.md, architecture/geo-seo.md, features/analytics.md, features/daily-report.md, architecture/i18n.md, index.md, log.md
+- 노트:
+  - 한국어·영어 공개 페이지 canonical/hreflang/OG, 검색 가이드 6개, 공개 URL 전용 sitemap/robots/llms.txt와 IndexNow 반영
+  - web/PWA/TWA 유입 session의 channel/source/landing/locale/campaign 및 첫 기록 집계, 자체 analytics 180일 보존 정책 반영
+  - `/admin/**`를 Cloudflare Access와 origin JWT 재검증으로 보호하고 내부 관리자 API를 외부 `/api` ingress에서 분리
+  - manifest commit API `9c3972b648cdbdcc05e596c31543cc1de248cc04`, Web `e8a9118fcc2610876dc56aa2e27db5815a390c97`; ArgoCD `ott-app` `Synced Healthy`, Web/API image와 `APP_VERSION=8303f4f` 확인
+  - PWA 일반 기록 흐름은 유지하고 Native iOS CI만 실행했으며 TestFlight/App Store 바이너리는 새로 배포하지 않음
+
 ## [2026-06-10] update: Android production 1.0.12 회고 알림 탭 수정 배포
 - 대상: PR #58, GitHub Actions TWA release run `27256880845`, `gplay tracks get`
 - 생성/수정: AGENTS.md, docs/twa.md, docs/twa-play-launch-checklist.md, docs/android-revisit-reminders-2026-06-07.md, platforms/twa.md, index.md, log.md

@@ -25,7 +25,7 @@
 
 | 페이지 | 요약 |
 |---|---|
-| [[geo-seo]] | AI 검색(GEO)과 SEO 관점의 ottline.app 현황 및 개선 계획 (29/100 Critical) |
+| [[geo-seo]] | 한국어·영어 canonical/hreflang, 검색 가이드, 공개 sitemap/robots/llms.txt, IndexNow와 남은 외부 엔티티 과제 |
 | [[i18n]] | next-intl 기반 한국어/영어 지원 완료, URL 기반 로케일 라우팅 + 헤더 언어 전환 |
 | [[navigation-auth-migration]] | ott.preview.pe.kr → ottline.app Redirect Flow 기반 인증 정보 이식 이력과 2026-04-18 Cloudflare 301 컷오버 정리 |
 | [[kmp]] | 초창기 KMP 크로스플랫폼 시도, 현재 중단 — shared/ 디렉토리 잔재 |

@@ -20,7 +20,7 @@ If present, read `./.omd/preferences.md` — pending corrections not yet folded 
 
 ---
 
-## 2) 프로젝트 스냅샷 (기준일: 2026-04-23)
+## 2) 프로젝트 스냅샷 (기준일: 2026-07-19)
 
 ### 아키텍처
 1. 모노레포
@@ -59,6 +59,7 @@ If present, read `./.omd/preferences.md` — pending corrections not yet folded 
 27. iOS 네이티브 앱 App Store 출시: Expo React Native 기반 iOS 네이티브 앱이 App Store 심사를 통과해 `2026-06-29` App Store에 공개됐다. 공개 링크는 `https://apps.apple.com/app/ottline/id6780318110`이며, 앱은 WebView/PWA 래퍼가 아니라 사용자 앱 화면을 네이티브 화면으로 구현한다.
 28. 2026년 상반기 리캡: 개인 이용 리포트에 `2026-H1` 리캡 데이터를 추가하고, 웹/네이티브 리포트에서 포스터 중심의 상반기 돌아보기와 SNS 공유용 카드 생성을 지원한다. 웹은 KST 기준 `2026-07-01`부터 `2026-07-31`까지 상단 바 아래에 `2026년 상반기를 돌아볼까요?` 노티를 노출해 리포트로 진입시킨다(`2026-07-01` production 반영, web/api SHA `9df9cb0`).
 29. 현실적인 관리자 통계 집계: 웹 `app_open`을 브라우저 탭 세션당 한 번으로 제한하고, 계정·클라이언트·세션을 안전하게 연결한 resolved actor 기준의 행동 사용자와 세션 기준 실행량을 추가했다. 관리자 화면과 데일리 리포트는 기존 DAU/WAU/MAU 및 순차 전환율 대신 행동 사용자·활성 클라이언트·앱 실행 세션·원본 실행 이벤트와 독립 행동 도달을 사용한다(`2026-07-14` production 반영, web/api SHA `b06bf4c`).
+30. SEO·검색 유입 기반과 관리자 접근 경계: 한국어·영어 공개 페이지의 canonical/hreflang/OG, 검색 가이드 6개, 공개 URL 전용 sitemap/robots/llms.txt, 배포 후 IndexNow, 유입 세션 집계와 180일 보존 정책을 반영했다. `/admin/**`는 Cloudflare Access와 origin JWT 재검증으로 보호하고 PWA 캐시에서 제외했다(`2026-07-19` production 반영, web/api SHA `8303f4f`). iOS 바이너리는 새로 빌드하거나 배포하지 않았다.
 
 ### 제품 방향
 1. 추천 기능은 현재 범위에서 제외한다.
@@ -104,6 +105,7 @@ If present, read `./.omd/preferences.md` — pending corrections not yet folded 
 20. **iOS 네이티브 앱 App Store 출시**: `apps/native`는 Expo React Native 기반 iOS 네이티브 앱으로 `main`에 편입됐고, WebView/PWA/TWA 래퍼가 아니라 사용자 앱 화면을 네이티브 화면으로 구현한다. App Store Connect 앱 레코드와 Apple ID `6780318110`, EAS project id `efe8f7e5-75d8-45a9-9a4e-88bfeba07b98`, iOS signing credentials, EAS Submit용 App Store Connect API key, GitHub `EXPO_TOKEN` 구성을 완료했다. `2026-06-18` PR `#67` build `1.0.0 (5)`, `2026-06-19` PR `#68` build `1.0.0 (6)`, `2026-06-19` PR `#69` build `1.0.0 (7)`로 TestFlight 제출을 진행했고, `2026-06-28` PR `#73` main SHA `2ddb3bb`로 iOS QA parity와 launch prep을 마무리했다. `2026-06-29` App Store 심사를 통과해 `https://apps.apple.com/app/ottline/id6780318110`로 공개됐다.
 21. **2026년 상반기 리캡 및 헤더 노티**: 개인 이용 리포트 API에 `seasonalRecap`을 추가해 KST 기준 `2026-01-01`부터 `2026-06-30`까지의 상반기 기록 수, 대표 장르, 대표 상태, 포스터 후보를 반환한다. 웹/네이티브 리포트에는 `2026년 상반기 돌아보기` 섹션과 포스터 중심의 SNS 공유 카드 payload를 추가했고, 웹/네이티브 모두 로컬 기록 기반 fallback 리캡을 지원한다. 웹은 `/og/share-card` 서버 렌더 경로를 추가하고, KST 기준 `2026-07-01`부터 `2026-07-31`까지 상단 바 아래에 `2026년 상반기를 돌아볼까요?` 노티를 노출한다. `2026-07-01` PR `#75`, main SHA `9df9cb05addf90d56a82042b5393baa29fe78349`, API production run `28494192890`, web production run `28494344708`, API manifest commit `048431dad4fe1ba9045e3db52b82d078e86849a9`, web manifest commit `5bc388385839fc08fcf7a16fd01c2f690904e156`로 배포 완료했고 ArgoCD `ott-app` `Synced Healthy`, production `ott-api`/`ott-web` 이미지 태그 `9df9cb05addf90d56a82042b5393baa29fe78349`, `APP_VERSION=9df9cb0`을 확인했다. iOS 네이티브 코드는 main에 병합됐지만 실제 App Store 사용자 배포는 별도 TestFlight/App Store 업데이트가 필요하다.
 22. **현실적인 analytics 집계 및 관리자 화면 개편**: `app_open`의 경로 이동 중복과 식별자 churn으로 부풀던 실행량을 원본 이벤트·실행 세션·활성 클라이언트·행동 사용자로 분리했다. 행동 사용자는 계정 우선, 단일 계정으로만 연결된 클라이언트, 클라이언트, 세션 순서의 resolved actor 규칙을 사용하고, 공유 클라이언트와 관리자 계정은 안전하게 처리한다. 검색·제목 선택·기기 연결·첫 기록·기록 생성은 순차 퍼널이 아닌 독립 행동 도달로 표시하며, 관리자 화면과 Telegram 데일리 리포트가 같은 `AnalyticsMetricsQuery`를 사용한다. `2026-07-14` PR `#79`, main SHA `b06bf4ceac410d8da37bdf764fa1afec4d2f8efa`, API/Web/Native CI run `29308192234`/`29308192262`/`29308192271`, web/API production run `29308658284`/`29308658465`, web/API manifest commit `83458e8`/`4ff059a`로 배포 완료했다. ArgoCD `ott-app` `Synced Healthy`, production `ott-web`/`ott-api` 이미지 태그 `b06bf4ceac410d8da37bdf764fa1afec4d2f8efa`, `APP_VERSION=b06bf4c`를 확인했고, production Pod 내부에서 overview 새 계약과 관리자 화면 새 지표 문구를 확인했다. 네이티브 `osFamily=ios` 수정은 main에 포함됐지만 실제 App Store 사용자 반영은 다음 네이티브 바이너리 배포가 필요하며, 서버는 기존 `iOS`와 신규 `ios`를 소문자로 정규화해 함께 집계한다.
+23. **SEO·검색 유입 기반 및 Cloudflare Access 관리자 경계**: 공개 한국어·영어 페이지에 self-canonical, 상호 hreflang, 언어별 OG를 적용하고 `/guide`와 한국어·영어 가이드 6개를 추가했다. sitemap은 공개 URL 19개만 제공하며 robots/llms.txt와 배포 후 IndexNow를 함께 운영한다. 검색 진입은 세션 기준 channel/source/landing/locale/campaign과 첫 기록까지 집계하고 자체 analytics 이벤트는 180일 후 자동 파기한다. 관리자 UI는 locale 없는 `/admin/**`로 통합하고 Cloudflare Access JWT를 origin에서 다시 검증하며 내부 관리자 API와 브라우저 경계를 분리했다. `2026-07-19` PR `#81`, main SHA `8303f4f51ccc12c1eda4a41efe58c79afd28f378`, Native/API/Web main CI run `29678410613`/`29678410582`/`29678410578`, API/Web production run `29678500818`/`29678607528`, API/Web manifest commit `9c3972b648cdbdcc05e596c31543cc1de248cc04`/`e8a9118fcc2610876dc56aa2e27db5815a390c97`로 배포 완료했다. ArgoCD `ott-app` `Synced Healthy`, production `ott-web`/`ott-api` 이미지와 `APP_VERSION=8303f4f`, Flyway v28, 내부 acquisition 계약, 공개 version/robots/sitemap을 확인했다. PWA 일반 기록 흐름은 유지하고 iOS TestFlight/App Store 바이너리는 배포하지 않았다.
 
 ### P1
 1. 문의함 운영 후속 작업
