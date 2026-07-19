@@ -10,7 +10,6 @@ import {
   Sun,
 } from "lucide-react";
 import Image from "next/image";
-import { useSearchParams } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { startTransition } from "react";
 import { useTheme } from "@/context/ThemeContext";
@@ -27,7 +26,7 @@ const localeOptions = [
   { value: "en", shortLabel: "EN", labelKey: "languageEnglish" },
 ] as const;
 
-function buildQuery(searchParams: ReturnType<typeof useSearchParams>) {
+function buildQuery(searchParams: URLSearchParams) {
   const query: Record<string, string | string[]> = {};
 
   for (const [key, value] of searchParams.entries()) {
@@ -91,7 +90,6 @@ export default function AppHeader() {
   const locale = useLocale();
   const pathname = usePathname();
   const router = useRouter();
-  const searchParams = useSearchParams();
   const { profile } = useUserProfile();
   const hasProfile = isProfileComplete(profile);
 
@@ -102,8 +100,6 @@ export default function AppHeader() {
       : mode === "dark"
         ? t("themeDark")
         : t("themeLight");
-  const query = buildQuery(searchParams);
-
   const handleLocaleChange = (
     nextLocale: (typeof localeOptions)[number]["value"],
   ) => {
@@ -112,6 +108,7 @@ export default function AppHeader() {
     }
 
     startTransition(() => {
+      const query = buildQuery(new URLSearchParams(window.location.search));
       if (Object.keys(query).length === 0) {
         router.replace(pathname, { locale: nextLocale });
         return;

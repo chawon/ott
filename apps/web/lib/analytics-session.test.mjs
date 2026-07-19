@@ -2,9 +2,23 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  normalizeOwnedEntrySource,
   parsePendingAppOpen,
   shouldTrackAppOpenForSession,
 } from "./analytics-session.mjs";
+
+test("keeps only allowlisted product entry sources", () => {
+  assert.equal(
+    normalizeOwnedEntrySource(" Android-Watch-Reminder "),
+    "android-watch-reminder",
+  );
+  assert.equal(
+    normalizeOwnedEntrySource("android-revisit-reminder"),
+    "android-revisit-reminder",
+  );
+  assert.equal(normalizeOwnedEntrySource("newsletter-user@example.com"), null);
+  assert.equal(normalizeOwnedEntrySource(null), null);
+});
 
 test("tracks only the first app open in a session", () => {
   const sessionId = "session-1";

@@ -1,36 +1,32 @@
 # ottline
 
-> ottline은 로그인 없이 영상과 책을 기록하는 무료 한국어 타임라인 서비스입니다.
-> A free, login-free timeline service for logging videos and books. All records are stored locally in the browser via IndexedDB — no data is transmitted to a server unless cross-device pairing is used. No account required.
+> ottline은 가입 없이 영상과 책 기록을 시작하고, 개인 타임라인으로 다시 돌아보는 무료 기록 서비스입니다.
+> ottline is a free personal timeline for logging videos and books without creating an account first.
 
-ottline은 Web, Android 앱, iOS 앱, Windows 앱, 설치형 PWA에서 무료로 이용 가능합니다.
+ottline은 한국어와 영어로 제공되며 Web, 설치형 PWA, Android, iOS, Windows, 브라우저 확장, 토스 인앱에서 같은 기록 흐름을 이어갑니다.
 
-## Key Features
+## How data works
 
-- 로그인 없는 기록: 계정 생성 없이 즉시 영상·책 기록 시작
-- 로컬 퍼스트 저장: 모든 데이터는 기기의 브라우저(IndexedDB)에 저장되며 서버로 전송되지 않음
-- 타임라인 뷰: 기록된 콘텐츠를 시간순으로 모아보는 개인 타임라인
-- 페어링 코드 동기화: 기기 간 기록 이전 시 페어링 코드 사용 (최신 수정 내용 우선)
-- CSV 내보내기: 설정 > 내 기록 내보내기에서 기록 파일 다운로드
-- 앱 설치: App Store, Google Play, Microsoft Store, 설치형 PWA로 앱처럼 사용 가능
-- 함께 보기: 다른 사용자의 공개 기록 열람 가능
+- 기록은 현재 기기에 먼저 저장됩니다.
+- 사용자가 페어링을 선택하면 기록과 기기 연결 정보가 서버에 동기화됩니다.
+- 공개 기록·댓글을 남기면 해당 내용이 다른 사용자에게 표시됩니다.
+- 서비스 안정성과 사용 흐름을 이해하기 위한 운영 분석 정보가 처리됩니다.
+- 기록 전체와 연결 정보를 지우는 기능은 설정에서 제공합니다.
 
-## Core Pages
+## Main pages
 
-- [Home](https://ottline.app): 로그인 없이 영상·책 기록 시작
-- [About](https://ottline.app/about): ottline 사용법 — 3단계 워크플로우 및 주요 기능 소개
-- [FAQ](https://ottline.app/faq): 데이터 저장 방식, 기기 변경, CSV 내보내기, 요금제 안내
-- [Privacy Policy](https://ottline.app/privacy): 데이터 처리 방침 및 로컬 퍼스트 저장 정책
+- [Home](https://ottline.app/): 영상·책 기록 시작
+- [English home](https://ottline.app/en): Start a video or book log
+- [About](https://ottline.app/about): 서비스 소개와 지원 플랫폼
+- [About in English](https://ottline.app/en/about): Product overview and supported platforms
+- [Guide](https://ottline.app/guide): 영상·책 기록 가이드
+- [Guides in English](https://ottline.app/en/guide): Video and book logging guides
+- [Public records](https://ottline.app/public): 공개 기록 목록
+- [FAQ](https://ottline.app/faq): 저장, 페어링, 내보내기 안내
+- [Privacy policy](https://ottline.app/privacy): 데이터 처리와 보관 정책
 
-## Optional Pages
+## Product boundaries
 
-- [Timeline](https://ottline.app/timeline): 나의 영상·책 기록 타임라인
-- [Public](https://ottline.app/public): 사용자들의 공개 기록 모아보기
-
-## Notes
-
-- 서비스 이용료 없음 — 모든 기능 무료 제공
-- 개인 기록 데이터는 서버에 저장되지 않음 (페어링 동기화 제외)
-- 브라우저 저장소(IndexedDB) 초기화 시 로컬 기록 삭제됨 (서버 백업 없음)
-- 지원 언어: 한국어 (ko-KR)
-- 지원 플랫폼: Web, Android 앱, iOS 앱, Windows 앱, 설치형 PWA
+- 모든 기능은 무료입니다.
+- ottline의 중심은 추천 피드가 아니라 개인 기록, 회상, 공유입니다.
+- 개인 타임라인과 기록 편집 화면은 검색 색인 대상이 아닙니다.

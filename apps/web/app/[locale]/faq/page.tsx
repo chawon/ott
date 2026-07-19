@@ -1,5 +1,12 @@
+import { ArrowRight } from "lucide-react";
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
+import { Link } from "@/i18n/routing";
+import {
+  localizedAlternates,
+  localizedOpenGraph,
+  localizedUrl,
+} from "@/lib/seo";
 
 export async function generateMetadata({
   params,
@@ -12,19 +19,13 @@ export async function generateMetadata({
   return {
     title: t("title"),
     description: t("description"),
-    alternates: {
-      canonical: "https://ottline.app/faq",
-      languages: {
-        ko: "https://ottline.app/faq",
-        en: "https://ottline.app/en/faq",
-        "x-default": "https://ottline.app/faq",
-      },
-    },
-    openGraph: {
-      title: `${t("title")} | ottline`,
-      description: t("description"),
-      url: "https://ottline.app/faq",
-    },
+    alternates: localizedAlternates(locale, "/faq"),
+    openGraph: localizedOpenGraph(
+      locale,
+      "/faq",
+      `${t("title")} | ottline`,
+      t("description"),
+    ),
   };
 }
 
@@ -42,15 +43,57 @@ export default async function FaqPage({
     "@context": "https://schema.org",
     "@type": "FAQPage",
     name: t("heading"),
-    url: "https://ottline.app/faq",
+    url: localizedUrl(locale, "/faq"),
     inLanguage: locale === "ko" ? "ko-KR" : "en-US",
     mainEntity: [
-      { "@type": "Question", name: stripHtml(t("q1")), acceptedAnswer: { "@type": "Answer", text: stripHtml(t.raw("a1") as string) } },
-      { "@type": "Question", name: stripHtml(t("q2")), acceptedAnswer: { "@type": "Answer", text: stripHtml(t.raw("a2") as string) } },
-      { "@type": "Question", name: stripHtml(t("q3")), acceptedAnswer: { "@type": "Answer", text: stripHtml(t.raw("a3") as string) } },
-      { "@type": "Question", name: stripHtml(t("q4")), acceptedAnswer: { "@type": "Answer", text: stripHtml(t.raw("a4") as string) } },
-      { "@type": "Question", name: stripHtml(t("q5")), acceptedAnswer: { "@type": "Answer", text: stripHtml(t.raw("a5") as string) } },
-      { "@type": "Question", name: stripHtml(t("q6")), acceptedAnswer: { "@type": "Answer", text: stripHtml(t.raw("a6") as string) } },
+      {
+        "@type": "Question",
+        name: stripHtml(t("q1")),
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: stripHtml(t.raw("a1") as string),
+        },
+      },
+      {
+        "@type": "Question",
+        name: stripHtml(t("q2")),
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: stripHtml(t.raw("a2") as string),
+        },
+      },
+      {
+        "@type": "Question",
+        name: stripHtml(t("q3")),
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: stripHtml(t.raw("a3") as string),
+        },
+      },
+      {
+        "@type": "Question",
+        name: stripHtml(t("q4")),
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: stripHtml(t.raw("a4") as string),
+        },
+      },
+      {
+        "@type": "Question",
+        name: stripHtml(t("q5")),
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: stripHtml(t.raw("a5") as string),
+        },
+      },
+      {
+        "@type": "Question",
+        name: stripHtml(t("q6")),
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: stripHtml(t.raw("a6") as string),
+        },
+      },
     ],
   };
 
@@ -115,6 +158,20 @@ export default async function FaqPage({
             />
           </div>
         </div>
+
+        <section className="rounded-lg border border-border bg-card p-6">
+          <h2 className="text-xl font-semibold">{t("guideTitle")}</h2>
+          <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+            {t("guideDesc")}
+          </p>
+          <Link
+            href="/guide"
+            className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-lg text-sm font-semibold text-brand-navy underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50 dark:text-foreground"
+          >
+            <span>{t("guideAction")}</span>
+            <ArrowRight aria-hidden="true" className="h-4 w-4" />
+          </Link>
+        </section>
       </div>
     </>
   );

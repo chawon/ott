@@ -1,8 +1,7 @@
 "use client";
 
 import { MessageCircle, NotebookPen, PencilLine } from "lucide-react";
-import Link from "next/link";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useCallback, useEffect, useRef, useState } from "react";
 import DiscussionList from "@/components/DiscussionList";
 import FirstLogActivationPanel from "@/components/FirstLogActivationPanel";
@@ -11,6 +10,8 @@ import ProfileAvatar from "@/components/ProfileAvatar";
 import ProfilePromptCard from "@/components/ProfilePromptCard";
 import QuickLogCard from "@/components/QuickLogCard";
 import ShareBottomSheet from "@/components/ShareBottomSheet";
+import SoftwareApplicationJsonLd from "@/components/SoftwareApplicationJsonLd";
+import { Link } from "@/i18n/routing";
 import { trackEvent } from "@/lib/analytics";
 import { api, apiWithAuth } from "@/lib/api";
 import {
@@ -148,7 +149,9 @@ function DiscussionsSkeleton() {
 }
 
 export default function HomePage() {
+  const locale = useLocale();
   const tHome = useTranslations("HomePage");
+  const tMetadata = useTranslations("Metadata");
   const tProfile = useTranslations("Profile");
   const tQuick = useTranslations("QuickLogCard");
   const [logs, setLogs] = useState<WatchLog[]>([]);
@@ -542,165 +545,173 @@ export default function HomePage() {
     : tHome("myRecords");
 
   return (
-    <div className="grid min-h-[calc(100dvh-12rem)] grid-cols-1 gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
-      <div className="space-y-6">
-        <section className="space-y-3">
-          <div className="flex items-end justify-between">
-            <div className="flex min-w-0 items-center gap-3">
-              {profileComplete ? (
-                <ProfileAvatar
-                  personaKey={profile?.personaKey}
-                  size={52}
-                  alt=""
-                />
-              ) : null}
-              <div className="min-w-0 space-y-1">
-                <h1 className="flex items-center gap-2 text-2xl font-semibold text-foreground">
-                  {!profileComplete ? <PencilLine className="h-4 w-4" /> : null}
-                  <span className="truncate">{heroTitle}</span>
-                </h1>
-                <p
-                  className={
-                    profileComplete
-                      ? "text-sm leading-relaxed text-muted-foreground"
-                      : "ml-6 text-sm leading-relaxed text-muted-foreground"
-                  }
-                >
-                  {heroDescription}
-                </p>
+    <>
+      <SoftwareApplicationJsonLd
+        locale={locale}
+        description={tMetadata("description")}
+      />
+      <div className="grid min-h-[calc(100dvh-12rem)] grid-cols-1 gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+        <div className="space-y-6">
+          <section className="space-y-3">
+            <div className="flex items-end justify-between">
+              <div className="flex min-w-0 items-center gap-3">
+                {profileComplete ? (
+                  <ProfileAvatar
+                    personaKey={profile?.personaKey}
+                    size={52}
+                    alt=""
+                  />
+                ) : null}
+                <div className="min-w-0 space-y-1">
+                  <h1 className="flex items-center gap-2 text-2xl font-semibold text-foreground">
+                    {!profileComplete ? (
+                      <PencilLine className="h-4 w-4" />
+                    ) : null}
+                    <span className="truncate">{heroTitle}</span>
+                  </h1>
+                  <p
+                    className={
+                      profileComplete
+                        ? "text-sm leading-relaxed text-muted-foreground"
+                        : "ml-6 text-sm leading-relaxed text-muted-foreground"
+                    }
+                  >
+                    {heroDescription}
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
-          {showActivationPanel ? (
-            <FirstLogActivationPanel
-              contentType={activationContentType}
-              recentVideoItems={activationRecentVideoItems}
-              popularVideoItems={activationPopularTitles}
-              loading={discussionsLoading}
-              onContentTypeChange={setActivationContentType}
-              onDismiss={dismissActivationForSession}
-              onVideoSelect={handleActivationVideoSelect}
-              onBookStatusSelect={handleActivationBookStatusSelect}
-              onFindOther={handleActivationFindOther}
+            {showActivationPanel ? (
+              <FirstLogActivationPanel
+                contentType={activationContentType}
+                recentVideoItems={activationRecentVideoItems}
+                popularVideoItems={activationPopularTitles}
+                loading={discussionsLoading}
+                onContentTypeChange={setActivationContentType}
+                onDismiss={dismissActivationForSession}
+                onVideoSelect={handleActivationVideoSelect}
+                onBookStatusSelect={handleActivationBookStatusSelect}
+                onFindOther={handleActivationFindOther}
+              />
+            ) : null}
+            <div ref={quickLogRef}>
+              <QuickLogCard
+                onCreated={async (created, options) => {
+                  setActivationEligible(false);
+                  setLogs((prev) => {
+                    const idx = prev.findIndex((l) => l.id === created.id);
+                    if (idx >= 0) {
+                      const next = [...prev];
+                      next[idx] = created;
+                      return next;
+                    }
+                    return [created, ...prev].slice(0, 8);
+                  });
+                  await upsertLogsLocal([created]);
+                  await refreshActivationEligibility();
+                  await loadDiscussions();
+                  if (options?.shareCard) {
+                    setShareLog(created);
+                    setShareOpen(true);
+                  }
+                }}
+                onContentTypeChange={handleQuickTypeChange}
+                initialContentType={sharedQuery ? sharedContentType : quickType}
+                initialSearchQuery={sharedQuery}
+                initialPlatform={sharedPlatform}
+                autoFocusSearch={autoFocusSearch}
+                searchFocusSignal={searchFocusSignal}
+                shareImportStatus={shareImportStatus}
+                shareImportFeedbackHref={feedbackHref("android-alpha-share")}
+                activationTitleSelection={activationTitleSelection}
+                highlightedStatus={highlightedStatus}
+              />
+            </div>
+          </section>
+          <section className="space-y-3">
+            <div className="flex items-baseline justify-between">
+              <div className="flex items-center gap-2 text-base font-semibold">
+                <NotebookPen className="h-4 w-4" />
+                {recordsTitle}
+              </div>
+              <Link
+                href="/timeline"
+                className="text-sm font-medium text-[#1E4D8C] hover:underline dark:text-foreground"
+              >
+                {tHome("viewAll")}
+              </Link>
+            </div>
+
+            {loading && logs.length === 0 ? (
+              <div>
+                <output className="sr-only">{tHome("loading")}</output>
+                <RecentLogsSkeleton />
+              </div>
+            ) : null}
+
+            {!loading && logs.length === 0 ? (
+              <div className="rounded-2xl border border-border bg-card/85 p-5 text-sm text-muted-foreground shadow-sm">
+                {tHome("emptyRecords")}
+              </div>
+            ) : null}
+
+            <div className="grid grid-cols-1 gap-3">
+              {logs.map((l) => (
+                <LogCard
+                  key={l.id}
+                  log={l}
+                  onShareCard={() => {
+                    setShareLog(l);
+                    setShareOpen(true);
+                  }}
+                />
+              ))}
+            </div>
+          </section>
+          {showProfilePrompt ? (
+            <ProfilePromptCard
+              onDismiss={() => {
+                dismissProfilePrompt();
+                refreshProfilePromptState();
+              }}
             />
           ) : null}
-          <div ref={quickLogRef}>
-            <QuickLogCard
-              onCreated={async (created, options) => {
-                setActivationEligible(false);
-                setLogs((prev) => {
-                  const idx = prev.findIndex((l) => l.id === created.id);
-                  if (idx >= 0) {
-                    const next = [...prev];
-                    next[idx] = created;
-                    return next;
-                  }
-                  return [created, ...prev].slice(0, 8);
-                });
-                await upsertLogsLocal([created]);
-                await refreshActivationEligibility();
-                await loadDiscussions();
-                if (options?.shareCard) {
-                  setShareLog(created);
-                  setShareOpen(true);
-                }
-              }}
-              onContentTypeChange={handleQuickTypeChange}
-              initialContentType={sharedQuery ? sharedContentType : quickType}
-              initialSearchQuery={sharedQuery}
-              initialPlatform={sharedPlatform}
-              autoFocusSearch={autoFocusSearch}
-              searchFocusSignal={searchFocusSignal}
-              shareImportStatus={shareImportStatus}
-              shareImportFeedbackHref={feedbackHref("android-alpha-share")}
-              activationTitleSelection={activationTitleSelection}
-              highlightedStatus={highlightedStatus}
-            />
-          </div>
-        </section>
-        <section className="space-y-3">
-          <div className="flex items-baseline justify-between">
-            <div className="flex items-center gap-2 text-base font-semibold">
-              <NotebookPen className="h-4 w-4" />
-              {recordsTitle}
+        </div>
+
+        <aside className="space-y-3">
+          <div className="flex items-end justify-between min-h-[52px]">
+            <div className="text-base font-semibold flex items-center gap-2">
+              <MessageCircle className="h-4 w-4" />
+              {tHome("publicTitleModern")}
             </div>
             <Link
-              href="/timeline"
+              href="/public"
               className="text-sm font-medium text-[#1E4D8C] hover:underline dark:text-foreground"
             >
               {tHome("viewAll")}
             </Link>
           </div>
-
-          {loading && logs.length === 0 ? (
+          {discussionsLoading &&
+          discussions.length === 0 &&
+          trendingTitles.length === 0 ? (
             <div>
               <output className="sr-only">{tHome("loading")}</output>
-              <RecentLogsSkeleton />
+              <DiscussionsSkeleton />
             </div>
-          ) : null}
-
-          {!loading && logs.length === 0 ? (
-            <div className="rounded-2xl border border-border bg-card/85 p-5 text-sm text-muted-foreground shadow-sm">
-              {tHome("emptyRecords")}
-            </div>
-          ) : null}
-
-          <div className="grid grid-cols-1 gap-3">
-            {logs.map((l) => (
-              <LogCard
-                key={l.id}
-                log={l}
-                onShareCard={() => {
-                  setShareLog(l);
-                  setShareOpen(true);
-                }}
-              />
-            ))}
-          </div>
-        </section>
-        {showProfilePrompt ? (
-          <ProfilePromptCard
-            onDismiss={() => {
-              dismissProfilePrompt();
-              refreshProfilePromptState();
-            }}
-          />
-        ) : null}
+          ) : (
+            <DiscussionList
+              items={discussions}
+              trendingItems={trendingTitles}
+              onTrendingSelect={handleTrendingSelect}
+            />
+          )}
+        </aside>
+        <ShareBottomSheet
+          open={shareOpen}
+          log={shareLog}
+          onClose={() => setShareOpen(false)}
+        />
       </div>
-
-      <aside className="space-y-3">
-        <div className="flex items-end justify-between min-h-[52px]">
-          <div className="text-base font-semibold flex items-center gap-2">
-            <MessageCircle className="h-4 w-4" />
-            {tHome("publicTitleModern")}
-          </div>
-          <Link
-            href="/public"
-            className="text-sm font-medium text-[#1E4D8C] hover:underline dark:text-foreground"
-          >
-            {tHome("viewAll")}
-          </Link>
-        </div>
-        {discussionsLoading &&
-        discussions.length === 0 &&
-        trendingTitles.length === 0 ? (
-          <div>
-            <output className="sr-only">{tHome("loading")}</output>
-            <DiscussionsSkeleton />
-          </div>
-        ) : (
-          <DiscussionList
-            items={discussions}
-            trendingItems={trendingTitles}
-            onTrendingSelect={handleTrendingSelect}
-          />
-        )}
-      </aside>
-      <ShareBottomSheet
-        open={shareOpen}
-        log={shareLog}
-        onClose={() => setShareOpen(false)}
-      />
-    </div>
+    </>
   );
 }

@@ -10,7 +10,7 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/admin/feedback")
+@RequestMapping("/internal/admin/feedback")
 public class AdminFeedbackController {
 
     private final FeedbackService feedbackService;

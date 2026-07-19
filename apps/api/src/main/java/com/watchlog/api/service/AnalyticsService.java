@@ -4,6 +4,10 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.watchlog.api.domain.WatchLogEntity;
 import com.watchlog.api.dto.AdminActivitySummaryDto;
+import com.watchlog.api.dto.AdminAcquisitionAnalyticsDto;
+import com.watchlog.api.dto.AdminAcquisitionDailyDto;
+import com.watchlog.api.dto.AdminAcquisitionDimensionDto;
+import com.watchlog.api.dto.AdminAcquisitionSummaryDto;
 import com.watchlog.api.dto.AdminAnalyticsOverviewDto;
 import com.watchlog.api.dto.AdminDailyAnalyticsDto;
 import com.watchlog.api.dto.AdminDimensionSummaryDto;
@@ -41,6 +45,7 @@ public class AnalyticsService {
 
     private final JdbcTemplate jdbcTemplate;
     private final AnalyticsMetricsQuery analyticsMetricsQuery;
+    private final AcquisitionAnalyticsQuery acquisitionAnalyticsQuery;
     private final WatchLogRepository watchLogRepository;
     private final UserRepository userRepository;
     private final String adminAnalyticsToken;
@@ -48,12 +53,14 @@ public class AnalyticsService {
     public AnalyticsService(
             JdbcTemplate jdbcTemplate,
             AnalyticsMetricsQuery analyticsMetricsQuery,
+            AcquisitionAnalyticsQuery acquisitionAnalyticsQuery,
             WatchLogRepository watchLogRepository,
             UserRepository userRepository,
             @Value("${admin.analytics.token:}") String adminAnalyticsToken
     ) {
         this.jdbcTemplate = jdbcTemplate;
         this.analyticsMetricsQuery = analyticsMetricsQuery;
+        this.acquisitionAnalyticsQuery = acquisitionAnalyticsQuery;
         this.watchLogRepository = watchLogRepository;
         this.userRepository = userRepository;
         this.adminAnalyticsToken = adminAnalyticsToken;
@@ -468,6 +475,48 @@ public class AnalyticsService {
     }
 
     @Transactional(readOnly = true)
+    public AdminAcquisitionAnalyticsDto adminAcquisition(String token, int days) {
+        verifyAdminToken(token);
+        if (!Set.of(7, 30, 90, 180).contains(days)) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "days must be one of 7, 30, 90, or 180"
+            );
+        }
+
+        AnalyticsMetricsQuery.CalendarWindows windows = analyticsMetricsQuery.acquisitionCalendarWindows(
+                days,
+                OffsetDateTime.now(ZoneId.of("Asia/Seoul"))
+        );
+        AcquisitionAnalyticsQuery.Result result = acquisitionAnalyticsQuery.summarize(
+                windows.periodFrom(),
+                windows.to()
+        );
+
+        return new AdminAcquisitionAnalyticsDto(
+                windows.days(),
+                windows.periodFrom(),
+                windows.to(),
+                mapAcquisitionSummary(result.summary()),
+                mapAcquisitionDimensions(result.byChannel()),
+                mapAcquisitionDimensions(result.bySource()),
+                mapAcquisitionDimensions(result.byLandingPath()),
+                mapAcquisitionDimensions(result.byLocale()),
+                mapAcquisitionDimensions(result.byCampaign()),
+                result.daily().stream()
+                        .map(row -> new AdminAcquisitionDailyDto(
+                                row.day(),
+                                row.metrics().sessions(),
+                                row.metrics().engagedSessions(),
+                                row.metrics().firstLogSessions(),
+                                row.metrics().logCreateSessions()
+                        ))
+                        .toList(),
+                result.orphanConversionSessions()
+        );
+    }
+
+    @Transactional(readOnly = true)
     public List<AdminEventRowDto> adminRecentEvents(
             String token,
             int days,
@@ -545,6 +594,29 @@ public class AnalyticsService {
                         summary.activeUsers(),
                         summary.appOpenSessions(),
                         summary.activeClients()
+                ))
+                .toList();
+    }
+
+    private AdminAcquisitionSummaryDto mapAcquisitionSummary(AcquisitionAnalyticsQuery.Metrics metrics) {
+        return new AdminAcquisitionSummaryDto(
+                metrics.sessions(),
+                metrics.engagedSessions(),
+                metrics.firstLogSessions(),
+                metrics.logCreateSessions()
+        );
+    }
+
+    private List<AdminAcquisitionDimensionDto> mapAcquisitionDimensions(
+            List<AcquisitionAnalyticsQuery.DimensionMetrics> dimensions
+    ) {
+        return dimensions.stream()
+                .map(row -> new AdminAcquisitionDimensionDto(
+                        row.key(),
+                        row.metrics().sessions(),
+                        row.metrics().engagedSessions(),
+                        row.metrics().firstLogSessions(),
+                        row.metrics().logCreateSessions()
                 ))
                 .toList();
     }

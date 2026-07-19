@@ -40,6 +40,15 @@ jobs:
       - name: Test analytics collection
         run: npm run test:analytics --workspace ott
 
+      - name: Test administrator access boundary
+        run: npm run test:admin-access --workspace ott
+
+      - name: Test SEO contracts
+        run: npm run test:seo --workspace ott
+
+      - name: Test client recovery and service worker cache
+        run: npm run test:client-recovery --workspace ott
+
       - name: Build web
         env:
           BACKEND_URL: http://127.0.0.1:8080

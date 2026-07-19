@@ -69,19 +69,19 @@ jobs:
             echo "No changes to manifests."
           fi
 
-      - name: Notify IndexNow (Bing)
+      - name: Verify production web version
+        env:
+          EXPECTED_APP_VERSION: ${{ inputs.sha }}
+        run: node apps/web/scripts/ping-indexnow.mjs verify-production
+
+      - name: Notify IndexNow (Bing, best effort)
+        id: indexnow
+        continue-on-error: true
+        run: node apps/web/scripts/ping-indexnow.mjs notify
+
+      - name: Report IndexNow warning
+        if: steps.indexnow.outcome == 'failure'
         run: |
-          curl -s -o /dev/null -w "%{http_code}" -X POST "https://api.indexnow.org/indexnow" \
-            -H "Content-Type: application/json" \
-            -d '{
-              "host": "ottline.app",
-              "key": "9cdd845a2cc74943a9c950e5de656b48",
-              "keyLocation": "https://ottline.app/9cdd845a2cc74943a9c950e5de656b48.txt",
-              "urlList": [
-                "https://ottline.app",
-                "https://ottline.app/about",
-                "https://ottline.app/faq",
-                "https://ottline.app/public",
-                "https://ottline.app/privacy"
-              ]
-            }'
+          echo "::warning::Production is verified, but the IndexNow notification failed."
+          echo "### IndexNow warning" >> "$GITHUB_STEP_SUMMARY"
+          echo "Production reached the requested version, but IndexNow notification failed. Retry it separately." >> "$GITHUB_STEP_SUMMARY"

@@ -42,6 +42,14 @@ export default async function AppFooter() {
             </h3>
             <ul className={cn("space-y-2 text-xs", "text-muted-foreground")}>
               <li>
+                <IntlLink
+                  href="/guide"
+                  className="font-semibold text-brand-navy hover:underline dark:text-foreground"
+                >
+                  {t("linkGuidesModern")}
+                </IntlLink>
+              </li>
+              <li>
                 <IntlLink href="/about" className="hover:underline">
                   {t("linkAboutModern")}
                 </IntlLink>

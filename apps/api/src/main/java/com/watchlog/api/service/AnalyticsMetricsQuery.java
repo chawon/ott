@@ -250,8 +250,16 @@ public class AnalyticsMetricsQuery {
     }
 
     public CalendarWindows calendarWindows(int days, OffsetDateTime now) {
+        return calendarWindows(days, 90, now);
+    }
+
+    public CalendarWindows acquisitionCalendarWindows(int days, OffsetDateTime now) {
+        return calendarWindows(days, 180, now);
+    }
+
+    private CalendarWindows calendarWindows(int days, int maximumDays, OffsetDateTime now) {
         Objects.requireNonNull(now, "now is required");
-        int safeDays = Math.max(1, Math.min(days, 90));
+        int safeDays = Math.max(1, Math.min(days, maximumDays));
         OffsetDateTime to = now.atZoneSameInstant(KST).toOffsetDateTime();
         LocalDate today = to.toLocalDate();
         OffsetDateTime todayFrom = today.atStartOfDay(KST).toOffsetDateTime();

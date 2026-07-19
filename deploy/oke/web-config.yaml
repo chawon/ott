@@ -5,3 +5,7 @@ metadata:
   namespace: ott
 data:
   BACKEND_URL: http://ott-api:8080
+  # Configure one Cloudflare Access self-hosted application for ottline.app/admin.
+  # Using only admin/* would leave the bare /admin path outside the policy.
+  CF_ACCESS_TEAM_DOMAIN: "https://ergate23.cloudflareaccess.com"
+  CF_ACCESS_ADMIN_AUD: "14afa61b05b3c093f92163a7b6f8a12ef67fb8af7ab0d054b6779a76f51e7310"

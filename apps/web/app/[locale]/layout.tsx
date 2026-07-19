@@ -2,7 +2,11 @@ import type { Viewport } from "next";
 import Script from "next/script";
 import "../globals.css";
 import { NextIntlClientProvider } from "next-intl";
-import { getMessages, getTranslations } from "next-intl/server";
+import {
+  getMessages,
+  getTranslations,
+  setRequestLocale,
+} from "next-intl/server";
 import AndroidAppContextRecorder from "@/components/AndroidAppContextRecorder";
 import AppFooter from "@/components/AppFooter";
 import AppHeader from "@/components/AppHeader";
@@ -12,6 +16,11 @@ import PwaInstallBanner from "@/components/PwaInstallBanner";
 import SwipeNav from "@/components/SwipeNav";
 import SyncWorker from "@/components/SyncWorker";
 import { ThemeProvider } from "@/context/ThemeContext";
+import { localizedAlternates, localizedUrl } from "@/lib/seo";
+
+export function generateStaticParams() {
+  return [{ locale: "ko" }, { locale: "en" }];
+}
 
 export async function generateMetadata({
   params,
@@ -19,6 +28,7 @@ export async function generateMetadata({
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
+  setRequestLocale(locale);
   const t = await getTranslations({ locale, namespace: "Metadata" });
 
   return {
@@ -27,6 +37,7 @@ export async function generateMetadata({
       template: t("titleTemplate"),
     },
     description: t("description"),
+    alternates: localizedAlternates(locale),
     manifest: "/manifest.webmanifest",
     icons: {
       icon: "/icon.png",
@@ -40,7 +51,7 @@ export async function generateMetadata({
     openGraph: {
       title: "ottline",
       description: t("description"),
-      url: "https://ottline.app",
+      url: localizedUrl(locale),
       siteName: "ottline",
       locale: locale === "ko" ? "ko_KR" : "en_US",
       type: "website",
@@ -80,7 +91,9 @@ export default async function RootLayout({
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
+  setRequestLocale(locale);
   const messages = await getMessages();
+  const metadataT = await getTranslations({ locale, namespace: "Metadata" });
 
   const themeInitScript = `
 (() => {
@@ -141,56 +154,28 @@ export default async function RootLayout({
           name="naver-site-verification"
           content="d48c8e320c660f8e8f1291f6cad71bc39e268d10"
         />
-        <Script
+        <script
           id="organization-json-ld"
-          strategy="beforeInteractive"
           type="application/ld+json"
-        >
-          {JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "Organization",
-            name: "ottline",
-            url: "https://ottline.app",
-            logo: {
-              "@type": "ImageObject",
-              url: "https://ottline.app/og-image-20260418.png",
-              width: 1200,
-              height: 630,
-            },
-            description:
-              "가입 없이 영상·책 기록을 10초 만에 남기고 타임라인으로 모아보세요. 영상과 책을 가장 빠르게 기록하는 방법.",
-            inLanguage: "ko-KR",
-            sameAs: ["https://www.wikidata.org/wiki/Q138822579"],
-          })}
-        </Script>
-        <Script
-          id="software-json-ld"
-          strategy="beforeInteractive"
-          type="application/ld+json"
-        >
-          {JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "SoftwareApplication",
-            name: "ottline",
-            url: "https://ottline.app",
-            description:
-              "가입 없이 영상·책 기록을 10초 만에 남기고 타임라인으로 모아보세요.",
-            inLanguage: "ko-KR",
-            applicationCategory: "LifestyleApplication",
-            applicationSubCategory: "Entertainment",
-            operatingSystem: "Web, Android, iOS, Windows",
-            offers: { "@type": "Offer", price: "0", priceCurrency: "KRW" },
-            isAccessibleForFree: true,
-            featureList: [
-              "로그인 없는 영상·책 기록",
-              "로컬 퍼스트 데이터 저장 (IndexedDB)",
-              "타임라인 뷰",
-              "페어링 코드로 기기 간 동기화",
-              "CSV 내보내기",
-              "PWA 설치 지원",
-            ],
-          })}
-        </Script>
+          // biome-ignore lint/security/noDangerouslySetInnerHtml: JSON-LD is serialized from local translations and constants.
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "Organization",
+              name: "ottline",
+              url: "https://ottline.app",
+              logo: {
+                "@type": "ImageObject",
+                url: "https://ottline.app/icon.png",
+                width: 512,
+                height: 512,
+              },
+              description: metadataT("description"),
+              inLanguage: locale === "ko" ? "ko-KR" : "en-US",
+              sameAs: ["https://www.wikidata.org/wiki/Q138822579"],
+            }),
+          }}
+        />
         {/* Google tag (gtag.js) */}
         <Script
           id="gtag-src"

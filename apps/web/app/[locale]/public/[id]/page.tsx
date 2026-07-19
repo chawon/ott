@@ -1,11 +1,11 @@
 "use client";
 
-import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useState } from "react";
 import CommentsPanel from "@/components/CommentsPanel";
 import DiscussionReactionChips from "@/components/DiscussionReactionChips";
+import { Link } from "@/i18n/routing";
 import { api } from "@/lib/api";
 import { getUserId } from "@/lib/localStore";
 import type {

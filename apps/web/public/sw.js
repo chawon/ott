@@ -1,5 +1,5 @@
 const CACHE_PREFIXES = ["ottline-cache-", "ott-pwa-"];
-const CACHE_NAME = "ottline-cache-v2";
+const CACHE_NAME = "ottline-cache-v3";
 const PRECACHE_URLS = [
   "/",
   "/timeline",
@@ -55,6 +55,14 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(event.request.url);
 
   if (url.origin !== self.location.origin) {
+    return;
+  }
+
+  if (
+    url.pathname === "/admin" ||
+    url.pathname.startsWith("/admin/") ||
+    /^\/(?:ko|en)\/admin(?:\/|$)/.test(url.pathname)
+  ) {
     return;
   }
 

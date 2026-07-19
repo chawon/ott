@@ -87,9 +87,41 @@ test("bypasses persistent Cache Storage for Next RSC navigation data", () => {
   );
 });
 
+test("bypasses the service worker for every admin request", () => {
+  const { listeners } = createWorkerHarness();
+  for (const pathname of [
+    "/admin",
+    "/admin/analytics",
+    "/admin/api/feedback/threads",
+    "/ko/admin/analytics",
+    "/en/admin",
+  ]) {
+    const request = new Request(`https://ottline.app${pathname}`);
+    let responsePromise;
+
+    listeners.get("fetch")({
+      request,
+      respondWith(promise) {
+        responsePromise = promise;
+      },
+    });
+
+    assert.equal(
+      responsePromise,
+      undefined,
+      `${pathname} must go directly to Cloudflare Access and the network`,
+    );
+  }
+});
+
 test("removes the previous ottline cache when the worker activates", async () => {
   const { listeners, deletedCacheKeys } = createWorkerHarness({
-    cacheKeys: ["ottline-cache-v1", "ott-pwa-v1", "unrelated-origin-cache"],
+    cacheKeys: [
+      "ottline-cache-v1",
+      "ottline-cache-v2",
+      "ott-pwa-v1",
+      "unrelated-origin-cache",
+    ],
   });
   let activationPromise;
 
@@ -100,7 +132,11 @@ test("removes the previous ottline cache when the worker activates", async () =>
   });
   await activationPromise;
 
-  assert.deepEqual(deletedCacheKeys, ["ottline-cache-v1", "ott-pwa-v1"]);
+  assert.deepEqual(deletedCacheKeys, [
+    "ottline-cache-v1",
+    "ottline-cache-v2",
+    "ott-pwa-v1",
+  ]);
 });
 
 test("checks for the current worker even when hydration starts after load", () => {
