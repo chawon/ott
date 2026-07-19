@@ -4,6 +4,78 @@
 
 이 문서는 App Store Connect의 TestFlight beta review information, 내부 QA, App Store 출시 이력을 정리한다. `2026-06-29` App Store 심사를 통과해 App Store에 공개됐으며, 출시 후 확인은 `docs/ios-app-store-launch-checklist.md`에서 이어간다.
 
+## 1.0.2 English TestFlight submission copy
+
+아래 내용은 현재 iOS `1.0.2` TestFlight 후보에 대해 App Store Connect의 English (U.S.) localization과 TestFlight Beta App Review Information에 붙여 넣을 초안이다. 앱 코드나 번역 구현을 변경하지 않고 심사 입력 내용만 준비한다.
+
+### App Store Connect — English (U.S.) metadata
+
+- App name: `ottline`
+- Subtitle: `Log what you watch and read`
+- Promotional text: `Keep movies, series, and books in one personal timeline. Add notes, revisit your history, and share what stayed with you.`
+- Keywords: `movie,series,book,watchlist,reading,diary,timeline,notes,history,tracking`
+- Support URL: `https://ottline.app/feedback`
+- Marketing URL: `https://ottline.app/about`
+- Privacy Policy URL: `https://ottline.app/privacy`
+
+#### Description
+
+ottline is a personal timeline for movies, series, and books.
+
+Search for a title, choose a status, and save it to your timeline. Add a date, rating, note, platform, place, occasion, or season and episode when you want to remember more.
+
+Your records are saved on the device first. A pairing code lets you continue the same timeline on another device without an email or password account.
+
+Use Timeline to search, filter, edit, export CSV, and revisit your history. In Together, browse public records, comments, and reactions. Create share cards for a saved record or recap, choose a feed or story format, and share the image with other apps.
+
+You can also manage your profile, connected devices, feedback, local data, and synced server data from Settings. Recap reminders are optional local notifications that are enabled only after your explicit permission.
+
+ottline focuses on remembering what you watched and read, not on recommendations. Keep a personal timeline that is easy to return to.
+
+### TestFlight — What to Test
+
+`1.0.2` adds English review coverage and configurable share cards.
+
+- On a Korean-language device, tap `EN` in the app header to switch the native UI to English. English-language devices select English automatically.
+- Search for a movie, series, or book in `Log`, select a status, and save a record.
+- From the save flow, Timeline, or title detail, open `Create share card`. Try the `Feed` and `Story` formats, toggle the note, rating, and profile signature, then use `Share` or `Save image`.
+- Open `Timeline` to search, filter, edit, export CSV, and create another share card.
+- Open `Together` to view a public record, add a comment or reaction, and use the report action.
+- Open `Settings` to review the pairing code, profile, connected devices, feedback inbox, recap reminders, local reset, and `Delete All Server Data`.
+
+### TestFlight Beta App Review Information — Review Notes
+
+No email address, password, or subscription is required.
+
+The app is a native iOS app; it is not a WebView wrapper. If the reviewer is using a Korean-language device, tap `EN` in the header after launch. On an English-language device, English is selected automatically.
+
+1. Launch ottline and open the `Log` tab.
+2. Search for any movie, series, or book and select a result.
+3. Choose a status and tap the save action. The first save creates an anonymous pairing-code account and stores the record locally first.
+4. Optionally add a date, rating, note, platform, place, occasion, or season/episode.
+5. Use `Create share card` to test feed/story formats, optional fields, sharing, and saving the image.
+6. Open `Timeline` to search, filter, edit, export CSV, and share a saved record.
+7. Open `Together` to view public user-generated content, add a comment or reaction, and report a post or comment.
+8. Open `Settings` to issue a pairing code, manage connected devices, send feedback, enable optional recap reminders, reset local data, or delete all synced server data.
+
+No pre-seeded review account is needed. If Apple requests a preloaded account, provide a temporary pairing code generated from a dedicated review account in App Store Connect only; never use a production user's pairing or recovery code.
+
+### UGC, moderation, and data deletion explanation
+
+Together contains user-generated public records, comments, and reactions. Each public record and comment has a report action that opens the Feedback flow with the target details prefilled. Reports are reviewed by the ottline operator. The Settings screen also provides a general feedback inbox.
+
+The app provides both device-only reset and account-level server deletion. `Settings > Delete All Server Data` removes the current pairing account's synced logs, comments, feedback, analytics events, recommendation cache, and linked devices. `Settings > Reset Local` clears only the current device's local data.
+
+The app does not read video playback content from other apps. Recap reminders are local notifications and are scheduled only after the reviewer explicitly enables them. Analytics uses native platform context for product operation and does not require an email address, contacts, location, or advertising tracking.
+
+### Submission values to verify after upload
+
+- App version: `1.0.2`
+- Bundle ID: `app.ottline`
+- ASC App ID: `6780318110`
+- Build number: copy the actual processed build number shown in App Store Connect after the EAS TestFlight workflow completes. The current local iOS build baseline is `21` in `apps/native/app.json` and the EAS TestFlight profile has `autoIncrement: true`.
+- Review contact: enter the operator's current App Store Connect contact details; do not put credentials or pairing codes in the repository.
+
 ## App 정보 초안
 
 - App name: ottline
