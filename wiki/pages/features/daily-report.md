@@ -1,6 +1,6 @@
 # 데일리 리포트
 
-> 매일 오전 9시 Telegram으로 Cloudflare·GA4·내부 분석·K8s 통합 현황을 발송하고, 내부 지표는 이벤트/DB 기준을 함께 제공
+> 매일 오전 9시 Telegram으로 Cloudflare·GA4·자체 분석·Kubernetes 현황을 발송하고, 같은 데이터를 top-level 관리자 화면에서 확인한다.
 
 ## 관련 페이지
 - [[analytics]]
@@ -8,18 +8,11 @@
 
 ---
 
-## 목표
+## 목적과 화면
 
-ottline 운영 현황을 매일 한 곳에서 확인: Cloudflare(트래픽), GA4(사용자), 내부 admin analytics, K8s 인프라를 통합한 대시보드 제공 + 매일 KST 09:00 Telegram 자동 발송.
+`/admin/report`는 Cloudflare 요청·방문자·page view, GA4 session·활성/신규 사용자, 자체 제품 활동과 production pod 상태를 한 화면에 보여준다. 관리자 화면은 locale segment를 사용하지 않고 한국어로 고정한다.
 
----
-
-## 최근 반영
-
-- 2026-04-15: `로그 생성` 표기를 `로그 생성 사용자`로 명확화
-- 2026-04-15: `watch_logs.created_at` 기준 `신규 로그 수(DB)` 추가
-- 2026-04-15: staging 배포 완료 후 동일 SHA(`a63ae1d393d04a366dc1377699b01f7c48c80a17`)로 production web/api 배포 완료
-- 2026-06-05: 내부 지표를 제품 퍼널 기준(방문 → 제목 검색 → 제목 선택 → 기기 연결 → 첫 기록 → 기록 사용자)으로 확장하고, 관리자 analytics와 같은 관리자 UUID 제외 기준을 적용
+`DailyReportService`는 KST 기준 전일 범위를 집계하고 기본 schedule인 UTC 00:00(KST 09:00)에 Telegram 메시지를 보낸다.
 
 ---
 
@@ -27,93 +20,82 @@ ottline 운영 현황을 매일 한 곳에서 확인: Cloudflare(트래픽), GA4
 
 | 소스 | 수집 데이터 | 방식 |
 |---|---|---|
-| Cloudflare | 요청수, 방문자, 대역폭, 위협 차단 | CF GraphQL Analytics API |
-| GA4 | 세션, 활성 사용자, 페이지뷰, 신규 사용자 | GA4 Data API (서비스 계정) |
-| 내부 analytics + DB | DAU, 제목 검색/선택, 기기 연결, 첫 기록, 기록 사용자, 서버 반영 신규 로그 수 | `analytics_events` + `watch_logs.created_at` |
-| Kubernetes | Pod 상태, 이미지 태그, CPU/Memory | K8s API (in-cluster) + Metrics Server |
+| Cloudflare | 요청 수, 방문자, page view | Cloudflare GraphQL Analytics API |
+| GA4 | session, 활성 사용자, page view, 신규 사용자 | GA4 Data API 서비스 계정 |
+| 자체 analytics | 실행 session, 활성 client, 행동 사용자, 독립 행동 도달 | `analytics_events` |
+| 서비스 DB | 서버에 반영된 신규 기록 수 | `watch_logs.created_at` |
+| Kubernetes | pod 상태, image tag, CPU/memory | in-cluster API + Metrics Server |
 
 ---
 
-## 내부 지표 정의
+## 자체 지표 정의
 
-- `DAU`: `analytics_events.event_name = 'app_open'`의 고유 행위자 수
-- `제목 검색`: `analytics_events.event_name = 'title_search'`의 고유 행위자 수
-- `제목 선택`: `analytics_events.event_name = 'title_select'`의 고유 행위자 수
-- `기기 연결`: `analytics_events.event_name = 'login_success'`의 고유 행위자 수
-- `첫 기록`: `analytics_events.event_name = 'first_log_create'`의 고유 행위자 수
-- `기록 사용자`: `analytics_events.event_name = 'log_create'`의 고유 행위자 수
-- `신규 로그 수(DB)`: `watch_logs.created_at`이 전일 KST 범위에 포함되는 row 수
-- 내부 지표는 관리자 analytics와 같은 관리자 UUID를 제외한다.
+데일리 리포트와 관리자 analytics overview는 같은 `AnalyticsMetricsQuery`를 사용한다.
 
-해석 메모:
-- `제목 검색`과 `제목 선택`은 새 이벤트 배포 이후부터 의미 있게 쌓인다.
-- `기록 사용자`는 이벤트 전송 성공 여부에 영향을 받는 사용 행태 추적 지표다.
-- `신규 로그 수(DB)`는 서버에 실제 반영된 신규 로그 수다.
-- 오프라인 기록이 다음날 sync되면 사용자가 어제 작성했더라도 서버 반영 날짜 기준으로 집계된다.
+- `rawAppOpenEvents`: 전일 원본 `app_open` 이벤트 수
+- `appOpenSessions`: 전일 distinct 실행 session 수
+- `activeClients`: 전일 `app_open`을 보낸 distinct client 수
+- `qualifiedActors`: 검색·선택·연결·첫 기록·기록 생성 중 하나를 수행한 resolved actor 수
+- `titleSearchActors`, `titleSelectActors`, `loginActors`, `firstLogCreateActors`, `logCreateActors`: 각 행동의 독립 도달
+- `dbLogCreateCount`: `watch_logs.created_at`이 전일 KST 범위에 포함된 row 수
+
+resolved actor는 계정 → 한 계정에만 연결된 client → client → session 순으로 결정하며 관리자 UUID는 제외한다. 행동 지표는 순차 funnel이 아니므로 검색 없이 제목을 선택한 session도 제목 선택 도달에 포함된다.
+
+이벤트 지표는 전송 성공 여부의 영향을 받고, `dbLogCreateCount`는 서버에 실제 반영된 수다. offline 기록이 다음날 sync되면 작성 시점이 아니라 서버 반영일에 집계된다.
 
 ---
 
-## 백엔드 구현
+## API와 보안 경계
 
-**신규 서비스:**
-- `CloudflareAnalyticsService` — CF GraphQL Zone Analytics
-- `GoogleAnalyticsService` — GA4 Data API (`google-analytics-data` SDK)
-- `KubernetesStatusService` — in-cluster K8s API (`kubernetes-client-java`)
-- `DailyReportService` — 집계 + `@Scheduled("0 0 9 * * ?")` Telegram 발송
+- `GET /internal/admin/report/daily`: 현재 전일 리포트 반환
+- `POST /internal/admin/report/daily/send`: 현재 리포트를 Telegram으로 수동 발송
+- 두 endpoint 모두 web 서버가 server-to-server `X-Admin-Token`을 붙여 호출한다.
+- 브라우저는 backend `/internal/admin/**`를 직접 호출하거나 관리자 token을 전달받지 않는다.
 
-**API:**
-- `GET /api/admin/report/daily` — 리포트 데이터 반환 (X-Admin-Token 인증)
-- `POST /api/admin/report/daily/send` — 수동 Telegram 발송 트리거
+`/admin/report`는 Cloudflare Access의 `Account Member` 정책을 통과해야 한다. origin의 Next.js `proxy`도 `Cf-Access-Jwt-Assertion`의 서명, issuer, audience, `exp`, `nbf`, `type=app`을 검증한다. 관리자 root layout에는 GA4, Clarity, PWA/service worker와 일반 사용자 sync runtime을 로드하지 않는다.
 
-**환경변수:**
-```yaml
+---
+
+## 설정
+
+~~~yaml
 cloudflare:
   api-token: ${CF_API_TOKEN:}
   zone-id: ${CF_ZONE_ID:}
 google-analytics:
   property-id: ${GA4_PROPERTY_ID:}
-  credentials-json: ${GA4_CREDENTIALS_JSON:}  # base64 서비스 계정 JSON
+  credentials-json: ${GA4_CREDENTIALS_JSON:}
 report:
-  schedule: "0 0 0 * * ?"  # UTC 00:00 = KST 09:00
-```
+  schedule: "0 0 0 * * *"
+~~~
+
+`deploy/oke/report-rbac.yaml`은 API service account에 필요한 pod·node·metrics read 권한만 부여한다.
 
 ---
 
-## K8s RBAC
+## Telegram 메시지
 
-`deploy/oke/report-rbac.yaml`: ott-api ServiceAccount에 `pods`, `nodes`, `metrics.k8s.io` 읽기 권한 부여
-
----
-
-## 프론트엔드
-
-`apps/web/app/[locale]/admin/report/page.tsx`
-- 기존 analytics 페이지와 동일한 토큰 인증 방식
-- 4개 섹션: Cloudflare / GA4 / 내부 지표 / K8s
-- "Telegram 지금 발송" 버튼
-
----
-
-## Telegram 메시지 포맷
-
-```
-📊 ottline 데일리 리포트 (MM/DD)
+~~~text
+📊 ottline 데일리 리포트 (YYYY-MM-DD)
 
 🌐 트래픽 (Cloudflare)
-• 요청: 12,345 | 방문자: 1,234
-• 대역폭: 45.2 MB | 위협 차단: 12
+• 요청 / 방문자 / 페이지뷰
 
 📈 사용자 (GA4)
-• 세션: 890 | 활성: 678
-• 페이지뷰: 2,345 | 신규: 234
+• 세션 / 활성 사용자 / 페이지뷰 / 신규 사용자
 
 🎯 앱 활동 (내부)
-• 방문: 89 | 검색: 34 | 선택: 21
-• 기기 연결: 5 | 첫 기록: 3 | 기록 사용자: 8
-• 전환: 방문→검색 38.2% | 검색→선택 61.8% | 방문→첫 기록 3.4%
-• 신규 로그 수(DB): 123
+• 실행 세션 / 활성 클라이언트
+• 행동 사용자 / 원본 실행 이벤트
+• 검색 / 제목 선택 / 기기 연결 / 첫 기록 / 기록 사용자
+• 신규 로그 수(DB)
 
-☸️ 인프라 (K8s / ott ns)
-• ott-web ✅ Running  [이미지 태그]
-• ott-api ✅ Running  [이미지 태그]
-```
+☸️ 인프라 (K8s / ott)
+• pod 상태 / image tag / CPU / memory
+~~~
+
+---
+
+## 보존
+
+자체 `analytics_events`는 `created_at` 기준 180일 후 매일 자동 파기한다. 데일리 리포트는 전일 데이터만 사용하므로 이 보존 정책의 영향을 받지 않는다. GA4와 Microsoft Clarity로 전송된 데이터의 보존은 각 제공자의 설정과 정책을 따르며, Clarity는 데일리 리포트의 데이터 소스가 아니다.

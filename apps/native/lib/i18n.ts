@@ -1190,7 +1190,7 @@ export const staticInfoContent: Record<NativeLocale, Record<StaticInfoScreenKey,
     privacy: {
       kicker: 'Privacy',
       title: '개인정보처리방침',
-      description: '최종 업데이트: 2026-02-14',
+      description: '최종 업데이트: 2026-07-19',
       sections: [
         {
           title: '개인정보 처리 안내',
@@ -1200,28 +1200,32 @@ export const staticInfoContent: Record<NativeLocale, Record<StaticInfoScreenKey,
           title: '1. 수집하는 정보',
           bullets: [
             '기록 데이터: 작품명, 감상/독서 상태, 평점, 메모, 기록 시각',
-            '서비스 운영 정보: 기기 유형, 브라우저 유형, OS 계열, 설치 상태',
-            '기기 식별용 정보: 서비스 동기화 및 기기 연결을 위한 내부 식별자',
+            '동기화 정보: 기기 연결과 동기화를 위한 계정·클라이언트 내부 식별자',
+            '서비스 이용 정보: 세션 식별자, 기능 이용 이벤트, 최초 진입 경로, referrer 출처 도메인, UTM source·medium·campaign·term·content',
+            '이용 환경 정보: 기기·브라우저·OS 유형과 PWA·TWA 설치 상태',
           ],
         },
         {
           title: '2. 정보 이용 목적',
           bullets: [
-            '기록 저장/조회, 타임라인 구성, 기기 간 동기화 제공',
-            '오류 분석 및 서비스 안정성 개선',
-            '기능 사용 현황 분석을 통한 UX 개선',
+            '기록 저장·조회, 타임라인 구성, 기기 간 동기화 제공',
+            '오류 분석과 서비스 안정성 개선',
+            '유입 경로와 기능 이용 현황을 집계해 이용 경험 개선',
           ],
         },
         {
           title: '3. 보관 및 파기',
           bullets: [
-            '이용 목적 달성 또는 이용자 요청 시 지체 없이 파기합니다.',
-            '법령상 보관 의무가 있는 경우 해당 기간 동안만 보관합니다.',
+            '동기화된 기록과 계정 정보는 이용자가 서버 데이터 전체 삭제를 요청할 때까지 보관합니다.',
+            '서비스가 직접 수집한 분석 이벤트는 수집일로부터 180일 후 자동으로 파기합니다.',
+            '계정 삭제 시 계정 식별자가 저장된 분석 이벤트도 함께 삭제합니다. 계정 식별자가 없는 익명 이벤트는 특정 이용자를 확인해 선별 삭제할 수 없으며 180일 후 자동으로 파기합니다.',
+            'Google Analytics 4와 Microsoft Clarity에 전송된 데이터는 각 제공자의 보존 설정과 정책에 따라 보관·파기됩니다.',
+            '법령상 보관 의무가 있는 경우 필요한 기간 동안만 보관합니다.',
           ],
         },
         {
           title: '4. 제3자 제공 및 처리 위탁',
-          body: '서비스는 원칙적으로 이용자 정보를 외부에 판매하지 않으며, 법령에 따른 경우를 제외하고 제3자에게 제공하지 않습니다.',
+          body: '서비스는 방문과 이용 흐름을 집계하기 위해 Google의 Google Analytics 4와 Microsoft의 Clarity를 사용합니다. 이 과정에서 각 제공자의 정책에 따라 쿠키 등 온라인 식별자와 이용 환경 정보가 처리될 수 있습니다. 서비스는 이용자 정보를 판매하지 않으며, 법령에 따른 경우를 제외하고 다른 제3자에게 제공하지 않습니다.',
         },
         {
           title: '5. 이용자 권리',
@@ -1319,7 +1323,7 @@ export const staticInfoContent: Record<NativeLocale, Record<StaticInfoScreenKey,
     privacy: {
       kicker: 'Privacy',
       title: 'Privacy Policy',
-      description: 'Last Updated: 2026-02-14',
+      description: 'Last Updated: July 19, 2026',
       sections: [
         {
           title: 'Privacy Notice',
@@ -1328,29 +1332,33 @@ export const staticInfoContent: Record<NativeLocale, Record<StaticInfoScreenKey,
         {
           title: '1. Information Collected',
           bullets: [
-            'Log Data: Title, status, rating, note, timestamp',
-            'Service Operation: Device type, browser, OS, installation status',
-            'Identifiers: Internal identifiers for sync and pairing',
+            'Log data: Title, watching or reading status, rating, note, and timestamp',
+            'Sync data: Internal account and client identifiers used for pairing and synchronization',
+            'Service usage data: Session identifier, feature events, initial landing path, referring origin, and UTM source, medium, campaign, term, and content',
+            'Environment data: Device, browser, OS, and PWA or TWA installation status',
           ],
         },
         {
           title: '2. Purpose of Usage',
           bullets: [
-            'Storing/viewing records, building timelines, providing sync',
-            'Error analysis and service stability improvement',
-            'UX improvement through usage analysis',
+            'Storing and viewing records, building timelines, and providing sync',
+            'Analyzing errors and improving service stability',
+            'Aggregating acquisition paths and feature usage to improve the experience',
           ],
         },
         {
           title: '3. Retention and Destruction',
           bullets: [
-            'Information is destroyed without delay when purposes are achieved or upon user request.',
-            'In case of legal retention obligations, it is kept only for the required period.',
+            'Synced records and account data are kept until you request Delete All Server Data.',
+            'First-party analytics events are automatically deleted 180 days after collection.',
+            'Deleting an account also deletes analytics events that store its account identifier. Anonymous events without an account identifier cannot be matched to a specific person for selective deletion and are automatically deleted after 180 days.',
+            "Data sent to Google Analytics 4 and Microsoft Clarity is retained and deleted under each provider's configured settings and policies.",
+            'When the law requires retention, information is kept only for the required period.',
           ],
         },
         {
           title: '4. Third-party Disclosure',
-          body: 'The Service does not sell user information to third parties and does not disclose it except when required by law.',
+          body: "The Service uses Google Analytics 4 from Google and Clarity from Microsoft to aggregate visits and usage flows. Online identifiers such as cookies and environment information may be processed under each provider's policy. The Service does not sell user information or disclose it to other third parties except when required by law.",
         },
         {
           title: '5. User Rights',

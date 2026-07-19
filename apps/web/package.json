@@ -8,8 +8,10 @@
     "start": "next start",
     "lint": "biome check",
     "format": "biome format --write",
+    "test:admin-access": "node --test lib/cloudflare-access.test.mjs lib/admin-boundary.test.mjs",
     "test:analytics": "node --test lib/analytics-session.test.mjs",
     "test:client-recovery": "node --test lib/client-recovery.test.mjs lib/service-worker-cache.test.mjs",
+    "test:seo": "node --test lib/seo.test.mjs lib/seo-boundary.test.mjs lib/sitemap-public.test.mjs scripts/ping-indexnow.test.mjs",
     "test:theme-first-paint": "node --test lib/theme-first-paint.test.mjs",
     "indexnow": "node scripts/ping-indexnow.mjs",
     "generate:chatgpt-directory-screenshots": "node scripts/generate-chatgpt-directory-screenshots.mjs"
@@ -25,6 +27,7 @@
     "clsx": "^2.1.1",
     "dexie": "^4.0.8",
     "fast-average-color-node": "^3.2.0",
+    "jose": "^6.2.2",
     "lucide-react": "^0.561.0",
     "next": "16.2.4",
     "next-intl": "^4.11.0",

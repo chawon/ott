@@ -26,6 +26,7 @@ class AnalyticsMetricsQueryTest {
 
     private static JdbcTemplate jdbcTemplate;
     private static AnalyticsMetricsQuery metricsQuery;
+    private static AcquisitionAnalyticsQuery acquisitionQuery;
 
     @BeforeAll
     static void setUpDatabase() {
@@ -41,6 +42,7 @@ class AnalyticsMetricsQueryTest {
                 .migrate();
         jdbcTemplate = new JdbcTemplate(dataSource);
         metricsQuery = new AnalyticsMetricsQuery(jdbcTemplate);
+        acquisitionQuery = new AcquisitionAnalyticsQuery(jdbcTemplate);
     }
 
     @BeforeEach
@@ -270,6 +272,70 @@ class AnalyticsMetricsQueryTest {
     }
 
     @Test
+    void acquisitionSummarizesWebSessionsAndSameSessionBehavior() {
+        OffsetDateTime from = kstDayStart();
+        OffsetDateTime to = from.plusDays(1);
+        UUID paidClient = UUID.randomUUID();
+        UUID aiClient = UUID.randomUUID();
+
+        insertEvent("app_open", null, paidClient, "paid-session", from.plusHours(1), "web", """
+                {"utmSource":"Google","utmMedium":"cpc","utmCampaign":"Launch",
+                 "landingPath":"/en/guide","locale":"en"}
+                """);
+        insertEvent("title_search", null, paidClient, "paid-session", from.plusHours(2), "web", "{}");
+        insertEvent("app_open", null, aiClient, "ai-session", from.plusHours(3), "pwa", """
+                {"referrer":"https://chatgpt.com","landingPath":"/guide","locale":"ko-KR"}
+                """);
+        insertEvent("first_log_create", null, aiClient, "ai-session", from.plusHours(4), "pwa", "{}");
+        insertEvent("log_create", null, aiClient, "ai-session", from.plusHours(5), "pwa", "{}");
+
+        insertEvent("app_open", null, UUID.randomUUID(), "native-session", from.plusHours(6), "ios_native", "{}");
+        insertEvent("title_select", null, UUID.randomUUID(), "orphan-session", from.plusHours(7), "web", "{}");
+
+        var result = acquisitionQuery.summarize(from, to);
+
+        assertThat(result.summary()).isEqualTo(new AcquisitionAnalyticsQuery.Metrics(2, 2, 1, 1));
+        assertThat(result.orphanConversionSessions()).isEqualTo(1);
+        assertThat(result.byChannel()).extracting(
+                AcquisitionAnalyticsQuery.DimensionMetrics::key,
+                row -> row.metrics().sessions()
+        ).containsExactlyInAnyOrder(
+                org.assertj.core.groups.Tuple.tuple("paid_search", 1L),
+                org.assertj.core.groups.Tuple.tuple("ai_referral", 1L)
+        );
+        assertThat(result.byLandingPath()).extracting(AcquisitionAnalyticsQuery.DimensionMetrics::key)
+                .containsExactlyInAnyOrder("/en/guide", "/guide");
+        assertThat(result.byLocale()).extracting(AcquisitionAnalyticsQuery.DimensionMetrics::key)
+                .containsExactlyInAnyOrder("en", "ko");
+        assertThat(result.byCampaign()).extracting(AcquisitionAnalyticsQuery.DimensionMetrics::key)
+                .containsExactlyInAnyOrder("launch", "none");
+    }
+
+    @Test
+    void acquisitionUsesTheFirstAppOpenForSessionAttribution() {
+        OffsetDateTime from = kstDayStart();
+        UUID clientId = UUID.randomUUID();
+        insertEvent("app_open", null, clientId, "session-1", from.plusHours(1), "web", """
+                {"referrer":"direct","landingPath":"/"}
+                """);
+        insertEvent("app_open", null, clientId, "session-1", from.plusHours(2), "web", """
+                {"utmSource":"google","utmMedium":"cpc","landingPath":"/campaign"}
+                """);
+        insertEvent("title_select", null, clientId, "session-1", from.plusHours(3), "web", "{}");
+
+        var result = acquisitionQuery.summarize(from, from.plusDays(1));
+
+        assertThat(result.summary()).isEqualTo(new AcquisitionAnalyticsQuery.Metrics(1, 1, 0, 0));
+        assertThat(result.byChannel()).singleElement().satisfies(row -> {
+            assertThat(row.key()).isEqualTo("direct");
+            assertThat(row.metrics().sessions()).isEqualTo(1);
+        });
+        assertThat(result.byLandingPath()).singleElement()
+                .extracting(AcquisitionAnalyticsQuery.DimensionMetrics::key)
+                .isEqualTo("/");
+    }
+
+    @Test
     void calendarWindowsUseTodayAndPreviousKstCalendarDays() {
         OffsetDateTime utcNow = OffsetDateTime.parse("2026-07-14T16:30:00Z");
 
@@ -281,6 +347,23 @@ class AnalyticsMetricsQueryTest {
         assertThat(windows.periodFrom()).isEqualTo(OffsetDateTime.parse("2026-07-09T00:00:00+09:00"));
         assertThat(windows.last7DaysFrom()).isEqualTo(windows.periodFrom());
         assertThat(windows.last30DaysFrom()).isEqualTo(OffsetDateTime.parse("2026-06-16T00:00:00+09:00"));
+    }
+
+    @Test
+    void retentionDeletesOnlyEventsStrictlyOlderThanOneHundredEightyDays() {
+        OffsetDateTime now = OffsetDateTime.parse("2026-07-19T03:30:00Z");
+        UUID clientId = UUID.randomUUID();
+        insertEvent("app_open", null, clientId, "expired", now.minusDays(181), "web", "{}");
+        insertEvent("app_open", null, clientId, "boundary", now.minusDays(180), "web", "{}");
+        insertEvent("app_open", null, clientId, "recent", now.minusDays(179), "web", "{}");
+
+        int deleted = new AnalyticsRetentionService(jdbcTemplate).purgeExpiredEvents(now);
+
+        assertThat(deleted).isEqualTo(1);
+        assertThat(jdbcTemplate.queryForList(
+                "select session_id from analytics_events order by session_id",
+                String.class
+        )).containsExactly("boundary", "recent");
     }
 
     private OffsetDateTime kstDayStart() {

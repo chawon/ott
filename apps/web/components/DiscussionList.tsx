@@ -1,8 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
 import DiscussionReactionChips from "@/components/DiscussionReactionChips";
+import { Link } from "@/i18n/routing";
 import type { DiscussionListItem, TitleSearchItem } from "@/lib/types";
 import { cn, tmdbResize } from "@/lib/utils";
 

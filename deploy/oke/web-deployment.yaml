@@ -28,7 +28,7 @@ spec:
             - configMapRef:
                 name: ott-web-config
             - secretRef:
-                name: ott-api-secrets
+                name: ott-web-secrets
 ---
 apiVersion: v1
 kind: Service

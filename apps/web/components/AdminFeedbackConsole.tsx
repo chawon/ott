@@ -10,10 +10,6 @@ import type {
 } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-type Props = {
-  token: string;
-};
-
 type FeedbackFilter = "ALL" | "OPEN" | "ANSWERED" | "CLOSED";
 
 function formatDate(value: string, locale: string) {
@@ -47,16 +43,11 @@ function errorMessage(error: unknown, fallback: string) {
   return error instanceof Error ? error.message : fallback;
 }
 
-async function adminFetch<T>(
-  token: string,
-  path: string,
-  init?: RequestInit,
-): Promise<T> {
-  const res = await fetch(`/api/admin/feedback${path}`, {
+async function adminFetch<T>(path: string, init?: RequestInit): Promise<T> {
+  const res = await fetch(`/admin/api/feedback${path}`, {
     ...init,
     headers: {
       "Content-Type": "application/json",
-      "X-Admin-Token": token,
       ...(init?.headers ?? {}),
     },
     cache: "no-store",
@@ -70,7 +61,7 @@ async function adminFetch<T>(
   return (await res.json()) as T;
 }
 
-export default function AdminFeedbackConsole({ token }: Props) {
+export default function AdminFeedbackConsole() {
   const t = useTranslations("AdminFeedback");
   const locale = useLocale();
   const [threads, setThreads] = useState<FeedbackThreadSummary[]>([]);
@@ -107,10 +98,8 @@ export default function AdminFeedbackConsole({ token }: Props) {
       setLoading(true);
       setStatus(null);
       try {
-        const items = await adminFetch<FeedbackThreadSummary[]>(
-          token,
-          "/threads?limit=100",
-        );
+        const items =
+          await adminFetch<FeedbackThreadSummary[]>("/threads?limit=100");
         if (cancelled) return;
         setThreads(items);
         const initialId =
@@ -120,7 +109,6 @@ export default function AdminFeedbackConsole({ token }: Props) {
         setSelectedId(initialId);
         if (initialId) {
           const next = await adminFetch<FeedbackThreadDetail>(
-            token,
             `/threads/${initialId}`,
           );
           if (!cancelled) setDetail(next);
@@ -142,7 +130,7 @@ export default function AdminFeedbackConsole({ token }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [t, token]);
+  }, [t]);
 
   useEffect(() => {
     if (loading) return;
@@ -153,20 +141,17 @@ export default function AdminFeedbackConsole({ token }: Props) {
       setDetail(null);
       return;
     }
-    adminFetch<FeedbackThreadDetail>(token, `/threads/${nextId}`)
+    adminFetch<FeedbackThreadDetail>(`/threads/${nextId}`)
       .then(setDetail)
       .catch((error: unknown) =>
         setStatus(errorMessage(error, t("loadDetailError"))),
       );
-  }, [loading, selectedId, t, token, visibleThreads]);
+  }, [loading, selectedId, t, visibleThreads]);
 
   async function openThread(id: string) {
     setSelectedId(id);
     try {
-      const next = await adminFetch<FeedbackThreadDetail>(
-        token,
-        `/threads/${id}`,
-      );
+      const next = await adminFetch<FeedbackThreadDetail>(`/threads/${id}`);
       setDetail(next);
     } catch (error: unknown) {
       setStatus(errorMessage(error, t("loadDetailError")));
@@ -174,10 +159,8 @@ export default function AdminFeedbackConsole({ token }: Props) {
   }
 
   async function reload(selected?: string | null) {
-    const items = await adminFetch<FeedbackThreadSummary[]>(
-      token,
-      "/threads?limit=100",
-    );
+    const items =
+      await adminFetch<FeedbackThreadSummary[]>("/threads?limit=100");
     setThreads(items);
     const nextId =
       selected ??
@@ -186,10 +169,7 @@ export default function AdminFeedbackConsole({ token }: Props) {
       null;
     setSelectedId(nextId);
     if (nextId) {
-      const next = await adminFetch<FeedbackThreadDetail>(
-        token,
-        `/threads/${nextId}`,
-      );
+      const next = await adminFetch<FeedbackThreadDetail>(`/threads/${nextId}`);
       setDetail(next);
     } else {
       setDetail(null);
@@ -209,14 +189,10 @@ export default function AdminFeedbackConsole({ token }: Props) {
     setStatus(null);
     try {
       const payload: CreateFeedbackMessageRequest = { body: replyBody.trim() };
-      await adminFetch<FeedbackThreadDetail>(
-        token,
-        `/threads/${detail.id}/reply`,
-        {
-          method: "POST",
-          body: JSON.stringify(payload),
-        },
-      );
+      await adminFetch<FeedbackThreadDetail>(`/threads/${detail.id}/reply`, {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
       setReplyBody("");
       await reload(detail.id);
       setStatus(t("replySuccess"));

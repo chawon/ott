@@ -8,11 +8,13 @@ import {
 import { ensureAnalyticsClientId, getUserId } from "@/lib/localStore";
 import { safeUUID } from "@/lib/utils";
 import {
+  normalizeOwnedEntrySource,
   parsePendingAppOpen,
   shouldTrackAppOpenForSession,
 } from "./analytics-session.mjs";
 
 export {
+  normalizeOwnedEntrySource,
   parsePendingAppOpen,
   shouldTrackAppOpenForSession,
 } from "./analytics-session.mjs";
@@ -245,6 +247,23 @@ function getUtmProperties(): UtmProperties {
   return next;
 }
 
+function getEntrySource() {
+  if (typeof window === "undefined" || typeof sessionStorage === "undefined") {
+    return undefined;
+  }
+  const key = "watchlog.analytics.entrySource";
+  const existing = sessionStorage.getItem(key);
+  if (existing !== null) {
+    return normalizeOwnedEntrySource(existing) ?? undefined;
+  }
+
+  const source = normalizeOwnedEntrySource(
+    new URLSearchParams(window.location.search).get("source"),
+  );
+  sessionStorage.setItem(key, source ?? "");
+  return source ?? undefined;
+}
+
 function buildAndroidAppProperties(context: RuntimeContext) {
   const androidAppContext = context.androidAppContext;
   if (!context.androidTwaSignal) return {};
@@ -264,6 +283,7 @@ function buildAndroidAppProperties(context: RuntimeContext) {
 
 function buildContextProperties(context: RuntimeContext) {
   const platform = context.platform;
+  const entrySource = getEntrySource();
   return {
     hostname:
       typeof window !== "undefined" ? window.location.hostname : "unknown",
@@ -279,6 +299,7 @@ function buildContextProperties(context: RuntimeContext) {
     osFamily: detectOsFamily(),
     browserFamily: detectBrowserFamily(),
     installState: detectInstallState(platform),
+    ...(entrySource ? { entrySource } : {}),
     ...buildAndroidAppProperties(context),
     ...getUtmProperties(),
   };
@@ -312,7 +333,8 @@ export async function trackEvent(
     | "h1_recap_share"
     | "h1_recap_notice_impression"
     | "h1_recap_notice_click"
-    | "h1_recap_notice_dismiss",
+    | "h1_recap_notice_dismiss"
+    | "guide_cta_click",
   properties?: Record<string, unknown>,
   options?: { eventId?: string; occurredAt?: string },
 ) {

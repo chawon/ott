@@ -85,7 +85,7 @@ If present, read `./.omd/preferences.md` — pending corrections not yet folded 
 1. **다국어(i18n) 및 글로벌 서비스화**: `next-intl` 적용, 전체 UI 번역, 백엔드 데이터 연동 완료.
 2. **도메인 이전 및 마이그레이션**: `ottline.app` 신규 도메인 연결 및 리다이렉트 기반 인증 정보 이식 완료.
 3. **ottline 브랜딩 적용 (Phase 2)**: 아이콘/파비콘 교체, 헤더 로고(텍스트 조합), 레트로 모드 제거, 브랜드명·슬로건·OG이미지·공유카드 watermark 전면 반영 완료.
-4. **마이그레이션 현황 추적**: `migration_complete` 기반 `/api/admin/analytics/migration-status` 엔드포인트는 유지하지만, admin analytics 기본 화면에서는 제품 퍼널에 집중하기 위해 마이그레이션 섹션을 제거했다.
+4. **마이그레이션 현황 추적**: `migration_complete` 기반 `/internal/admin/analytics/migration-status` 엔드포인트는 유지하지만, admin analytics 기본 화면에서는 제품 퍼널에 집중하기 위해 마이그레이션 섹션을 제거했다.
 5. **도메인별 접속 분석**: `app_open` 이벤트에 `hostname` 프로퍼티 추가, admin 통계에 domain(hostname) 세그먼트 표시.
 6. **제품 퍼널 통계 정리**: admin analytics overview에서 구 도메인 `oldDomainUsage`와 `share_action` 표시를 제거하고, `title_search`·`title_select`·`first_log_create` 기반 전환 흐름을 표시한다.
 7. **구 도메인 301 전환 완료**: `2026-04-18`부터 `ott.preview.pe.kr/*`는 Cloudflare에서 `https://ottline.app/*`로 301 리다이렉트한다. 기존 MigrationBanner 기반 자발적 이전 유도는 종료했다.
@@ -341,14 +341,14 @@ feature/* ──PR/CI──→ main ──→ GitHub Actions workflow_dispatch
 3. `GET /api/feedback/threads/{id}`
    1. 헤더: `X-User-Id` 필요
    2. 본인 문의 상세만 반환
-4. `GET /api/admin/feedback/threads?limit=`
-   1. 헤더: `X-Admin-Token` 필요
+4. `GET /internal/admin/feedback/threads?limit=`
+   1. web 서버만 `X-Admin-Token`을 붙여 호출하는 cluster 내부 관리자 API다.
    2. 전체 문의 목록 반환
-5. `GET /api/admin/feedback/threads/{id}`
-   1. 헤더: `X-Admin-Token` 필요
+5. `GET /internal/admin/feedback/threads/{id}`
+   1. web 서버만 `X-Admin-Token`을 붙여 호출한다.
    2. 관리자용 문의 상세 반환
-6. `POST /api/admin/feedback/threads/{id}/reply`
-   1. 헤더: `X-Admin-Token` 필요
+6. `POST /internal/admin/feedback/threads/{id}/reply`
+   1. 브라우저는 same-origin `/admin/api/feedback/**` BFF를 호출하고, BFF가 Cloudflare Access JWT와 Origin을 확인한 뒤 내부 API에 `X-Admin-Token`을 전달한다.
    2. 관리자 답변 메시지 생성 + 상태를 `ANSWERED`로 변경
 7. Telegram 운영 알림
    1. 신규 문의 등록 시만 전송
@@ -359,29 +359,42 @@ feature/* ──PR/CI──→ main ──→ GitHub Actions workflow_dispatch
    1. 브라우저/확장 프로그램이 일반 analytics 수집 API로 인식해 차단하는 것을 줄이기 위해 실제 수집 경로는 `/api/analytics/events`가 아니라 `/api/nalytic/events`를 사용한다.
    2. 익명 방문도 수집 가능
    3. 헤더: `X-Client-Id`(optional), `X-User-Id`(optional)
-   4. 주요 이벤트 종류: `app_open`, `title_search`, `title_select`, `login_success`, `first_log_create`, `log_create`, `recommendation_open`, `recommendation_refresh`, `recommendation_dismiss`
-   5. 공통 properties: `hostname`, `landingPath`, `referrer`, `locale`, `browserLocale`, `deviceType`, `osFamily`, `browserFamily`, `installState`, `utmSource`, `utmMedium`, `utmCampaign`, `utmTerm`, `utmContent`
+   4. 주요 이벤트 종류: `app_open`, `title_search`, `title_select`, `login_success`, `first_log_create`, `log_create`, `guide_cta_click`, `recommendation_open`, `recommendation_refresh`, `recommendation_dismiss`
+   5. 공통 properties: `hostname`, `landingPath`, `referrer`, `entrySource`, `locale`, `browserLocale`, `deviceType`, `osFamily`, `browserFamily`, `installState`, `utmSource`, `utmMedium`, `utmCampaign`, `utmTerm`, `utmContent`. `entrySource`는 `android-watch-reminder`, `android-revisit-reminder`만 허용한다.
    6. Android TWA 앱 접근은 `platform=twa`, `installState=twa`, `osFamily=android`로 집계한다. Google Play TWA에서 referrer가 비는 경우를 보완하기 위해 `android_app_version`/`android_app_version_code` launch URL 파라미터와 최근 Android 앱 컨텍스트를 함께 사용하며, `properties`에 `androidAppVersion`, `androidAppVersionCode`, `androidTwaSignal`을 저장한다.
+   7. `analytics_events.created_at` 기준 180일이 지난 자체 분석 이벤트는 매일 자동 파기한다. 계정 전체 삭제 시 `user_id` 등 계정 식별자가 저장된 자체 이벤트만 즉시 삭제하며, 계정과 연결되지 않은 익명 이벤트는 특정 이용자를 식별해 선택 삭제할 수 없고 180일 만료로 파기한다.
 2. `GET /api/nalytic/me/report`
    1. 헤더: `X-User-Id` 필요
-3. `GET /api/admin/analytics/overview?days=`
-   1. 헤더: `X-Admin-Token` 필요
+3. `GET /internal/admin/analytics/overview?days=`
+   1. top-level `/admin/analytics` 서버 화면이 `X-Admin-Token`을 붙여 server-to-server로만 호출한다.
    2. `activity.period`/`today`/`last7Days`/`last30Days`는 `rawAppOpenEvents`, `appOpenSessions`, `activeClients`, `qualifiedActors`를 포함한다.
    3. `reach`는 순차 전환율이 아닌 독립 행동 도달로 `titleSearchActors`, `titleSelectActors`, `loginActors`, `firstLogCreateActors`, `logCreateActors`를 포함한다.
    4. `daily`와 플랫폼 행도 같은 활동·도달 정의를 사용한다. 기존 `dau`/`wau`/`mau`, `activeUsers`, `funnel*` 필드는 하위 호환을 위해 한 릴리스 동안 유지하지만 새 관리자 화면과 운영 리포트에서는 사용하지 않는다.
    5. Android 앱 세그먼트 응답은 `androidAppVersions`, `androidAppVersionCodes`, `androidTwaSignals`를 포함한다.
-4. `GET /api/admin/analytics/events?days=&limit=&eventName=&platform=`
-   1. 헤더: `X-Admin-Token` 필요
-5. `GET /api/admin/analytics/migration-status`
-   1. 헤더: `X-Admin-Token` 필요
+4. `GET /internal/admin/analytics/acquisition?days=7|30|90|180`
+   1. web/PWA/TWA의 distinct `app_open` session을 유입 session으로 사용하며 `ios_native`는 분모에서 제외한다.
+   2. 같은 session에 `title_search`, `title_select`, `login_success`, `first_log_create`, `log_create` 중 하나가 있으면 engaged session으로 집계한다.
+   3. `summary`, `byChannel`, `bySource`, `byLandingPath`, `byLocale`, `byCampaign`, `daily`, `orphanConversionSessions`를 반환한다. 각 집계 행은 `sessions`, `engagedSessions`, `firstLogSessions`, `logCreateSessions`를 포함한다.
+   4. attribution 우선순위는 유효한 UTM → 허용된 `entrySource` → 외부 referrer → direct/unknown이다.
+5. `GET /internal/admin/analytics/events?days=&limit=&eventName=&platform=`
+   1. web 서버만 `X-Admin-Token`을 붙여 호출한다.
+6. `GET /internal/admin/analytics/migration-status`
+   1. web 서버만 `X-Admin-Token`을 붙여 호출한다.
    2. 응답: `totalActiveUsers`, `migratedUsers`, `notMigratedUsers`, `migrationRate`, `recentMigrations`
-6. `GET /api/admin/report/daily`
-   1. 헤더: `X-Admin-Token` 필요
+7. `GET /internal/admin/report/daily`
+   1. top-level `/admin/report` 서버 화면이 `X-Admin-Token`을 붙여 server-to-server로 호출한다.
    2. 매일 KST 기준 전일 리포트를 반환한다.
    3. 내부 지표는 admin analytics와 같은 resolved actor 기준의 `activity`·`reach`와 `dbLogCreateCount`를 사용하고, 관리자 UUID를 제외한다.
-7. `POST /api/admin/report/daily/send`
-   1. 헤더: `X-Admin-Token` 필요
+8. `POST /internal/admin/report/daily/send`
+   1. 브라우저에 토큰을 노출하지 않고 web 서버/BFF만 `X-Admin-Token`을 붙여 호출한다.
    2. 현재 데일리 리포트를 Telegram으로 수동 발송한다.
+
+### Admin access boundary
+1. 관리자 UI는 locale segment가 없는 `/admin`, `/admin/analytics`, `/admin/report`, `/admin/feedback`, `/admin/logout`만 사용한다. 기존 `/ko|en/admin/**`는 query를 버리고 top-level 경로로 리다이렉트한다.
+2. Cloudflare Access self-hosted application의 기준 path를 `/admin`으로 두어 bare path와 모든 하위 경로를 보호하고, 정책은 Cloudflare 계정의 `Account Member`만 허용한다.
+3. origin의 Next.js `proxy`도 `Cf-Access-Jwt-Assertion`을 team JWKS로 검증한다. RS256 서명과 issuer, audience, `exp`, `nbf`, `type=app`이 모두 유효해야 하므로 origin 직접 접근이나 위조 헤더는 거부한다.
+4. 관리자 root layout에는 GA4, Clarity, PWA/service worker, 일반 사용자 동기화 런타임을 넣지 않으며 `noindex`, `no-store`를 유지한다.
+5. `ADMIN_ANALYTICS_TOKEN`, `ADMIN_FEEDBACK_TOKEN`은 web/API server-to-server 경계에만 존재한다. URL, HTML, RSC payload, 브라우저 요청에는 관리자 토큰을 포함하지 않는다.
 
 ### Sync
 1. `POST /api/sync/push`

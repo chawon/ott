@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/admin/report")
+@RequestMapping("/internal/admin/report")
 public class AdminDailyReportController {
 
     private final DailyReportService reportService;
