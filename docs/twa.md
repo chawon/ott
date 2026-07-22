@@ -8,12 +8,13 @@
 - GitHub Actions에서 디버그 APK 빌드 성공 및 기기 설치 확인 완료
 - 현재 개발 환경(WSL on ARM Linux)에서는 Android Gradle 로컬 빌드 호환 이슈가 있어, APK/AAB 빌드는 GitHub Actions만 정식 검증/배포 경로로 사용
 - Google Play 프로덕션 액세스는 2026-06-06 심사 통과했으며, 2026-06-10 기준 `1.0.12` (`versionCode=16`)가 production 트랙에 `completed` 상태로 등록됨
+- `2026-07-22` API 36 대응 업데이트를 PR `#82`로 main에 반영하고, GitHub Actions AAB run `29894879033` 및 gplay release run `29895085515`를 통해 production `1.0.13` (`versionCode=17`, `status=completed`)으로 배포 완료
 
 ## Android 16 대상 API 대응 (2026-07-22)
 
 - Google Play 정책에 따라 2026-08-31부터 일반 Android 신규 앱과 업데이트 제출은 Android 16 (API 수준 36) 이상을 대상으로 해야 함
 - `apps/twa/app/build.gradle`의 `compileSdkVersion`과 `targetSdkVersion`을 모두 `36`으로 유지한다
-- 현재 production 최신 `versionCode`가 `16`이므로 다음 Play 업데이트는 `versionCode=17` 이상으로 발행한다
+- 현재 production 최신 버전은 `1.0.13` (`versionCode=17`)이므로 다음 Play 업데이트는 `versionCode=18` 이상으로 발행한다
 - 실제 AAB 빌드와 Play 업로드는 `.github/workflows/twa-release.yml`에서 수행하며, 로컬 WSL ARM 환경의 `aapt2` 호환 실패는 알려진 제약으로 CI 결과를 기준으로 판단한다
 
 ### 진행 업데이트 (2026-02-15)
