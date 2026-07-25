@@ -468,8 +468,8 @@
     "description": "Log OTT watch history, movies, series, and books in 10 seconds without sign-up. Build your own personal timeline."
   },
   "About": {
-    "title": "Video and Book Log App & How to Use",
-    "subtitle": "Video and book timelines without sign-up",
+    "title": "Movie, Series, and Book Log App & How to Use",
+    "subtitle": "Movie, series, and book timelines without sign-up",
     "description": "ottline helps you quickly log OTT watch history from services like Netflix, TVING, and Disney+, plus movies, series, and books, into your own timeline. Start on the web without tedious sign-up, then continue through the same flow on the installable PWA, Android app, iOS app, Windows app, browser extension, and Toss in-app mini app. The ChatGPT connection is still in preparation.",
     "pairingHighlightTitle": "Once you start logging, your timeline keeps going.",
     "pairingHighlightDesc": "Whether you open ottline on the web, in Toss, or as an installed app, your pairing code lets you continue the same timeline and keep logging and checking your history.",
@@ -491,10 +491,10 @@
     "platformWindowsLink": "Microsoft Store",
     "platformAndroidTitle": "Android App",
     "platformAndroidDesc": "Install it from Google Play to enter the logging flow faster from the home screen, widget, and watch reminder settings.",
-    "platformAndroidLink": "Google Play",
+    "platformAndroidLink": "Install ottline from Google Play",
     "platformIosTitle": "iOS App",
     "platformIosDesc": "Install it from the App Store and continue the same logging flow and timeline on iPhone.",
-    "platformIosLink": "App Store",
+    "platformIosLink": "Download ottline on the App Store",
     "platformChatGptTitle": "ChatGPT Connection",
     "platformChatGptDesc": "A read-only ChatGPT connection is still in preparation for bringing recent logs into the conversation.",
     "platformPreparing": "Coming soon",
@@ -516,7 +516,10 @@
     "exampleBook": "Book share photo card example",
     "guideTitle": "Find a logging rhythm that feels like yours",
     "guideDesc": "See the simple flow for OTT watch logs, movies and series, and books through real ottline screens.",
-    "guideAction": "Explore the logging guides",
+    "guideOttWatchAction": "Streaming watch log guide",
+    "guideMovieSeriesAction": "Movie and series watch log guide",
+    "guideBookAction": "Book log guide",
+    "guideAction": "Browse all logging guides",
     "closing": "\"Memories fade, but records remain on the timeline.\""
   },
   "TitleDetail": {
