@@ -101,6 +101,33 @@ apps/api/gradlew -p apps/api test --no-daemon
 - Web production의 필수 live version 검증과 best-effort IndexNow 전송이 모두 성공했다.
 - Native iOS CI만 실행했으며 TestFlight/App Store 바이너리는 새로 빌드하거나 배포하지 않았다.
 
+## 검색어 후속 최적화 배포 (2026-07-25)
+
+네이버 서치어드바이저의 최근 90일 검색어를 실제 검색 결과와 대조한 뒤, 관련성이 높은 영화·시리즈·책 기록 의도를 중심으로 다음을 보강했다.
+
+- `/about`의 한국어 제목과 H1을 영화·시리즈·책 기록 앱 문맥으로 구체화했다.
+- `/guide/movie-series-log`의 검색 제목, 설명, H1을 영화·드라마 시청 기록 앱 의도에 맞췄다.
+- `/about`에서 OTT 시청 기록, 영화·시리즈 시청 기록, 책·독서 기록 가이드로 직접 연결한다.
+- 한국어 `/about`은 Google Play와 App Store의 한국어 스토어 URL과 설명형 링크 문구를 사용한다.
+- `SoftwareApplication` JSON-LD의 `operatingSystem`을 개별 배열로 표기하고, `@id`, `sameAs`, `installUrl`로 Google Play, App Store, Microsoft Store를 연결한다.
+- sitemap의 홈·서비스 소개와 각 가이드 `lastModified`를 실제 콘텐츠 수정일에 맞춘다.
+
+배포 결과:
+
+- PR: `#83`
+- 기능 merge SHA: `524b00139e8495024dca67177c58956855ce56ed`
+- Web main CI: `30141396955` 성공
+- Web production: `30141406956` 성공
+- manifest commit: `7989d4223e51a2114e02f03909ed8cc52f7d158a`
+- ArgoCD: `ott-app` revision `7989d4223e51a2114e02f03909ed8cc52f7d158a`, `Synced Healthy`
+- production image: `ott-web:524b00139e8495024dca67177c58956855ce56ed`
+- production `APP_VERSION`: `524b001`
+- production `/about`, `/guide/movie-series-log`, `/sitemap.xml`에서 새 검색 문구, 스토어·가이드 링크, 구조화 데이터와 lastmod를 확인했다.
+- production 버전 검증과 IndexNow 전송이 모두 성공했다.
+- API, DB, Android AAB, iOS TestFlight/App Store 바이너리는 변경하거나 배포하지 않았다.
+
+스토어 메타데이터 변경은 웹 배포와 별도 수동 작업이다. 한국어 이름은 `ottline - 영화·책 기록`, 영어 이름은 `ottline - Movie & Book Log`를 사용하고, App Store 부제는 한국어 `OTT 시청·독서 기록 타임라인`, 영어 `Movie, TV & Reading Timeline`으로 맞춘다.
+
 ## 배포 후 검색 도구 확인
 
 최초 배포 뒤 한 번 확인하는 항목이며, 콘텐츠 URL이 추가되지 않은 일반 배포마다 반복할 필요는 없다.
@@ -114,7 +141,7 @@ apps/api/gradlew -p apps/api test --no-daemon
 3. 네이버 서치어드바이저
    1. 사이트 소유 확인 상태를 점검하고 `https://ottline.app/sitemap.xml`을 제출한다.
    2. robots.txt 검증에서 `/admin`만 차단되고 sitemap이 발견되는지 확인한다.
-   3. `/`와 한국어 가이드 3개의 수집을 요청한다.
+   3. `/`, `/about`, `/guide`와 한국어 가이드 3개의 수집을 요청한다.
 4. 7일 기준으로 색인된 페이지, 검색 노출, 클릭, 실제 유입 세션, 첫 기록 세션을 함께 기록한다.
 5. 30일 기준으로 채널·landing path·campaign별 세션과 첫 기록을 비교한다.
 6. 검색 노출·클릭은 Search Console을 source of truth로, 사이트 진입 이후 행동은 자체 acquisition 집계를 source of truth로 사용한다.

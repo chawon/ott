@@ -1,5 +1,15 @@
 # Wiki Log
 
+## [2026-07-25] update: 검색어·앱 스토어 발견성 후속 최적화 production 배포
+- 대상: PR `#83`, main SHA `524b00139e8495024dca67177c58956855ce56ed`, Web production run `30141406956`
+- 생성/수정: AGENTS.md, docs/seo-acquisition-foundation-2026-07-19.md, architecture/geo-seo.md, index.md, log.md
+- 노트:
+  - `/about`과 영화·시리즈 가이드의 한국어·영어 검색 제목과 H1을 기록 앱 의도에 맞게 보강
+  - `/about`에 한국어 Google Play/App Store 링크와 기록 가이드 3개 직접 링크 추가
+  - `SoftwareApplication` 운영체제 배열, 공식 스토어 `sameAs`/`installUrl`, 콘텐츠 수정일 기반 sitemap lastmod 반영
+  - manifest commit `7989d4223e51a2114e02f03909ed8cc52f7d158a`; ArgoCD `ott-app` `Synced Healthy`, `ott-web` image와 `APP_VERSION=524b001` 확인
+  - production HTML·sitemap 확인과 IndexNow 전송 성공; API와 네이티브 바이너리는 변경하지 않음
+
 ## [2026-07-19] update: SEO·검색 유입 기반 및 관리자 접근 경계 production 배포
 - 대상: PR `#81`, main SHA `8303f4f51ccc12c1eda4a41efe58c79afd28f378`, API/Web production run `29678500818`/`29678607528`
 - 생성/수정: AGENTS.md, docs/seo-acquisition-foundation-2026-07-19.md, architecture/geo-seo.md, features/analytics.md, features/daily-report.md, architecture/i18n.md, index.md, log.md

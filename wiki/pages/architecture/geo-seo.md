@@ -9,15 +9,16 @@
 
 ---
 
-## 운영 기준 (2026-07-19)
+## 운영 기준 (2026-07-25)
 
 - 한국어·영어 공개 페이지는 self-canonical, 상호 hreflang, `x-default`, 언어별 OG를 제공한다.
 - 검색 유입용 `/guide`와 한국어·영어 가이드 6개를 운영한다.
 - `sitemap.xml`은 공개 URL 19개만 포함하고, robots.txt는 `/admin`을 차단하며 sitemap 위치를 알린다.
-- 홈·서비스 소개는 `SoftwareApplication`, 공통 레이아웃은 `Organization`, FAQ는 `FAQPage` JSON-LD를 제공한다.
+- 홈·서비스 소개는 `SoftwareApplication`, 공통 레이아웃은 `Organization`, FAQ는 `FAQPage` JSON-LD를 제공한다. `SoftwareApplication`은 운영체제를 개별 배열로 표기하고 Google Play, App Store, Microsoft Store를 `sameAs`와 `installUrl`로 연결한다.
+- `/about`은 한국어 스토어 URL과 설명형 링크 문구를 사용하며, 세 개의 기록 가이드로 직접 연결한다.
 - Web production 배포 뒤 sitemap URL을 IndexNow로 전송한다.
 - 검색 노출·클릭은 Search Console, landing 이후 세션·첫 기록은 자체 acquisition analytics로 분리해 본다.
-- PR `#81`, main SHA `8303f4f51ccc12c1eda4a41efe58c79afd28f378` 기준 production 배포와 ArgoCD `Synced Healthy`를 확인했다.
+- 기반 배포는 PR `#81`, main SHA `8303f4f51ccc12c1eda4a41efe58c79afd28f378`이며, 검색어 후속 최적화는 PR `#83`, main SHA `524b00139e8495024dca67177c58956855ce56ed` 기준 production 배포와 ArgoCD `Synced Healthy`를 확인했다.
 
 아래 `29/100` 평가는 2026-03-29 당시의 과거 기준이다. 현재 운영 상태를 다시 점수화한 값은 아니며, 외부 브랜드 엔티티와 독립 출처 확보 과제는 여전히 유효하다.
 
@@ -98,7 +99,7 @@
 3. Product Hunt 런칭 (영문 엔티티 앵커 생성)
 4. ~~About/FAQ 페이지에 연락처 노출~~ (완료 — Footer에 contact@ottline.app 추가, CF 이메일 라우팅 설정 완료)
 5. ~~hreflang 태그 추가~~ (완료)
-6. About 페이지에 영문 설명 단락 추가
+6. ~~About 페이지에 영문 설명 단락 추가~~ (완료)
 
 ---
 
@@ -106,8 +107,8 @@
 
 | 스키마 | 상태 | 주요 미흡 |
 |---|---|---|
-| Organization | 있음 | `sameAs` 없음, `foundingDate` 없음 |
-| SoftwareApplication | 있음 | `aggregateRating`, `screenshot`, `softwareVersion` 없음 |
+| Organization | 있음 | `foundingDate` 없음 |
+| SoftwareApplication | 있음 | `aggregateRating`, `softwareVersion` 없음 |
 | FAQPage | 있음 (6개 Q&A) | 항목 수 부족 |
 | Person | 없음 | 창업자/팀 정보 없음 |
 | BreadcrumbList | 없음 | 서브 페이지 전체 미적용 |
