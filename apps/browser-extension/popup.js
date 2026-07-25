@@ -1,72 +1,84 @@
-const APP_BASE_URL = "https://ottline.app/ko";
-
 const statusEl = document.getElementById("status");
 const descriptionEl = document.getElementById("description");
 const openButton = document.getElementById("openButton");
+const extension = globalThis.OttlineExtension;
+const locale = extension.normalizeLocale(
+  chrome.i18n.getUILanguage?.() ?? navigator.language,
+);
 
 let currentPayload = null;
+
+function message(key, substitutions) {
+  return chrome.i18n.getMessage(key, substitutions) || key;
+}
+
+function applyLocalization() {
+  document.documentElement.lang = locale;
+  for (const element of document.querySelectorAll("[data-i18n]")) {
+    element.textContent = message(element.dataset.i18n);
+  }
+}
 
 function setStatus(text) {
   statusEl.textContent = text;
 }
 
-function buildTargetUrl(payload) {
-  const target = new URL(APP_BASE_URL);
-  target.searchParams.set("quick", "1");
-  target.searchParams.set("quick_focus", "1");
-  target.searchParams.set("capture_title", payload.title);
-  target.searchParams.set("capture_type", payload.contentType);
-  target.searchParams.set("capture_platform", payload.platform);
-  target.searchParams.set("capture_source_site", payload.sourceSite);
-  target.searchParams.set("capture_source_url", payload.sourceUrl);
-  return target.toString();
+function platformName(payload) {
+  const messageKey = extension.platformMessageKeyForSourceSite(
+    payload.sourceSite,
+  );
+  return (messageKey && message(messageKey)) || payload.platform;
 }
 
 async function captureCurrentTab() {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   if (!tab?.id || !tab.url) {
-    setStatus("현재 탭을 찾지 못했습니다.");
+    setStatus(message("statusNoTab"));
     return;
   }
 
   if (!tab.url.startsWith("https://")) {
-    setStatus("HTTPS 페이지에서만 동작합니다.");
+    setStatus(message("statusHttpsOnly"));
     return;
   }
 
   try {
     let response = null;
     for (let attempt = 0; attempt < 5; attempt += 1) {
-      response = await chrome.tabs.sendMessage(tab.id, {
-        type: "OTT_CAPTURE_PAGE",
-      });
+      try {
+        response = await chrome.tabs.sendMessage(tab.id, {
+          type: "OTT_CAPTURE_PAGE",
+        });
+      } catch {
+        response = null;
+      }
       if (response?.ok) break;
       await new Promise((resolve) => setTimeout(resolve, 700));
     }
 
     if (!response?.ok) {
-      setStatus("지원하지 않는 페이지이거나 제목을 읽지 못했습니다.");
-      descriptionEl.textContent =
-        "Netflix, Disney+, TVING, wavve, Coupang Play, WATCHA 작품 페이지에서 다시 시도해보세요. 확장을 방금 로드했다면 탭을 새로고침해야 합니다.";
+      setStatus(message("statusUnsupported"));
+      descriptionEl.textContent = message("descriptionUnsupported");
       return;
     }
 
     currentPayload = response;
-    setStatus(`${response.platform} · ${response.title}`);
-    descriptionEl.textContent =
-      "QuickLog 검색어와 플랫폼을 채운 뒤, 웹앱에서 직접 저장합니다.";
+    setStatus(message("statusReady", [platformName(response), response.title]));
+    descriptionEl.textContent = message("descriptionReady");
     openButton.disabled = false;
   } catch {
-    setStatus("지원 사이트에서 페이지를 다시 열어주세요.");
-    descriptionEl.textContent =
-      "content script가 동작하지 않았습니다. 탭을 새로고침한 뒤 다시 시도해보세요.";
+    setStatus(message("statusUnavailable"));
+    descriptionEl.textContent = message("descriptionUnavailable");
   }
 }
 
 openButton.addEventListener("click", async () => {
   if (!currentPayload) return;
-  await chrome.tabs.create({ url: buildTargetUrl(currentPayload) });
+  await chrome.tabs.create({
+    url: extension.buildTargetUrl(currentPayload, locale),
+  });
   window.close();
 });
 
+applyLocalization();
 captureCurrentTab();

@@ -1,8 +1,76 @@
 {
   "extensionName": {
-    "message": "ottline Helper"
+    "message": "ottline - Streaming Log Helper"
   },
   "extensionDescription": {
-    "message": "Capture OTT title pages and open ottline with a prefilled QuickLog search."
+    "message": "Send a title from a supported streaming page to ottline QuickLog, ready for you to review and save."
+  },
+  "actionTitle": {
+    "message": "Log with ottline"
+  },
+  "popupTitle": {
+    "message": "Send this title to your log"
+  },
+  "popupDescription": {
+    "message": "We’ll read the title from a supported streaming page and prefill ottline QuickLog."
+  },
+  "statusLabel": {
+    "message": "Current page"
+  },
+  "statusChecking": {
+    "message": "Checking this tab…"
+  },
+  "statusNoTab": {
+    "message": "We couldn’t find the current tab."
+  },
+  "statusHttpsOnly": {
+    "message": "Try again from a secure (HTTPS) page."
+  },
+  "statusUnsupported": {
+    "message": "Check that this is a supported title page."
+  },
+  "descriptionUnsupported": {
+    "message": "Try again from the title’s detail page. If you just installed the extension, refresh the tab first."
+  },
+  "statusUnavailable": {
+    "message": "We couldn’t read a title from this page."
+  },
+  "descriptionUnavailable": {
+    "message": "Refresh the tab, then open the extension again."
+  },
+  "statusReady": {
+    "message": "$PLATFORM$ · $TITLE$",
+    "placeholders": {
+      "platform": {
+        "content": "$1"
+      },
+      "title": {
+        "content": "$2"
+      }
+    }
+  },
+  "descriptionReady": {
+    "message": "Title and service are ready. Review them in ottline, then save the log yourself."
+  },
+  "ctaOpen": {
+    "message": "Continue in ottline"
+  },
+  "platformNetflix": {
+    "message": "Netflix"
+  },
+  "platformDisney": {
+    "message": "Disney+"
+  },
+  "platformTving": {
+    "message": "TVING"
+  },
+  "platformWavve": {
+    "message": "Wavve"
+  },
+  "platformCoupang": {
+    "message": "Coupang Play"
+  },
+  "platformWatcha": {
+    "message": "WATCHA"
   }
 }

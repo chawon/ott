@@ -15,10 +15,12 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import { useLocale, useTranslations } from "next-intl";
 import { getTranslations } from "next-intl/server";
+import BrowserExtensionJsonLd from "@/components/BrowserExtensionJsonLd";
 import SoftwareApplicationJsonLd from "@/components/SoftwareApplicationJsonLd";
 import { Link as IntlLink } from "@/i18n/routing";
 import {
   localizedAlternates,
+  localizedBrowserExtensionUrls,
   localizedOpenGraph,
   localizedStoreUrls,
 } from "@/lib/seo";
@@ -63,6 +65,7 @@ export default function AboutPage() {
   const locale = useLocale();
   const tAbout = useTranslations("About");
   const storeUrls = localizedStoreUrls(locale);
+  const browserExtensionUrls = localizedBrowserExtensionUrls(locale);
   const guideLinks = [
     {
       href: "/guide/ott-watch-log",
@@ -136,19 +139,19 @@ export default function AboutPage() {
       icon: Puzzle,
       links: [
         {
-          href: "https://chromewebstore.google.com/detail/achangjgnpbideilpolbohbkmmkmojpo",
+          href: browserExtensionUrls.chrome,
           label: tAbout("platformExtensionChromeLink"),
           external: true,
           icon: Store,
         },
         {
-          href: "https://microsoftedge.microsoft.com/addons/detail/egghbkekjopgknhggoeiekgdooofihbo?hl=ko",
+          href: browserExtensionUrls.edge,
           label: tAbout("platformExtensionEdgeLink"),
           external: true,
           icon: Store,
         },
         {
-          href: "https://store.whale.naver.com/detail/fdifiinpckjcafdndikchfhmkejhdfhc",
+          href: browserExtensionUrls.whale,
           label: tAbout("platformExtensionWhaleLink"),
           external: true,
           icon: Store,
@@ -181,6 +184,10 @@ export default function AboutPage() {
       <SoftwareApplicationJsonLd
         locale={locale}
         description={tAbout("description")}
+      />
+      <BrowserExtensionJsonLd
+        locale={locale}
+        description={tAbout("platformExtensionDesc")}
       />
       <div className="mx-auto max-w-2xl space-y-10 py-10 text-foreground">
         <section className="space-y-2">

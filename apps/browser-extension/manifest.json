@@ -1,11 +1,11 @@
 {
   "manifest_version": 3,
   "name": "__MSG_extensionName__",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "__MSG_extensionDescription__",
   "default_locale": "en",
   "action": {
-    "default_title": "ottline",
+    "default_title": "__MSG_actionTitle__",
     "default_popup": "popup.html",
     "default_icon": {
       "16": "icons/icon-16.png",
@@ -20,10 +20,7 @@
     "48": "icons/icon-48.png",
     "128": "icons/icon-128.png"
   },
-  "permissions": [
-    "activeTab",
-    "tabs"
-  ],
+  "permissions": ["activeTab", "tabs"],
   "host_permissions": [
     "https://www.netflix.com/*",
     "https://www.disneyplus.com/*",
@@ -42,9 +39,7 @@
         "https://www.coupangplay.com/*",
         "https://watcha.com/*"
       ],
-      "js": [
-        "content.js"
-      ],
+      "js": ["content.js"],
       "run_at": "document_idle"
     }
   ]

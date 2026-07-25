@@ -66,4 +66,6 @@ test("about page deep-links official stores and each logging guide", () => {
   assert.match(ko.About.platformIosLink, /App Store.*ottline/);
   assert.match(en.About.platformAndroidLink, /ottline.*Google Play/);
   assert.match(en.About.platformIosLink, /ottline.*App Store/);
+  assert.match(page, /BrowserExtensionJsonLd/);
+  assert.match(page, /localizedBrowserExtensionUrls/);
 });

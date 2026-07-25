@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko">
+<html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -8,21 +8,38 @@
   </head>
   <body>
     <main class="shell">
-      <p class="eyebrow">ottline</p>
-      <h1 class="title">현재 페이지를 기록으로 보내기</h1>
-      <p class="description" id="description">
-        지원하는 OTT 작품 페이지에서 제목을 읽어와 QuickLog 검색어로 채웁니다.
+      <div class="wordmark" aria-label="ottline">
+        <span class="wordmark-name">OTTLINE</span>
+        <span class="wordmark-subtitle">ON THE TIMELINE</span>
+      </div>
+      <h1 class="title" data-i18n="popupTitle">Send this title to your log</h1>
+      <p
+        class="description"
+        id="description"
+        data-i18n="popupDescription"
+      >
+        We’ll read the title from a supported streaming page and prefill
+        ottline QuickLog.
       </p>
 
-      <section class="card" id="card">
-        <p class="label">상태</p>
-        <p class="value" id="status">현재 탭을 확인하는 중…</p>
+      <section class="card" id="card" aria-live="polite">
+        <p class="label" data-i18n="statusLabel">Current page</p>
+        <p class="value" id="status" data-i18n="statusChecking">
+          Checking this tab…
+        </p>
       </section>
 
-      <button class="cta" id="openButton" type="button" disabled>
-        ottline에서 기록 시작
+      <button
+        class="cta"
+        id="openButton"
+        type="button"
+        data-i18n="ctaOpen"
+        disabled
+      >
+        Continue in ottline
       </button>
     </main>
+    <script src="./popup-core.js"></script>
     <script src="./popup.js"></script>
   </body>
-  </html>
+</html>
