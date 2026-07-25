@@ -51,3 +51,19 @@ test("privacy rich copy renders instead of exposing its translation key", () => 
   assert.match(page, /t\.rich\("section5Desc"/);
   assert.doesNotMatch(page, /\{t\("section5Desc"\)\}/);
 });
+
+test("about page deep-links official stores and each logging guide", () => {
+  const page = read("app", "[locale]", "about", "page.tsx");
+  const ko = JSON.parse(read("messages", "ko.json"));
+  const en = JSON.parse(read("messages", "en.json"));
+
+  for (const slug of ["ott-watch-log", "movie-series-log", "book-log"]) {
+    assert.match(page, new RegExp(`/guide/${slug}`));
+  }
+
+  assert.equal(ko.About.title, "영화·시리즈·책 기록 앱 소개 및 사용법");
+  assert.match(ko.About.platformAndroidLink, /Google Play.*ottline/);
+  assert.match(ko.About.platformIosLink, /App Store.*ottline/);
+  assert.match(en.About.platformAndroidLink, /ottline.*Google Play/);
+  assert.match(en.About.platformIosLink, /ottline.*App Store/);
+});

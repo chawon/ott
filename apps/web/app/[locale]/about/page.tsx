@@ -17,7 +17,11 @@ import { useLocale, useTranslations } from "next-intl";
 import { getTranslations } from "next-intl/server";
 import SoftwareApplicationJsonLd from "@/components/SoftwareApplicationJsonLd";
 import { Link as IntlLink } from "@/i18n/routing";
-import { localizedAlternates, localizedOpenGraph } from "@/lib/seo";
+import {
+  localizedAlternates,
+  localizedOpenGraph,
+  localizedStoreUrls,
+} from "@/lib/seo";
 
 type PlatformLink = {
   href: string;
@@ -58,6 +62,21 @@ export async function generateMetadata({
 export default function AboutPage() {
   const locale = useLocale();
   const tAbout = useTranslations("About");
+  const storeUrls = localizedStoreUrls(locale);
+  const guideLinks = [
+    {
+      href: "/guide/ott-watch-log",
+      label: tAbout("guideOttWatchAction"),
+    },
+    {
+      href: "/guide/movie-series-log",
+      label: tAbout("guideMovieSeriesAction"),
+    },
+    {
+      href: "/guide/book-log",
+      label: tAbout("guideBookAction"),
+    },
+  ] as const;
   const platforms: PlatformItem[] = [
     {
       title: tAbout("platformWebTitle"),
@@ -78,7 +97,7 @@ export default function AboutPage() {
       icon: Smartphone,
       links: [
         {
-          href: "https://play.google.com/store/apps/details?id=app.ottline",
+          href: storeUrls.googlePlay,
           label: tAbout("platformAndroidLink"),
           external: true,
           icon: Store,
@@ -91,7 +110,7 @@ export default function AboutPage() {
       icon: Apple,
       links: [
         {
-          href: "https://apps.apple.com/app/ottline/id6780318110",
+          href: storeUrls.appStore,
           label: tAbout("platformIosLink"),
           external: true,
           icon: Store,
@@ -371,9 +390,22 @@ export default function AboutPage() {
           <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
             {tAbout("guideDesc")}
           </p>
+          <ul className="mt-4 grid gap-2">
+            {guideLinks.map((guideLink) => (
+              <li key={guideLink.href}>
+                <IntlLink
+                  href={guideLink.href}
+                  className="inline-flex min-h-11 w-full items-center justify-between gap-3 rounded-lg border border-border bg-background px-4 py-2.5 text-sm font-semibold text-brand-navy transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50 dark:text-foreground"
+                >
+                  <span>{guideLink.label}</span>
+                  <ArrowRight aria-hidden="true" className="h-4 w-4" />
+                </IntlLink>
+              </li>
+            ))}
+          </ul>
           <IntlLink
             href="/guide"
-            className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-lg text-sm font-semibold text-brand-navy underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50 dark:text-foreground"
+            className="mt-3 inline-flex min-h-11 items-center gap-2 rounded-lg text-sm font-semibold text-brand-navy underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50 dark:text-foreground"
           >
             <span>{tAbout("guideAction")}</span>
             <ArrowRight aria-hidden="true" className="h-4 w-4" />

@@ -173,15 +173,15 @@ const koGuides: Record<GuideSlug, GuideDocument> = {
   "movie-series-log": {
     slug: "movie-series-log",
     contentType: "video",
-    metaTitle: "영화·시리즈 기록에 장면의 맥락까지 남기는 방법",
+    metaTitle: "영화·드라마 시청 기록 앱, 타임라인에 남기는 방법",
     metaDescription:
-      "영화와 시리즈의 시청 상태, 시즌·에피소드, 평점, 날짜, 장소, 상황과 메모를 ottline에 기록하고 타임라인으로 돌아보는 방법을 알아보세요.",
+      "영화·드라마 시청 기록 앱 ottline에서 시청 상태, 시즌·에피소드, 평점, 날짜, 장소, 상황과 메모를 저장하고 타임라인으로 돌아보는 방법을 알아보세요.",
     eyebrow: "영화·시리즈 기록",
-    title: "제목 너머의 장면까지 기억해요",
+    title: "영화와 시리즈 시청 기록을 한곳에 남겨요",
     summary:
       "같은 작품을 봐도 남는 기억은 저마다 달라요. 어디까지 봤는지, 누구와 있었는지, 어떤 마음이었는지 필요한 만큼 적어두면 다시 만날 때 훨씬 쉽게 이어갈 수 있습니다.",
-    updatedAt: "2026-07-19",
-    updatedLabel: "2026년 7월 19일 업데이트",
+    updatedAt: "2026-07-25",
+    updatedLabel: "2026년 7월 25일 업데이트",
     image: {
       src: "/play/screenshot-public-720x1280.png",
       width: 720,
@@ -403,15 +403,15 @@ const enGuides: Record<GuideSlug, GuideDocument> = {
   "movie-series-log": {
     slug: "movie-series-log",
     contentType: "video",
-    metaTitle: "How to Remember Movies and Series Beyond the Title",
+    metaTitle: "Movie and Series Watch Log App: Build Your Timeline",
     metaDescription:
-      "Keep movie and series status, seasons, episodes, ratings, dates, places, occasions, and notes in ottline, then revisit them on your timeline.",
+      "Log movie and series watch history in ottline, including status, seasons, episodes, ratings, dates, places, occasions, and notes.",
     eyebrow: "Movie and series log",
-    title: "Remember more than the title",
+    title: "Keep movie and series watch history in one place",
     summary:
       "The part that stays with you may be an episode, a room, or the person beside you. A few small details make it easier to return to a series and to remember how a film met you at the time.",
-    updatedAt: "2026-07-19",
-    updatedLabel: "Updated July 19, 2026",
+    updatedAt: "2026-07-25",
+    updatedLabel: "Updated July 25, 2026",
     image: {
       src: "/play/screenshot-public-720x1280.png",
       width: 720,

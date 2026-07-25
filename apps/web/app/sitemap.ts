@@ -1,9 +1,10 @@
 import type { MetadataRoute } from "next";
-import { GUIDE_SLUGS } from "@/lib/guides";
+import { GUIDE_SLUGS, getGuideDocument } from "@/lib/guides";
 import { localizedUrl, PUBLIC_ORIGIN } from "@/lib/seo";
 import { loadLatestPublicLogDate } from "@/lib/sitemap-public.mjs";
 
 const CONTENT_DATE = new Date("2026-07-19T00:00:00+09:00");
+const APP_ENTITY_DATE = new Date("2026-07-25T00:00:00+09:00");
 const LOCALIZED_PATHS = [
   "/",
   "/about",
@@ -37,17 +38,25 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     (["ko", "en"] as const).map((locale) => ({
       url: localizedUrl(locale, pathname),
       lastModified:
-        pathname === "/public" ? publicLastModified[locale] : CONTENT_DATE,
+        pathname === "/public"
+          ? publicLastModified[locale]
+          : pathname === "/" || pathname === "/about"
+            ? APP_ENTITY_DATE
+            : CONTENT_DATE,
       alternates: languageAlternates(pathname),
     })),
   );
   const guideEntries = GUIDE_SLUGS.flatMap((slug) => {
     const pathname = `/guide/${slug}`;
-    return (["ko", "en"] as const).map((locale) => ({
-      url: localizedUrl(locale, pathname),
-      lastModified: CONTENT_DATE,
-      alternates: languageAlternates(pathname),
-    }));
+    return (["ko", "en"] as const).map((locale) => {
+      const guide = getGuideDocument(locale, slug);
+
+      return {
+        url: localizedUrl(locale, pathname),
+        lastModified: new Date(`${guide.updatedAt}T00:00:00+09:00`),
+        alternates: languageAlternates(pathname),
+      };
+    });
   });
 
   return [

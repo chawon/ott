@@ -2,6 +2,11 @@ import type { Metadata } from "next";
 
 export const PUBLIC_ORIGIN = "https://ottline.app";
 export const PUBLIC_LOCALES = ["ko", "en"] as const;
+export const GOOGLE_PLAY_URL =
+  "https://play.google.com/store/apps/details?id=app.ottline";
+export const APP_STORE_URL = "https://apps.apple.com/app/ottline/id6780318110";
+export const MICROSOFT_STORE_URL =
+  "https://apps.microsoft.com/detail/9nsvnzgdmgf5";
 
 export type PublicLocale = (typeof PUBLIC_LOCALES)[number];
 
@@ -27,6 +32,68 @@ export function absoluteUrl(pathname: string) {
 
 export function localizedUrl(locale: string, pathname = "/") {
   return absoluteUrl(localizedPath(locale, pathname));
+}
+
+export function localizedStoreUrls(locale: string) {
+  if (locale === "en") {
+    return {
+      googlePlay: `${GOOGLE_PLAY_URL}&hl=en`,
+      appStore: APP_STORE_URL,
+    };
+  }
+
+  return {
+    googlePlay: `${GOOGLE_PLAY_URL}&hl=ko&gl=KR`,
+    appStore: "https://apps.apple.com/kr/app/ottline/id6780318110",
+  };
+}
+
+export function buildSoftwareApplicationSchema({
+  locale,
+  description,
+}: {
+  locale: string;
+  description: string;
+}) {
+  const isEnglish = locale === "en";
+  const storeUrls = localizedStoreUrls(locale);
+
+  return {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "@id": "https://ottline.app/#software-application",
+    name: "ottline",
+    url: localizedUrl(locale),
+    description,
+    inLanguage: isEnglish ? "en-US" : "ko-KR",
+    applicationCategory: "LifestyleApplication",
+    applicationSubCategory: "Entertainment",
+    operatingSystem: ["Web", "Android", "iOS", "Windows"],
+    sameAs: [GOOGLE_PLAY_URL, APP_STORE_URL, MICROSOFT_STORE_URL],
+    installUrl: [storeUrls.googlePlay, storeUrls.appStore, MICROSOFT_STORE_URL],
+    image: "https://ottline.app/icon.png",
+    screenshot: [
+      "https://ottline.app/pwa/screenshot-desktop-wide.png",
+      "https://ottline.app/pwa/screenshot-mobile-narrow.png",
+    ],
+    offers: { "@type": "Offer", price: "0", priceCurrency: "KRW" },
+    isAccessibleForFree: true,
+    featureList: isEnglish
+      ? [
+          "Start video and book logs without sign-up",
+          "Local-first storage",
+          "Personal timeline",
+          "Pairing-code sync",
+          "CSV export",
+        ]
+      : [
+          "가입 없이 시작하는 영상·책 기록",
+          "로컬 퍼스트 저장",
+          "개인 타임라인",
+          "페어링 코드 동기화",
+          "CSV 내보내기",
+        ],
+  };
 }
 
 export function localizedAlternates(

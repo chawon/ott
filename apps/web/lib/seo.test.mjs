@@ -1,10 +1,15 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  APP_STORE_URL,
+  buildSoftwareApplicationSchema,
+  GOOGLE_PLAY_URL,
   localizedAlternates,
   localizedOpenGraph,
   localizedPath,
+  localizedStoreUrls,
   localizedUrl,
+  MICROSOFT_STORE_URL,
 } from "./seo.ts";
 
 test("builds Korean default-locale and English prefixed paths", () => {
@@ -50,4 +55,38 @@ test("builds complete localized Open Graph metadata for child pages", () => {
       ],
     },
   );
+});
+
+test("links the software entity to localized official install pages", () => {
+  assert.deepEqual(localizedStoreUrls("ko"), {
+    googlePlay: `${GOOGLE_PLAY_URL}&hl=ko&gl=KR`,
+    appStore: "https://apps.apple.com/kr/app/ottline/id6780318110",
+  });
+  assert.deepEqual(localizedStoreUrls("en"), {
+    googlePlay: `${GOOGLE_PLAY_URL}&hl=en`,
+    appStore: APP_STORE_URL,
+  });
+
+  const schema = buildSoftwareApplicationSchema({
+    locale: "ko",
+    description: "영화와 책을 기록하는 개인 타임라인",
+  });
+
+  assert.equal(schema["@id"], "https://ottline.app/#software-application");
+  assert.deepEqual(schema.operatingSystem, [
+    "Web",
+    "Android",
+    "iOS",
+    "Windows",
+  ]);
+  assert.deepEqual(schema.sameAs, [
+    GOOGLE_PLAY_URL,
+    APP_STORE_URL,
+    MICROSOFT_STORE_URL,
+  ]);
+  assert.deepEqual(schema.installUrl, [
+    `${GOOGLE_PLAY_URL}&hl=ko&gl=KR`,
+    "https://apps.apple.com/kr/app/ottline/id6780318110",
+    MICROSOFT_STORE_URL,
+  ]);
 });
