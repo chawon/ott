@@ -30,7 +30,9 @@
    - Whale URL: `https://store.whale.naver.com/detail/fdifiinpckjcafdndikchfhmkejhdfhc`
    - GitHub Actions `browser-extension-package.yml`에서 제출용 zip artifact 생성
    - 산출물 이름: `ottline-helper-<version>.zip`
-   - 다음 제출 버전: `0.1.1`; 등록 문안과 자산은 `docs/chrome-web-store-listing-2026-07-25.md` 기준
+   - 다음 제출 버전: `0.1.1`; main package run `30154927303`에서 artifact `ottline-helper-0.1.1` 생성 완료
+   - 코드와 웹 검색 연결은 PR `#84`, merge SHA `1da056e8a10411d1eccc4f4728a33f64344a9420`, web production run `30155096937`로 반영 완료
+   - Chrome Web Store 0.1.1 업로드·심사 제출은 아직 대시보드에서 진행해야 하며, 등록 문안과 자산은 `docs/chrome-web-store-listing-2026-07-25.md` 기준
 
 ## 3. 제품 원칙
 1. 자동 저장 금지

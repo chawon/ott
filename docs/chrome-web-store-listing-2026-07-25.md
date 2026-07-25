@@ -2,6 +2,37 @@
 
 기준일: 2026-07-25
 
+## 구현·배포 상태
+
+- PR: `#84`
+- main merge SHA:
+  `1da056e8a10411d1eccc4f4728a33f64344a9420`
+- main Verify Web:
+  `30154927307` (`success`)
+- main Package Browser Extension:
+  `30154927303` (`success`)
+- 제출용 artifact:
+  `ottline-helper-0.1.1` (`expired=false`)
+- web production:
+  `30155096937` (`success`)
+- production manifest:
+  `041f1e71fb2e96f6fa427b8a1be805d510849b87`
+- ArgoCD:
+  `ott-app` `Synced Healthy`
+- production web:
+  image tag `1da056e8a10411d1eccc4f4728a33f64344a9420`,
+  `APP_VERSION=1da056e`, Pod `1/1 Ready`
+- production Pod 내부 확인:
+  한국어·영어 `/about`에서 별도 브라우저 확장 `SoftwareApplication`
+  JSON-LD와 `hl=ko`/`hl=en` Chrome Web Store 링크 렌더링
+- IndexNow:
+  production workflow의 Bing 알림 단계 `success`
+
+코드와 제출 패키지 준비, 웹 production 반영까지 완료했다. Chrome Web Store
+공개 버전은 대시보드에서 `ottline-helper-0.1.1.zip`을 업로드하고 심사 제출한
+뒤에야 0.1.1로 바뀐다. 현재 공개 항목을 0.1.1로 확인하기 전에는 스토어 게시
+완료로 기록하지 않는다.
+
 ## 목표
 
 - 기존 `ottline Helper`와 영어로만 노출되던 요약을 한국어·영어 검색 의도에 맞게 정리한다.
