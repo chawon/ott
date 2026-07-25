@@ -7,6 +7,12 @@ export const GOOGLE_PLAY_URL =
 export const APP_STORE_URL = "https://apps.apple.com/app/ottline/id6780318110";
 export const MICROSOFT_STORE_URL =
   "https://apps.microsoft.com/detail/9nsvnzgdmgf5";
+export const CHROME_WEB_STORE_URL =
+  "https://chromewebstore.google.com/detail/achangjgnpbideilpolbohbkmmkmojpo";
+export const EDGE_ADDONS_URL =
+  "https://microsoftedge.microsoft.com/addons/detail/egghbkekjopgknhggoeiekgdooofihbo";
+export const WHALE_STORE_URL =
+  "https://store.whale.naver.com/detail/fdifiinpckjcafdndikchfhmkejhdfhc";
 
 export type PublicLocale = (typeof PUBLIC_LOCALES)[number];
 
@@ -45,6 +51,16 @@ export function localizedStoreUrls(locale: string) {
   return {
     googlePlay: `${GOOGLE_PLAY_URL}&hl=ko&gl=KR`,
     appStore: "https://apps.apple.com/kr/app/ottline/id6780318110",
+  };
+}
+
+export function localizedBrowserExtensionUrls(locale: string) {
+  const language = normalizePublicLocale(locale);
+
+  return {
+    chrome: `${CHROME_WEB_STORE_URL}?hl=${language}`,
+    edge: `${EDGE_ADDONS_URL}?hl=${language}`,
+    whale: WHALE_STORE_URL,
   };
 }
 
@@ -92,6 +108,54 @@ export function buildSoftwareApplicationSchema({
           "개인 타임라인",
           "페어링 코드 동기화",
           "CSV 내보내기",
+        ],
+  };
+}
+
+export function buildBrowserExtensionSchema({
+  locale,
+  description,
+}: {
+  locale: string;
+  description: string;
+}) {
+  const isEnglish = locale === "en";
+  const installUrls = localizedBrowserExtensionUrls(locale);
+
+  return {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "@id": "https://ottline.app/#browser-extension",
+    name: isEnglish
+      ? "ottline - Streaming Log Helper"
+      : "ottline - OTT 기록 도우미",
+    url: localizedUrl(locale, "/about"),
+    description,
+    inLanguage: isEnglish ? "en-US" : "ko-KR",
+    applicationCategory: "EntertainmentApplication",
+    applicationSubCategory: "BrowserExtension",
+    operatingSystem: ["ChromeOS", "Windows", "macOS", "Linux"],
+    browserRequirements: isEnglish
+      ? "Requires a Chromium-based browser"
+      : "Chromium 기반 브라우저 필요",
+    softwareVersion: "0.1.1",
+    sameAs: [CHROME_WEB_STORE_URL, EDGE_ADDONS_URL, WHALE_STORE_URL],
+    installUrl: [installUrls.chrome, installUrls.edge, installUrls.whale],
+    image: "https://ottline.app/icon.png",
+    offers: { "@type": "Offer", price: "0", priceCurrency: "KRW" },
+    isAccessibleForFree: true,
+    featureList: isEnglish
+      ? [
+          "Read a title from a supported streaming detail page",
+          "Prefill ottline QuickLog",
+          "Save only after user review",
+          "No automatic watch tracking",
+        ]
+      : [
+          "지원하는 스트리밍 상세 페이지에서 제목 읽기",
+          "ottline QuickLog 미리 채우기",
+          "사용자 확인 후 직접 저장",
+          "자동 시청 추적 없음",
         ],
   };
 }

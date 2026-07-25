@@ -18,8 +18,9 @@
 3. 현재 동작
    - 지원 OTT 페이지에서 제목을 읽는다.
    - 확장 팝업에서 `ottline에서 기록 시작` 버튼을 제공한다.
-   - `https://ottline.app/ko`로 이동하면서 QuickLog 초기값을 query param으로 전달한다.
-   - 웹앱 홈에서 `capture_title`, `capture_type`, `capture_platform`을 읽어 QuickLog 검색어와 플랫폼을 채운다.
+   - 브라우저 언어가 한국어면 `https://ottline.app/`, 그 외에는 `https://ottline.app/en`으로 이동한다.
+   - 웹앱 홈에서 `capture_title`, `capture_type`, `capture_platform_key`를 읽어 QuickLog 검색어와 플랫폼을 채운다. 기존 호환성을 위해 `capture_platform`도 함께 전달한다.
+   - 팝업 이름·설명·상태·오류·CTA는 한국어와 영어를 지원한다.
 4. 배포 현황
    - Chrome Web Store 배포 완료: `ottline-helper-0.1.0` (2026-03-26)
    - Edge Add-ons Store 배포 완료: `ottline-helper-0.1.0`
@@ -29,6 +30,7 @@
    - Whale URL: `https://store.whale.naver.com/detail/fdifiinpckjcafdndikchfhmkejhdfhc`
    - GitHub Actions `browser-extension-package.yml`에서 제출용 zip artifact 생성
    - 산출물 이름: `ottline-helper-<version>.zip`
+   - 다음 제출 버전: `0.1.1`; 등록 문안과 자산은 `docs/chrome-web-store-listing-2026-07-25.md` 기준
 
 ## 3. 제품 원칙
 1. 자동 저장 금지
@@ -132,7 +134,7 @@
 ## 12. 다음 단계
 1. 실제 OTT 페이지에서 사이트별 캡처 정확도 검증
 2. 페이지 내 CTA 추가 여부 검토
-3. locale/base URL 설정 페이지 추가 여부 검토
+3. Chrome 0.1.1 심사 제출 및 한국어·영어 공개 페이지 확인
 
 ## 13. 제출용 패키지 생성
 1. GitHub Actions에서 `Package Browser Extension` 실행

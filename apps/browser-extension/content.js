@@ -2,6 +2,7 @@ const SITE_CONFIGS = [
   {
     host: "www.netflix.com",
     sourceSite: "netflix",
+    platformKey: "netflix",
     platform: "넷플릭스",
     patterns: [/\/title\//, /\/watch\//, /\/browse/],
     suffixes: ["| Netflix", "- Netflix", "Netflix"],
@@ -32,6 +33,7 @@ const SITE_CONFIGS = [
   {
     host: "www.disneyplus.com",
     sourceSite: "disneyplus",
+    platformKey: "disney",
     platform: "디즈니플러스",
     patterns: [/\/ko-kr\/browse\/entity-/, /\/en-gb\/browse\/entity-/, /\/video\//, /\/series\//, /\/movies\//],
     suffixes: ["| Disney+", "- Disney+", "Disney+"],
@@ -56,6 +58,7 @@ const SITE_CONFIGS = [
   {
     host: "www.tving.com",
     sourceSite: "tving",
+    platformKey: "tving",
     platform: "티빙",
     patterns: [/\/contents\//],
     suffixes: ["| TVING", "- TVING", "TVING"],
@@ -64,6 +67,7 @@ const SITE_CONFIGS = [
   {
     host: "www.wavve.com",
     sourceSite: "wavve",
+    platformKey: "wavve",
     platform: "웨이브",
     patterns: [/\/player\//, /\/vod\//, /\/content\//],
     suffixes: ["| wavve", "- wavve", "wavve", "| Wavve", "- Wavve", "Wavve"],
@@ -91,6 +95,7 @@ const SITE_CONFIGS = [
   {
     host: "www.coupangplay.com",
     sourceSite: "coupangplay",
+    platformKey: "coupang",
     platform: "쿠팡플레이",
     patterns: [/\/content\//, /\/play\//, /\/titles\//],
     suffixes: ["| 쿠팡플레이", "- 쿠팡플레이", "쿠팡플레이", "| Coupang Play", "- Coupang Play", "Coupang Play"],
@@ -106,6 +111,7 @@ const SITE_CONFIGS = [
   {
     host: "watcha.com",
     sourceSite: "watcha",
+    platformKey: "watcha",
     platform: "왓챠",
     patterns: [/\/contents\//],
     suffixes: ["| 왓챠", "- 왓챠", "왓챠", "| WATCHA", "- WATCHA", "WATCHA"],
@@ -315,6 +321,7 @@ function getCapturePayload() {
       title,
       contentType: "video",
       sourceSite: site.sourceSite,
+      platformKey: site.platformKey,
       platform: site.platform,
       sourceUrl: window.location.href,
     };

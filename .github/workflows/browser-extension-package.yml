@@ -1,10 +1,15 @@
 name: Package Browser Extension
 
 on:
+  pull_request:
+    paths:
+      - "apps/browser-extension/**"
+      - "apps/web/app/[locale]/page.tsx"
+      - "docs/browser-extension-mvp.md"
+      - ".github/workflows/browser-extension-package.yml"
   push:
     branches:
       - main
-      - feat/browser-extension-mvp
     paths:
       - "apps/browser-extension/**"
       - "apps/web/app/[locale]/page.tsx"
@@ -29,7 +34,9 @@ jobs:
           test -f apps/browser-extension/content.js
           test -f apps/browser-extension/popup.html
           test -f apps/browser-extension/popup.css
+          test -f apps/browser-extension/popup-core.js
           test -f apps/browser-extension/popup.js
+          node --test apps/browser-extension/extension.test.mjs
 
       - name: Compute package metadata
         id: meta
@@ -48,6 +55,7 @@ jobs:
             content.js \
             popup.html \
             popup.css \
+            popup-core.js \
             popup.js \
             icons \
             _locales \
