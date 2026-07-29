@@ -1,8 +1,15 @@
 "use client";
 
-import { BarChart3, Clock, Download, Sparkles, X } from "lucide-react";
+import {
+  BarChart3,
+  BookOpen,
+  Clock,
+  Download,
+  Sparkles,
+  X,
+} from "lucide-react";
 import Image from "next/image";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useMemo, useState } from "react";
 import FiltersBar from "@/components/FiltersBar";
 import LogCard from "@/components/LogCard";
@@ -10,10 +17,17 @@ import ShareBottomSheet from "@/components/ShareBottomSheet";
 import { Link as IntlLink } from "@/i18n/routing";
 import { trackEvent } from "@/lib/analytics";
 import { apiWithAuth } from "@/lib/api";
+import { isKdcBookshelfLocale, normalizeBookIsbn13 } from "@/lib/bookshelf";
+import { getCachedClassificationsForLogs } from "@/lib/bookshelfStore";
 import { downloadTimelineCsv } from "@/lib/export";
 import { getUserId, listLogsLocal, upsertLogsLocal } from "@/lib/localStore";
 import { isProfileComplete } from "@/lib/profile";
-import type { RecommendationItem, Status, WatchLog } from "@/lib/types";
+import type {
+  BookClassification,
+  RecommendationItem,
+  Status,
+  WatchLog,
+} from "@/lib/types";
 import { useUserProfile } from "@/lib/useUserProfile";
 import { cn, statusOptionsForType } from "@/lib/utils";
 
@@ -308,6 +322,7 @@ function FutureTimelineSection({
 export default function TimelinePage() {
   const [shareOpen, setShareOpen] = useState(false);
   const [shareLog, setShareLog] = useState<WatchLog | null>(null);
+  const locale = useLocale();
   const tTimeline = useTranslations("Timeline");
   const tStatus = useTranslations("Status");
   const tCommon = useTranslations("Common");
@@ -315,6 +330,7 @@ export default function TimelinePage() {
   const tQuick = useTranslations("QuickLogCard");
   const tAccount = useTranslations("Account");
   const tProfile = useTranslations("Profile");
+  const tBookshelf = useTranslations("Bookshelf");
   const { profile } = useUserProfile();
   const [status, setStatus] = useState<Status | "ALL">("ALL");
   const [contentType, setContentType] = useState<"ALL" | "video" | "book">(
@@ -324,6 +340,9 @@ export default function TimelinePage() {
   const [ott, setOtt] = useState("");
   const [query, setQuery] = useState("");
   const [logs, setLogs] = useState<WatchLog[]>([]);
+  const [bookClassifications, setBookClassifications] = useState<
+    Map<string, BookClassification>
+  >(new Map());
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
@@ -407,6 +426,29 @@ export default function TimelinePage() {
       clearTimeout(timer);
     };
   }, [status, ott, origin, contentType, query]);
+
+  useEffect(() => {
+    if (!isKdcBookshelfLocale(locale)) {
+      setBookClassifications(new Map());
+      return;
+    }
+
+    let cancelled = false;
+    const refresh = async () => {
+      const items = await getCachedClassificationsForLogs(logs);
+      if (!cancelled) {
+        setBookClassifications(
+          new Map(items.map((item) => [item.isbn13, item])),
+        );
+      }
+    };
+    void refresh();
+    window.addEventListener("bookshelf:updated", refresh);
+    return () => {
+      cancelled = true;
+      window.removeEventListener("bookshelf:updated", refresh);
+    };
+  }, [locale, logs]);
 
   useEffect(() => {
     function handleSync() {
@@ -636,18 +678,31 @@ export default function TimelinePage() {
             </IntlLink>
           ) : null}
 
-          <FiltersBar
-            status={status}
-            setStatus={setStatus}
-            origin={origin}
-            setOrigin={setOrigin}
-            ott={ott}
-            setOtt={setOtt}
-            query={query}
-            setQuery={setQuery}
-            contentType={contentType}
-            setContentType={setContentType}
-          />
+          <div className="space-y-2">
+            <FiltersBar
+              status={status}
+              setStatus={setStatus}
+              origin={origin}
+              setOrigin={setOrigin}
+              ott={ott}
+              setOtt={setOtt}
+              query={query}
+              setQuery={setQuery}
+              contentType={contentType}
+              setContentType={setContentType}
+            />
+            {isKdcBookshelfLocale(locale) && contentType === "book" ? (
+              <div className="flex justify-end">
+                <IntlLink
+                  href="/me/bookshelf"
+                  className="inline-flex min-h-12 items-center gap-1.5 rounded-lg px-2 text-sm font-semibold text-[#1E4D8C] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF9933]/50 dark:text-foreground"
+                >
+                  <BookOpen className="h-4 w-4" aria-hidden="true" />
+                  {tBookshelf("viewShelf")}
+                </IntlLink>
+              </div>
+            ) : null}
+          </div>
 
           {loading && logs.length === 0 && (
             <div>
@@ -700,6 +755,13 @@ export default function TimelinePage() {
                       <LogCard
                         key={l.id}
                         log={l}
+                        bookClassification={
+                          l.title.type === "book"
+                            ? bookClassifications.get(
+                                normalizeBookIsbn13(l.title) ?? "",
+                              )
+                            : null
+                        }
                         onShareCard={() => {
                           setShareLog(l);
                           setShareOpen(true);
@@ -716,6 +778,13 @@ export default function TimelinePage() {
                 <LogCard
                   key={l.id}
                   log={l}
+                  bookClassification={
+                    l.title.type === "book"
+                      ? bookClassifications.get(
+                          normalizeBookIsbn13(l.title) ?? "",
+                        )
+                      : null
+                  }
                   onShareCard={() => {
                     setShareLog(l);
                     setShareOpen(true);

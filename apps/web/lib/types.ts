@@ -1,6 +1,7 @@
 export type Status = "DONE" | "IN_PROGRESS" | "WISHLIST";
 export type TitleType = "movie" | "series" | "book";
 export type Provider = "TMDB" | "LOCAL" | "NAVER";
+export type BookClassificationStatus = "RESOLVED" | "NOT_FOUND";
 export type TitleSelectSource =
   | "search_result"
   | "recent_discussion"
@@ -55,6 +56,15 @@ export interface Title {
   providerId?: string;
   updatedAt?: string;
   deletedAt?: string | null;
+}
+
+export interface BookClassification {
+  isbn13: string;
+  status: BookClassificationStatus;
+  kdcCode?: string | null;
+  kdcMajor?: number | null;
+  fetchedAt: string;
+  source?: "DATA4LIBRARY";
 }
 
 export interface UserProfile {

@@ -268,6 +268,12 @@ feature/* ──PR/CI──→ main ──→ GitHub Actions workflow_dispatch
    5. 서버 내부에서 언어/지역별 1일 캐시하며, 홈의 함께 기록 부족분 보충에만 사용한다.
 3. `GET /api/titles/{id}`
    1. 내부 UUID title 스냅샷 반환
+4. `POST /api/titles/book-classifications/resolve`
+   1. 요청: `isbn13s`(유효한 ISBN-13, 배열 최대 50개, 서버에서 중복 제거)
+   2. 도서나루 상세 조회의 `class_no`를 KDC 코드로 사용하고 첫 숫자를 0~9 대분류로 정규화한다.
+   3. 응답: `isbn13`, `kdcCode`, `kdcMajor`, `status(RESOLVED|NOT_FOUND)`, `fetchedAt`
+   4. `RESOLVED`는 서버에 영구 캐시하고 `NOT_FOUND`는 30일 뒤 다시 확인한다.
+   5. 도서나루 키 누락 또는 외부 장애는 `503`으로 반환하며, 프론트의 기록 저장과 로컬 서가는 계속 동작한다.
 
 ### Logs
 1. `GET /api/logs?limit=&status=&origin=&ott=&q=&place=&occasion=&titleId=&sort=`
@@ -361,7 +367,7 @@ feature/* ──PR/CI──→ main ──→ GitHub Actions workflow_dispatch
    1. 브라우저/확장 프로그램이 일반 analytics 수집 API로 인식해 차단하는 것을 줄이기 위해 실제 수집 경로는 `/api/analytics/events`가 아니라 `/api/nalytic/events`를 사용한다.
    2. 익명 방문도 수집 가능
    3. 헤더: `X-Client-Id`(optional), `X-User-Id`(optional)
-   4. 주요 이벤트 종류: `app_open`, `title_search`, `title_select`, `login_success`, `first_log_create`, `log_create`, `guide_cta_click`, `recommendation_open`, `recommendation_refresh`, `recommendation_dismiss`
+   4. 주요 이벤트 종류: `app_open`, `title_search`, `title_select`, `login_success`, `first_log_create`, `log_create`, `guide_cta_click`, `recommendation_open`, `recommendation_refresh`, `recommendation_dismiss`, `bookshelf_open`, `bookshelf_category_open`
    5. 공통 properties: `hostname`, `landingPath`, `referrer`, `entrySource`, `locale`, `browserLocale`, `deviceType`, `osFamily`, `browserFamily`, `installState`, `utmSource`, `utmMedium`, `utmCampaign`, `utmTerm`, `utmContent`. `entrySource`는 `android-watch-reminder`, `android-revisit-reminder`만 허용한다.
    6. Android TWA 앱 접근은 `platform=twa`, `installState=twa`, `osFamily=android`로 집계한다. Google Play TWA에서 referrer가 비는 경우를 보완하기 위해 `android_app_version`/`android_app_version_code` launch URL 파라미터와 최근 Android 앱 컨텍스트를 함께 사용하며, `properties`에 `androidAppVersion`, `androidAppVersionCode`, `androidTwaSignal`을 저장한다.
    7. `analytics_events.created_at` 기준 180일이 지난 자체 분석 이벤트는 매일 자동 파기한다. 계정 전체 삭제 시 `user_id` 등 계정 식별자가 저장된 자체 이벤트만 즉시 삭제하며, 계정과 연결되지 않은 익명 이벤트는 특정 이용자를 식별해 선택 삭제할 수 없고 180일 만료로 파기한다.

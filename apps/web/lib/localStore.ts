@@ -342,15 +342,13 @@ export function clearUserProfileState() {
 export async function resetLocalState() {
   await db.transaction(
     "rw",
-    db.titles,
-    db.logs,
-    db.history,
-    db.outbox,
+    [db.titles, db.logs, db.history, db.outbox, db.bookClassifications],
     async () => {
       await db.titles.clear();
       await db.logs.clear();
       await db.history.clear();
       await db.outbox.clear();
+      await db.bookClassifications.clear();
     },
   );
   if (typeof localStorage === "undefined") return;

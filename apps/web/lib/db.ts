@@ -1,9 +1,17 @@
-import Dexie, { Table } from "dexie";
-import { Title, WatchLog, WatchLogHistory } from "./types";
+import Dexie, { type Table } from "dexie";
+import type {
+  BookClassification,
+  Title,
+  WatchLog,
+  WatchLogHistory,
+} from "./types";
 
 export type LocalTitle = Title & { updatedAt: string };
 export type LocalWatchLog = WatchLog & { titleId: string; updatedAt: string };
 export type LocalWatchLogHistory = WatchLogHistory;
+export type LocalBookClassification = BookClassification & {
+  source: "DATA4LIBRARY";
+};
 
 export type OutboxItem =
   | {
@@ -39,6 +47,7 @@ class WatchLogDB extends Dexie {
   logs!: Table<LocalWatchLog, string>;
   history!: Table<LocalWatchLogHistory, string>;
   outbox!: Table<OutboxItem, string>;
+  bookClassifications!: Table<LocalBookClassification, string>;
 
   constructor() {
     super("watchlog");
@@ -52,6 +61,13 @@ class WatchLogDB extends Dexie {
       logs: "id, titleId, status, watchedAt, updatedAt",
       history: "id, logId, recordedAt",
       outbox: "id, type, createdAt, attempts",
+    });
+    this.version(3).stores({
+      titles: "id, provider, providerId, type, name, updatedAt",
+      logs: "id, titleId, status, watchedAt, updatedAt",
+      history: "id, logId, recordedAt",
+      outbox: "id, type, createdAt, attempts",
+      bookClassifications: "isbn13, status, kdcMajor, fetchedAt",
     });
   }
 }
