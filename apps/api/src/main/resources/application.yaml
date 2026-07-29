@@ -39,6 +39,10 @@ naver:
   client-id: ${NAVER_CLIENT_ID:}
   client-secret: ${NAVER_CLIENT_SECRET:}
 
+data4library:
+  base-url: ${DATA4LIBRARY_BASE_URL:https://data4library.kr}
+  auth-key: ${DATA4LIBRARY_AUTH_KEY:}
+
 notify:
   telegram:
     enabled: ${TELEGRAM_NOTIFY_ENABLED:false}

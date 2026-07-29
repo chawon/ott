@@ -334,6 +334,8 @@ export async function trackEvent(
     | "h1_recap_notice_impression"
     | "h1_recap_notice_click"
     | "h1_recap_notice_dismiss"
+    | "bookshelf_open"
+    | "bookshelf_category_open"
     | "guide_cta_click",
   properties?: Record<string, unknown>,
   options?: { eventId?: string; occurredAt?: string },

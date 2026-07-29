@@ -2,8 +2,11 @@ import { BookOpen, Film, MessageSquare, Share2, Tv } from "lucide-react";
 import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
 import { useState } from "react";
+import { Link as IntlLink } from "@/i18n/routing";
 import { api, apiWithAuth } from "@/lib/api";
+import { isKdcBookshelfLocale, type KdcMajor } from "@/lib/bookshelf";
 import type {
+  BookClassification,
   Comment,
   CreateCommentRequest,
   Discussion,
@@ -81,15 +84,18 @@ function seasonEpisodeLabel(log: WatchLog) {
 export default function LogCard({
   log,
   onShareCard,
+  bookClassification,
 }: {
   log: WatchLog;
   onShareCard?: () => void;
+  bookClassification?: BookClassification | null;
 }) {
   const t = log.title;
   const locale = useLocale();
   const tStatus = useTranslations("Status");
   const tQuick = useTranslations("QuickLogCard");
   const tCommon = useTranslations("Common");
+  const tBookshelf = useTranslations("Bookshelf");
   const [isSharing, setIsSharing] = useState(false);
   const [isShared, setIsShared] = useState(false);
 
@@ -129,6 +135,11 @@ export default function LogCard({
   const seasonLabel = seasonEpisodeLabel(log);
   const isCommentOrigin = log.origin === "COMMENT";
   const isBook = t.type === "book";
+  const kdcMajor =
+    bookClassification?.status === "RESOLVED" &&
+    typeof bookClassification.kdcMajor === "number"
+      ? (bookClassification.kdcMajor as KdcMajor)
+      : null;
 
   return (
     <article
@@ -177,7 +188,7 @@ export default function LogCard({
             >
               {t.name}
             </Link>
-            <div className="mt-1 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+            <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs font-medium text-muted-foreground">
               {isBook ? (
                 <span className="inline-flex items-center gap-1 rounded-full border border-border bg-muted/60 px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
                   <BookOpen className="h-3 w-3" />
@@ -194,6 +205,17 @@ export default function LogCard({
                   SERIES
                 </span>
               )}
+              {isKdcBookshelfLocale(locale) && isBook && kdcMajor !== null ? (
+                <IntlLink
+                  href={`/me/bookshelf?kdc=${kdcMajor}`}
+                  className="inline-flex min-h-8 items-center rounded-lg border border-[#1E4D8C]/30 bg-card px-2 text-[10px] font-semibold text-[#1E4D8C] transition-colors hover:bg-[#FEF9EE] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF9933]/50 dark:text-foreground dark:hover:bg-[#2B241F]"
+                >
+                  {tBookshelf("shelfBadge", {
+                    code: bookClassification?.kdcCode ?? `${kdcMajor}00`,
+                    category: tBookshelf(`categories.${kdcMajor}`),
+                  })}
+                </IntlLink>
+              ) : null}
               <span>{statusLabel(log.status, t.type, tStatus)}</span>
               {seasonLabel ? (
                 <>

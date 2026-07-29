@@ -13,11 +13,14 @@ import {
   X,
 } from "lucide-react";
 import Link from "next/link";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import TitleSearchBox from "@/components/TitleSearchBox";
+import { Link as IntlLink } from "@/i18n/routing";
 import { trackEvent } from "@/lib/analytics";
 import { api, apiWithAuth } from "@/lib/api";
+import { isKdcBookshelfLocale, type KdcMajor } from "@/lib/bookshelf";
+import { resolveTitleClassification } from "@/lib/bookshelfStore";
 import {
   countLogsLocal,
   enqueueCreateLog,
@@ -176,7 +179,9 @@ export default function QuickLogCard({
   activationTitleSelection?: ActivationTitleSelection | null;
   highlightedStatus?: Status | null;
 }) {
+  const locale = useLocale();
   const tQuick = useTranslations("QuickLogCard");
+  const tBookshelf = useTranslations("Bookshelf");
   const tCommon = useTranslations("Common");
   const tDetail = useTranslations("TitleDetail");
   const tStatus = useTranslations("Status");
@@ -211,6 +216,8 @@ export default function QuickLogCard({
   const [banner, setBanner] = useState<{
     visible: boolean;
     count: number;
+    bookshelf: boolean;
+    shelfMajor?: KdcMajor | null;
   } | null>(null);
 
   const isBookMode = contentType === "book";
@@ -411,6 +418,12 @@ export default function QuickLogCard({
             year: title.year ?? prev.year,
             type: title.type ?? prev.type,
             name: title.name ?? prev.name,
+            overview: title.overview ?? prev.overview,
+            author: title.author ?? prev.author,
+            publisher: title.publisher ?? prev.publisher,
+            isbn10: title.isbn10 ?? prev.isbn10,
+            isbn13: title.isbn13 ?? prev.isbn13,
+            pubdate: title.pubdate ?? prev.pubdate,
           };
         });
       } catch {
@@ -683,10 +696,38 @@ export default function QuickLogCard({
         await trackEvent("first_log_create", logCreateProperties);
       }
       onCreated(localLog);
+      const bookshelfEnabled = isKdcBookshelfLocale(locale);
+      const classificationPromise =
+        bookshelfEnabled && localLog.title.type === "book"
+          ? resolveTitleClassification(localLog.title).catch(() => null)
+          : null;
       await syncOutbox();
 
       const totalCount = await countLogsLocal();
-      setBanner({ visible: true, count: totalCount });
+      setBanner({
+        visible: true,
+        count: totalCount,
+        bookshelf: bookshelfEnabled && localLog.title.type === "book",
+        shelfMajor: null,
+      });
+      if (classificationPromise) {
+        void classificationPromise.then((classification) => {
+          if (
+            classification?.status !== "RESOLVED" ||
+            typeof classification.kdcMajor !== "number"
+          ) {
+            return;
+          }
+          setBanner((current) =>
+            current?.visible && current.bookshelf
+              ? {
+                  ...current,
+                  shelfMajor: classification.kdcMajor as KdcMajor,
+                }
+              : current,
+          );
+        });
+      }
       window.setTimeout(() => setBanner(null), 3000);
     } finally {
       setSaving(false);
@@ -1461,19 +1502,42 @@ export default function QuickLogCard({
       {banner?.visible ? (
         <div className="fixed bottom-[var(--mobile-bottom-overlay-offset)] left-1/2 z-[100] w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 animate-in fade-in slide-in-from-bottom-4 duration-300 sm:bottom-6">
           <div className="flex items-center justify-between gap-4 rounded-2xl border border-border bg-card/95 p-4 shadow-xl backdrop-blur-md">
-            <div className="text-sm font-medium text-foreground">
-              {tQuick("successLike")}{" "}
-              <span className="font-bold text-foreground">
-                {tQuick("successCount", { count: banner.count })}
-              </span>
+            <div className="min-w-0 text-sm font-medium text-foreground">
+              <div>
+                {tQuick("successLike")}{" "}
+                <span className="font-bold text-foreground">
+                  {tQuick("successCount", { count: banner.count })}
+                </span>
+              </div>
+              {banner.bookshelf ? (
+                <div className="mt-1 text-xs font-normal text-muted-foreground">
+                  {banner.shelfMajor === null || banner.shelfMajor === undefined
+                    ? tBookshelf("findingShelf")
+                    : tBookshelf("shelvedIn", {
+                        category: tBookshelf(`categories.${banner.shelfMajor}`),
+                      })}
+                </div>
+              ) : null}
             </div>
-            <Link
-              href="/timeline"
+            <IntlLink
+              href={
+                banner.bookshelf
+                  ? `/me/bookshelf${
+                      banner.shelfMajor === null ||
+                      banner.shelfMajor === undefined
+                        ? ""
+                        : `?kdc=${banner.shelfMajor}`
+                    }`
+                  : "/timeline"
+              }
               data-onboarding-target="timeline-confirm"
               className="flex min-h-12 items-center gap-1 text-xs font-bold text-[#1E4D8C] hover:underline dark:text-foreground"
             >
-              {tQuick("viewTimeline")} <ArrowRight className="h-3 w-3" />
-            </Link>
+              {banner.bookshelf
+                ? tBookshelf("viewShelf")
+                : tQuick("viewTimeline")}{" "}
+              <ArrowRight className="h-3 w-3" />
+            </IntlLink>
           </div>
         </div>
       ) : null}
