@@ -9,7 +9,7 @@
 ## 사용자 경험
 
 1. 타임라인은 시간순 기록 흐름을 우선한다. 한국어 화면에서 책 필터를 선택하면 필터 아래의 작은 `서가 보기` 링크로 진입한다.
-2. `/[locale]/me/bookshelf`는 최근 책, KDC 0~9 서가 지도, 선택한 주제의 책, 아직 분류되지 않은 책을 한 화면에 보여준다.
+2. 한국어 canonical 경로 `/me/bookshelf`는 KDC 0~9 서가 지도, 선택한 주제의 책, 아직 분류되지 않은 책을 한 화면에 보여준다. `/ko/me/bookshelf`는 이 경로로 이동한다.
 3. 책의 상태가 `다 읽었어요`, `읽는 중`, `읽고 싶어요` 중 무엇이든 동일하게 서가에 포함한다.
 4. 동일 ISBN-13 판본을 여러 번 기록한 경우 한 권으로 계산하고 가장 최근 기록 상태를 사용한다.
 5. ISBN-13이 없고 유효한 ISBN-10만 있으면 ISBN-13으로 변환한다. ISBN이 없거나 분류 정보를 찾지 못한 책은 `자리를 찾는 책`에 남긴다.
@@ -88,6 +88,22 @@ API 환경변수:
 - `DATA4LIBRARY_AUTH_KEY` — 필수 운영 비밀값
 
 OKE ExternalSecret에는 `DATA4LIBRARY_AUTH_KEY` 매핑이 포함되어 있다. 프로덕션 배포 전에 OCI Vault에 같은 이름의 비밀값을 만들고 ExternalSecret 동기화 상태를 확인해야 한다. 키가 없는 상태에서도 QuickLog 기록은 저장되지만 모든 책이 `자리를 찾는 책`으로 남으므로, 운영 키 준비 전에는 배포하지 않는다.
+
+## 프로덕션 배포
+
+`2026-07-29` PR `#85`, main SHA `35b62632b5633cc194f28e1855516f3ab9a9909c`로 API와 웹을 배포했다.
+
+- API/Web PR CI: `30434768178` / `30434768119`
+- API/Web main CI: `30435259945` / `30435259981`
+- API/Web production: `30435921276` / `30436647371`
+- API/Web manifest commit: `606e390636c9dd8f7f1754c426a18cfa62599119` / `ea8ebaea04b37f43d2913699ac8d9804891ccb20`
+- ArgoCD: `ott-app` `Synced Healthy`
+- production 이미지와 버전: `ott-api`, `ott-web` 모두 SHA `35b62632b5633cc194f28e1855516f3ab9a9909c`, `APP_VERSION=35b6263`
+- 데이터베이스: Flyway v29 적용
+- 비밀값: `DATA4LIBRARY_AUTH_KEY` ExternalSecret `Ready=True`, `SecretSynced`
+- 기능 확인: production 내부 웹 프록시에서 ISBN `9788983921987`이 `RESOLVED`, KDC `843`, 대분류 `8`로 응답
+
+iOS 네이티브 바이너리와 Android TWA에는 이 기능을 포함하거나 별도 배포하지 않았다.
 
 ## 검증
 
