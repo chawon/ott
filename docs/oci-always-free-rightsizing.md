@@ -1,13 +1,26 @@
-# OCI Always Free Right-Sizing Plan
+# OCI Always Free Right-Sizing Review
 
 작성일: 2026-06-15
-우선순위: P0
+종료일: 2026-08-03
+상태: 종료 — paid 계정 확인으로 강제 축소 불필요
+우선순위: 없음
 
-## 목적
+## 종료 결정
 
-OCI Always Free A1 리소스 사용량을 `2 OCPU / 12GB RAM` 안에 맞춘다. 제품 운영에 필요한 production `ottline.app`은 유지하고, 상시 staging과 명확히 불필요한 workload는 제거한다.
+OCI 계정이 paid 계정임을 확인했다. 따라서 Always Free 한도에 맞추기 위해 A1 사용량을 `2 OCPU / 12GB RAM`으로 강제 축소할 필요가 없다.
 
-## 현재 확인된 상태
+1. DB 인스턴스와 OKE worker node의 축소는 진행하지 않는다.
+2. 현재 production 구성을 유지한다.
+3. 향후 right-sizing은 무료 한도 대응이 아니라 실제 비용과 사용량을 근거로 별도 결정한다.
+4. `2026-06-15`에 완료한 `n8n`·상시 staging 제거와 production 수동 배포 전환은 되돌리지 않는다.
+
+아래 내용은 종료된 검토의 배경과 당시 측정값을 보존한 기록이며 실행 계획이 아니다.
+
+## 검토 당시 목적
+
+OCI Always Free A1 리소스 사용량을 `2 OCPU / 12GB RAM` 안에 맞추면서 production `ottline.app`을 유지할 수 있는지 검토했다.
+
+## 검토 당시 확인된 상태
 
 2026-06-15 점검 기준:
 
@@ -43,7 +56,7 @@ DB 최근 7일 관측값은 CPU가 대체로 `1-3%`, 메모리가 약 `13-15.5%`
 
 정리 직후 노드 사용량은 대략 CPU `235m`, 메모리 `8213Mi`였다. 이 값은 시점별 부하에 따라 달라질 수 있으므로 리사이즈 직전 다시 확인한다.
 
-## 목표 리소스 배치
+## 취소된 목표 리소스 배치
 
 1차 목표안:
 
@@ -55,7 +68,7 @@ DB 최근 7일 관측값은 CPU가 대체로 `1-3%`, 메모리가 약 `13-15.5%`
 
 주의: OKE가 현재 메모리를 8Gi 이상 사용 중이므로 `1 OCPU / 10GB`는 여유가 크지 않다. 리사이즈 후에는 memory pressure, eviction, restart 여부를 반드시 관측한다.
 
-## 실행 순서
+## 취소된 실행안
 
 1. 리사이즈 전 현재 상태 재확인
    - OCI Compute instance shape config
@@ -79,7 +92,7 @@ DB 최근 7일 관측값은 CPU가 대체로 `1-3%`, 메모리가 약 `13-15.5%`
    - API latency/error
    - DB CPU/memory
 
-## 축소 후에도 부족하면 볼 후보
+## 당시 추가로 검토한 후보
 
 아래 항목은 production 영향과 소유 여부를 확인한 뒤 판단한다.
 
@@ -94,7 +107,7 @@ DB 최근 7일 관측값은 CPU가 대체로 `1-3%`, 메모리가 약 `13-15.5%`
    - 상시 staging이 종료되어 신규 `staging-*` 이미지는 더 이상 생성되지 않는다.
    - live reference가 없는 과거 staging image tag는 별도 확인 후 삭제 가능
 
-## 변경 후 배포 운영 원칙
+## 유지하는 배포 운영 원칙
 
 상시 staging은 되살리지 않는다. 위험도가 큰 DB migration, 외부 심사, 큰 계약 변경이 있을 때만 임시 staging을 만들고, 검증 후 namespace, ingress, image, DB를 함께 정리한다.
 
@@ -107,12 +120,6 @@ DB 최근 7일 관측값은 CPU가 대체로 `1-3%`, 메모리가 약 `13-15.5%`
 5. 필요한 경우 production workflow를 main SHA로 수동 실행
 6. GitHub Actions, ArgoCD, in-cluster image/`APP_VERSION`으로 확인
 
-## 완료 기준
+## 종료 상태
 
-P0 완료 기준은 아래 조건을 모두 만족하는 것이다.
-
-1. OCI A1 총 사용량이 `2 OCPU / 12GB` 안에 들어온다.
-2. `ottline.app` production web/API가 정상이다.
-3. DB 연결과 API 주요 쓰기/읽기 흐름이 정상이다.
-4. ArgoCD `ott-app`이 `Synced Healthy`다.
-5. 축소 후 최소 24시간 동안 memory pressure, pod eviction, 반복 restart가 없다.
+`2 OCPU / 12GB` 축소 완료 기준은 더 이상 적용하지 않는다. paid 계정 운영이므로 현재 리소스를 유지하며, 비용 또는 용량 문제가 실제로 확인될 때 새 근거와 별도 계획으로 다시 검토한다.
