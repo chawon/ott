@@ -386,7 +386,7 @@ iOS 네이티브 앱은 WebView/PWA/TWA 래퍼가 아니므로 웹/TWA에서 쓰
 - Cloudflare는 iOS 앱의 `https://ottline.app` API 호출과 edge 트래픽을 볼 수 있지만, native 화면 행동 분석 도구로 보지 않는다.
 - App Store Connect Analytics는 설치, 제품 페이지, 다운로드, 리텐션 같은 스토어 지표를 담당한다.
 
-후속 정리 후보: App Store 공개 이후에도 native analytics properties의 `installState`가 `app_store_testflight`로 고정되어 있다. 코드 변경 시 `app_store`로 바꾸거나, `installState`와 별개로 `distributionChannel=app_store|testflight`를 분리한다.
+`installState=app_store_testflight`는 이미 적재된 이벤트와의 호환을 위해 유지한다. 현재 앱 런타임만으로 실제 설치 출처를 판별할 수 없으므로 `app_store`로 바꾸거나 App Store와 TestFlight를 나누어 추정하지 않는다. 관리자 화면에서는 `iOS 앱 (설치 출처 미구분)`으로 표시하고 `appVersion`과 `buildNumber`만 별도 세그먼트로 본다. 실제 구분이 필요해지면 신뢰할 수 있는 배포 채널 판별 방법을 먼저 설계한 뒤 `distributionChannel` 같은 별도 필드를 추가한다.
 
 ## 13. App Review / TestFlight 리스크
 

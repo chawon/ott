@@ -14,8 +14,10 @@ import org.springframework.web.client.RestClient;
 
 import java.text.NumberFormat;
 import java.time.LocalDate;
+import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Locale;
 import java.util.Map;
 
@@ -25,6 +27,7 @@ public class DailyReportService {
     private static final Logger log = LoggerFactory.getLogger(DailyReportService.class);
 
     private static final ZoneId KST = ZoneId.of("Asia/Seoul");
+    private static final DateTimeFormatter KST_TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm 'KST'");
     private static final String EXCLUDED_ADMIN_ID = "2777a431-5ccb-4761-9c8a-2b17a34ff566";
 
     private final JdbcTemplate jdbcTemplate;
@@ -65,10 +68,11 @@ public class DailyReportService {
 
         var cf = cloudflareService.fetchYesterday();
         var ga4 = ga4Service.fetchYesterday();
-        var k8s = k8sService.fetchStatus();
         var internal = buildInternalStats(from, to);
+        var k8s = k8sService.fetchStatus();
+        OffsetDateTime generatedAt = OffsetDateTime.now(KST);
 
-        return new DailyReportDto(date, cf, ga4, internal, k8s);
+        return new DailyReportDto(date, generatedAt, cf, ga4, internal, k8s);
     }
 
     private InternalStatsDto buildInternalStats(ZonedDateTime from, ZonedDateTime to) {
@@ -135,7 +139,7 @@ public class DailyReportService {
         sendTelegram(buildReport());
     }
 
-    private String formatMessage(DailyReportDto r) {
+    static String formatMessage(DailyReportDto r) {
         var cf = r.cloudflare();
         var ga4 = r.ga4();
         var internal = r.internal();
@@ -149,11 +153,11 @@ public class DailyReportService {
             sb.append("• 연동 오류: ").append(cf.error()).append("\n");
         } else {
             sb.append("• 요청: ").append(fmt(cf.requests()))
-              .append(" | 방문자: ").append(fmt(cf.uniqueVisitors()))
+              .append(" | 방문: ").append(fmt(cf.visits()))
               .append(" | 페이지뷰: ").append(fmt(cf.pageViews())).append("\n");
         }
 
-        sb.append("\n<b>📈 사용자 (GA4)</b>\n");
+        sb.append("\n<b>📈 사용자 (GA4 · 잠정치)</b>\n");
         if (ga4.error() != null) {
             sb.append("• 연동 오류: ").append(ga4.error()).append("\n");
         } else {
@@ -161,6 +165,7 @@ public class DailyReportService {
               .append(" | 활성: ").append(fmt(ga4.activeUsers())).append("\n");
             sb.append("• 페이지뷰: ").append(fmt(ga4.pageViews()))
               .append(" | 신규: ").append(fmt(ga4.newUsers())).append("\n");
+            sb.append("• 전일 값은 조회 시점 기준 잠정치이며 이후 보정될 수 있어요.\n");
         }
 
         sb.append("\n<b>🎯 앱 활동 (내부)</b>\n");
@@ -175,7 +180,9 @@ public class DailyReportService {
           .append(" | 기록 사용자: ").append(fmt(internal.reach().logCreateActors())).append("\n");
         sb.append("• 신규 로그 수(DB): ").append(fmt(internal.dbLogCreateCount())).append("\n");
 
-        sb.append("\n<b>☸️ 인프라 (K8s / ott)</b>\n");
+        sb.append("\n<b>☸️ 인프라 (K8s · ")
+          .append(formatKstSnapshotLabel(r.generatedAt()))
+          .append(")</b>\n");
         if (k8s.error() != null) {
             sb.append("• 연동 오류: ").append(k8s.error()).append("\n");
         } else if (k8s.pods().isEmpty()) {
@@ -193,7 +200,12 @@ public class DailyReportService {
         return sb.toString();
     }
 
-    private String fmt(long v) {
+    private static String formatKstSnapshotLabel(OffsetDateTime generatedAt) {
+        if (generatedAt == null) return "조회 시점";
+        return generatedAt.atZoneSameInstant(KST).format(KST_TIME_FORMATTER) + " 현재";
+    }
+
+    private static String fmt(long v) {
         return NumberFormat.getNumberInstance(Locale.KOREA).format(v);
     }
 

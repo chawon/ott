@@ -1,9 +1,11 @@
 package com.watchlog.api.dto;
 
+import java.time.OffsetDateTime;
 import java.util.List;
 
 public record DailyReportDto(
         String date,
+        OffsetDateTime generatedAt,
         CloudflareStatsDto cloudflare,
         Ga4StatsDto ga4,
         InternalStatsDto internal,
@@ -12,10 +14,15 @@ public record DailyReportDto(
 
     public record CloudflareStatsDto(
             long requests,
+            long visits,
             long uniqueVisitors,
             long pageViews,
             String error
-    ) {}
+    ) {
+        public CloudflareStatsDto(long requests, long visits, long pageViews, String error) {
+            this(requests, visits, visits, pageViews, error);
+        }
+    }
 
     public record Ga4StatsDto(
             long sessions,

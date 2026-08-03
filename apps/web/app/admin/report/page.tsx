@@ -1,4 +1,8 @@
 import { getTranslations } from "next-intl/server";
+import {
+  formatKstSnapshotTime,
+  resolveCloudflareVisits,
+} from "@/lib/admin-report.mjs";
 
 type PodStatus = {
   name: string;
@@ -25,9 +29,11 @@ type ReachMetrics = {
 
 type DailyReport = {
   date: string;
+  generatedAt?: string;
   cloudflare: {
     requests: number;
-    uniqueVisitors: number;
+    visits?: number;
+    uniqueVisitors?: number;
     pageViews: number;
     error: string | null;
   };
@@ -92,6 +98,7 @@ export default async function AdminReportPage() {
 
   const internalActivity = report?.internal.activity ?? null;
   const internalReach = report?.internal.reach ?? null;
+  const k8sSnapshotTime = formatKstSnapshotTime(report?.generatedAt);
 
   return (
     <div className="space-y-6">
@@ -115,8 +122,13 @@ export default async function AdminReportPage() {
       {report && (
         <>
           <section className="space-y-4 rounded-lg border border-border bg-card p-6">
-            <div className="text-sm font-semibold">
-              {t("cloudflareTraffic")}
+            <div className="space-y-1">
+              <div className="text-sm font-semibold">
+                {t("cloudflareTraffic")}
+              </div>
+              <p className="text-sm leading-6 text-muted-foreground">
+                {t("cloudflareTrafficDesc")}
+              </p>
             </div>
             {report.cloudflare.error ? (
               <p className="text-sm text-red-500">{report.cloudflare.error}</p>
@@ -129,10 +141,10 @@ export default async function AdminReportPage() {
                   )}
                 />
                 <Stat
-                  label={t("visitors")}
-                  value={report.cloudflare.uniqueVisitors.toLocaleString(
-                    numberLocale,
-                  )}
+                  label={t("cloudflareVisits")}
+                  value={resolveCloudflareVisits(
+                    report.cloudflare,
+                  ).toLocaleString(numberLocale)}
                 />
                 <Stat
                   label={t("pageViews")}
@@ -145,7 +157,12 @@ export default async function AdminReportPage() {
           </section>
 
           <section className="space-y-4 rounded-lg border border-border bg-card p-6">
-            <div className="text-sm font-semibold">{t("ga4Users")}</div>
+            <div className="space-y-1">
+              <div className="text-sm font-semibold">{t("ga4Users")}</div>
+              <p className="text-sm leading-6 text-muted-foreground">
+                {t("ga4Provisional")}
+              </p>
+            </div>
             {report.ga4.error ? (
               <p className="text-sm text-red-500">{report.ga4.error}</p>
             ) : (
@@ -266,7 +283,9 @@ export default async function AdminReportPage() {
               <div className="text-sm font-semibold">
                 {t("kubernetesInfrastructure")}
                 <span className="ml-2 text-xs font-normal text-muted-foreground">
-                  {t("realtime")}
+                  {k8sSnapshotTime
+                    ? t("snapshotAt", { time: k8sSnapshotTime })
+                    : t("snapshot")}
                 </span>
               </div>
               <a

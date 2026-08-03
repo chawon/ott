@@ -118,13 +118,13 @@ public class CloudflareAnalyticsService {
 
             // Web Analytics (RUM): actual browser visits via account-level query
             var accounts = (List<Map<String, Object>>) viewer.get("accounts");
-            long uniqueVisitors = 0;
+            long visits = 0;
             if (accounts != null && !accounts.isEmpty()) {
                 var rumGroups = (List<Map<String, Object>>) accounts.get(0).get("rumPageloadEventsAdaptiveGroups");
-                uniqueVisitors = sumGroups(rumGroups, "visits");
+                visits = sumGroups(rumGroups, "visits");
             }
 
-            return new CloudflareStatsDto(requests, uniqueVisitors, pageViews, null);
+            return new CloudflareStatsDto(requests, visits, pageViews, null);
         } catch (Exception e) {
             log.warn("Failed to parse Cloudflare response", e);
             return new CloudflareStatsDto(0, 0, 0, "Parse error: " + e.getMessage());

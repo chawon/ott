@@ -58,6 +58,7 @@ class CloudflareAnalyticsServiceTest {
 
         assertThat(result.requests()).isEqualTo(17);
         assertThat(result.pageViews()).isEqualTo(7);
+        assertThat(result.visits()).isEqualTo(7);
         assertThat(result.uniqueVisitors()).isEqualTo(7);
         assertThat(result.error()).isNull();
     }
