@@ -57,7 +57,7 @@ iOS Native는 WebView/PWA/TWA 래퍼가 아니므로 웹에 삽입한 GA4 `gtag.
 - Cloudflare: `https://ottline.app` API 호출과 edge 트래픽은 볼 수 있지만, native 화면 전환/버튼 퍼널을 직접 수집하는 도구로 보지 않는다.
 - App Store Connect Analytics: 설치, 제품 페이지, 다운로드, 리텐션 같은 스토어 관점 지표를 확인한다. 앱 내부 행동 퍼널과는 별도다.
 
-후속 정리 후보: App Store 공개 이후 `installState=app_store_testflight` 고정값은 `app_store`로 바꾸거나 `distributionChannel=app_store|testflight`처럼 분리한다.
+`installState=app_store_testflight`는 이미 적재된 이벤트와의 호환을 위해 유지한다. 현재 앱 런타임만으로 실제 설치 출처를 판별할 수 없으므로 `app_store`로 바꾸거나 App Store와 TestFlight를 나누어 추정하지 않는다. 관리자 화면에서는 `iOS 앱 (설치 출처 미구분)`으로 표시하고, `appVersion`과 `buildNumber`만 별도 세그먼트로 사용한다. 향후 배포 채널을 신뢰할 수 있게 전달하는 별도 계약이 생길 때만 `distributionChannel`을 추가한다.
 
 ## 테이블 예시 (PostgreSQL)
 ```sql

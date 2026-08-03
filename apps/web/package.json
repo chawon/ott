@@ -9,7 +9,7 @@
     "lint": "biome check",
     "format": "biome format --write",
     "test:admin-access": "node --test lib/cloudflare-access.test.mjs lib/admin-boundary.test.mjs",
-    "test:analytics": "node --test lib/analytics-session.test.mjs",
+    "test:analytics": "node --test lib/analytics-session.test.mjs lib/admin-report.test.mjs",
     "test:client-recovery": "node --test lib/client-recovery.test.mjs lib/service-worker-cache.test.mjs",
     "test:seo": "node --test lib/seo.test.mjs lib/seo-boundary.test.mjs lib/sitemap-public.test.mjs scripts/ping-indexnow.test.mjs",
     "test:theme-first-paint": "node --test lib/theme-first-paint.test.mjs",

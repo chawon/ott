@@ -87,7 +87,7 @@ PostgreSQL 집계와 actor 해석은 `AnalyticsMetricsQuery` 한 모듈에 둔�
 - locale prefix가 있는 `/ko/admin`, `/en/admin`도 관리자 경로로 인식한다.
 - 경로 변경은 동기화를 계속 시작할 수 있지만 analytics 리스너 등록과 `app_open` 전송은 경로 효과와 분리한다.
 - iOS는 `osFamily=ios`를 전송한다.
-- iOS의 `installState=app_store_testflight`는 기존 계약을 유지한다. 관리자 화면에는 이 값이 App Store와 TestFlight의 합계이며 버전/빌드로만 나눠 본다는 안내를 표시한다.
+- iOS의 `installState=app_store_testflight`는 기존 계약을 유지하되 실제 설치 출처를 나타내는 값으로 해석하지 않는다. 관리자 화면에는 `iOS 앱 (설치 출처 미구분)`으로 표시하고 App Store와 TestFlight를 나누어 추정하지 않으며, 버전/빌드만 별도 세그먼트로 본다.
 
 ## 관리자 화면
 

@@ -14,10 +14,10 @@ ottline 웹서비스 운영 현황을 매일 한 곳에서 확인하고 싶음.
 ### 데이터 소스
 | 소스 | 데이터 | 방식 |
 |------|--------|------|
-| Cloudflare | 요청수, 방문자, 대역폭, 위협 차단 | CF GraphQL Analytics API |
+| Cloudflare | 요청 수, 페이지뷰, 방문(`visits`, 고유 방문자 아님) | CF GraphQL Analytics API |
 | GA4 | 세션, 활성 사용자, 페이지뷰, 신규 사용자 | GA4 Data API (서비스 계정) |
-| 내부 analytics + DB | DAU, 제목 검색/선택, 기기 연결, 첫 기록, 기록 사용자, 서버 반영 신규 로그 수 | `analytics_events` + `watch_logs.created_at` |
-| Kubernetes | Pod 상태, Deployment 이미지, CPU/Memory (실시간) | K8s API (in-cluster config) + Metrics Server |
+| 내부 analytics + DB | 실행 세션, 활성 클라이언트, 행동 사용자, 독립 행동 도달, 서버 반영 신규 로그 수 | `analytics_events` + `watch_logs.created_at` |
+| Kubernetes | Pod 상태, Deployment 이미지, CPU/Memory (조회 시점 스냅샷) | K8s API (in-cluster config) + Metrics Server |
 
 ### 2026-08-03 Cloudflare KST 경계 보정
 
@@ -25,12 +25,19 @@ ottline 웹서비스 운영 현황을 매일 한 곳에서 확인하고 싶음.
 - HTTP 요청·페이지뷰는 `httpRequests1hGroups`, RUM 값은 `rumPageloadEventsAdaptiveGroups`를 사용한다.
 - 두 데이터셋 모두 KST 전일 `[00:00, 다음 날 00:00)`을 UTC `datetime_geq`/`datetime_lt` 범위로 변환해 조회한다.
 - GraphQL 변수로 zone, account, host와 시간 범위를 전달하고 반환 그룹이 여러 개면 모두 합산한다.
-- 이번 단계는 시간대만 보정했다. 실제 RUM `visits`를 `uniqueVisitors`·`방문자`로 표시하는 이름은 다음 단계에서 별도로 정리한다.
 - PR `#87`, main SHA `12ed846350f9efed056d8c40b9ab5a10a381c0ca`, API production run `30786675495`로 배포했다. production `2026-08-02` 리포트는 직접 KST 범위 조회와 같은 `1105 requests / 248 pageViews / 8 visits`를 반환했고 수동 Telegram 발송도 확인했다.
+
+### 2026-08-03 지표 의미와 조회 시점 정리
+
+- Cloudflare RUM의 실제 필드명에 맞춰 API와 화면, Telegram에서 `visits`·`방문`으로 표시한다. 이 값은 고유 방문자 수로 해석하지 않는다.
+- API 응답에는 순차 배포 호환을 위해 `visits`와 기존 `uniqueVisitors`를 같은 값으로 함께 반환한다. Web은 `visits`를 우선하고 구 API에서는 `uniqueVisitors`로 fallback한다.
+- GA4 전일 수치는 조회 이후에도 보정될 수 있으므로 관리자 화면과 Telegram에 `잠정치`로 표시한다.
+- Kubernetes 상태는 지속되는 실시간 값이 아니라 리포트 생성 시점의 스냅샷이다. 응답의 `generatedAt`과 함께 KST 조회 시각을 표시한다.
+- iOS의 `installState=app_store_testflight`는 실제 설치 출처를 판별하지 않는 기존 호환 값이다. 관리자 화면은 App Store와 TestFlight 합계라고 추정하지 않고 `iOS 앱 (설치 출처 미구분)`으로 표시하며, 버전과 빌드 번호만 구분한다.
 
 ### 2026-04-15 집계 정의 조정
 - 범위: 데일리 운영 리포트의 `앱 활동 (내부)` 섹션
-- API/스키마 영향: 없음. 기존 `GET /api/admin/report/daily` 응답 DTO에 내부 지표 필드만 확장
+- API/스키마 영향: 없음. 기존 `GET /internal/admin/report/daily` 응답 DTO에 내부 지표 필드만 확장
 - 집계 정의:
   - `DAU`: 기존과 동일하게 `analytics_events.event_name = 'app_open'`의 고유 행위자 수
   - `제목 검색`: `analytics_events.event_name = 'title_search'`의 고유 행위자 수
@@ -55,7 +62,7 @@ ottline 웹서비스 운영 현황을 매일 한 곳에서 확인하고 싶음.
 **신규 파일:**
 - `apps/api/.../service/CloudflareAnalyticsService.java`
   - CF GraphQL API 호출 (Zone Analytics)
-  - 반환: requests, uniq visitors, bandwidth, threats
+  - 반환: requests, visits, pageViews
 - `apps/api/.../service/GoogleAnalyticsService.java`
   - GA4 Data API 호출 (`google-analytics-data` SDK)
   - 반환: sessions, activeUsers, screenPageViews, newUsers
@@ -67,8 +74,8 @@ ottline 웹서비스 운영 현황을 매일 한 곳에서 확인하고 싶음.
   - `@Scheduled("0 0 9 * * ?")` - KST 09:00 자동 Telegram 발송
   - 기존 `TelegramNotifyService` 재사용 (or 동일 패턴으로 직접 호출)
 - `apps/api/.../web/AdminDailyReportController.java`
-  - `GET /api/admin/report/daily` - 리포트 데이터 반환 (X-Admin-Token 인증)
-  - `POST /api/admin/report/daily/send` - 수동 Telegram 발송 트리거
+  - `GET /internal/admin/report/daily` - 리포트 데이터 반환 (`X-Admin-Token` 인증)
+  - `POST /internal/admin/report/daily/send` - 수동 Telegram 발송 트리거
 - DTOs: `DailyReportDto`, `CloudflareStatsDto`, `Ga4StatsDto`, `K8sStatusDto`
 
 **수정 파일:**
@@ -109,10 +116,9 @@ ottline 웹서비스 운영 현황을 매일 한 곳에서 확인하고 싶음.
 ### Frontend (Next.js)
 
 **신규 파일:**
-- `apps/web/app/[locale]/admin/report/page.tsx`
-  - 기존 analytics 페이지와 동일한 토큰 인증 방식
+- `apps/web/app/admin/report/page.tsx`
+  - 서버에서만 `X-Admin-Token`을 붙여 내부 API를 호출
   - 4개 섹션: Cloudflare / GA4 / 내부 지표 / K8s
-  - "Telegram 지금 발송" 버튼
 
 ---
 
@@ -122,20 +128,21 @@ ottline 웹서비스 운영 현황을 매일 한 곳에서 확인하고 싶음.
 📊 ottline 데일리 리포트 (MM/DD)
 
 🌐 트래픽 (Cloudflare)
-• 요청: 12,345 | 방문자: 1,234
-• 대역폭: 45.2 MB | 위협 차단: 12
+• 요청: 12,345 | 방문: 1,234 | 페이지뷰: 2,345
 
-📈 사용자 (GA4)
+📈 사용자 (GA4 · 잠정치)
 • 세션: 890 | 활성: 678
 • 페이지뷰: 2,345 | 신규: 234
+• 전일 값은 조회 시점 기준 잠정치이며 이후 보정될 수 있어요.
 
 🎯 앱 활동 (내부)
-• 방문: 89 | 검색: 34 | 선택: 21
-• 기기 연결: 5 | 첫 기록: 3 | 기록 사용자: 8
-• 전환: 방문→검색 38.2% | 검색→선택 61.8% | 방문→첫 기록 3.4%
+• 실행 세션: 89 | 활성 클라이언트: 72
+• 행동 사용자: 34 | 원본 실행 이벤트: 103
+• 검색 사용자: 21 | 제목 선택 사용자: 18
+• 기기 연결 사용자: 5 | 첫 기록 사용자: 3 | 기록 사용자: 8
 • 신규 로그 수(DB): 123
 
-☸️ 인프라 (K8s / ott ns)
+☸️ 인프라 (K8s · 09:00 KST 현재)
 • ott-web ✅ Running  [이미지 태그]
 • ott-api ✅ Running  [이미지 태그]
 • CPU: web 12% / api 8%
@@ -160,8 +167,8 @@ ottline 웹서비스 운영 현황을 매일 한 곳에서 확인하고 싶음.
 ---
 
 ## 검증
-1. `GET /api/admin/report/daily?token=xxx` 응답 확인
-2. `POST /api/admin/report/daily/send` → Telegram 수신 확인
+1. production Pod 내부에서 `X-Admin-Token`을 사용해 `GET /internal/admin/report/daily` 응답 확인
+2. production Pod 내부에서 `POST /internal/admin/report/daily/send`를 호출해 Telegram 수신 확인
 3. `/admin/report?token=xxx` 페이지 렌더링 확인
 4. 스케줄러 로그 (KST 09:00 자동 발송)
 5. K8s RBAC 권한 오류 없이 Pod 목록 조회 확인
