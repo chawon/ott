@@ -1,5 +1,15 @@
 # Wiki Log
 
+## [2026-08-03] update: Cloudflare 데일리 통계 KST 경계 보정 production 배포
+- 대상: PR `#87`, main SHA `12ed846350f9efed056d8c40b9ab5a10a381c0ca`, API production run `30786675495`
+- 생성/수정: AGENTS.md, docs/plan-daily-report.md, features/daily-report.md, log.md
+- 노트:
+  - UTC 날짜 버킷을 사용하던 Cloudflare HTTP·RUM을 KST 전일의 UTC `[start, end)` 시간 범위 조회로 변경
+  - API 경계·쿼리·합산 테스트와 production Cloudflare GraphQL 계약 확인
+  - manifest commit `05d6ac365f271bceffedaa8ed3d59894954d9469`; ArgoCD `Synced Healthy`, `APP_VERSION=12ed846`, Pod ready·restart 0 확인
+  - production `2026-08-02` 값 `1105 requests / 248 pageViews / 8 visits`, `error=null` 확인 후 Telegram 수동 발송 성공
+  - `uniqueVisitors`·`방문자` 이름을 실제 `visits` 의미로 바꾸는 작업은 다음 단계로 분리
+
 ## [2026-08-03] ingest: 2026년 상반기 리캡 종료 배포 문서화
 - 대상: PR `#86`, main SHA `5eb5115317892d0032a8b7b6fe5377b14f2d0c2a`, `docs/2026-h1-recap.md`, 사용자 production 확인
 - 생성/수정: docs/2026-h1-recap.md, features/seasonal-recap.md, features/analytics.md, features/share-card.md, index.md, log.md

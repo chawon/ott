@@ -28,6 +28,17 @@
 
 ---
 
+## 시간 경계
+
+- 리포트 날짜는 KST 전일이다.
+- Cloudflare HTTP·RUM은 KST 전일 `[00:00, 다음 날 00:00)`을 UTC `datetime_geq`/`datetime_lt`로 변환해 같은 범위를 조회한다.
+- GA4는 KST 날짜를 조회하지만 오전 9시 발송 시점의 값이 이후 증가할 수 있다. 잠정치 표기는 별도 후속 작업이다.
+- Kubernetes는 리포트 날짜의 누적 통계가 아니라 조회 시점의 현재 상태다. 시점 표기는 별도 후속 작업이다.
+
+Cloudflare 응답의 `uniqueVisitors` 필드와 `방문자` 라벨은 현재 RUM `visits` 값을 담는다. 시간대 보정과 분리해 다음 단계에서 이름을 정리한다.
+
+---
+
 ## 자체 지표 정의
 
 데일리 리포트와 관리자 analytics overview는 같은 `AnalyticsMetricsQuery`를 사용한다.
@@ -99,3 +110,16 @@ report:
 ## 보존
 
 자체 `analytics_events`는 `created_at` 기준 180일 후 매일 자동 파기한다. 데일리 리포트는 전일 데이터만 사용하므로 이 보존 정책의 영향을 받지 않는다. GA4와 Microsoft Clarity로 전송된 데이터의 보존은 각 제공자의 설정과 정책을 따르며, Clarity는 데일리 리포트의 데이터 소스가 아니다.
+
+---
+
+## 2026-08-03 Cloudflare KST 보정 배포
+
+- PR `#87`, main SHA `12ed846350f9efed056d8c40b9ab5a10a381c0ca`
+- PR/main API CI: `30784202297` / `30784704338`
+- API production: `30786675495`
+- manifest commit: `05d6ac365f271bceffedaa8ed3d59894954d9469`
+- ArgoCD `ott-app`: `Synced Healthy`
+- production API: `APP_VERSION=12ed846`, Pod `1/1` ready, restart 0
+- production 내부 `2026-08-02` 리포트: `1105 requests / 248 pageViews / 8 visits`, `error=null`
+- Telegram 수동 발송: `POST /internal/admin/report/daily/send` `200`, API 로그 `Daily report sent to Telegram`

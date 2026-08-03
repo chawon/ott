@@ -19,6 +19,15 @@ ottline 웹서비스 운영 현황을 매일 한 곳에서 확인하고 싶음.
 | 내부 analytics + DB | DAU, 제목 검색/선택, 기기 연결, 첫 기록, 기록 사용자, 서버 반영 신규 로그 수 | `analytics_events` + `watch_logs.created_at` |
 | Kubernetes | Pod 상태, Deployment 이미지, CPU/Memory (실시간) | K8s API (in-cluster config) + Metrics Server |
 
+### 2026-08-03 Cloudflare KST 경계 보정
+
+- 기존 `httpRequests1dGroups(filter: {date})`는 KST 날짜를 전달해도 UTC 날짜 버킷을 반환했다.
+- HTTP 요청·페이지뷰는 `httpRequests1hGroups`, RUM 값은 `rumPageloadEventsAdaptiveGroups`를 사용한다.
+- 두 데이터셋 모두 KST 전일 `[00:00, 다음 날 00:00)`을 UTC `datetime_geq`/`datetime_lt` 범위로 변환해 조회한다.
+- GraphQL 변수로 zone, account, host와 시간 범위를 전달하고 반환 그룹이 여러 개면 모두 합산한다.
+- 이번 단계는 시간대만 보정했다. 실제 RUM `visits`를 `uniqueVisitors`·`방문자`로 표시하는 이름은 다음 단계에서 별도로 정리한다.
+- PR `#87`, main SHA `12ed846350f9efed056d8c40b9ab5a10a381c0ca`, API production run `30786675495`로 배포했다. production `2026-08-02` 리포트는 직접 KST 범위 조회와 같은 `1105 requests / 248 pageViews / 8 visits`를 반환했고 수동 Telegram 발송도 확인했다.
+
 ### 2026-04-15 집계 정의 조정
 - 범위: 데일리 운영 리포트의 `앱 활동 (내부)` 섹션
 - API/스키마 영향: 없음. 기존 `GET /api/admin/report/daily` 응답 DTO에 내부 지표 필드만 확장
