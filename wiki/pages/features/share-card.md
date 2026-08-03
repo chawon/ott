@@ -6,6 +6,7 @@
 - [[book-log]]
 - [[analytics]]
 - [[personal-profile]]
+- [[seasonal-recap]]
 
 ---
 

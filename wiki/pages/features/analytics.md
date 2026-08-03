@@ -5,6 +5,7 @@
 ## 관련 페이지
 - [[daily-report]]
 - [[pwa]]
+- [[seasonal-recap]]
 - [[twa]]
 
 ---

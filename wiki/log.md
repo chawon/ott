@@ -1,5 +1,14 @@
 # Wiki Log
 
+## [2026-08-03] ingest: 2026년 상반기 리캡 종료 배포 문서화
+- 대상: PR `#86`, main SHA `5eb5115317892d0032a8b7b6fe5377b14f2d0c2a`, `docs/2026-h1-recap.md`, 사용자 production 확인
+- 생성/수정: docs/2026-h1-recap.md, features/seasonal-recap.md, features/analytics.md, features/share-card.md, index.md, log.md
+- 노트:
+  - `2026-H1`은 KST `2026-01-01`~`2026-06-30` 기록을 7월에만 보여주고 `2026-08-01 00:00`부터 종료
+  - API `seasonalRecap`, 웹 리포트, IndexedDB fallback과 상단 노티에 같은 기간 게이트 적용
+  - API/Web production run `30778501095`/`30778595558`; ArgoCD `Synced Healthy`, 이미지 SHA와 `APP_VERSION=5eb5115` 확인
+  - iOS 네이티브 소스·App Store 바이너리는 변경하지 않았으며 네이티브 오프라인 fallback은 별도 범위로 기록
+
 ## [2026-07-25] update: 검색어·앱 스토어 발견성 후속 최적화 production 배포
 - 대상: PR `#83`, main SHA `524b00139e8495024dca67177c58956855ce56ed`, Web production run `30141406956`
 - 생성/수정: AGENTS.md, docs/seo-acquisition-foundation-2026-07-19.md, architecture/geo-seo.md, index.md, log.md
