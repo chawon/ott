@@ -7,7 +7,11 @@ import { trackEvent } from "@/lib/analytics";
 import { api } from "@/lib/api";
 import { listAllLogsLocal } from "@/lib/localStore";
 import { isProfileComplete } from "@/lib/profile";
-import { buildPersonalReport, type PersonalReport } from "@/lib/report";
+import {
+  buildPersonalReport,
+  isH1RecapVisible,
+  type PersonalReport,
+} from "@/lib/report";
 import {
   downloadBlob,
   fetchShareCardBlob,
@@ -52,7 +56,11 @@ export default function MyReportPage() {
       setError(null);
       try {
         const serverReport = await api<PersonalReport>("/nalytic/me/report");
-        setReport(serverReport);
+        setReport(
+          isH1RecapVisible()
+            ? serverReport
+            : { ...serverReport, seasonalRecap: null },
+        );
         setSource("server");
       } catch (e) {
         try {

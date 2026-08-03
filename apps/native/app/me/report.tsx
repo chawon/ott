@@ -27,7 +27,7 @@ import {
 } from '../../lib/i18n';
 import { listLogsLocal } from '../../lib/localDb';
 import { useNativePreferences } from '../../lib/nativePreferences';
-import { buildPersonalReport } from '../../lib/report';
+import { buildPersonalReport, isH1RecapVisible } from '../../lib/report';
 import {
   buildSeasonalRecapShareCardPayload,
   reportShareCardFileName,
@@ -117,7 +117,11 @@ export default function ReportScreen() {
       await syncNow({ registerIfNeeded: true }).catch(() => null);
       const nextReport = await getPersonalReport();
       const nextProfile = await getUserProfile().catch(() => null);
-      setReport(nextReport);
+      setReport(
+        isH1RecapVisible()
+          ? nextReport
+          : { ...nextReport, seasonalRecap: null },
+      );
       setProfile(nextProfile);
       setSource('server');
       trackEvent({

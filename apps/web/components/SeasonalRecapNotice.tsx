@@ -7,17 +7,14 @@ import { Link as IntlLink, usePathname } from "@/i18n/routing";
 import { trackEvent } from "@/lib/analytics";
 import { api } from "@/lib/api";
 import { listAllLogsLocal } from "@/lib/localStore";
-import { buildPersonalReport, type PersonalReport } from "@/lib/report";
+import {
+  buildPersonalReport,
+  isH1RecapVisible,
+  type PersonalReport,
+} from "@/lib/report";
 
 const RECAP_KEY = "2026-H1";
 const NOTICE_STORAGE_KEY = `ottline.recapNotice.dismissed.${RECAP_KEY}`;
-const NOTICE_START_AT = new Date("2026-07-01T00:00:00+09:00").getTime();
-const NOTICE_END_AT = new Date("2026-08-01T00:00:00+09:00").getTime();
-
-function isNoticePeriod(now = new Date()) {
-  const time = now.getTime();
-  return time >= NOTICE_START_AT && time < NOTICE_END_AT;
-}
 
 function readDismissed() {
   try {
@@ -60,7 +57,12 @@ export default function SeasonalRecapNotice() {
     let cancelled = false;
 
     async function load() {
-      if (!isNoticePeriod() || isReportPage || isAdminPage || readDismissed()) {
+      if (
+        !isH1RecapVisible() ||
+        isReportPage ||
+        isAdminPage ||
+        readDismissed()
+      ) {
         setVisible(false);
         return;
       }

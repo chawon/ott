@@ -2,6 +2,14 @@ import type { PersonalReport, WatchLog } from './types';
 
 type CounterMap = Record<string, number>;
 
+const H1_RECAP_VISIBLE_START_AT = new Date('2026-07-01T00:00:00+09:00').getTime();
+const H1_RECAP_VISIBLE_END_AT = new Date('2026-08-01T00:00:00+09:00').getTime();
+
+export function isH1RecapVisible(now = new Date()): boolean {
+  const time = now.getTime();
+  return time >= H1_RECAP_VISIBLE_START_AT && time < H1_RECAP_VISIBLE_END_AT;
+}
+
 function pct(numerator: number, denominator: number): number {
   if (!denominator) return 0;
   return Math.round((numerator / denominator) * 1000) / 10;
@@ -198,11 +206,16 @@ export function buildPersonalReport(logs: WatchLog[], now = new Date()): Persona
     continueSeriesTitle: continueSeries?.title.name ?? null,
     continueSeriesSeasonNumber: continueSeries?.seasonNumber ?? null,
     continueSeriesEpisodeNumber: continueSeries?.episodeNumber ?? null,
-    seasonalRecap: buildSeasonalRecap(logs),
+    seasonalRecap: buildSeasonalRecap(logs, now),
   };
 }
 
-export function buildSeasonalRecap(logs: WatchLog[]): PersonalReport['seasonalRecap'] {
+export function buildSeasonalRecap(
+  logs: WatchLog[],
+  now = new Date(),
+): PersonalReport['seasonalRecap'] {
+  if (!isH1RecapVisible(now)) return null;
+
   const start = new Date('2026-01-01T00:00:00+09:00');
   const endExclusive = new Date('2026-07-01T00:00:00+09:00');
   let totalLogs = 0;

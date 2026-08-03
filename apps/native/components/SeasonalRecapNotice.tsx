@@ -7,18 +7,11 @@ import { getPersonalReport, trackEvent } from '../lib/api';
 import { appShellCopy } from '../lib/i18n';
 import { getSetting, listLogsLocal, setSetting } from '../lib/localDb';
 import { useNativePreferences } from '../lib/nativePreferences';
-import { buildPersonalReport } from '../lib/report';
+import { buildPersonalReport, isH1RecapVisible } from '../lib/report';
 import type { PersonalReport } from '../lib/types';
 
 const RECAP_KEY = '2026-H1';
 const NOTICE_STORAGE_KEY = `ottline.recapNotice.dismissed.${RECAP_KEY}`;
-const NOTICE_START_AT = new Date('2026-07-01T00:00:00+09:00').getTime();
-const NOTICE_END_AT = new Date('2026-08-01T00:00:00+09:00').getTime();
-
-function isNoticePeriod(now = new Date()) {
-  const time = now.getTime();
-  return time >= NOTICE_START_AT && time < NOTICE_END_AT;
-}
 
 async function loadReportWithLocalFallback(): Promise<PersonalReport> {
   try {
@@ -50,7 +43,7 @@ export function SeasonalRecapNotice() {
     let cancelled = false;
 
     async function load() {
-      if (!isNoticePeriod() || isReportPage) {
+      if (!isH1RecapVisible() || isReportPage) {
         setVisible(false);
         return;
       }

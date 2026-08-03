@@ -158,6 +158,15 @@ describe('buildPersonalReport', () => {
     });
   });
 
+  it('stops exposing the 2026 first-half recap in August KST', () => {
+    const report = buildPersonalReport(
+      [log({ watchedAt: '2026-06-10T12:00:00.000Z' })],
+      new Date('2026-07-31T15:00:00.000Z'),
+    );
+
+    expect(report.seasonalRecap).toBeNull();
+  });
+
   it('returns a zero report for empty local logs', () => {
     expect(buildPersonalReport([])).toMatchObject({
       totalLogs: 0,
