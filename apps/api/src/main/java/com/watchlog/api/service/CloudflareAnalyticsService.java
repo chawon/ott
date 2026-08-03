@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.List;
@@ -17,6 +18,44 @@ public class CloudflareAnalyticsService {
 
     private static final Logger log = LoggerFactory.getLogger(CloudflareAnalyticsService.class);
     private static final String CF_GRAPHQL = "https://api.cloudflare.com/client/v4/graphql";
+    private static final ZoneId KST = ZoneId.of("Asia/Seoul");
+    static final String DAILY_QUERY = """
+            query DailyCloudflareStats(
+              $zoneTag: string
+              $accountTag: string
+              $requestHost: string
+              $start: Time
+              $end: Time
+            ) {
+              viewer {
+                zones(filter: {zoneTag: $zoneTag}) {
+                  httpRequests1hGroups(
+                    limit: 100
+                    filter: {datetime_geq: $start, datetime_lt: $end}
+                  ) {
+                    sum {
+                      requests
+                      pageViews
+                    }
+                  }
+                }
+                accounts(filter: {accountTag: $accountTag}) {
+                  rumPageloadEventsAdaptiveGroups(
+                    limit: 100
+                    filter: {
+                      datetime_geq: $start
+                      datetime_lt: $end
+                      requestHost: $requestHost
+                    }
+                  ) {
+                    sum {
+                      visits
+                    }
+                  }
+                }
+              }
+            }
+            """;
 
     @Value("${cloudflare.api-token:}")
     private String apiToken;
@@ -35,36 +74,15 @@ public class CloudflareAnalyticsService {
             return new CloudflareStatsDto(0, 0, 0, "CF_API_TOKEN or CF_ZONE_ID not configured");
         }
         try {
-            LocalDate yesterday = LocalDate.now(ZoneId.of("Asia/Seoul")).minusDays(1);
-            String date = yesterday.toString();
-
-            String query = """
-                {
-                  viewer {
-                    zones(filter: {zoneTag: "%s"}) {
-                      httpRequests1dGroups(
-                        limit: 1
-                        filter: {date: "%s"}
-                      ) {
-                        sum {
-                          requests
-                          pageViews
-                        }
-                      }
-                    }
-                    accounts(filter: {accountTag: "%s"}) {
-                      rumPageloadEventsAdaptiveGroups(
-                        limit: 1
-                        filter: {date: "%s", requestHost: "%s"}
-                      ) {
-                        sum {
-                          visits
-                        }
-                      }
-                    }
-                  }
-                }
-                """.formatted(zoneId, date, accountTag, date, requestHost);
+            LocalDate yesterday = LocalDate.now(KST).minusDays(1);
+            KstDayRange range = kstDayRange(yesterday);
+            Map<String, Object> variables = Map.of(
+                    "zoneTag", zoneId,
+                    "accountTag", accountTag,
+                    "requestHost", requestHost,
+                    "start", range.start().toString(),
+                    "end", range.end().toString()
+            );
 
             var client = RestClient.create();
             @SuppressWarnings("unchecked")
@@ -72,7 +90,7 @@ public class CloudflareAnalyticsService {
                     .uri(CF_GRAPHQL)
                     .header("Authorization", "Bearer " + apiToken)
                     .header("Content-Type", "application/json")
-                    .body(Map.of("query", query))
+                    .body(Map.of("query", DAILY_QUERY, "variables", variables))
                     .retrieve()
                     .body(Map.class);
 
@@ -84,7 +102,7 @@ public class CloudflareAnalyticsService {
     }
 
     @SuppressWarnings("unchecked")
-    private CloudflareStatsDto parseResponse(Map<String, Object> response) {
+    CloudflareStatsDto parseResponse(Map<String, Object> response) {
         try {
             var data = (Map<String, Object>) response.get("data");
             var viewer = (Map<String, Object>) data.get("viewer");
@@ -93,12 +111,9 @@ public class CloudflareAnalyticsService {
             var zones = (List<Map<String, Object>>) viewer.get("zones");
             long requests = 0, pageViews = 0;
             if (zones != null && !zones.isEmpty()) {
-                var httpGroups = (List<Map<String, Object>>) zones.get(0).get("httpRequests1dGroups");
-                if (httpGroups != null && !httpGroups.isEmpty()) {
-                    var sum = (Map<String, Object>) httpGroups.get(0).get("sum");
-                    requests = toLong(sum.get("requests"));
-                    pageViews = toLong(sum.get("pageViews"));
-                }
+                var httpGroups = (List<Map<String, Object>>) zones.get(0).get("httpRequests1hGroups");
+                requests = sumGroups(httpGroups, "requests");
+                pageViews = sumGroups(httpGroups, "pageViews");
             }
 
             // Web Analytics (RUM): actual browser visits via account-level query
@@ -106,10 +121,7 @@ public class CloudflareAnalyticsService {
             long uniqueVisitors = 0;
             if (accounts != null && !accounts.isEmpty()) {
                 var rumGroups = (List<Map<String, Object>>) accounts.get(0).get("rumPageloadEventsAdaptiveGroups");
-                if (rumGroups != null && !rumGroups.isEmpty()) {
-                    var sum = (Map<String, Object>) rumGroups.get(0).get("sum");
-                    uniqueVisitors = toLong(sum.get("visits"));
-                }
+                uniqueVisitors = sumGroups(rumGroups, "visits");
             }
 
             return new CloudflareStatsDto(requests, uniqueVisitors, pageViews, null);
@@ -118,6 +130,25 @@ public class CloudflareAnalyticsService {
             return new CloudflareStatsDto(0, 0, 0, "Parse error: " + e.getMessage());
         }
     }
+
+    @SuppressWarnings("unchecked")
+    private long sumGroups(List<Map<String, Object>> groups, String field) {
+        if (groups == null || groups.isEmpty()) return 0;
+        long total = 0;
+        for (Map<String, Object> group : groups) {
+            var sum = (Map<String, Object>) group.get("sum");
+            if (sum != null) total += toLong(sum.get(field));
+        }
+        return total;
+    }
+
+    static KstDayRange kstDayRange(LocalDate date) {
+        Instant start = date.atStartOfDay(KST).toInstant();
+        Instant end = date.plusDays(1).atStartOfDay(KST).toInstant();
+        return new KstDayRange(start, end);
+    }
+
+    record KstDayRange(Instant start, Instant end) {}
 
     private long toLong(Object value) {
         if (value == null) return 0;
