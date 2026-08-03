@@ -42,6 +42,8 @@ public class AnalyticsService {
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     private static final String EXCLUDED_ADMIN_ID = "2777a431-5ccb-4761-9c8a-2b17a34ff566";
+    private static final LocalDate H1_RECAP_VISIBLE_FROM = LocalDate.of(2026, 7, 1);
+    private static final LocalDate H1_RECAP_VISIBLE_UNTIL = LocalDate.of(2026, 8, 1);
 
     private final JdbcTemplate jdbcTemplate;
     private final AnalyticsMetricsQuery analyticsMetricsQuery;
@@ -206,11 +208,17 @@ public class AnalyticsService {
                 continueSeriesLog == null ? null : continueSeriesLog.getTitle().getName(),
                 continueSeriesLog == null ? null : continueSeriesLog.getSeasonNumber(),
                 continueSeriesLog == null ? null : continueSeriesLog.getEpisodeNumber(),
-                buildSeasonalRecap(logs, kst)
+                buildSeasonalRecap(logs, kst, today)
         );
     }
 
-    private SeasonalRecapDto buildSeasonalRecap(List<WatchLogEntity> logs, ZoneId zone) {
+    static boolean isH1RecapVisible(LocalDate today) {
+        return !today.isBefore(H1_RECAP_VISIBLE_FROM) && today.isBefore(H1_RECAP_VISIBLE_UNTIL);
+    }
+
+    private SeasonalRecapDto buildSeasonalRecap(List<WatchLogEntity> logs, ZoneId zone, LocalDate today) {
+        if (!isH1RecapVisible(today)) return null;
+
         LocalDate start = LocalDate.of(2026, 1, 1);
         LocalDate endExclusive = LocalDate.of(2026, 7, 1);
         Map<String, Integer> typeCounts = new HashMap<>();
