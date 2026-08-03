@@ -34,6 +34,9 @@ ottline 웹서비스 운영 현황을 매일 한 곳에서 확인하고 싶음.
 - GA4 전일 수치는 조회 이후에도 보정될 수 있으므로 관리자 화면과 Telegram에 `잠정치`로 표시한다.
 - Kubernetes 상태는 지속되는 실시간 값이 아니라 리포트 생성 시점의 스냅샷이다. 응답의 `generatedAt`과 함께 KST 조회 시각을 표시한다.
 - iOS의 `installState=app_store_testflight`는 실제 설치 출처를 판별하지 않는 기존 호환 값이다. 관리자 화면은 App Store와 TestFlight 합계라고 추정하지 않고 `iOS 앱 (설치 출처 미구분)`으로 표시하며, 버전과 빌드 번호만 구분한다.
+- PR `#88`, main SHA `5c70b2bab467d5b234dd3fc270e5d296f28d0e04`로 배포했다. PR API/Web CI run은 `30788544040`/`30788544046`, main API/Web CI run은 `30788661239`/`30788661226`, API/Web production run은 `30788807830`/`30788988123`, API/Web manifest commit은 `cfad3136c4e77585ff1245d0204a3040a2314666`/`e85b454b444042223ad767b4e26533dab910be07`이다.
+- ArgoCD `ott-app`은 `Synced Healthy`, production `ott-api`/`ott-web` 이미지와 `APP_VERSION=5c70b2b`, Pod `1/1` ready·restart 0을 확인했다. 내부 리포트는 `generatedAt=2026-08-03T15:04:30+09:00`, `requests=1105`, `visits=8`, `uniqueVisitors=8`, `pageViews=248`, Cloudflare/GA4/Kubernetes `error=null`을 반환했다. production Web 이미지에서 새 관리자 문구를 확인했고, 새 형식 Telegram 테스트 발송은 `Daily report sent to Telegram` 로그로 확인했다. Web 배포의 production 버전 검증과 IndexNow도 성공했다.
+- 이 배포는 API와 Web만 대상으로 했으며 iOS 네이티브 코드와 App Store 바이너리는 변경하지 않았다.
 
 ### 2026-04-15 집계 정의 조정
 - 범위: 데일리 운영 리포트의 `앱 활동 (내부)` 섹션
