@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { validateAdminMutationRequest } from "@/lib/admin-mutation-request.mjs";
 import {
   CloudflareAccessConfigurationError,
   verifyCloudflareAccessRequest,
@@ -84,12 +85,9 @@ async function forward(
   if (unauthorized) return unauthorized;
 
   if (method === "POST") {
-    const origin = request.headers.get("Origin");
-    if (!origin || origin !== new URL(request.url).origin) {
-      return privateResponse("Invalid origin", 403);
-    }
-    if (!request.headers.get("Content-Type")?.startsWith("application/json")) {
-      return privateResponse("Content-Type must be application/json", 415);
+    const validationError = validateAdminMutationRequest(request);
+    if (validationError) {
+      return privateResponse(validationError.body, validationError.status);
     }
   }
 

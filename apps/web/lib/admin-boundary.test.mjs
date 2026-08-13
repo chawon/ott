@@ -44,7 +44,7 @@ test("feedback browser code calls the admin BFF without an admin token", () => {
   );
   assert.match(bffSource, /verifyCloudflareAccessRequest/);
   assert.match(bffSource, /"X-Admin-Token": adminToken/);
-  assert.match(bffSource, /origin !== new URL\(request\.url\)\.origin/);
+  assert.match(bffSource, /validateAdminMutationRequest\(request\)/);
   assert.match(bffSource, /\/internal\/admin\/feedback\/threads/);
   assert.doesNotMatch(bffSource, /return `\/api\/admin/);
 });
