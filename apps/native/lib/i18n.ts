@@ -421,6 +421,41 @@ export const logCopy = {
   },
 } as const satisfies Record<NativeLocale, Record<string, string>>;
 
+export const shareCardCopy = {
+  ko: {
+    cancel: '취소',
+    description: '남길 정보와 카드 비율을 골라보세요.',
+    formatFeed: '피드 · 1080×1350',
+    formatLabel: '카드 비율',
+    formatStory: '스토리 · 1080×1920',
+    imageSave: '이미지 저장',
+    imageSaveHint: '공유 화면에서 사진 앱을 선택해 저장할 수 있어요.',
+    profileLoading: '프로필 정보를 불러오는 중…',
+    profileSignature: '프로필 서명 표시',
+    preparing: '카드 준비 중…',
+    showNote: '메모 표시',
+    showRating: '평점 표시',
+    share: '공유하기',
+    title: '공유 카드 만들기',
+  },
+  en: {
+    cancel: 'Cancel',
+    description: 'Choose what to keep on the card and its format.',
+    formatFeed: 'Feed · 1080×1350',
+    formatLabel: 'Card format',
+    formatStory: 'Story · 1080×1920',
+    imageSave: 'Save image',
+    imageSaveHint: 'Choose Save Image in the share sheet to keep it in Photos.',
+    profileLoading: 'Loading profile…',
+    profileSignature: 'Show profile signature',
+    preparing: 'Preparing card…',
+    showNote: 'Show note',
+    showRating: 'Show rating',
+    share: 'Share',
+    title: 'Create share card',
+  },
+} as const satisfies Record<NativeLocale, Record<string, string>>;
+
 export const togetherCopy = {
   ko: {
     kicker: '함께',

@@ -19,7 +19,8 @@ import {
   RatingSelector,
   ratingOptionsForType,
 } from '../../../components/LogFormControls';
-import { LogShareCard, logShareCardCaptureSize } from '../../../components/LogShareCard';
+import { LogShareCard } from '../../../components/LogShareCard';
+import { ShareCardOptionsModal } from '../../../components/ShareCardOptionsModal';
 import type { ThemeColors } from '../../../constants/colors';
 import { Typography } from '../../../constants/typography';
 import {
@@ -50,7 +51,13 @@ import {
 } from '../../../lib/localDb';
 import { syncNow } from '../../../lib/sync';
 import { buildOutboxPayload, buildUpdateLogPayload } from '../../../lib/syncPayload';
-import { logShareCardFileName } from '../../../lib/shareCard';
+import {
+  defaultLogShareCardOptions,
+  getLogShareCardCaptureSize,
+  logShareCardFileName,
+  type LogShareCardAction,
+  type LogShareCardOptions,
+} from '../../../lib/shareCard';
 import {
   logCopy,
   occasionLabels,
@@ -215,6 +222,11 @@ export default function LogScreen() {
   const [shareCard, setShareCard] = useState(false);
   const [shareBusy, setShareBusy] = useState(false);
   const [shareTargetLog, setShareTargetLog] = useState<WatchLog | null>(null);
+  const [shareOptionsOpen, setShareOptionsOpen] = useState(false);
+  const [shareAction, setShareAction] = useState<LogShareCardAction>('share');
+  const [shareOptions, setShareOptions] = useState<LogShareCardOptions>(() =>
+    defaultLogShareCardOptions(),
+  );
   const [status, setStatus] = useState<Status>('IN_PROGRESS');
   const [rating, setRating] = useState<number | null>(null);
   const [note, setNote] = useState('');
@@ -566,7 +578,7 @@ export default function LogScreen() {
       }
       if (shareCard) {
         setShareTargetLog(log);
-        setShareBusy(true);
+        setShareOptionsOpen(true);
       }
 
       resetForm();
@@ -577,6 +589,13 @@ export default function LogScreen() {
     } finally {
       setSaving(false);
     }
+  }
+
+  function confirmShareOptions(options: LogShareCardOptions, action: LogShareCardAction) {
+    setShareOptions(options);
+    setShareAction(action);
+    setShareOptionsOpen(false);
+    setShareBusy(true);
   }
 
   useEffect(() => {
@@ -599,13 +618,18 @@ export default function LogScreen() {
         await Sharing.shareAsync(capturedUri, {
           mimeType: 'image/png',
           UTI: 'public.png',
-          dialogTitle: logShareCardFileName(logToShare),
+          dialogTitle: logShareCardFileName(logToShare, shareOptions.format),
         });
         trackEvent({
-          eventName: 'share_card_create',
+          eventName: shareAction === 'save' ? 'share_card_save' : 'share_card_create',
           properties: {
             source: 'ios_native_log',
             titleType: logToShare.title.type,
+            action: shareAction,
+            format: shareOptions.format,
+            showRatingLabel: shareOptions.showRatingLabel,
+            showNote: shareOptions.showNote,
+            showProfileSignature: shareOptions.showProfileSignature,
             hasNote: Boolean(logToShare.note?.trim()),
             hasRating: typeof logToShare.rating === 'number',
           },
@@ -617,6 +641,7 @@ export default function LogScreen() {
         if (!cancelled) {
           setShareBusy(false);
           setShareTargetLog(null);
+          setShareOptionsOpen(false);
         }
       }
     }
@@ -632,7 +657,9 @@ export default function LogScreen() {
     copy.shareErrorFallback,
     copy.shareErrorTitle,
     copy.shareUnavailable,
+    shareAction,
     shareBusy,
+    shareOptions,
     shareTargetLog,
   ]);
 
@@ -988,19 +1015,36 @@ export default function LogScreen() {
           </View>
         )}
       </ScrollView>
-      {shareTargetLog ? (
+      <ShareCardOptionsModal
+        colors={colors}
+        locale={locale}
+        log={shareTargetLog}
+        onCancel={() => {
+          setShareOptionsOpen(false);
+          setShareTargetLog(null);
+        }}
+        onConfirm={confirmShareOptions}
+        visible={shareOptionsOpen}
+      />
+      {shareTargetLog && shareBusy ? (
         <ViewShot
           ref={shareCardRef}
           options={{
             format: 'png',
             quality: 1,
             result: 'tmpfile',
-            width: logShareCardCaptureSize.width,
-            height: logShareCardCaptureSize.height,
+            width: getLogShareCardCaptureSize(shareOptions.format).width,
+            height: getLogShareCardCaptureSize(shareOptions.format).height,
           }}
-          style={styles.shareCaptureArea}
+          style={[
+            styles.shareCaptureArea,
+            {
+              width: getLogShareCardCaptureSize(shareOptions.format).width / 4,
+              height: getLogShareCardCaptureSize(shareOptions.format).height / 4,
+            },
+          ]}
         >
-          <LogShareCard log={shareTargetLog} locale={locale} />
+          <LogShareCard log={shareTargetLog} locale={locale} options={shareOptions} />
         </ViewShot>
       ) : null}
     </KeyboardAvoidingView>

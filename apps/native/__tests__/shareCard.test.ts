@@ -1,6 +1,8 @@
 import {
   buildReportShareCardContent,
   buildSeasonalRecapShareCardPayload,
+  defaultLogShareCardOptions,
+  getLogShareCardCaptureSize,
   logShareCardFileName,
   reportShareCardFileName,
   seasonalRecapShareCardFileName,
@@ -23,6 +25,20 @@ const log: WatchLog = {
 describe('logShareCardFileName', () => {
   it('sanitizes the title for a PNG filename', () => {
     expect(logShareCardFileName(log)).toBe('ott-Dune_Part_Two_IMAX-story.png');
+    expect(logShareCardFileName(log, 'feed')).toBe('ott-Dune_Part_Two_IMAX-feed.png');
+  });
+});
+
+describe('log share card options', () => {
+  it('defaults note visibility from the log and supports feed dimensions', () => {
+    expect(defaultLogShareCardOptions(log)).toMatchObject({
+      format: 'story',
+      showRatingLabel: true,
+      showNote: false,
+      showProfileSignature: false,
+    });
+    expect(getLogShareCardCaptureSize('story')).toEqual({ width: 1080, height: 1920 });
+    expect(getLogShareCardCaptureSize('feed')).toEqual({ width: 1080, height: 1350 });
   });
 });
 
