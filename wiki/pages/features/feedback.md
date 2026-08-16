@@ -54,14 +54,17 @@
   - `/feedback?source=android-alpha-share` — OTT 앱 공유 기록 테스트 의견 템플릿
 
 ### 관리자 화면
-- `apps/web/app/[locale]/admin/feedback/page.tsx?token=...`
+- `/admin/feedback` — Cloudflare Access로 보호되는 locale 없는 관리자 화면
 - 전체 문의 목록, 스레드 상세, 관리자 답변 등록
 - 미답변/전체/답변 완료/종료 필터와 상태별 카운트 표시
 - 미답변 문의는 `updatedAt` 기준 경과 시간을 SLA 배지로 표시
 
 ### 접근 제어
 - 사용자 API: `X-User-Id` 기준 본인 문의만 반환
-- 관리자 API: `X-Admin-Token` 기준 전체 접근
+- 관리자 브라우저 요청: same-origin BFF인 `/admin/api/feedback/**`만 호출하며 URL·HTML·브라우저 요청에 관리자 토큰을 포함하지 않음
+- 관리자 인증: Cloudflare Access의 `Cf-Access-Jwt-Assertion`을 Next.js `proxy`와 BFF route에서 다시 검증
+- 관리자 API: web 서버가 내부 `/internal/admin/feedback/**`에만 `X-Admin-Token`을 붙여 호출
+- 관리자 답변 POST: `X-Forwarded-Host`·`X-Forwarded-Proto`로 공개 origin을 복원해 브라우저 `Origin`과 비교하며, 누락·외부·변조 origin은 `403`으로 차단
 - unlink된 기기: `X-User-Id` + `X-Device-Id` 검증 실패 → 차단 + 로컬 상태 초기화
 
 ---
@@ -95,6 +98,19 @@ TELEGRAM_SERVICE_NAME=...  (선택)
 - 관리자 목록 검색 없음
 - 사용자 후속 메시지(댓글) 기능 없음
 - 관리자 답변 시 사용자 알림 없음
+
+---
+
+## 운영 배포 기록
+
+### 2026-08-16 — 관리자 답변 `Invalid origin` 복구
+- 원인: Cloudflare/Ingress 뒤에서 공개 브라우저 origin과 Next.js 내부 요청 URL을 직접 비교해 정상 답변 POST를 거부
+- 수정: 프록시가 전달한 공개 host/proto 기준으로 same-origin을 검증하고 기존 CSRF·JSON 경계를 유지
+- PR `#89`, main SHA `f0db4a150b90b08dc877cf9c913e171de4150209`
+- PR/main Web CI `31685044955`/`31685212556`, Web production `31920437846`
+- manifest `ca01cdb8f04d1ceb64d5bff6a0ce821a4c56c3aa`
+- ArgoCD `ott-app` `Synced Healthy`, `ott-web` `1/1` ready·restart 0, image SHA와 `APP_VERSION=f0db4a1` 확인
+- API, DB, iOS 네이티브, Android TWA 변경 없음
 
 ---
 

@@ -1,5 +1,15 @@
 # Wiki Log
 
+## [2026-08-16] update: 관리자 문의 답변 Invalid origin 복구 production 배포
+- 대상: PR `#89`, main SHA `f0db4a150b90b08dc877cf9c913e171de4150209`, Web production run `31920437846`
+- 생성/수정: AGENTS.md, features/feedback.md, index.md, log.md
+- 노트:
+  - Cloudflare/Ingress 뒤의 공개 브라우저 origin과 Next.js 내부 요청 URL을 직접 비교해 정상 답변 POST가 `403 Invalid origin`으로 거부되던 문제 수정
+  - `X-Forwarded-Host`·`X-Forwarded-Proto` 기준 same-origin 검증으로 전환하고 origin 누락·외부 origin·변조 헤더·비 JSON 요청 차단 유지
+  - PR/main Web CI `31685044955`/`31685212556`, manifest commit `ca01cdb8f04d1ceb64d5bff6a0ce821a4c56c3aa`
+  - ArgoCD `ott-app` `Synced Healthy`, `ott-web` image SHA와 `APP_VERSION=f0db4a1`, Pod `1/1` ready·restart 0, 실행 번들의 프록시 origin 검증 반영 확인
+  - API, DB, iOS 네이티브, Android TWA는 변경하거나 배포하지 않음
+
 ## [2026-08-03] update: Cloudflare 데일리 통계 KST 경계 보정 production 배포
 - 대상: PR `#87`, main SHA `12ed846350f9efed056d8c40b9ab5a10a381c0ca`, API production run `30786675495`
 - 생성/수정: AGENTS.md, docs/plan-daily-report.md, features/daily-report.md, log.md

@@ -20,7 +20,7 @@ If present, read `./.omd/preferences.md` — pending corrections not yet folded 
 
 ---
 
-## 2) 프로젝트 스냅샷 (기준일: 2026-08-03)
+## 2) 프로젝트 스냅샷 (기준일: 2026-08-16)
 
 ### 아키텍처
 1. 모노레포
@@ -40,7 +40,7 @@ If present, read `./.omd/preferences.md` — pending corrections not yet folded 
 8. 공유 카드(OG 서버 렌더 + 공유/다운로드)
 9. PWA(설치 배너, SW, manifest)
 10. 다국어 지원(i18n): ko, en 전면 지원 및 TMDB 데이터 연동
-11. 사용자 문의함 + 관리자 문의 답변 화면 기본 흐름 구현
+11. 사용자 문의함 + 관리자 문의 답변 화면 기본 흐름 구현. 관리자 답변 POST는 Cloudflare/Ingress 뒤의 공개 origin을 `X-Forwarded-Host`·`X-Forwarded-Proto`로 복원해 검증한다(`2026-08-16` production 반영, web SHA `f0db4a1`).
 12. 신규 문의 등록 시 Telegram 알림 전송(환경변수 설정 시 활성화)
 13. 기기 unlink 후 서버 API 차단 + 로컬 캐시 초기화 적용
 14. Next.js 16 대응 `middleware` -> `proxy` 전환 완료
@@ -102,13 +102,15 @@ If present, read `./.omd/preferences.md` — pending corrections not yet folded 
 22. **현실적인 analytics 집계 및 관리자 화면 개편**: `app_open`의 경로 이동 중복과 식별자 churn으로 부풀던 실행량을 원본 이벤트·실행 세션·활성 클라이언트·행동 사용자로 분리했다. 행동 사용자는 계정 우선, 단일 계정으로만 연결된 클라이언트, 클라이언트, 세션 순서의 resolved actor 규칙을 사용하고, 공유 클라이언트와 관리자 계정은 안전하게 처리한다. 검색·제목 선택·기기 연결·첫 기록·기록 생성은 순차 퍼널이 아닌 독립 행동 도달로 표시하며, 관리자 화면과 Telegram 데일리 리포트가 같은 `AnalyticsMetricsQuery`를 사용한다. `2026-07-14` PR `#79`, main SHA `b06bf4ceac410d8da37bdf764fa1afec4d2f8efa`, API/Web/Native CI run `29308192234`/`29308192262`/`29308192271`, web/API production run `29308658284`/`29308658465`, web/API manifest commit `83458e8`/`4ff059a`로 배포 완료했다. ArgoCD `ott-app` `Synced Healthy`, production `ott-web`/`ott-api` 이미지 태그 `b06bf4ceac410d8da37bdf764fa1afec4d2f8efa`, `APP_VERSION=b06bf4c`를 확인했고, production Pod 내부에서 overview 새 계약과 관리자 화면 새 지표 문구를 확인했다. 네이티브 `osFamily=ios` 수정은 main에 포함됐지만 실제 App Store 사용자 반영은 다음 네이티브 바이너리 배포가 필요하며, 서버는 기존 `iOS`와 신규 `ios`를 소문자로 정규화해 함께 집계한다. `2026-08-03`에는 Cloudflare 데일리 통계가 KST 전일을 정확히 사용하도록 PR `#87`, main SHA `12ed846350f9efed056d8c40b9ab5a10a381c0ca`로 API를 배포했다. PR/main API CI run `30784202297`/`30784704338`, API production run `30786675495`, manifest commit `05d6ac365f271bceffedaa8ed3d59894954d9469`를 확인했다. ArgoCD `ott-app`은 `Synced Healthy`, production `ott-api` 이미지와 `APP_VERSION=12ed846`, Pod `1/1` ready·restart 0이었다. production 내부 리포트의 `2026-08-02` Cloudflare 값 `requests=1105`, `pageViews=248`, `uniqueVisitors=8`, `error=null`이 동일 KST 범위의 직접 검증값과 일치했고, 수동 Telegram 전송도 `200` 및 `Daily report sent to Telegram` 로그로 확인했다. 이어 PR `#88`, main SHA `5c70b2bab467d5b234dd3fc270e5d296f28d0e04`에서 실제 RUM 필드에 맞춘 `visits`를 추가하고 `uniqueVisitors`는 순차 배포 호환 alias로 유지했다. GA4 전일 값은 잠정치로, Kubernetes는 `generatedAt` 기반 조회 시점 스냅샷으로, iOS `app_store_testflight`는 `iOS 앱 (설치 출처 미구분)`으로 표시했다. PR API/Web CI run `30788544040`/`30788544046`, main API/Web CI run `30788661239`/`30788661226`, API/Web production run `30788807830`/`30788988123`, API/Web manifest commit `cfad3136c4e77585ff1245d0204a3040a2314666`/`e85b454b444042223ad767b4e26533dab910be07`로 배포했다. ArgoCD `ott-app` `Synced Healthy`, production `ott-api`/`ott-web` 이미지와 `APP_VERSION=5c70b2b`, Pod `1/1` ready·restart 0을 확인했다. production 내부 응답은 `generatedAt=2026-08-03T15:04:30+09:00`, `requests=1105`, `visits=8`, `uniqueVisitors=8`, `pageViews=248`, Cloudflare/GA4/Kubernetes `error=null`이었고 새 관리자 문구가 Web 이미지에 포함된 것을 확인했다. 새 형식의 Telegram 테스트 발송도 `Daily report sent to Telegram` 로그로 확인했다. 이 배포에서는 iOS 네이티브 코드와 App Store 바이너리를 변경하지 않았다.
 23. **SEO·검색 유입 기반 및 Cloudflare Access 관리자 경계**: 공개 한국어·영어 페이지에 self-canonical, 상호 hreflang, 언어별 OG를 적용하고 `/guide`와 한국어·영어 가이드 6개를 추가했다. sitemap은 공개 URL 19개만 제공하며 robots/llms.txt와 배포 후 IndexNow를 함께 운영한다. 검색 진입은 세션 기준 channel/source/landing/locale/campaign과 첫 기록까지 집계하고 자체 analytics 이벤트는 180일 후 자동 파기한다. 관리자 UI는 locale 없는 `/admin/**`로 통합하고 Cloudflare Access JWT를 origin에서 다시 검증하며 내부 관리자 API와 브라우저 경계를 분리했다. `2026-07-19` PR `#81`, main SHA `8303f4f51ccc12c1eda4a41efe58c79afd28f378`, Native/API/Web main CI run `29678410613`/`29678410582`/`29678410578`, API/Web production run `29678500818`/`29678607528`, API/Web manifest commit `9c3972b648cdbdcc05e596c31543cc1de248cc04`/`e8a9118fcc2610876dc56aa2e27db5815a390c97`로 배포 완료했다. ArgoCD `ott-app` `Synced Healthy`, production `ott-web`/`ott-api` 이미지와 `APP_VERSION=8303f4f`, Flyway v28, 내부 acquisition 계약, 공개 version/robots/sitemap을 확인했다. `2026-07-25` 후속 최적화는 PR `#83`, main SHA `524b00139e8495024dca67177c58956855ce56ed`, Web main CI run `30141396955`, Web production run `30141406956`, manifest commit `7989d4223e51a2114e02f03909ed8cc52f7d158a`로 배포했다. ArgoCD `ott-app` `Synced Healthy`, production `ott-web` 이미지와 `APP_VERSION=524b001`, 새 `/about`·가이드 HTML과 sitemap lastmod, IndexNow 성공을 확인했다. PWA 일반 기록 흐름은 유지하고 API 및 iOS TestFlight/App Store 바이너리는 배포하지 않았다.
 24. **KDC 기반 로컬 우선 내 서가 v1**: 도서관 정보나루 `srchDtlList`의 `class_no`를 사용해 책을 KDC 0~9 대분류에 정리하고, `RESOLVED` 영구 캐시와 `NOT_FOUND` 30일 캐시를 PostgreSQL에 저장한다. 웹은 Dexie v3 `bookClassifications` 캐시, ISBN-10→13 변환, 판본 중복 제거, 오프라인 우선 렌더, 한국어 전용 `/me/bookshelf`, 타임라인 책 필터 진입점, 기록 카드 KDC 배지, 저장 후 비차단 백그라운드 분류를 제공한다. `2026-07-29` PR `#85`, main SHA `35b62632b5633cc194f28e1855516f3ab9a9909c`, API/Web PR CI run `30434768178`/`30434768119`, API/Web main CI run `30435259945`/`30435259981`, API/Web production run `30435921276`/`30436647371`, API/Web manifest commit `606e390636c9dd8f7f1754c426a18cfa62599119`/`ea8ebaea04b37f43d2913699ac8d9804891ccb20`로 배포 완료했다. OCI Vault와 ExternalSecret의 `DATA4LIBRARY_AUTH_KEY`를 `Ready=True, SecretSynced`로 확인했고, ArgoCD `ott-app` `Synced Healthy`, production `ott-api`/`ott-web` 이미지 태그 `35b62632b5633cc194f28e1855516f3ab9a9909c`, `APP_VERSION=35b6263`, Pod `1/1` ready·restart 0, Flyway v29를 확인했다. production 내부 웹 프록시로 ISBN `9788983921987`을 조회해 `200`, `RESOLVED`, KDC `843`, 대분류 `8` 응답을 확인했다. iOS 네이티브 바이너리와 Android TWA는 변경하거나 배포하지 않았다.
+25. **관리자 문의 답변 프록시 origin 검증 복구**: Cloudflare/Ingress 뒤에서 브라우저의 공개 `Origin=https://ottline.app`과 Next.js 내부 요청 URL을 직접 비교해 정상 답변 POST가 `403 Invalid origin`으로 거부되던 문제를 수정했다. 공개 요청 origin은 `X-Forwarded-Host`·`X-Forwarded-Proto`로 복원하고, origin 누락·외부 origin·변조된 프록시 헤더·비 JSON 요청은 계속 차단한다. `2026-08-16` PR `#89`, main SHA `f0db4a150b90b08dc877cf9c913e171de4150209`, PR/main Web CI run `31685044955`/`31685212556`, Web production run `31920437846`, manifest commit `ca01cdb8f04d1ceb64d5bff6a0ce821a4c56c3aa`로 배포했다. ArgoCD `ott-app` `Synced Healthy`, production `ott-web` 이미지와 `APP_VERSION=f0db4a1`, Pod `1/1` ready·restart 0, 실행 번들의 새 프록시 origin 검증을 확인했다. API, DB, iOS 네이티브, Android TWA는 변경하거나 배포하지 않았다.
 
 ### P1
 1. 문의함 운영 후속 작업
 2. 우선 검토
    1. 관리자 문의함 미답변/전체/답변 완료/종료 필터와 카운트 표시 적용
    2. 미답변 경과 시간 기반 운영 SLA 배지 표시 적용
-   3. 남은 작업: 관리자 답변 알림 여부 결정, 사용자 후속 메시지 지원 여부 결정
+   3. Cloudflare Access 아래의 관리자 답변 BFF는 공개 프록시 origin 기준 검증으로 정상 동작하며, 외부 origin과 관리자 토큰 브라우저 노출은 계속 차단
+   4. 남은 작업: 관리자 답변 알림 여부 결정, 사용자 후속 메시지 지원 여부 결정
 
 ### P1
 1. PC 브라우저 확장 — 배포 후 후속 작업
