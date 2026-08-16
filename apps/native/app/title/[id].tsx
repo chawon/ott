@@ -27,6 +27,7 @@ import {
   listLogHistory,
   trackEvent,
 } from '../../lib/api';
+import { resolveSyncedDiscussionTitleId } from '../../lib/discussionTitleId';
 import { formatShortDate, seasonEpisodeLabel, statusLabel, typeLabel } from '../../lib/format';
 import { uuid } from '../../lib/id';
 import {
@@ -389,8 +390,9 @@ export default function TitleDetailScreen() {
     if (!titleId || discussionBusy) return;
     setDiscussionBusy(true);
     try {
-      const existing = await getDiscussionByTitle(titleId).catch(() => null);
-      const discussion = existing ?? await createDiscussion(titleId);
+      const syncedTitleId = await resolveSyncedDiscussionTitleId(titleId, logs[0]?.id);
+      const existing = await getDiscussionByTitle(syncedTitleId).catch(() => null);
+      const discussion = existing ?? await createDiscussion(syncedTitleId);
       trackEvent({
         eventName: 'discussion_open',
         properties: {

@@ -39,6 +39,7 @@ import {
   todayInputValue,
   typeLabel,
 } from '../../../lib/format';
+import { resolveSyncedDiscussionTitleId } from '../../../lib/discussionTitleId';
 import { uuid } from '../../../lib/id';
 import {
   countLogsLocal,
@@ -493,7 +494,8 @@ export default function LogScreen() {
   }
 
   async function publishLogToDiscussion(log: WatchLog) {
-    const discussion = await createDiscussion(log.title.id);
+    const titleId = await resolveSyncedDiscussionTitleId(log.title.id, log.id);
+    const discussion = await createDiscussion(titleId);
     if (log.note?.trim()) {
       await createComment(discussion.id, {
         body: log.note.trim(),

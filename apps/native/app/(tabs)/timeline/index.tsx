@@ -19,6 +19,7 @@ import { LogShareCard, logShareCardCaptureSize } from '../../../components/LogSh
 import type { ThemeColors } from '../../../constants/colors';
 import { Typography } from '../../../constants/typography';
 import { createComment, createDiscussion, trackEvent } from '../../../lib/api';
+import { resolveSyncedDiscussionTitleId } from '../../../lib/discussionTitleId';
 import {
   formatShortDate,
   seasonEpisodeLabel,
@@ -366,8 +367,8 @@ export default function TimelineScreen() {
     if (publishBusyId) return;
     setPublishBusyId(log.id);
     try {
-      await syncNow({ registerIfNeeded: true }).catch(() => null);
-      const discussion = await createDiscussion(log.title.id);
+      const titleId = await resolveSyncedDiscussionTitleId(log.title.id, log.id);
+      const discussion = await createDiscussion(titleId);
       if (log.note?.trim()) {
         await createComment(discussion.id, {
           body: log.note.trim(),
