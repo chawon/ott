@@ -4,6 +4,31 @@
 
 이 문서는 App Store Connect의 TestFlight beta review information, 내부 QA, App Store 출시 이력을 정리한다. `2026-06-29` App Store 심사를 통과해 App Store에 공개됐으며, 출시 후 확인은 `docs/ios-app-store-launch-checklist.md`에서 이어간다.
 
+## 1.0.3 함께 기록 안정화 릴리스
+
+### 제출 기준
+
+- App version: `1.0.3`
+- Local iOS build baseline: `22`
+- EAS TestFlight profile: `autoIncrement: true`이므로 다음 빌드는 `23`을 예상한다.
+- 이전 공개 버전: `1.0.2` (`2026-07-20` KST 기준 App Store 공개 확인)
+- 변경 범위: 동기화된 작품의 canonical ID를 사용해 함께 기록을 열고 공개하도록 수정한다.
+
+### App Store — 새로운 기능 (한국어)
+
+일부 작품에서 함께 기록을 열거나 공개할 때 서버 오류가 나던 문제를 고쳤어요. 동기화된 작품 정보를 정확히 연결해 함께 기록을 더 안정적으로 사용할 수 있어요.
+
+### App Store — What's New (English)
+
+Fixed an issue that could show a server error when opening or sharing a title in Together. Synced titles are now linked correctly for a more reliable Together experience.
+
+### TestFlight — 이번 버전에서 확인할 내용
+
+- 새로 검색한 작품을 기록한 직후 `함께 기록에 공개`를 선택해 공개가 완료되는지 확인한다.
+- 타임라인 카드의 `함께 공개`를 눌러 공개가 완료되는지 확인한다.
+- 작품 상세의 `함께 기록 보기`가 해당 작품의 공개 기록으로 이동하는지 확인한다.
+- 기존 `1.0.2`의 피드·스토리 공유 카드 옵션과 이미지 저장 기능이 그대로 유지되는지 확인한다.
+
 ## 1.0.2 English TestFlight submission copy
 
 아래 내용은 현재 iOS `1.0.2` TestFlight 후보에 대해 App Store Connect의 English (U.S.) localization과 TestFlight Beta App Review Information에 붙여 넣을 초안이다. 앱 코드나 번역 구현을 변경하지 않고 심사 입력 내용만 준비한다.
