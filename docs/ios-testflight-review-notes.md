@@ -1,6 +1,6 @@
 # iOS TestFlight Review Notes
 
-기준일: 2026-06-29
+기준일: 2026-08-16
 
 이 문서는 App Store Connect의 TestFlight beta review information, 내부 QA, App Store 출시 이력을 정리한다. `2026-06-29` App Store 심사를 통과해 App Store에 공개됐으며, 출시 후 확인은 `docs/ios-app-store-launch-checklist.md`에서 이어간다.
 
@@ -10,9 +10,19 @@
 
 - App version: `1.0.3`
 - Local iOS build baseline: `22`
-- EAS TestFlight profile: `autoIncrement: true`이므로 다음 빌드는 `23`을 예상한다.
+- EAS TestFlight profile: `autoIncrement: true`
+- 실제 제출 빌드: `1.0.3 (23)`
 - 이전 공개 버전: `1.0.2` (`2026-07-20` KST 기준 App Store 공개 확인)
 - 변경 범위: 동기화된 작품의 canonical ID를 사용해 함께 기록을 열고 공개하도록 수정한다.
+
+### 2026-08-16 빌드 및 제출 상태
+
+- PR `#90`, main SHA `b24dea0733369a2a0181e0f70559a30d70b6d115`로 수정과 `1.0.3` 버전 변경을 병합했다.
+- main Native iOS CI run `31922438068`과 Verify Web run `31922438075`가 성공했다.
+- Native iOS TestFlight run `31922504262`에서 EAS build `756573d4-164e-4314-a30b-856fd787c2cc`를 생성했다.
+- EAS submission `44c5e661-4ff0-479c-8410-d7e270d42bdc`로 build `1.0.3 (23)`을 Apple App Store Connect에 업로드했다.
+- EAS 제출은 성공했고 Apple processing 단계에 진입했다. App Store Connect TestFlight 탭의 processing/available 상태는 별도로 확인해야 한다.
+- `2026-08-16` Apple 공개 조회 기준 App Store 버전은 아직 `1.0.2`다. `1.0.3` 공개 전에는 build `23` 선택, 아래 What's New 반영, App Review 제출이 남아 있다.
 
 ### App Store — 새로운 기능 (한국어)
 
@@ -244,6 +254,9 @@ The app does not read video playback contents from other apps. iOS recap reminde
 - EAS App Store Connect API key is configured. (`2026-06-18` 이후 TestFlight 제출 성공으로 확인)
 - GitHub secret `EXPO_TOKEN` is present. (`Native iOS TestFlight` workflow 성공으로 확인)
 - Native iOS TestFlight workflow succeeds. (`27805741470`, build `1.0.0 (7)`)
+- Native iOS TestFlight workflow succeeds for `1.0.3`. (`31922504262`, EAS build `756573d4-164e-4314-a30b-856fd787c2cc`)
+- EAS Submit uploads build `1.0.3 (23)` to App Store Connect. (`44c5e661-4ff0-479c-8410-d7e270d42bdc`)
+- App Store Connect processing/available 확인과 내부 테스터 실기기 확인은 남아 있다. (`1.0.3 (23)`)
 - Local Mac EAS build succeeds. (`2026-06-28`, build `1.0.0 (16)`)
 - EAS Submit uploads build `1.0.0 (16)` to App Store Connect. (`5cddc021-ab3e-412c-99cb-f687f67dde30`)
 - Native app icon is replaced from Expo default icon to ottline brand icon. (`2026-06-28`, build `1.0.0 (18)`)
@@ -261,3 +274,4 @@ The app does not read video playback contents from other apps. iOS recap reminde
 - `2026-06-28`: branch `native-ios-qa-parity`, local Mac EAS build artifact `apps/native/builds/direct/ottline-16.ipa`, EAS submission `5cddc021-ab3e-412c-99cb-f687f67dde30`, App Store Connect build `1.0.0 (16)`. Web/TWA parity에 맞춰 기록하기 입력 순서, 날짜 선택, 평점 입력 방식, 타임라인 수정 폼, 다크 모드 입력 색상, web preview guard와 SQLite wasm bundling을 보강했다.
 - `2026-06-28`: build `1.0.0 (16)`에서 Expo 기본 아이콘이 확인되어 출시 후보에서 제외했다. `apps/native/assets/icon.png`를 ottline 브랜드 아이콘으로 교체했고, EAS autoIncrement로 build `1.0.0 (18)`을 생성했다. Local artifact `apps/native/builds/direct/ottline-18.ipa`, EAS submission `a58c8aab-df08-4364-8259-64a375fcea1d`로 App Store Connect 업로드를 완료했다.
 - `2026-06-29`: PR `#73` main SHA `2ddb3bb` 기준 iOS launch prep이 main에 반영됐다. App Store 심사를 통과해 `https://apps.apple.com/app/ottline/id6780318110`로 공개됐다.
+- `2026-08-16`: PR `#90`, main SHA `b24dea0733369a2a0181e0f70559a30d70b6d115`, GitHub run `31922504262`, EAS build `756573d4-164e-4314-a30b-856fd787c2cc`, EAS submission `44c5e661-4ff0-479c-8410-d7e270d42bdc`, build `1.0.3 (23)`. 로컬 작품 ID가 서버 canonical ID로 합쳐진 직후 함께 기록 진입/공개에서 발생하던 400 응답을 수정했고 App Store Connect 업로드를 완료했다. Apple processing/available 확인과 App Review 제출은 남아 있다.
