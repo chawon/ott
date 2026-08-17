@@ -868,6 +868,7 @@
     "acquisitionLogCreateSessions": "기록 생성 세션",
     "acquisitionOrphanSessions": "유입 시작 이벤트 없이 전환만 확인된 세션: {count}",
     "acquisitionByChannel": "채널별 유입",
+    "acquisitionBySource": "출처별 유입",
     "acquisitionByLandingPath": "첫 진입 경로별 유입",
     "acquisitionByCampaign": "캠페인별 유입",
     "acquisitionDimension": "구분",

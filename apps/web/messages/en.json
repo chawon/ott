@@ -868,6 +868,7 @@
     "acquisitionLogCreateSessions": "Log-create sessions",
     "acquisitionOrphanSessions": "Conversions without a matching acquisition start: {count}",
     "acquisitionByChannel": "Acquisition by channel",
+    "acquisitionBySource": "Acquisition by source",
     "acquisitionByLandingPath": "Acquisition by landing path",
     "acquisitionByCampaign": "Acquisition by campaign",
     "acquisitionDimension": "Dimension",

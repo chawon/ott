@@ -3,6 +3,8 @@ import test from "node:test";
 
 import {
   normalizeOwnedEntrySource,
+  normalizePublicPageViewPath,
+  pageOpenEventForPath,
   parsePendingAppOpen,
   shouldTrackAppOpenForSession,
 } from "./analytics-session.mjs";
@@ -29,6 +31,30 @@ test("tracks only the first app open in a session", () => {
 
 test("tracks again when a new browser session starts", () => {
   assert.equal(shouldTrackAppOpenForSession("session-1", "session-2"), true);
+});
+
+test("routes localized privacy documents to public page views", () => {
+  assert.equal(normalizePublicPageViewPath("/privacy"), "/privacy");
+  assert.equal(normalizePublicPageViewPath("/privacy/"), "/privacy");
+  assert.equal(normalizePublicPageViewPath("/en/privacy"), "/en/privacy");
+  assert.equal(
+    normalizePublicPageViewPath("/ko/privacy/?from=footer"),
+    "/ko/privacy",
+  );
+  assert.equal(pageOpenEventForPath("/en/privacy"), "public_page_view");
+});
+
+test("keeps product and non-privacy public routes as app opens", () => {
+  for (const pathname of [
+    "/",
+    "/en",
+    "/about",
+    "/guide/privacy",
+    "/privacy-policy",
+  ]) {
+    assert.equal(normalizePublicPageViewPath(pathname), null);
+    assert.equal(pageOpenEventForPath(pathname), "app_open");
+  }
 });
 
 test("reuses the same event id and occurrence time for a pending retry", () => {
