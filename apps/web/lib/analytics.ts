@@ -9,12 +9,16 @@ import { ensureAnalyticsClientId, getUserId } from "@/lib/localStore";
 import { safeUUID } from "@/lib/utils";
 import {
   normalizeOwnedEntrySource,
+  normalizePublicPageViewPath,
+  pageOpenEventForPath,
   parsePendingAppOpen,
   shouldTrackAppOpenForSession,
 } from "./analytics-session.mjs";
 
 export {
   normalizeOwnedEntrySource,
+  normalizePublicPageViewPath,
+  pageOpenEventForPath,
   parsePendingAppOpen,
   shouldTrackAppOpenForSession,
 } from "./analytics-session.mjs";
@@ -62,6 +66,10 @@ const ANDROID_APP_CONTEXT_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
 const ANALYTICS_SESSION_ID_KEY = "watchlog.analytics.sessionId";
 const APP_OPEN_SENT_SESSION_KEY = "watchlog.analytics.appOpenSentSessionId";
 const APP_OPEN_PENDING_KEY = "watchlog.analytics.appOpenPending";
+const PUBLIC_PAGE_VIEW_SENT_PREFIX =
+  "watchlog.analytics.publicPageViewSentSessionId";
+const PUBLIC_PAGE_VIEW_PENDING_PREFIX =
+  "watchlog.analytics.publicPageViewPending";
 
 type PendingAppOpen = {
   sessionId: string;
@@ -197,24 +205,46 @@ function sessionValue(key: string, fallback: () => string) {
   return next;
 }
 
-function getLandingPath() {
+function getCurrentPathname() {
   if (typeof window === "undefined") return "unknown";
-  return sessionValue(
-    "watchlog.analytics.landingPath",
-    () => window.location.pathname || "/",
-  );
+  return window.location.pathname || "/";
+}
+
+function getLandingPath() {
+  return sessionValue("watchlog.analytics.landingPath", getCurrentPathname);
+}
+
+function getCurrentReferrerOrigin() {
+  if (typeof document === "undefined") return "unknown";
+  if (!document.referrer) return "direct";
+  try {
+    return new URL(document.referrer).origin;
+  } catch {
+    return "unknown";
+  }
 }
 
 function getReferrerOrigin() {
-  if (typeof document === "undefined") return "unknown";
-  return sessionValue("watchlog.analytics.referrer", () => {
-    if (!document.referrer) return "direct";
-    try {
-      return new URL(document.referrer).origin;
-    } catch {
-      return "unknown";
-    }
-  });
+  return sessionValue("watchlog.analytics.referrer", getCurrentReferrerOrigin);
+}
+
+function getCurrentUtmProperties(): UtmProperties {
+  if (typeof window === "undefined") return {};
+
+  const params = new URLSearchParams(window.location.search);
+  const next: UtmProperties = {};
+  const mappings = [
+    ["utm_source", "utmSource"],
+    ["utm_medium", "utmMedium"],
+    ["utm_campaign", "utmCampaign"],
+    ["utm_term", "utmTerm"],
+    ["utm_content", "utmContent"],
+  ] as const;
+  for (const [param, prop] of mappings) {
+    const value = params.get(param)?.trim();
+    if (value) next[prop] = value.slice(0, 128);
+  }
+  return next;
 }
 
 function getUtmProperties(): UtmProperties {
@@ -230,21 +260,18 @@ function getUtmProperties(): UtmProperties {
       return {};
     }
   }
-  const params = new URLSearchParams(window.location.search);
-  const next: UtmProperties = {};
-  const mappings = [
-    ["utm_source", "utmSource"],
-    ["utm_medium", "utmMedium"],
-    ["utm_campaign", "utmCampaign"],
-    ["utm_term", "utmTerm"],
-    ["utm_content", "utmContent"],
-  ] as const;
-  for (const [param, prop] of mappings) {
-    const value = params.get(param)?.trim();
-    if (value) next[prop] = value.slice(0, 128);
-  }
+  const next = getCurrentUtmProperties();
   sessionStorage.setItem(key, JSON.stringify(next));
   return next;
+}
+
+function getCurrentEntrySource() {
+  if (typeof window === "undefined") return undefined;
+  return (
+    normalizeOwnedEntrySource(
+      new URLSearchParams(window.location.search).get("source"),
+    ) ?? undefined
+  );
 }
 
 function getEntrySource() {
@@ -257,9 +284,7 @@ function getEntrySource() {
     return normalizeOwnedEntrySource(existing) ?? undefined;
   }
 
-  const source = normalizeOwnedEntrySource(
-    new URLSearchParams(window.location.search).get("source"),
-  );
+  const source = getCurrentEntrySource();
   sessionStorage.setItem(key, source ?? "");
   return source ?? undefined;
 }
@@ -281,14 +306,20 @@ function buildAndroidAppProperties(context: RuntimeContext) {
   };
 }
 
-function buildContextProperties(context: RuntimeContext) {
+function buildContextProperties(
+  context: RuntimeContext,
+  contextScope: "session" | "page" = "session",
+) {
   const platform = context.platform;
-  const entrySource = getEntrySource();
+  const isPageContext = contextScope === "page";
+  const entrySource = isPageContext
+    ? getCurrentEntrySource()
+    : getEntrySource();
   return {
     hostname:
       typeof window !== "undefined" ? window.location.hostname : "unknown",
-    landingPath: getLandingPath(),
-    referrer: getReferrerOrigin(),
+    landingPath: isPageContext ? getCurrentPathname() : getLandingPath(),
+    referrer: isPageContext ? getCurrentReferrerOrigin() : getReferrerOrigin(),
     locale:
       typeof document !== "undefined"
         ? document.documentElement.lang || "unknown"
@@ -301,7 +332,7 @@ function buildContextProperties(context: RuntimeContext) {
     installState: detectInstallState(platform),
     ...(entrySource ? { entrySource } : {}),
     ...buildAndroidAppProperties(context),
-    ...getUtmProperties(),
+    ...(isPageContext ? getCurrentUtmProperties() : getUtmProperties()),
   };
 }
 
@@ -317,6 +348,7 @@ function ensureSessionId(): string {
 export async function trackEvent(
   eventName:
     | "app_open"
+    | "public_page_view"
     | "login_success"
     | "log_create"
     | "first_log_create"
@@ -338,7 +370,11 @@ export async function trackEvent(
     | "bookshelf_category_open"
     | "guide_cta_click",
   properties?: Record<string, unknown>,
-  options?: { eventId?: string; occurredAt?: string },
+  options?: {
+    eventId?: string;
+    occurredAt?: string;
+    contextScope?: "session" | "page";
+  },
 ) {
   try {
     const runtimeContext = detectRuntimeContext();
@@ -362,7 +398,7 @@ export async function trackEvent(
         clientVersion: "web",
         occurredAt: options?.occurredAt ?? new Date().toISOString(),
         properties: {
-          ...buildContextProperties(runtimeContext),
+          ...buildContextProperties(runtimeContext, options?.contextScope),
           ...(properties ?? {}),
         },
       }),
@@ -408,4 +444,54 @@ export async function trackAppOpenOnce() {
   } catch {
     // Analytics should not break UX when session storage is unavailable.
   }
+}
+
+async function trackPublicPageViewOnce(pathname: string) {
+  try {
+    if (typeof sessionStorage === "undefined") return;
+
+    const publicPath = normalizePublicPageViewPath(pathname);
+    if (!publicPath) return;
+
+    const sessionId = ensureSessionId();
+    const keySuffix = encodeURIComponent(publicPath);
+    const sentKey = `${PUBLIC_PAGE_VIEW_SENT_PREFIX}:${keySuffix}`;
+    const pendingKey = `${PUBLIC_PAGE_VIEW_PENDING_PREFIX}:${keySuffix}`;
+    const trackedSessionId = sessionStorage.getItem(sentKey);
+    if (!shouldTrackAppOpenForSession(trackedSessionId, sessionId)) return;
+
+    let pending: PendingAppOpen | null = parsePendingAppOpen(
+      sessionStorage.getItem(pendingKey),
+      sessionId,
+    );
+
+    if (!pending) {
+      pending = {
+        sessionId,
+        eventId: safeUUID(),
+        occurredAt: new Date().toISOString(),
+      };
+      sessionStorage.setItem(pendingKey, JSON.stringify(pending));
+    }
+
+    const sent = await trackEvent(
+      "public_page_view",
+      { pagePath: publicPath },
+      { ...pending, contextScope: "page" },
+    );
+    if (sent) {
+      sessionStorage.setItem(sentKey, sessionId);
+      sessionStorage.removeItem(pendingKey);
+    }
+  } catch {
+    // Analytics should not break UX when session storage is unavailable.
+  }
+}
+
+export async function trackPageOpenOnce(pathname: string) {
+  if (pageOpenEventForPath(pathname) === "public_page_view") {
+    await trackPublicPageViewOnce(pathname);
+    return;
+  }
+  await trackAppOpenOnce();
 }

@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { usePathname } from "@/i18n/routing";
-import { trackAppOpenOnce } from "@/lib/analytics";
+import { trackPageOpenOnce } from "@/lib/analytics";
 import { syncOutbox } from "@/lib/sync";
 
 function isAdminPath(pathname: string) {
@@ -62,15 +62,19 @@ export default function SyncWorker() {
   useEffect(() => {
     if (!pathname || isAdminPath(pathname)) return;
 
+    function trackCurrentPageOpen() {
+      void trackPageOpenOnce(window.location.pathname);
+    }
+
     function handleOnline() {
-      void trackAppOpenOnce();
+      trackCurrentPageOpen();
     }
 
     function handleVisible() {
-      if (document.visibilityState === "visible") void trackAppOpenOnce();
+      if (document.visibilityState === "visible") trackCurrentPageOpen();
     }
 
-    void trackAppOpenOnce();
+    trackCurrentPageOpen();
     window.addEventListener("online", handleOnline);
     document.addEventListener("visibilitychange", handleVisible);
 

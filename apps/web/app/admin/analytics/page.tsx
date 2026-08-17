@@ -396,6 +396,19 @@ export default async function AdminAnalyticsPage({ searchParams }: Props) {
                 }}
               />
               <AcquisitionDimensionTable
+                title={t("acquisitionBySource")}
+                rows={acquisition.bySource}
+                numberFormatter={numberFormatter}
+                labels={{
+                  key: t("acquisitionDimension"),
+                  sessions: t("acquisitionSessions"),
+                  engaged: t("acquisitionEngagedSessions"),
+                  firstLog: t("acquisitionFirstLogSessions"),
+                  logCreate: t("acquisitionLogCreateSessions"),
+                  empty: t("acquisitionEmpty"),
+                }}
+              />
+              <AcquisitionDimensionTable
                 title={t("acquisitionByLandingPath")}
                 rows={acquisition.byLandingPath}
                 numberFormatter={numberFormatter}

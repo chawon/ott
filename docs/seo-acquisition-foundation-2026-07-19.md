@@ -39,6 +39,8 @@
 
 집계 우선순위는 UTM, 자체 재방문 진입, 외부 referrer, direct 순이다. `app_open`이 있는 웹·PWA·TWA 세션을 모수로 삼고 같은 세션의 탐색, 첫 기록, 기록 생성을 연결한다. 유입 시작 이벤트가 없는 전환 세션은 `orphanConversionSessions`로 따로 표시한다.
 
+개인정보 처리방침 `/privacy`, `/en/privacy` 진입은 제품 유입 모수에서 제외하고 `public_page_view`로 따로 수집한다. 이 이벤트의 페이지 문맥은 제품 유입 세션 상태와 분리되므로, 사용자가 이후 제품 화면으로 이동하면 해당 제품 경로에서 별도의 `app_open`과 유입 문맥이 시작된다. 관리자 유입 화면은 API가 제공하는 채널, 출처, 첫 진입 경로, 캠페인 차원을 모두 표시한다.
+
 자체 `analytics_events`는 `created_at` 기준 180일이 지나면 매일 자동 삭제한다. GA4와 Clarity로 전송된 데이터는 각 제공자의 설정과 정책을 따른다.
 
 ## Cloudflare Access 운영 설정
