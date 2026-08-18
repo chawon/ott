@@ -13,9 +13,19 @@
 ## Android 16 대상 API 대응 (2026-07-22)
 
 - Google Play 정책에 따라 2026-08-31부터 일반 Android 신규 앱과 업데이트 제출은 Android 16 (API 수준 36) 이상을 대상으로 해야 함
-- `apps/twa/app/build.gradle`의 `compileSdkVersion`과 `targetSdkVersion`을 모두 `36`으로 유지한다
+- `apps/twa/app/build.gradle`의 `compileSdk`와 `targetSdk`를 모두 `36`으로 유지한다
 - 현재 production 최신 버전은 `1.0.13` (`versionCode=17`)이므로 다음 Play 업데이트는 `versionCode=18` 이상으로 발행한다
 - 실제 AAB 빌드와 Play 업로드는 `.github/workflows/twa-release.yml`에서 수행하며, 로컬 WSL ARM 환경의 `aapt2` 호환 실패는 알려진 제약으로 CI 결과를 기준으로 판단한다
+
+## Android 활성화 2차 및 Play 권장 조치 대응 (2026-08-18)
+
+- 네이티브 `시청 기록 알림` 설정 화면 상단에는 현재 필요한 한 단계만 노출한다. 사용 정보 접근과 알림 권한은 navy 보조 액션으로 안내하고, 두 권한이 준비된 뒤에만 orange 최종 활성화 액션을 제공한다.
+- 설정 화면은 `EdgeToEdge.enable(...)`와 `WindowInsetsCompat`로 상태 표시줄, 내비게이션 바, 디스플레이 컷아웃 inset을 처리한다. 앱 코드의 `Window.setStatusBarColor`·`setNavigationBarColor` 직접 호출은 제거한다.
+- Android Browser Helper를 `2.6.2`에서 `2.7.2`로 올려 `WebViewFallbackActivity`가 Android 15 이상에서 지원 중단된 system-bar API를 호출하지 않도록 한다.
+- Android Gradle Plugin `9.3.1`, Gradle `9.5.0`, JDK 17 조합으로 전환하고 release의 `optimization { enable = true }`로 R8 코드 최적화와 최적화된 리소스 축소를 함께 켠다.
+- 수동 AAB 빌드와 Play 배포 워크플로우는 release bundle 전에 `:app:analyzeReleaseR8Config`를 실행한다.
+- Android Browser Helper `2.7.x` 및 AndroidX Activity 최신판의 최소 요구사항에 맞춰 `minSdk`를 `23`으로 올린다. 따라서 다음 업데이트부터 Android 5.0/5.1(API 21/22)은 지원 대상에서 제외되고 Android 6.0 이상을 지원한다.
+- 다음 검증 후보는 `1.0.14` (`versionCode=18`)이다. 먼저 `Build TWA Release AAB (Manual Upload)`에서 서명 AAB와 R8 분석을 확인한 뒤 Play 트랙 등록 여부를 결정한다.
 
 ## Android Play 유입 활성화 1차 (2026-08-18)
 

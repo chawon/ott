@@ -104,10 +104,10 @@ jobs:
             exit 1
           fi
 
-      - name: Build release AAB
+      - name: Analyze R8 configuration and build release AAB
         working-directory: apps/twa
         run: |
-          ./gradlew bundleRelease --no-daemon \
+          ./gradlew :app:analyzeReleaseR8Config :app:bundleRelease --no-daemon \
             -PreleaseVersionCode=${{ github.event.inputs.version_code }} \
             -PreleaseVersionName=${{ github.event.inputs.version_name }}
 
