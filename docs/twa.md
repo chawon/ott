@@ -11,12 +11,13 @@
 - `2026-07-22` API 36 대응 업데이트를 PR `#82`로 main에 반영하고, GitHub Actions AAB run `29894879033` 및 gplay release run `29895085515`를 통해 production `1.0.13` (`versionCode=17`, `status=completed`)으로 배포 완료
 - `2026-08-18` Android 활성화 2차와 Play 권장 조치 대응을 PR `#94`로 main에 반영하고, release run `32117645033`을 통해 internal `1.0.14` (`versionCode=18`, `status=completed`)로 등록한 뒤 beta 트랙에도 같은 버전을 승격했다. production은 `1.0.13` (`versionCode=17`)을 유지한다.
 - 같은 날 SM-S937N/Android 16에서 `1.0.14`와 startup guard를 추가한 `1.0.15`가 splash 전 동일 종료되는 것을 확인했다. R8 코드 최적화만 끈 진단 버전 `1.0.16` (`versionCode=20`)을 beta에 `completed`로 배포했으며 production은 `1.0.13` (`versionCode=17`)을 유지한다.
+- `2026-08-19` Play Vitals의 `WorkDatabase_Impl` 기본 생성자 누락 스택을 기준으로 WorkManager Room 구현 생성자를 보존하고 실제 release DEX를 검사하는 회귀 방지 게이트를 PR `#98`로 반영했다. beta `1.0.17` (`versionCode=21`)을 같은 SM-S937N/Android 16에서 정상 실행한 뒤 Google Play production에 `completed`, 100%로 승격했다.
 
 ## Android 16 대상 API 대응 (2026-07-22)
 
 - Google Play 정책에 따라 2026-08-31부터 일반 Android 신규 앱과 업데이트 제출은 Android 16 (API 수준 36) 이상을 대상으로 해야 함
 - `apps/twa/app/build.gradle`의 `compileSdk`와 `targetSdk`를 모두 `36`으로 유지한다
-- 현재 사용한 최대 버전 코드는 beta `1.0.16`의 `20`이므로 다음 Play 업데이트는 `versionCode=21` 이상으로 발행한다
+- 현재 사용한 최대 버전 코드는 production·beta `1.0.17`의 `21`이므로 다음 Play 업데이트는 `versionCode=22` 이상으로 발행한다
 - 실제 AAB 빌드와 Play 업로드는 `.github/workflows/twa-release.yml`에서 수행하며, 로컬 WSL ARM 환경의 `aapt2` 호환 실패는 알려진 제약으로 CI 결과를 기준으로 판단한다
 
 ## Android 활성화 2차 및 Play 권장 조치 대응 (2026-08-18)
@@ -31,7 +32,7 @@
 - AAB의 AGP 메타데이터는 `9.3.1`, R8 메타데이터는 코드 최적화·난독화·축소와 optimized resource shrinking이 모두 활성화된 상태를 기록한다. 릴리스 노트는 `Improves the watch reminder setup flow, adds Android 15 edge-to-edge support, and enables release optimizations.`이다.
 - 배포 후 `gplay promote` edit `06048068128972830965`로 internal의 `1.0.14` (`versionCode=18`)을 beta에 `completed` 상태로 승격했다. 새 Play edit 재조회에서 internal·beta `1.0.14`/`18`/`completed`, production `1.0.13`/`17`/`completed`를 교차 확인했다. 실제 단말의 edge-to-edge, 권한 단계, 알림 켜기 동작과 Play 권장 조치 재분석은 후속 확인한다.
 
-## Android 16 시작 크래시 beta 분리 진단 (2026-08-18)
+## Android 16 시작 크래시 진단 및 복구 (2026-08-18~19)
 
 - beta `1.0.14` (`versionCode=18`)는 SM-S937N/Android 16에서 앱 아이콘을 누른 직후 ottline splash도 표시하기 전에 시스템 오류 팝업과 함께 종료됐다. 삭제 후 재설치해도 동일했다.
 - Play Vitals에는 당시 versionCode `18`의 오류 이슈나 리포트가 아직 수집되지 않았고, WSL 환경에서는 ADB를 사용할 수 없어 같은 실기기의 Play beta 설치본을 판정 루프로 사용한다.
@@ -39,7 +40,12 @@
 - PR `#96`, main SHA `435b2a85ab1d83191006a4f540a3e15e6bc57b63`에서 AGP `9.3.1`, Android Browser Helper `2.7.2`, edge-to-edge, startup guard, 축소와 난독화는 유지하고 사용자 ProGuard 규칙 `-dontoptimize`로 R8 코드 최적화만 껐다.
 - 수동 AAB run `32145077156`이 startup guard 테스트, R8 설정 분석, 서명 bundle과 artifact 업로드를 통과했다. AAB R8 메타데이터는 `isShrinkingEnabled=true`, `isObfuscationEnabled=true`, `isOptimizationsEnabled=false`이며 DEX는 `1,396,376` bytes다.
 - release run `32146423912`로 Google Play beta `1.0.16` (`versionCode=20`, `status=completed`)을 배포했다. 별도 Play edit 조회에서 beta `1.0.16`/`20`/`completed`, production `1.0.13`/`17`/`completed`를 확인하고 조회용 edit은 삭제했다.
-- 다음 판정은 같은 SM-S937N/Android 16에서 `1.0.16`을 실행하는 것이다. 정상 실행되면 R8 코드 최적화 관련 keep rule을 좁히고, 동일 종료되면 이 가설을 기각한 뒤 R8 설정을 고정한 채 Android Browser Helper `2.7.2`를 다음 단일 변수로 분리한다.
+- 같은 SM-S937N/Android 16에서 `1.0.16`도 splash 전 동일 종료됐다. 이후 Play Vitals에서 `androidx.startup.InitializationProvider` 초기화 중 `androidx.work.impl.WorkDatabase_Impl.<init>()`을 찾지 못해 WorkManager가 시작하지 못한 정확한 스택을 확인했다.
+- 원인은 AGP 9/R8의 엄격한 keep 규칙 아래에서 Room의 기존 `-keep class * extends androidx.room.RoomDatabase`만으로 `WorkDatabase_Impl` 기본 생성자가 보존되지 않은 것이다. `apps/twa/app/proguard-rules.pro`에 해당 생성자만 좁게 보존하는 규칙을 추가했다.
+- `apps/twa/scripts/verify-release-startup-contract.sh`는 AAB의 실제 `base/dex/classes.dex`를 `dexdump`로 검사해 `WorkDatabase_Impl` 기본 생성자가 없으면 실패한다. 수정 전 run `32149018524`가 이 조건으로 실패하고 수정 후 run `32149260760`이 통과해 red-green을 확인했다. 두 AAB 워크플로우 모두 artifact 업로드와 Play 업로드 전에 이 검사를 실행한다.
+- PR `#98`, main SHA `ef9f6a9fe459cd62a23127dbd4c284aa4076e021`로 수정과 회귀 방지 게이트를 반영했다. release run `32149573778`로 beta `1.0.17` (`versionCode=21`, `status=completed`)을 배포했고 릴리스 노트는 `Fixes a startup crash on Android 16 devices.`이다.
+- 같은 SM-S937N/Android 16에서 Play beta `1.0.17`의 정상 실행을 확인했다. 이어 `gplay promote` edit `01669516731482208088`로 동일 번들을 production에 `completed`, 100%로 승격했고, 새 Play edit 재조회에서 production·beta 모두 `1.0.17`/`21`/`completed`임을 확인했다.
+- 안정화 릴리스는 R8 축소·난독화와 리소스 축소를 유지하되 코드 최적화만 임시로 끈 상태다. Play의 R8 최적화 권장 조치를 완전히 닫으려면 생성자 DEX 게이트를 유지한 채 코드 최적화를 다시 켠 별도 beta 검증이 필요하다.
 
 ## Android Play 유입 활성화 1차 (2026-08-18)
 
