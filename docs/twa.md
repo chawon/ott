@@ -25,7 +25,7 @@
 - Android Gradle Plugin `9.3.1`, Gradle `9.5.0`, JDK 17 조합으로 전환하고 release의 `optimization { enable = true }`로 R8 코드 최적화와 최적화된 리소스 축소를 함께 켠다.
 - 수동 AAB 빌드와 Play 배포 워크플로우는 release bundle 전에 `:app:analyzeReleaseR8Config`를 실행한다.
 - Android Browser Helper `2.7.x` 및 AndroidX Activity 최신판의 최소 요구사항에 맞춰 `minSdk`를 `23`으로 올린다. 따라서 다음 업데이트부터 Android 5.0/5.1(API 21/22)은 지원 대상에서 제외되고 Android 6.0 이상을 지원한다.
-- 다음 검증 후보는 `1.0.14` (`versionCode=18`)이다. 먼저 `Build TWA Release AAB (Manual Upload)`에서 서명 AAB와 R8 분석을 확인한 뒤 Play 트랙 등록 여부를 결정한다.
+- `Build TWA Release AAB (Manual Upload)` run `32106473713`에서 `1.0.14` (`versionCode=18`) 서명 AAB 빌드와 R8 분석을 통과했다. AAB의 AGP 메타데이터는 `9.3.1`, R8 메타데이터는 코드 최적화·난독화·축소와 optimized resource shrinking이 모두 활성화된 상태를 기록한다. 이 검증 AAB는 아직 Google Play 트랙에 업로드하지 않았다.
 
 ## Android Play 유입 활성화 1차 (2026-08-18)
 
