@@ -56,7 +56,7 @@ public class WatchReminderSettingsActivity extends ComponentActivity {
         EdgeToEdge.enable(
                 this,
                 SystemBarStyle.light(Color.TRANSPARENT, Color.TRANSPARENT),
-                SystemBarStyle.light(SCREEN_BACKGROUND, SCREEN_BACKGROUND)
+                SystemBarStyle.light(SCREEN_BACKGROUND, TEXT_PRIMARY)
         );
         super.onCreate(savedInstanceState);
 
