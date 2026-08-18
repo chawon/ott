@@ -9,7 +9,7 @@
 - 현재 개발 환경(WSL on ARM Linux)에서는 Android Gradle 로컬 빌드 호환 이슈가 있어, APK/AAB 빌드는 GitHub Actions만 정식 검증/배포 경로로 사용
 - Google Play 프로덕션 액세스는 2026-06-06 심사 통과했으며, 2026-06-10 기준 `1.0.12` (`versionCode=16`)가 production 트랙에 `completed` 상태로 등록됨
 - `2026-07-22` API 36 대응 업데이트를 PR `#82`로 main에 반영하고, GitHub Actions AAB run `29894879033` 및 gplay release run `29895085515`를 통해 production `1.0.13` (`versionCode=17`, `status=completed`)으로 배포 완료
-- `2026-08-18` Android 활성화 2차와 Play 권장 조치 대응을 PR `#94`로 main에 반영하고, release run `32117645033`을 통해 internal `1.0.14` (`versionCode=18`, `status=completed`)로 등록 완료. production은 `1.0.13` (`versionCode=17`)을 유지한다.
+- `2026-08-18` Android 활성화 2차와 Play 권장 조치 대응을 PR `#94`로 main에 반영하고, release run `32117645033`을 통해 internal `1.0.14` (`versionCode=18`, `status=completed`)로 등록한 뒤 beta 트랙에도 같은 버전을 승격했다. production은 `1.0.13` (`versionCode=17`)을 유지한다.
 
 ## Android 16 대상 API 대응 (2026-07-22)
 
@@ -28,7 +28,7 @@
 - Android Browser Helper `2.7.x` 및 AndroidX Activity 최신판의 최소 요구사항에 맞춰 `minSdk`를 `23`으로 올린다. 따라서 다음 업데이트부터 Android 5.0/5.1(API 21/22)은 지원 대상에서 제외되고 Android 6.0 이상을 지원한다.
 - PR `#94`, main SHA `982e5bc8330069b7b75a4f220ccab0d08419d3e2`로 반영했다. main 수동 AAB run `32117048949`에서 `1.0.14` (`versionCode=18`) 서명 AAB와 R8 분석을 통과했고, release run `32117645033`으로 Google Play internal 트랙에 `completed` 상태로 등록했다.
 - AAB의 AGP 메타데이터는 `9.3.1`, R8 메타데이터는 코드 최적화·난독화·축소와 optimized resource shrinking이 모두 활성화된 상태를 기록한다. 릴리스 노트는 `Improves the watch reminder setup flow, adds Android 15 edge-to-edge support, and enables release optimizations.`이다.
-- 배포 후 새 Play edit으로 internal `1.0.14`/`18`/`completed`, production `1.0.13`/`17`/`completed`를 교차 확인했다. 실제 단말의 edge-to-edge, 권한 단계, 알림 켜기 동작과 Play 권장 조치 재분석은 후속 확인한다.
+- 배포 후 `gplay promote` edit `06048068128972830965`로 internal의 `1.0.14` (`versionCode=18`)을 beta에 `completed` 상태로 승격했다. 새 Play edit 재조회에서 internal·beta `1.0.14`/`18`/`completed`, production `1.0.13`/`17`/`completed`를 교차 확인했다. 실제 단말의 edge-to-edge, 권한 단계, 알림 켜기 동작과 Play 권장 조치 재분석은 후속 확인한다.
 
 ## Android Play 유입 활성화 1차 (2026-08-18)
 
