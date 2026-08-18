@@ -3,6 +3,7 @@
 import { MessageCircle, NotebookPen, PencilLine } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { useCallback, useEffect, useRef, useState } from "react";
+import AndroidWatchReminderCard from "@/components/AndroidWatchReminderCard";
 import DiscussionList from "@/components/DiscussionList";
 import FirstLogActivationPanel from "@/components/FirstLogActivationPanel";
 import LogCard from "@/components/LogCard";
@@ -627,6 +628,7 @@ export default function HomePage() {
                 highlightedStatus={highlightedStatus}
               />
             </div>
+            {!loading && logs.length > 0 ? <AndroidWatchReminderCard /> : null}
           </section>
           <section className="space-y-3">
             <div className="flex items-baseline justify-between">

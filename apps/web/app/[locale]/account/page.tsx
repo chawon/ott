@@ -11,10 +11,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { type ReactNode, useCallback, useEffect, useState } from "react";
 import ProfileEditor from "@/components/ProfileEditor";
 import { Link as IntlLink } from "@/i18n/routing";
-import {
-  readAndroidAppContext,
-  recordAndroidAppContextFromCurrentUrl,
-} from "@/lib/androidAppContext";
+import { isGooglePlayTwaContext } from "@/lib/androidAppContext";
 import { api } from "@/lib/api";
 import { pairWithCode } from "@/lib/auth";
 import { downloadTimelineCsv } from "@/lib/export";
@@ -43,7 +40,6 @@ function getErrorMessage(error: unknown, fallback: string) {
   return error instanceof Error ? error.message : fallback;
 }
 
-const ANDROID_TWA_SESSION_KEY = "ottline.androidTwaSession";
 const SETTINGS_CARD_CLASS =
   "space-y-4 rounded-2xl border border-border bg-card p-6 shadow-sm";
 
@@ -124,32 +120,6 @@ function SettingsAccordionCard({
       ) : null}
     </section>
   );
-}
-
-function isGooglePlayTwaContext() {
-  if (typeof window === "undefined") return false;
-  const ref = document.referrer.toLowerCase();
-  const fromOttlineTwa = ref.startsWith("android-app://app.ottline");
-  const androidAppContext =
-    recordAndroidAppContextFromCurrentUrl() ?? readAndroidAppContext();
-  const fromVersionedAndroidApp = Boolean(
-    androidAppContext?.versionName || androidAppContext?.versionCode,
-  );
-  const ua = window.navigator.userAgent.toLowerCase();
-  const fromAndroidStandalone =
-    ua.includes("android") &&
-    window.matchMedia?.("(display-mode: standalone)").matches;
-
-  try {
-    if (fromOttlineTwa || fromVersionedAndroidApp || fromAndroidStandalone) {
-      sessionStorage.setItem(ANDROID_TWA_SESSION_KEY, "1");
-      return true;
-    }
-
-    return sessionStorage.getItem(ANDROID_TWA_SESSION_KEY) === "1";
-  } catch {
-    return fromOttlineTwa || fromVersionedAndroidApp || fromAndroidStandalone;
-  }
 }
 
 export default function AccountPage() {
