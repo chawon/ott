@@ -71,6 +71,10 @@ jobs:
             -PreleaseVersionCode=${{ github.event.inputs.version_code }} \
             -PreleaseVersionName=${{ github.event.inputs.version_name }}
 
+      - name: Verify release startup contract
+        working-directory: apps/twa
+        run: bash scripts/verify-release-startup-contract.sh app/build/outputs/bundle/release/app-release.aab
+
       - name: Rename AAB
         run: mv apps/twa/app/build/outputs/bundle/release/app-release.aab apps/twa/app/build/outputs/bundle/release/ottline-release.aab
 
