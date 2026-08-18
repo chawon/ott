@@ -1,5 +1,16 @@
 # Wiki Log
 
+## [2026-08-18] update: Android Play 유입 활성화 1차 Web production 배포
+- 대상: PR `#93`, main SHA `57f98e6317dcce303fc9d32e488b546a68b9c2c6`, Web production run `32099474936`
+- 생성/수정: AGENTS.md, docs/twa.md, platforms/twa.md, index.md, log.md
+- 노트:
+  - Android 브라우저·설치형 PWA에는 Google Play 전환 팝업을, ottline TWA의 첫 기록 사용자에게는 시청 기록 알림 설정 카드를 노출
+  - 닫기·이동 뒤 14일 cooldown, ko/en 개인정보 고지, Play CTA·알림 카드 6개 analytics 이벤트 반영
+  - 일반 WebView·standalone PWA·다른 패키지 TWA를 제외하고 정확한 ottline 앱 신호와 현재 session flag만 TWA 판정에 사용
+  - PR/main Web CI `32099214004`/`32099337243`, manifest commit `2b4a433cf2f001dd233f459aa5e34d5499575d67`
+  - ArgoCD `ott-app` `Synced Healthy`, `ott-web` image SHA와 `APP_VERSION=57f98e6`, Pod `1/1` ready·restart 0, 실행 번들의 신규 이벤트와 한국어 CTA 확인
+  - API, DB, Android AAB, iOS 네이티브 바이너리는 변경하거나 배포하지 않음
+
 ## [2026-08-16] update: 관리자 문의 답변 Invalid origin 복구 production 배포
 - 대상: PR `#89`, main SHA `f0db4a150b90b08dc877cf9c913e171de4150209`, Web production run `31920437846`
 - 생성/수정: AGENTS.md, features/feedback.md, index.md, log.md

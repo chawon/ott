@@ -5,6 +5,7 @@
 ## 관련 페이지
 - [[pwa]]
 - [[ms-store]]
+- [[analytics]]
 
 ---
 
@@ -22,13 +23,20 @@
 - Play 배포 이력:
   - internal track 배포 성공 (`versionName=1.0.0`, `versionCode=4`)
   - `twa-release.yml` 기준 `gplay release` 자동 업로드 경로 유지
-- 현재 운영 상태(2026-06-10):
+- 현재 운영 상태(2026-08-18):
   - Google Play 프로덕션 액세스 심사 통과 및 production 출시 완료
-  - Play `production`: `1.0.12` (`versionCode=16`, `status=completed`)
-  - TWA release run: `27256880845`
-  - Main SHA: `27bb8941aa703699e32045041b5aa27705dbbdd0`
-  - 범위: Android 회고 리마인드, OTT 시청 감지 안정화, 회고 리마인드 알림 탭 시 앱 이동 수정
+  - Play `production`: `1.0.13` (`versionCode=17`, `status=completed`)
+  - TWA release run: `29895085515`
+  - Main SHA: `44d20b8` (PR `#82`)
+  - 범위: Android 16/API 36 대응과 기존 회고 리마인드·OTT 시청 감지·알림 탭 이동 유지
   - `alpha` 테스터 그룹은 `ottline-beta-testers@googlegroups.com`
+- Android Play 유입 활성화 1차 Web 배포(2026-08-18):
+  - Android 브라우저·설치형 PWA에는 Google Play 전환 팝업을 노출하고, ottline TWA에서는 해당 팝업을 숨김
+  - ottline TWA에서 첫 기록이 생긴 뒤 홈에 시청 기록 알림 설정 카드를 노출하고 `ottline://watch-reminder`로 연결
+  - 정확한 `android-app://app.ottline` referrer, 현재 launch URL의 버전·install token, 그 신호로 기록한 session flag만 TWA 판정에 사용
+  - 일반 WebView·standalone PWA·다른 패키지 TWA는 ottline TWA 판정에서 제외
+  - PR `#93`, main SHA `57f98e6317dcce303fc9d32e488b546a68b9c2c6`, Web production run `32099474936`, `APP_VERSION=57f98e6`
+  - Web 전용 배포로 Android AAB는 변경하지 않음
 - `1.0.5` 업데이트(2026-05-11):
   - 목적: 재진행 중인 비공개 테스트에서 테스터 의견 수집과 조치 이력을 남기기 위한 피드백 루프 보강
   - Google Play TWA 세션에서만 설정 화면에 Android 테스트 체크리스트와 `Android 테스트 의견 보내기` 진입 추가
@@ -69,14 +77,15 @@
 ## Google Play 배포 현황
 
 - 내부 테스트 트랙 배포 이력 있음 (`track=internal`, `versionName=1.0.0`, `versionCode=4`)
-- 2026-06-10 기준 최신 반영:
-  - `production`: `16 (1.0.12)`, `status=completed`
+- 2026-08-18 기준 최신 반영:
+  - `production`: `17 (1.0.13)`, `status=completed`
   - `beta`: `15 (1.0.11)`, `status=completed`
   - `alpha`: `13 (1.0.9)`, `status=completed`
   - `alpha` 테스터 그룹: `ottline-beta-testers@googlegroups.com`
 - 2026-05-11 `1.0.5` (`versionCode=9`) alpha 업데이트는 GitHub Actions run `25656711609`로 배포했고, `gplay` 확인 기준 `status=completed`
 - 2026-05-21 `1.0.6` (`versionCode=10`) alpha refresh는 GitHub Actions run `26228374153`로 배포했고, `gplay` 확인 기준 `status=completed`
 - 2026-06-10 `1.0.12` (`versionCode=16`) production 업데이트는 GitHub Actions run `27256880845`로 배포했고, `gplay` 확인 기준 `status=completed`
+- 2026-07-22 `1.0.13` (`versionCode=17`) Android 16/API 36 production 업데이트는 GitHub Actions run `29895085515`로 배포했고, `gplay` 확인 기준 `status=completed`
 - GitHub Actions `twa-release.yml` — AAB 빌드 후 `gplay release`
 - 관련 Secret:
   - `TWA_KEYSTORE_BASE64`

@@ -17,6 +17,18 @@
 - 현재 production 최신 버전은 `1.0.13` (`versionCode=17`)이므로 다음 Play 업데이트는 `versionCode=18` 이상으로 발행한다
 - 실제 AAB 빌드와 Play 업로드는 `.github/workflows/twa-release.yml`에서 수행하며, 로컬 WSL ARM 환경의 `aapt2` 호환 실패는 알려진 제약으로 CI 결과를 기준으로 판단한다
 
+## Android Play 유입 활성화 1차 (2026-08-18)
+
+- Android 브라우저와 설치형 PWA에서는 기존 `beforeinstallprompt` 설치 안내 대신 Google Play 전환 팝업을 노출한다.
+- ottline Google Play TWA 세션에서는 Play 전환 팝업을 숨기고, 첫 기록이 생긴 뒤 홈에 `시청 기록 알림 켜기` 카드를 노출한다. 카드는 `ottline://watch-reminder` 딥링크로 기존 네이티브 권한 설정 화면을 연다.
+- Play CTA와 알림 카드는 닫기 또는 이동 뒤 14일간 다시 노출하지 않으며, 한국어·영어 개인정보 고지를 함께 제공한다.
+- TWA 판정은 정확한 `android-app://app.ottline` referrer, 현재 launch URL의 `android_app_version`/`android_app_version_code`, `android_install_token`, 그 신호로 기록한 현재 session flag만 사용한다. 일반 Android WebView, standalone PWA, 다른 패키지의 TWA는 ottline TWA로 판정하지 않는다.
+- analytics는 `android_play_cta_impression`/`click`/`dismiss`, `android_reminder_card_impression`/`open`/`dismiss` 6개 이벤트를 기록한다.
+- Android 판정 회귀 테스트 4개, 기존 analytics 테스트 10개, Biome, TypeScript, Next.js production build를 통과했다.
+- PR `#93`, main SHA `57f98e6317dcce303fc9d32e488b546a68b9c2c6`, PR/main Web CI run `32099214004`/`32099337243`, Web production run `32099474936`, manifest commit `2b4a433cf2f001dd233f459aa5e34d5499575d67`로 배포했다.
+- ArgoCD `ott-app` `Synced Healthy`, production `ott-web` 이미지 `57f98e6317dcce303fc9d32e488b546a68b9c2c6`, `APP_VERSION=57f98e6`, Pod `1/1` ready·restart 0, 실행 번들의 신규 이벤트와 한국어 CTA 문구를 확인했다.
+- 이번 배포는 Web 전용이며 API, DB, Android AAB, iOS 네이티브 바이너리는 변경하지 않았다.
+
 ### 진행 업데이트 (2026-02-15)
 - TWA 공유 인텐트 MVP 반영 완료 (main 머지)
   - Android `LauncherActivity`에서 공유 텍스트(`EXTRA_TEXT`, `EXTRA_SUBJECT`) 수신
