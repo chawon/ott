@@ -203,6 +203,7 @@ android {
             // Android 16 startup isolation: keep release shrinking on the legacy DSL while
             // testing whether AGP 9.3's combined code/resource optimization causes the crash.
             minifyEnabled true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-no-optimize.pro'
             if (hasKeystore) {
                 signingConfig signingConfigs.release
             }
