@@ -15,15 +15,18 @@
  */
 package app.ottline;
 
-
+import android.util.Log;
 
 public class Application extends android.app.Application {
 
-  
+    private static final String TAG = "OttlineApplication";
 
-  @Override
-  public void onCreate() {
-      super.onCreate();
-      RevisitReminderScheduler.syncAutoState(this);
-  }
+    @Override
+    public void onCreate() {
+        super.onCreate();
+        OptionalAppInitializer.run(
+                () -> RevisitReminderScheduler.syncAutoState(this),
+                error -> Log.e(TAG, "Optional revisit reminder initialization failed", error)
+        );
+    }
 }
