@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import {
+  getGooglePlayTwaSignal,
   readAndroidInstallTokenFromCurrentUrl,
   recordAndroidAppContextFromCurrentUrl,
   removeAndroidInstallTokenFromCurrentUrl,
@@ -10,6 +11,7 @@ import { bindAndroidNotificationDevice } from "@/lib/androidNotifications";
 
 export default function AndroidAppContextRecorder() {
   useEffect(() => {
+    getGooglePlayTwaSignal();
     const installToken = readAndroidInstallTokenFromCurrentUrl();
     const context = recordAndroidAppContextFromCurrentUrl();
     if (installToken) {

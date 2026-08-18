@@ -615,6 +615,15 @@
     "emptyRecords": "Nothing here yet. Keep one title that stayed with you today.",
     "publicTitleModern": "Records others left behind"
   },
+  "AndroidWatchReminderCard": {
+    "eyebrow": "Android watch reminder",
+    "title": "Want a nudge when it is time to log?",
+    "description": "Get a reminder that opens the logging flow after you leave an OTT app.",
+    "privacy": "ottline checks only the supported app's usage time and last-used time on your device. It does not read or send titles, playback status, or screen content.",
+    "action": "Turn on watch reminders",
+    "later": "Maybe later",
+    "closeLabel": "Close watch reminder card"
+  },
   "FirstLogActivation": {
     "eyebrow": "First record",
     "title": "Pick one to start",
@@ -724,6 +733,9 @@
     "title": "Add to Home Screen",
     "iosDesc": "Tap the Safari share button and select \"Add to Home Screen\" to use it like an app.",
     "androidDesc": "Install to open quickly from your home screen.",
+    "playTitle": "Get a reminder when it is time to log",
+    "playDesc": "The Google Play app adds reminders after you leave an OTT app, plus a home-screen widget.",
+    "playAction": "Get it on Google Play",
     "installAction": "Install",
     "closeAction": "Close"
   },

@@ -1,3 +1,8 @@
+import {
+  GOOGLE_PLAY_TWA_SESSION_KEY,
+  googlePlayTwaSignal,
+} from "./android-acquisition.mjs";
+
 export type AndroidAppContext = {
   versionName?: string;
   versionCode?: string;
@@ -10,6 +15,12 @@ const STORAGE_KEY = "ottline.androidAppContext";
 const VERSION_NAME_PARAM = "android_app_version";
 const VERSION_CODE_PARAM = "android_app_version_code";
 const INSTALL_TOKEN_PARAM = "android_install_token";
+
+export type GooglePlayTwaSignal =
+  | "android_referrer"
+  | "versioned_launch_url"
+  | "install_token"
+  | "session";
 
 function cleanValue(value: string | null) {
   const normalized = value?.replace(/\s+/g, " ").trim();
@@ -76,6 +87,39 @@ export function readAndroidAppContext(): AndroidAppContext | null {
   } catch {
     return null;
   }
+}
+
+export function getGooglePlayTwaSignal(): GooglePlayTwaSignal | null {
+  if (typeof window === "undefined") return null;
+
+  let sessionRecorded = false;
+  try {
+    sessionRecorded =
+      window.sessionStorage.getItem(GOOGLE_PLAY_TWA_SESSION_KEY) === "1";
+  } catch {
+    // A current launch signal can still identify the app without storage.
+  }
+
+  const signal = googlePlayTwaSignal({
+    userAgent: window.navigator.userAgent,
+    referrer: document.referrer,
+    search: window.location.search,
+    sessionRecorded,
+  }) as GooglePlayTwaSignal | null;
+
+  if (signal && signal !== "session") {
+    try {
+      window.sessionStorage.setItem(GOOGLE_PLAY_TWA_SESSION_KEY, "1");
+    } catch {
+      // Session persistence is optional; current launch signals remain usable.
+    }
+  }
+
+  return signal;
+}
+
+export function isGooglePlayTwaContext() {
+  return Boolean(getGooglePlayTwaSignal());
 }
 
 function sanitizedCurrentPath() {

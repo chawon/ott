@@ -615,6 +615,15 @@
     "emptyRecords": "아직 비어 있어요. 오늘 떠오른 작품 하나만 남겨볼까요?",
     "publicTitleModern": "다른 사람들이 남긴 기록"
   },
+  "AndroidWatchReminderCard": {
+    "eyebrow": "Android 시청 기록 알림",
+    "title": "다 본 뒤, 기록할 타이밍을 알려드릴까요?",
+    "description": "OTT 앱을 닫은 뒤 기록 화면으로 이어지는 알림을 받을 수 있어요.",
+    "privacy": "지원 OTT 앱의 사용 시간과 마지막 사용 시각만 기기에서 확인해요. 콘텐츠 제목, 재생 상태, 화면 내용은 읽거나 서버로 보내지 않아요.",
+    "action": "시청 기록 알림 켜기",
+    "later": "나중에",
+    "closeLabel": "시청 기록 알림 안내 닫기"
+  },
   "FirstLogActivation": {
     "eyebrow": "처음 남길 기록",
     "title": "하나만 골라볼까요?",
@@ -724,6 +733,9 @@
     "title": "홈 화면에 추가",
     "iosDesc": "Safari 공유 버튼에서 “홈 화면에 추가”를 선택하면 앱처럼 사용할 수 있어요.",
     "androidDesc": "설치하면 홈 화면에서 바로 열 수 있어요.",
+    "playTitle": "OTT를 보고 나면 기록할 타이밍을 알려드려요",
+    "playDesc": "Google Play 앱에서는 OTT 앱을 닫은 뒤 기록 알림과 홈 화면 위젯을 사용할 수 있어요.",
+    "playAction": "Google Play에서 받기",
     "installAction": "설치",
     "closeAction": "닫기"
   },

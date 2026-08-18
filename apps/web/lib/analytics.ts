@@ -2,6 +2,8 @@
 
 import {
   type AndroidAppContext,
+  type GooglePlayTwaSignal,
+  getGooglePlayTwaSignal,
   readAndroidAppContext,
   readAndroidAppContextFromCurrentUrl,
 } from "@/lib/androidAppContext";
@@ -42,16 +44,10 @@ type BrowserFamily =
   | "in_app"
   | "unknown";
 type InstallState = "browser" | "pwa_installed" | "twa";
-type AndroidTwaSignal =
-  | "android_referrer"
-  | "versioned_launch_url"
-  | "android_webview"
-  | "android_standalone_context"
-  | "session";
 type RuntimeContext = {
   platform: AnalyticsPlatform;
   androidAppContext: AndroidAppContext | null;
-  androidTwaSignal?: AndroidTwaSignal;
+  androidTwaSignal?: GooglePlayTwaSignal;
 };
 type UtmProperties = Partial<{
   utmSource: string;
@@ -61,8 +57,6 @@ type UtmProperties = Partial<{
   utmContent: string;
 }>;
 
-const ANDROID_TWA_SESSION_KEY = "ottline.analytics.androidTwaSession";
-const ANDROID_APP_CONTEXT_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
 const ANALYTICS_SESSION_ID_KEY = "watchlog.analytics.sessionId";
 const APP_OPEN_SENT_SESSION_KEY = "watchlog.analytics.appOpenSentSessionId";
 const APP_OPEN_PENDING_KEY = "watchlog.analytics.appOpenPending";
@@ -77,68 +71,19 @@ type PendingAppOpen = {
   occurredAt: string;
 };
 
-function hasAndroidAppVersionContext(context: AndroidAppContext | null) {
-  return Boolean(context?.versionName || context?.versionCode);
-}
-
-function isRecentAndroidAppContext(context: AndroidAppContext | null) {
-  if (!hasAndroidAppVersionContext(context)) return false;
-  const recordedAt = Date.parse(context?.recordedAt ?? "");
-  if (!Number.isFinite(recordedAt)) return false;
-  return Date.now() - recordedAt <= ANDROID_APP_CONTEXT_MAX_AGE_MS;
-}
-
-function readAndroidTwaSessionFlag() {
-  try {
-    return sessionStorage.getItem(ANDROID_TWA_SESSION_KEY) === "1";
-  } catch {
-    return false;
-  }
-}
-
-function markAndroidTwaSession() {
-  try {
-    sessionStorage.setItem(ANDROID_TWA_SESSION_KEY, "1");
-  } catch {
-    // Ignore storage failures. Analytics should keep the app usable.
-  }
-}
-
 function detectRuntimeContext(): RuntimeContext {
   if (typeof window === "undefined") {
     return { platform: "web", androidAppContext: null };
   }
-  const ua = window.navigator.userAgent.toLowerCase();
-  const ref = document.referrer.toLowerCase();
   const currentAndroidAppContext = readAndroidAppContextFromCurrentUrl();
   const storedAndroidAppContext = readAndroidAppContext();
   const androidAppContext = currentAndroidAppContext ?? storedAndroidAppContext;
-  const isAndroid = ua.includes("android");
   const isStandalone = window.matchMedia?.(
     "(display-mode: standalone)",
   ).matches;
-  const hasCurrentVersionContext = hasAndroidAppVersionContext(
-    currentAndroidAppContext,
-  );
-  const hasRecentStoredVersionContext = isRecentAndroidAppContext(
-    storedAndroidAppContext,
-  );
-
-  let androidTwaSignal: AndroidTwaSignal | undefined;
-  if (ref.startsWith("android-app://")) {
-    androidTwaSignal = "android_referrer";
-  } else if (hasCurrentVersionContext) {
-    androidTwaSignal = "versioned_launch_url";
-  } else if (isAndroid && ua.includes(" wv")) {
-    androidTwaSignal = "android_webview";
-  } else if (isAndroid && isStandalone && hasRecentStoredVersionContext) {
-    androidTwaSignal = "android_standalone_context";
-  } else if (readAndroidTwaSessionFlag()) {
-    androidTwaSignal = "session";
-  }
+  const androidTwaSignal = getGooglePlayTwaSignal() ?? undefined;
 
   if (androidTwaSignal) {
-    markAndroidTwaSession();
     return {
       platform: "twa",
       androidAppContext,
@@ -368,7 +313,13 @@ export async function trackEvent(
     | "h1_recap_notice_dismiss"
     | "bookshelf_open"
     | "bookshelf_category_open"
-    | "guide_cta_click",
+    | "guide_cta_click"
+    | "android_play_cta_impression"
+    | "android_play_cta_click"
+    | "android_play_cta_dismiss"
+    | "android_reminder_card_impression"
+    | "android_reminder_card_open"
+    | "android_reminder_card_dismiss",
   properties?: Record<string, unknown>,
   options?: {
     eventId?: string;
