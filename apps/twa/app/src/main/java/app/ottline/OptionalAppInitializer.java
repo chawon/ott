@@ -1,16 +1,18 @@
 package app.ottline;
 
-import java.util.function.Consumer;
-
 final class OptionalAppInitializer {
+
+    interface FailureReporter {
+        void report(Throwable error);
+    }
 
     private OptionalAppInitializer() {}
 
-    static void run(Runnable initializer, Consumer<Throwable> failureReporter) {
+    static void run(Runnable initializer, FailureReporter failureReporter) {
         try {
             initializer.run();
         } catch (RuntimeException | LinkageError error) {
-            failureReporter.accept(error);
+            failureReporter.report(error);
         }
     }
 }
