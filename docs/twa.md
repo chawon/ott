@@ -12,13 +12,13 @@
 - `2026-08-18` Android 활성화 2차와 Play 권장 조치 대응을 PR `#94`로 main에 반영하고, release run `32117645033`을 통해 internal `1.0.14` (`versionCode=18`, `status=completed`)로 등록한 뒤 beta 트랙에도 같은 버전을 승격했다. production은 `1.0.13` (`versionCode=17`)을 유지한다.
 - 같은 날 SM-S937N/Android 16에서 `1.0.14`와 startup guard를 추가한 `1.0.15`가 splash 전 동일 종료되는 것을 확인했다. R8 코드 최적화만 끈 진단 버전 `1.0.16` (`versionCode=20`)을 beta에 `completed`로 배포했으며 production은 `1.0.13` (`versionCode=17`)을 유지한다.
 - `2026-08-19` Play Vitals의 `WorkDatabase_Impl` 기본 생성자 누락 스택을 기준으로 WorkManager Room 구현 생성자를 보존하고 실제 release DEX를 검사하는 회귀 방지 게이트를 PR `#98`로 반영했다. beta `1.0.17` (`versionCode=21`)을 같은 SM-S937N/Android 16에서 정상 실행한 뒤 Google Play production에 `completed`, 100%로 승격했다.
-- `2026-08-20` 최초 TWA 생성 때의 옛 splash 자산을 현재 ottline 로고로 교체하고 AAB의 실제 PNG 픽셀을 검사하는 게이트를 PR `#100`으로 반영했다. release run `32335236662`로 beta `1.0.18` (`versionCode=22`, `status=completed`)을 배포했으며 production은 실기기 확인 전까지 `1.0.17` (`versionCode=21`)을 유지한다.
+- `2026-08-20` 최초 TWA 생성 때의 옛 splash 자산을 현재 ottline 로고로 교체하고 AAB의 실제 PNG 픽셀을 검사하는 게이트를 PR `#100`으로 반영했다. release run `32335236662`로 beta `1.0.18` (`versionCode=22`)을 배포하고 실제 Play beta 설치본에서 현재 로고 splash와 정상 실행을 확인한 뒤, 동일 번들을 production에 `completed`, 100%로 승격했다.
 
 ## Android 16 대상 API 대응 (2026-07-22)
 
 - Google Play 정책에 따라 2026-08-31부터 일반 Android 신규 앱과 업데이트 제출은 Android 16 (API 수준 36) 이상을 대상으로 해야 함
 - `apps/twa/app/build.gradle`의 `compileSdk`와 `targetSdk`를 모두 `36`으로 유지한다
-- 현재 사용한 최대 버전 코드는 beta `1.0.18`의 `22`이므로 다음 Play 업데이트는 `versionCode=23` 이상으로 발행한다
+- 현재 사용한 최대 버전 코드는 production `1.0.18`의 `22`이므로 다음 Play 업데이트는 `versionCode=23` 이상으로 발행한다
 - 실제 AAB 빌드와 Play 업로드는 `.github/workflows/twa-release.yml`에서 수행하며, 로컬 WSL ARM 환경의 `aapt2` 호환 실패는 알려진 제약으로 CI 결과를 기준으로 판단한다
 
 ## Android 활성화 2차 및 Play 권장 조치 대응 (2026-08-18)
@@ -54,7 +54,7 @@
 - PR `#100`, main SHA `45f75666737fa3fa080bded0ef754b239b9e7ff5`에서 canonical `apps/web/public/icon.png`로 mdpi 300px, hdpi 450px, xhdpi 600px, xxhdpi 900px, xxxhdpi 1200px splash를 생성하고 store icon도 같은 원본으로 맞췄다.
 - `scripts/brand-assets.sha256`은 canonical·store·밀도별 source 자산을 고정하고, `verify-release-brand-assets.sh`는 AAPT2가 PNG 압축 바이트를 다시 쓰는 점을 고려해 AAB 안의 이미지를 Java `ImageIO`로 디코딩한 뒤 모든 ARGB 픽셀을 비교한다. 수동 run `32334503238`의 바이트 비교 실패로 이 차이를 확인했고, 수정 후 run `32334961736`에서 5개 밀도와 signed AAB artifact가 모두 통과했다.
 - release run `32335236662`는 단위 테스트, R8 분석, WorkManager 생성자 DEX 검사, 5개 브랜드 PNG 픽셀 검사와 Google Play commit을 통과했다. beta `1.0.18` (`versionCode=22`, `status=completed`)이고 릴리스 노트는 `Updates the Android launch screen to use the current ottline logo.`이다.
-- 별도 Play edit 재조회에서 beta `1.0.18`/`22`/`completed`, production `1.0.17`/`21`/`completed`를 확인했다. 다음 판정은 실제 Play beta 설치본에서 현재 로고 splash와 정상 실행을 확인하는 것이다.
+- 실제 Play beta 설치본에서 현재 로고 splash와 정상 실행을 확인했다. 이어 `gplay promote` edit `03467688027415996575`로 동일 번들을 production에 `completed`, 100%로 승격했고, 새 Play edit `08239648148585704199` 재조회에서 production·beta 모두 `1.0.18`/`22`/`completed`임을 확인했다.
 
 ## Android Play 유입 활성화 1차 (2026-08-18)
 
