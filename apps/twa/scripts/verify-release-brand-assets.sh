@@ -25,16 +25,21 @@ if [[ $# -eq 1 ]]; then
     exit 2
   fi
 
+  if ! command -v java >/dev/null 2>&1; then
+    echo "Java is required to compare decoded PNG pixels in the release AAB." >&2
+    exit 2
+  fi
+
+  VERIFICATION_DIR="$(mktemp -d)"
+  trap 'rm -rf "$VERIFICATION_DIR"' EXIT
+
   while read -r DENSITY; do
     SOURCE_PATH="app/src/main/res/drawable-${DENSITY}/splash.png"
     AAB_ENTRY="base/res/drawable-${DENSITY}-v4/splash.png"
-    SOURCE_HASH="$(sha256sum "$SOURCE_PATH" | awk '{print $1}')"
-    PACKAGED_HASH="$(unzip -p "$AAB_PATH" "$AAB_ENTRY" | sha256sum | awk '{print $1}')"
+    PACKAGED_PATH="$VERIFICATION_DIR/splash-${DENSITY}.png"
 
-    if [[ "$SOURCE_HASH" != "$PACKAGED_HASH" ]]; then
-      echo "Packaged splash does not match $SOURCE_PATH: $AAB_ENTRY" >&2
-      exit 1
-    fi
+    unzip -p "$AAB_PATH" "$AAB_ENTRY" > "$PACKAGED_PATH"
+    java scripts/VerifyBrandPngPixels.java "$SOURCE_PATH" "$PACKAGED_PATH"
   done <<'EOF'
 mdpi
 hdpi
