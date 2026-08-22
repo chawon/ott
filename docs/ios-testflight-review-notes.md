@@ -1,6 +1,6 @@
 # iOS TestFlight Review Notes
 
-기준일: 2026-08-16
+기준일: 2026-08-22
 
 이 문서는 App Store Connect의 TestFlight beta review information, 내부 QA, App Store 출시 이력을 정리한다. `2026-06-29` App Store 심사를 통과해 App Store에 공개됐으며, 출시 후 확인은 `docs/ios-app-store-launch-checklist.md`에서 이어간다.
 
@@ -15,14 +15,16 @@
 - 이전 공개 버전: `1.0.2` (`2026-07-20` KST 기준 App Store 공개 확인)
 - 변경 범위: 동기화된 작품의 canonical ID를 사용해 함께 기록을 열고 공개하도록 수정한다.
 
-### 2026-08-16 빌드 및 제출 상태
+### 2026-08-16 빌드 및 2026-08-22 App Review 제출 상태
 
 - PR `#90`, main SHA `b24dea0733369a2a0181e0f70559a30d70b6d115`로 수정과 `1.0.3` 버전 변경을 병합했다.
 - main Native iOS CI run `31922438068`과 Verify Web run `31922438075`가 성공했다.
 - Native iOS TestFlight run `31922504262`에서 EAS build `756573d4-164e-4314-a30b-856fd787c2cc`를 생성했다.
 - EAS submission `44c5e661-4ff0-479c-8410-d7e270d42bdc`로 build `1.0.3 (23)`을 Apple App Store Connect에 업로드했다.
-- EAS 제출은 성공했고 Apple processing 단계에 진입했다. App Store Connect TestFlight 탭의 processing/available 상태는 별도로 확인해야 한다.
-- `2026-08-16` Apple 공개 조회 기준 App Store 버전은 아직 `1.0.2`다. `1.0.3` 공개 전에는 build `23` 선택, 아래 What's New 반영, App Review 제출이 남아 있다.
+- Apple processing을 마친 build `1.0.3 (23)`은 `VALID`, `IN_BETA_TESTING` 상태이며 만료되지 않았다.
+- `2026-08-22` App Store 버전 `1.0.3`을 만들고 build `23`을 선택했다. 공개 중인 `1.0.2`의 한국어·영어 설명, 키워드, 지원/마케팅 URL, 한국어 iPhone 스크린샷 4장, 심사 연락처를 그대로 계승하고 아래 What's New만 새 버그 수정 내용으로 교체했다.
+- App Review submission `16c8bb67-5448-4552-8e07-80a921e3c702`를 제출했고 `2026-08-22T05:38:50.584Z` 기준 submission과 app version 모두 `WAITING_FOR_REVIEW`다.
+- release type은 `AFTER_APPROVAL`이므로 심사 승인 뒤 자동 공개된다. 승인 전 Apple 공개 조회 버전은 계속 `1.0.2 (22)`다.
 
 ### App Store — 새로운 기능 (한국어)
 
@@ -256,7 +258,9 @@ The app does not read video playback contents from other apps. iOS recap reminde
 - Native iOS TestFlight workflow succeeds. (`27805741470`, build `1.0.0 (7)`)
 - Native iOS TestFlight workflow succeeds for `1.0.3`. (`31922504262`, EAS build `756573d4-164e-4314-a30b-856fd787c2cc`)
 - EAS Submit uploads build `1.0.3 (23)` to App Store Connect. (`44c5e661-4ff0-479c-8410-d7e270d42bdc`)
-- App Store Connect processing/available 확인과 내부 테스터 실기기 확인은 남아 있다. (`1.0.3 (23)`)
+- App Store Connect processing 완료와 내부 TestFlight 설치를 확인했다. (`1.0.3 (23)`, analytics `appVersion=1.0.3`, `buildNumber=23` 확인)
+- App Store 버전 `1.0.3`에 build `23`과 한국어·영어 메타데이터를 연결했다. (`2026-08-22`)
+- App Review 제출이 `WAITING_FOR_REVIEW` 상태다. (submission `16c8bb67-5448-4552-8e07-80a921e3c702`, 승인 후 자동 공개)
 - Local Mac EAS build succeeds. (`2026-06-28`, build `1.0.0 (16)`)
 - EAS Submit uploads build `1.0.0 (16)` to App Store Connect. (`5cddc021-ab3e-412c-99cb-f687f67dde30`)
 - Native app icon is replaced from Expo default icon to ottline brand icon. (`2026-06-28`, build `1.0.0 (18)`)
@@ -275,3 +279,4 @@ The app does not read video playback contents from other apps. iOS recap reminde
 - `2026-06-28`: build `1.0.0 (16)`에서 Expo 기본 아이콘이 확인되어 출시 후보에서 제외했다. `apps/native/assets/icon.png`를 ottline 브랜드 아이콘으로 교체했고, EAS autoIncrement로 build `1.0.0 (18)`을 생성했다. Local artifact `apps/native/builds/direct/ottline-18.ipa`, EAS submission `a58c8aab-df08-4364-8259-64a375fcea1d`로 App Store Connect 업로드를 완료했다.
 - `2026-06-29`: PR `#73` main SHA `2ddb3bb` 기준 iOS launch prep이 main에 반영됐다. App Store 심사를 통과해 `https://apps.apple.com/app/ottline/id6780318110`로 공개됐다.
 - `2026-08-16`: PR `#90`, main SHA `b24dea0733369a2a0181e0f70559a30d70b6d115`, GitHub run `31922504262`, EAS build `756573d4-164e-4314-a30b-856fd787c2cc`, EAS submission `44c5e661-4ff0-479c-8410-d7e270d42bdc`, build `1.0.3 (23)`. 로컬 작품 ID가 서버 canonical ID로 합쳐진 직후 함께 기록 진입/공개에서 발생하던 400 응답을 수정했고 App Store Connect 업로드를 완료했다. Apple processing/available 확인과 App Review 제출은 남아 있다.
+- `2026-08-22`: build `1.0.3 (23)`의 `VALID`/`IN_BETA_TESTING` 상태와 내부 설치를 확인했다. App Store 버전 `1.0.3`에 build `23`, 기존 메타데이터·스크린샷·심사 연락처, 한국어·영어 What's New를 연결하고 review submission `16c8bb67-5448-4552-8e07-80a921e3c702`로 제출했다. submission과 app version은 `WAITING_FOR_REVIEW`, release type은 `AFTER_APPROVAL`이다. 공개 버전은 승인 전까지 `1.0.2 (22)`다.

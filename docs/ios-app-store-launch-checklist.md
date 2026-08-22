@@ -1,12 +1,25 @@
 # iOS App Store 출시 체크리스트
 
-기준일: 2026-06-29
+기준일: 2026-08-22
 
 ## 목적
 
 - ottline iOS 네이티브 앱 App Store 정식 출시 상태와 출시 후 확인 항목을 기록한다.
 - Expo 기본 아이콘이 들어간 build `1.0.0 (16)`은 출시 후보에서 제외했고, 브랜드 아이콘을 반영한 build `1.0.0 (18)`을 출시 후보로 제출했다.
 - `2026-06-29` App Store 심사를 통과해 App Store에 공개됐다.
+
+## 1.0.3 함께 기록 안정화 업데이트
+
+- 대상 build: `1.0.3 (23)`
+- 수정: 동기화된 작품의 canonical ID를 사용해 함께 기록 진입/공개 시 발생하던 서버 오류를 복구한다.
+- TestFlight: `VALID`, `IN_BETA_TESTING`, 만료되지 않음.
+- App Store 메타데이터: 공개 중인 `1.0.2`의 한국어·영어 설명, 키워드, URL, 한국어 iPhone 스크린샷 4장, 심사 연락처를 계승하고 What's New만 `1.0.3` 내용으로 갱신했다.
+- App Review submission: `16c8bb67-5448-4552-8e07-80a921e3c702`
+- 제출 시각: `2026-08-22T05:38:50.584Z`
+- 현재 상태: `WAITING_FOR_REVIEW`
+- 공개 방식: `AFTER_APPROVAL` — 심사 승인 뒤 자동 공개.
+- 승인 전 공개 버전: `1.0.2 (22)` (`READY_FOR_DISTRIBUTION`)
+- 승인 후 확인: Apple 공개 버전 `1.0.3`, 실제 App Store 업데이트 설치, production analytics의 `platform=ios_native`, `appVersion=1.0.3`, `buildNumber=23` 유입을 다시 확인한다.
 
 ## 기준 정보
 
