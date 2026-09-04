@@ -4,7 +4,11 @@ import { Bookmark, BookOpen, CircleHelp, Eye } from "lucide-react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useState } from "react";
-import { trackEvent } from "@/lib/analytics";
+import {
+  clearCuratedAttribution,
+  readCuratedAttribution,
+  trackEvent,
+} from "@/lib/analytics";
 import { api, apiWithAuth } from "@/lib/api";
 import {
   countLogsLocal,
@@ -211,6 +215,18 @@ export default function DiscussionReactionChips({
     await trackEvent("log_create", logCreateProperties);
     if (logCountBeforeSave === 0) {
       await trackEvent("first_log_create", logCreateProperties);
+    }
+    const curatedAttribution = readCuratedAttribution();
+    if (curatedAttribution?.titleId === title.id) {
+      await trackEvent("curated_human_action", {
+        curatedContentId: curatedAttribution.curatedContentId,
+        titleId: title.id,
+        actorType: "ai_curator",
+        contentOrigin: "ai_curator",
+        action: "log_create",
+        entryPoint: "public_reaction",
+      });
+      clearCuratedAttribution();
     }
     if (typeof window !== "undefined") {
       window.dispatchEvent(new CustomEvent("sync:updated"));

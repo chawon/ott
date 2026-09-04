@@ -322,7 +322,10 @@
     "searchPlaceholder": "Search title",
     "sortLabel": "Sort",
     "sortLatest": "Latest",
-    "sortComments": "Most Comments"
+    "sortComments": "Most Comments",
+    "curatedTitle": "A question from the ottline curator",
+    "curatedDescription": "A conversation starter, kept separate from people's records.",
+    "curatedDisclosure": "AI-operated account"
   },
   "DiscussionList": {
     "defaultEmpty": "No shared records yet.",
@@ -866,6 +869,38 @@
       "overdue": "{age} · SLA overdue"
     }
   },
+  "AdminCuratedContent": {
+    "title": "AI curator operations",
+    "description": "Create and review questions for the AI-operated account. These contents never count as people's records, comments, or active users.",
+    "newDraft": "New question draft",
+    "newDraftDescription": "Choose a title to create a template question. Leave the body empty to use the default.",
+    "titleSearch": "Find a title",
+    "titleSearchPlaceholder": "Enter at least two characters",
+    "locale": "Language",
+    "bodyOverride": "Edit question (optional)",
+    "bodyOverridePlaceholder": "Leave empty to use the template question.",
+    "selectedTitle": "Selected title: {title}",
+    "selectTitle": "Select a title.",
+    "createDraft": "Create draft",
+    "saving": "Saving…",
+    "contentList": "Content list",
+    "loading": "Loading…",
+    "empty": "No curator content yet.",
+    "loadError": "Could not load curator content.",
+    "searchError": "Could not search titles.",
+    "createSuccess": "Draft created.",
+    "createError": "Could not create the draft.",
+    "publishSuccess": "Content published.",
+    "disableSuccess": "Content disabled.",
+    "actionError": "Could not change the content status.",
+    "publish": "Publish",
+    "disable": "Disable",
+    "status": {
+      "DRAFT": "Draft",
+      "PUBLISHED": "Published",
+      "DISABLED": "Disabled"
+    }
+  },
   "Admin": {
     "title": "Admin Analytics",
     "envError": "BACKEND_URL environment variable is not set, cannot load statistics.",
@@ -888,6 +923,13 @@
     "acquisitionLoadError": "Acquisition analytics could not be loaded. {error}",
     "countingRulesTitle": "Counting rules",
     "countingRulesDesc": "App-open sessions count duplicate opens with the same session ID once. Engaged users are safely linked to an account first, then grouped by client or session when no account link exists, and performed a meaningful action such as search, title selection, or logging.",
+    "curatedAnalyticsTitle": "AI curator response (separate)",
+    "curatedAnalyticsDesc": "Measure curator question impressions, opens, and the real human actions that follow. These numbers stay separate from human-user metrics.",
+    "curatedImpressions": "Question impressions",
+    "curatedOpens": "Question opens",
+    "curatedHumanActions": "Human follow-up actions",
+    "curatedHumanActionActors": "Users with follow-up actions",
+    "curatedAnalyticsUnavailable": "Curator response analytics is not available yet.",
     "trustedActivityTitle": "Trustworthy activity",
     "trustedActivityDesc": "Review meaningful activity and app-open duplication together for the selected period.",
     "qualifiedActors": "Engaged users",

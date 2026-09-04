@@ -20,7 +20,7 @@ import java.util.Objects;
 public class AnalyticsMetricsQuery {
 
     static final String EXCLUDED_ADMIN_ID = "2777a431-5ccb-4761-9c8a-2b17a34ff566";
-    private static final String EXCLUDED_ADMIN_ACTOR = "u:" + EXCLUDED_ADMIN_ID;
+    static final String EXCLUDED_ADMIN_ACTOR = "u:" + EXCLUDED_ADMIN_ID;
     private static final ZoneId KST = ZoneId.of("Asia/Seoul");
 
     private static final String RESOLVED_EVENTS_CTE = """
@@ -34,6 +34,7 @@ public class AnalyticsMetricsQuery {
                 from analytics_events
                 where client_id is not null
                   and user_id is not null
+                  and event_name not like 'curated_%'
                   and occurred_at < ?
                 group by client_id
             ),
@@ -51,6 +52,7 @@ public class AnalyticsMetricsQuery {
                 left join client_identity ci on ci.client_id = e.client_id
                 where e.occurred_at >= ?
                   and e.occurred_at < ?
+                  and e.event_name not like 'curated_%'
             ),
             base as (
                 select

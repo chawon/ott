@@ -152,6 +152,23 @@ class AnalyticsMetricsQueryTest {
     }
 
     @Test
+    void curatorEventsDoNotChangeTheDefaultProductEventSummary() {
+        OffsetDateTime from = kstDayStart();
+        UUID clientId = UUID.randomUUID();
+        insertEvent("app_open", null, clientId, "session-1", from.plusHours(1), "web", "{}");
+        insertEvent("curated_impression", null, clientId, "session-1", from.plusHours(2), "web", "{}");
+        insertEvent("curated_open", null, clientId, "session-1", from.plusHours(3), "web", "{}");
+
+        var summary = metricsQuery.summarize(from, from.plusDays(1));
+
+        assertThat(summary.events()).isEqualTo(1);
+        assertThat(summary.activity().rawAppOpenEvents()).isEqualTo(1);
+        assertThat(metricsQuery.summarizeEventBreakdown(from, from.plusDays(1)))
+                .extracting(AnalyticsMetricsQuery.EventBreakdownSummary::eventName)
+                .containsExactly("app_open");
+    }
+
+    @Test
     void titleSelectionWithoutSearchIsIndependentReach() {
         OffsetDateTime from = kstDayStart();
         insertEvent("title_select", null, UUID.randomUUID(), "session-1", from.plusHours(1), "web", "{}");

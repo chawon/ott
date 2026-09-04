@@ -125,6 +125,16 @@ type AdminAcquisition = {
   orphanConversionSessions: number;
 };
 
+type AdminCuratedAnalytics = {
+  days: number;
+  from: string;
+  to: string;
+  impressions: number;
+  opens: number;
+  humanActions: number;
+  humanActionActors: number;
+};
+
 export default async function AdminAnalyticsPage({ searchParams }: Props) {
   const locale = "ko";
   const t = await getTranslations({ locale, namespace: "Admin" });
@@ -146,35 +156,45 @@ export default async function AdminAnalyticsPage({ searchParams }: Props) {
 
   let overview: AdminOverview | null = null;
   let acquisition: AdminAcquisition | null = null;
+  let curatedAnalytics: AdminCuratedAnalytics | null = null;
   let recentEvents: AdminEventRow[] = [];
   let loadError: string | null = null;
   let acquisitionLoadError: string | null = null;
+  let curatedLoadError: string | null = null;
   try {
     const safeDays = days;
     const adminHeaders = { "X-Admin-Token": adminToken };
-    const [response, eventsResponse, acquisitionResponse] = await Promise.all([
-      fetch(
-        `${backendUrl}/internal/admin/analytics/overview?days=${safeDays}`,
-        {
-          headers: adminHeaders,
-          cache: "no-store",
-        },
-      ),
-      fetch(
-        `${backendUrl}/internal/admin/analytics/events?days=${safeDays}&limit=300`,
-        {
-          headers: adminHeaders,
-          cache: "no-store",
-        },
-      ),
-      fetch(
-        `${backendUrl}/internal/admin/analytics/acquisition?days=${safeDays}`,
-        {
-          headers: adminHeaders,
-          cache: "no-store",
-        },
-      ),
-    ]);
+    const [response, eventsResponse, acquisitionResponse, curatedResponse] =
+      await Promise.all([
+        fetch(
+          `${backendUrl}/internal/admin/analytics/overview?days=${safeDays}`,
+          {
+            headers: adminHeaders,
+            cache: "no-store",
+          },
+        ),
+        fetch(
+          `${backendUrl}/internal/admin/analytics/events?days=${safeDays}&limit=300`,
+          {
+            headers: adminHeaders,
+            cache: "no-store",
+          },
+        ),
+        fetch(
+          `${backendUrl}/internal/admin/analytics/acquisition?days=${safeDays}`,
+          {
+            headers: adminHeaders,
+            cache: "no-store",
+          },
+        ),
+        fetch(
+          `${backendUrl}/internal/admin/analytics/curated?days=${safeDays}`,
+          {
+            headers: adminHeaders,
+            cache: "no-store",
+          },
+        ),
+      ]);
     if (!response.ok || !eventsResponse.ok) {
       loadError = t("apiError", {
         status: response.ok ? eventsResponse.status : response.status,
@@ -190,6 +210,12 @@ export default async function AdminAnalyticsPage({ searchParams }: Props) {
         status: acquisitionResponse.status,
       });
     }
+    if (curatedResponse.ok) {
+      curatedAnalytics =
+        (await curatedResponse.json()) as AdminCuratedAnalytics;
+    } else {
+      curatedLoadError = t("apiError", { status: curatedResponse.status });
+    }
   } catch (e: unknown) {
     loadError = e instanceof Error ? e.message : t("callError");
   }
@@ -204,6 +230,7 @@ export default async function AdminAnalyticsPage({ searchParams }: Props) {
   ]);
   const isHiddenEvent = (eventName: string) =>
     eventName.startsWith("onboarding_first_log_") ||
+    eventName.startsWith("curated_") ||
     hiddenEventNames.has(eventName);
   const visibleEventBreakdown = overview
     ? overview.eventBreakdown.filter((item) => !isHiddenEvent(item.eventName))
@@ -345,6 +372,45 @@ export default async function AdminAnalyticsPage({ searchParams }: Props) {
             <p className="mt-1 text-sm leading-6 text-muted-foreground">
               {t("countingRulesDesc")}
             </p>
+          </section>
+
+          <section className="space-y-4 rounded-lg border border-[#1E4D8C]/20 bg-[#FEF9EE] p-5">
+            <div className="space-y-1">
+              <h2 className="text-base font-semibold">
+                {t("curatedAnalyticsTitle")}
+              </h2>
+              <p className="text-sm leading-6 text-muted-foreground">
+                {t("curatedAnalyticsDesc")}
+              </p>
+            </div>
+            {curatedAnalytics ? (
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                <AdminMetric
+                  label={t("curatedImpressions")}
+                  value={curatedAnalytics.impressions}
+                  numberFormatter={numberFormatter}
+                />
+                <AdminMetric
+                  label={t("curatedOpens")}
+                  value={curatedAnalytics.opens}
+                  numberFormatter={numberFormatter}
+                />
+                <AdminMetric
+                  label={t("curatedHumanActions")}
+                  value={curatedAnalytics.humanActions}
+                  numberFormatter={numberFormatter}
+                />
+                <AdminMetric
+                  label={t("curatedHumanActionActors")}
+                  value={curatedAnalytics.humanActionActors}
+                  numberFormatter={numberFormatter}
+                />
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                {curatedLoadError ?? t("curatedAnalyticsUnavailable")}
+              </p>
+            )}
           </section>
 
           {acquisition ? (
@@ -964,6 +1030,25 @@ export default async function AdminAnalyticsPage({ searchParams }: Props) {
         </>
       ) : null}
     </div>
+  );
+}
+
+function AdminMetric({
+  label,
+  value,
+  numberFormatter,
+}: {
+  label: string;
+  value: number;
+  numberFormatter: Intl.NumberFormat;
+}) {
+  return (
+    <article className="rounded-lg border border-border bg-card p-4">
+      <div className="text-xs text-muted-foreground">{label}</div>
+      <div className="mt-1 text-2xl font-semibold">
+        {numberFormatter.format(value)}
+      </div>
+    </article>
   );
 }
 

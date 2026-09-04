@@ -5,6 +5,11 @@ import { useCallback, useEffect, useId, useMemo, useState } from "react";
 import TitleSearchBox from "@/components/TitleSearchBox";
 import { api } from "@/lib/api";
 import { ensureAuth } from "@/lib/auth";
+import {
+  clearCuratedAttribution,
+  readCuratedAttribution,
+  trackEvent,
+} from "@/lib/analytics";
 import { getUserId } from "@/lib/localStore";
 import type {
   Comment,
@@ -130,6 +135,18 @@ export default function CommentsPanel({
         method: "POST",
         body: JSON.stringify(req),
       });
+      const curatedAttribution = readCuratedAttribution();
+      if (curatedAttribution?.titleId === titleId) {
+        await trackEvent("curated_human_action", {
+          curatedContentId: curatedAttribution.curatedContentId,
+          titleId,
+          actorType: "ai_curator",
+          contentOrigin: "ai_curator",
+          action: "comment_create",
+          entryPoint: "title_comments",
+        });
+        clearCuratedAttribution();
+      }
       setComments((prev) => [...prev, created]);
       setBody("");
       setMentions([]);

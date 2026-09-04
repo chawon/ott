@@ -2,6 +2,7 @@ package com.watchlog.api.web;
 
 import com.watchlog.api.dto.AdminAnalyticsOverviewDto;
 import com.watchlog.api.dto.AdminAcquisitionAnalyticsDto;
+import com.watchlog.api.dto.AdminCuratedAnalyticsDto;
 import com.watchlog.api.dto.AdminEventRowDto;
 import com.watchlog.api.dto.AdminMigrationStatusDto;
 import com.watchlog.api.service.AnalyticsService;
@@ -37,6 +38,14 @@ public class AdminAnalyticsController {
             @RequestParam(value = "days", defaultValue = "30") int days
     ) {
         return analyticsService.adminAcquisition(token, days);
+    }
+
+    @GetMapping("/curated")
+    public AdminCuratedAnalyticsDto curated(
+            @RequestHeader(value = "X-Admin-Token", required = false) String token,
+            @RequestParam(value = "days", defaultValue = "30") int days
+    ) {
+        return analyticsService.adminCuratedAnalytics(token, days);
     }
 
     @GetMapping("/events")
