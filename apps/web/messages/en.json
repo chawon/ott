@@ -322,7 +322,10 @@
     "searchPlaceholder": "Search title",
     "sortLabel": "Sort",
     "sortLatest": "Latest",
-    "sortComments": "Most Comments"
+    "sortComments": "Most Comments",
+    "curatedTitle": "A question from the ottline curator",
+    "curatedDescription": "A conversation starter, kept separate from people's records.",
+    "curatedDisclosure": "AI-operated account"
   },
   "DiscussionList": {
     "defaultEmpty": "No shared records yet.",

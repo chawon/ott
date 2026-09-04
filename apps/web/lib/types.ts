@@ -93,6 +93,22 @@ export interface DiscussionListItem {
   reactionSummary?: DiscussionReactionSummary;
 }
 
+export interface CuratedContent {
+  id: string;
+  titleId: string;
+  titleName: string;
+  titleType: TitleType;
+  titleYear?: number | null;
+  posterUrl?: string | null;
+  kind: string;
+  body: string;
+  actorKey: string;
+  actorType: "AI_CURATOR" | string;
+  actorDisplayName: string;
+  disclosure: string;
+  publishedAt: string;
+}
+
 export interface Discussion {
   id: string;
   titleId: string;

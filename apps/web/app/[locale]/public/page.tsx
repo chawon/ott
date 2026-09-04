@@ -1,9 +1,10 @@
 import { MessageCircle } from "lucide-react";
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
+import CuratedContentList from "@/components/CuratedContentList";
 import PublicDiscussionsClient from "@/components/PublicDiscussionsClient";
 import { localizedAlternates, localizedOpenGraph } from "@/lib/seo";
-import type { DiscussionListItem } from "@/lib/types";
+import type { CuratedContent, DiscussionListItem } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
@@ -37,6 +38,22 @@ async function loadPublicDiscussions(locale: string): Promise<{
   }
 }
 
+async function loadCuratedContents(locale: string): Promise<CuratedContent[]> {
+  const backendUrl = process.env.BACKEND_URL?.replace(/\/+$/, "");
+  if (!backendUrl) return [];
+
+  try {
+    const response = await fetch(`${backendUrl}/api/curated-contents?limit=6`, {
+      headers: { "Accept-Language": locale },
+      cache: "no-store",
+    });
+    if (!response.ok) return [];
+    return (await response.json()) as CuratedContent[];
+  } catch {
+    return [];
+  }
+}
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: "Public" });
@@ -57,7 +74,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function PublicDiscussionsPage({ params }: Props) {
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: "Public" });
-  const { items, failed } = await loadPublicDiscussions(locale);
+  const [{ items, failed }, curatedItems] = await Promise.all([
+    loadPublicDiscussions(locale),
+    loadCuratedContents(locale),
+  ]);
 
   return (
     <div className="space-y-4">
@@ -68,6 +88,7 @@ export default async function PublicDiscussionsPage({ params }: Props) {
         </h1>
       </header>
 
+      <CuratedContentList items={curatedItems} />
       <PublicDiscussionsClient initialItems={items} initialFailed={failed} />
     </div>
   );

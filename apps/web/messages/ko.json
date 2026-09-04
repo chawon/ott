@@ -322,7 +322,10 @@
     "searchPlaceholder": "제목 검색",
     "sortLabel": "정렬",
     "sortLatest": "최신",
-    "sortComments": "댓글 많은 순"
+    "sortComments": "댓글 많은 순",
+    "curatedTitle": "ottline 큐레이터의 질문",
+    "curatedDescription": "사람의 기록과는 구분된, 오늘의 대화 소재예요.",
+    "curatedDisclosure": "AI 운영 계정"
   },
   "DiscussionList": {
     "defaultEmpty": "아직 함께 기록이 없어요.",
