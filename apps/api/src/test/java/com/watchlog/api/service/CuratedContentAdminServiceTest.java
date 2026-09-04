@@ -1,6 +1,6 @@
 package com.watchlog.api.service;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import com.watchlog.api.dto.CreateCuratedDraftRequest;
 import com.watchlog.api.dto.CuratedContentAdminDto;
 import org.flywaydb.core.Flyway;
