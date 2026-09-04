@@ -37,6 +37,10 @@ create index idx_curated_contents_public
     on curated_contents (locale, published_at desc)
     where status = 'PUBLISHED';
 
+create unique index idx_curated_contents_one_published_prompt
+    on curated_contents (actor_id, title_id, locale, kind)
+    where status = 'PUBLISHED';
+
 insert into system_actors (id, actor_key, actor_type, display_name, disclosure)
 values (
     '00000000-0000-4000-8000-000000000001',

@@ -109,6 +109,37 @@ export interface CuratedContent {
   publishedAt: string;
 }
 
+export interface CuratedTitleOption {
+  id: string;
+  name: string;
+  type: TitleType;
+  year?: number | null;
+  posterUrl?: string | null;
+}
+
+export interface CuratedContentAdmin {
+  id: string;
+  titleId: string;
+  titleName: string;
+  titleType: TitleType;
+  titleYear?: number | null;
+  posterUrl?: string | null;
+  locale: string;
+  kind: string;
+  body: string;
+  status: "DRAFT" | "PUBLISHED" | "DISABLED";
+  actorKey: string;
+  actorType: string;
+  actorDisplayName: string;
+  disclosure: string;
+  model?: string | null;
+  promptVersion?: string | null;
+  sourceJson: Record<string, unknown>;
+  publishedAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Discussion {
   id: string;
   titleId: string;

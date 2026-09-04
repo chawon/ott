@@ -869,6 +869,38 @@
       "overdue": "{age} · SLA 초과"
     }
   },
+  "AdminCuratedContent": {
+    "title": "AI 큐레이터 운영",
+    "description": "AI 운영 계정의 질문을 초안으로 만들고, 검토한 콘텐츠만 공개합니다. 사람의 기록·댓글·활성 사용자 집계에는 포함되지 않습니다.",
+    "newDraft": "새 질문 초안",
+    "newDraftDescription": "작품을 고르면 템플릿 질문을 만들어요. 본문을 비워 두면 기본 질문을 사용합니다.",
+    "titleSearch": "작품 찾기",
+    "titleSearchPlaceholder": "작품명을 두 글자 이상 입력해 주세요",
+    "locale": "언어",
+    "bodyOverride": "질문 수정 (선택)",
+    "bodyOverridePlaceholder": "비워 두면 템플릿 질문을 사용합니다.",
+    "selectedTitle": "선택한 작품: {title}",
+    "selectTitle": "작품을 선택해 주세요.",
+    "createDraft": "초안 만들기",
+    "saving": "저장 중…",
+    "contentList": "콘텐츠 목록",
+    "loading": "불러오는 중…",
+    "empty": "아직 만든 콘텐츠가 없어요.",
+    "loadError": "콘텐츠를 불러오지 못했어요.",
+    "searchError": "작품 검색에 실패했어요.",
+    "createSuccess": "초안을 만들었어요.",
+    "createError": "초안을 만들지 못했어요.",
+    "publishSuccess": "콘텐츠를 공개했어요.",
+    "disableSuccess": "콘텐츠를 비활성화했어요.",
+    "actionError": "상태를 바꾸지 못했어요.",
+    "publish": "공개",
+    "disable": "비활성화",
+    "status": {
+      "DRAFT": "초안",
+      "PUBLISHED": "공개 중",
+      "DISABLED": "비활성화"
+    }
+  },
   "Admin": {
     "title": "관리자 통계",
     "envError": "BACKEND_URL 환경변수가 설정되지 않아 통계를 불러올 수 없습니다.",

@@ -1,6 +1,6 @@
 # AI 큐레이터 v0 설계
 
-상태: 제안
+상태: Slice 1·2 구현 완료, 운영 배포 전
 브랜치: `feat/ai-curator-v0`
 
 ## 1. 문제 정의
@@ -138,6 +138,19 @@ AI 자체의 실행 세션·게시 수는 사람 이용자 수로 표시하지 �
 - 모델 호출 전 템플릿 기반 질문 생성.
 - 중복 hash와 locale별 활성 콘텐츠 제한.
 - 관리자 초안 목록·게시·비활성화.
+
+구현된 운영 경로:
+
+- `GET /internal/admin/curated-contents` — 초안·공개·비활성화 목록
+- `GET /internal/admin/curated-contents/titles?q=...` — 기존 작품 검색
+- `POST /internal/admin/curated-contents/drafts` — 템플릿 또는 운영자 본문으로 초안 생성
+- `POST /internal/admin/curated-contents/{id}/publish` — 승인 공개
+- `POST /internal/admin/curated-contents/{id}/disable` — 즉시 비활성화
+- 웹 관리자 화면: `/admin/curated-contents` (Cloudflare Access + BFF)
+
+현재 템플릿 생성은 외부 모델을 호출하지 않는다. 작품 메타데이터와 언어만으로 질문을 만들고,
+동일 작품·언어의 공개 질문은 하나만 허용한다. 운영 환경에서는 `ADMIN_CURATED_CONTENT_TOKEN`을
+별도로 설정할 수 있으며, 미설정 시 기존 `ADMIN_ANALYTICS_TOKEN`을 호환 fallback으로 사용한다.
 
 ### Slice 3: 모델 adapter
 

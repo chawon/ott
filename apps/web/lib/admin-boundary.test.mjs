@@ -49,6 +49,26 @@ test("feedback browser code calls the admin BFF without an admin token", () => {
   assert.doesNotMatch(bffSource, /return `\/api\/admin/);
 });
 
+test("curated content browser code calls a Cloudflare-protected admin BFF", () => {
+  const consoleSource = read("components", "AdminCuratedContentConsole.tsx");
+  assert.match(consoleSource, /fetch\(`\/admin\/api\/curated-contents/);
+  assert.doesNotMatch(consoleSource, /X-Admin-Token/);
+
+  const bffSource = read(
+    "app",
+    "admin",
+    "api",
+    "curated-contents",
+    "[[...path]]",
+    "route.ts",
+  );
+  assert.match(bffSource, /verifyCloudflareAccessRequest/);
+  assert.match(bffSource, /"X-Admin-Token": adminToken/);
+  assert.match(bffSource, /validateAdminMutationRequest\(request\)/);
+  assert.match(bffSource, /\/internal\/admin\/curated-contents/);
+  assert.doesNotMatch(bffSource, /return `\/api\/admin/);
+});
+
 test("admin server pages use internal backend routes and acquisition contract", () => {
   const analytics = read("app", "admin", "analytics", "page.tsx");
   const report = read("app", "admin", "report", "page.tsx");
