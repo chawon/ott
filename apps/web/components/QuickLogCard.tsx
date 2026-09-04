@@ -17,7 +17,11 @@ import { useLocale, useTranslations } from "next-intl";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import TitleSearchBox from "@/components/TitleSearchBox";
 import { Link as IntlLink } from "@/i18n/routing";
-import { trackEvent } from "@/lib/analytics";
+import {
+  clearCuratedAttribution,
+  readCuratedAttribution,
+  trackEvent,
+} from "@/lib/analytics";
 import { api, apiWithAuth } from "@/lib/api";
 import { isKdcBookshelfLocale, type KdcMajor } from "@/lib/bookshelf";
 import { resolveTitleClassification } from "@/lib/bookshelfStore";
@@ -694,6 +698,18 @@ export default function QuickLogCard({
       await trackEvent("log_create", logCreateProperties);
       if (logCountBeforeSave === 0) {
         await trackEvent("first_log_create", logCreateProperties);
+      }
+      const curatedAttribution = readCuratedAttribution();
+      if (curatedAttribution?.titleId === newLocalTitleId) {
+        await trackEvent("curated_human_action", {
+          curatedContentId: curatedAttribution.curatedContentId,
+          titleId: newLocalTitleId,
+          actorType: "ai_curator",
+          contentOrigin: "ai_curator",
+          action: "log_create",
+          entryPoint: "quick_log",
+        });
+        clearCuratedAttribution();
       }
       onCreated(localLog);
       const bookshelfEnabled = isKdcBookshelfLocale(locale);

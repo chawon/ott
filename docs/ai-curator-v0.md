@@ -1,6 +1,6 @@
 # AI 큐레이터 v0 설계
 
-상태: Slice 1·2 구현 완료, 운영 배포 전
+상태: Slice 1·2·4 구현 완료, 운영 배포 전
 브랜치: `feat/ai-curator-v0`
 
 ## 1. 문제 정의
@@ -163,6 +163,14 @@ AI 자체의 실행 세션·게시 수는 사람 이용자 수로 표시하지 �
 - `curated_impression`, `curated_open`, `curated_human_action` 수집.
 - 기존 사람 지표와 분리된 관리자 카드.
 - 최소 2주 관찰 후 유지 여부 판단.
+
+구현된 이벤트 연결:
+
+- 공개 큐레이터 카드가 현재 탭 세션에서 처음 노출될 때 `curated_impression`
+- 카드의 작품 링크를 눌렀을 때 `curated_open`
+- 같은 작품을 실제로 기록했을 때 `curated_human_action` (`action=log_create`)
+- `curated_human_action`은 24시간 세션 귀속을 사용하고, 다른 작품을 기록하면 귀속하지 않는다.
+- 기본 제품 통계 쿼리에서는 `curated_*` 이벤트를 제외하고, 관리자 통계의 별도 카드에서만 집계한다.
 
 ## 9. 성공 기준
 

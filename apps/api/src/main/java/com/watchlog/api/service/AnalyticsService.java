@@ -9,6 +9,7 @@ import com.watchlog.api.dto.AdminAcquisitionDailyDto;
 import com.watchlog.api.dto.AdminAcquisitionDimensionDto;
 import com.watchlog.api.dto.AdminAcquisitionSummaryDto;
 import com.watchlog.api.dto.AdminAnalyticsOverviewDto;
+import com.watchlog.api.dto.AdminCuratedAnalyticsDto;
 import com.watchlog.api.dto.AdminDailyAnalyticsDto;
 import com.watchlog.api.dto.AdminDimensionSummaryDto;
 import com.watchlog.api.dto.AdminEventBreakdownDto;
@@ -48,14 +49,17 @@ public class AnalyticsService {
     private final JdbcTemplate jdbcTemplate;
     private final AnalyticsMetricsQuery analyticsMetricsQuery;
     private final AcquisitionAnalyticsQuery acquisitionAnalyticsQuery;
+    private final CuratedAnalyticsQuery curatedAnalyticsQuery;
     private final WatchLogRepository watchLogRepository;
     private final UserRepository userRepository;
     private final String adminAnalyticsToken;
 
+    @org.springframework.beans.factory.annotation.Autowired
     public AnalyticsService(
             JdbcTemplate jdbcTemplate,
             AnalyticsMetricsQuery analyticsMetricsQuery,
             AcquisitionAnalyticsQuery acquisitionAnalyticsQuery,
+            CuratedAnalyticsQuery curatedAnalyticsQuery,
             WatchLogRepository watchLogRepository,
             UserRepository userRepository,
             @Value("${admin.analytics.token:}") String adminAnalyticsToken
@@ -63,9 +67,29 @@ public class AnalyticsService {
         this.jdbcTemplate = jdbcTemplate;
         this.analyticsMetricsQuery = analyticsMetricsQuery;
         this.acquisitionAnalyticsQuery = acquisitionAnalyticsQuery;
+        this.curatedAnalyticsQuery = curatedAnalyticsQuery;
         this.watchLogRepository = watchLogRepository;
         this.userRepository = userRepository;
         this.adminAnalyticsToken = adminAnalyticsToken;
+    }
+
+    public AnalyticsService(
+            JdbcTemplate jdbcTemplate,
+            AnalyticsMetricsQuery analyticsMetricsQuery,
+            AcquisitionAnalyticsQuery acquisitionAnalyticsQuery,
+            WatchLogRepository watchLogRepository,
+            UserRepository userRepository,
+            String adminAnalyticsToken
+    ) {
+        this(
+                jdbcTemplate,
+                analyticsMetricsQuery,
+                acquisitionAnalyticsQuery,
+                null,
+                watchLogRepository,
+                userRepository,
+                adminAnalyticsToken
+        );
     }
 
     @Transactional
@@ -521,6 +545,34 @@ public class AnalyticsService {
                         ))
                         .toList(),
                 result.orphanConversionSessions()
+        );
+    }
+
+    @Transactional(readOnly = true)
+    public AdminCuratedAnalyticsDto adminCuratedAnalytics(String token, int days) {
+        verifyAdminToken(token);
+        if (!Set.of(7, 30, 90, 180).contains(days)) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "days must be one of 7, 30, 90, or 180"
+            );
+        }
+        AnalyticsMetricsQuery.CalendarWindows windows = analyticsMetricsQuery.calendarWindows(
+                days,
+                OffsetDateTime.now(ZoneId.of("Asia/Seoul"))
+        );
+        CuratedAnalyticsQuery.Summary summary = curatedAnalyticsQuery.summarize(
+                windows.periodFrom(),
+                windows.to()
+        );
+        return new AdminCuratedAnalyticsDto(
+                windows.days(),
+                windows.periodFrom(),
+                windows.to(),
+                summary.impressions(),
+                summary.opens(),
+                summary.humanActions(),
+                summary.humanActionActors()
         );
     }
 

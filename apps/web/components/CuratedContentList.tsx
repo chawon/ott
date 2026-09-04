@@ -1,18 +1,49 @@
+"use client";
+
 import { Sparkles } from "lucide-react";
 import Image from "next/image";
-import { getTranslations } from "next-intl/server";
+import { useTranslations } from "next-intl";
+import { useEffect, useRef } from "react";
 import { Link } from "@/i18n/routing";
+import {
+  curatedImpressionStorageKey,
+  rememberCuratedAttribution,
+  trackEvent,
+} from "@/lib/analytics";
 import type { CuratedContent } from "@/lib/types";
 import { tmdbResize } from "@/lib/utils";
 
-export default async function CuratedContentList({
+export default function CuratedContentList({
   items,
 }: {
   items: CuratedContent[];
 }) {
-  if (items.length === 0) return null;
+  const t = useTranslations("Public");
+  const trackedImpressions = useRef(new Set<string>());
 
-  const t = await getTranslations("Public");
+  useEffect(() => {
+    if (typeof sessionStorage === "undefined") return;
+    for (const item of items) {
+      if (trackedImpressions.current.has(item.id)) continue;
+      const storageKey = curatedImpressionStorageKey(item.id);
+      if (sessionStorage.getItem(storageKey) === "1") {
+        trackedImpressions.current.add(item.id);
+        continue;
+      }
+      trackedImpressions.current.add(item.id);
+      void trackEvent("curated_impression", {
+        curatedContentId: item.id,
+        titleId: item.titleId,
+        actorType: "ai_curator",
+        contentOrigin: "ai_curator",
+        placement: "public",
+      }).then((sent) => {
+        if (sent) sessionStorage.setItem(storageKey, "1");
+      });
+    }
+  }, [items]);
+
+  if (items.length === 0) return null;
 
   return (
     <section
@@ -50,6 +81,16 @@ export default async function CuratedContentList({
           >
             <Link
               href={`/title/${item.titleId}`}
+              onClick={() => {
+                rememberCuratedAttribution(item.id, item.titleId);
+                void trackEvent("curated_open", {
+                  curatedContentId: item.id,
+                  titleId: item.titleId,
+                  actorType: "ai_curator",
+                  contentOrigin: "ai_curator",
+                  placement: "public",
+                });
+              }}
               className="flex items-start gap-3 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-[#FF9933]"
             >
               <div className="h-16 w-12 shrink-0 overflow-hidden rounded-lg border border-border bg-muted">

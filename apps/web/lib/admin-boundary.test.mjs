@@ -76,6 +76,7 @@ test("admin server pages use internal backend routes and acquisition contract", 
   assert.match(analytics, /\/internal\/admin\/analytics\/overview/);
   assert.match(analytics, /\/internal\/admin\/analytics\/events/);
   assert.match(analytics, /\/internal\/admin\/analytics\/acquisition/);
+  assert.match(analytics, /\/internal\/admin\/analytics\/curated/);
   for (const field of [
     "engagedSessions",
     "firstLogSessions",

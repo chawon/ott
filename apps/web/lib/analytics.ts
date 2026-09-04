@@ -64,6 +64,63 @@ const PUBLIC_PAGE_VIEW_SENT_PREFIX =
   "watchlog.analytics.publicPageViewSentSessionId";
 const PUBLIC_PAGE_VIEW_PENDING_PREFIX =
   "watchlog.analytics.publicPageViewPending";
+const CURATED_ATTRIBUTION_KEY = "watchlog.analytics.curatedAttribution";
+const CURATED_IMPRESSION_PREFIX = "watchlog.analytics.curatedImpression";
+
+export type CuratedAttribution = {
+  curatedContentId: string;
+  titleId: string;
+  storedAt: number;
+};
+
+export function rememberCuratedAttribution(
+  curatedContentId: string,
+  titleId: string,
+) {
+  if (typeof sessionStorage === "undefined") return;
+  try {
+    sessionStorage.setItem(
+      CURATED_ATTRIBUTION_KEY,
+      JSON.stringify({ curatedContentId, titleId, storedAt: Date.now() }),
+    );
+  } catch {
+    // Attribution must never block navigation.
+  }
+}
+
+export function readCuratedAttribution(): CuratedAttribution | null {
+  if (typeof sessionStorage === "undefined") return null;
+  try {
+    const raw = sessionStorage.getItem(CURATED_ATTRIBUTION_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (
+      typeof parsed?.curatedContentId !== "string" ||
+      typeof parsed?.titleId !== "string" ||
+      typeof parsed?.storedAt !== "number" ||
+      Date.now() - parsed.storedAt > 86_400_000
+    ) {
+      sessionStorage.removeItem(CURATED_ATTRIBUTION_KEY);
+      return null;
+    }
+    return parsed as CuratedAttribution;
+  } catch {
+    return null;
+  }
+}
+
+export function clearCuratedAttribution() {
+  if (typeof sessionStorage === "undefined") return;
+  try {
+    sessionStorage.removeItem(CURATED_ATTRIBUTION_KEY);
+  } catch {
+    // Ignore storage errors.
+  }
+}
+
+export function curatedImpressionStorageKey(curatedContentId: string) {
+  return `${CURATED_IMPRESSION_PREFIX}:${curatedContentId}`;
+}
 
 type PendingAppOpen = {
   sessionId: string;
@@ -319,7 +376,10 @@ export async function trackEvent(
     | "android_play_cta_dismiss"
     | "android_reminder_card_impression"
     | "android_reminder_card_open"
-    | "android_reminder_card_dismiss",
+    | "android_reminder_card_dismiss"
+    | "curated_impression"
+    | "curated_open"
+    | "curated_human_action",
   properties?: Record<string, unknown>,
   options?: {
     eventId?: string;
