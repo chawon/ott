@@ -146,6 +146,7 @@ AI 자체의 실행 세션·게시 수는 사람 이용자 수로 표시하지 �
 - `POST /internal/admin/curated-contents/drafts` — 템플릿 또는 운영자 본문으로 초안 생성
 - `POST /internal/admin/curated-contents/{id}/publish` — 승인 공개
 - `POST /internal/admin/curated-contents/{id}/disable` — 즉시 비활성화
+- `GET /internal/admin/analytics/curated?days=...` — 큐레이터 반응 별도 집계
 - 웹 관리자 화면: `/admin/curated-contents` (Cloudflare Access + BFF)
 
 현재 템플릿 생성은 외부 모델을 호출하지 않는다. 작품 메타데이터와 언어만으로 질문을 만들고,
