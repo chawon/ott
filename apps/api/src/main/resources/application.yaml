@@ -43,6 +43,14 @@ data4library:
   base-url: ${DATA4LIBRARY_BASE_URL:https://data4library.kr}
   auth-key: ${DATA4LIBRARY_AUTH_KEY:}
 
+curator:
+  automation:
+    enabled: ${CURATOR_AUTOMATION_ENABLED:false}
+    approver-user-id: ${CURATOR_TELEGRAM_APPROVER_USER_ID:}
+    locale: ${CURATOR_AUTOMATION_LOCALE:ko}
+    daily-limit: ${CURATOR_AUTOMATION_DAILY_LIMIT:2}
+    pending-limit: ${CURATOR_AUTOMATION_PENDING_LIMIT:4}
+
 notify:
   telegram:
     enabled: ${TELEGRAM_NOTIFY_ENABLED:false}
