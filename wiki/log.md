@@ -1,5 +1,11 @@
 # Wiki Log
 
+## [2026-09-06] update: TMDB 인기 작품 큐레이션 Telegram 승인 운영 활성화
+- PR #105, API SHA `6e89a1256188ae170d068540561b0008495df602`, production run `34017827519`.
+- ArgoCD `Synced Healthy`, API 버전·health·Flyway v31 확인. 기존 개인 Telegram 채팅을 승인자로 연결.
+- KST 16:00 첫 인기 작품 초안 2건 생성 및 Telegram 전송 확인. 16:00:31 실제 승인자가 게시한 `들쥐`의 감사 기록·Telegram 메시지 갱신·공개 API 노출까지 확인.
+- 문서: AGENTS.md, docs/curator-telegram-approval.md, features/ai-curator.md, index.md.
+
 ## [2026-08-18] update: Android Play 유입 활성화 1차 Web production 배포
 - 대상: PR `#93`, main SHA `57f98e6317dcce303fc9d32e488b546a68b9c2c6`, Web production run `32099474936`
 - 생성/수정: AGENTS.md, docs/twa.md, platforms/twa.md, index.md, log.md

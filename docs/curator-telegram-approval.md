@@ -59,4 +59,16 @@ bot/chat 변경은 기존 승인 message ID와 offset을 자동 이전하지 않
 2026-09-06 검증: JDK 25, 임시 PostgreSQL 16에서 신규 자동화/Telegram 테스트 15개 통과.
 전체 API 테스트는 44개 통과, Docker 전용 기존 테스트 25개 생략, 실패 0개.
 `bootJar` 성공 후 실제 JAR 부팅, Flyway v31, `/actuator/health`의 `UP`을 확인했다.
-운영 배포, 실제 Telegram 전송/버튼 클릭, 공개 게시 검증은 아직 하지 않았다.
+운영 배포, 실제 Telegram 전송·승인 버튼 처리, 공개 API 게시 결과까지 확인했다.
+
+## 운영 배포 — 2026-09-06
+
+- PR #105, 배포 SHA `6e89a1256188ae170d068540561b0008495df602`.
+- 최종 PR API CI `34017700635`: 테스트·JAR·컨테이너 빌드 성공.
+- API production run `34017827519`, manifest commit `afa902980eaee1343459b1fd9d8ad8a9c68860c6`.
+- ArgoCD `ott-app` `Synced Healthy`, 운영 API image SHA와 `APP_VERSION=6e89a12`, health `UP`, Flyway v31 확인.
+- 기존 Telegram 개인 채팅의 수신자 ID를 Secret 참조로 승인자에 연결했다. Bot webhook이 비어 있음을 확인했고, 토큰·ID 원문은 기록하지 않는다.
+- KST 16:00 첫 자동 실행에서 `군체`, `들쥐` 초안 2개 생성. 두 항목 모두 Telegram message ID 및 `rendered_status=DRAFT`가 저장됐다. 승인 전 상태는 `DRAFT`다.
+- KST 16:00:31 실제 승인자가 `들쥐`의 게시 버튼을 눌렀다. 감사 기록 `action=p`, 콘텐츠 `PUBLISHED`, 원본 Telegram 메시지 `rendered_status=PUBLISHED`를 확인했다.
+- 운영 Web Pod의 공개 프록시 `/api/curated-contents`에서 HTTP 200과 게시된 `들쥐` 1건을 확인했다. 미승인 `군체`는 공개 응답에서 제외됐다.
+- Web·iOS·Android 바이너리는 변경하거나 배포하지 않았다.

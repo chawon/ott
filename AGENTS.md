@@ -66,6 +66,8 @@ If present, read `./.omd/preferences.md` — pending corrections not yet folded 
 34. Android 16 시작 크래시 복구: SM-S937N/Android 16에서 `1.0.14`~`1.0.16`이 splash 전 종료됐고, Play Vitals로 WorkManager의 Room 구현 `WorkDatabase_Impl` 기본 생성자 누락을 확인했다. 해당 생성자만 보존하고 release DEX를 검사하는 CI 게이트를 PR `#98`로 반영한 `1.0.17` (`versionCode=21`)은 같은 기기에서 정상 실행됐다. `2026-08-19` beta 검증 후 동일 번들을 Google Play production에 100%, `completed`로 승격했다.
 35. Android TWA 시작 화면 브랜드 동기화: 최초 TWA 생성 시점의 옛 splash PNG 5종과 store icon을 canonical 현재 ottline 로고로 교체하고, AAB 안의 이미지를 디코딩해 모든 픽셀을 검사하는 CI 게이트를 추가했다. `2026-08-20` beta `1.0.18` (`versionCode=22`)의 현재 로고 splash와 정상 실행을 실기기에서 확인한 뒤 동일 번들을 Google Play production에 100%, `completed`로 승격했다.
 
+36. 인기 작품 큐레이션 Telegram 승인 자동화: 기존 TMDB 인기 목록에서 하루 최대 2개 질문 초안을 생성하고, 지정된 Telegram 개인 채팅에서 게시·다시 생성·건너뛰기를 처리한다. 미처리 초안 최대 4개, DB 기반 중복/오래된 버튼 차단과 감사 기록을 적용했다. 생성기는 ko/en 템플릿 기반이며 승인 전에는 공개하지 않는다. `2026-09-06` PR `#105`, API SHA `6e89a12`, production run `34017827519`로 배포했고 ArgoCD `Synced Healthy`, Flyway v31 및 첫 자동 초안 2건의 Telegram 전송을 확인했다. 상세 운영 절차는 `docs/curator-telegram-approval.md`를 따른다.
+
 ### 제품 방향
 1. 추천 기능은 현재 범위에서 제외한다.
 2. 기록 가치(회상, 공유, 재방문)를 높이는 기능에 집중한다.
