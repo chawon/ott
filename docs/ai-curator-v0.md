@@ -1,5 +1,8 @@
 # AI 큐레이터 v0 설계
 
+후속 구현: [TMDB 인기 작품 자동 선정 및 Telegram 승인](curator-telegram-approval.md).
+`feature/curator-telegram-approval`에서 구현하며, 운영 활성화 전까지 기존 관리자 승인 흐름을 유지한다.
+
 상태: Slice 1·2·4 구현 완료, 운영 배포 전
 브랜치: `feat/ai-curator-v0`
 
