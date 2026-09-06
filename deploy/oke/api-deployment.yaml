@@ -29,6 +29,13 @@ spec:
               value: "true"
             - name: TELEGRAM_SERVICE_NAME
               value: "ottline"
+            - name: CURATOR_AUTOMATION_ENABLED
+              value: "true"
+            - name: CURATOR_TELEGRAM_APPROVER_USER_ID
+              valueFrom:
+                secretKeyRef:
+                  name: ott-api-secrets
+                  key: TELEGRAM_CHAT_ID
             - name: CF_REQUEST_HOST
               value: "ottline.app"
           envFrom:

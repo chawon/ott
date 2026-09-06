@@ -40,7 +40,7 @@
 건너뛴 작품은 최소 30일 제외되며, 동일 질문 hash가 남아 있으면 이후에도 같은 초안을 생성하지 않는다.
 
 1. 배포 전 bot의 `getWebhookInfo`에서 URL이 비어 있는지 확인한다. 다른 `getUpdates` 소비자는 봇 단위로 중단하거나 별도 봇을 사용한다. 자동으로 webhook을 지우지 않는다.
-2. 기존 secret 설정 경로에 승인자 ID를 추가하고, 검증된 API 이미지 배포와 함께 활성화한다. 이 브랜치는 운영 ConfigMap/Secret이나 공개 콘텐츠를 변경하지 않는다.
+2. 검증된 API 이미지 배포와 함께 활성화한다. 2026-09-06 운영 봇 수신지가 개인 채팅임을 확인했고, 사용자 승인에 따라 Deployment에서 `CURATOR_AUTOMATION_ENABLED=true` 및 기존 Secret의 `TELEGRAM_CHAT_ID`를 승인자 ID로 참조하도록 구성했다. 그룹 채팅으로 전환할 때는 별도 승인자 ID를 지정해야 한다.
 3. Telegram에서 전문과 포스터 미리보기를 확인하고 게시한다. 포스터는 Telegram 링크 미리보기 정책에 따라 표시되지 않을 수 있다.
 4. 원본 메시지의 `게시 완료`와 공개 `GET /api/curated-contents`(`Accept-Language: ko`)를 확인한다.
 5. 중단은 `CURATOR_AUTOMATION_ENABLED=false`. 기존 공개 콘텐츠는 유지되며 필요한 항목은 관리자 화면에서 비활성화한다.
