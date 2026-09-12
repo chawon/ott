@@ -53,8 +53,21 @@ ISBN-10만 저장된 옛 네이버 책도 연결한다. 제목만 비슷한 책�
 - PostgreSQL/Testcontainers 테스트가 실제 JPA 판본 조회를 검증한다.
   로컬 Docker가 없으면 이 테스트는 생략되며, CI에서는 Docker를 필수 확인한다.
 
-현재 구현은 배포 전 상태다. 실제 카카오 upstream 성공은 확인했지만
-ottline 운영 도서 검색 복구는 production 배포 후 별도로 확인해야 한다.
+## 운영 배포 결과 (2026-09-12)
+
+- PR #106, 배포 SHA `68f772e865aecf15fe232297bb588490898aa9aa`.
+- PR API/Web CI `34683902588` / `34683902689`, main API/Web CI `34684072982` / `34684072965` 통과.
+- API production run `34684081448`(2차 실행), Web production run `34684083501` 성공.
+  API 1차 실행은 웹과 main manifest를 동시에 푸시해 ref 충돌로 실패했고, 같은 SHA 재실행으로 완료했다.
+- API manifest `352bfe104ef27f7e8da3553f86f288c705474066`, Web manifest `7d4be7d7c02e6044205ad3cf1511e931e213a51d`.
+- ExternalSecret `Ready=True / SecretSynced`, 운영 Secret의 `KAKAO_API_KEY` 존재 확인.
+- ArgoCD `ott-app` `Synced Healthy`, API/Web 이미지 SHA 일치, `APP_VERSION=68f772e`, 두 Pod ready·restart 0.
+- 운영 API 직접 호출과 웹 프록시에서 `해리 포터` 10건, ISBN `9788983921987` 1건,
+  `C++` 10건, 결과 없는 검색 0건 모두 HTTP 200. 제목/ISBN/날짜/KAKAO 공급자 계약 확인.
+- 기존 영상 검색 `Interstellar`도 두 경로 모두 HTTP 200, 9건 반환.
+- 공개 도메인 직접 검증은 Cloudflare 403으로 제한되어 운영 내부 웹 프록시로 검색을 검증했다.
+  웹 워크플로우의 공개 production version 검증은 통과했다.
+- 네이티브·Expo·App Store 바이너리는 변경하거나 배포하지 않았다.
 
 ## 공식 문서
 

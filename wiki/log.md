@@ -1,5 +1,13 @@
 # Wiki Log
 
+## [2026-09-12] update: 카카오 도서 검색 복구 운영 배포
+- PR #106, API/Web SHA `68f772e865aecf15fe232297bb588490898aa9aa`.
+- API production `34684081448`(manifest 푸시 충돌 후 2차 성공), Web production `34684083501` 성공.
+- OCI 키 동기화, ArgoCD `Synced Healthy`, 두 Pod `APP_VERSION=68f772e`, ready·restart 0 확인.
+- 운영 API/웹 프록시에서 한국어 제목·ISBN·C++·검색 결과 없음 및 기존 영화 검색 모두 200 확인. 공개 직접 호출은 Cloudflare 403으로 제한.
+- 기존 ISBN 판본 연결과 구버전 네이티브 동기화 호환성을 보강했으며 Expo/네이티브 바이너리는 변경하지 않음.
+- 문서: AGENTS.md, docs/kakao-book-search.md, pages/features/book-log.md, index.md.
+
 ## [2026-09-06] update: TMDB 인기 작품 큐레이션 Telegram 승인 운영 활성화
 - PR #105, API SHA `6e89a1256188ae170d068540561b0008495df602`, production run `34017827519`.
 - ArgoCD `Synced Healthy`, API 버전·health·Flyway v31 확인. 기존 개인 Telegram 채팅을 승인자로 연결.

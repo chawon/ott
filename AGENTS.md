@@ -68,6 +68,8 @@ If present, read `./.omd/preferences.md` — pending corrections not yet folded 
 
 36. 인기 작품 큐레이션 Telegram 승인 자동화: 기존 TMDB 인기 목록에서 하루 최대 2개 질문 초안을 생성하고, 지정된 Telegram 개인 채팅에서 게시·다시 생성·건너뛰기를 처리한다. 미처리 초안 최대 4개, DB 기반 중복/오래된 버튼 차단과 감사 기록을 적용했다. 생성기는 ko/en 템플릿 기반이며 승인 전에는 공개하지 않는다. `2026-09-06` PR `#105`, API SHA `6e89a12`, production run `34017827519`로 배포했고 ArgoCD `Synced Healthy`, Flyway v31 및 첫 자동 초안 2건의 Telegram 전송을 확인했다. 상세 운영 절차는 `docs/curator-telegram-approval.md`를 따른다.
 
+37. 카카오 도서 검색 복구: 네이버 책 검색 API 종료로 발생한 500을 카카오 검색으로 전환하고, 같은 ISBN 판본의 기존 NAVER/KAKAO 책 ID를 유지한다. `2026-09-12` PR `#106`, API/Web SHA `68f772e`로 배포했으며 OCI `KAKAO_API_KEY` 동기화, ArgoCD `Synced Healthy`, 운영 API·웹 프록시의 제목/ISBN/특수문자 검색 200을 확인했다. 네이티브·Expo 변경은 없다. 상세 결과는 `docs/kakao-book-search.md`를 따른다.
+
 ### 제품 방향
 1. 추천 기능은 현재 범위에서 제외한다.
 2. 기록 가치(회상, 공유, 재방문)를 높이는 기능에 집중한다.
@@ -269,8 +271,8 @@ feature/* ──PR/CI──→ main ──→ GitHub Actions workflow_dispatch
 ### Titles
 1. `GET /api/titles/search?q=...&type=`
    1. TMDB 기반 검색 (헤더에 따른 다국어 검색 결과 반환)
-   2. 도서 검색: Naver 도서 API 사용
-   3. 응답: `provider(TMDB|NAVER)`, `providerId`, `type(movie|series|book)`, `name`, `year`, `posterUrl`, `overview`, `author`, `publisher`, `isbn10`, `isbn13`
+   2. 도서 검색: Kakao 책 검색 API 사용, 같은 ISBN 판본의 기존 NAVER/KAKAO 식별자 유지
+   3. 응답: `provider(TMDB|NAVER|KAKAO)`, `providerId`, `type(movie|series|book)`, `name`, `year`, `posterUrl`, `overview`, `author`, `publisher`, `isbn10`, `isbn13`, `pubdate`, `titleId`(기존 책이면 UUID, 없으면 null)
 2. `GET /api/titles/popular?limit=`
    1. TMDB movie/tv 인기 작품을 혼합해 반환한다.
    2. `Accept-Language`에서 language/watch region을 추정하고 공개일·첫 방영일·시청 가능 region을 기준으로 후보를 제한한다.
