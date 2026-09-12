@@ -162,8 +162,14 @@ public class SyncService {
                 if (payload.cast() != null) {
                     existing.setCastNames(payload.cast().toArray(String[]::new));
                 }
-                if (payload.provider() != null) existing.setProvider(payload.provider());
-                if (payload.providerId() != null) existing.setProviderId(payload.providerId());
+                // Older native clients map unknown providers to LOCAL when recording a shared title.
+                // Their titleId still points to the canonical book, whose identity must survive that fallback.
+                boolean canonicalBook = existing.getType() == com.watchlog.api.domain.TitleType.book
+                        && ("NAVER".equals(existing.getProvider()) || "KAKAO".equals(existing.getProvider()));
+                if (!canonicalBook) {
+                    if (payload.provider() != null) existing.setProvider(payload.provider());
+                    if (payload.providerId() != null) existing.setProviderId(payload.providerId());
+                }
                 if (payload.type() != null) existing.setType(payload.type());
                 if (payload.name() != null && !payload.name().isBlank()) existing.setName(payload.name().trim());
                 hydrateFromTmdbIfNeeded(existing, payload, language);

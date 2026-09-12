@@ -77,7 +77,7 @@ function formatCopy(template: string, values: Record<string, string | number>) {
 }
 
 function normalizeProvider(value: DiscussionListItem['titleProvider']): Provider | undefined {
-  return value === 'TMDB' || value === 'LOCAL' || value === 'NAVER' || value === 'KAKAO' ? value : undefined;
+  return value === 'TMDB' || value === 'LOCAL' || value === 'NAVER' ? value : undefined;
 }
 
 function titleFromDiscussion(item: DiscussionListItem): Title {

@@ -88,4 +88,21 @@ class BookProviderMigrationTest {
         assertThat(titles.resolveExternalTitle("KAKAO", "9788983927620", TitleType.book, null, "9788983927620")).isEmpty();
         assertThat(titles.resolveExternalTitle("TMDB", "9788983921987", TitleType.movie, null, "9788983921987")).isEmpty();
     }
+
+    @Test
+    void oldNativeLocalFallbackCannotReplaceTheCanonicalBookProvider() {
+        seedLegacyEdition();
+        legacy.setProvider("KAKAO");
+        legacy.setProviderId("9788983921987");
+        when(titles.findById(legacy.getId())).thenReturn(Optional.of(legacy));
+        var timestamp = OffsetDateTime.now();
+        var payload = new SyncTitlePayload(TitleType.book, "Existing book", null, null, null, null,
+                null, null, null, null, null, null, null, "LOCAL", "9788983921987");
+        var request = new SyncPushRequest(null, "old-native", timestamp, new SyncChanges(List.of(),
+                List.of(new SyncChange<>(legacy.getId(), "upsert", timestamp, payload))));
+        var service = new SyncService(titles, mock(WatchLogRepository.class), mock(WatchLogHistoryService.class), null);
+        assertThat(service.push(request, "ko").accepted()).contains(legacy.getId());
+        assertThat(legacy.getProvider()).isEqualTo("KAKAO");
+        assertThat(legacy.getProviderId()).isEqualTo("9788983921987");
+    }
 }
