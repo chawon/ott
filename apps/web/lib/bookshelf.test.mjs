@@ -60,6 +60,17 @@ test("recovers a missing ISBN from a NAVER provider id", () => {
   );
 });
 
+test("recognizes a Kakao edition as the same ISBN as an existing Naver book", () => {
+  assert.equal(
+    normalizeBookIsbn13({ provider: "KAKAO", providerId: "9788983921987" }),
+    normalizeBookIsbn13({ provider: "NAVER", providerId: "8983921986" }),
+  );
+  assert.equal(
+    normalizeBookIsbn13({ provider: "KAKAO", providerId: "not-an-isbn" }),
+    null,
+  );
+});
+
 test("exposes the KDC bookshelf only to Korean locale", () => {
   assert.equal(isKdcBookshelfLocale("ko"), true);
   assert.equal(isKdcBookshelfLocale("en"), false);

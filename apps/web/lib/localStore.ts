@@ -1,3 +1,4 @@
+import { normalizeBookIsbn13 } from "./bookshelf";
 import { db, type LocalWatchLog, type OutboxItem } from "./db";
 import type { Title, UserProfile, WatchLog, WatchLogHistory } from "./types";
 import { safeUUID } from "./utils";
@@ -364,10 +365,18 @@ export async function findTitleByProvider(
   provider: string,
   providerId: string,
 ) {
-  return db.titles
+  const exact = await db.titles
     .where("provider")
     .equals(provider)
     .and((t) => t.providerId === providerId)
+    .first();
+  if (exact || (provider !== "KAKAO" && provider !== "NAVER")) return exact;
+  const isbn13 = normalizeBookIsbn13({ provider, providerId });
+  if (!isbn13) return undefined;
+  return db.titles
+    .where("type")
+    .equals("book")
+    .and((title) => !title.deletedAt && normalizeBookIsbn13(title) === isbn13)
     .first();
 }
 

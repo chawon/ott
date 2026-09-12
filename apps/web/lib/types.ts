@@ -1,6 +1,6 @@
 export type Status = "DONE" | "IN_PROGRESS" | "WISHLIST";
 export type TitleType = "movie" | "series" | "book";
-export type Provider = "TMDB" | "LOCAL" | "NAVER";
+export type Provider = "TMDB" | "LOCAL" | "NAVER" | "KAKAO";
 export type BookClassificationStatus = "RESOLVED" | "NOT_FOUND";
 export type TitleSelectSource =
   | "search_result"

@@ -3,13 +3,11 @@ package com.watchlog.api.web;
 import com.watchlog.api.dto.TitleDto;
 import com.watchlog.api.dto.TitleSearchItemDto;
 import com.watchlog.api.domain.TitleType;
-import com.watchlog.api.naver.NaverBookClient;
+import com.watchlog.api.book.BookSearchService;
 import com.watchlog.api.service.TitleService;
 import com.watchlog.api.tmdb.TmdbClient;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.UUID;
@@ -21,16 +19,16 @@ public class TitleController {
 
     private final TitleService titleService;
     private final TmdbClient tmdbClient;
-    private final NaverBookClient naverBookClient;
+    private final BookSearchService bookSearchService;
 
     public TitleController(
             TitleService titleService,
             TmdbClient tmdbClient,
-            NaverBookClient naverBookClient
+            BookSearchService bookSearchService
     ) {
         this.titleService = titleService;
         this.tmdbClient = tmdbClient;
-        this.naverBookClient = naverBookClient;
+        this.bookSearchService = bookSearchService;
     }
 
     @GetMapping("/search")
@@ -42,26 +40,7 @@ public class TitleController {
         String normalized = type == null ? null : type.trim().toLowerCase();
 
         if ("book".equals(normalized)) {
-            return naverBookClient.search(q).stream()
-                    .map(item -> {
-                        var isbn = NaverBookClient.parseIsbn(item.isbnValue());
-                        var providerId = NaverBookClient.providerIdFrom(isbn, item.linkValue());
-                        return new TitleSearchItemDto(
-                                "NAVER",
-                                providerId,
-                                TitleType.book,
-                                item.titleValue(),
-                                yearFromPubdate(item.pubdateValue()),
-                                item.imageValue(),
-                                item.descriptionValue(),
-                                item.authorValue(),
-                                item.publisherValue(),
-                                isbn.isbn10(),
-                                isbn.isbn13(),
-                                item.pubdateValue()
-                        );
-                    })
-                    .collect(Collectors.toList());
+            return bookSearchService.search(q);
         }
 
         return tmdbClient.searchMulti(q, language).stream()
@@ -116,16 +95,4 @@ public class TitleController {
         );
     }
 
-    private Integer yearFromDate(String date) {
-        if (date == null || date.length() < 4) return null;
-        try {
-            return Integer.parseInt(date.substring(0, 4));
-        } catch (Exception e) {
-            return null;
-        }
-    }
-
-    private Integer yearFromPubdate(String pubdate) {
-        return yearFromDate(pubdate);
-    }
 }
