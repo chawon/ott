@@ -115,7 +115,7 @@ function titleFallbackKey(item: Pick<TitleSearchItem, 'type' | 'name' | 'year'>)
 }
 
 function providerFromDiscussion(item: DiscussionListItem): TitleSearchItem['provider'] {
-  if (item.titleProvider === 'TMDB' || item.titleProvider === 'NAVER' || item.titleProvider === 'LOCAL') {
+  if (item.titleProvider === 'TMDB' || item.titleProvider === 'NAVER' || item.titleProvider === 'KAKAO' || item.titleProvider === 'LOCAL') {
     return item.titleProvider;
   }
   return 'LOCAL';

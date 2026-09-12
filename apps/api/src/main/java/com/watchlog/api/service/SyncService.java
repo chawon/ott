@@ -84,7 +84,10 @@ public class SyncService {
         var payload = change.payload();
 
         if (payload != null && payload.provider() != null && payload.providerId() != null) {
-            var byProvider = titleRepository.findByProviderAndProviderId(payload.provider(), payload.providerId());
+            var byProvider = "delete".equalsIgnoreCase(op)
+                    ? titleRepository.findByProviderAndProviderId(payload.provider(), payload.providerId())
+                    : titleRepository.resolveExternalTitle(payload.provider(), payload.providerId(), payload.type(),
+                            payload.isbn10(), payload.isbn13());
             if (byProvider.isPresent()) {
                 var existing = byProvider.get();
                 titleIdMap.put(change.id(), existing.getId());

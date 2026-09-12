@@ -65,7 +65,9 @@ export function normalizeBookIsbn13(
   title: Pick<Title, "isbn10" | "isbn13" | "provider" | "providerId">,
 ) {
   const providerIsbn =
-    title.provider === "NAVER" ? (title.providerId ?? "") : "";
+    title.provider === "NAVER" || title.provider === "KAKAO"
+      ? (title.providerId ?? "")
+      : "";
   const raw13 = [title.isbn13 ?? "", providerIsbn]
     .map((value) => value.replace(/\D/g, ""))
     .find(isValidIsbn13);

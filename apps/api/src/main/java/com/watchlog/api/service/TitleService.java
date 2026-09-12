@@ -99,14 +99,13 @@ public class TitleService {
         }
         String trimmedName = (name == null || name.isBlank()) ? null : name.trim();
         TitleType resolvedType = (type == null)
-                ? ("NAVER".equalsIgnoreCase(provider) ? TitleType.book : TitleType.movie)
+                ? (("NAVER".equalsIgnoreCase(provider) || "KAKAO".equalsIgnoreCase(provider)) ? TitleType.book : TitleType.movie)
                 : type;
 
-        var existing = titleRepository.findByProviderAndProviderId(provider, providerId);
+        var existing = titleRepository.resolveExternalTitle(provider, providerId, resolvedType, isbn10, isbn13);
         if (existing.isPresent()) {
             var t = existing.get();
-            t.setProvider(provider);
-            t.setProviderId(providerId);
+            // Preserve the canonical identity when another source describes the same ISBN edition.
             if (trimmedName != null) t.setName(trimmedName);
             if (type != null) t.setType(type);
             if (year != null) t.setYear(year);
