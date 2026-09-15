@@ -9,7 +9,7 @@
 - 받은 페이지는 IndexedDB에 upsert한 뒤 렌더한다. 이미 동기화된 로컬 기록은 첫 화면과 오프라인 추가 조회에 사용하지만, 온라인 다음 페이지의 기준은 서버 커서다.
 - 필터 변경 시 서버 커서와 표시 범위를 초기화한다. 이전 필터의 비동기 결과는 폐기하며, 동기화 중에는 펼친 범위를 유지한다.
 - 하단 감지 영역과 키보드/미지원 브라우저용 추가 조회 버튼, 로딩/재시도/끝 안내를 한국어·영어로 제공한다.
-- DB 스키마와 iOS 네이티브 앱은 변경하지 않는다. 배포할 때는 새 API를 먼저 배포한 뒤 웹을 배포한다.
+- DB 스키마와 iOS 네이티브 앱은 변경하지 않았다. 새 API를 먼저 배포한 뒤 웹을 배포했다.
 
 ## 검증 시나리오
 
@@ -22,12 +22,20 @@
 
 ## 상태
 
-`feature/timeline-infinite-scroll`에서 서버 키셋 페이징과 웹 무한 스크롤 구현·로컬 검증 완료. 운영 미배포.
+`2026-09-15` production 배포 완료. PR `#107`, API/Web SHA `c0e09c4bf90f2d6de11a1f7c715dc25c3a48c27e`.
 
 ## 검증 결과
 
 - Playwright: 빈 IndexedDB에서 서버 페이지 50/50/25개를 받아 50 → 100 → 125개 표시, 요청 커서 순서와 중복 없음 확인.
 - Playwright: 서버 페이지 캐시 후 오프라인 추가 조회, 첫 페이지 밖 검색, 50/51개 경계, 모바일 자동 조회와 수동 추가 조회 확인.
 - API: 커서 왕복·정렬 불일치 거부, `limit + 1` 조회와 마지막 노출 항목 기반 다음 커서 생성을 포함한 전체 Gradle 테스트 통과.
-- PostgreSQL 저장소 통합 테스트는 추가했으며 로컬 Docker 부재로 건너뛰었다. Docker를 제공하는 CI에서 실제 키셋 SQL과 `book|video` 필터를 실행한다.
+- PostgreSQL 저장소 통합 테스트는 로컬 Docker 부재로 건너뛰었고, PR·main API CI의 Docker 환경에서 실제 키셋 SQL과 `book|video` 필터까지 통과했다.
 - 웹: TypeScript 검사, 변경 파일 Biome 검사, Next.js 프로덕션 빌드 통과.
+
+## 배포 결과
+
+- PR API/Web CI: `34912462607` / `34912462435`; main API/Web CI: `34912667448` / `34912667441`.
+- API/Web production: `34912864768` / `34913130614`; manifest: `bb3101e43a0bccdc80f1a3bdc90ee680cca43404` / `4aa7e501fed9405d5386832c2e56834d709028cd`.
+- ArgoCD `ott-app` `Synced Healthy`, API/Web 이미지 `c0e09c4bf90f2d6de11a1f7c715dc25c3a48c27e`, `APP_VERSION=c0e09c4`, 각 Pod `1/1` ready·restart 0 확인.
+- 운영 임시 계정으로 새 `/api/logs/page`의 `{ items, nextCursor }`와 기존 `/api/logs` 배열 응답이 모두 200임을 확인한 뒤 계정 전체 삭제 200으로 정리했다.
+- 실행 중 웹 번들에서 `/logs/page`, `이전 기록 더 보기`, `Show earlier logs` 포함을 확인했다. iOS 네이티브 소스·App Store 바이너리는 변경하지 않았다.

@@ -1,5 +1,14 @@
 # Wiki Log
 
+## [2026-09-15] update: 타임라인 서버 커서 무한 스크롤 운영 배포
+- PR #107, API/Web SHA `c0e09c4bf90f2d6de11a1f7c715dc25c3a48c27e`.
+- API production `34912864768`, Web production `34913130614`; manifest `bb3101e43a0bccdc80f1a3bdc90ee680cca43404` / `4aa7e501fed9405d5386832c2e56834d709028cd`.
+- `GET /api/logs/page`의 시각+UUID 키셋 커서로 50개씩 이어서 조회하고, 웹/PWA/TWA는 서버 페이지를 IndexedDB에 캐시한다. 기존 `/api/logs` 배열과 iOS 네이티브 `/api/sync/pull` 계약은 유지한다.
+- PR·main API/Web CI, PostgreSQL Testcontainers, 125개 Playwright 흐름, Native 타입 검사·27개 테스트를 통과했다.
+- ArgoCD `Synced Healthy`, API/Web `APP_VERSION=c0e09c4`, 두 Pod ready·restart 0, 운영 새/기존 로그 계약 200과 실행 웹 번들의 경로·ko/en 문구를 확인했다.
+- iOS 네이티브 소스와 App Store 바이너리는 변경하거나 배포하지 않음.
+- 문서: AGENTS.md, docs/timeline-infinite-scroll.md, pages/features/timeline.md, index.md.
+
 ## [2026-09-12] update: 카카오 도서 검색 복구 운영 배포
 - PR #106, API/Web SHA `68f772e865aecf15fe232297bb588490898aa9aa`.
 - API production `34684081448`(manifest 푸시 충돌 후 2차 성공), Web production `34684083501` 성공.
