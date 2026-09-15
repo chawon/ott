@@ -292,13 +292,17 @@ feature/* ──PR/CI──→ main ──→ GitHub Actions workflow_dispatch
 1. `GET /api/logs?limit=&status=&origin=&ott=&q=&place=&occasion=&titleId=&sort=`
    1. `sort=history`면 `updatedAt`(히스토리 반영 순) 기준 정렬, 기본은 `watchedAt`
    2. `q`는 제목/메모/플랫폼/도서 저자·출판사 검색에 사용
-2. `POST /api/logs` (헤더에 따른 다국어 타이틀 정보 자동 생성)
-3. `PATCH /api/logs/{id}`
-4. `GET /api/logs/{id}/history?limit=`
-5. 로그 주요 필드
+2. `GET /api/logs/page?limit=&status=&origin=&ott=&q=&place=&occasion=&titleId=&sort=&contentType=&cursor=`
+   1. 응답은 `items`와 불투명 `nextCursor`이며, 다음 요청은 같은 필터·정렬과 `cursor`를 사용한다.
+   2. `contentType=book|video`를 지원하고 `limit`은 1~100으로 제한한다.
+   3. `updatedAt|watchedAt`과 UUID를 함께 쓰는 키셋 페이징으로 같은 시각의 기록도 중복 없이 이어진다.
+3. `POST /api/logs` (헤더에 따른 다국어 타이틀 정보 자동 생성)
+4. `PATCH /api/logs/{id}`
+5. `GET /api/logs/{id}/history?limit=`
+6. 로그 주요 필드
    1. `status`, `rating`, `note`, `ott`, `watchedAt`, `place`, `occasion`, `updatedAt`
    2. `seasonNumber`, `episodeNumber`, `seasonPosterUrl`, `seasonYear`
-6. 사용자용 개별 삭제 API는 제공하지 않는다.
+7. 사용자용 개별 삭제 API는 제공하지 않는다.
    1. 실수한 기록은 `PATCH`로 수정한다.
    2. 설정의 로컬 초기화는 현재 기기 브라우저 저장소만 비운다.
    3. 계정 단위 서버 데이터 전체 삭제는 설정의 별도 액션으로 제공한다.

@@ -14,6 +14,7 @@
     "test:client-recovery": "node --test lib/client-recovery.test.mjs lib/service-worker-cache.test.mjs",
     "test:seo": "node --test lib/seo.test.mjs lib/seo-boundary.test.mjs lib/sitemap-public.test.mjs scripts/ping-indexnow.test.mjs",
     "test:theme-first-paint": "node --test lib/theme-first-paint.test.mjs",
+    "test:timeline-scroll": "node scripts/test-timeline-scroll.mjs",
     "indexnow": "node scripts/ping-indexnow.mjs",
     "generate:chatgpt-directory-screenshots": "node scripts/generate-chatgpt-directory-screenshots.mjs"
   },
