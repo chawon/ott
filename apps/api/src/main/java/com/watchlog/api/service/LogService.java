@@ -9,13 +9,16 @@ import com.watchlog.api.dto.CreateWatchLogRequest;
 import com.watchlog.api.dto.UpdateWatchLogRequest;
 import com.watchlog.api.repo.WatchLogRepository;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 
 @Service
@@ -52,6 +55,68 @@ public class LogService {
             boolean sortByHistory
     ) {
         int safeLimit = Math.max(1, Math.min(limit, 100));
+        return findFiltered(
+                titleId, status, origin, ott, query, place, occasion, userId, sortByHistory,
+                null, null, null, safeLimit
+        );
+    }
+
+    @Transactional(readOnly = true)
+    public WatchLogPage listPage(
+            UUID titleId,
+            Status status,
+            LogOrigin origin,
+            String ott,
+            String query,
+            Place place,
+            Occasion occasion,
+            int limit,
+            UUID userId,
+            boolean sortByHistory,
+            String contentType,
+            String cursor
+    ) {
+        int safeLimit = Math.max(1, Math.min(limit, 100));
+        WatchLogCursor.Decoded decoded;
+        try {
+            decoded = WatchLogCursor.decode(cursor, sortByHistory);
+        } catch (IllegalArgumentException error) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid log cursor", error);
+        }
+
+        var rows = findFiltered(
+                titleId, status, origin, ott, query, place, occasion, userId, sortByHistory,
+                normalizeContentType(contentType),
+                decoded == null ? null : decoded.at(),
+                decoded == null ? null : decoded.id(),
+                safeLimit + 1
+        );
+        boolean hasNext = rows.size() > safeLimit;
+        var items = List.copyOf(rows.subList(0, Math.min(rows.size(), safeLimit)));
+        String nextCursor = null;
+        if (hasNext && !items.isEmpty()) {
+            var last = items.get(items.size() - 1);
+            var cursorAt = sortByHistory ? last.getUpdatedAt() : last.getWatchedAt();
+            nextCursor = WatchLogCursor.encode(sortByHistory, cursorAt, last.getId());
+        }
+        return new WatchLogPage(items, nextCursor);
+    }
+
+    private List<WatchLogEntity> findFiltered(
+            UUID titleId,
+            Status status,
+            LogOrigin origin,
+            String ott,
+            String query,
+            Place place,
+            Occasion occasion,
+            UUID userId,
+            boolean sortByHistory,
+            String contentType,
+            OffsetDateTime cursorAt,
+            UUID cursorId,
+            int limit
+    ) {
         String normalizedOtt = (ott == null || ott.isBlank()) ? null : ott.trim();
         String normalizedQuery = (query == null || query.isBlank()) ? null : query.trim();
         String[] ottPatterns = null;
@@ -71,12 +136,15 @@ public class LogService {
                     titleId,
                     status == null ? null : status.name(),
                     origin == null ? null : origin.name(),
+                    contentType,
                     ottPatterns,
                     normalizedQuery,
                     place,
                     occasion,
+                    cursorAt,
+                    cursorId,
                     sortByHistory,
-                    PageRequest.of(0, safeLimit)
+                    PageRequest.of(0, limit)
             );
         }
         return watchLogRepository.findFiltered(
@@ -84,13 +152,26 @@ public class LogService {
                 titleId,
                 status == null ? null : status.name(),
                 origin == null ? null : origin.name(),
+                contentType,
                 normalizedOtt,
                 normalizedQuery,
                 place,
                 occasion,
+                cursorAt,
+                cursorId,
                 sortByHistory,
-                PageRequest.of(0, safeLimit)
+                PageRequest.of(0, limit)
         );
+    }
+
+    private String normalizeContentType(String contentType) {
+        if (contentType == null || contentType.isBlank()) return null;
+        var normalized = contentType.trim().toLowerCase(Locale.ROOT);
+        if (normalized.equals("book") || normalized.equals("video")) return normalized;
+        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "contentType must be book or video");
+    }
+
+    public record WatchLogPage(List<WatchLogEntity> items, String nextCursor) {
     }
 
     @Transactional

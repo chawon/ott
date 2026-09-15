@@ -23,6 +23,17 @@ public interface WatchLogRepository extends JpaRepository<WatchLogEntity, UUID> 
               and (cast(:titleId as uuid) is null or w.title_id = cast(:titleId as uuid))
               and (cast(:status as text) is null or w.status = cast(:status as text))
               and (cast(:origin as text) is null or w.origin = cast(:origin as text))
+              and (
+                cast(:contentType as text) is null
+                or (
+                  cast(:contentType as text) = 'book'
+                  and exists (select 1 from titles ct where ct.id = w.title_id and ct.type = 'book')
+                )
+                or (
+                  cast(:contentType as text) = 'video'
+                  and exists (select 1 from titles ct where ct.id = w.title_id and ct.type in ('movie', 'series'))
+                )
+              )
               and (cast(:ott as text) is null or coalesce(w.ott, '') ilike concat('%', cast(:ott as text), '%'))
               and (
                 cast(:query as text) is null
@@ -40,6 +51,14 @@ public interface WatchLogRepository extends JpaRepository<WatchLogEntity, UUID> 
               )
               and (cast(:place as text) is null or w.place = cast(:place as text))
               and (cast(:occasion as text) is null or w.occasion = cast(:occasion as text))
+              and (
+                cast(:cursorAt as timestamptz) is null
+                or case when cast(:sortByHistory as boolean) then w.updated_at else w.watched_at end < cast(:cursorAt as timestamptz)
+                or (
+                  case when cast(:sortByHistory as boolean) then w.updated_at else w.watched_at end = cast(:cursorAt as timestamptz)
+                  and w.id < cast(:cursorId as uuid)
+                )
+              )
             order by
               case when cast(:sortByHistory as boolean) then w.updated_at else w.watched_at end desc,
               w.id desc
@@ -49,10 +68,13 @@ public interface WatchLogRepository extends JpaRepository<WatchLogEntity, UUID> 
             @Param("titleId") UUID titleId,
             @Param("status") String status,
             @Param("origin") String origin,
+            @Param("contentType") String contentType,
             @Param("ott") String ott,
             @Param("query") String query,
             @Param("place") Place place,
             @Param("occasion") Occasion occasion,
+            @Param("cursorAt") OffsetDateTime cursorAt,
+            @Param("cursorId") UUID cursorId,
             @Param("sortByHistory") boolean sortByHistory,
             Pageable pageable
     );
@@ -63,6 +85,17 @@ public interface WatchLogRepository extends JpaRepository<WatchLogEntity, UUID> 
               and (cast(:titleId as uuid) is null or w.title_id = cast(:titleId as uuid))
               and (cast(:status as text) is null or w.status = cast(:status as text))
               and (cast(:origin as text) is null or w.origin = cast(:origin as text))
+              and (
+                cast(:contentType as text) is null
+                or (
+                  cast(:contentType as text) = 'book'
+                  and exists (select 1 from titles ct where ct.id = w.title_id and ct.type = 'book')
+                )
+                or (
+                  cast(:contentType as text) = 'video'
+                  and exists (select 1 from titles ct where ct.id = w.title_id and ct.type in ('movie', 'series'))
+                )
+              )
               and (cast(:ottPatterns as text[]) is null or coalesce(w.ott, '') ilike any (cast(:ottPatterns as text[])))
               and (
                 cast(:query as text) is null
@@ -80,6 +113,14 @@ public interface WatchLogRepository extends JpaRepository<WatchLogEntity, UUID> 
               )
               and (cast(:place as text) is null or w.place = cast(:place as text))
               and (cast(:occasion as text) is null or w.occasion = cast(:occasion as text))
+              and (
+                cast(:cursorAt as timestamptz) is null
+                or case when cast(:sortByHistory as boolean) then w.updated_at else w.watched_at end < cast(:cursorAt as timestamptz)
+                or (
+                  case when cast(:sortByHistory as boolean) then w.updated_at else w.watched_at end = cast(:cursorAt as timestamptz)
+                  and w.id < cast(:cursorId as uuid)
+                )
+              )
             order by
               case when cast(:sortByHistory as boolean) then w.updated_at else w.watched_at end desc,
               w.id desc
@@ -89,10 +130,13 @@ public interface WatchLogRepository extends JpaRepository<WatchLogEntity, UUID> 
             @Param("titleId") UUID titleId,
             @Param("status") String status,
             @Param("origin") String origin,
+            @Param("contentType") String contentType,
             @Param("ottPatterns") String[] ottPatterns,
             @Param("query") String query,
             @Param("place") Place place,
             @Param("occasion") Occasion occasion,
+            @Param("cursorAt") OffsetDateTime cursorAt,
+            @Param("cursorId") UUID cursorId,
             @Param("sortByHistory") boolean sortByHistory,
             Pageable pageable
     );

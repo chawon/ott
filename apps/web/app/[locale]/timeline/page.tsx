@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import { useLocale, useTranslations } from "next-intl";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import FiltersBar from "@/components/FiltersBar";
 import LogCard from "@/components/LogCard";
 import ShareBottomSheet from "@/components/ShareBottomSheet";
@@ -30,6 +30,13 @@ import type {
 } from "@/lib/types";
 import { useUserProfile } from "@/lib/useUserProfile";
 import { cn, statusOptionsForType } from "@/lib/utils";
+
+const TIMELINE_PAGE_SIZE = 50;
+
+type TimelinePageResponse = {
+  items: WatchLog[];
+  nextCursor: string | null;
+};
 
 function buildQuery(params: Record<string, string | undefined>) {
   const qs = new URLSearchParams();
@@ -340,6 +347,10 @@ export default function TimelinePage() {
   const [ott, setOtt] = useState("");
   const [query, setQuery] = useState("");
   const [logs, setLogs] = useState<WatchLog[]>([]);
+  const [visibleLimit, setVisibleLimit] = useState(TIMELINE_PAGE_SIZE);
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [loadMoreError, setLoadMoreError] = useState(false);
   const [bookClassifications, setBookClassifications] = useState<
     Map<string, BookClassification>
   >(new Map());
@@ -353,6 +364,10 @@ export default function TimelinePage() {
   const [futureItems, setFutureItems] = useState<RecommendationItem[]>([]);
   const [futureLoading, setFutureLoading] = useState(false);
   const [futureError, setFutureError] = useState<string | null>(null);
+  const loadMoreSentinelRef = useRef<HTMLDivElement>(null);
+  const loadingMoreRef = useRef(false);
+  const filterGenerationRef = useRef(0);
+  const nextCursorRef = useRef<string | null>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -365,8 +380,52 @@ export default function TimelinePage() {
     setOtt("");
   }, [contentType]);
 
+  const loadLocalPage = useCallback(
+    async (limit: number) => {
+      const items = await listLogsLocal({
+        limit: limit + 1,
+        contentType: contentType === "ALL" ? undefined : contentType,
+        status: status === "ALL" ? undefined : status,
+        origin: origin === "ALL" ? undefined : origin,
+        ott: ott.trim() ? ott : undefined,
+        query: query.trim() ? query : undefined,
+        sortBy: "history",
+      });
+      return {
+        logs: items.slice(0, limit),
+        hasMore: items.length > limit,
+      };
+    },
+    [contentType, origin, ott, query, status],
+  );
+
+  const serverPagePath = useCallback(
+    (cursor?: string | null) => {
+      const requestQuery = buildQuery({
+        limit: String(TIMELINE_PAGE_SIZE),
+        status: status === "ALL" ? undefined : status,
+        origin: origin === "ALL" ? undefined : origin,
+        ott: ott.trim() ? ott : undefined,
+        q: query.trim() ? query : undefined,
+        sort: "history",
+        contentType: contentType === "ALL" ? undefined : contentType,
+        cursor: cursor ?? undefined,
+      });
+      return `/logs/page${requestQuery}`;
+    },
+    [contentType, origin, ott, query, status],
+  );
+
   useEffect(() => {
     let cancelled = false;
+    const generation = ++filterGenerationRef.current;
+
+    nextCursorRef.current = null;
+    loadingMoreRef.current = false;
+    setVisibleLimit(TIMELINE_PAGE_SIZE);
+    setHasMore(false);
+    setLoadingMore(false);
+    setLoadMoreError(false);
 
     const timer = setTimeout(async () => {
       setLoading(true);
@@ -374,50 +433,32 @@ export default function TimelinePage() {
       let hadLocal = false;
 
       try {
-        const cached = await listLogsLocal({
-          limit: 50,
-          contentType: contentType === "ALL" ? undefined : contentType,
-          status: status === "ALL" ? undefined : status,
-          origin: origin === "ALL" ? undefined : origin,
-          ott: ott.trim() ? ott : undefined,
-          query: query.trim() ? query : undefined,
-          sortBy: "history",
-        });
-        if (!cancelled) {
-          if (cached.length > 0) hadLocal = true;
-          setLogs(cached);
+        const cached = await loadLocalPage(TIMELINE_PAGE_SIZE);
+        if (!cancelled && generation === filterGenerationRef.current) {
+          if (cached.logs.length > 0) hadLocal = true;
+          setLogs(cached.logs);
+          setHasMore(cached.hasMore);
         }
-
-        const requestQuery = buildQuery({
-          limit: "50",
-          status: status === "ALL" ? undefined : status,
-          origin: origin === "ALL" ? undefined : origin,
-          ott: ott.trim() ? ott : undefined,
-          q: query.trim() ? query : undefined,
-          sort: "history",
-        });
 
         if (getUserId()) {
-          const res = await apiWithAuth<WatchLog[]>(`/logs${requestQuery}`);
-          await upsertLogsLocal(res);
-          const refreshed = await listLogsLocal({
-            limit: 50,
-            contentType: contentType === "ALL" ? undefined : contentType,
-            status: status === "ALL" ? undefined : status,
-            origin: origin === "ALL" ? undefined : origin,
-            ott: ott.trim() ? ott : undefined,
-            query: query.trim() ? query : undefined,
-            sortBy: "history",
-          });
-          if (!cancelled) setLogs(refreshed);
+          const res = await apiWithAuth<TimelinePageResponse>(serverPagePath());
+          await upsertLogsLocal(res.items);
+          const refreshed = await loadLocalPage(TIMELINE_PAGE_SIZE);
+          if (!cancelled && generation === filterGenerationRef.current) {
+            nextCursorRef.current = res.nextCursor;
+            setLogs(refreshed.logs);
+            setHasMore(refreshed.hasMore || Boolean(res.nextCursor));
+          }
         }
       } catch (error) {
-        if (!cancelled) {
+        if (!cancelled && generation === filterGenerationRef.current) {
           setErr(getErrorMessage(error, "Failed to load logs"));
           if (!hadLocal) setLogs([]);
         }
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!cancelled && generation === filterGenerationRef.current) {
+          setLoading(false);
+        }
       }
     }, 250);
 
@@ -425,7 +466,7 @@ export default function TimelinePage() {
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [status, ott, origin, contentType, query]);
+  }, [loadLocalPage, serverPagePath]);
 
   useEffect(() => {
     if (!isKdcBookshelfLocale(locale)) {
@@ -452,19 +493,93 @@ export default function TimelinePage() {
 
   useEffect(() => {
     function handleSync() {
-      listLogsLocal({
-        limit: 50,
-        contentType: contentType === "ALL" ? undefined : contentType,
-        status: status === "ALL" ? undefined : status,
-        origin: origin === "ALL" ? undefined : origin,
-        ott: ott.trim() ? ott : undefined,
-        query: query.trim() ? query : undefined,
-        sortBy: "history",
-      }).then((cached) => setLogs(cached));
+      if (loadingMoreRef.current) return;
+      const generation = filterGenerationRef.current;
+      void loadLocalPage(visibleLimit)
+        .then((page) => {
+          if (generation !== filterGenerationRef.current) return;
+          setLogs(page.logs);
+          setHasMore(page.hasMore || Boolean(nextCursorRef.current));
+          setLoadMoreError(false);
+        })
+        .catch(() => {});
     }
     window.addEventListener("sync:updated", handleSync);
     return () => window.removeEventListener("sync:updated", handleSync);
-  }, [status, ott, origin, contentType, query]);
+  }, [loadLocalPage, visibleLimit]);
+
+  const loadMore = useCallback(async () => {
+    if (!hasMore || loadingMoreRef.current) return;
+
+    const targetLimit = visibleLimit + TIMELINE_PAGE_SIZE;
+    const generation = filterGenerationRef.current;
+    loadingMoreRef.current = true;
+    setLoadingMore(true);
+    setLoadMoreError(false);
+
+    try {
+      const cursor = nextCursorRef.current;
+      if (cursor && (typeof navigator === "undefined" || navigator.onLine)) {
+        const response = await apiWithAuth<TimelinePageResponse>(
+          serverPagePath(cursor),
+        );
+        if (generation !== filterGenerationRef.current) return;
+        await upsertLogsLocal(response.items);
+        if (generation !== filterGenerationRef.current) return;
+        nextCursorRef.current = response.nextCursor;
+      }
+
+      const page = await loadLocalPage(targetLimit);
+      if (generation !== filterGenerationRef.current) return;
+      if (
+        cursor &&
+        typeof navigator !== "undefined" &&
+        !navigator.onLine &&
+        page.logs.length <= logs.length &&
+        !page.hasMore
+      ) {
+        setLoadMoreError(true);
+        return;
+      }
+      setVisibleLimit(targetLimit);
+      setLogs(page.logs);
+      setHasMore(page.hasMore || Boolean(nextCursorRef.current));
+    } catch {
+      if (generation !== filterGenerationRef.current) return;
+      setLoadMoreError(true);
+    } finally {
+      if (generation === filterGenerationRef.current) {
+        loadingMoreRef.current = false;
+        setLoadingMore(false);
+      }
+    }
+  }, [hasMore, loadLocalPage, logs.length, serverPagePath, visibleLimit]);
+
+  useEffect(() => {
+    const sentinel = loadMoreSentinelRef.current;
+    if (
+      !sentinel ||
+      !hasMore ||
+      loading ||
+      loadingMore ||
+      loadMoreError ||
+      futureMode ||
+      typeof IntersectionObserver === "undefined"
+    ) {
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (!entries.some((entry) => entry.isIntersecting)) return;
+        observer.disconnect();
+        void loadMore();
+      },
+      { rootMargin: "400px 0px" },
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [futureMode, hasMore, loadMore, loadMoreError, loading, loadingMore]);
 
   async function loadFuture(refresh = false) {
     if (!getUserId()) return;
@@ -793,6 +908,48 @@ export default function TimelinePage() {
               ))}
             </div>
           )}
+
+          {logs.length > 0 &&
+          (hasMore ||
+            loadingMore ||
+            loadMoreError ||
+            visibleLimit > TIMELINE_PAGE_SIZE) ? (
+            <div
+              ref={loadMoreSentinelRef}
+              className="flex min-h-20 flex-col items-center justify-center gap-2 py-3"
+              aria-live="polite"
+            >
+              {loadMoreError ? (
+                <>
+                  <p className="text-sm text-muted-foreground">
+                    {tTimeline("loadMoreError")}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => void loadMore()}
+                    className="inline-flex min-h-12 items-center justify-center rounded-lg border border-[#1E4D8C] bg-card px-6 text-sm font-semibold text-[#1E4D8C] transition-colors hover:bg-ott-paper-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF9933]/50 dark:text-foreground"
+                  >
+                    {tTimeline("retryLoadMore")}
+                  </button>
+                </>
+              ) : hasMore || loadingMore ? (
+                <button
+                  type="button"
+                  onClick={() => void loadMore()}
+                  disabled={loadingMore}
+                  className="inline-flex min-h-12 items-center justify-center rounded-lg border border-[#1E4D8C] bg-card px-6 text-sm font-semibold text-[#1E4D8C] transition-colors hover:bg-ott-paper-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF9933]/50 disabled:border-border disabled:bg-[#ECEBE9] disabled:text-muted-foreground dark:text-foreground"
+                >
+                  {loadingMore
+                    ? tTimeline("loadingMore")
+                    : tTimeline("loadMore")}
+                </button>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  {tTimeline("allLoaded")}
+                </p>
+              )}
+            </div>
+          ) : null}
         </>
       )}
       <ShareBottomSheet

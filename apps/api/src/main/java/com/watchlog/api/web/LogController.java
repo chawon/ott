@@ -6,6 +6,7 @@ import com.watchlog.api.domain.Status;
 import com.watchlog.api.dto.CreateWatchLogRequest;
 import com.watchlog.api.dto.UpdateWatchLogRequest;
 import com.watchlog.api.dto.WatchLogDto;
+import com.watchlog.api.dto.WatchLogPageDto;
 import com.watchlog.api.service.AuthService;
 import com.watchlog.api.service.LogService;
 import com.watchlog.api.service.WatchLogHistoryService;
@@ -50,6 +51,34 @@ public class LogController {
                 .stream()
                 .map(WatchLogDto::from)
                 .toList();
+    }
+
+    @GetMapping("/page")
+    public WatchLogPageDto listPage(
+            @RequestParam(value = "titleId", required = false) UUID titleId,
+            @RequestParam(value = "status", required = false) Status status,
+            @RequestParam(value = "origin", required = false) com.watchlog.api.domain.LogOrigin origin,
+            @RequestParam(value = "ott", required = false) String ott,
+            @RequestParam(value = "q", required = false) String query,
+            @RequestParam(value = "place", required = false) Place place,
+            @RequestParam(value = "occasion", required = false) Occasion occasion,
+            @RequestParam(value = "sort", required = false) String sort,
+            @RequestParam(value = "contentType", required = false) String contentType,
+            @RequestParam(value = "cursor", required = false) String cursor,
+            @RequestParam(value = "limit", defaultValue = "50") int limit,
+            @RequestHeader(value = "X-User-Id", required = false) UUID userId,
+            @RequestHeader(value = "X-Device-Id", required = false) UUID deviceId
+    ) {
+        authService.requireActiveDevice(userId, deviceId);
+        boolean sortByHistory = "history".equalsIgnoreCase(sort);
+        var page = logService.listPage(
+                titleId, status, origin, ott, query, place, occasion, limit, userId,
+                sortByHistory, contentType, cursor
+        );
+        return new WatchLogPageDto(
+                page.items().stream().map(WatchLogDto::from).toList(),
+                page.nextCursor()
+        );
     }
 
     @PostMapping
