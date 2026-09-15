@@ -6,6 +6,7 @@
 - `GET /api/logs/page`의 시각+UUID 키셋 커서로 50개씩 이어서 조회하고, 웹/PWA/TWA는 서버 페이지를 IndexedDB에 캐시한다. 기존 `/api/logs` 배열과 iOS 네이티브 `/api/sync/pull` 계약은 유지한다.
 - PR·main API/Web CI, PostgreSQL Testcontainers, 125개 Playwright 흐름, Native 타입 검사·27개 테스트를 통과했다.
 - ArgoCD `Synced Healthy`, API/Web `APP_VERSION=c0e09c4`, 두 Pod ready·restart 0, 운영 새/기존 로그 계약 200과 실행 웹 번들의 경로·ko/en 문구를 확인했다.
+- 사용자가 운영 앱에서 50개 이후 기록이 정상 노출되는 것을 직접 확인했다.
 - iOS 네이티브 소스와 App Store 바이너리는 변경하거나 배포하지 않음.
 - 문서: AGENTS.md, docs/timeline-infinite-scroll.md, pages/features/timeline.md, index.md.
 

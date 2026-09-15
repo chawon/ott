@@ -39,3 +39,4 @@
 - ArgoCD `ott-app` `Synced Healthy`, API/Web 이미지 `c0e09c4bf90f2d6de11a1f7c715dc25c3a48c27e`, `APP_VERSION=c0e09c4`, 각 Pod `1/1` ready·restart 0 확인.
 - 운영 임시 계정으로 새 `/api/logs/page`의 `{ items, nextCursor }`와 기존 `/api/logs` 배열 응답이 모두 200임을 확인한 뒤 계정 전체 삭제 200으로 정리했다.
 - 실행 중 웹 번들에서 `/logs/page`, `이전 기록 더 보기`, `Show earlier logs` 포함을 확인했다. iOS 네이티브 소스·App Store 바이너리는 변경하지 않았다.
+- 사용자가 운영 앱에서 50개 이후 기록이 정상 노출되는 것을 직접 확인했다.
