@@ -1,6 +1,7 @@
 package com.watchlog.api.dto;
 
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.UUID;
 
 public record PersonalAnalyticsReportDto(
@@ -16,6 +17,7 @@ public record PersonalAnalyticsReportDto(
         int longestStreakDays,
         OffsetDateTime lastLoggedAt,
         int previousWeekLogs,
+        List<SeasonalRecapPosterDto> previousWeekPosters,
         String monthlyTopGenre,
         int monthlyTopGenreCount,
         int daysSinceLastLog,

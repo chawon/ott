@@ -12,6 +12,7 @@
     "test:analytics": "node --test lib/analytics-session.test.mjs lib/admin-report.test.mjs",
     "test:android-acquisition": "node --test lib/android-acquisition.test.mjs",
     "test:client-recovery": "node --test lib/client-recovery.test.mjs lib/service-worker-cache.test.mjs",
+    "test:report-share": "node --test lib/report-weekly-posters.test.mjs",
     "test:seo": "node --test lib/seo.test.mjs lib/seo-boundary.test.mjs lib/sitemap-public.test.mjs scripts/ping-indexnow.test.mjs",
     "test:theme-first-paint": "node --test lib/theme-first-paint.test.mjs",
     "test:timeline-scroll": "node scripts/test-timeline-scroll.mjs",

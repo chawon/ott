@@ -13,6 +13,7 @@ import {
   type PersonalReport,
 } from "@/lib/report";
 import {
+  buildWeeklyRecapSharePayload,
   downloadBlob,
   fetchShareCardBlob,
   type RecapShareCardPayload,
@@ -199,23 +200,15 @@ export default function MyReportPage() {
       };
     }
     if (kind === "weekly") {
-      return {
-        cardType: "recap",
-        recapKind: "weekly",
-        format: "story",
+      return buildWeeklyRecapSharePayload(currentReport, {
         title: t("weeklyRecapCardTitle"),
         subtitle: t("weeklyRecapCardSubtitle", {
           count: previousWeekLogs,
         }),
-        stats: [
-          { label: t("weeklyRecords"), value: String(previousWeekLogs) },
-          { label: t("totalRecords"), value: String(currentReport.totalLogs) },
-          { label: t("streak"), value: String(currentReport.streakDays) },
-        ],
-        footer: "ottline.app",
-        watermark: "ottline.app",
-        theme: "default",
-      };
+        weeklyRecordsLabel: t("weeklyRecords"),
+        totalRecordsLabel: t("totalRecords"),
+        streakLabel: t("streak"),
+      });
     }
 
     return {
