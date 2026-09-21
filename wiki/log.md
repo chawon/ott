@@ -1,5 +1,15 @@
 # Wiki Log
 
+## [2026-09-21] fix: 이용 리포트 주간 공유 카드 포스터 복구 운영 배포
+- PR #108, API/Web SHA `01ef6b9b5b018970006ab6f42118b46824fb3430`.
+- API production `35569268524`, Web production `35569520338`; manifest `4cb3d731616df253ee5d60b9199e64e8bf506e94` / `ef40081a1a188315f3b8a15027a5a5f4f1e4531f`.
+- 개인 리포트 API와 로컬 fallback에 KST 직전 주 포스터 후보를 추가하고, 주간 공유 payload와 1~6칸 모자이크 렌더러를 연결했다. 시즌 포스터를 우선하며 이미지가 없으면 작품 제목을 표시한다.
+- PR·main API/Web CI, API 전체 테스트, 웹 주간 공유 회귀 테스트와 production build를 통과했다.
+- ArgoCD `Synced Healthy`, API/Web `APP_VERSION=01ef6b9`, 두 Pod ready·restart 0을 확인했다.
+- 운영 내부 스모크 테스트에서 `previousWeekPosters` 계약 200, TMDB 포스터를 사용한 1080×1920 PNG 200과 실제 포스터 렌더를 확인했다. 임시 검증 계정은 즉시 삭제했다.
+- iOS 네이티브 소스와 App Store 바이너리는 변경하거나 배포하지 않음.
+- 문서: AGENTS.md, docs/weekly-report-share-card-posters.md, pages/features/share-card.md, index.md, log.md.
+
 ## [2026-09-15] update: 타임라인 서버 커서 무한 스크롤 운영 배포
 - PR #107, API/Web SHA `c0e09c4bf90f2d6de11a1f7c715dc25c3a48c27e`.
 - API production `34912864768`, Web production `34913130614`; manifest `bb3101e43a0bccdc80f1a3bdc90ee680cca43404` / `4aa7e501fed9405d5386832c2e56834d709028cd`.
