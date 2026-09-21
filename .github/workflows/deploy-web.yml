@@ -49,6 +49,9 @@ jobs:
       - name: Test client recovery and service worker cache
         run: npm run test:client-recovery --workspace ott
 
+      - name: Test report share cards
+        run: npm run test:report-share --workspace ott
+
       - name: Build web
         env:
           BACKEND_URL: http://127.0.0.1:8080

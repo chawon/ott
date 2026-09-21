@@ -141,7 +141,7 @@ public class AnalyticsService {
                 .filter(l -> l.getDeletedAt() == null)
                 .toList();
         if (logs.isEmpty()) {
-            return new PersonalAnalyticsReportDto(0, 0, 0, 0, 0, "-", "-", "-", 0, 0, null, 0, "-", 0, 0, null, null, null, null, null);
+            return new PersonalAnalyticsReportDto(0, 0, 0, 0, 0, "-", "-", "-", 0, 0, null, 0, List.of(), "-", 0, 0, null, null, null, null, null);
         }
 
         ZoneId kst = ZoneId.of("Asia/Seoul");
@@ -160,6 +160,7 @@ public class AnalyticsService {
         LocalDate thisMonday = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
         LocalDate previousMonday = thisMonday.minusWeeks(1);
         int previousWeekLogs = 0;
+        Map<UUID, PosterAccumulator> previousWeekPosterCounts = new HashMap<>();
         WatchLogEntity continueSeriesLog = null;
 
         for (WatchLogEntity log : logs) {
@@ -178,6 +179,7 @@ public class AnalyticsService {
             }
             if (!watchedDate.isBefore(previousMonday) && watchedDate.isBefore(thisMonday)) {
                 previousWeekLogs += 1;
+                accumulatePoster(previousWeekPosterCounts, log);
             }
             if (log.getStatus() != null && "DONE".equals(log.getStatus().name())) {
                 doneCount += 1;
@@ -225,6 +227,7 @@ public class AnalyticsService {
                 streak.longestDays(),
                 lastLoggedAt,
                 previousWeekLogs,
+                topPosters(previousWeekPosterCounts),
                 monthlyTopGenre.label(),
                 monthlyTopGenre.count(),
                 daysSinceLastLog,
@@ -276,43 +279,12 @@ public class AnalyticsService {
                 occasionCounts.merge(log.getOccasion().name(), 1, Integer::sum);
             }
 
-            if (log.getTitle() == null) continue;
-            UUID titleId = log.getTitle().getId();
-            String preferredPoster = firstNonBlank(log.getSeasonPosterUrl(), log.getTitle().getPosterUrl());
-            PosterAccumulator accumulator = posterCounts.computeIfAbsent(
-                    titleId,
-                    ignored -> new PosterAccumulator(
-                            titleId,
-                            log.getTitle().getName(),
-                            log.getTitle().getType() == null ? "-" : log.getTitle().getType().name()
-                    )
-            );
-            accumulator.count += 1;
-            if (accumulator.posterUrl == null && preferredPoster != null) {
-                accumulator.posterUrl = preferredPoster;
-            }
-            if (log.getRating() != null) {
-                accumulator.addRating(log.getRating().doubleValue());
-            }
-            if (accumulator.lastLoggedAt == null || watchedAt.isAfter(accumulator.lastLoggedAt)) {
-                accumulator.lastLoggedAt = watchedAt;
-            }
+            accumulatePoster(posterCounts, log);
         }
 
         if (total == 0) return null;
 
-        List<SeasonalRecapPosterDto> posters = posterCounts.values().stream()
-                .sorted(this::compareSeasonalPoster)
-                .limit(6)
-                .map(item -> new SeasonalRecapPosterDto(
-                        item.titleId,
-                        item.title,
-                        item.titleType,
-                        item.posterUrl,
-                        item.count,
-                        item.lastLoggedAt
-                ))
-                .toList();
+        List<SeasonalRecapPosterDto> posters = topPosters(posterCounts);
 
         return new SeasonalRecapDto(
                 "2026-H1",
@@ -328,7 +300,47 @@ public class AnalyticsService {
         );
     }
 
-    private int compareSeasonalPoster(PosterAccumulator a, PosterAccumulator b) {
+    private void accumulatePoster(Map<UUID, PosterAccumulator> posterCounts, WatchLogEntity log) {
+        if (log.getTitle() == null) return;
+        UUID titleId = log.getTitle().getId();
+        String preferredPoster = firstNonBlank(log.getSeasonPosterUrl(), log.getTitle().getPosterUrl());
+        PosterAccumulator accumulator = posterCounts.computeIfAbsent(
+                titleId,
+                ignored -> new PosterAccumulator(
+                        titleId,
+                        log.getTitle().getName(),
+                        log.getTitle().getType() == null ? "-" : log.getTitle().getType().name()
+                )
+        );
+        accumulator.count += 1;
+        if (accumulator.posterUrl == null && preferredPoster != null) {
+            accumulator.posterUrl = preferredPoster;
+        }
+        if (log.getRating() != null) {
+            accumulator.addRating(log.getRating().doubleValue());
+        }
+        OffsetDateTime watchedAt = log.getWatchedAt();
+        if (watchedAt != null && (accumulator.lastLoggedAt == null || watchedAt.isAfter(accumulator.lastLoggedAt))) {
+            accumulator.lastLoggedAt = watchedAt;
+        }
+    }
+
+    private List<SeasonalRecapPosterDto> topPosters(Map<UUID, PosterAccumulator> posterCounts) {
+        return posterCounts.values().stream()
+                .sorted(this::comparePoster)
+                .limit(6)
+                .map(item -> new SeasonalRecapPosterDto(
+                        item.titleId,
+                        item.title,
+                        item.titleType,
+                        item.posterUrl,
+                        item.count,
+                        item.lastLoggedAt
+                ))
+                .toList();
+    }
+
+    private int comparePoster(PosterAccumulator a, PosterAccumulator b) {
         int posterCompare = Boolean.compare(b.posterUrl != null, a.posterUrl != null);
         if (posterCompare != 0) return posterCompare;
         int ratingPresenceCompare = Boolean.compare(b.bestRating != null, a.bestRating != null);

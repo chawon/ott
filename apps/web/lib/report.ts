@@ -47,6 +47,7 @@ export type PersonalReport = {
   longestStreakDays: number;
   lastLoggedAt: string | null;
   previousWeekLogs: number;
+  previousWeekPosters?: SeasonalRecapPoster[];
   monthlyTopGenre: string;
   monthlyTopGenreCount: number;
   daysSinceLastLog: number;
@@ -104,6 +105,88 @@ function firstNonEmpty<T>(...values: Array<T | null | undefined>): T | null {
     if (value !== null && typeof value !== "undefined") return value;
   }
   return null;
+}
+
+type PosterAccumulator = {
+  titleId: string;
+  title: string;
+  titleType: string;
+  posterUrl: string | null;
+  count: number;
+  lastLoggedAt: string | null;
+  bestRating: number | null;
+  ratedCount: number;
+};
+
+function accumulatePoster(
+  posterMap: Map<string, PosterAccumulator>,
+  log: WatchLog,
+) {
+  const titleId = log.title?.id;
+  if (!titleId) return;
+  const watchedAt = new Date(log.watchedAt);
+  const posterUrl = firstNonEmpty(log.seasonPosterUrl, log.title?.posterUrl);
+  const rating = typeof log.rating === "number" ? log.rating : null;
+  const existing = posterMap.get(titleId);
+  if (existing) {
+    existing.count += 1;
+    if (!existing.posterUrl && posterUrl) existing.posterUrl = posterUrl;
+    if (rating !== null) {
+      existing.ratedCount += 1;
+      existing.bestRating =
+        existing.bestRating === null
+          ? rating
+          : Math.max(existing.bestRating, rating);
+    }
+    if (
+      !existing.lastLoggedAt ||
+      new Date(existing.lastLoggedAt).getTime() < watchedAt.getTime()
+    ) {
+      existing.lastLoggedAt = log.watchedAt;
+    }
+    return;
+  }
+
+  posterMap.set(titleId, {
+    titleId,
+    title: log.title?.name ?? "",
+    titleType: log.title?.type ?? "unknown",
+    posterUrl,
+    count: 1,
+    lastLoggedAt: log.watchedAt,
+    bestRating: rating,
+    ratedCount: rating === null ? 0 : 1,
+  });
+}
+
+function topPosters(
+  posterMap: Map<string, PosterAccumulator>,
+): SeasonalRecapPoster[] {
+  return Array.from(posterMap.values())
+    .sort((a, b) => {
+      const posterCompare =
+        Number(Boolean(b.posterUrl)) - Number(Boolean(a.posterUrl));
+      if (posterCompare !== 0) return posterCompare;
+      const ratingPresenceCompare =
+        Number(b.bestRating !== null) - Number(a.bestRating !== null);
+      if (ratingPresenceCompare !== 0) return ratingPresenceCompare;
+      if (a.bestRating !== null && b.bestRating !== null) {
+        const ratingCompare = b.bestRating - a.bestRating;
+        if (ratingCompare !== 0) return ratingCompare;
+        const ratedCountCompare = b.ratedCount - a.ratedCount;
+        if (ratedCountCompare !== 0) return ratedCountCompare;
+      }
+      const countCompare = b.count - a.count;
+      if (countCompare !== 0) return countCompare;
+      return (
+        new Date(b.lastLoggedAt ?? 0).getTime() -
+        new Date(a.lastLoggedAt ?? 0).getTime()
+      );
+    })
+    .slice(0, 6)
+    .map(
+      ({ bestRating: _bestRating, ratedCount: _ratedCount, ...item }) => item,
+    );
 }
 
 function calcStreak(
@@ -169,6 +252,7 @@ export function buildPersonalReport(
       longestStreakDays: 0,
       lastLoggedAt: null,
       previousWeekLogs: 0,
+      previousWeekPosters: [],
       monthlyTopGenre: "-",
       monthlyTopGenreCount: 0,
       daysSinceLastLog: 0,
@@ -188,6 +272,7 @@ export function buildPersonalReport(
   previousMonday.setDate(previousMonday.getDate() - 7);
   let thisMonthLogs = 0;
   let previousWeekLogs = 0;
+  const previousWeekPosterMap = new Map<string, PosterAccumulator>();
   let doneCount = 0;
   let ratingCount = 0;
   let noteCount = 0;
@@ -214,6 +299,7 @@ export function buildPersonalReport(
     }
     if (watchedDay >= previousMonday && watchedDay < thisMonday) {
       previousWeekLogs += 1;
+      accumulatePoster(previousWeekPosterMap, log);
     }
     if (log.status === "DONE") doneCount += 1;
     if (typeof log.rating === "number") ratingCount += 1;
@@ -262,6 +348,7 @@ export function buildPersonalReport(
     longestStreakDays: streak.longest,
     lastLoggedAt,
     previousWeekLogs,
+    previousWeekPosters: topPosters(previousWeekPosterMap),
     monthlyTopGenre,
     monthlyTopGenreCount:
       monthlyTopGenre === "-" ? 0 : (monthlyGenres[monthlyTopGenre] ?? 0),
@@ -288,19 +375,7 @@ export function buildSeasonalRecap(
   const types: CounterMap = {};
   const places: CounterMap = {};
   const occasions: CounterMap = {};
-  const posterMap = new Map<
-    string,
-    {
-      titleId: string;
-      title: string;
-      titleType: string;
-      posterUrl: string | null;
-      count: number;
-      lastLoggedAt: string | null;
-      bestRating: number | null;
-      ratedCount: number;
-    }
-  >();
+  const posterMap = new Map<string, PosterAccumulator>();
 
   for (const log of logs) {
     const watchedAt = new Date(log.watchedAt);
@@ -317,74 +392,12 @@ export function buildSeasonalRecap(
     if (log.occasion)
       occasions[log.occasion] = (occasions[log.occasion] ?? 0) + 1;
 
-    const titleId = log.title?.id;
-    if (!titleId) continue;
-    const existing = posterMap.get(titleId);
-    const posterUrl = firstNonEmpty(log.seasonPosterUrl, log.title?.posterUrl);
-    const rating = typeof log.rating === "number" ? log.rating : null;
-    if (existing) {
-      existing.count += 1;
-      if (!existing.posterUrl && posterUrl) existing.posterUrl = posterUrl;
-      if (rating !== null) {
-        existing.ratedCount += 1;
-        existing.bestRating =
-          existing.bestRating === null
-            ? rating
-            : Math.max(existing.bestRating, rating);
-      }
-      if (
-        !existing.lastLoggedAt ||
-        new Date(existing.lastLoggedAt).getTime() < watchedAt.getTime()
-      ) {
-        existing.lastLoggedAt = log.watchedAt;
-      }
-      continue;
-    }
-
-    posterMap.set(titleId, {
-      titleId,
-      title: log.title?.name ?? "",
-      titleType: log.title?.type ?? "unknown",
-      posterUrl,
-      count: 1,
-      lastLoggedAt: log.watchedAt,
-      bestRating: rating,
-      ratedCount: rating === null ? 0 : 1,
-    });
+    accumulatePoster(posterMap, log);
   }
 
   if (totalLogs === 0) return null;
 
-  const posters = Array.from(posterMap.values())
-    .sort((a, b) => {
-      const posterCompare =
-        Number(Boolean(b.posterUrl)) - Number(Boolean(a.posterUrl));
-      if (posterCompare !== 0) return posterCompare;
-      const ratingPresenceCompare =
-        Number(b.bestRating !== null) - Number(a.bestRating !== null);
-      if (ratingPresenceCompare !== 0) return ratingPresenceCompare;
-      if (a.bestRating !== null && b.bestRating !== null) {
-        const ratingCompare = b.bestRating - a.bestRating;
-        if (ratingCompare !== 0) return ratingCompare;
-        const ratedCountCompare = b.ratedCount - a.ratedCount;
-        if (ratedCountCompare !== 0) return ratedCountCompare;
-      }
-      const countCompare = b.count - a.count;
-      if (countCompare !== 0) return countCompare;
-      return (
-        new Date(b.lastLoggedAt ?? 0).getTime() -
-        new Date(a.lastLoggedAt ?? 0).getTime()
-      );
-    })
-    .slice(0, 6)
-    .map((item) => ({
-      titleId: item.titleId,
-      title: item.title,
-      titleType: item.titleType,
-      posterUrl: item.posterUrl,
-      count: item.count,
-      lastLoggedAt: item.lastLoggedAt,
-    }));
+  const posters = topPosters(posterMap);
 
   return {
     key: "2026-H1",

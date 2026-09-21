@@ -436,6 +436,95 @@ async function renderShareCard(body: ShareCardPayload) {
   }
 }
 
+function recapMosaicSlots(count: number, heroHeight: number) {
+  if (count <= 1) {
+    return [{ left: 0, top: 0, width: 1080, height: heroHeight }];
+  }
+  if (count === 2) {
+    return [
+      { left: 0, top: 0, width: 540, height: heroHeight },
+      { left: 540, top: 0, width: 540, height: heroHeight },
+    ];
+  }
+  if (count === 3) {
+    return [
+      { left: 0, top: 0, width: 540, height: heroHeight },
+      { left: 540, top: 0, width: 540, height: heroHeight * 0.5 },
+      {
+        left: 540,
+        top: heroHeight * 0.5,
+        width: 540,
+        height: heroHeight * 0.5,
+      },
+    ];
+  }
+  if (count === 4) {
+    return [
+      { left: 0, top: 0, width: 540, height: heroHeight * 0.5 },
+      { left: 540, top: 0, width: 540, height: heroHeight * 0.5 },
+      {
+        left: 0,
+        top: heroHeight * 0.5,
+        width: 540,
+        height: heroHeight * 0.5,
+      },
+      {
+        left: 540,
+        top: heroHeight * 0.5,
+        width: 540,
+        height: heroHeight * 0.5,
+      },
+    ];
+  }
+  if (count === 5) {
+    return [
+      { left: 0, top: 0, width: 540, height: heroHeight * 0.5 },
+      { left: 540, top: 0, width: 540, height: heroHeight * 0.5 },
+      {
+        left: 0,
+        top: heroHeight * 0.5,
+        width: 360,
+        height: heroHeight * 0.5,
+      },
+      {
+        left: 360,
+        top: heroHeight * 0.5,
+        width: 360,
+        height: heroHeight * 0.5,
+      },
+      {
+        left: 720,
+        top: heroHeight * 0.5,
+        width: 360,
+        height: heroHeight * 0.5,
+      },
+    ];
+  }
+  return [
+    { left: 0, top: 0, width: 360, height: heroHeight * 0.55 },
+    { left: 360, top: 0, width: 360, height: heroHeight * 0.45 },
+    { left: 720, top: 0, width: 360, height: heroHeight * 0.58 },
+    {
+      left: 0,
+      top: heroHeight * 0.55,
+      width: 360,
+      height: heroHeight * 0.45,
+    },
+    {
+      left: 360,
+      top: heroHeight * 0.45,
+      width: 360,
+      height: heroHeight * 0.55,
+    },
+    {
+      left: 720,
+      top: heroHeight * 0.58,
+      width: 360,
+      height: heroHeight * 0.42,
+    },
+  ];
+}
+
 async function renderRecapShareCard(body: RecapShareCardPayload) {
   try {
     const fonts = await loadShareCardFonts();
@@ -454,29 +543,7 @@ async function renderRecapShareCard(body: RecapShareCardPayload) {
     const hasPosters = posterItems.length > 0;
     const heroHeight = isFeed ? 690 : 1040;
     const cardHeight = height;
-    const mosaicSlots = [
-      { left: 0, top: 0, width: 360, height: heroHeight * 0.55 },
-      { left: 360, top: 0, width: 360, height: heroHeight * 0.45 },
-      { left: 720, top: 0, width: 360, height: heroHeight * 0.58 },
-      {
-        left: 0,
-        top: heroHeight * 0.55,
-        width: 360,
-        height: heroHeight * 0.45,
-      },
-      {
-        left: 360,
-        top: heroHeight * 0.45,
-        width: 360,
-        height: heroHeight * 0.55,
-      },
-      {
-        left: 720,
-        top: heroHeight * 0.58,
-        width: 360,
-        height: heroHeight * 0.42,
-      },
-    ];
+    const mosaicSlots = recapMosaicSlots(posterItems.length, heroHeight);
 
     return new ImageResponse(
       <div

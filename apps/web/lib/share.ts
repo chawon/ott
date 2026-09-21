@@ -1,3 +1,5 @@
+import type { PersonalReport } from "./report";
+
 export type LogShareCardPayload = {
   cardType?: "log";
   title: string;
@@ -37,6 +39,44 @@ export type RecapShareCardPayload = {
 };
 
 export type ShareCardPayload = LogShareCardPayload | RecapShareCardPayload;
+
+export type WeeklyRecapShareCopy = {
+  title: string;
+  subtitle: string;
+  weeklyRecordsLabel: string;
+  totalRecordsLabel: string;
+  streakLabel: string;
+};
+
+export function buildWeeklyRecapSharePayload(
+  report: PersonalReport,
+  copy: WeeklyRecapShareCopy,
+): RecapShareCardPayload {
+  return {
+    cardType: "recap",
+    recapKind: "weekly",
+    format: "story",
+    title: copy.title,
+    subtitle: copy.subtitle,
+    posterItems: (report.previousWeekPosters ?? []).slice(0, 6).map((item) => ({
+      title: item.title,
+      titleType: item.titleType,
+      posterUrl: item.posterUrl ?? null,
+      count: item.count,
+    })),
+    stats: [
+      {
+        label: copy.weeklyRecordsLabel,
+        value: String(report.previousWeekLogs),
+      },
+      { label: copy.totalRecordsLabel, value: String(report.totalLogs) },
+      { label: copy.streakLabel, value: String(report.streakDays) },
+    ],
+    footer: "ottline.app",
+    watermark: "ottline.app",
+    theme: "default",
+  };
+}
 
 export async function fetchShareCardBlob(payload: ShareCardPayload) {
   const res = await fetch("/og/share-card", {
