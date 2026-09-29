@@ -47,6 +47,7 @@ class AuthServiceProfileTest {
                 repositoryProxy(WatchLogRepository.class, this::defaultRepositoryReturn),
                 repositoryProxy(CommentRepository.class, this::defaultRepositoryReturn),
                 repositoryProxy(DiscussionReactionRepository.class, this::defaultRepositoryReturn),
+                null,
                 null
         );
     }

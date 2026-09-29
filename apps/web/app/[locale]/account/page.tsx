@@ -3,6 +3,7 @@
 import {
   ChevronDown,
   Download,
+  FileUp,
   Settings,
   Smartphone,
   UserRound,
@@ -124,6 +125,7 @@ function SettingsAccordionCard({
 
 export default function AccountPage() {
   const tAccount = useTranslations("Account");
+  const tNetflix = useTranslations("NetflixImport");
   const tCsv = useTranslations("CSV");
   const tStatus = useTranslations("Status");
   const tCommon = useTranslations("Common");
@@ -672,6 +674,28 @@ export default function AccountPage() {
               {tAccount("exportNotice")}
             </p>
           </div>
+        </section>
+
+        <section className={SETTINGS_CARD_CLASS}>
+          <div className="flex items-start gap-3">
+            <div className="rounded-lg bg-ott-paper-strong p-2 text-[#1E4D8C] dark:text-foreground">
+              <FileUp className="h-5 w-5" aria-hidden="true" />
+            </div>
+            <div className="space-y-1">
+              <div className="text-base font-semibold">
+                {tNetflix("settingsTitle")}
+              </div>
+              <p className="text-sm text-muted-foreground">
+                {tNetflix("settingsDesc")}
+              </p>
+            </div>
+          </div>
+          <IntlLink
+            href="/account/import/netflix"
+            className="inline-flex min-h-12 w-full items-center justify-center rounded-lg border border-[#1E4D8C]/40 bg-card px-4 text-sm font-semibold text-[#1E4D8C] transition-colors hover:bg-ott-paper-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF9933]/60 dark:text-foreground"
+          >
+            {tNetflix("settingsAction")}
+          </IntlLink>
         </section>
 
         <section className={SETTINGS_CARD_CLASS}>
