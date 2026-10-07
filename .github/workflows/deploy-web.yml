@@ -67,3 +67,15 @@ jobs:
           file: ./apps/web/Dockerfile
           platforms: linux/arm64
           push: false
+          load: true
+          tags: ott-web:verify
+
+      - name: Install browser for locale verification
+        run: npx playwright install --with-deps chromium
+
+      - name: Verify web container runtime
+        run: |
+          docker run --detach --name ott-web-verify --publish 127.0.0.1:3000:3000 ott-web:verify
+          trap 'docker logs ott-web-verify; docker rm --force ott-web-verify' EXIT
+          docker exec --interactive ott-web-verify node --input-type=module < apps/web/scripts/verify-web-runtime.mjs
+          npm run test:locale-navigation --workspace ott

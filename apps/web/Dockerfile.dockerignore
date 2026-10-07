@@ -1,0 +1,9 @@
+.git
+**/node_modules
+**/.next
+**/.gradle
+**/build
+**/.expo
+**/coverage
+**/*.log
+**/.env*
