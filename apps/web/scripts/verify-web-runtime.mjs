@@ -17,8 +17,13 @@ const requireWeb = createRequire(resolve("package.json"));
 const lock = JSON.parse(
   await readFile(resolve(workspaceRoot, "package-lock.json"), "utf8"),
 );
+const webManifest = JSON.parse(await readFile("package.json", "utf8"));
+const entrypoints = {
+  "@modelcontextprotocol/ext-apps": "@modelcontextprotocol/ext-apps/server",
+  "@modelcontextprotocol/sdk": "@modelcontextprotocol/sdk/server/mcp.js",
+};
 async function installedVersion(name) {
-  let directory = dirname(requireWeb.resolve(name));
+  let directory = dirname(requireWeb.resolve(entrypoints[name] ?? name));
   while (true) {
     try {
       const manifest = JSON.parse(
@@ -38,7 +43,7 @@ async function installedVersion(name) {
   }
 }
 
-for (const name of ["next", "react", "react-dom", "sharp", "next-intl"]) {
+for (const name of Object.keys(webManifest.dependencies)) {
   const expected =
     lock.packages[`apps/web/node_modules/${name}`] ??
     lock.packages[`node_modules/${name}`];

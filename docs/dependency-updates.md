@@ -8,9 +8,9 @@
 
 | 단계 | 목표 | 상태 |
 | --- | --- | --- |
-| 웹 기반과 보안 | Next.js 16.3.8, React와 React DOM 19.3.0, sharp 0.35.5, next-intl 4.14.9, 운영 Docker의 루트 lockfile 적용 | 구현 및 로컬 검증 완료 |
-| API 기반 | Spring Boot 4.0.8, Hibernate 빌드 플러그인 7.2.24.Final, Testcontainers 2.0.5 정렬, Google Auth 1.54.0 | 예정 |
-| 웹 일반 라이브러리 | 같은 메이저의 최신 안정 릴리스, Biome와 Playwright, Node 24 타입 | 예정 |
+| 웹 기반과 보안 | Next.js 16.3.8, React와 React DOM 19.3.0, sharp 0.35.5, next-intl 4.14.9, 운영 Docker의 루트 lockfile 적용 | PR #110 웹 ARM64 CI 통과, 기존 Expo 검사 실패 |
+| API 기반 | Spring Boot 4.0.8, Hibernate 빌드 플러그인 7.2.24.Final, Testcontainers 2.0.5 정렬, Google Auth 1.54.0 | PR #111 CI 통과, 검토 대기 |
+| 웹 일반 라이브러리 | 같은 메이저의 안정 릴리스 17개, Biome와 Playwright, Node 24 타입 | 구현 및 로컬 검증 완료, [범위와 검증](web-library-updates.md) |
 | API 4.1 전환 | Spring Boot 4.1.1과 해당 BOM의 의존성 조합 | 예정 |
 | 큰 버전 변경 | TypeScript 7, lucide 1, MCP ext-apps 2, fast-average-color-node 4, Gradle과 GraalVM 플러그인을 각각 검증 | 예정 |
 
