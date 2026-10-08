@@ -1,8 +1,8 @@
 plugins {
 	java
-	id("org.springframework.boot") version "4.0.0"
+	id("org.springframework.boot") version "4.0.8"
 	id("io.spring.dependency-management") version "1.1.7"
-	id("org.hibernate.orm") version "7.1.8.Final"
+	id("org.hibernate.orm") version "7.2.24.Final"
 	id("org.graalvm.buildtools.native") version "0.11.3"
 }
 
@@ -35,12 +35,12 @@ dependencies {
 	testImplementation("org.springframework.boot:spring-boot-starter-flyway-test")
 	testImplementation("org.springframework.boot:spring-boot-starter-validation-test")
 	testImplementation("org.springframework.boot:spring-boot-starter-webmvc-test")
-	testImplementation("org.testcontainers:testcontainers-junit-jupiter:2.0.5")
-	testImplementation("org.testcontainers:testcontainers-postgresql:2.0.5")
+	testImplementation("org.testcontainers:testcontainers-junit-jupiter")
+	testImplementation("org.testcontainers:testcontainers-postgresql")
 	testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 
 	// Google Auth (GA4 service account)
-	implementation("com.google.auth:google-auth-library-oauth2-http:1.23.0")
+	implementation("com.google.auth:google-auth-library-oauth2-http:1.54.0")
 }
 
 hibernate {
