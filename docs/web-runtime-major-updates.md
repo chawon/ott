@@ -14,7 +14,7 @@ API와 DB 스키마, Dexie 버전, 기록 및 동기화 계약은 변경하지 �
 
 MCP Apps 2.0.3은 MCP SDK 2의 분리된 client/server 패키지를 요구하므로 서버 전환과 OAuth·읽기 전용 도구·위젯 응답을 별도 PR에서 검증한다. [MCP Apps 2 릴리스](https://github.com/modelcontextprotocol/ext-apps/releases/tag/v2.0.0)
 
-TypeScript 7.0.2는 기존 JavaScript 컴파일러 API를 제공하지 않는다. 현재 Next.js 16.3.8 설정은 `typescript/lib/typescript.js`와 `createProgram`을 사용한다. `experimental.useTypeScriptCli`로 전환하는 방법과 플러그인 호환성을 별도 검증하며, 이번에는 TypeScript 5.9.3을 유지한다. [TypeScript 7 릴리스](https://devblogs.microsoft.com/typescript/announcing-typescript-7-0/)
+TypeScript 7.0.2는 기존 JavaScript 컴파일러 API를 제공하지 않는다. Next.js 16.3.8은 `experimental.useTypeScriptCli`의 기본값이 `true`이며 CLI 타입 검사 경로를 제공한다. TypeScript 7의 CLI 검사, Next 설정 로딩과 플러그인, 웹과 native의 서로 다른 컴파일러 해석을 별도 검증한다. 이번에는 TypeScript 5.9.3을 유지한다. [TypeScript 7 릴리스](https://devblogs.microsoft.com/typescript/announcing-typescript-7-0/)
 
 ## 검증 계획
 
