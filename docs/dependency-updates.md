@@ -10,9 +10,11 @@
 | --- | --- | --- |
 | 웹 기반과 보안 | Next.js 16.3.8, React와 React DOM 19.3.0, sharp 0.35.5, next-intl 4.14.9, 운영 Docker의 루트 lockfile 적용 | PR #110 웹 ARM64 CI 통과, 기존 Expo 검사 실패 |
 | API 기반 | Spring Boot 4.0.8, Hibernate 빌드 플러그인 7.2.24.Final, Testcontainers 2.0.5 정렬, Google Auth 1.54.0 | PR #111 CI 통과, 검토 대기 |
-| 웹 일반 라이브러리 | 같은 메이저의 안정 릴리스 17개, Biome와 Playwright, Node 24 타입 | 구현 및 로컬 검증 완료, [범위와 검증](web-library-updates.md) |
-| API 4.1 전환 | Spring Boot 4.1.1과 해당 BOM의 의존성 조합 | 예정 |
-| 큰 버전 변경 | TypeScript 7, lucide 1, MCP ext-apps 2, fast-average-color-node 4, Gradle과 GraalVM 플러그인을 각각 검증 | 예정 |
+| 웹 일반 라이브러리 | 같은 메이저의 안정 릴리스 17개, Biome와 Playwright, Node 24 타입 | PR #112 웹 ARM64 CI 통과, 기존 Expo 검사 실패, [범위와 검증](web-library-updates.md) |
+| API 4.1 전환 | Spring Boot 4.1.1, Hibernate 7.4.5.Final, Flyway 12.4.0 | PR #113 CI 통과, 87개 테스트와 기존 DB 전환 검증 완료 |
+| 웹 런타임 메이저 | lucide-react 1.54.0, fast-average-color-node 4.0.0 | 로컬 검증 완료, ARM64 결과는 PR CI에서 확인, [범위와 검증](web-runtime-major-updates.md) |
+| MCP Apps 2 전환 | ext-apps 2.0.3과 MCP SDK 2 서버 전환 | 별도 PR 예정 |
+| 빌드 도구 | TypeScript 7의 Next.js 컴파일러 API 호환성, Gradle과 GraalVM 플러그인을 각각 검증 | 예정 |
 
 목표 버전은 2026-10-06 레지스트리 점검을 바탕으로 정했다. 각 단계 착수 시 릴리스와 호환 조건을 다시 확인한다. API가 관리하는 라이브러리는 Spring Boot BOM 조합을 기준으로 갱신하고 남은 보안 패치를 확인한다.
 

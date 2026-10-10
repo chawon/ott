@@ -1,9 +1,11 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { createServer } from "node:http";
 import { createRequire } from "node:module";
 import { dirname, resolve } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
+import { fileURLToPath } from "node:url";
 
 // Run from apps/web, against the production server or inside its container.
 const baseUrl = new URL(process.env.WEB_RUNTIME_URL ?? "http://127.0.0.1:3000");
@@ -23,7 +25,9 @@ const entrypoints = {
   "@modelcontextprotocol/sdk": "@modelcontextprotocol/sdk/server/mcp.js",
 };
 async function installedVersion(name) {
-  let directory = dirname(requireWeb.resolve(entrypoints[name] ?? name));
+  let directory = dirname(
+    fileURLToPath(import.meta.resolve(entrypoints[name] ?? name)),
+  );
   while (true) {
     try {
       const manifest = JSON.parse(
@@ -87,7 +91,7 @@ for (const [path, locale] of [
   console.log(`${path}: ${locale} HTML and built styles OK`);
 }
 
-async function render(name, payload) {
+async function render(name, payload, expectedBackground) {
   const response = await request("/og/share-card", {
     method: "POST",
     headers: { "content-type": "application/json" },
@@ -98,8 +102,21 @@ async function render(name, payload) {
   const metadata = await sharp(png).metadata();
   assert.equal(metadata.format, "png");
   assert.equal(metadata.width, 1080);
-  assert.equal(metadata.height, 1920);
+  const height = payload.format === "feed" ? 1350 : 1920;
+  assert.equal(metadata.height, height);
   assert.ok(png.length > 10_000, `${name} is not an empty image`);
+  if (expectedBackground) {
+    const pixel = await sharp(png)
+      .extract({ left: 20, top: height - 20, width: 1, height: 1 })
+      .removeAlpha()
+      .raw()
+      .toBuffer();
+    assert.deepEqual(
+      [...pixel],
+      expectedBackground,
+      `${name} uses the poster color in its background`,
+    );
+  }
   if (process.env.WEB_RUNTIME_ARTIFACT_DIR) {
     await mkdir(process.env.WEB_RUNTIME_ARTIFACT_DIR, { recursive: true });
     await writeFile(
@@ -107,7 +124,7 @@ async function render(name, payload) {
       png,
     );
   }
-  console.log(`${name}: 1080x1920 PNG (${png.length} bytes)`);
+  console.log(`${name}: 1080x${height} PNG (${png.length} bytes)`);
   return createHash("sha256").update(png).digest("hex");
 }
 
@@ -153,4 +170,47 @@ const poster = await render("weekly-with-poster", {
   ],
 });
 assert.notEqual(poster, fallback, "The weekly card includes its poster");
+
+// A local solid-color image makes silent color-extraction fallback observable.
+const solidPoster = await sharp({
+  create: {
+    width: 16,
+    height: 24,
+    channels: 3,
+    background: { r: 200, g: 80, b: 40 },
+  },
+})
+  .png()
+  .toBuffer();
+const fixtureServer = createServer((request, response) => {
+  if (request.url === "/poster.png") {
+    response.writeHead(200, { "content-type": "image/png" });
+    response.end(solidPoster);
+  } else {
+    response.writeHead(404);
+    response.end();
+  }
+});
+try {
+  await new Promise((resolve, reject) => {
+    fixtureServer.once("error", reject);
+    fixtureServer.listen(0, "127.0.0.1", resolve);
+  });
+  const fixtureUrl = `http://127.0.0.1:${fixtureServer.address().port}`;
+  for (const format of ["story", "feed"]) {
+    await render(
+      `log-poster-color-${format}`,
+      { ...log, format, posterUrl: `${fixtureUrl}/poster.png` },
+      [50, 20, 10],
+    );
+  }
+  const missingPoster = await render(
+    "log-missing-poster",
+    { ...log, posterUrl: `${fixtureUrl}/missing.png` },
+    [11, 18, 36],
+  );
+  assert.equal(missingPoster, plainLog, "A missing poster uses the plain card");
+} finally {
+  await new Promise((resolve) => fixtureServer.close(resolve));
+}
 console.log("Production runtime verification passed");
