@@ -14,6 +14,12 @@ try {
   const page = await context.newPage();
   const errors = [];
   page.on("pageerror", (error) => errors.push(error.stack ?? error.message));
+  // Keep mutable third-party analytics out of the application regression test.
+  await page.route("**/*", (route) =>
+    new URL(route.request().url()).origin === baseUrl.origin
+      ? route.fallback()
+      : route.abort(),
+  );
   await page.route("**/api/**", (route) =>
     route.fulfill({ contentType: "application/json", body: "{}" }),
   );
