@@ -8,6 +8,7 @@ on:
       - 'package.json'
       - 'package-lock.json'
       - '.github/workflows/deploy-web.yml'
+      - '.vscode/settings.json'
   push:
     branches: ["main"]
     paths:
@@ -16,6 +17,7 @@ on:
       - 'package.json'
       - 'package-lock.json'
       - '.github/workflows/deploy-web.yml'
+      - '.vscode/settings.json'
   workflow_dispatch:
 
 permissions:
@@ -36,6 +38,11 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Verify TypeScript compiler and editor compatibility
+        env:
+          BACKEND_URL: http://127.0.0.1:8080
+        run: npm run test:typescript-toolchain --workspace ott
 
       - name: Test analytics collection
         run: npm run test:analytics --workspace ott
