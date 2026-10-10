@@ -7,7 +7,7 @@
 - Current tool surface: `timeline.list_recent_logs`
 - Auth model: OAuth + ottline pairing/recovery code
 - Production MCP URL: `https://ottline.app/chatgpt/mcp`
-- Submission status: submitted, in review as of `2026-04-23`
+- Submission status: rejected; the ChatGPT App is not in service, confirmed by the user on `2026-10-10`. This submission draft remains for reference.
 
 ## 2. Positioning
 

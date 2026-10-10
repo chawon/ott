@@ -22,7 +22,6 @@ const lock = JSON.parse(
 const webManifest = JSON.parse(await readFile("package.json", "utf8"));
 const entrypoints = {
   "@modelcontextprotocol/ext-apps": "@modelcontextprotocol/ext-apps/server",
-  "@modelcontextprotocol/sdk": "@modelcontextprotocol/sdk/server/mcp.js",
 };
 async function installedVersion(name) {
   let directory = dirname(

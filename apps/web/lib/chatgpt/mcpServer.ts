@@ -3,9 +3,12 @@ import {
   registerAppResource,
   registerAppTool,
 } from "@modelcontextprotocol/ext-apps/server";
-import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
+import {
+  type AuthInfo,
+  McpServer,
+  type ServerContext,
+  WebStandardStreamableHTTPServerTransport,
+} from "@modelcontextprotocol/server";
 import { z } from "zod";
 
 import { listLogs } from "@/lib/chatgpt/backend";
@@ -17,13 +20,6 @@ import {
 } from "@/lib/chatgpt/copy";
 import { verifyAccessToken } from "@/lib/chatgpt/tokens";
 import { loadWidgetHtml } from "@/lib/chatgpt/widgetHtml";
-
-type ToolExtra = {
-  authInfo?: AuthInfo;
-  requestInfo?: {
-    headers: Record<string, string | string[] | undefined>;
-  };
-};
 
 type Identity = {
   userId: string;
@@ -97,9 +93,8 @@ function createUnauthorizedResult(
   };
 }
 
-function getToolCopy(extra: ToolExtra) {
-  const value = extra.requestInfo?.headers["accept-language"];
-  const acceptLanguage = Array.isArray(value) ? value[0] : (value ?? null);
+function getToolCopy(context: ServerContext) {
+  const acceptLanguage = context.http?.req?.headers.get("accept-language");
   return getChatGptCopy(resolveChatGptLocale(acceptLanguage)).tools;
 }
 
@@ -146,12 +141,12 @@ function summarizeRecentLogs(items: unknown[]): LogSummary[] {
 }
 
 function resolveIdentity(
-  extra: ToolExtra,
+  context: ServerContext,
   publicOrigin: string,
   authRequiredMessage: string,
   scopes: readonly string[],
 ): IdentityResolution {
-  const authInfo = extra.authInfo;
+  const authInfo = context.http?.authInfo;
   if (authInfo) {
     const tokenUserId = authInfo.extra?.userId;
     const tokenDeviceId = authInfo.extra?.deviceId;
@@ -221,7 +216,7 @@ function createServer(
     {
       title: copy.server.recentLogsTitle,
       description: copy.server.recentLogsDescription,
-      inputSchema: {
+      inputSchema: z.object({
         limit: z.number().int().min(1).max(50).default(20),
         type: z.enum(["movie", "series", "book"]).optional(),
         sort: z.enum(["history"]).optional(),
@@ -245,7 +240,7 @@ function createServer(
         occasion: z
           .enum(["ALONE", "DATE", "FAMILY", "FRIENDS", "BREAK", "ETC"])
           .optional(),
-      },
+      }),
       annotations: {
         readOnlyHint: true,
         destructiveHint: false,
@@ -256,10 +251,10 @@ function createServer(
         ui: { resourceUri: widgetUri },
       },
     },
-    async ({ limit, type, sort, status, ott, place, occasion }, extra) => {
-      const toolCopy = getToolCopy(extra);
+    async ({ limit, type, sort, status, ott, place, occasion }, context) => {
+      const toolCopy = getToolCopy(context);
       const resolved = resolveIdentity(
-        extra,
+        context,
         publicOrigin,
         toolCopy.authRequired,
         timelineReadScopes,

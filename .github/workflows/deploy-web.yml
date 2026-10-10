@@ -75,7 +75,12 @@ jobs:
 
       - name: Verify web container runtime
         run: |
-          docker run --detach --name ott-web-verify --publish 127.0.0.1:3000:3000 ott-web:verify
+          docker run --detach --name ott-web-verify --publish 127.0.0.1:3000:3000 \
+            --env BACKEND_URL=http://127.0.0.1:18081 \
+            --env MCP_TEST_BACKEND_URL=http://127.0.0.1:18081 \
+            --env CHATGPT_PUBLIC_ORIGIN=http://127.0.0.1:3000 \
+            --env CHATGPT_APP_SECRET=ottline-ci-mcp-test-only \
+            ott-web:verify
           trap 'docker logs ott-web-verify; docker rm --force ott-web-verify' EXIT
           docker exec --interactive ott-web-verify node --input-type=module < apps/web/scripts/verify-web-runtime.mjs
           docker exec --interactive ott-web-verify node --input-type=module < apps/web/scripts/test-chatgpt-mcp.mjs
