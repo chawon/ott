@@ -48,7 +48,7 @@ If present, read `./.omd/preferences.md` — pending corrections not yet folded 
 16. 관리자 analytics에 제품 퍼널(방문 → 제목 검색 → 제목 선택 → 기기 연결 → 첫 기록 → 기록 사용자), 유입 컨텍스트, 디바이스/도메인/Android 앱 버전·TWA 신호 세그먼트 표시
 17. 낙장불입 정책 확정: 사용자용 개별 기록 삭제 없음, 설정의 로컬 초기화와 서버 데이터 전체 삭제를 분리
 18. 설정에서 계정 단위 서버 데이터 전체 삭제(기록/댓글/문의/analytics/기기 연결) 지원
-19. ChatGPT App v1 운영 배포 + OpenAI 앱 심사 진행 중(`2026-04-23` 기준): `timeline.list_recent_logs` 기반 읽기 전용 recent-history connector + OAuth/PKCE + 도메인 검증 경로 반영
+19. ChatGPT App v1 연결 코드와 제출 준비 완료: `timeline.list_recent_logs` 기반 읽기 전용 recent-history connector + OAuth/PKCE + 도메인 검증 경로를 유지한다. `2026-10-10` 사용자 확인 기준 OpenAI 앱 심사 탈락 후 서비스하지 않는 상태다.
 20. 토스 인앱 미니앱 승인 및 출시 완료(`2026-05-18`, 표시명 `내 OTT 타임라인`) + `/about` 서비스 소개에 웹/PWA·Android·iOS·Windows·브라우저 확장·토스·ChatGPT 채널 순서 반영, 페어링 코드 연속성 메시지 정리
 21. 무로그인 개인 프로필 v1: 기존 페어링 계정에 닉네임, 성향 타이틀, 프리셋 아바타를 저장하고 본인 화면(헤더/홈/타임라인/리포트/설정)에만 노출
 22. 페어링 코드 복구 카드: 설정의 기기 연결 영역에서 페어링 코드를 개인 보관용 PNG 카드로 로컬 생성·저장(`2026-05-23` production 반영, web SHA `b5b30af`)
@@ -100,7 +100,7 @@ If present, read `./.omd/preferences.md` — pending corrections not yet folded 
 9. **브라우저 확장 ottline 브랜딩 및 스토어 배포**: `manifest.json`, `popup.html`, `popup.js` 브랜드명·URL을 ottline으로 전환, 아이콘 교체(512px 원본 리사이즈), Chrome Web Store/Edge Add-ons Store/Whale Store 배포 완료.
 10. **Microsoft Store PWA 배포**: PWABuilder 기반 Windows 패키지 인증 심사 통과 및 배포 완료. 브랜드명 `On the Timeline` 기준.
 11. **설정의 서버 데이터 전체 삭제 추가**: `DELETE /api/auth/account` 기반으로 계정 단위 서버 기록/댓글/문의/analytics/기기 연결 삭제 지원.
-12. **ChatGPT App v1 배포 및 제출**: `ottline.app/chatgpt` 운영 배포, OAuth/PKCE 연결, review 계정/도메인 검증/제출 문서 정리 완료, `2026-04-23` 기준 OpenAI 앱 심사 진행 중.
+12. **ChatGPT App v1 연결 및 제출 준비**: `ottline.app/chatgpt` 연결 코드, OAuth/PKCE, review 계정/도메인 검증/제출 문서 정리 완료. `2026-10-10` 사용자 확인 기준 OpenAI 앱 심사 탈락 후 서비스하지 않는다.
 13. **서비스 소개 채널 정리 및 토스 인앱/Google Play/iOS App Store 출시 반영**: 토스 인앱 미니앱은 `2026-05-18` 승인 및 출시 완료(`내 OTT 타임라인`). Android 앱은 Google Play production 출시 완료(`app.ottline`) 상태로 `/about` 페이지에 Google Play 링크를 노출하고, iOS 앱은 App Store 출시 완료 상태로 `https://apps.apple.com/app/ottline/id6780318110` 링크를 노출한다. `/about` 페이지에는 웹/PWA·Android·iOS·Windows·브라우저 확장·토스·ChatGPT 순서로 채널을 노출하고, ChatGPT만 `준비 중`으로 표기한다. 브라우저 확장은 Chrome Web Store, Edge Add-ons, Whale Store 링크를 각각 아이콘 버튼으로 노출한다. 페어링 코드 연속성 메시지 반영 완료. `2026-06-07` PR `#51`, main SHA `536774478497cae3f5ae230d46b69b6d0f236892`, web staging run `27079271629`, web production run `27079312890`로 Google Play 링크를 먼저 배포했다. 이후 `2026-06-07` PR `#55`, main SHA `4fcfd6dd07243a6ad0bf112b00982b2dc4113122`, web staging run `27089185975`, web production run `27089241013`로 스토어 아이콘 버튼과 영상·책 메타 타이틀을 배포했고 ArgoCD `ott-app` `Synced Healthy`, production `ott-web` 이미지 태그 `4fcfd6dd07243a6ad0bf112b00982b2dc4113122`, `APP_VERSION=4fcfd6d`를 확인했다. `2026-06-29` PR `#74`, main SHA `ec08179a229bc0e8b23df31d31e639651338d7f0`, web production run `28379967425`, production manifest commit `650a93a162e2537f4d2998f46c819edf7504a51f`로 iOS App Store 링크를 배포했고 ArgoCD `ott-app` `Synced Healthy`, production `ott-web` 이미지 태그 `ec08179a229bc0e8b23df31d31e639651338d7f0`, `APP_VERSION=ec08179`를 확인했다.
 14. **페어링 코드 복구 카드 저장 UX**: 설정 > 기기 연결에서 개인 보관용 복구 카드 PNG를 브라우저 Canvas로 로컬 생성해 저장하도록 반영 완료. 서버 이메일 발송, 서버 이미지 렌더링, 공개 공유 UX는 제외했다. `2026-05-23` web production run `26329158127`로 `b5b30af29731aae89ddc3bd336ad3752feddc666` 배포 완료.
 15. **홈 함께 기록 인기 작품 보충**: 홈의 실제 공개 기록이 6개 미만이면 `/api/titles/popular` 기반 인기 작품으로 부족분만 채운다. 한국어 fallback은 TMDB 주간 트렌드 최대 5페이지에서 `original_language=ko` 또는 `origin_country=KR`인 항목만 필터링하고, 비한국어 fallback은 region/watch availability 기반 discover를 사용한다. `2026-05-23` web/API production run `26331154875`/`26331157652`로 `9a3fcdf28ef142f2021c143da3a00598762a6053` 배포 완료.
@@ -434,6 +434,9 @@ feature/* ──PR/CI──→ main ──→ GitHub Actions workflow_dispatch
 2. `GET /api/sync/pull?since=...`
 
 ### ChatGPT App
+
+현재 상태(`2026-10-10` 사용자 확인): 심사 탈락 후 서비스하지 않는다. 아래 연결 코드와 API 계약은 유지보수 대상으로 남아 있으며, 의존성 업데이트는 서비스 재개나 재심사 제출을 포함하지 않는다.
+
 1. Public MCP endpoint
    1. `GET|POST|DELETE /chatgpt/mcp`
 2. Public docs and verification

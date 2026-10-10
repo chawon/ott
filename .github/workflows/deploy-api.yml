@@ -31,12 +31,22 @@ jobs:
           java-version: "25"
           cache: gradle
 
+      - name: Verify Gradle and native task wiring
+        working-directory: apps/api
+        run: |
+          ./gradlew --version
+          ./gradlew nativeCompile --dry-run --warning-mode=all --no-daemon
+
       - name: Verify Docker for PostgreSQL tests
         run: docker info
 
       - name: Test API
         working-directory: apps/api
         run: ./gradlew test --no-daemon
+
+      - name: Verify PostgreSQL tests executed
+        working-directory: apps/api
+        run: python3 scripts/verify-postgresql-tests.py
 
       - name: Build API
         working-directory: apps/api
@@ -52,3 +62,29 @@ jobs:
           file: ./apps/api/Dockerfile
           platforms: linux/arm64
           push: false
+          load: true
+          tags: ott-api:verify
+
+      - name: Checkout API 4.0 upgrade baseline
+        uses: actions/checkout@v4
+        with:
+          ref: 9de3deae4c2be018c18ed8679a67a257d598d2b1
+          path: .api-upgrade-baseline
+
+      - name: Build API upgrade baseline container
+        uses: docker/build-push-action@v6
+        with:
+          context: .api-upgrade-baseline
+          file: .api-upgrade-baseline/apps/api/Dockerfile
+          platforms: linux/arm64
+          push: false
+          load: true
+          tags: ott-api:upgrade-baseline
+
+      - name: Verify API container runtime
+        working-directory: apps/api
+        env:
+          API_RUNTIME_EXPECTED_VERSION: ${{ github.sha }}
+          API_RUNTIME_BASELINE_IMAGE: ott-api:upgrade-baseline
+          API_RUNTIME_BASELINE_VERSION: 9de3deae4c2be018c18ed8679a67a257d598d2b1
+        run: bash scripts/verify-container-runtime.sh
