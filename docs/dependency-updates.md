@@ -14,8 +14,8 @@
 | API 4.1 전환 | Spring Boot 4.1.1, Hibernate 7.4.5.Final, Flyway 12.4.0 | PR #113 CI 통과, 87개 테스트와 기존 DB 전환 검증 완료 |
 | 웹 런타임 메이저 | lucide-react 1.54.0, fast-average-color-node 4.0.0 | PR #114 웹 ARM64 CI 통과, 기존 Expo 검사 실패, [범위와 검증](web-runtime-major-updates.md) |
 | MCP Apps 2 전환 | ext-apps 2.0.3과 MCP SDK 2.3.1 서버 전환 | PR #115 웹 ARM64 CI 통과, 기존 Expo 검사 실패, [범위와 검증](mcp-apps-2-update.md) |
-| 웹 TypeScript 7 | TypeScript 7.0.2의 Next.js 빌드·설정·편집기 호환성 검증 | 로컬 검증 완료, ARM64 결과는 PR CI에서 확인, [범위와 검증](typescript-7-update.md) |
-| API 빌드 도구 | Gradle과 GraalVM 플러그인을 각각 검증 | 예정 |
+| 웹 TypeScript 7 | TypeScript 7.0.2의 Next.js 빌드·설정·편집기 호환성 검증 | PR #116 웹 ARM64 CI 통과, 기존 Expo 검사 실패, [범위와 검증](typescript-7-update.md) |
+| API 빌드 도구 | Gradle 9.8.1, GraalVM Native Build Tools 1.1.14 | PR #117 API ARM64 CI 통과, 87개 PostgreSQL 테스트와 기존 DB 전환 검증 완료, [범위와 검증](api-build-tool-updates.md) |
 
 목표 버전은 2026-10-06 레지스트리 점검을 바탕으로 정했다. 각 단계 착수 시 릴리스와 호환 조건을 다시 확인한다. API가 관리하는 라이브러리는 Spring Boot BOM 조합을 기준으로 갱신하고 남은 보안 패치를 확인한다.
 
@@ -50,7 +50,7 @@ API 단계는 Java 25에서 `test`와 `bootJar`를 실행하고 격리 PostgreSQ
 
 ## 배포 기준
 
-각 PR의 CI를 통과한 뒤 확정 main SHA로 수동 배포한다. 웹 보안 패치는 독립 릴리스하고, 이후 함께 배포하는 변경은 API 다음 웹 순서로 적용한다. ArgoCD `Synced Healthy`, 이미지 태그, `APP_VERSION`, Pod 상태와 실제 기능 요청을 확인한다. 이전 정상 이미지와 되돌리기 조건도 기록한다.
+각 PR의 CI를 통과한 뒤 확정 main SHA로 수동 배포한다. 2026-10-10 사용자의 반영 승인에 따라 준비한 8개 PR을 최신 main의 통합 브랜치에 합치고, 통합 Web/API CI를 통과한 뒤 API 다음 웹 순서로 적용한다. ArgoCD `Synced Healthy`, 이미지 태그, `APP_VERSION`, Pod 상태와 실제 기능 요청을 확인한다. 이전 정상 이미지와 되돌리기 조건은 [통합 배포 기록](dependency-updates-release-2026-10-10.md)에 남긴다.
 
 ## 웹 기반 검증 결과
 
