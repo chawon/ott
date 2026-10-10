@@ -13,7 +13,7 @@ try {
   const context = await browser.newContext({ serviceWorkers: "block" });
   const page = await context.newPage();
   const errors = [];
-  page.on("pageerror", (error) => errors.push(error.message));
+  page.on("pageerror", (error) => errors.push(error.stack ?? error.message));
   await page.route("**/api/**", (route) =>
     route.fulfill({ contentType: "application/json", body: "{}" }),
   );
