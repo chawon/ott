@@ -31,6 +31,12 @@ jobs:
           java-version: "25"
           cache: gradle
 
+      - name: Verify Gradle and native task wiring
+        working-directory: apps/api
+        run: |
+          ./gradlew --version
+          ./gradlew nativeCompile --dry-run --warning-mode=all --no-daemon
+
       - name: Verify Docker for PostgreSQL tests
         run: docker info
 

@@ -15,6 +15,8 @@ Spring Boot 4.0 계열의 패치와 Google Auth를 갱신하고, Testcontainers�
 
 API 계약, DTO, 엔티티와 migration 파일은 이번 변경 범위에 포함하지 않는다. Spring Boot 4.1 전환, Gradle wrapper와 GraalVM 플러그인 업데이트는 후속 단계에서 각각 검증한다.
 
+후속 단계의 범위와 결과는 [Spring Boot 4.1 전환](api-spring-boot-41.md)과 [API 빌드 도구 업데이트](api-build-tool-updates.md)에서 관리한다.
+
 ## 검증 방향
 
 1. Java 25에서 변경 전후 `test`와 `bootJar`를 실행하고 실제 runtime/test classpath의 버전을 기록한다.
