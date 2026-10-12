@@ -1,4 +1,5 @@
 import Dexie, { type Table } from "dexie";
+import type { NetflixViewingEvent } from "./netflixImport";
 import type {
   BookClassification,
   Title,
@@ -40,6 +41,14 @@ export type OutboxItem =
       createdAt: string;
       attempts: number;
       lastError?: string | null;
+    }
+  | {
+      id: string;
+      type: "import_netflix";
+      payload: { rows: NetflixViewingEvent[] };
+      createdAt: string;
+      attempts: number;
+      lastError?: string | null;
     };
 
 class WatchLogDB extends Dexie {
@@ -48,6 +57,7 @@ class WatchLogDB extends Dexie {
   history!: Table<LocalWatchLogHistory, string>;
   outbox!: Table<OutboxItem, string>;
   bookClassifications!: Table<LocalBookClassification, string>;
+  netflixViewings!: Table<NetflixViewingEvent, string>;
 
   constructor() {
     super("watchlog");
@@ -68,6 +78,14 @@ class WatchLogDB extends Dexie {
       history: "id, logId, recordedAt",
       outbox: "id, type, createdAt, attempts",
       bookClassifications: "isbn13, status, kdcMajor, fetchedAt",
+    });
+    this.version(4).stores({
+      titles: "id, provider, providerId, type, name, updatedAt",
+      logs: "id, titleId, status, watchedAt, updatedAt",
+      history: "id, logId, recordedAt",
+      outbox: "id, type, createdAt, attempts",
+      bookClassifications: "isbn13, status, kdcMajor, fetchedAt",
+      netflixViewings: "sourceKey, viewedOn, linkedTitleId, syncStatus",
     });
   }
 }

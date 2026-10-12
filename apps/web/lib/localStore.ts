@@ -1,5 +1,6 @@
 import { normalizeBookIsbn13 } from "./bookshelf";
 import { db, type LocalWatchLog, type OutboxItem } from "./db";
+import type { NetflixImportRow, NetflixViewingEvent } from "./netflixImport";
 import type { Title, UserProfile, WatchLog, WatchLogHistory } from "./types";
 import { safeUUID } from "./utils";
 
@@ -343,13 +344,21 @@ export function clearUserProfileState() {
 export async function resetLocalState() {
   await db.transaction(
     "rw",
-    [db.titles, db.logs, db.history, db.outbox, db.bookClassifications],
+    [
+      db.titles,
+      db.logs,
+      db.history,
+      db.outbox,
+      db.bookClassifications,
+      db.netflixViewings,
+    ],
     async () => {
       await db.titles.clear();
       await db.logs.clear();
       await db.history.clear();
       await db.outbox.clear();
       await db.bookClassifications.clear();
+      await db.netflixViewings.clear();
     },
   );
   if (typeof localStorage === "undefined") return;
@@ -409,6 +418,57 @@ export async function enqueueCreateLog(payload: {
     lastError: null,
   };
   await db.outbox.put(item);
+}
+
+export async function saveNetflixImportLocal(rows: NetflixImportRow[]) {
+  if (rows.length === 0) return 0;
+  let added = 0;
+  await db.transaction("rw", db.netflixViewings, db.outbox, async () => {
+    const existing = await db.netflixViewings.bulkGet(
+      rows.map((row) => row.sourceKey),
+    );
+    const fresh = rows.filter((_, index) => !existing[index]);
+    if (fresh.length === 0) return;
+    added = fresh.length;
+    await db.netflixViewings.bulkPut(
+      fresh.map((row) => ({ ...row, syncStatus: "pending" as const })),
+    );
+    for (let index = 0; index < fresh.length; index += 2_000) {
+      const item: OutboxItem = {
+        id: safeUUID(),
+        type: "import_netflix",
+        payload: { rows: fresh.slice(index, index + 2_000) },
+        createdAt: nowIso(),
+        attempts: 0,
+        lastError: null,
+      };
+      await db.outbox.put(item);
+    }
+  });
+  return added;
+}
+
+export async function listNetflixViewingsLocal() {
+  return db.netflixViewings.orderBy("viewedOn").reverse().toArray();
+}
+
+export async function upsertNetflixViewingsLocal(
+  events: NetflixViewingEvent[],
+) {
+  if (events.length === 0) return;
+  await db.netflixViewings.bulkPut(
+    events.map((event) => ({ ...event, syncStatus: "synced" })),
+  );
+}
+
+export async function setNetflixViewingsStatus(
+  sourceKeys: string[],
+  status: NetflixViewingEvent["syncStatus"],
+) {
+  await db.transaction("rw", db.netflixViewings, async () => {
+    for (const key of sourceKeys)
+      await db.netflixViewings.update(key, { syncStatus: status });
+  });
 }
 
 export async function enqueueUpdateLog(

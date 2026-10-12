@@ -43,6 +43,7 @@ public class AuthService {
     private final CommentRepository commentRepository;
     private final DiscussionReactionRepository discussionReactionRepository;
     private final AndroidReminderService androidReminderService;
+    private final NetflixImportService netflixImportService;
     private final SecureRandom random = new SecureRandom();
 
     public AuthService(
@@ -51,7 +52,8 @@ public class AuthService {
             WatchLogRepository watchLogRepository,
             CommentRepository commentRepository,
             DiscussionReactionRepository discussionReactionRepository,
-            AndroidReminderService androidReminderService
+            AndroidReminderService androidReminderService,
+            NetflixImportService netflixImportService
     ) {
         this.userRepository = userRepository;
         this.userDeviceRepository = userDeviceRepository;
@@ -59,6 +61,7 @@ public class AuthService {
         this.commentRepository = commentRepository;
         this.discussionReactionRepository = discussionReactionRepository;
         this.androidReminderService = androidReminderService;
+        this.netflixImportService = netflixImportService;
     }
 
     @Transactional
@@ -170,6 +173,7 @@ public class AuthService {
     }
 
     private void mergeUsers(java.util.UUID fromUserId, java.util.UUID toUserId) {
+        netflixImportService.mergeUsers(fromUserId, toUserId);
         var fromLogs = watchLogRepository.findByUserId(fromUserId);
         for (var log : fromLogs) {
             var existing = watchLogRepository.findByTitle_IdAndUserIdAndDeletedAtIsNull(log.getTitle().getId(), toUserId);

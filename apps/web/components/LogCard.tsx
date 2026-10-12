@@ -5,6 +5,7 @@ import { useState } from "react";
 import { Link as IntlLink } from "@/i18n/routing";
 import { api, apiWithAuth } from "@/lib/api";
 import { isKdcBookshelfLocale, type KdcMajor } from "@/lib/bookshelf";
+import type { NetflixViewingEvent } from "@/lib/netflixImport";
 import type {
   BookClassification,
   Comment,
@@ -85,10 +86,12 @@ export default function LogCard({
   log,
   onShareCard,
   bookClassification,
+  netflixViewings = [],
 }: {
   log: WatchLog;
   onShareCard?: () => void;
   bookClassification?: BookClassification | null;
+  netflixViewings?: NetflixViewingEvent[];
 }) {
   const t = log.title;
   const locale = useLocale();
@@ -96,6 +99,7 @@ export default function LogCard({
   const tQuick = useTranslations("QuickLogCard");
   const tCommon = useTranslations("Common");
   const tBookshelf = useTranslations("Bookshelf");
+  const tNetflix = useTranslations("NetflixImport");
   const [isSharing, setIsSharing] = useState(false);
   const [isShared, setIsShared] = useState(false);
 
@@ -267,6 +271,33 @@ export default function LogCard({
           <p className="text-sm leading-relaxed text-muted-foreground line-clamp-2">
             {renderBody(formatNoteInline(log.note))}
           </p>
+        ) : null}
+
+        {netflixViewings.length > 0 ? (
+          <details className="mt-3 rounded-lg bg-[#FEF9EE] px-3 py-2 text-sm">
+            <summary className="min-h-10 cursor-pointer py-2 font-semibold text-[#1E4D8C] dark:text-foreground">
+              {tNetflix("cardCount", { count: netflixViewings.length })}
+            </summary>
+            <ul className="space-y-1 pb-2 text-xs text-[#4A4A4A]">
+              {netflixViewings.slice(0, 5).map((event) => (
+                <li key={event.sourceKey}>
+                  {new Date(`${event.viewedOn}T00:00:00Z`).toLocaleDateString(
+                    locale === "ko" ? "ko-KR" : "en-US",
+                    { timeZone: "UTC" },
+                  )}
+                  {event.episodeNumber !== null
+                    ? ` · EP ${event.episodeNumber}`
+                    : ""}
+                </li>
+              ))}
+            </ul>
+            <IntlLink
+              href="/timeline/netflix"
+              className="inline-flex min-h-9 items-center font-semibold text-[#1E4D8C] hover:underline dark:text-foreground"
+            >
+              {tNetflix("viewHistory")}
+            </IntlLink>
+          </details>
         ) : null}
 
         <div className="mt-3 flex flex-wrap items-center gap-2">

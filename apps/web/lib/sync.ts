@@ -11,9 +11,12 @@ import {
   removeOutboxItem,
   removeTitleLocal,
   setLogSyncStatus,
+  setNetflixViewingsStatus,
   upsertLogLocal,
+  upsertNetflixViewingsLocal,
   upsertTitleLocal,
 } from "./localStore";
+import type { NetflixViewingEvent } from "./netflixImport";
 import type { Title, WatchLog } from "./types";
 
 let syncing = false;
@@ -44,6 +47,23 @@ type SyncAuthIds = {
 };
 
 async function pushItem(item: OutboxItem, auth: SyncAuthIds) {
+  if (item.type === "import_netflix") {
+    await apiWithAuth("/imports/netflix", {
+      method: "POST",
+      body: JSON.stringify({
+        rows: item.payload.rows.map((row) => ({
+          rawTitle: row.rawTitle,
+          workTitle: row.workTitle,
+          viewedOn: row.viewedOn,
+          occurrence: row.occurrence,
+          seasonNumber: row.seasonNumber,
+          episodeNumber: row.episodeNumber,
+          linkedTitleId: row.linkedTitleId,
+        })),
+      }),
+    });
+    return;
+  }
   const payload = item.payload as any;
   const changes = {
     logs: payload?.log ? [payload.log] : [],
@@ -158,6 +178,8 @@ async function pullChanges() {
   }
 
   if (res.serverTime) setLastSyncAt(res.serverTime);
+  const imported = await apiWithAuth<NetflixViewingEvent[]>("/imports/netflix");
+  await upsertNetflixViewingsLocal(imported);
 }
 
 export async function syncOutbox() {
@@ -186,7 +208,12 @@ export async function syncOutbox() {
       try {
         await pushItem(item, auth);
         await removeOutboxItem(item.id);
-        if (item.type === "create_log") {
+        if (item.type === "import_netflix") {
+          await setNetflixViewingsStatus(
+            item.payload.rows.map((row) => row.sourceKey),
+            "synced",
+          );
+        } else if (item.type === "create_log") {
           await setLogSyncStatus(item.localLogId, "synced");
         } else {
           await setLogSyncStatus(item.logId, "synced");
@@ -194,7 +221,12 @@ export async function syncOutbox() {
         emitSyncUpdate();
       } catch (e: any) {
         await recordOutboxError(item.id, e?.message ?? "Sync failed");
-        if (item.type === "create_log") {
+        if (item.type === "import_netflix") {
+          await setNetflixViewingsStatus(
+            item.payload.rows.map((row) => row.sourceKey),
+            "failed",
+          );
+        } else if (item.type === "create_log") {
           await setLogSyncStatus(item.localLogId, "failed");
         } else {
           await setLogSyncStatus(item.logId, "failed");

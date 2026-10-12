@@ -21,6 +21,7 @@
     "test:web-storage": "node scripts/test-web-storage.mjs",
     "test:locale-navigation": "node scripts/test-locale-navigation.mjs",
     "test:timeline-scroll": "node scripts/test-timeline-scroll.mjs",
+    "test:netflix-import": "node scripts/test-netflix-import.mjs",
     "indexnow": "node scripts/ping-indexnow.mjs",
     "generate:chatgpt-directory-screenshots": "node scripts/generate-chatgpt-directory-screenshots.mjs"
   },

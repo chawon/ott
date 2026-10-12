@@ -5,6 +5,7 @@ import {
   BookOpen,
   Clock,
   Download,
+  History,
   Sparkles,
   X,
 } from "lucide-react";
@@ -20,7 +21,13 @@ import { apiWithAuth } from "@/lib/api";
 import { isKdcBookshelfLocale, normalizeBookIsbn13 } from "@/lib/bookshelf";
 import { getCachedClassificationsForLogs } from "@/lib/bookshelfStore";
 import { downloadTimelineCsv } from "@/lib/export";
-import { getUserId, listLogsLocal, upsertLogsLocal } from "@/lib/localStore";
+import {
+  getUserId,
+  listLogsLocal,
+  listNetflixViewingsLocal,
+  upsertLogsLocal,
+} from "@/lib/localStore";
+import type { NetflixViewingEvent } from "@/lib/netflixImport";
 import { isProfileComplete } from "@/lib/profile";
 import type {
   BookClassification,
@@ -338,6 +345,7 @@ export default function TimelinePage() {
   const tAccount = useTranslations("Account");
   const tProfile = useTranslations("Profile");
   const tBookshelf = useTranslations("Bookshelf");
+  const tNetflix = useTranslations("NetflixImport");
   const { profile } = useUserProfile();
   const [status, setStatus] = useState<Status | "ALL">("ALL");
   const [contentType, setContentType] = useState<"ALL" | "video" | "book">(
@@ -347,6 +355,9 @@ export default function TimelinePage() {
   const [ott, setOtt] = useState("");
   const [query, setQuery] = useState("");
   const [logs, setLogs] = useState<WatchLog[]>([]);
+  const [netflixViewings, setNetflixViewings] = useState<NetflixViewingEvent[]>(
+    [],
+  );
   const [visibleLimit, setVisibleLimit] = useState(TIMELINE_PAGE_SIZE);
   const [hasMore, setHasMore] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -371,6 +382,21 @@ export default function TimelinePage() {
 
   useEffect(() => {
     setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    const refresh = () => {
+      void listNetflixViewingsLocal().then((items) => {
+        if (active) setNetflixViewings(items);
+      });
+    };
+    refresh();
+    window.addEventListener("sync:updated", refresh);
+    return () => {
+      active = false;
+      window.removeEventListener("sync:updated", refresh);
+    };
   }, []);
 
   useEffect(() => {
@@ -686,6 +712,16 @@ export default function TimelinePage() {
   }
 
   const enableYearGrouping = logs.length > 0;
+  const linkedNetflixViewings = useMemo(() => {
+    const byTitle = new Map<string, NetflixViewingEvent[]>();
+    for (const event of netflixViewings) {
+      if (!event.linkedTitleId) continue;
+      const current = byTitle.get(event.linkedTitleId) ?? [];
+      current.push(event);
+      byTitle.set(event.linkedTitleId, current);
+    }
+    return byTitle;
+  }, [netflixViewings]);
   const yearGroups = useMemo(() => {
     if (!enableYearGrouping) return [];
     const groups: { year: number; items: WatchLog[] }[] = [];
@@ -717,6 +753,16 @@ export default function TimelinePage() {
             {headerTitle}
           </div>
           <div className="flex items-center gap-1.5 sm:gap-2">
+            {!futureMode && netflixViewings.length > 0 ? (
+              <IntlLink
+                href="/timeline/netflix"
+                title={tNetflix("timelineAction")}
+                aria-label={tNetflix("timelineAction")}
+                className="flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-card text-[#1E4D8C] transition-colors hover:bg-ott-paper-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF9933]/60 dark:text-foreground sm:h-11 sm:w-11"
+              >
+                <History className="h-4 w-4" aria-hidden="true" />
+              </IntlLink>
+            ) : null}
             {mounted && getUserId() && !futureMode && (
               <button
                 type="button"
@@ -870,6 +916,7 @@ export default function TimelinePage() {
                       <LogCard
                         key={l.id}
                         log={l}
+                        netflixViewings={linkedNetflixViewings.get(l.title.id)}
                         bookClassification={
                           l.title.type === "book"
                             ? bookClassifications.get(
@@ -893,6 +940,7 @@ export default function TimelinePage() {
                 <LogCard
                   key={l.id}
                   log={l}
+                  netflixViewings={linkedNetflixViewings.get(l.title.id)}
                   bookClassification={
                     l.title.type === "book"
                       ? bookClassifications.get(
