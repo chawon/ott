@@ -69,6 +69,10 @@ ISBN-10만 저장된 옛 네이버 책도 연결한다. 제목만 비슷한 책�
   웹 워크플로우의 공개 production version 검증은 통과했다.
 - 네이티브·Expo·App Store 바이너리는 변경하거나 배포하지 않았다.
 
+## 네이티브 후속 적용 (2026-10-14)
+
+React Native의 `KAKAO` 공급자 타입과 최근 함께 작품·공개 글 반응의 작품 변환을 보완했다. 기존 Naver 책 식별자를 유지하며 검색·오프라인 재시도·push/pull을 검증했다. Expo SDK 55 호환 패치 9개를 적용해 doctor 20/20을 확인하고, CI의 iOS Hermes 번들 검사와 TestFlight 제출 전 doctor 검사를 추가했다. 네이티브 바이너리는 아직 배포하지 않았다. 구현과 검증 범위는 [네이티브 카카오 적용 기록](native-kakao-books.md)을 따른다.
+
 ## 공식 문서
 
 - [카카오 책 검색](https://developers.kakao.com/docs/ko/daum-search/dev-guide#search-book)

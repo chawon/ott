@@ -51,6 +51,7 @@ import {
 } from '../../../lib/localDb';
 import { syncNow } from '../../../lib/sync';
 import { buildOutboxPayload, buildUpdateLogPayload } from '../../../lib/syncPayload';
+import { searchItemFromDiscussion, titleFromSearch } from '../../../lib/titleAdapters';
 import {
   defaultLogShareCardOptions,
   getLogShareCardCaptureSize,
@@ -68,7 +69,6 @@ import type {
   Occasion,
   Place,
   Status,
-  DiscussionListItem,
   Title,
   TitleSearchItem,
   TmdbEpisode,
@@ -88,49 +88,12 @@ const PLACE_VALUES: Place[] = ['HOME', 'THEATER', 'CAFE', 'TRANSIT', 'LIBRARY', 
 const OCCASION_VALUES: Occasion[] = ['ALONE', 'FRIENDS', 'FAMILY', 'DATE', 'BREAK'];
 const OTT_BASE_OPTIONS = ['Netflix', 'Disney+', 'TVING', 'Wavve', 'Watcha', 'Coupang Play'];
 
-function titleFromSearch(item: TitleSearchItem, id: string): Title {
-  return {
-    id,
-    type: item.type,
-    name: item.name,
-    year: item.year ?? null,
-    posterUrl: item.posterUrl ?? null,
-    overview: item.overview ?? null,
-    author: item.author ?? null,
-    publisher: item.publisher ?? null,
-    isbn10: item.isbn10 ?? null,
-    isbn13: item.isbn13 ?? null,
-    pubdate: item.pubdate ?? null,
-    provider: item.provider,
-    providerId: item.providerId,
-  };
-}
-
 function searchItemKey(item: TitleSearchItem) {
   return `${item.provider}:${item.providerId}:${item.titleId ?? ''}`;
 }
 
 function titleFallbackKey(item: Pick<TitleSearchItem, 'type' | 'name' | 'year'>) {
   return `${item.type}:${item.name.trim().toLowerCase()}:${item.year ?? ''}`;
-}
-
-function providerFromDiscussion(item: DiscussionListItem): TitleSearchItem['provider'] {
-  if (item.titleProvider === 'TMDB' || item.titleProvider === 'NAVER' || item.titleProvider === 'LOCAL') {
-    return item.titleProvider;
-  }
-  return 'LOCAL';
-}
-
-function searchItemFromDiscussion(item: DiscussionListItem): TitleSearchItem {
-  return {
-    provider: providerFromDiscussion(item),
-    providerId: item.titleProviderId ?? item.titleId,
-    titleId: item.titleId,
-    type: item.titleType,
-    name: item.titleName,
-    year: item.titleYear ?? null,
-    posterUrl: item.posterUrl ?? null,
-  };
 }
 
 function matchesFilter(item: Pick<TitleSearchItem, 'type'>, filter: ContentFilter) {
