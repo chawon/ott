@@ -49,6 +49,10 @@ jobs:
       - name: Test native app
         run: npm run native:test
 
+      - name: Expo doctor
+        working-directory: apps/native
+        run: npx expo-doctor
+
       - name: Build and submit to TestFlight
         working-directory: apps/native
         run: >

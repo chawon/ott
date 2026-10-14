@@ -7,6 +7,7 @@ on:
       - "package.json"
       - "package-lock.json"
       - ".github/workflows/native-ios-ci.yml"
+      - ".github/workflows/native-ios-testflight.yml"
   push:
     branches: ["main"]
     paths:
@@ -14,6 +15,7 @@ on:
       - "package.json"
       - "package-lock.json"
       - ".github/workflows/native-ios-ci.yml"
+      - ".github/workflows/native-ios-testflight.yml"
 
 permissions:
   contents: read
@@ -44,3 +46,7 @@ jobs:
       - name: Expo doctor
         working-directory: apps/native
         run: npx expo-doctor
+
+      - name: Bundle iOS app
+        working-directory: apps/native
+        run: npx expo export --platform ios --output-dir "$RUNNER_TEMP/ott-native-ios"
