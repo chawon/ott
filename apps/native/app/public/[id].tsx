@@ -36,13 +36,13 @@ import { publicDiscussionCopy, type NativeLocale } from '../../lib/i18n';
 import { useNativePreferences } from '../../lib/nativePreferences';
 import { syncNow } from '../../lib/sync';
 import { buildOutboxPayload } from '../../lib/syncPayload';
+import { titleFromDiscussion } from '../../lib/titleAdapters';
 import type {
   Comment,
   DiscussionListItem,
   DiscussionReactionSummary,
   DiscussionReactionType,
   MentionRef,
-  Provider,
   Status,
   Title,
   TitleSearchItem,
@@ -74,22 +74,6 @@ function formatCopy(template: string, values: Record<string, string | number>) {
     (result, [key, value]) => result.replace(`{${key}}`, String(value)),
     template,
   );
-}
-
-function normalizeProvider(value: DiscussionListItem['titleProvider']): Provider | undefined {
-  return value === 'TMDB' || value === 'LOCAL' || value === 'NAVER' ? value : undefined;
-}
-
-function titleFromDiscussion(item: DiscussionListItem): Title {
-  return {
-    id: item.titleId,
-    type: item.titleType,
-    name: item.titleName,
-    year: item.titleYear ?? null,
-    posterUrl: item.posterUrl ?? null,
-    provider: normalizeProvider(item.titleProvider),
-    providerId: item.titleProviderId ?? undefined,
-  };
 }
 
 function reactionStatus(type: DiscussionReactionType): Status {
