@@ -6,7 +6,7 @@
 
 `apps/native`에서 검색 결과 → 로컬 기록 → outbox, 최근 함께 작품 → 기록, 공개 글 반응 → 기록의 공급자와 작품 ID를 유지한다. 기존 `NAVER` 기록도 계속 읽고 수정·동기화한다. 같은 ISBN 판본에 대한 서버의 기존 `titleId`를 그대로 사용하며, 네이티브에서 공급자를 일괄 치환하거나 제목으로 작품을 합치지 않는다.
 
-Expo doctor에서 실패한 SDK 55 패치 9개와 공용 잠금파일을 함께 맞춰 네이티브 CI를 통과시킨다. TestFlight 제출 전에도 Expo doctor를 실행하며, CI에서는 iOS Hermes 번들을 생성한다. API·DB 스키마·웹 앱 코드와 앱 버전은 변경하지 않는다. 화면의 디자인과 한국어·영어 문구도 그대로 사용한다. 검토한 다른 웹/네이티브 기능 차이는 후속 작업이다.
+Expo doctor에서 실패한 SDK 55 패치 9개와 공용 잠금파일을 함께 맞춰 네이티브 CI를 통과시킨다. TestFlight 제출 전에도 Expo doctor를 실행하며, CI에서는 iOS Hermes 번들을 생성한다. API·DB 스키마·웹 앱 코드는 변경하지 않는다. 화면의 디자인과 한국어·영어 문구도 그대로 사용한다. 검토한 다른 웹/네이티브 기능 차이는 후속 작업이다.
 
 ## 개발 방향
 
@@ -62,4 +62,8 @@ Native iOS CI는 doctor 다음 단계에서 iOS Hermes 번들을 생성한다. �
 
 운영 Web Pod에서 네이티브가 사용하는 같은 `/api/titles/search` 경로를 한국어 헤더로 읽기 전용 확인했다. `채식주의자` 10건, `9788936433598` 1건, `C++` 10건이 모두 HTTP 200 및 `KAKAO` 공급자를 반환했다. ISBN 검색의 `isbn10=8936433598`, `isbn13=9788936433598`, `pubdate=20071030`도 확인했다.
 
-로컬 ARM Linux에서 기본 export는 동봉된 x86-64 Hermes 컴파일러를 실행하지 못했다. `--no-bytecode`는 로컬 JavaScript 번들 검증에만 사용했고 앱의 Hermes 설정은 변경하지 않았다. EAS/Xcode 빌드와 실제 iPhone 설치·실행은 아직 검증하지 않았다. TestFlight/App Store 바이너리는 배포하지 않았다.
+로컬 ARM Linux에서 기본 export는 동봉된 x86-64 Hermes 컴파일러를 실행하지 못했다. `--no-bytecode`는 로컬 JavaScript 번들 검증에만 사용했고 앱의 Hermes 설정은 변경하지 않았다. GitHub Native iOS CI에서는 기본 Hermes 번들 생성까지 통과했다.
+
+## 릴리스 준비
+
+PR `#119`를 main SHA `8bcb0e18e3c2e727c5be863c655f85777207b636`으로 병합했다. 다음 제출은 `1.0.4 (24)`로 준비한다. EAS의 최신 완료 빌드 `1.0.3 (23)`과 번호가 중복되지 않도록 로컬 기준을 `23`으로 맞추고 기존 autoIncrement를 사용한다. 현재 App Store 공개 버전은 `1.0.3`이며 새 EAS/Xcode 빌드와 실제 iPhone 설치·실행은 아직 검증하지 않았다. 제출 결과와 확인 항목은 [TestFlight 기록](ios-testflight-review-notes.md)을 따른다.
