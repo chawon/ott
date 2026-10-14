@@ -9,7 +9,7 @@
 - 공개 버전: `1.0.3` (`2026-10-14` Apple 공개 조회).
 - 최신 EAS 빌드: `1.0.4 (24)`, SHA `fc074ceef188161940a9aec6facaef2034f2119f`, [빌드 성공](https://expo.dev/accounts/ergate23/projects/ottline/builds/057972ad-3c10-4a59-9e5b-ef051c1a160d).
 - 카카오 책 공급자 식별자 보존, 기존 Naver 기록 호환, Expo SDK 55 패치와 CI 검사를 반영했다.
-- Apple 계약 차단 해제 후 같은 빌드로 재제출했다. Apple `VALID`, 내부 TestFlight `IN_BETA_TESTING`, `expired=false`를 확인했다. 실제 iPhone QA와 `1.0.4` App Store 공개 심사는 후속 단계다.
+- Apple 계약 차단 해제 후 같은 빌드로 재제출했다. Apple `VALID`, 내부 TestFlight `IN_BETA_TESTING`, `expired=false`를 확인했다. 사용자가 같은 빌드의 App Store 심사를 제출했고 `WAITING_FOR_REVIEW`, `AFTER_APPROVAL`을 확인했다. 승인 후 공개·실제 업데이트를 확인한다.
 - 상세: [카카오 적용·검증](../../../docs/native-kakao-books.md), [TestFlight 이력](../../../docs/ios-testflight-review-notes.md).
 
 ## 기술과 화면

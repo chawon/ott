@@ -20,7 +20,8 @@
 - 계정 소유자의 계약 동의 후 Apple API의 403 차단 해제를 확인했다. 새 빌드를 만들지 않고 같은 build ID를 지정해 `eas submit --platform ios --profile testflight --id 057972ad-3c10-4a59-9e5b-ef051c1a160d --non-interactive --wait`로 재제출했다.
 - 재제출 [5bd70cfa-2952-4c6b-bc2e-4268c466abc8](https://expo.dev/accounts/ergate23/projects/ottline/submissions/5bd70cfa-2952-4c6b-bc2e-4268c466abc8)는 `2026-10-14T12:22:32Z`에 `FINISHED`로 완료됐다.
 - `2026-10-14T12:32Z` Apple 조회: build `b013a8b6-1104-4dc3-b265-541285fe0b19`, `1.0.4 (24)`, `processingState=VALID`, `internalBuildState=IN_BETA_TESTING`, `expired=false`. [내부 TestFlight](https://appstoreconnect.apple.com/apps/6780318110/testflight/ios)에서 테스트할 수 있다. 외부 beta 상태는 `READY_FOR_BETA_SUBMISSION`이다.
-- 실제 iPhone 설치·QA와 `1.0.4` App Store 공개 심사는 후속 단계다. 추가 빌드를 만들 때는 현재 `apps/native/app.json`의 로컬 기준 `23`을 완료 빌드 `24` 이상으로 먼저 올린다. 재제출에는 완료된 build ID를 재사용한다.
+- `2026-10-14` 사용자가 App Store 심사를 제출했다. `2026-10-14T12:36Z` Apple 조회에서 app version `ecf89bb4-65dc-4b70-a514-acd4320ad788`와 review submission `27c9da0a-572c-45d9-b43c-742eeb9061ed`가 모두 `WAITING_FOR_REVIEW`였다. 제출 시각은 `2026-10-14T12:31:44.458Z` (`21:31:44` KST), 연결 빌드는 위 `1.0.4 (24)`다.
+- 출시 방식은 `AFTER_APPROVAL`, `earliestReleaseDate=null`로 승인 뒤 자동 공개한다. 공개 후 확인은 [App Store 출시 체크리스트](ios-app-store-launch-checklist.md)를 따른다. 추가 빌드를 만들 때는 현재 `apps/native/app.json`의 로컬 기준 `23`을 완료 빌드 `24` 이상으로 먼저 올린다. 재제출에는 완료된 build ID를 재사용한다.
 
 ### TestFlight 확인 항목
 
@@ -298,7 +299,7 @@ The app does not read video playback contents from other apps. iOS recap reminde
 
 ## 최근 TestFlight 제출 이력
 
-- `2026-10-14`: PR `#119`~`#121`, build SHA `fc074ceef188161940a9aec6facaef2034f2119f`, EAS build `057972ad-3c10-4a59-9e5b-ef051c1a160d`, 재제출 `5bd70cfa-2952-4c6b-bc2e-4268c466abc8`, build `1.0.4 (24)`. 카카오 책 공급자 보존과 기존 Naver 호환을 반영했다. 계약 차단 해제 후 업로드 및 Apple `VALID` / 내부 `IN_BETA_TESTING`을 확인했다.
+- `2026-10-14`: PR `#119`~`#121`, build SHA `fc074ceef188161940a9aec6facaef2034f2119f`, EAS build `057972ad-3c10-4a59-9e5b-ef051c1a160d`, 재제출 `5bd70cfa-2952-4c6b-bc2e-4268c466abc8`, build `1.0.4 (24)`. 카카오 책 공급자 보존과 기존 Naver 호환을 반영했다. 계약 차단 해제 후 업로드 및 Apple `VALID` / 내부 `IN_BETA_TESTING`을 확인했다. 사용자가 App Store review submission `27c9da0a-572c-45d9-b43c-742eeb9061ed`를 제출했으며 `WAITING_FOR_REVIEW`, `AFTER_APPROVAL`을 확인했다.
 - `2026-06-18`: PR `#67`, main SHA `d18cfa6`, GitHub run `27745616062`, EAS build `455d8658-422e-4298-a023-37070d220622`, build `1.0.0 (5)`.
 - `2026-06-19`: PR `#68`, main SHA `24d2845`, GitHub run `27804770845`, build `1.0.0 (6)`. 하단 탭 아이콘, 타임라인 reload 이벤트, 로고 탭 이동 반영.
 - `2026-06-19`: PR `#69`, main SHA `667aafeb4546eb015a9ef7894f6cba9183db043e`, GitHub run `27805741470`, EAS build `7796ef11-75c1-4acb-95d7-96018e10bdbc`, EAS submission `2f02d6c8-2200-4078-b40b-b4ee0591bc54`, build `1.0.0 (7)`. 큰 탭 제목/설명 복원, 작은 중복 kicker 제거, 페어링 직후 `lastSyncAt` 초기화로 전체 pull 반영.

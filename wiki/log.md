@@ -1,5 +1,13 @@
 # Wiki Log
 
+## [2026-10-14] update: iOS 1.0.4 App Store 심사 접수
+
+- 사용자가 TestFlight에 배포한 동일 빌드 `1.0.4 (24)`의 App Store 심사를 제출했다.
+- `2026-10-14T12:36Z` Apple API 조회: app version `ecf89bb4-65dc-4b70-a514-acd4320ad788`, review submission `27c9da0a-572c-45d9-b43c-742eeb9061ed` 모두 `WAITING_FOR_REVIEW`.
+- 제출 시각 `2026-10-14T12:31:44.458Z` (`21:31:44` KST), 연결 build `b013a8b6-1104-4dc3-b265-541285fe0b19` / `24`, 출시 방식 `AFTER_APPROVAL` 확인. 심사 접수 시점 공개 버전은 `1.0.3`이다.
+- 구현·빌드·TestFlight·심사 접수 문서를 정리했다. 승인 후 공개 버전·실제 업데이트 확인은 별도 후속 단계다.
+- 문서: AGENTS.md, docs/native-kakao-books.md, docs/ios-testflight-review-notes.md, docs/ios-app-store-launch-checklist.md, docs/kakao-book-search.md, pages/platforms/native.md, index.md, log.md.
+
 ## [2026-10-14] fix: iOS 카카오 도서 호환 내부 TestFlight 배포
 
 - PR #119~#121 병합, build SHA `fc074ceef188161940a9aec6facaef2034f2119f`, iOS `1.0.4 (24)`.

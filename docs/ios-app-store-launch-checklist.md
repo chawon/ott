@@ -1,6 +1,6 @@
 # iOS App Store 출시 체크리스트
 
-기준일: 2026-08-22
+기준일: 2026-10-14
 
 ## 목적
 
@@ -8,7 +8,25 @@
 - Expo 기본 아이콘이 들어간 build `1.0.0 (16)`은 출시 후보에서 제외했고, 브랜드 아이콘을 반영한 build `1.0.0 (18)`을 출시 후보로 제출했다.
 - `2026-06-29` App Store 심사를 통과해 App Store에 공개됐다.
 
-## 1.0.3 함께 기록 안정화 업데이트
+## 1.0.4 카카오 책 공급자 호환 업데이트
+
+- 대상 build: `1.0.4 (24)`, source SHA `fc074ceef188161940a9aec6facaef2034f2119f`.
+- 수정: 카카오 책 공급자와 작품 ID를 검색·최근 함께 작품·공개 글 반응·동기화에서 보존하고 기존 Naver 책 호환을 유지한다.
+- TestFlight: Apple build `b013a8b6-1104-4dc3-b265-541285fe0b19`, `VALID`, `IN_BETA_TESTING`, `expired=false`.
+- App Store version: `ecf89bb4-65dc-4b70-a514-acd4320ad788`.
+- App Review submission: `27c9da0a-572c-45d9-b43c-742eeb9061ed`. 사용자가 `2026-10-14T12:31:44.458Z` (`21:31:44` KST)에 제출했다.
+- `2026-10-14T12:36Z` Apple API 확인: app version과 submission 모두 `WAITING_FOR_REVIEW`; 선택된 빌드는 `24`다.
+- 공개 방식: `AFTER_APPROVAL`, `earliestReleaseDate=null` — 승인 뒤 자동 공개.
+- 심사 접수 시점 공개 버전: `1.0.3`.
+- 상세 빌드·검증 이력: [네이티브 카카오 적용 기록](native-kakao-books.md), [TestFlight 기록](ios-testflight-review-notes.md).
+
+### 승인 후 확인
+
+- [ ] 심사 승인 및 App Store 공개 버전 `1.0.4` 확인.
+- [ ] 실제 App Store 업데이트 설치 후 책 검색·저장과 기존 Naver 기록 수정 확인.
+- [ ] 앱 운영 지표의 `platform=ios_native`, `appVersion=1.0.4`, `buildNumber=24` 반영 확인.
+
+## 1.0.3 함께 기록 안정화 업데이트 이력
 
 - 대상 build: `1.0.3 (23)`
 - 수정: 동기화된 작품의 canonical ID를 사용해 함께 기록 진입/공개 시 발생하던 서버 오류를 복구한다.
@@ -16,12 +34,12 @@
 - App Store 메타데이터: 공개 중인 `1.0.2`의 한국어·영어 설명, 키워드, URL, 한국어 iPhone 스크린샷 4장, 심사 연락처를 계승하고 What's New만 `1.0.3` 내용으로 갱신했다.
 - App Review submission: `16c8bb67-5448-4552-8e07-80a921e3c702`
 - 제출 시각: `2026-08-22T05:38:50.584Z`
-- 현재 상태: `WAITING_FOR_REVIEW`
+- 제출 당시 상태: `WAITING_FOR_REVIEW`
 - 공개 방식: `AFTER_APPROVAL` — 심사 승인 뒤 자동 공개.
 - 승인 전 공개 버전: `1.0.2 (22)` (`READY_FOR_DISTRIBUTION`)
 - 승인 후 확인: Apple 공개 버전 `1.0.3`, 실제 App Store 업데이트 설치, production analytics의 `platform=ios_native`, `appVersion=1.0.3`, `buildNumber=23` 유입을 다시 확인한다.
 
-## 기준 정보
+## 최초 출시 기준 정보 — 1.0.0 (18)
 
 - App name: `ottline`
 - Bundle ID: `app.ottline`
