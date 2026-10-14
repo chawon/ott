@@ -1,5 +1,15 @@
 # Wiki Log
 
+## [2026-10-14] fix: iOS 카카오 도서 호환 내부 TestFlight 배포
+
+- PR #119~#121 병합, build SHA `fc074ceef188161940a9aec6facaef2034f2119f`, iOS `1.0.4 (24)`.
+- 카카오 공급자를 최근 함께 작품·공개 글 반응에서 유지하고 검색·오프라인 재시도·push/pull과 기존 Naver 식별자 보존을 검증했다.
+- 타입 검사, 11 suites / 39 tests, Expo doctor 20/20, Hermes export 및 공용 잠금파일 변경의 Web CI 통과. 최종 main Native CI `38560919194` 성공.
+- 배포 러너 Node 24 / EAS CLI 24.13.0 고정 후 EAS build `057972ad-3c10-4a59-9e5b-ef051c1a160d` 성공. 다운로드한 IPA의 버전·빌드·bundle ID를 확인했다.
+- 배포 run `38561075126`의 Apple 제출은 계약 오류로 실패했다. 계정 소유자의 동의 후 같은 빌드의 EAS submission `5bd70cfa-2952-4c6b-bc2e-4268c466abc8`가 성공했다.
+- Apple build `b013a8b6-1104-4dc3-b265-541285fe0b19`의 `VALID`, 내부 `IN_BETA_TESTING`, `expired=false` 확인. App Store 공개 버전은 `1.0.3`; 실기기 QA와 공개 심사는 후속 단계다.
+- 문서: AGENTS.md, docs/native-kakao-books.md, docs/ios-testflight-review-notes.md, docs/kakao-book-search.md, pages/platforms/native.md, index.md, log.md.
+
 ## [2026-09-21] fix: 이용 리포트 주간 공유 카드 포스터 복구 운영 배포
 - PR #108, API/Web SHA `01ef6b9b5b018970006ab6f42118b46824fb3430`.
 - API production `35569268524`, Web production `35569520338`; manifest `4cb3d731616df253ee5d60b9199e64e8bf506e94` / `ef40081a1a188315f3b8a15027a5a5f4f1e4531f`.

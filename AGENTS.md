@@ -119,6 +119,11 @@ If present, read `./.omd/preferences.md` — pending corrections not yet folded 
 28. **타임라인 서버 커서 무한 스크롤**: 기존 첫 50개 제한을 해소하기 위해 `updatedAt|watchedAt + UUID` 키셋 커서를 사용하는 `GET /api/logs/page`를 추가하고, 웹/PWA/TWA가 하단 도달 시 다음 50개를 받아 IndexedDB에 저장하도록 반영했다. 기존 `/api/logs` 배열과 iOS 네이티브 `/api/sync/pull`은 그대로 유지한다. `2026-09-15` PR `#107`, main SHA `c0e09c4bf90f2d6de11a1f7c715dc25c3a48c27e`, API/Web production run `34912864768`/`34913130614`, manifest commit `bb3101e43a0bccdc80f1a3bdc90ee680cca43404`/`4aa7e501fed9405d5386832c2e56834d709028cd`로 배포했다. ArgoCD `ott-app` `Synced Healthy`, production API/Web 이미지와 `APP_VERSION=c0e09c4`, Pod `1/1` ready·restart 0, 운영 페이지·기존 배열 계약 200과 실행 번들의 `/logs/page` 및 ko/en 문구를 확인했다. 사용자가 운영 앱에서 50개 이후 기록이 정상 노출되는 것을 직접 확인했다. 네이티브 바이너리는 변경하거나 배포하지 않았다.
 29. **이용 리포트 주간 공유 카드 포스터 복구**: `GET /api/nalytic/me/report`에 `previousWeekPosters`를 추가하고, KST 직전 주의 작품을 중복 제거해 포스터 유무·평점·기록 수·최근 기록 순으로 최대 6개 선정한다. 시즌 포스터를 우선하며 웹 로컬 리포트도 같은 규칙을 사용한다. 주간 공유 payload와 `/og/share-card` 렌더러는 후보 수별 1~6칸 모자이크를 만들고 이미지가 없는 후보는 제목으로 채운다. `2026-09-21` PR `#108`, main SHA `01ef6b9b5b018970006ab6f42118b46824fb3430`, API/Web production run `35569268524`/`35569520338`, manifest commit `4cb3d731616df253ee5d60b9199e64e8bf506e94`/`ef40081a1a188315f3b8a15027a5a5f4f1e4531f`로 배포했다. ArgoCD `ott-app` `Synced Healthy`, production API/Web 이미지와 `APP_VERSION=01ef6b9`, Pod `1/1` ready·restart 0을 확인했다. 운영 내부 스모크 테스트에서 리포트 계약 200, TMDB 포스터가 포함된 1080×1920 PNG 200과 실제 이미지 렌더를 확인했고 임시 검증 계정은 즉시 삭제했다. iOS 네이티브 소스와 App Store 바이너리는 변경하거나 배포하지 않았다.
 
+### P1 — iOS 카카오 도서 호환 실기기 QA
+1. 현재 기준: PR `#119`~`#121`, build SHA `fc074ceef188161940a9aec6facaef2034f2119f`의 `1.0.4 (24)`를 내부 TestFlight에 배포했다. 네이티브 CI·39개 테스트·Expo doctor·Hermes export와 실제 IPA 버전을 확인했고 Apple 상태는 `VALID`, `IN_BETA_TESTING`, `expired=false`다.
+2. 남은 작업: 실기기에서 카카오 책 검색·저장, 최근 함께 책 선택, 공개 글 반응, 기존 Naver 기록 수정과 오프라인 동기화를 확인한 뒤 동일 빌드의 App Store 공개 심사를 진행한다. 현재 공개 버전은 `1.0.3`이다.
+3. 추가 빌드 전 로컬 `ios.buildNumber` 기준을 완료 빌드 `24` 이상으로 올린다. Apple 제출만 다시 할 때는 성공한 기존 EAS build ID를 지정해 중복 빌드를 피한다. 상세 결과와 ID는 `docs/native-kakao-books.md`, `docs/ios-testflight-review-notes.md`를 따른다.
+
 ### P1
 1. 문의함 운영 후속 작업
 2. 우선 검토

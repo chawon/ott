@@ -40,7 +40,7 @@
 | [[browser-extension]] | PC OTT 페이지에서 ottline 기록 화면으로 연결하는 Chrome/Edge 확장 |
 | [[ms-store]] | PWABuilder 기반 Windows PWA 패키지 생성 및 Microsoft Store 제출 |
 | [[pwa]] | 로컬 우선 아키텍처 기반 설치형 웹앱, Service Worker 및 오프라인 지원 포함 |
-| [[native]] | React Native + Expo 기반 네이티브 후보 앱 (feat/native-mobile-app 브랜치, 배포 파이프라인 미구성) |
+| [[native]] | App Store 출시된 Expo iOS 앱, 카카오 호환 `1.0.4 (24)` 내부 TestFlight 배포 완료 |
 | [[toss-inapp]] | 앱인토스 WebView 미니앱 — 2026-05-18 승인 및 출시 완료, 표시명 `내 OTT 타임라인`, 공유는 텍스트 |
 | [[twa]] | Android 현재 배포 경로인 Bubblewrap TWA, Google Play production `1.0.13` 및 Web 기반 Play 유입·알림 설정 활성화 운영, APK/AAB는 GitHub Actions 기준 |
 

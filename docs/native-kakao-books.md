@@ -64,6 +64,23 @@ Native iOS CI는 doctor 다음 단계에서 iOS Hermes 번들을 생성한다. �
 
 로컬 ARM Linux에서 기본 export는 동봉된 x86-64 Hermes 컴파일러를 실행하지 못했다. `--no-bytecode`는 로컬 JavaScript 번들 검증에만 사용했고 앱의 Hermes 설정은 변경하지 않았다. GitHub Native iOS CI에서는 기본 Hermes 번들 생성까지 통과했다.
 
-## 릴리스 준비
+## iOS 빌드·제출 기록 — 2026-10-14
 
-PR `#119`를 main SHA `8bcb0e18e3c2e727c5be863c655f85777207b636`으로 병합했다. 다음 제출은 `1.0.4 (24)`로 준비한다. EAS의 최신 완료 빌드 `1.0.3 (23)`과 번호가 중복되지 않도록 로컬 기준을 `23`으로 맞추고 기존 autoIncrement를 사용한다. 현재 App Store 공개 버전은 `1.0.3`이며 새 EAS/Xcode 빌드와 실제 iPhone 설치·실행은 아직 검증하지 않았다. 제출 결과와 확인 항목은 [TestFlight 기록](ios-testflight-review-notes.md)을 따른다.
+PR [#119](https://github.com/chawon/ott/pull/119)를 main SHA `8bcb0e18e3c2e727c5be863c655f85777207b636`으로 병합했다. PR [#120](https://github.com/chawon/ott/pull/120)에서 앱 버전을 `1.0.4`, 로컬 빌드 기준을 `23`으로 맞췄다. 기존 `autoIncrement: true`로 빌드 `24`를 생성해 이전 `1.0.3 (23)`과 번호 중복을 피했다.
+
+첫 배포 실행은 EAS CLI의 전이 의존성이 Node 22 이상을 요구해 설치 단계에서 실패했다. PR [#121](https://github.com/chawon/ott/pull/121)에서 배포 러너를 Node `24`, EAS CLI를 `24.13.0`으로 고정했다. EAS 앱 빌드 profile의 Node 버전과 앱 의존성은 유지한다.
+
+| 확인 | 결과 |
+|---|---|
+| 최종 빌드 SHA | `fc074ceef188161940a9aec6facaef2034f2119f` |
+| main Native iOS CI | [38560919194](https://github.com/chawon/ott/actions/runs/38560919194) 성공, 타입·39개 테스트·doctor·Hermes export 통과 |
+| TestFlight 실행 | [38561075126](https://github.com/chawon/ott/actions/runs/38561075126): 검사와 EAS 빌드 성공, Apple 제출 단계 실패 |
+| EAS iOS 빌드 | [057972ad-3c10-4a59-9e5b-ef051c1a160d](https://expo.dev/accounts/ergate23/projects/ottline/builds/057972ad-3c10-4a59-9e5b-ef051c1a160d), `FINISHED`, `1.0.4 (24)` |
+| 생성된 IPA | `app.ottline`, `1.0.4`, 빌드 `24`, 최소 iOS `15.1` 확인 |
+| Apple 제출 | 계약 차단 해제 후 동일 빌드로 [5bd70cfa-2952-4c6b-bc2e-4268c466abc8](https://expo.dev/accounts/ergate23/projects/ottline/submissions/5bd70cfa-2952-4c6b-bc2e-4268c466abc8) 제출 성공 |
+| Apple 처리·내부 TestFlight | `2026-10-14T12:32Z` 조회: build `b013a8b6-1104-4dc3-b265-541285fe0b19`, `VALID`, `IN_BETA_TESTING`, `expired=false` |
+| App Store 공개 버전 | `1.0.3`; 이번 `1.0.4` 공개 심사는 아직 제출하지 않음 |
+
+다운로드한 IPA의 SHA-256은 `ecf8ea28d433074bb894104e9144f3a61be1f876253fce601767be008ef531b4`다. 번들에서 `KAKAO`와 `NAVER` 문자열을 확인했다. 실제 iPhone 설치·실행은 아직 검증하지 않았으며, 제출 결과와 실기기 확인 항목은 [TestFlight 기록](ios-testflight-review-notes.md)을 따른다.
+
+TestFlight 배포까지 완료했다. 다음 단계는 실기기 QA 후 동일 빌드의 App Store 심사 제출이다. 추가 바이너리를 생성할 때는 로컬 빌드 기준을 현재 완료 빌드 `24` 이상으로 먼저 올려 번호 중복을 피한다. 계약·업로드 문제로 다시 제출할 때는 새 빌드 대신 성공한 기존 빌드 ID를 사용한다.

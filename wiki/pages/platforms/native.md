@@ -1,97 +1,53 @@
 # Native 앱 (React Native + Expo)
 
-> React Native + Expo Router 기반 네이티브 모바일 앱 — `apps/native/`
-
-## 관련 페이지
-- [[twa]]
-- [[kmp]]
-- [[dna-aura]]
-
----
+> `apps/native/`의 iOS 네이티브 앱. 기준일: 2026-10-14.
 
 ## 현황
 
-`feat/native-mobile-app` 브랜치에서 개발 중 (2026-03-25 기준). main에 미머지.
+`apps/native`는 main에 병합됐으며 2026-06-29 [App Store](https://apps.apple.com/app/ottline/id6780318110)에 출시됐다. 사용자 화면을 React Native로 구현한다. Android의 현재 배포 경로는 별도의 [[twa]]다.
 
-- 실행 기준: Expo Go / `expo start --web` / `expo start --android`
-- 구현 범위: 인증 저장, API 연동, Journey/Log/Profile 화면
-- 배포 준비 상태:
-  - EAS 설정 없음
-  - `android/`, `ios/` 네이티브 폴더 없음
-  - Play/TestFlight용 signing, release workflow 없음
+- 공개 버전: `1.0.3` (`2026-10-14` Apple 공개 조회).
+- 최신 EAS 빌드: `1.0.4 (24)`, SHA `fc074ceef188161940a9aec6facaef2034f2119f`, [빌드 성공](https://expo.dev/accounts/ergate23/projects/ottline/builds/057972ad-3c10-4a59-9e5b-ef051c1a160d).
+- 카카오 책 공급자 식별자 보존, 기존 Naver 기록 호환, Expo SDK 55 패치와 CI 검사를 반영했다.
+- Apple 계약 차단 해제 후 같은 빌드로 재제출했다. Apple `VALID`, 내부 TestFlight `IN_BETA_TESTING`, `expired=false`를 확인했다. 실제 iPhone QA와 `1.0.4` App Store 공개 심사는 후속 단계다.
+- 상세: [카카오 적용·검증](../../../docs/native-kakao-books.md), [TestFlight 이력](../../../docs/ios-testflight-review-notes.md).
 
-## 기술 스택
+## 기술과 화면
 
-| 항목 | 선택 |
+| 항목 | 현재 구현 |
 |---|---|
-| 프레임워크 | React Native + Expo SDK |
-| 라우팅 | expo-router (파일 기반) |
-| 상태 관리 | Zustand (`store/authStore.ts`) |
-| 서버 상태 | TanStack React Query |
-| 로컬 저장소 | expo-sqlite, expo-secure-store |
-| 스타일 | StyleSheet (react-native), Pretendard 폰트 |
-| 테스트 | Jest |
+| 프레임워크 | Expo SDK 55, React Native `0.83.10`, React `19.2.1` |
+| 라우팅 | Expo Router |
+| 주요 탭 | 기록하기 `log`, 타임라인 `timeline`, 함께 `together`, 설정 `account` |
+| 추가 화면 | 작품·공개 글 상세, 이용 리포트, 문의, 소개·FAQ·개인정보 안내, 오프라인 안내 |
+| 인증·저장 | Zustand, SecureStore, SQLite 로컬 기록·outbox |
+| API·동기화 | 기본 `https://ottline.app`, `/api/sync/push`, `/api/sync/pull` |
+| 언어·테마 | 한국어·영어, 라이트·다크·시스템 설정 |
+| 테스트 | Jest 11 suites / 39 tests, TypeScript, Expo doctor, iOS Hermes export |
 
-## 앱 구조
+검색·공개 글의 작품 변환은 `lib/titleAdapters.ts`, 로컬 DB는 `lib/localDb.ts`, 동기화는 `lib/sync.ts`와 `lib/syncPayload.ts`에서 관리한다. `KAKAO`와 `NAVER` 책 식별자를 모두 유지한다.
 
-```
-apps/native/
-  app/
-    _layout.tsx              # 루트 레이아웃, 인증 분기
-    onboarding/index.tsx     # 온보딩 화면
-    (tabs)/
-      _layout.tsx            # 탭 네비게이터
-      journey/index.tsx      # Journey 화면 (DNA Aura 연결)
-      log/index.tsx          # 기록 화면
-      profile/index.tsx      # 프로필 화면
-  components/
-    journey/HeroBar.tsx      # DNA 특질 칩 3개 표시
-    journey/JourneyNode.tsx  # Aura 글로우 강도 적용 카드
-    log/QuickLogModal.tsx    # 빠른 기록 모달
-  lib/
-    api.ts                   # syncPull() — API 연동
-    gamification.ts          # calcDnaTraits(), calcAuraScore()
-    traits.ts                # TRAIT_META, getAuraColor()
-    types.ts                 # TraitKey, DnaTraitMap, AuraResult, WatchLog
-    secureStore.ts           # expo-secure-store 웹 폴백 (localStorage)
-  store/authStore.ts         # Zustand 인증 상태
-  constants/
-    colors.ts
-    typography.ts
-```
+## 실행과 검사
 
-## 실행 방법
+저장소 루트에서 실행한다.
 
 ```bash
-cd apps/native
-npm install
-
-# 웹 (가장 빠름)
-NODE_PATH="$(pwd)/node_modules" npx expo start --web
-# → http://localhost:8081
-
-# Android 에뮬레이터
-NODE_PATH="$(pwd)/node_modules" npx expo start --android
-
-# 실기기 (Expo Go QR 스캔)
-NODE_PATH="$(pwd)/node_modules" npx expo start
+npm ci
+npm run start --workspace native
+npm run native:typecheck
+npm run native:test
+npm run native:testflight:check
 ```
 
-> 모노레포 구조상 `NODE_PATH` 설정 필수 — 없으면 expo-router를 찾지 못함
+## 빌드·제출
 
-## 테스트
+- `.github/workflows/native-ios-ci.yml`: 타입·Jest·Expo doctor·iOS Hermes export.
+- `.github/workflows/native-ios-testflight.yml`: 명시한 Git SHA를 체크아웃하고 검사 후 EAS 빌드·자동 제출. 배포 러너 Node `24`, EAS CLI `24.13.0`.
+- `apps/native/eas.json`: TestFlight store 배포, 로컬 버전 관리와 빌드 번호 자동 증가. 다음 빌드 전 로컬 기준을 완료 빌드 `24` 이상으로 올린다. 재제출할 때는 성공한 기존 빌드 ID를 지정한다.
+- EAS project: `efe8f7e5-75d8-45a9-9a4e-88bfeba07b98`, bundle ID: `app.ottline`, Apple app ID: `6780318110`.
 
-```bash
-cd apps/native
-npx jest
-```
+## 관련 페이지
 
-`__tests__/gamification.dna.test.ts` — DNA 특질 계산 단위 테스트 11개
-
-## 구현 완료 기능
-
-- Journey 화면: 시청 기록을 시간순으로 구불구불한 SVG 경로 위에 노드로 배치
-- DNA Aura: 26종 특질 추출 → HeroBar 칩 + JourneyNode 글로우 시각화 (→ [[dna-aura]])
-- 기록 화면: QuickLogModal 기반 시청 기록 추가
-- 온보딩 화면
-- Zustand 기반 인증 상태 관리
+- [[twa]]
+- [[book-log]]
+- [[kmp]]

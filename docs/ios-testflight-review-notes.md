@@ -8,13 +8,19 @@
 
 - 변경 코드: PR `#119`, main merge SHA `8bcb0e18e3c2e727c5be863c655f85777207b636`.
 - 현재 공개 버전: `1.0.3`. Apple 공개 조회에서 `2026-08-22T21:38:39Z` 공개를 확인했다(`2026-10-14` 조회).
-- EAS의 최신 완료 빌드: `1.0.3 (23)`, build `756573d4-164e-4314-a30b-856fd787c2cc`(`2026-10-14` 조회).
-- 이번 제출 버전: `1.0.4`. 로컬 `ios.buildNumber` 기준을 `23`으로 맞추고 기존 `autoIncrement: true`로 제출 빌드 `24`를 생성한다.
+- 이전 완료 빌드: `1.0.3 (23)`, build `756573d4-164e-4314-a30b-856fd787c2cc`.
+- 이번 빌드: `1.0.4 (24)`. 로컬 `ios.buildNumber` 기준 `23`과 기존 `autoIncrement: true`로 빌드 `24`를 생성했다.
 - 변경 범위: Kakao 책 식별자를 검색·최근 함께 작품·공개 글 반응·동기화에서 보존한다. 기존 Naver 책도 유지한다. Expo SDK 55 호환 패치와 TestFlight 제출 전 doctor 검사를 함께 반영한다.
 - 릴리스 설정: PR `#120`, main SHA `6e71336edacc94d4f2664527253f8d259c5d9a26`.
 - 첫 제출 워크플로 `38560170298`은 EAS CLI 설치 단계에서 멈췄다. `@oclif/plugin-autocomplete@3.3.0`이 Node 22 이상을 요구하지만 배포 러너는 Node `20.20.2`였다. EAS 빌드와 Apple 제출은 생성되지 않았다.
-- 배포 러너를 Node `24`로 맞추고 EAS CLI를 로컬에서 인증·프로젝트 조회에 사용한 `24.13.0`으로 고정한다. EAS iOS 빌드 profile의 Node `20.20.2`와 앱 의존성은 유지한다.
-- 상태: 배포 도구 수정 후 새 확정 SHA로 재실행한다. 새 EAS 빌드·제출 결과는 완료 후 갱신한다. App Store 공개 버전은 아직 `1.0.3`이다.
+- PR `#121`에서 배포 러너를 Node `24`, EAS CLI를 `24.13.0`으로 고정했다. EAS iOS 빌드 profile의 Node `20.20.2`와 앱 의존성은 유지한다. 최종 빌드 SHA는 `fc074ceef188161940a9aec6facaef2034f2119f`다.
+- main Native iOS CI [38560919194](https://github.com/chawon/ott/actions/runs/38560919194) 성공. TestFlight 실행 [38561075126](https://github.com/chawon/ott/actions/runs/38561075126)의 타입·39개 테스트·doctor·EAS 빌드는 성공했고 Apple 제출 단계에서 실패했다.
+- EAS build [057972ad-3c10-4a59-9e5b-ef051c1a160d](https://expo.dev/accounts/ergate23/projects/ottline/builds/057972ad-3c10-4a59-9e5b-ef051c1a160d)는 `FINISHED`. 실제 IPA의 bundle ID `app.ottline`, 버전 `1.0.4`, 빌드 `24`를 확인했다.
+- 최초 자동 제출 [5461959d-8484-44bf-826f-fe027651484f](https://expo.dev/accounts/ergate23/projects/ottline/submissions/5461959d-8484-44bf-826f-fe027651484f)와 후속 제출 `1d1bbec1-355d-459d-85b0-7ee1022195fb`는 `ERRORED`로 종료됐다. Apple API에서 `FORBIDDEN.REQUIRED_AGREEMENTS_MISSING_OR_EXPIRED`를 확인했다.
+- 계정 소유자의 계약 동의 후 Apple API의 403 차단 해제를 확인했다. 새 빌드를 만들지 않고 같은 build ID를 지정해 `eas submit --platform ios --profile testflight --id 057972ad-3c10-4a59-9e5b-ef051c1a160d --non-interactive --wait`로 재제출했다.
+- 재제출 [5bd70cfa-2952-4c6b-bc2e-4268c466abc8](https://expo.dev/accounts/ergate23/projects/ottline/submissions/5bd70cfa-2952-4c6b-bc2e-4268c466abc8)는 `2026-10-14T12:22:32Z`에 `FINISHED`로 완료됐다.
+- `2026-10-14T12:32Z` Apple 조회: build `b013a8b6-1104-4dc3-b265-541285fe0b19`, `1.0.4 (24)`, `processingState=VALID`, `internalBuildState=IN_BETA_TESTING`, `expired=false`. [내부 TestFlight](https://appstoreconnect.apple.com/apps/6780318110/testflight/ios)에서 테스트할 수 있다. 외부 beta 상태는 `READY_FOR_BETA_SUBMISSION`이다.
+- 실제 iPhone 설치·QA와 `1.0.4` App Store 공개 심사는 후속 단계다. 추가 빌드를 만들 때는 현재 `apps/native/app.json`의 로컬 기준 `23`을 완료 빌드 `24` 이상으로 먼저 올린다. 재제출에는 완료된 build ID를 재사용한다.
 
 ### TestFlight 확인 항목
 
@@ -292,6 +298,7 @@ The app does not read video playback contents from other apps. iOS recap reminde
 
 ## 최근 TestFlight 제출 이력
 
+- `2026-10-14`: PR `#119`~`#121`, build SHA `fc074ceef188161940a9aec6facaef2034f2119f`, EAS build `057972ad-3c10-4a59-9e5b-ef051c1a160d`, 재제출 `5bd70cfa-2952-4c6b-bc2e-4268c466abc8`, build `1.0.4 (24)`. 카카오 책 공급자 보존과 기존 Naver 호환을 반영했다. 계약 차단 해제 후 업로드 및 Apple `VALID` / 내부 `IN_BETA_TESTING`을 확인했다.
 - `2026-06-18`: PR `#67`, main SHA `d18cfa6`, GitHub run `27745616062`, EAS build `455d8658-422e-4298-a023-37070d220622`, build `1.0.0 (5)`.
 - `2026-06-19`: PR `#68`, main SHA `24d2845`, GitHub run `27804770845`, build `1.0.0 (6)`. 하단 탭 아이콘, 타임라인 reload 이벤트, 로고 탭 이동 반영.
 - `2026-06-19`: PR `#69`, main SHA `667aafeb4546eb015a9ef7894f6cba9183db043e`, GitHub run `27805741470`, EAS build `7796ef11-75c1-4acb-95d7-96018e10bdbc`, EAS submission `2f02d6c8-2200-4078-b40b-b4ee0591bc54`, build `1.0.0 (7)`. 큰 탭 제목/설명 복원, 작은 중복 kicker 제거, 페어링 직후 `lastSyncAt` 초기화로 전체 pull 반영.
