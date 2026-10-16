@@ -1,6 +1,6 @@
 # iOS App Store 출시 체크리스트
 
-기준일: 2026-10-14
+기준일: 2026-10-16
 
 ## 목적
 
@@ -11,18 +11,19 @@
 ## 1.0.4 카카오 책 공급자 호환 업데이트
 
 - 대상 build: `1.0.4 (24)`, source SHA `fc074ceef188161940a9aec6facaef2034f2119f`.
+- 현재 상태: App Store 정식 배포 완료(`2026-10-16` 사용자 확인), 현재 공개 버전 `1.0.4`.
 - 수정: 카카오 책 공급자와 작품 ID를 검색·최근 함께 작품·공개 글 반응·동기화에서 보존하고 기존 Naver 책 호환을 유지한다.
 - TestFlight: Apple build `b013a8b6-1104-4dc3-b265-541285fe0b19`, `VALID`, `IN_BETA_TESTING`, `expired=false`.
 - App Store version: `ecf89bb4-65dc-4b70-a514-acd4320ad788`.
 - App Review submission: `27c9da0a-572c-45d9-b43c-742eeb9061ed`. 사용자가 `2026-10-14T12:31:44.458Z` (`21:31:44` KST)에 제출했다.
-- `2026-10-14T12:36Z` Apple API 확인: app version과 submission 모두 `WAITING_FOR_REVIEW`; 선택된 빌드는 `24`다.
+- 심사 접수 당시 `2026-10-14T12:36Z` Apple API 확인: app version과 submission 모두 `WAITING_FOR_REVIEW`; 선택된 빌드는 `24`다.
 - 공개 방식: `AFTER_APPROVAL`, `earliestReleaseDate=null` — 승인 뒤 자동 공개.
 - 심사 접수 시점 공개 버전: `1.0.3`.
 - 상세 빌드·검증 이력: [네이티브 카카오 적용 기록](native-kakao-books.md), [TestFlight 기록](ios-testflight-review-notes.md).
 
-### 승인 후 확인
+### 출시 후 확인
 
-- [ ] 심사 승인 및 App Store 공개 버전 `1.0.4` 확인.
+- [x] App Store 버전 `1.0.4` 정식 배포 완료. (`2026-10-16` 사용자 확인)
 - [ ] 실제 App Store 업데이트 설치 후 책 검색·저장과 기존 Naver 기록 수정 확인.
 - [ ] 앱 운영 지표의 `platform=ios_native`, `appVersion=1.0.4`, `buildNumber=24` 반영 확인.
 

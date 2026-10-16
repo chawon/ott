@@ -1,13 +1,14 @@
 # iOS TestFlight Review Notes
 
-기준일: 2026-10-14
+기준일: 2026-10-16
 
 이 문서는 App Store Connect의 TestFlight beta review information, 내부 QA, App Store 출시 이력을 정리한다. `2026-06-29` App Store 심사를 통과해 App Store에 공개됐으며, 출시 후 확인은 `docs/ios-app-store-launch-checklist.md`에서 이어간다.
 
 ## 1.0.4 카카오 책 공급자 호환 릴리스
 
 - 변경 코드: PR `#119`, main merge SHA `8bcb0e18e3c2e727c5be863c655f85777207b636`.
-- 현재 공개 버전: `1.0.3`. Apple 공개 조회에서 `2026-08-22T21:38:39Z` 공개를 확인했다(`2026-10-14` 조회).
+- 현재 공개 버전: `1.0.4 (24)`, App Store 정식 배포 완료(`2026-10-16` 사용자 확인).
+- 이전 공개 버전: `1.0.3`. Apple 공개 조회에서 `2026-08-22T21:38:39Z` 공개를 확인했다(`2026-10-14` 조회).
 - 이전 완료 빌드: `1.0.3 (23)`, build `756573d4-164e-4314-a30b-856fd787c2cc`.
 - 이번 빌드: `1.0.4 (24)`. 로컬 `ios.buildNumber` 기준 `23`과 기존 `autoIncrement: true`로 빌드 `24`를 생성했다.
 - 변경 범위: Kakao 책 식별자를 검색·최근 함께 작품·공개 글 반응·동기화에서 보존한다. 기존 Naver 책도 유지한다. Expo SDK 55 호환 패치와 TestFlight 제출 전 doctor 검사를 함께 반영한다.
@@ -21,7 +22,7 @@
 - 재제출 [5bd70cfa-2952-4c6b-bc2e-4268c466abc8](https://expo.dev/accounts/ergate23/projects/ottline/submissions/5bd70cfa-2952-4c6b-bc2e-4268c466abc8)는 `2026-10-14T12:22:32Z`에 `FINISHED`로 완료됐다.
 - `2026-10-14T12:32Z` Apple 조회: build `b013a8b6-1104-4dc3-b265-541285fe0b19`, `1.0.4 (24)`, `processingState=VALID`, `internalBuildState=IN_BETA_TESTING`, `expired=false`. [내부 TestFlight](https://appstoreconnect.apple.com/apps/6780318110/testflight/ios)에서 테스트할 수 있다. 외부 beta 상태는 `READY_FOR_BETA_SUBMISSION`이다.
 - `2026-10-14` 사용자가 App Store 심사를 제출했다. `2026-10-14T12:36Z` Apple 조회에서 app version `ecf89bb4-65dc-4b70-a514-acd4320ad788`와 review submission `27c9da0a-572c-45d9-b43c-742eeb9061ed`가 모두 `WAITING_FOR_REVIEW`였다. 제출 시각은 `2026-10-14T12:31:44.458Z` (`21:31:44` KST), 연결 빌드는 위 `1.0.4 (24)`다.
-- 출시 방식은 `AFTER_APPROVAL`, `earliestReleaseDate=null`로 승인 뒤 자동 공개한다. 공개 후 확인은 [App Store 출시 체크리스트](ios-app-store-launch-checklist.md)를 따른다. 추가 빌드를 만들 때는 현재 `apps/native/app.json`의 로컬 기준 `23`을 완료 빌드 `24` 이상으로 먼저 올린다. 재제출에는 완료된 build ID를 재사용한다.
+- 제출 당시 출시 방식은 `AFTER_APPROVAL`, `earliestReleaseDate=null`로 승인 뒤 자동 공개하도록 설정했다. `2026-10-16` 사용자가 정식 배포 완료를 확인했다. 출시 후 확인은 [App Store 출시 체크리스트](ios-app-store-launch-checklist.md)를 따른다. 추가 빌드를 만들 때는 현재 `apps/native/app.json`의 로컬 기준 `23`을 완료 빌드 `24` 이상으로 먼저 올린다. 재제출에는 완료된 build ID를 재사용한다.
 
 ### TestFlight 확인 항목
 
@@ -287,7 +288,8 @@ The app does not read video playback contents from other apps. iOS recap reminde
 - EAS Submit uploads build `1.0.3 (23)` to App Store Connect. (`44c5e661-4ff0-479c-8410-d7e270d42bdc`)
 - App Store Connect processing 완료와 내부 TestFlight 설치를 확인했다. (`1.0.3 (23)`, analytics `appVersion=1.0.3`, `buildNumber=23` 확인)
 - App Store 버전 `1.0.3`에 build `23`과 한국어·영어 메타데이터를 연결했다. (`2026-08-22`)
-- App Review 제출이 `WAITING_FOR_REVIEW` 상태다. (submission `16c8bb67-5448-4552-8e07-80a921e3c702`, 승인 후 자동 공개)
+- App Review 제출 당시 `WAITING_FOR_REVIEW`였다. (`2026-08-22`, submission `16c8bb67-5448-4552-8e07-80a921e3c702`, 승인 후 자동 공개)
+- App Store 버전 `1.0.4 (24)` 정식 배포를 완료했다. (`2026-10-16` 사용자 확인)
 - Local Mac EAS build succeeds. (`2026-06-28`, build `1.0.0 (16)`)
 - EAS Submit uploads build `1.0.0 (16)` to App Store Connect. (`5cddc021-ab3e-412c-99cb-f687f67dde30`)
 - Native app icon is replaced from Expo default icon to ottline brand icon. (`2026-06-28`, build `1.0.0 (18)`)
@@ -299,6 +301,7 @@ The app does not read video playback contents from other apps. iOS recap reminde
 
 ## 최근 TestFlight 제출 이력
 
+- `2026-10-16`: 사용자가 App Store 버전 `1.0.4` 정식 배포 완료를 확인했다. 출시 빌드는 위 `1.0.4 (24)`이며 출시 후 확인 항목은 [App Store 출시 체크리스트](ios-app-store-launch-checklist.md)를 따른다.
 - `2026-10-14`: PR `#119`~`#121`, build SHA `fc074ceef188161940a9aec6facaef2034f2119f`, EAS build `057972ad-3c10-4a59-9e5b-ef051c1a160d`, 재제출 `5bd70cfa-2952-4c6b-bc2e-4268c466abc8`, build `1.0.4 (24)`. 카카오 책 공급자 보존과 기존 Naver 호환을 반영했다. 계약 차단 해제 후 업로드 및 Apple `VALID` / 내부 `IN_BETA_TESTING`을 확인했다. 사용자가 App Store review submission `27c9da0a-572c-45d9-b43c-742eeb9061ed`를 제출했으며 `WAITING_FOR_REVIEW`, `AFTER_APPROVAL`을 확인했다.
 - `2026-06-18`: PR `#67`, main SHA `d18cfa6`, GitHub run `27745616062`, EAS build `455d8658-422e-4298-a023-37070d220622`, build `1.0.0 (5)`.
 - `2026-06-19`: PR `#68`, main SHA `24d2845`, GitHub run `27804770845`, build `1.0.0 (6)`. 하단 탭 아이콘, 타임라인 reload 이벤트, 로고 탭 이동 반영.

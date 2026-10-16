@@ -6,7 +6,7 @@ React Native + Expo Router 기반 iOS 네이티브 앱.
 
 ## 현재 범위
 
-- 현재 목표: 함께 기록 진입/공개 시 canonical title ID를 사용하도록 수정한 `1.0.3 (23)`의 TestFlight 확인을 마치고 App Store 심사에 제출한다.
+- 현재 정식 배포: 카카오 책 공급자와 작품 ID를 보존하고 기존 Naver 책 호환을 유지하는 `1.0.4 (24)`를 App Store에 배포 완료했다(`2026-10-16` 사용자 확인).
 - iOS bundle identifier: `app.ottline`
 - Android production 경로는 계속 `apps/twa`다. 이 앱은 Android 배포 경로가 아니다.
 - 구현 화면: 기록, 타임라인, 제목 상세/수정/history, 함께, 계정, 문의함, 내 리포트, 안내 화면
@@ -18,8 +18,8 @@ React Native + Expo Router 기반 iOS 네이티브 앱.
 
 ## 아직 부족한 범위
 
-- TestFlight build `1.0.3 (23)` processing/available 상태를 App Store Connect TestFlight 탭에서 확인
-- 내부 테스터가 TestFlight에서 build `1.0.3 (23)`을 설치해 함께 기록 진입/공개 회귀를 확인
+- 실제 App Store `1.0.4` 업데이트 설치 후 책 검색·저장과 기존 Naver 기록 수정 확인
+- 운영 지표의 `platform=ios_native`, `appVersion=1.0.4`, `buildNumber=24` 반영 확인
 - 실제 iPhone에서 ko/en와 light/dark 조합 스크린 확인
 - iOS 알림의 실제 iPhone/TestFlight 수신 및 tap route 검증
 - locale/theme 기반은 `NativePreferencesProvider`와 `lib/i18n.ts`에 있다. 현재 탭 제목, 안내 화면, 기록하기, 타임라인, 제목 상세, 함께 목록, 공개 상세, 계정, 복구 카드, 문의함, 내 리포트, 리포트 공유 카드, 회고 알림, format helper, app shell dark theme까지 연결되어 있다. 계정 화면의 `system`/`light`/`dark` 수동 theme 설정은 SecureStore에 저장되며 analytics theme context에도 반영된다.
@@ -43,11 +43,11 @@ npm run native:testflight:check:structure
 ## TestFlight 준비
 
 EAS project, App Store Connect 앱 레코드, iOS signing credentials, EAS Submit API key, GitHub `EXPO_TOKEN` 구성은 완료됐다.
-현재 기준 최신 App Store Connect 제출은 main SHA `b24dea0733369a2a0181e0f70559a30d70b6d115`의 GitHub Actions run `31922504262`, EAS build `756573d4-164e-4314-a30b-856fd787c2cc`, EAS submission `44c5e661-4ff0-479c-8410-d7e270d42bdc`, App Store Connect build `1.0.3 (23)`이다. `2026-08-16` Apple 공개 조회 기준 App Store 버전은 아직 `1.0.2`이며, `1.0.3`은 processing/available 확인과 App Review 제출이 남아 있다.
+현재 기준 최신 App Store 배포는 main SHA `fc074ceef188161940a9aec6facaef2034f2119f`의 `1.0.4 (24)`다(`2026-10-16` 사용자 확인). EAS build `057972ad-3c10-4a59-9e5b-ef051c1a160d`, EAS submission `5bd70cfa-2952-4c6b-bc2e-4268c466abc8`로 업로드했고, `2026-10-14` App Review 제출 후 정식 배포를 완료했다. 상세 이력은 `docs/native-kakao-books.md`, `docs/ios-testflight-review-notes.md`, 출시 후 확인은 `docs/ios-app-store-launch-checklist.md`를 따른다.
 
 새 TestFlight build가 필요하면 다음 순서로 진행한다.
 
-1. iOS 수정은 `main`에서 `fix/native-*` 또는 `feature/native-*` 브랜치를 만들어 진행
+1. iOS 수정은 `main`에서 `fix/native-*` 또는 `feature/native-*` 브랜치를 만들어 진행하고, 로컬 `ios.buildNumber` 기준을 완료 빌드 `24` 이상으로 올려 다음 빌드 번호 중복을 방지
 2. `npm run native:testflight:check`, `npm run native:typecheck`, `npm run native:test`, `apps/native`의 `npx expo-doctor`, `git diff --check` 확인
 3. PR CI 통과 후 `main`에 병합
 4. GitHub Actions `Native iOS TestFlight` workflow를 병합된 main SHA로 수동 실행

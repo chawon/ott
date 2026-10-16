@@ -79,11 +79,12 @@ PR [#119](https://github.com/chawon/ott/pull/119)를 main SHA `8bcb0e18e3c2e727c
 | 생성된 IPA | `app.ottline`, `1.0.4`, 빌드 `24`, 최소 iOS `15.1` 확인 |
 | Apple 제출 | 계약 차단 해제 후 동일 빌드로 [5bd70cfa-2952-4c6b-bc2e-4268c466abc8](https://expo.dev/accounts/ergate23/projects/ottline/submissions/5bd70cfa-2952-4c6b-bc2e-4268c466abc8) 제출 성공 |
 | Apple 처리·내부 TestFlight | `2026-10-14T12:32Z` 조회: build `b013a8b6-1104-4dc3-b265-541285fe0b19`, `VALID`, `IN_BETA_TESTING`, `expired=false` |
-| App Store 심사 | 사용자가 `1.0.4 (24)` 제출. app version·review submission 모두 `WAITING_FOR_REVIEW`, 출시 방식 `AFTER_APPROVAL` |
+| App Store 심사 접수 | `2026-10-14` 사용자가 `1.0.4 (24)` 제출. 접수 당시 app version·review submission 모두 `WAITING_FOR_REVIEW`, 출시 방식 `AFTER_APPROVAL` |
 | 심사 접수 시점 공개 버전 | `1.0.3` |
+| App Store 정식 배포 | `1.0.4 (24)` 배포 완료(`2026-10-16` 사용자 확인) |
 
 다운로드한 IPA의 SHA-256은 `ecf8ea28d433074bb894104e9144f3a61be1f876253fce601767be008ef531b4`다. 번들에서 `KAKAO`와 `NAVER` 문자열을 확인했다. 에이전트의 실제 iPhone 설치·실행 검증은 수행하지 않았다. 제출 결과와 실기기 확인 항목은 [TestFlight 기록](ios-testflight-review-notes.md)을 따른다.
 
-`2026-10-14` 사용자가 같은 빌드로 App Store 심사를 제출했다. `2026-10-14T12:36Z` Apple API에서 app version `ecf89bb4-65dc-4b70-a514-acd4320ad788`, review submission `27c9da0a-572c-45d9-b43c-742eeb9061ed`의 `WAITING_FOR_REVIEW`를 확인했다. 출시 방식은 `AFTER_APPROVAL`이다. 구현·빌드·TestFlight 배포·심사 접수까지 마쳤으며 승인 후 공개 확인은 [출시 체크리스트](ios-app-store-launch-checklist.md)를 따른다.
+`2026-10-14` 사용자가 같은 빌드로 App Store 심사를 제출했다. `2026-10-14T12:36Z` Apple API에서 app version `ecf89bb4-65dc-4b70-a514-acd4320ad788`, review submission `27c9da0a-572c-45d9-b43c-742eeb9061ed`의 `WAITING_FOR_REVIEW`를 확인했다. 제출 당시 출시 방식은 `AFTER_APPROVAL`이었다. `2026-10-16` 사용자가 App Store 버전 `1.0.4`의 정식 배포 완료를 확인해 이번 릴리스를 마쳤다. 출시 후 확인 항목은 [출시 체크리스트](ios-app-store-launch-checklist.md)를 따른다.
 
 추가 바이너리를 생성할 때는 로컬 빌드 기준을 현재 완료 빌드 `24` 이상으로 먼저 올려 번호 중복을 피한다. 계약·업로드 문제로 다시 제출할 때는 새 빌드 대신 성공한 기존 빌드 ID를 사용한다.
