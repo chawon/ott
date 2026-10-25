@@ -14,11 +14,9 @@ import java.util.List;
 import java.util.Map;
 
 public final class WatchReminderWorker extends Worker {
-    private static final long AUTO_MIN_FOREGROUND_MS = 5L * 60L * 1000L;
     private static final long GLOBAL_COOLDOWN_MS = 3L * 60L * 60L * 1000L;
     private static final long APP_COOLDOWN_MS = 24L * 60L * 60L * 1000L;
     private static final long USAGE_STATS_LOOKBACK_MS = 48L * 60L * 60L * 1000L;
-    private static final long AUTO_CANDIDATE_WINDOW_MS = 2L * 60L * 60L * 1000L;
     private static final long MANUAL_CANDIDATE_WINDOW_MS = 6L * 60L * 60L * 1000L;
 
     public WatchReminderWorker(
@@ -87,7 +85,8 @@ public final class WatchReminderWorker extends Worker {
 
         Candidate pendingCandidate = readPendingCandidate(prefs);
         Map<String, UsageSnapshot> usageSnapshots = queryUsageSnapshots(usageStatsManager, now, true);
-        Candidate usageStatsCandidate = findUsageStatsCandidate(prefs, usageSnapshots, now);
+        Map<String, WatchReminderUsageTracker.State> usageStates = advanceUsageStates(prefs, usageSnapshots, now);
+        Candidate usageStatsCandidate = findUsageStatsCandidate(usageStates, now);
         Candidate lastSeenCandidate = findLastSeenCandidate(usageSnapshots, now, lastQueryAt);
         Candidate latestCandidate = chooseLatest(pendingCandidate, usageStatsCandidate);
         String usageDebug = buildUsageDebug(
@@ -106,7 +105,7 @@ public final class WatchReminderWorker extends Worker {
                 .putString(WatchReminderScheduler.KEY_LAST_USAGE_DEBUG, usageDebug)
                 .remove(WatchReminderScheduler.KEY_ACTIVE_PACKAGE)
                 .remove(WatchReminderScheduler.KEY_ACTIVE_START_AT);
-        writeUsageBaselines(editor, usageSnapshots);
+        writeUsageStates(editor, usageStates, latestCandidate);
         editor.apply();
 
         if (latestCandidate == null) {
@@ -155,8 +154,9 @@ public final class WatchReminderWorker extends Worker {
             long lastQueryAt
     ) {
         Map<String, UsageSnapshot> usageSnapshots = queryUsageSnapshots(usageStatsManager, now, true);
+        Map<String, WatchReminderUsageTracker.State> usageStates = advanceUsageStates(prefs, usageSnapshots, now);
         Candidate pendingCandidate = readPendingCandidate(prefs);
-        Candidate usageStatsCandidate = findUsageStatsCandidate(prefs, usageSnapshots, now);
+        Candidate usageStatsCandidate = findUsageStatsCandidate(usageStates, now);
         Candidate lastSeenCandidate = findLastSeenCandidate(usageSnapshots, now, 0L);
         Candidate latestCandidate = chooseLatest(
                 chooseLatest(pendingCandidate, usageStatsCandidate),
@@ -177,7 +177,7 @@ public final class WatchReminderWorker extends Worker {
         SharedPreferences.Editor editor = prefs.edit()
                 .putLong(WatchReminderScheduler.KEY_LAST_QUERY_AT, now)
                 .putString(WatchReminderScheduler.KEY_LAST_USAGE_DEBUG, usageDebug);
-        writeUsageBaselines(editor, usageSnapshots);
+        writeUsageStates(editor, usageStates, latestCandidate);
         editor.apply();
 
         if (latestCandidate == null) {
@@ -246,17 +246,30 @@ public final class WatchReminderWorker extends Worker {
                 .apply();
     }
 
-    static Map<String, Long> currentForegroundTotals(Context context, long now) {
+    static void initializeUsageBaselines(Context context, SharedPreferences.Editor editor, long now) {
+        boolean usageAccess = WatchReminderAccess.hasUsageAccess(context);
         UsageStatsManager usageStatsManager =
                 (UsageStatsManager) context.getSystemService(Context.USAGE_STATS_SERVICE);
-        if (usageStatsManager == null) return new HashMap<>();
-
-        Map<String, UsageSnapshot> snapshots = queryUsageSnapshots(usageStatsManager, now, true);
-        Map<String, Long> totals = new HashMap<>();
-        for (Map.Entry<String, UsageSnapshot> entry : snapshots.entrySet()) {
-            totals.put(entry.getKey(), entry.getValue().totalForegroundMs);
+        Map<String, UsageSnapshot> snapshots = usageAccess && usageStatsManager != null
+                ? queryUsageSnapshots(usageStatsManager, now, true) : new HashMap<>();
+        for (String packageName : WatchReminderTargets.all().keySet()) {
+            if (!snapshots.containsKey(packageName)) {
+                if (usageAccess) {
+                    writeUsageState(editor, packageName, new WatchReminderUsageTracker.State(0L, 0L, 0L, now));
+                } else {
+                    editor.remove(WatchReminderScheduler.foregroundTotalKey(packageName))
+                            .remove(WatchReminderScheduler.foregroundIntervalKey(packageName))
+                            .remove(WatchReminderScheduler.unnotifiedForegroundKey(packageName))
+                            .remove(WatchReminderScheduler.lastUsageKey(packageName));
+                }
+            }
         }
-        return totals;
+        for (Map.Entry<String, UsageSnapshot> entry : snapshots.entrySet()) {
+            UsageSnapshot snapshot = entry.getValue();
+            writeUsageState(editor, entry.getKey(), new WatchReminderUsageTracker.State(
+                    snapshot.intervalStartAt, snapshot.totalForegroundMs, 0L, snapshot.lastTimeUsed
+            ));
+        }
     }
 
     private static Map<String, UsageSnapshot> queryUsageSnapshots(
@@ -277,42 +290,56 @@ public final class WatchReminderWorker extends Worker {
             if (targetOnly && !WatchReminderTargets.contains(packageName)) continue;
 
             UsageSnapshot snapshot = snapshots.get(packageName);
-            if (snapshot == null) {
+            long intervalStartAt = usageStats.getFirstTimeStamp();
+            if (snapshot == null || intervalStartAt > snapshot.intervalStartAt) {
                 snapshot = new UsageSnapshot();
+                snapshot.intervalStartAt = intervalStartAt;
                 snapshot.totalForegroundMs = usageStats.getTotalTimeInForeground();
                 snapshot.lastTimeUsed = usageStats.getLastTimeUsed();
                 snapshots.put(packageName, snapshot);
-            } else if (usageStats.getLastTimeUsed() > snapshot.lastTimeUsed) {
-                snapshot.totalForegroundMs = usageStats.getTotalTimeInForeground();
-                snapshot.lastTimeUsed = usageStats.getLastTimeUsed();
+            } else if (intervalStartAt == snapshot.intervalStartAt) {
+                snapshot.totalForegroundMs = Math.max(snapshot.totalForegroundMs, usageStats.getTotalTimeInForeground());
+                snapshot.lastTimeUsed = Math.max(snapshot.lastTimeUsed, usageStats.getLastTimeUsed());
             }
         }
         return snapshots;
     }
 
-    private static Candidate findUsageStatsCandidate(
+    private static Map<String, WatchReminderUsageTracker.State> advanceUsageStates(
             SharedPreferences prefs,
             Map<String, UsageSnapshot> snapshots,
             long now
     ) {
-        Candidate latest = null;
-        for (String packageName : WatchReminderTargets.all().keySet()) {
-            String key = WatchReminderScheduler.foregroundTotalKey(packageName);
-            UsageSnapshot snapshot = snapshots.get(packageName);
-            long currentTotal = snapshot == null ? 0L : snapshot.totalForegroundMs;
-            if (!prefs.contains(key)) continue;
-
-            long previousTotal = prefs.getLong(key, currentTotal);
-            long delta = currentTotal - previousTotal;
-            if (snapshot == null || delta < AUTO_MIN_FOREGROUND_MS) continue;
-            if (snapshot.lastTimeUsed <= 0L) continue;
-            if (now - snapshot.lastTimeUsed > AUTO_CANDIDATE_WINDOW_MS) continue;
-
-            latest = chooseLatest(latest, new Candidate(
-                    packageName,
-                    snapshot.lastTimeUsed,
-                    "usage"
+        Map<String, WatchReminderUsageTracker.State> states = new HashMap<>();
+        for (Map.Entry<String, UsageSnapshot> entry : snapshots.entrySet()) {
+            String packageName = entry.getKey();
+            UsageSnapshot snapshot = entry.getValue();
+            String intervalKey = WatchReminderScheduler.foregroundIntervalKey(packageName);
+            WatchReminderUsageTracker.State previous = null;
+            if (prefs.contains(intervalKey)) {
+                previous = new WatchReminderUsageTracker.State(
+                        prefs.getLong(intervalKey, 0L),
+                        prefs.getLong(WatchReminderScheduler.foregroundTotalKey(packageName), 0L),
+                        prefs.getLong(WatchReminderScheduler.unnotifiedForegroundKey(packageName), 0L),
+                        prefs.getLong(WatchReminderScheduler.lastUsageKey(packageName), 0L)
+                );
+            }
+            states.put(packageName, WatchReminderUsageTracker.observe(
+                    previous, snapshot.intervalStartAt, snapshot.totalForegroundMs, snapshot.lastTimeUsed, now
             ));
+        }
+        return states;
+    }
+
+    private static Candidate findUsageStatsCandidate(
+            Map<String, WatchReminderUsageTracker.State> states, long now
+    ) {
+        Candidate latest = null;
+        for (Map.Entry<String, WatchReminderUsageTracker.State> entry : states.entrySet()) {
+            WatchReminderUsageTracker.State state = entry.getValue();
+            if (state.isCandidate(now)) {
+                latest = chooseLatest(latest, new Candidate(entry.getKey(), state.lastTimeUsed, "usage"));
+            }
         }
         return latest;
     }
@@ -341,19 +368,34 @@ public final class WatchReminderWorker extends Worker {
         return latest;
     }
 
-    private static void writeUsageBaselines(
+    private static void writeUsageStates(
             SharedPreferences.Editor editor,
-            Map<String, UsageSnapshot> snapshots
+            Map<String, WatchReminderUsageTracker.State> states,
+            Candidate consumedCandidate
     ) {
-        for (String packageName : WatchReminderTargets.all().keySet()) {
-            UsageSnapshot snapshot = snapshots.get(packageName);
-            String key = WatchReminderScheduler.foregroundTotalKey(packageName);
-            if (snapshot == null) {
-                editor.putLong(key, 0L);
-            } else {
-                editor.putLong(key, snapshot.totalForegroundMs);
-            }
+        // Persist the selected candidate together with consuming its usage credit,
+        // so an interrupted/failed notification can be retried on the next scan.
+        if (consumedCandidate != null) {
+            editor.putString(WatchReminderScheduler.KEY_PENDING_PACKAGE, consumedCandidate.packageName)
+                    .putLong(WatchReminderScheduler.KEY_PENDING_END_AT, consumedCandidate.endAt);
         }
+        // Missing/locked-device query results leave the last valid baseline intact.
+        for (Map.Entry<String, WatchReminderUsageTracker.State> entry : states.entrySet()) {
+            WatchReminderUsageTracker.State state = entry.getValue();
+            if (consumedCandidate != null && consumedCandidate.packageName.equals(entry.getKey())) {
+                state = state.consume();
+            }
+            writeUsageState(editor, entry.getKey(), state);
+        }
+    }
+
+    private static void writeUsageState(
+            SharedPreferences.Editor editor, String packageName, WatchReminderUsageTracker.State state
+    ) {
+        editor.putLong(WatchReminderScheduler.foregroundTotalKey(packageName), state.totalForegroundMs)
+                .putLong(WatchReminderScheduler.foregroundIntervalKey(packageName), state.intervalStartAt)
+                .putLong(WatchReminderScheduler.unnotifiedForegroundKey(packageName), state.unnotifiedForegroundMs)
+                .putLong(WatchReminderScheduler.lastUsageKey(packageName), state.lastTimeUsed);
     }
 
     private static String buildUsageDebug(
@@ -433,6 +475,7 @@ public final class WatchReminderWorker extends Worker {
     }
 
     private static final class UsageSnapshot {
+        long intervalStartAt;
         long totalForegroundMs;
         long lastTimeUsed;
     }
