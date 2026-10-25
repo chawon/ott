@@ -16,7 +16,16 @@
 
 ## 상태
 
-- `fix/android-watch-reminder`에서 수정 및 검증 중이며 배포하지 않았다.
+- PR `#122`, main SHA `a294cbf7e3accee3626970bf21e604ccf8639df5`로 알림 수정을 병합했다. Android CI run `40168129880`에서 감지 흐름 22건, 단위 테스트 및 debug APK 빌드가 통과했다.
+- 첫 production release run `40168623901`은 서명 AAB 빌드·단위 테스트·R8 분석·WorkManager 생성자/브랜드 자산 검증을 통과했지만 Play 업로드에서 거부됐다. production 배포 완료 상태가 아니다.
+
+## Play 자동 보호 호환 요건 결정
+
+- Play 업로드 오류: `Play automatic protection requires a minimum SDK version of 24 or higher`이며 기존 앱은 `minSdk=23`이었다.
+- `2026-10-25` 사용자가 권장안인 Android 7.0(API 24) 이상 지원으로 변경하고 배포하는 방안을 승인했다.
+- 구현 범위: `apps/twa/app/build.gradle`의 `minSdk`와 `apps/twa/twa-manifest.json`의 `minSdkVersion`을 `24`로 맞춘다. 자동 보호를 유지하며 Android 6.0(API 23)은 새 업데이트 대상에서 제외한다.
+- 검증: 별도 PR에서 감지 회귀 테스트·Android 단위 테스트·APK 빌드를 확인한 뒤 production 릴리스 빌드 및 Play 등록을 재시도한다.
+- 근거: [Google Play 자동 보호 요건](https://support.google.com/googleplay/android-developer/answer/10183279?hl=en-GB).
 
 ## 재현된 코드 문제
 

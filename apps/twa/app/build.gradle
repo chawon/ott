@@ -103,7 +103,7 @@ android {
     }
     defaultConfig {
         applicationId "app.ottline"
-        minSdk 23
+        minSdk 24
         targetSdk 36
         versionCode releaseVersionCode
         versionName releaseVersionName
