@@ -12,6 +12,7 @@ COPY --from=deps /app/package.json /app/package-lock.json ./
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/apps ./apps
 COPY apps/web/. ./apps/web
+COPY shared/. ./shared
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV BACKEND_URL=http://ott-api:8080
 RUN npm run build --workspace ott
