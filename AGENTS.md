@@ -268,6 +268,7 @@ feature/* ──PR/CI──→ main ──→ GitHub Actions workflow_dispatch
    3. 히스토리 누락/중복 여부
 2. UI 변경 시 모바일 레이아웃 깨짐 여부를 함께 확인한다.
 3. 검증 기본 커맨드는 루트 기준 `npm run test`를 사용한다.
+4. Android 시청 기록 알림은 앱별 일별 통계 구간과 미알림 사용시간 증가분을 함께 관리하고, 최근 증가분을 여러 감지 주기에 걸쳐 합산해 5분 이상이면 후보로 삼는다. 전체 3시간/앱별 24시간 cooldown을 유지한다. 변경 시 `python3 apps/twa/scripts/test-watch-reminder-worker.py`와 TWA 단위 테스트를 실행하며, OS 실행 정책과 실제 알림 표시는 실기기로 별도 검증한다. 상세는 `docs/android-watch-reminder-reliability.md`를 따른다.
 
 ---
 

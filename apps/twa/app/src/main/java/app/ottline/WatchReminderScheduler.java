@@ -141,21 +141,10 @@ final class WatchReminderScheduler {
                 .putString(KEY_LAST_SCAN_RESULT, "초기화됨")
                 .putString(KEY_LAST_USAGE_DEBUG, "초기화됨");
 
-        boolean usageAccess = WatchReminderAccess.hasUsageAccess(context);
-        java.util.Map<String, Long> totals = WatchReminderWorker.currentForegroundTotals(context, now);
         for (String packageName : WatchReminderTargets.all().keySet()) {
             editor.remove(lastNotificationKey(packageName));
-            Long total = totals.get(packageName);
-            if (total == null) {
-                if (usageAccess) {
-                    editor.putLong(foregroundTotalKey(packageName), 0L);
-                } else {
-                    editor.remove(foregroundTotalKey(packageName));
-                }
-            } else {
-                editor.putLong(foregroundTotalKey(packageName), total);
-            }
         }
+        WatchReminderWorker.initializeUsageBaselines(context, editor, now);
     }
 
     static String lastNotificationKey(String packageName) {
@@ -164,5 +153,17 @@ final class WatchReminderScheduler {
 
     static String foregroundTotalKey(String packageName) {
         return "foreground_total_" + packageName;
+    }
+
+    static String foregroundIntervalKey(String packageName) {
+        return "foreground_interval_" + packageName;
+    }
+
+    static String unnotifiedForegroundKey(String packageName) {
+        return "foreground_unnotified_" + packageName;
+    }
+
+    static String lastUsageKey(String packageName) {
+        return "foreground_last_used_" + packageName;
     }
 }
