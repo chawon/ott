@@ -27,6 +27,10 @@ tmdb:
   language: ko-KR
   image-size: w342
 
+google-books:
+  base-url: ${GOOGLE_BOOKS_BASE_URL:https://www.googleapis.com}
+  api-key: ${GOOGLE_BOOKS_API_KEY:}
+
 kakao:
   base-url: https://dapi.kakao.com
   rest-api-key: ${KAKAO_API_KEY:}

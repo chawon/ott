@@ -35,8 +35,17 @@ class BookEditionRepositoryTest {
             var legacy = new TitleEntity(id, TitleType.book, "Legacy edition");
             legacy.setProvider("NAVER");
             legacy.setProviderId("8983921986");
+            var google = new TitleEntity(UUID.randomUUID(), TitleType.book, "English edition");
+            google.setProvider("GOOGLE_BOOKS");
+            google.setProviderId("google-volume");
+            google.setIsbn13("9780140328721");
+            var opaque = new TitleEntity(UUID.randomUUID(), TitleType.book, "Opaque Google ID");
+            opaque.setProvider("GOOGLE_BOOKS");
+            opaque.setProviderId("9791186745625");
             em.getTransaction().begin();
             em.persist(legacy);
+            em.persist(google);
+            em.persist(opaque);
             em.getTransaction().commit();
             em.clear();
             var repository = new JpaRepositoryFactory(em).getRepository(TitleRepository.class);
@@ -44,6 +53,12 @@ class BookEditionRepositoryTest {
                     .get().extracting(TitleEntity::getId).isEqualTo(id);
             assertThat(repository.resolveExternalTitle("KAKAO", "9788983927620", TitleType.book, null, null)).isEmpty();
             assertThat(repository.resolveExternalTitle("TMDB", "9788983921987", TitleType.movie, null, null)).isEmpty();
+            assertThat(repository.resolveExternalTitle("GOOGLE_BOOKS", "incoming-volume", TitleType.book, null, "9788983921987"))
+                    .get().extracting(TitleEntity::getId).isEqualTo(id);
+            assertThat(repository.resolveExternalTitle("KAKAO", "9780140328721", TitleType.book, null, null))
+                    .get().extracting(TitleEntity::getId).isEqualTo(google.getId());
+            assertThat(repository.resolveExternalTitle("GOOGLE_BOOKS", "9788983921987", TitleType.book, null, null)).isEmpty();
+            assertThat(repository.resolveExternalTitle("KAKAO", "9791186745625", TitleType.book, null, null)).isEmpty();
         } finally { factory.destroy(); }
     }
 }

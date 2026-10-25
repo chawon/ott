@@ -25,6 +25,12 @@ spec:
           env:
             - name: APP_VERSION
               value: "e1b9f8d"
+            - name: GOOGLE_BOOKS_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: ott-google-books-secrets
+                  key: GOOGLE_BOOKS_API_KEY
+                  optional: true
             - name: TELEGRAM_NOTIFY_ENABLED
               value: "true"
             - name: TELEGRAM_SERVICE_NAME

@@ -19,9 +19,11 @@ public interface TitleRepository extends JpaRepository<TitleEntity, UUID> {
 
     @Query("""
             select t from TitleEntity t where t.type = com.watchlog.api.domain.TitleType.book
-            and t.provider in ('NAVER', 'KAKAO') and t.deletedAt is null
-            and ((:isbn13 is not null and (t.isbn13 = :isbn13 or t.providerId = :isbn13))
-              or (:isbn10 is not null and (t.isbn10 = :isbn10 or t.providerId = :isbn10)))
+            and t.provider in ('NAVER', 'KAKAO', 'GOOGLE_BOOKS') and t.deletedAt is null
+            and ((:isbn13 is not null and (t.isbn13 = :isbn13
+                    or (t.provider in ('NAVER', 'KAKAO') and t.providerId = :isbn13)))
+              or (:isbn10 is not null and (t.isbn10 = :isbn10
+                    or (t.provider in ('NAVER', 'KAKAO') and t.providerId = :isbn10))))
             order by t.createdAt, t.id
             """)
     List<TitleEntity> findBookEdition(@Param("isbn10") String isbn10, @Param("isbn13") String isbn13);
@@ -30,10 +32,11 @@ public interface TitleRepository extends JpaRepository<TitleEntity, UUID> {
                                                        String isbn10, String isbn13) {
         var exact = findByProviderAndProviderId(provider, providerId);
         if (exact.isPresent() || type != TitleType.book
-                || !("NAVER".equals(provider) || "KAKAO".equals(provider))) return exact;
+                || !("NAVER".equals(provider) || "KAKAO".equals(provider) || "GOOGLE_BOOKS".equals(provider))) return exact;
         var isbn = BookIsbn.parse(String.join(" ", isbn10 == null ? "" : isbn10,
                 isbn13 == null ? "" : isbn13));
-        if (isbn.isbn13() == null) isbn = BookIsbn.parse(providerId);
+        // Google volume IDs are opaque and must never be interpreted as an ISBN.
+        if (isbn.isbn13() == null && !"GOOGLE_BOOKS".equals(provider)) isbn = BookIsbn.parse(providerId);
         if (isbn.isbn13() == null) return Optional.empty();
         return findBookEdition(isbn.isbn10(), isbn.isbn13()).stream().findFirst();
     }

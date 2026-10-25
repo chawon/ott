@@ -1,7 +1,9 @@
 "use client";
 
 import Image from "next/image";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
+import GoogleBooksAttribution from "@/components/GoogleBooksAttribution";
+import { googleBooksUrl } from "@/lib/googleBooks";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "@/lib/api";
 import { selectPopularTitleFillers } from "@/lib/titleFallback";
@@ -63,6 +65,8 @@ export default function TitleSearchBox({
   focusSignal?: number;
 }) {
   const tTitleSearch = useTranslations("TitleSearchBox");
+  const locale = useLocale();
+  const googleBooksSearch = contentType === "book" && locale === "en";
   const [q, setQ] = useState("");
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState<TitleSearchItem[]>([]);
@@ -305,6 +309,12 @@ export default function TitleSearchBox({
         )}
       />
 
+      {googleBooksSearch ? (
+        <div className="mt-2 flex justify-end">
+          <GoogleBooksAttribution />
+        </div>
+      ) : null}
+
       {showPanel && (
         <div
           className={cn(
@@ -534,60 +544,73 @@ export default function TitleSearchBox({
                   : t.overview;
 
               return (
-                <button
+                <div
                   key={key}
-                  type="button"
-                  onClick={() => pick(t, "search_result", idx + 1)}
-                  onMouseEnter={() => setActiveIndex(idx)}
-                  className={cn(
-                    "flex w-full items-center gap-4 px-4 py-3 text-left transition-colors",
-                    idx === activeIndex
-                      ? "bg-ott-paper-strong"
-                      : "hover:bg-ott-paper-strong",
-                  )}
+                  className="flex flex-col items-stretch sm:flex-row sm:items-center"
                 >
-                  <div
+                  <button
+                    type="button"
+                    onClick={() => pick(t, "search_result", idx + 1)}
+                    onMouseEnter={() => setActiveIndex(idx)}
                     className={cn(
-                      "h-24 w-16 shrink-0 overflow-hidden bg-muted",
-                      "rounded-lg border border-border shadow-sm",
+                      "flex min-w-0 flex-1 items-center gap-4 px-4 py-3 text-left transition-colors",
+                      idx === activeIndex
+                        ? "bg-ott-paper-strong"
+                        : "hover:bg-ott-paper-strong",
                     )}
                   >
-                    {t.posterUrl ? (
-                      <img
-                        src={tmdbResize(t.posterUrl, "w185") ?? t.posterUrl}
-                        alt={t.name}
-                        className={cn("h-full w-full object-cover")}
-                        loading="lazy"
-                      />
-                    ) : null}
-                  </div>
-
-                  <div className="min-w-0 flex-1">
-                    <div className={cn("truncate text-sm font-bold")}>
-                      {t.name}
-                    </div>
                     <div
                       className={cn(
-                        "mt-0.5",
-                        "text-[10px] font-bold text-muted-foreground",
+                        "h-24 w-16 shrink-0 overflow-hidden bg-muted",
+                        "rounded-lg border border-border shadow-sm",
                       )}
                     >
-                      {t.type === "book"
-                        ? tTitleSearch("typeBook") + (meta ? ` · ${meta}` : "")
-                        : meta}
+                      {t.posterUrl ? (
+                        <img
+                          src={tmdbResize(t.posterUrl, "w185") ?? t.posterUrl}
+                          alt={t.name}
+                          className={cn("h-full w-full object-cover")}
+                          loading="lazy"
+                        />
+                      ) : null}
                     </div>
-                    {detailLine ? (
+
+                    <div className="min-w-0 flex-1">
+                      <div className={cn("truncate text-sm font-bold")}>
+                        {t.name}
+                      </div>
                       <div
                         className={cn(
-                          "mt-1 line-clamp-1",
+                          "mt-0.5",
                           "text-[10px] font-bold text-muted-foreground",
                         )}
                       >
-                        {detailLine}
+                        {t.type === "book"
+                          ? tTitleSearch("typeBook") +
+                            (meta ? ` · ${meta}` : "")
+                          : meta}
                       </div>
-                    ) : null}
-                  </div>
-                </button>
+                      {detailLine ? (
+                        <div
+                          className={cn(
+                            "mt-1 line-clamp-1",
+                            "text-[10px] font-bold text-muted-foreground",
+                          )}
+                        >
+                          {detailLine}
+                        </div>
+                      ) : null}
+                    </div>
+                  </button>
+                  {googleBooksUrl(t) ? (
+                    <div className="flex justify-end">
+                      <GoogleBooksAttribution
+                        href={googleBooksUrl(t)!}
+                        logo={false}
+                      />
+                    </div>
+                  ) : null}
+                </div>
               );
             })}
 

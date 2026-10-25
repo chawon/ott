@@ -1,7 +1,7 @@
 import type { DiscussionListItem, Provider, Title, TitleSearchItem } from './types';
 
 function normalizeProvider(value: DiscussionListItem['titleProvider']): Provider | undefined {
-  return value === 'TMDB' || value === 'LOCAL' || value === 'NAVER' || value === 'KAKAO'
+  return value === 'TMDB' || value === 'LOCAL' || value === 'NAVER' || value === 'KAKAO' || value === 'GOOGLE_BOOKS'
     ? value
     : undefined;
 }

@@ -77,13 +77,21 @@ beforeEach(() => {
 afterEach(() => { global.fetch = originalFetch; });
 
 describe('book search and sync lifecycle', () => {
-  it.each<Provider>(['KAKAO', 'NAVER'])(
+  it.each<Provider>(['KAKAO', 'NAVER', 'GOOGLE_BOOKS'])(
     'keeps %s book identity through search, offline retry, push and canonical pull',
     async (provider) => {
       const canonicalTitleId = provider === 'NAVER' ? 'existing-naver-id' : 'canonical-kakao-id';
+      const locale = provider === 'GOOGLE_BOOKS' ? 'en' : 'ko';
+      jest.mocked(ExpoSecureStore.getItemAsync).mockImplementation(async (key) => {
+        if (key === STORAGE_KEYS.userId) return 'test-user';
+        if (key === STORAGE_KEYS.deviceId) return 'test-device';
+        if (key === STORAGE_KEYS.analyticsClientId) return 'test-client';
+        if (key === STORAGE_KEYS.localePreference) return locale;
+        return null;
+      });
       const searchItem: TitleSearchItem = {
         provider,
-        providerId: provider === 'NAVER' ? '8936433598' : '9788936433598',
+        providerId: provider === 'GOOGLE_BOOKS' ? 'opaque-volume' : provider === 'NAVER' ? '8936433598' : '9788936433598',
         titleId: provider === 'NAVER' ? canonicalTitleId : undefined,
         type: 'book',
         name: '채식주의자',
@@ -99,7 +107,10 @@ describe('book search and sync lifecycle', () => {
       expect(fetchMock).toHaveBeenCalledWith(
         expect.stringContaining(`/api/titles/search?${new URLSearchParams({ q: '채식주의자', type: 'book' })}`),
         expect.objectContaining({
-          headers: expect.objectContaining({ 'Accept-Language': 'ko' }),
+          headers: expect.objectContaining({
+            'Accept-Language': locale,
+            'X-Book-Search-Capability': 'google_books_v1',
+          }),
         }),
       );
       const log: WatchLog = {

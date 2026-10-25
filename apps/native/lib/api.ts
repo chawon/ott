@@ -183,7 +183,8 @@ export async function trackEvent(input: {
 export async function searchTitles(query: string, type: 'ALL' | 'movie' | 'series' | 'book') {
   const params = new URLSearchParams({ q: query });
   if (type === 'book') params.set('type', 'book');
-  const items = await request<TitleSearchItem[]>(`/api/titles/search?${params.toString()}`);
+  const items = await request<TitleSearchItem[]>(`/api/titles/search?${params.toString()}`,
+    type === 'book' ? { headers: { 'X-Book-Search-Capability': 'google_books_v1' } } : undefined);
   if (type === 'ALL' || type === 'book') return items;
   return items.filter((item) => item.type === type);
 }

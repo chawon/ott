@@ -283,8 +283,8 @@ feature/* ──PR/CI──→ main ──→ GitHub Actions workflow_dispatch
 ### Titles
 1. `GET /api/titles/search?q=...&type=`
    1. TMDB 기반 검색 (헤더에 따른 다국어 검색 결과 반환)
-   2. 도서 검색: Kakao 책 검색 API 사용, 같은 ISBN 판본의 기존 NAVER/KAKAO 식별자 유지
-   3. 응답: `provider(TMDB|NAVER|KAKAO)`, `providerId`, `type(movie|series|book)`, `name`, `year`, `posterUrl`, `overview`, `author`, `publisher`, `isbn10`, `isbn13`, `pubdate`, `titleId`(기존 책이면 UUID, 없으면 null)
+   2. 도서 검색: 영어 선호(`Accept-Language`의 `en` 및 지역 변형)는 Google Books, 한국어·누락·잘못된 헤더는 Kakao를 사용한다. 같은 ISBN 판본의 기존 NAVER/KAKAO/GOOGLE_BOOKS 식별자를 유지한다. 기존 iOS 바이너리는 Kakao를 유지하고 출처 표시를 지원하는 새 바이너리(`X-Book-Search-Capability: google_books_v1`)부터 영어 검색을 전환한다.
+   3. 응답: `provider(TMDB|NAVER|KAKAO|GOOGLE_BOOKS)`, `providerId`, `type(movie|series|book)`, `name`, `year`, `posterUrl`, `overview`, `author`, `publisher`, `isbn10`, `isbn13`, `pubdate`, `titleId`(기존 책이면 UUID, 없으면 null), `sourceUrl`(Google 검색의 원문 링크, 그 외 null). Google의 providerId는 ISBN이 아닌 volume ID다. 설정·배포 상태는 `docs/google-books-en-search.md`를 따른다.
 2. `GET /api/titles/popular?limit=`
    1. TMDB movie/tv 인기 작품을 혼합해 반환한다.
    2. `Accept-Language`에서 language/watch region을 추정하고 공개일·첫 방영일·시청 가능 region을 기준으로 후보를 제한한다.

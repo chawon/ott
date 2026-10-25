@@ -19,6 +19,8 @@
     "test:theme-first-paint": "node --test lib/theme-first-paint.test.mjs",
     "test:chatgpt-mcp": "node scripts/test-chatgpt-mcp.mjs",
     "test:web-storage": "node scripts/test-web-storage.mjs",
+    "test:bookshelf": "node --test lib/bookshelf.test.mjs lib/googleBooks.test.mjs",
+    "test:book-search": "node scripts/test-book-search.mjs",
     "test:locale-navigation": "node scripts/test-locale-navigation.mjs",
     "test:timeline-scroll": "node scripts/test-timeline-scroll.mjs",
     "indexnow": "node scripts/ping-indexnow.mjs",

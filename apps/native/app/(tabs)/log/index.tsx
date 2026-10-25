@@ -65,6 +65,7 @@ import {
   placeLabels,
 } from '../../../lib/i18n';
 import { useNativePreferences } from '../../../lib/nativePreferences';
+import { GoogleBooksAttribution } from '../../../components/GoogleBooksAttribution';
 import type {
   Occasion,
   Place,
@@ -686,6 +687,8 @@ export default function LogScreen() {
           {loading ? <ActivityIndicator color={colors.onSurfaceVariant} /> : null}
         </View>
 
+        {filter === 'book' && locale === 'en' ? <GoogleBooksAttribution /> : null}
+
         <View style={styles.segment}>
           {filters.map((item) => (
             <Pressable
@@ -713,6 +716,7 @@ export default function LogScreen() {
                 .filter(Boolean)
                 .join(' · ')}
             </Text>
+            <GoogleBooksAttribution book={selected} />
             {!activeLog ? (
               <View style={styles.initialSaveBox}>
                 <Text style={styles.statusPrompt}>{copy.statusPrompt}</Text>
@@ -963,6 +967,7 @@ export default function LogScreen() {
                 )}
                 <View style={styles.resultBody}>
                   <Text style={styles.resultTitle}>{item.name}</Text>
+                  <GoogleBooksAttribution book={item} logo={false} />
                   <Text style={styles.meta}>
                     {[typeLabel(item.type, locale), item.year, item.author].filter(Boolean).join(' · ')}
                   </Text>

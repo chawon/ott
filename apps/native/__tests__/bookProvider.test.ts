@@ -108,10 +108,21 @@ describe('native book provider identity', () => {
     expect(outbox.log.payload?.titleId).toBe('existing-edition-id');
   });
 
-  it.each(['TMDB', 'LOCAL', 'NAVER'])('preserves existing %s provider handling', (provider) => {
+  it.each(['TMDB', 'LOCAL', 'NAVER', 'GOOGLE_BOOKS'])('preserves %s provider handling', (provider) => {
     const discussion = { ...bookDiscussion, titleProvider: provider };
     expect(searchItemFromDiscussion(discussion).provider).toBe(provider);
     expect(titleFromDiscussion(discussion).provider).toBe(provider);
+  });
+
+  it('preserves Google volume identity through recent selections and public reactions', () => {
+    const discussion = { ...bookDiscussion, titleProvider: 'GOOGLE_BOOKS', titleProviderId: 'opaque-volume' };
+    const selected = searchItemFromDiscussion(discussion);
+    for (const title of [titleFromSearch(selected, selected.titleId!), titleFromDiscussion(discussion)]) {
+      expect(buildOutboxPayload(bookLog(title), recordedAt).title).toMatchObject({
+        id: 'server-book-id',
+        payload: { provider: 'GOOGLE_BOOKS', providerId: 'opaque-volume' },
+      });
+    }
   });
 
   it.each([null, undefined, 'UNSUPPORTED'])('preserves fallback for provider %s', (provider) => {

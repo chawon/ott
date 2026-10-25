@@ -99,7 +99,8 @@ public class TitleService {
         }
         String trimmedName = (name == null || name.isBlank()) ? null : name.trim();
         TitleType resolvedType = (type == null)
-                ? (("NAVER".equalsIgnoreCase(provider) || "KAKAO".equalsIgnoreCase(provider)) ? TitleType.book : TitleType.movie)
+                ? (("NAVER".equalsIgnoreCase(provider) || "KAKAO".equalsIgnoreCase(provider)
+                    || "GOOGLE_BOOKS".equalsIgnoreCase(provider)) ? TitleType.book : TitleType.movie)
                 : type;
 
         var existing = titleRepository.resolveExternalTitle(provider, providerId, resolvedType, isbn10, isbn13);

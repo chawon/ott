@@ -32,6 +32,8 @@ import {
   upsertLogLocal,
 } from "@/lib/localStore";
 import { syncOutbox } from "@/lib/sync";
+import GoogleBooksAttribution from "@/components/GoogleBooksAttribution";
+import { googleBooksUrl } from "@/lib/googleBooks";
 import type {
   Comment,
   CreateCommentRequest,
@@ -593,7 +595,11 @@ export default function QuickLogCard({
       const now = new Date().toISOString();
       const existingTitle = selected.titleId
         ? null
-        : await findTitleByProvider(selected.provider, selected.providerId);
+        : await findTitleByProvider(
+            selected.provider,
+            selected.providerId,
+            selected,
+          );
       const logCountBeforeSave = await countLogsLocal();
       const newLocalTitleId =
         selected.titleId ?? existingTitle?.id ?? safeUUID();
@@ -1124,6 +1130,10 @@ export default function QuickLogCard({
                 </button>
               </div>
             </div>
+
+            {googleBooksUrl(selected) ? (
+              <GoogleBooksAttribution href={googleBooksUrl(selected)!} />
+            ) : null}
 
             {!localLogId ? (
               <div className="space-y-4 pt-4 pb-2 animate-in fade-in duration-300">

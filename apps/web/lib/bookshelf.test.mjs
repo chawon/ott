@@ -76,6 +76,24 @@ test("exposes the KDC bookshelf only to Korean locale", () => {
   assert.equal(isKdcBookshelfLocale("en"), false);
 });
 
+test("matches Google editions by ISBN metadata and treats volume IDs as opaque", () => {
+  assert.equal(
+    normalizeBookIsbn13({
+      provider: "GOOGLE_BOOKS",
+      providerId: "opaque-volume",
+      isbn13: "9788983921987",
+    }),
+    normalizeBookIsbn13({ provider: "KAKAO", providerId: "9788983921987" }),
+  );
+  assert.equal(
+    normalizeBookIsbn13({
+      provider: "GOOGLE_BOOKS",
+      providerId: "9788983921987",
+    }),
+    null,
+  );
+});
+
 test("keeps bookshelf groups in canonical KDC number order", () => {
   const shelf = buildBookshelf([]);
 

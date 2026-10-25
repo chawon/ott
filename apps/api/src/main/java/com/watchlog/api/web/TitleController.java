@@ -35,12 +35,16 @@ public class TitleController {
     public List<TitleSearchItemDto> search(
             @RequestParam("q") String q,
             @RequestParam(value = "type", required = false) String type,
-            @RequestHeader(value = HttpHeaders.ACCEPT_LANGUAGE, required = false) String language
+            @RequestHeader(value = HttpHeaders.ACCEPT_LANGUAGE, required = false) String language,
+            @RequestHeader(value = "X-Client-Platform", required = false) String platform,
+            @RequestHeader(value = "X-Book-Search-Capability", required = false) String bookSearchCapability
     ) {
         String normalized = type == null ? null : type.trim().toLowerCase();
 
         if ("book".equals(normalized)) {
-            return bookSearchService.search(q);
+            // Older native binaries cannot render Google's required search attribution and links.
+            boolean legacyNative = "ios_native".equals(platform) && !"google_books_v1".equals(bookSearchCapability);
+            return bookSearchService.search(q, legacyNative ? "ko" : language);
         }
 
         return tmdbClient.searchMulti(q, language).stream()
