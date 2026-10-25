@@ -41,6 +41,7 @@
 - `python3 apps/twa/scripts/test-watch-reminder-worker.py`: JDK 17 이상과 Python 3만으로 실제 Worker/Scheduler/Targets/Tracker를 컴파일·실행한다. Android API는 메모리 기반 test double이며 OS 실행 정책이나 실제 알림 UI를 검증하지 않는다.
 - `:app:testDebugUnitTest`: 사용시간 추적 회귀 테스트와 기존 시작 초기화 테스트.
 - PR의 `Build TWA Debug APK`에서 위 검증과 debug APK 빌드를 함께 실행한다.
+- 첫 CI run `40168056497`은 테스트 실행 전 SDK 설치 단계에서 기존 기본 패키지 `tools`를 찾지 못해 실패했다. Debug/Release/수동 AAB 워크플로우에 실제 사용하는 Android 36 platform/build-tools와 platform-tools를 명시했다.
 - 로컬 Gradle 테스트는 SDK `build-tools;36.0.0`/`platforms;android-36` 및 해당 라이선스 부재로 실행되지 않았다. Android SDK가 필요 없는 JDK/JUnit 경로에서 단위 테스트를 실행했다.
 - 루트 `npm run test`는 저장소에 해당 스크립트가 없어 실행할 수 없다. 이번 변경은 TWA 전용 검증을 사용한다.
 
