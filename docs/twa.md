@@ -21,6 +21,12 @@
 - 현재 사용한 최대 버전 코드는 production `1.0.18`의 `22`이므로 다음 Play 업데이트는 `versionCode=23` 이상으로 발행한다
 - 실제 AAB 빌드와 Play 업로드는 `.github/workflows/twa-release.yml`에서 수행하며, 로컬 WSL ARM 환경의 `aapt2` 호환 실패는 알려진 제약으로 CI 결과를 기준으로 판단한다
 
+## Play 자동 보호 최소 지원 버전 (2026-10-25)
+
+- 시청 기록 알림 수정 PR `#122`의 첫 production run `40168623901`에서 AAB 빌드와 검증은 통과했지만, Play 자동 보호가 `minSdk >= 24`를 요구해 업로드가 거부됐다.
+- 사용자가 Android 7.0(API 24) 이상 지원을 승인했다. Gradle과 Bubblewrap manifest의 최소 지원 버전을 24로 맞추며 자동 보호를 유지한다.
+- Android 6.0(API 23) 기기는 새 업데이트 대상에서 제외한다. 검증 및 배포 진행 상태는 `docs/android-watch-reminder-reliability.md`를 따른다.
+
 ## Android 활성화 2차 및 Play 권장 조치 대응 (2026-08-18)
 
 - 네이티브 `시청 기록 알림` 설정 화면 상단에는 현재 필요한 한 단계만 노출한다. 사용 정보 접근과 알림 권한은 navy 보조 액션으로 안내하고, 두 권한이 준비된 뒤에만 orange 최종 활성화 액션을 제공한다.
