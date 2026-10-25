@@ -73,6 +73,7 @@ Provider: 'TMDB' | 'LOCAL' | 'NAVER' | 'KAKAO' | 'GOOGLE_BOOKS'
 - 검색창 상단에 **[영상 / 책]** 토글(Tab) 배치
 - 책 모드: 포스터 비율 조정(세로 더 긴 비율), 연도 대신 출판일/저자 표시
 - 시즌/에피소드 입력 숨김, '플랫폼(OTT)' 라벨 → '구매처/소장' 변경
+- EN 도서의 구매처/독서 서비스는 Amazon, Bookshop.org, Kindle, Apple Books, Google Play Books, Kobo, Audible, Libby 등으로 제공한다. `shared/bookPlatforms.ts`의 공통 목록을 Web/Native 생성·수정 화면에서 사용한다. KO 도서와 영상 플랫폼 기본값은 유지하고 기존 한국 서비스명·직접 입력값은 변환하지 않는다.
 
 ### 로컬 동기화
 - `titleType=book` 로그 생성 요청도 Outbox 큐에 적재

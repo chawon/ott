@@ -6,6 +6,9 @@
 - `GET /api/titles/search?type=book`의 `Accept-Language`에서 지원 언어(`ko`, `en`)를 협상한다. `en`, `en-US`, `en-GB` 등 영어 선호이면 Google Books, 한국어·헤더 없음·잘못된 헤더는 기존 Kakao를 사용한다. 검색어의 문자나 사용자 국적은 판정에 사용하지 않는다.
 - 영상 검색, 한국어 KDC 서가, 기존 기록 내용과 기록 히스토리는 유지한다.
 - API 검색/저장/동기화와 Web/PWA/Android TWA의 도서 식별자 처리를 변경한다. 연결된 iOS 클라이언트의 새 제공자 처리도 코드와 회귀 테스트에 포함한다. iOS 바이너리 빌드·제출과 운영 배포는 별도 작업이다.
+- 사용자 후속 결정: **EN의 책 구매처·독서 서비스만** 국제 서비스로 조정한다. 영상 OTT·극장 및 한국어 기본 선택지는 유지한다. Web 기록 생성/수정과 Native 기록 생성/수정이 같은 EN 목록을 사용하도록 `shared/bookPlatforms.ts`에 목록을 둔다. 기존 한국 서비스명과 직접 입력값은 변환하거나 지우지 않고 그대로 저장·동기화한다.
+- EN 기본 선택지: Amazon, Bookshop.org, Local bookstore / Kindle, Apple Books, Google Play Books, Kobo / Audible / Libby, Public Library, University Library, School Library. 이는 기록용 선택지이며 서비스 지역·구독 권한을 판정하거나 구매를 연결하는 기능은 아니다.
+- CI 호환성: 첫 Native CI는 타입 검사와 42개 테스트를 통과한 뒤 Expo doctor의 기존 SDK 패치 차이(`expo 55.0.31→55.0.32`, `expo-sharing 55.0.24→55.0.25`)에서 멈췄다. SDK 55를 유지하고 두 직접 의존성과 이에 필요한 Expo 도구 종속성을 갱신했다. 로컬 Expo doctor 1.20.4의 20개 검사가 모두 통과했으며 실제 iOS 번들은 CI에서 검증한다. 두 직접 의존성의 upstream changelog는 사용자 동작 변경이 없다고 명시한다. iOS 바이너리 빌드/제출은 하지 않는다.
 
 ## API와 데이터 계약
 
@@ -49,6 +52,7 @@
 - `npm ci --ignore-scripts`로 잠금 파일에 맞춘 의존성을 별도 작업 폴더에 설치했다. Web 타입 검사와 Next.js 16.3.8 프로덕션 빌드, 도서/원문 링크 단위 테스트 11개가 통과했다. SWC 캐시의 샌드박스 권한 제한을 피하기 위해 빌드는 샌드박스 밖에서 실행했다.
 - Native 타입 검사와 전체 Jest 11 suite / 42개 테스트가 통과했다. 새 제공자의 직접 검색, 최근 작품, 공개 리액션, 오프라인 오류/재시도, push/pull의 식별자·수동 필드를 확인했다. iOS 실기기 검증과 바이너리 배포는 별도다.
 - Web 프로덕션 빌드를 로컬에서 실행해 실제 브라우저의 신규 Google 책/기존 Kakao ISBN 판본/ISBN 없는 책 3가지 시나리오를 검증했다. 영어 헤더·공식 출처/원문 링크, 오프라인 생성/수정, 실패한 push, 재시도, 서버 canonical ID remap, 메모·평점·시청일 보존, 타임라인 재조회와 모바일 가로 넘침 없음을 확인했다. 이 브라우저 검증은 mock API를 사용하며 운영 사용자 데이터는 쓰지 않는다.
+- EN 도서 플랫폼의 Kindle 선택값이 오프라인 생성/수정과 재시도·pull을 거쳐 유지됐다. 기존 `밀리의서재` 기록을 영어 상세 화면에서 메모만 수정해도 플랫폼·평점·날짜가 보존되는 것을 브라우저로 확인했다. Native sync 테스트도 Kindle과 기존 한국 서비스 문자열을 보존한다.
 - 제공된 개발 키로 **실제 구현된 GoogleBooksClient**에서 `Atomic Habits`, `Project Hail Mary`, `C++` 검색을 수행해 각각 10건(앱 반환 상한)의 메타데이터 변환을 확인했다. ISBN `9780140328721`은 정상 응답이지만 0건이었다. 검색원 추가가 모든 특정 원서의 수록을 보장하지는 않는다.
 - 루트 `npm run test`는 프로젝트에 해당 스크립트가 없어 실행할 수 없다. 실제 API/Web/Native 검증 명령을 사용했다.
 - 운영용 `GOOGLE_BOOKS_API_KEY`의 OCI Vault 등록은 사용자가 진행한다. 이후 ESO 동기화와 신규 Pod의 키 존재를 값 노출 없이 확인하고, API → Web 순서로 명시적 SHA 배포 및 영어/한국어 검색 확인이 필요하다. 이번 변경에서는 운영 키 등록이나 배포를 실행하지 않았다.

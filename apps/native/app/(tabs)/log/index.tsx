@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { EN_BOOK_PLATFORMS } from '../../../../../shared/bookPlatforms';
 import * as Sharing from 'expo-sharing';
 import {
   ActivityIndicator,
@@ -168,16 +169,18 @@ export default function LogScreen() {
     () => OCCASION_VALUES.map((value) => ({ value, label: occasionLabels[locale][value] })),
     [locale],
   );
-  const ottOptions = useMemo(
-    () => [...OTT_BASE_OPTIONS, copy.platformTheater, copy.platformLibrary],
-    [copy.platformLibrary, copy.platformTheater],
-  );
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<ContentFilter>('video');
   const [results, setResults] = useState<TitleSearchItem[]>([]);
   const [popular, setPopular] = useState<TitleSearchItem[]>([]);
   const [suggestionSources, setSuggestionSources] = useState<Record<string, TitleSelectSource>>({});
   const [selected, setSelected] = useState<TitleSearchItem | null>(null);
+  const ottOptions = useMemo(
+    () => locale === 'en' && (selected?.type === 'book' || (!selected && filter === 'book'))
+      ? EN_BOOK_PLATFORMS
+      : [...OTT_BASE_OPTIONS, copy.platformTheater, copy.platformLibrary],
+    [copy.platformLibrary, copy.platformTheater, filter, locale, selected],
+  );
   const [activeLog, setActiveLog] = useState<WatchLog | null>(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);

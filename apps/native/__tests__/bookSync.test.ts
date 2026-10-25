@@ -119,6 +119,7 @@ describe('book search and sync lifecycle', () => {
         status: 'DONE',
         rating: 4.5,
         note: '내가 입력한 메모',
+        ott: provider === 'GOOGLE_BOOKS' ? 'Kindle' : '밀리의서재',
         spoiler: false,
         watchedAt: '2026-10-01T03:00:00.000Z',
         createdAt: recordedAt,
@@ -169,6 +170,7 @@ describe('book search and sync lifecycle', () => {
       expect(storedLogs.get(log.id)).toMatchObject({
         title: { id: canonicalTitleId, provider, providerId: searchItem.providerId },
         status: 'DONE', rating: 4.5, note: '내가 입력한 메모',
+        ott: log.ott,
         watchedAt: '2026-10-01T03:00:00.000Z', syncStatus: 'synced',
       });
       expect(outbox).toHaveLength(0);

@@ -105,16 +105,20 @@ try {
             return route.abort();
           }
           const { changes } = request.postDataJSON();
-          const updatedAt = new Date(Date.now() + 1000).toISOString();
+          const updatedAt = new Date().toISOString();
           for (const change of changes.titles ?? []) {
             serverTitle = { ...change.payload, id: canonicalId, updatedAt };
           }
           for (const change of changes.logs ?? []) {
+            const previous = serverLogs.get(change.id);
             serverLogs.set(change.id, {
+              ...previous,
               ...change.payload,
               id: change.id,
               titleId: canonicalId,
-              createdAt: updatedAt,
+              watchedAt:
+                change.payload.watchedAt ?? previous?.watchedAt ?? updatedAt,
+              createdAt: previous?.createdAt ?? updatedAt,
               updatedAt,
             });
           }
@@ -131,7 +135,7 @@ try {
         if (path === "/api/sync/pull") {
           return route.fulfill({
             json: {
-              serverTime: new Date(Date.now() + 1000).toISOString(),
+              serverTime: new Date().toISOString(),
               changes: {
                 titles: serverTitle ? [serverTitle] : [],
                 logs: [...serverLogs.values()],
@@ -214,6 +218,22 @@ try {
         .getByPlaceholder("Keep a scene, line, or feeling you may want later.")
         .fill("My own book note");
       await page.locator('select:has(option[value="5"])').selectOption("5");
+      const platforms = page.locator('select:has(option[value="Kindle"])');
+      const choices = await platforms
+        .locator("optgroup option")
+        .allTextContents();
+      for (const value of [
+        "Kindle",
+        "Apple Books",
+        "Google Play Books",
+        "Kobo",
+        "Audible",
+        "Libby",
+      ])
+        assert.ok(choices.includes(value));
+      for (const value of ["Kyobo", "Ridi", "Millie", "TVING"])
+        assert.ok(!choices.includes(value));
+      await platforms.selectOption("Kindle");
       await page
         .getByRole("button", { name: "Keep This Log", exact: true })
         .click();
@@ -231,6 +251,7 @@ try {
       assert.equal(offline.logs[0].title.providerId, selected.providerId);
       assert.equal(offline.logs[0].title.isbn13 ?? null, isbn);
       assert.equal(offline.logs[0].rating, 5);
+      assert.equal(offline.logs[0].ott, "Kindle");
 
       await context.setOffline(false);
       await waitForSnapshot(page, (state) =>
@@ -248,11 +269,40 @@ try {
       assert.equal(synced.titles.length, 1);
       assert.equal(synced.logs[0].title.provider, "GOOGLE_BOOKS");
       assert.equal(synced.logs[0].title.providerId, selected.providerId);
-      for (const field of ["note", "rating", "status", "watchedAt"])
+      for (const field of ["note", "rating", "status", "watchedAt", "ott"])
         assert.equal(synced.logs[0][field], offline.logs[0][field]);
       await page.goto(new URL("/en/timeline", baseUrl).href);
       await page.getByRole("link", { name: /^Atomic Habits/ }).waitFor();
       assert.equal((await snapshot(page)).logs[0].titleId, canonicalId);
+      if (scenario === "existing-kakao-edition") {
+        const logId = synced.logs[0].id;
+        const legacyPlatform = "밀리의서재";
+        serverLogs.set(logId, {
+          ...serverLogs.get(logId),
+          ott: legacyPlatform,
+        });
+        await page.goto(new URL(`/en/title/${canonicalId}`, baseUrl).href);
+        await page.locator('select:has(option[value="Kindle"])').waitFor();
+        const legacyInput = page.locator(`input[value="${legacyPlatform}"]`);
+        await legacyInput.waitFor();
+        assert.equal(await legacyInput.inputValue(), legacyPlatform);
+        await page
+          .getByRole("textbox", { name: "Note", exact: true })
+          .fill("Legacy platform preserved");
+        await page.getByRole("button", { name: "Update", exact: true }).click();
+        const updated = await waitForSnapshot(
+          page,
+          (state) =>
+            state.logs[0]?.note === "Legacy platform preserved" &&
+            state.outbox.length === 0,
+        );
+        assert.equal(updated.logs[0].ott, legacyPlatform);
+        assert.equal(updated.logs[0].rating, 5);
+        assert.equal(updated.logs[0].watchedAt, synced.logs[0].watchedAt);
+        console.log(
+          "PASS legacy platform: existing Korean value survives English detail editing",
+        );
+      }
       assert.equal(
         await page.evaluate(
           () => document.documentElement.scrollWidth <= innerWidth,
