@@ -42,7 +42,7 @@
 | [[pwa]] | 로컬 우선 아키텍처 기반 설치형 웹앱, Service Worker 및 오프라인 지원 포함 |
 | [[native]] | App Store 출시된 Expo iOS 앱, 카카오 호환 `1.0.4 (24)` TestFlight 배포·App Store 심사 접수 완료 |
 | [[toss-inapp]] | 앱인토스 WebView 미니앱 — 2026-05-18 승인 및 출시 완료, 표시명 `내 OTT 타임라인`, 공유는 텍스트 |
-| [[twa]] | Android 현재 배포 경로인 Bubblewrap TWA, Google Play production `1.0.13` 및 Web 기반 Play 유입·알림 설정 활성화 운영, APK/AAB는 GitHub Actions 기준 |
+| [[twa]] | Android 7.0 이상 Bubblewrap TWA, Google Play production `1.0.19 (23)`, 시청 기록 알림 감지 누락 복구 및 Play 자동 보호 유지, APK/AAB는 GitHub Actions 기준 |
 
 ## Processes
 

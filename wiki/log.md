@@ -1,5 +1,15 @@
 # Wiki Log
 
+## [2026-10-25] fix: Android 시청 기록 알림 복구 production 등록
+
+- PR `#122`·`#123`, source SHA `2bbff18256dffd7078e61fbfe44c2a23433d3031`, release run `40169071221`.
+- 감지 주기 사이에 버려지던 사용시간을 누적하고 일별 통계 구간을 분리했으며, 통계 조회 공백과 알림 실패에도 재시도 상태를 유지한다.
+- 첫 업로드는 Play 자동 보호의 API 24 요건으로 거부됐다. 사용자 승인 후 최소 Android 7.0(API 24)으로 올리고 자동 보호를 유지했다.
+- 감지 시나리오 22건, 단위 테스트 17건, 서명 AAB·R8 분석·WorkManager 생성자/브랜드 자산 검증을 통과했다.
+- 새 Play edit `09339353177853118628`에서 production `1.0.19 (23)`/`completed`/100%를 재조회했다. CI AAB와 Play versionCode 23의 SHA-256 `6bf3b47dc4a0964ef062f534e61cf9eefdb20662fe0ee312cdf1b9561d73ddcb`가 일치했다.
+- 실제 기기 업데이트·알림 표시·QuickLog 진입은 후속 확인한다.
+- 문서: AGENTS.md, docs/android-watch-reminder-reliability.md, docs/twa.md, pages/platforms/twa.md, index.md, log.md.
+
 ## [2026-10-14] update: iOS 1.0.4 App Store 심사 접수
 
 - 사용자가 TestFlight에 배포한 동일 빌드 `1.0.4 (24)`의 App Store 심사를 제출했다.

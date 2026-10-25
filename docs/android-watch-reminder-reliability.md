@@ -17,15 +17,30 @@
 ## 상태
 
 - PR `#122`, main SHA `a294cbf7e3accee3626970bf21e604ccf8639df5`로 알림 수정을 병합했다. Android CI run `40168129880`에서 감지 흐름 22건, 단위 테스트 및 debug APK 빌드가 통과했다.
-- 첫 production release run `40168623901`은 서명 AAB 빌드·단위 테스트·R8 분석·WorkManager 생성자/브랜드 자산 검증을 통과했지만 Play 업로드에서 거부됐다. production 배포 완료 상태가 아니다.
+- PR `#123`으로 API 24 호환 요건을 반영한 source SHA `2bbff18256dffd7078e61fbfe44c2a23433d3031`을 release run `40169071221`로 배포했다. 새 Play 조회 세션에서 production `1.0.19`/`23`/`completed`, 전체 배포 등록을 확인했다.
+- 첫 production release run `40168623901`의 업로드 거부는 아래 API 24 변경으로 해소했다. 실제 기기의 알림 수신과 스토어 업데이트 노출은 아직 직접 확인하지 않았다.
 
 ## Play 자동 보호 호환 요건 결정
 
 - Play 업로드 오류: `Play automatic protection requires a minimum SDK version of 24 or higher`이며 기존 앱은 `minSdk=23`이었다.
 - `2026-10-25` 사용자가 권장안인 Android 7.0(API 24) 이상 지원으로 변경하고 배포하는 방안을 승인했다.
-- 구현 범위: `apps/twa/app/build.gradle`의 `minSdk`와 `apps/twa/twa-manifest.json`의 `minSdkVersion`을 `24`로 맞춘다. 자동 보호를 유지하며 Android 6.0(API 23)은 새 업데이트 대상에서 제외한다.
-- 검증: 별도 PR에서 감지 회귀 테스트·Android 단위 테스트·APK 빌드를 확인한 뒤 production 릴리스 빌드 및 Play 등록을 재시도한다.
+- 적용: `apps/twa/app/build.gradle`의 `minSdk`와 `apps/twa/twa-manifest.json`의 `minSdkVersion`을 `24`로 맞췄다. 자동 보호를 유지하며 Android 6.0(API 23)은 새 업데이트 대상에서 제외한다.
+- 검증: PR `#123` CI run `40168892187`의 감지 회귀 테스트·Android 단위 테스트·APK 빌드와 production run `40169071221`의 릴리스 빌드 및 Play 등록을 통과했다.
 - 근거: [Google Play 자동 보호 요건](https://support.google.com/googleplay/android-developer/answer/10183279?hl=en-GB).
+
+## 배포 확인 (2026-10-25)
+
+| 항목 | 확인값 |
+|---|---|
+| 소스 | `2bbff18256dffd7078e61fbfe44c2a23433d3031` (PR `#122`·`#123` 병합) |
+| 릴리스 | [GitHub Actions 40169071221](https://github.com/chawon/ott/actions/runs/40169071221), 모든 단계 성공 |
+| Google Play | production `1.0.19`, `versionCode=23`, `status=completed`, 전체 배포 |
+| 별도 조회 세션 | `09339353177853118628` |
+| 서명 AAB SHA-256 | `6bf3b47dc4a0964ef062f534e61cf9eefdb20662fe0ee312cdf1b9561d73ddcb` |
+| 파일 일치 | CI artifact `ottline-release-aab`를 내려받아 Play bundles API의 versionCode 23 해시와 대조해 일치 확인 |
+| 후속 | 실제 기기 업데이트·알림 표시·QuickLog 진입 확인 |
+
+기존 beta `1.0.18 (22)`, alpha `1.0.9 (13)`, internal `1.0.14 (18)`은 유지했다. 다음 업로드는 `versionCode >= 24`를 사용한다.
 
 ## 재현된 코드 문제
 
@@ -49,6 +64,7 @@
 
 - `python3 apps/twa/scripts/test-watch-reminder-worker.py`: JDK 17 이상과 Python 3만으로 실제 Worker/Scheduler/Targets/Tracker를 컴파일·실행한다. Android API는 메모리 기반 test double이며 OS 실행 정책이나 실제 알림 UI를 검증하지 않는다.
 - `:app:testDebugUnitTest`: 사용시간 추적 회귀 테스트와 기존 시작 초기화 테스트.
+- 사용시간/초기화 단위 테스트 17건과 실제 Worker를 실행하는 22개 감지 시나리오가 통과했다. API 24 변경 후 CI `40168892187`에서도 단위 테스트와 감지 시나리오, APK 빌드를 다시 통과했다.
 - PR의 `Build TWA Debug APK`에서 위 검증과 debug APK 빌드를 함께 실행한다.
 - 첫 CI run `40168056497`은 테스트 실행 전 SDK 설치 단계에서 기존 기본 패키지 `tools`를 찾지 못해 실패했다. Debug/Release/수동 AAB 워크플로우에 실제 사용하는 Android 36 platform/build-tools와 platform-tools를 명시했다.
 - 로컬 Gradle 테스트는 SDK `build-tools;36.0.0`/`platforms;android-36` 및 해당 라이선스 부재로 실행되지 않았다. Android SDK가 필요 없는 JDK/JUnit 경로에서 단위 테스트를 실행했다.

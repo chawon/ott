@@ -14,18 +14,20 @@
 - `2026-08-19` Play Vitals의 `WorkDatabase_Impl` 기본 생성자 누락 스택을 기준으로 WorkManager Room 구현 생성자를 보존하고 실제 release DEX를 검사하는 회귀 방지 게이트를 PR `#98`로 반영했다. beta `1.0.17` (`versionCode=21`)을 같은 SM-S937N/Android 16에서 정상 실행한 뒤 Google Play production에 `completed`, 100%로 승격했다.
 - `2026-08-20` 최초 TWA 생성 때의 옛 splash 자산을 현재 ottline 로고로 교체하고 AAB의 실제 PNG 픽셀을 검사하는 게이트를 PR `#100`으로 반영했다. release run `32335236662`로 beta `1.0.18` (`versionCode=22`)을 배포하고 실제 Play beta 설치본에서 현재 로고 splash와 정상 실행을 확인한 뒤, 동일 번들을 production에 `completed`, 100%로 승격했다.
 
+- `2026-10-25` 시청 기록 알림 감지 누락을 PR `#122`로 수정하고, 사용자 승인 후 PR `#123`으로 Play 자동 보호 요구사항인 최소 Android 7.0(API 24)을 반영했다. source SHA `2bbff18256dffd7078e61fbfe44c2a23433d3031`, release run `40169071221`로 production `1.0.19` (`versionCode=23`, `completed`, 100%) 등록을 확인했다. 내려받은 CI AAB와 Play bundles API의 SHA-256도 일치했다. 실기기 알림 수신은 후속 확인한다.
+
 ## Android 16 대상 API 대응 (2026-07-22)
 
 - Google Play 정책에 따라 2026-08-31부터 일반 Android 신규 앱과 업데이트 제출은 Android 16 (API 수준 36) 이상을 대상으로 해야 함
 - `apps/twa/app/build.gradle`의 `compileSdk`와 `targetSdk`를 모두 `36`으로 유지한다
-- 현재 사용한 최대 버전 코드는 production `1.0.18`의 `22`이므로 다음 Play 업데이트는 `versionCode=23` 이상으로 발행한다
+- 현재 사용한 최대 버전 코드는 production `1.0.19`의 `23`이므로 다음 Play 업데이트는 `versionCode=24` 이상으로 발행한다
 - 실제 AAB 빌드와 Play 업로드는 `.github/workflows/twa-release.yml`에서 수행하며, 로컬 WSL ARM 환경의 `aapt2` 호환 실패는 알려진 제약으로 CI 결과를 기준으로 판단한다
 
 ## Play 자동 보호 최소 지원 버전 (2026-10-25)
 
 - 시청 기록 알림 수정 PR `#122`의 첫 production run `40168623901`에서 AAB 빌드와 검증은 통과했지만, Play 자동 보호가 `minSdk >= 24`를 요구해 업로드가 거부됐다.
-- 사용자가 Android 7.0(API 24) 이상 지원을 승인했다. Gradle과 Bubblewrap manifest의 최소 지원 버전을 24로 맞추며 자동 보호를 유지한다.
-- Android 6.0(API 23) 기기는 새 업데이트 대상에서 제외한다. 검증 및 배포 진행 상태는 `docs/android-watch-reminder-reliability.md`를 따른다.
+- 사용자가 Android 7.0(API 24) 이상 지원을 승인했다. PR `#123`으로 Gradle과 Bubblewrap manifest의 최소 지원 버전을 24로 맞췄으며 자동 보호를 유지한다.
+- Android 6.0(API 23) 기기는 새 업데이트 대상에서 제외한다. release run `40169071221`로 production `1.0.19 (23)` 등록까지 완료했다. 검증과 실기기 확인 항목은 `docs/android-watch-reminder-reliability.md`를 따른다.
 
 ## Android 활성화 2차 및 Play 권장 조치 대응 (2026-08-18)
 
