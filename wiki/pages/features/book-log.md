@@ -11,7 +11,7 @@
 
 ## 목표
 
-기존 OTT 시청 기록(`movie`, `series`) 흐름에 **책(`book`) 기록**을 통합. 한국어는 Kakao, 영어는 Google Books를 활용하며, 기존 시스템 아키텍처(Spring Boot + Next.js + Local-first)를 유지한다. Google Books 추가의 운영 배포 상태는 [구현·검증 문서](../../../docs/google-books-en-search.md)를 따른다.
+기존 OTT 시청 기록(`movie`, `series`) 흐름에 **책(`book`) 기록**을 통합. 한국어는 Kakao, 영어는 Google Books를 활용하며, 기존 시스템 아키텍처(Spring Boot + Next.js + Local-first)를 유지한다. Google Books 검색과 EN 책 구매처·독서 서비스는 `2026-10-26` API/Web 운영에 반영했다. 현재 iOS 바이너리는 Kakao를 유지한다. 계약과 검증 범위는 [구현·검증 문서](../../../docs/google-books-en-search.md)를 따른다.
 
 ---
 
@@ -82,8 +82,19 @@ Provider: 'TMDB' | 'LOCAL' | 'NAVER' | 'KAKAO' | 'GOOGLE_BOOKS'
 
 ---
 
+## 운영 반영
+
+- `2026-10-26` PR `#124`, API/Web SHA `98417a9f22079e17650b6f1d2dfd2c022c5afd30`.
+- API production run `40252251489` → 실제 검색 확인 → Web production run `40252514676` 순서로 배포했다. PR/main API·Web·Native CI와 두 배포 워크플로우가 모두 성공했다.
+- OCI Vault → 별도 `ott-google-books-secrets` 동기화와 API Pod의 키 존재를 값 노출 없이 확인했다. ArgoCD `Synced Healthy`, API/Web `APP_VERSION=98417a9`, 두 Pod ready·restart 0이었다.
+- 운영 API와 Web 프록시의 검색 14건에서 언어·기존/신규 iOS 분기, 제공자·원문 링크와 HTTP 200을 확인했다. 공식 출처 PNG와 실제 Web 번들의 EN 책 서비스 목록도 확인했다. 운영 사용자 기록은 생성·수정하지 않았다.
+- iOS 바이너리 빌드·TestFlight/App Store 배포는 진행하지 않았다. 새 capability와 출처 표시를 지원하는 다음 바이너리부터 영어 Google 검색을 사용한다.
+
+---
+
 ## 리스크
 
 - 카카오 검색에는 KDC 분류가 없으므로 기존 도서관 정보나루 분류 경로를 유지한다.
 - 이미 저장된 중복 책 ID를 일괄 병합하지 않는다.
 - 전환 절차와 배포 검증: [카카오 책 검색 전환](../../../docs/kakao-book-search.md)
+- 영어 확장 계약과 배포 검증: [Google Books 영어 검색](../../../docs/google-books-en-search.md)

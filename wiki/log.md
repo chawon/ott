@@ -1,5 +1,16 @@
 # Wiki Log
 
+## [2026-10-26] feat: 영어 Google Books 검색·독서 서비스 운영 배포
+
+- PR `#124`, API/Web SHA `98417a9f22079e17650b6f1d2dfd2c022c5afd30`.
+- API production `40252251489` → 운영 검색 검증 → Web production `40252514676`; manifest commit `f043d76f0b0d9d9872011962abd2441e0be8ae26` / `dc3b3471988c0f209dcb702cc3a35b61120285ba`.
+- 영어 도서 검색은 Google Books, 한국어는 Kakao를 사용하고 같은 ISBN 판본의 기존 NAVER/KAKAO/GOOGLE_BOOKS 식별자와 기록을 보존한다.
+- EN 책 구매처·독서 서비스를 Kindle, Apple Books, Kobo, Audible, Libby 등으로 제공한다. KO·영상 기본값과 기존 한국 서비스명·직접 입력값은 유지한다.
+- PR/main API·Web·Native CI, 별도 Google Books ExternalSecret의 `SecretSynced`, ArgoCD `Synced Healthy`, API/Web `APP_VERSION=98417a9`, 두 Pod `1/1` ready·restart 0을 확인했다.
+- 실제 API·Web 프록시 검색 14건에서 언어·iOS capability 분기와 HTTP 200을 확인하고 공식 출처 이미지, 배포 번들의 EN 서비스 목록과 공개 버전 응답을 확인했다. 운영 기록은 생성·수정하지 않았다.
+- 현재 iOS 바이너리는 Kakao를 유지하며 TestFlight/App Store 바이너리 배포는 진행하지 않았다.
+- 문서: AGENTS.md, docs/google-books-en-search.md, pages/features/book-log.md, index.md, log.md.
+
 ## [2026-10-25] fix: Android 시청 기록 알림 복구 production 등록
 
 - PR `#122`·`#123`, source SHA `2bbff18256dffd7078e61fbfe44c2a23433d3031`, release run `40169071221`.

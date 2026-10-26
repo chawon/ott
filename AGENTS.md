@@ -75,6 +75,8 @@ If present, read `./.omd/preferences.md` — pending corrections not yet folded 
 
 40. Android 시청 기록 알림 누락 복구: 여러 감지 주기의 미알림 사용시간을 누적하고 일별 통계 구간을 분리하며, 일시적으로 비는 통계와 알림 실패에도 재시도 상태를 유지한다. PR `#122`·`#123`, source SHA `2bbff18256dffd7078e61fbfe44c2a23433d3031`, release run `40169071221`로 `2026-10-25` Google Play production `1.0.19` (`versionCode=23`, `completed`, 100%) 등록과 AAB 해시 일치를 확인했다. 최소 Android 7.0(API 24)이며 실기기 알림 수신 확인은 별도다. 상세는 `docs/android-watch-reminder-reliability.md`를 따른다.
 
+41. EN 도서 검색·독서 서비스 국제화: 영어 도서 검색을 Google Books로 분기하고 EN 책 구매처·독서 서비스를 Kindle, Apple Books, Kobo, Audible, Libby 등으로 제공한다. KO Kakao 검색, 같은 ISBN 판본의 기존 식별자·기록과 직접 입력 플랫폼을 보존하며 영상 기본값은 유지한다. `2026-10-26` PR `#124`, API/Web SHA `98417a9`, production run `40252251489`/`40252514676`으로 배포했다. 별도 `ott-google-books-secrets`의 `SecretSynced`, ArgoCD `Synced Healthy`, 두 Pod `1/1` ready·restart 0, 실제 API·Web 프록시 검색 14건의 HTTP 200과 공식 출처 이미지를 확인했다. 현재 iOS 바이너리는 Kakao를 유지하고 다음 capability 지원 바이너리부터 Google 검색을 사용한다. 상세는 `docs/google-books-en-search.md`를 따른다.
+
 ### 제품 방향
 1. 추천 기능은 현재 범위에서 제외한다.
 2. 기록 가치(회상, 공유, 재방문)를 높이는 기능에 집중한다.
