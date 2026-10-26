@@ -49,12 +49,12 @@
 ## 검증 결과와 배포 상태
 
 - 구현과 로컬 검증 완료. 운영 배포는 하지 않았다. PR CI 검증 상태는 PR에 기록한다.
-- API `./gradlew test bootJar --no-daemon`: 101개 중 62개 통과, Docker가 필요한 PostgreSQL 통합 테스트 39개는 skip. Mockito attach 제한 때문에 동일 명령을 샌드박스 밖에서 실행했다. PR CI에서는 Docker를 사용해 skip 없이 검증한다.
+- API `./gradlew test bootJar --no-daemon`: 로컬에서는 101개 중 62개 통과, Docker가 필요한 PostgreSQL 통합 테스트 39개는 skip. Mockito attach 제한 때문에 동일 명령을 샌드박스 밖에서 실행했다. [PR API CI](https://github.com/chawon/ott/actions/runs/40181522010)는 실제 PostgreSQL 테스트 실행 게이트와 API 컨테이너 검증까지 통과했다.
 - `npm ci --ignore-scripts`로 잠금 파일에 맞춘 의존성을 별도 작업 폴더에 설치했다. Web 타입 검사와 Next.js 16.3.8 프로덕션 빌드, 도서/원문 링크 단위 테스트 11개가 통과했다. SWC 캐시의 샌드박스 권한 제한을 피하기 위해 빌드는 샌드박스 밖에서 실행했다.
 - Native 타입 검사와 전체 Jest 11 suite / 42개 테스트가 통과했다. 새 제공자의 직접 검색, 최근 작품, 공개 리액션, 오프라인 오류/재시도, push/pull의 식별자·수동 필드를 확인했다. iOS 실기기 검증과 바이너리 배포는 별도다.
 - Web 프로덕션 빌드를 로컬에서 실행해 실제 브라우저의 신규 Google 책/기존 Kakao ISBN 판본/ISBN 없는 책 3가지 시나리오를 검증했다. 영어 헤더·공식 출처/원문 링크, 오프라인 생성/수정, 실패한 push, 재시도, 서버 canonical ID remap, 메모·평점·시청일 보존, 타임라인 재조회와 모바일 가로 넘침 없음을 확인했다. 이 브라우저 검증은 mock API를 사용하며 운영 사용자 데이터는 쓰지 않는다.
-- EN 도서 플랫폼의 Kindle 선택값이 오프라인 생성/수정과 재시도·pull을 거쳐 유지됐다. 기존 `밀리의서재` 기록을 영어 상세 화면에서 메모만 수정해도 플랫폼·평점·날짜가 보존되는 것을 브라우저로 확인했다. Native sync 테스트도 Kindle과 기존 한국 서비스 문자열을 보존한다.
-- 로컬 `expo export --platform ios --no-bytecode`는 공통 도서 플랫폼 모듈과 공식 출처 PNG를 포함해 1,303개 모듈의 JS 번들을 생성했다. 이는 JS/자산 검증이며 Hermes bytecode와 iOS 바이너리 검증을 대신하지 않는다. CI는 bytecode를 포함한 기본 export를 실행한다.
+- EN 도서 플랫폼의 Kindle 선택값이 오프라인 생성/수정과 재시도·pull을 거쳐 유지됐다. 기존 `밀리의서재` 기록을 영어 상세 화면에서 메모만 수정해도 플랫폼·평점·날짜가 보존되는 것을 브라우저로 확인했다. 이 테스트의 서버 fixture 수정은 실제 수정처럼 `updatedAt`을 갱신하고 로컬 캐시에 동기화된 뒤 편집 화면을 연다. Native sync 테스트도 Kindle과 기존 한국 서비스 문자열을 보존한다.
+- 로컬 `expo export --platform ios --no-bytecode`는 공통 도서 플랫폼 모듈과 공식 출처 PNG를 포함해 1,303개 모듈의 JS 번들을 생성했다. [Native CI](https://github.com/chawon/ott/actions/runs/40181522073)는 타입 검사, 전체 Jest, Expo doctor와 bytecode를 포함한 기본 iOS export까지 통과했다. iOS 바이너리 빌드와 실기기 검증은 별도다.
 - 제공된 개발 키로 **실제 구현된 GoogleBooksClient**에서 `Atomic Habits`, `Project Hail Mary`, `C++` 검색을 수행해 각각 10건(앱 반환 상한)의 메타데이터 변환을 확인했다. ISBN `9780140328721`은 정상 응답이지만 0건이었다. 검색원 추가가 모든 특정 원서의 수록을 보장하지는 않는다.
 - 루트 `npm run test`는 프로젝트에 해당 스크립트가 없어 실행할 수 없다. 실제 API/Web/Native 검증 명령을 사용했다.
 - 운영용 `GOOGLE_BOOKS_API_KEY`의 OCI Vault 등록은 사용자가 진행한다. 이후 ESO 동기화와 신규 Pod의 키 존재를 값 노출 없이 확인하고, API → Web 순서로 명시적 SHA 배포 및 영어/한국어 검색 확인이 필요하다. 이번 변경에서는 운영 키 등록이나 배포를 실행하지 않았다.

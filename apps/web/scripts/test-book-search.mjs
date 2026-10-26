@@ -280,7 +280,16 @@ try {
         serverLogs.set(logId, {
           ...serverLogs.get(logId),
           ott: legacyPlatform,
+          updatedAt: new Date().toISOString(),
         });
+        // Pull the legacy fixture before opening the editor so its local-first
+        // cache and server response describe the same existing record.
+        await page.evaluate(() => window.dispatchEvent(new Event("online")));
+        await waitForSnapshot(
+          page,
+          (state) =>
+            state.logs[0]?.ott === legacyPlatform && state.outbox.length === 0,
+        );
         await page.goto(new URL(`/en/title/${canonicalId}`, baseUrl).href);
         await page.locator('select:has(option[value="Kindle"])').waitFor();
         const legacyInput = page.locator(`input[value="${legacyPlatform}"]`);
