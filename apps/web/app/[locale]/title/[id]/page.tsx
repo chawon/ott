@@ -1,4 +1,5 @@
 "use client";
+import { EN_BOOK_PLATFORM_GROUPS } from "../../../../../../shared/bookPlatforms";
 
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -272,35 +273,37 @@ export default function TitlePage() {
 
   const bookPlatformGroups = useMemo(
     () =>
-      [
-        {
-          label: tQuick("groupBookstore"),
-          options: [
-            tQuick("platformKyobo"),
-            tQuick("platformYeongpung"),
-            tQuick("platformYes24"),
-            tQuick("platformAladin"),
-          ],
-        },
-        {
-          label: tQuick("groupEbook"),
-          options: [
-            tQuick("platformRidi"),
-            tQuick("platformMillie"),
-            tQuick("platformWilla"),
-            tQuick("platformPlaybook"),
-          ],
-        },
-        {
-          label: tQuick("groupLibrary"),
-          options: [
-            tQuick("platformPublicLib"),
-            tQuick("platformUnivLib"),
-            tQuick("platformSchoolLib"),
-          ],
-        },
-      ] as const,
-    [tQuick],
+      locale === "en"
+        ? EN_BOOK_PLATFORM_GROUPS
+        : ([
+            {
+              label: tQuick("groupBookstore"),
+              options: [
+                tQuick("platformKyobo"),
+                tQuick("platformYeongpung"),
+                tQuick("platformYes24"),
+                tQuick("platformAladin"),
+              ],
+            },
+            {
+              label: tQuick("groupEbook"),
+              options: [
+                tQuick("platformRidi"),
+                tQuick("platformMillie"),
+                tQuick("platformWilla"),
+                tQuick("platformPlaybook"),
+              ],
+            },
+            {
+              label: tQuick("groupLibrary"),
+              options: [
+                tQuick("platformPublicLib"),
+                tQuick("platformUnivLib"),
+                tQuick("platformSchoolLib"),
+              ],
+            },
+          ] as const),
+    [locale, tQuick],
   );
 
   const platformOptions = useMemo(
@@ -1132,4 +1135,3 @@ export default function TitlePage() {
     </div>
   );
 }
-

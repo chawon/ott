@@ -17,6 +17,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import TitleSearchBox from "@/components/TitleSearchBox";
 import { Link as IntlLink } from "@/i18n/routing";
+import { EN_BOOK_PLATFORM_GROUPS } from "../../../shared/bookPlatforms";
 import {
   clearCuratedAttribution,
   readCuratedAttribution,
@@ -32,6 +33,8 @@ import {
   upsertLogLocal,
 } from "@/lib/localStore";
 import { syncOutbox } from "@/lib/sync";
+import GoogleBooksAttribution from "@/components/GoogleBooksAttribution";
+import { googleBooksUrl } from "@/lib/googleBooks";
 import type {
   Comment,
   CreateCommentRequest,
@@ -265,35 +268,37 @@ export default function QuickLogCard({
 
   const bookPlatformGroups = useMemo(
     () =>
-      [
-        {
-          label: tQuick("groupBookstore"),
-          options: [
-            tQuick("platformKyobo"),
-            tQuick("platformYeongpung"),
-            tQuick("platformYes24"),
-            tQuick("platformAladin"),
-          ],
-        },
-        {
-          label: tQuick("groupEbook"),
-          options: [
-            tQuick("platformRidi"),
-            tQuick("platformMillie"),
-            tQuick("platformWilla"),
-            tQuick("platformPlaybook"),
-          ],
-        },
-        {
-          label: tQuick("groupLibrary"),
-          options: [
-            tQuick("platformPublicLib"),
-            tQuick("platformUnivLib"),
-            tQuick("platformSchoolLib"),
-          ],
-        },
-      ] as const,
-    [tQuick],
+      locale === "en"
+        ? EN_BOOK_PLATFORM_GROUPS
+        : ([
+            {
+              label: tQuick("groupBookstore"),
+              options: [
+                tQuick("platformKyobo"),
+                tQuick("platformYeongpung"),
+                tQuick("platformYes24"),
+                tQuick("platformAladin"),
+              ],
+            },
+            {
+              label: tQuick("groupEbook"),
+              options: [
+                tQuick("platformRidi"),
+                tQuick("platformMillie"),
+                tQuick("platformWilla"),
+                tQuick("platformPlaybook"),
+              ],
+            },
+            {
+              label: tQuick("groupLibrary"),
+              options: [
+                tQuick("platformPublicLib"),
+                tQuick("platformUnivLib"),
+                tQuick("platformSchoolLib"),
+              ],
+            },
+          ] as const),
+    [locale, tQuick],
   );
 
   const platformOptions = useMemo(
@@ -593,7 +598,11 @@ export default function QuickLogCard({
       const now = new Date().toISOString();
       const existingTitle = selected.titleId
         ? null
-        : await findTitleByProvider(selected.provider, selected.providerId);
+        : await findTitleByProvider(
+            selected.provider,
+            selected.providerId,
+            selected,
+          );
       const logCountBeforeSave = await countLogsLocal();
       const newLocalTitleId =
         selected.titleId ?? existingTitle?.id ?? safeUUID();
@@ -1124,6 +1133,10 @@ export default function QuickLogCard({
                 </button>
               </div>
             </div>
+
+            {googleBooksUrl(selected) ? (
+              <GoogleBooksAttribution href={googleBooksUrl(selected)!} />
+            ) : null}
 
             {!localLogId ? (
               <div className="space-y-4 pt-4 pb-2 animate-in fade-in duration-300">

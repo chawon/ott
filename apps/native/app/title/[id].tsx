@@ -1,6 +1,7 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import * as Sharing from 'expo-sharing';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { EN_BOOK_PLATFORMS } from '../../../../shared/bookPlatforms';
 import {
   ActivityIndicator,
   Alert,
@@ -607,7 +608,7 @@ export default function TitleDetailScreen() {
                       style={styles.input}
                     />
                     <View style={styles.statusRow}>
-                      {(log.title.type === 'book' ? BOOK_PLATFORMS : VIDEO_PLATFORMS).map((item) => (
+                      {(log.title.type === 'book' ? (locale === 'en' ? EN_BOOK_PLATFORMS : BOOK_PLATFORMS) : VIDEO_PLATFORMS).map((item) => (
                         <Pressable
                           key={item}
                           onPress={() => updateDraft({ ott: draft.ott === item ? '' : item })}

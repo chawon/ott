@@ -15,12 +15,20 @@ public record TitleSearchItemDto(
         String isbn10,
         String isbn13,
         String pubdate,
-        java.util.UUID titleId
+        java.util.UUID titleId,
+        String sourceUrl
 ) {
+    public TitleSearchItemDto(String provider, String providerId, TitleType type, String name, Integer year,
+                              String posterUrl, String overview, String author, String publisher,
+                              String isbn10, String isbn13, String pubdate, java.util.UUID titleId) {
+        this(provider, providerId, type, name, year, posterUrl, overview, author, publisher,
+                isbn10, isbn13, pubdate, titleId, null);
+    }
+
     public TitleSearchItemDto(String provider, String providerId, TitleType type, String name, Integer year,
                               String posterUrl, String overview, String author, String publisher,
                               String isbn10, String isbn13, String pubdate) {
         this(provider, providerId, type, name, year, posterUrl, overview, author, publisher,
-                isbn10, isbn13, pubdate, null);
+                isbn10, isbn13, pubdate, null, null);
     }
 }

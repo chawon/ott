@@ -47,6 +47,9 @@ jobs:
       - name: Test analytics collection
         run: npm run test:analytics --workspace ott
 
+      - name: Test book edition identity and source links
+        run: npm run test:bookshelf --workspace ott
+
       - name: Test administrator access boundary
         run: npm run test:admin-access --workspace ott
 
@@ -95,3 +98,4 @@ jobs:
           TIMELINE_TEST_URL=http://127.0.0.1:3000 npm run test:timeline-scroll --workspace ott
           WEB_STORAGE_PROFILE_DIR=/tmp/ott-web-storage-ci npm run test:web-storage --workspace ott -- --seed
           WEB_STORAGE_PROFILE_DIR=/tmp/ott-web-storage-ci npm run test:web-storage --workspace ott
+          npm run test:book-search --workspace ott

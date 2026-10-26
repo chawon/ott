@@ -3,6 +3,7 @@ name: Native iOS CI
 on:
   pull_request:
     paths:
+      - "shared/**"
       - "apps/native/**"
       - "package.json"
       - "package-lock.json"
@@ -11,6 +12,7 @@ on:
   push:
     branches: ["main"]
     paths:
+      - "shared/**"
       - "apps/native/**"
       - "package.json"
       - "package-lock.json"

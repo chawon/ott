@@ -106,6 +106,7 @@ async function pullChanges() {
         const local = await findTitleByProvider(
           title.provider,
           title.providerId,
+          title,
         );
         if (local && local.id !== title.id) {
           await remapLogsForTitle(local.id, title);

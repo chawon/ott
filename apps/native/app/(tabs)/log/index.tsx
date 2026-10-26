@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { EN_BOOK_PLATFORMS } from '../../../../../shared/bookPlatforms';
 import * as Sharing from 'expo-sharing';
 import {
   ActivityIndicator,
@@ -65,6 +66,7 @@ import {
   placeLabels,
 } from '../../../lib/i18n';
 import { useNativePreferences } from '../../../lib/nativePreferences';
+import { GoogleBooksAttribution } from '../../../components/GoogleBooksAttribution';
 import type {
   Occasion,
   Place,
@@ -167,16 +169,18 @@ export default function LogScreen() {
     () => OCCASION_VALUES.map((value) => ({ value, label: occasionLabels[locale][value] })),
     [locale],
   );
-  const ottOptions = useMemo(
-    () => [...OTT_BASE_OPTIONS, copy.platformTheater, copy.platformLibrary],
-    [copy.platformLibrary, copy.platformTheater],
-  );
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<ContentFilter>('video');
   const [results, setResults] = useState<TitleSearchItem[]>([]);
   const [popular, setPopular] = useState<TitleSearchItem[]>([]);
   const [suggestionSources, setSuggestionSources] = useState<Record<string, TitleSelectSource>>({});
   const [selected, setSelected] = useState<TitleSearchItem | null>(null);
+  const ottOptions = useMemo(
+    () => locale === 'en' && (selected?.type === 'book' || (!selected && filter === 'book'))
+      ? EN_BOOK_PLATFORMS
+      : [...OTT_BASE_OPTIONS, copy.platformTheater, copy.platformLibrary],
+    [copy.platformLibrary, copy.platformTheater, filter, locale, selected],
+  );
   const [activeLog, setActiveLog] = useState<WatchLog | null>(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -686,6 +690,8 @@ export default function LogScreen() {
           {loading ? <ActivityIndicator color={colors.onSurfaceVariant} /> : null}
         </View>
 
+        {filter === 'book' && locale === 'en' ? <GoogleBooksAttribution /> : null}
+
         <View style={styles.segment}>
           {filters.map((item) => (
             <Pressable
@@ -713,6 +719,7 @@ export default function LogScreen() {
                 .filter(Boolean)
                 .join(' · ')}
             </Text>
+            <GoogleBooksAttribution book={selected} />
             {!activeLog ? (
               <View style={styles.initialSaveBox}>
                 <Text style={styles.statusPrompt}>{copy.statusPrompt}</Text>
@@ -963,6 +970,7 @@ export default function LogScreen() {
                 )}
                 <View style={styles.resultBody}>
                   <Text style={styles.resultTitle}>{item.name}</Text>
+                  <GoogleBooksAttribution book={item} logo={false} />
                   <Text style={styles.meta}>
                     {[typeLabel(item.type, locale), item.year, item.author].filter(Boolean).join(' · ')}
                   </Text>

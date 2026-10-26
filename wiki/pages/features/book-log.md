@@ -1,6 +1,6 @@
 # 책 기록 (Book Log)
 
-> 카카오 책 검색 API 연동과 기존 ISBN 판본 연결로 영상 기록 흐름에 책 기록을 통합
+> 한국어 Kakao·영어 Google Books 검색과 기존 ISBN 판본 연결로 영상 기록 흐름에 책 기록을 통합
 
 ## 관련 페이지
 - [[analytics]]
@@ -11,7 +11,7 @@
 
 ## 목표
 
-기존 OTT 시청 기록(`movie`, `series`) 흐름에 **책(`book`) 기록**을 통합. 국내 도서 메타데이터는 카카오 책 검색 API를 활용하며, 기존 시스템 아키텍처(Spring Boot + Next.js + Local-first)를 최소한의 변경으로 확장.
+기존 OTT 시청 기록(`movie`, `series`) 흐름에 **책(`book`) 기록**을 통합. 한국어는 Kakao, 영어는 Google Books를 활용하며, 기존 시스템 아키텍처(Spring Boot + Next.js + Local-first)를 유지한다. Google Books 추가의 운영 배포 상태는 [구현·검증 문서](../../../docs/google-books-en-search.md)를 따른다.
 
 ---
 
@@ -29,16 +29,16 @@ public enum TitleType {
 - `publisher` (String, nullable): 출판사
 - `isbn10` (String, nullable, 10자)
 - `isbn13` (String, nullable, 13자)
-- `pubdate` (String, nullable, YYYYMMDD)
+- `pubdate` (String, nullable, YYYYMMDD; Google의 부분 날짜는 YYYY 또는 YYYYMM)
 
 **매핑:** `posterUrl` ← 카카오 `thumbnail`, `author` ← `authors` 배열 결합, `pubdate` ← `datetime`의 현지 날짜, `year` ← 출판 연도
 
 ### Provider 확장
 - 영상/직접 입력: `TMDB`, `LOCAL`
-- 새 책: `KAKAO`
+- 새 책: 한국어 `KAKAO`, 영어 `GOOGLE_BOOKS`
 - 기존 책 식별자: `NAVER` 유지
 
-**providerId 전략:** 체크섬을 검증한 ISBN-13을 사용하고 ISBN-10은 13자리로 변환한다. ISBN이 없으면 상세 URL의 SHA-256 앞 40자리를 사용한다. 같은 ISBN 판본의 기존 NAVER/KAKAO 책이 있으면 기존 provider/providerId와 titleId를 반환해 기록을 연결한다.
+**providerId 전략:** Kakao는 체크섬을 검증한 ISBN-13을 사용하고 ISBN-10은 13자리로 변환한다. ISBN이 없으면 상세 URL의 SHA-256 앞 40자리를 사용한다. Google은 ISBN 유무와 관계없이 opaque volume ID를 사용한다. 같은 ISBN 판본의 기존 NAVER/KAKAO/GOOGLE_BOOKS 책이 있으면 기존 provider/providerId와 titleId를 반환한다. 번역본·다른 판본은 합치지 않는다.
 
 ---
 
@@ -53,7 +53,10 @@ public enum TitleType {
 
 ### 검색 API 확장
 - `GET /api/titles/search?q=...&type=book`
-- `type == 'book'` → `BookSearchService.search(q)` 호출
+- `type == 'book'` → `BookSearchService.search(q, language)` 호출. 지원 언어의 우선순위에 따라 영어는 Google, 한국어/기본값은 Kakao로 라우팅한다.
+- 기존 iOS 앱은 Kakao를 유지한다. 새 iOS 바이너리가 출처 표시와 원문 링크를 지원한다는 헤더를 보내면 영어 검색을 Google로 전환한다.
+- Google 검색의 `sourceUrl`은 ISBN 매칭으로 기존 provider를 재사용해도 원문 링크를 유지한다. 검색창·결과·선택 화면은 공식 Google 출처 표시와 원문 링크를 제공한다.
+- Google 서버 키는 `GOOGLE_BOOKS_API_KEY`이며 OCI Vault → 별도 `ott-google-books-secrets` ExternalSecret → API Pod로 주입한다.
 - `type` 없거나 movie/series → `TmdbClient.searchMulti(q)` (하위 호환)
 
 ---
@@ -63,17 +66,18 @@ public enum TitleType {
 ### 타입 정의 (`apps/web/lib/types.ts`)
 ```ts
 TitleType: 'movie' | 'series' | 'book'
-Provider: 'TMDB' | 'LOCAL' | 'NAVER' | 'KAKAO'
+Provider: 'TMDB' | 'LOCAL' | 'NAVER' | 'KAKAO' | 'GOOGLE_BOOKS'
 ```
 
 ### UI/UX (QuickLogCard)
 - 검색창 상단에 **[영상 / 책]** 토글(Tab) 배치
 - 책 모드: 포스터 비율 조정(세로 더 긴 비율), 연도 대신 출판일/저자 표시
 - 시즌/에피소드 입력 숨김, '플랫폼(OTT)' 라벨 → '구매처/소장' 변경
+- EN 도서의 구매처/독서 서비스는 Amazon, Bookshop.org, Kindle, Apple Books, Google Play Books, Kobo, Audible, Libby 등으로 제공한다. `shared/bookPlatforms.ts`의 공통 목록을 Web/Native 생성·수정 화면에서 사용한다. KO 도서와 영상 플랫폼 기본값은 유지하고 기존 한국 서비스명·직접 입력값은 변환하지 않는다.
 
 ### 로컬 동기화
 - `titleType=book` 로그 생성 요청도 Outbox 큐에 적재
-- 웹 로컬 캐시와 서버 저장/동기화에서 ISBN-10/13 및 NAVER/KAKAO 별칭을 연결
+- 웹 로컬 캐시와 서버 저장/동기화에서 ISBN-10/13 및 NAVER/KAKAO/GOOGLE_BOOKS 별칭을 연결
 - 구버전 네이티브의 LOCAL fallback도 서버의 기존 책 식별자를 덮어쓰지 않도록 처리
 
 ---

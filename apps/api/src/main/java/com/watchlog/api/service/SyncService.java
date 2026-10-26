@@ -165,7 +165,8 @@ public class SyncService {
                 // Older native clients map unknown providers to LOCAL when recording a shared title.
                 // Their titleId still points to the canonical book, whose identity must survive that fallback.
                 boolean canonicalBook = existing.getType() == com.watchlog.api.domain.TitleType.book
-                        && ("NAVER".equals(existing.getProvider()) || "KAKAO".equals(existing.getProvider()));
+                        && ("NAVER".equals(existing.getProvider()) || "KAKAO".equals(existing.getProvider())
+                            || "GOOGLE_BOOKS".equals(existing.getProvider()));
                 if (!canonicalBook) {
                     if (payload.provider() != null) existing.setProvider(payload.provider());
                     if (payload.providerId() != null) existing.setProviderId(payload.providerId());

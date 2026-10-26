@@ -364,14 +364,21 @@ export async function resetLocalState() {
 export async function findTitleByProvider(
   provider: string,
   providerId: string,
+  edition: Pick<Title, "isbn10" | "isbn13"> = {},
 ) {
   const exact = await db.titles
     .where("provider")
     .equals(provider)
     .and((t) => t.providerId === providerId)
     .first();
-  if (exact || (provider !== "KAKAO" && provider !== "NAVER")) return exact;
-  const isbn13 = normalizeBookIsbn13({ provider, providerId });
+  if (
+    exact ||
+    (provider !== "KAKAO" &&
+      provider !== "NAVER" &&
+      provider !== "GOOGLE_BOOKS")
+  )
+    return exact;
+  const isbn13 = normalizeBookIsbn13({ ...edition, provider, providerId });
   if (!isbn13) return undefined;
   return db.titles
     .where("type")
