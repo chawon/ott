@@ -1,0 +1,51 @@
+---
+schema: omd.preferences/v1
+design_md_hash_at_creation: e778580b093b6c8e7ac982a170a8d5bc563436bad39c3b27f3880b63956a0d9a
+---
+
+# Preference Log
+
+## 2026-11-02T07:05:27.240Z — preserve-generous-spacing-and-an-airy-la
+
+```omd-meta
+id: pref_mvywzqa1_702b80a1
+timestamp: 2026-11-02T07:05:27.240Z
+scope: spacing
+signal: user-correction
+confidence: explicit
+status: pending
+source_agent: codex
+source_context: "prototypes/ottline-v2/app.js; prototypes/ottline-v2/styles.css"
+```
+
+Preserve generous spacing and an airy layout on desktop.
+
+## 2026-11-02T07:05:27.241Z — give-mobile-its-own-task-hierarchy-and-t
+
+```omd-meta
+id: pref_mvywzqa1_ffc451c2
+timestamp: 2026-11-02T07:05:27.241Z
+scope: layout
+signal: user-correction
+confidence: explicit
+status: pending
+source_agent: codex
+source_context: "prototypes/ottline-v2/app.js; prototypes/ottline-v2/styles.css"
+```
+
+Give mobile its own task hierarchy and touch interactions instead of scaling the desktop layout.
+
+## 2026-11-02T07:05:27.241Z — design-alternatives-should-differ-clearl
+
+```omd-meta
+id: pref_mvywzqa1_4dbba37e
+timestamp: 2026-11-02T07:05:27.241Z
+scope: layout
+signal: user-correction
+confidence: explicit
+status: pending
+source_agent: codex
+source_context: "prototypes/ottline-v2/app.js; prototypes/ottline-v2/styles.css"
+```
+
+Design alternatives should differ clearly in composition and task priority, not only in colors and card styling.

@@ -3,6 +3,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 const option = key => process.argv[process.argv.indexOf(key) + 1];
 const modulePath = process.argv.includes('--playwright') ? option('--playwright') : 'playwright';
+const match = process.argv.includes('--match') ? option('--match') : '';
 const { chromium } = await import(modulePath);
 const base = process.env.PREVIEW_URL || 'http://127.0.0.1:4173';
 const output = fileURLToPath(new URL('./qa-output/', import.meta.url));
@@ -14,8 +15,8 @@ const page=await browser.newPage({viewport:{width:1440,height:1000},acceptDownlo
 page.on('pageerror', e=>issues.push(e.message));
 page.on('request', r=>{if(!r.url().startsWith(base)&&!r.url().startsWith('blob:')&&!r.url().startsWith('data:'))issues.push(`Unexpected external request: ${r.url()}`)});
 page.on('response', r=>{if(r.status()>=400)issues.push(`HTTP ${r.status()}: ${r.url()}`)});
-const test=async(name, fn)=>{await fn();results.push(name);console.log(`PASS ${name}`)};
-const start=async(query='')=>{await page.goto(`${base}/?${query}`);await page.locator('h1').waitFor();await page.evaluate(()=>document.fonts.ready)};
+const test=async(name, fn)=>{if(match&&!name.toLowerCase().includes(match.toLowerCase()))return;await fn();results.push(name);console.log(`PASS ${name}`)};
+const start=async(query='')=>{await page.goto(`${base}/?${query}`);await page.locator('h1:visible').waitFor();await page.evaluate(()=>document.fonts.ready)};
 const route=async(name)=>{await page.evaluate(name=>{location.hash=name},name);await page.waitForFunction(name=>document.body.dataset.route===name,name)};
 const rows=async(count)=>{await page.waitForFunction(n=>document.querySelectorAll('.timeline-row').length===n,count);assert.equal(await page.locator('.timeline-row').count(),count)};
 const connect=async()=>{await route('space');await page.getByTestId('connect-entry').click();await page.getByTestId('connection-code').fill('m7k2 p9wx');await page.getByTestId('connect-submit').click()};
@@ -26,11 +27,12 @@ try {
    for(const width of [1440,390,320]) {
     await page.setViewportSize({width,height:width===1440?1000:844});
     assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false,`${variant}/${lang}/${theme}/${width} overflow`);
-    assert.equal(await page.locator('h1').count(),1);
+    assert.equal(await page.locator('h1:visible').count(),1);
     assert.equal(await page.evaluate(()=>document.documentElement.lang),lang);
-    await page.locator('img').evaluateAll(images=>Promise.all(images.map(img=>img.decode().catch(()=>{}))));
-    assert.equal(await page.locator('img').evaluateAll(images=>images.some(img=>!img.naturalWidth)),false,'broken image');
+    await page.locator('img:visible').evaluateAll(images=>Promise.all(images.map(img=>{img.loading='eager';return img.decode().catch(()=>{})})));
+    assert.equal(await page.locator('img:visible').evaluateAll(images=>images.some(img=>!img.naturalWidth)),false,'broken image');
     if(width!==320)await page.screenshot({path:`${output}/${variant}-${lang}-${theme}-${width}.png`,fullPage:true});
+    if(width!==1440)await page.screenshot({path:`${output}/${variant}-${lang}-${theme}-${width}-viewport.png`});
    }
   }
   await page.setViewportSize({width:1440,height:1000});
@@ -42,7 +44,94 @@ try {
    for(const name of ['records','together','space','report','title/record-quiet',...(lang==='ko'?['shelf']:[])]) {
     await route(name);assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false,`${variant}/${lang}/${name} overflow`);
    }
-   await page.getByTestId('record-open-mobile').click();await page.getByTestId('search-result').first().click();assert.equal(await page.locator('dialog').evaluate(dialog=>dialog.scrollWidth>dialog.clientWidth+1),false,'dialog overflow');await page.keyboard.press('Escape');
+   await page.getByTestId('record-open-mobile').click();await page.getByTestId('search-result').first().click();assert.equal(await page.locator('dialog').evaluate(dialog=>dialog.scrollWidth>dialog.clientWidth+1),false,'dialog overflow');await page.screenshot({path:`${output}/${variant}-${lang}-mobile-sheet.png`});await page.keyboard.press('Escape');
+  }
+  await page.setViewportSize({width:1440,height:1000});
+ });
+ await test('Mobile directions have different first-screen priorities and compact controls',async()=>{
+  await page.setViewportSize({width:390,height:844});
+  for(const variant of ['archive','journal']) {
+   await start(`variant=${variant}`);
+   assert.equal(await page.getByTestId(`mobile-${variant}-home`).isVisible(),true);
+   assert.equal(await page.getByTestId('scenario').isVisible(),false);
+   assert.ok((await page.locator('.studio').boundingBox()).height<=64,'collapsed controls should leave room for records');
+   const focus=page.getByTestId(variant==='archive'?'mobile-search':'mobile-memory');
+   const bounds=await focus.boundingBox();const navigation=await page.locator('.mobile-nav').boundingBox();
+   assert.ok(bounds.y>=0&&bounds.y+bounds.height<navigation.y,`${variant} priority fits above navigation`);
+   if(variant==='archive') {
+    const continuing=await page.getByTestId('continue-card').first().boundingBox();
+    assert.ok(continuing.y+continuing.height<navigation.y,'in-progress title visible without scrolling');
+    await focus.click();await page.getByTestId('title-search').waitFor();await page.keyboard.press('Escape');
+   } else {
+    const savedNote=await focus.locator('.mobile-memory-note').innerText();assert.ok(savedNote.trim().length>0,'featured memory includes a saved note');
+    await focus.locator('[data-action="detail"]').click();await page.waitForFunction(()=>document.body.dataset.route.startsWith('title/'));
+    assert.equal(await page.locator('.detail-note').innerText(),savedNote);await route('home');
+   }
+   await page.getByTestId('studio-toggle').click();assert.equal(await page.getByTestId('scenario').isVisible(),true);
+   await page.getByTestId('language').click();assert.equal(await page.evaluate(()=>document.documentElement.lang),'en');
+   await page.getByTestId('studio-toggle').click();assert.equal(await page.getByTestId('scenario').isVisible(),false);
+   await page.getByTestId(`variant-${variant==='archive'?'journal':'archive'}`).click();
+   assert.equal(await page.getByTestId(`mobile-${variant==='archive'?'journal':'archive'}-home`).isVisible(),true);
+   await route('records');await rows(6);
+  }
+  await page.setViewportSize({width:1440,height:1000});
+ });
+ await test('Mobile recording sheet stays reachable at short viewport heights',async()=>{
+  for(const width of [390,320]) {
+   await page.setViewportSize({width,height:500});await start('variant=archive');
+   await page.getByTestId('record-open-mobile').click();await page.getByTestId('title-search').waitFor();
+   await page.locator('dialog[open]').evaluate(dialog=>Promise.all(dialog.getAnimations().map(animation=>animation.finished)));
+   const sheet=await page.locator('dialog[open]').boundingBox();
+   assert.ok(sheet.y>=0&&Math.abs(sheet.y+sheet.height-500)<=2,'sheet should end at viewport bottom');
+   await page.getByTestId('title-search').fill('느린 빛');await page.getByTestId('search-result').click();
+   const save=page.getByTestId('save-DONE');await save.scrollIntoViewIfNeeded();
+   assert.ok((await save.boundingBox()).height>=48,'save touch target');
+   await save.click();await page.getByTestId('saved-done').click();await rows(7);
+   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
+   await page.getByTestId('record-open-mobile').click();
+   for(let i=0;i<12;i++)await page.keyboard.press('Tab');
+   assert.equal(await page.evaluate(()=>!!document.activeElement.closest('dialog')),true);
+   await page.keyboard.press('Escape');assert.equal(await page.locator('dialog[open]').count(),0);
+  }
+  await page.setViewportSize({width:1440,height:1000});
+ });
+ await test('Long mobile memories keep actions reachable and preserve the full saved note',async()=>{
+  await page.setViewportSize({width:320,height:844});await start('variant=journal');
+  const note='오늘의 장면을 오래 기억하고 싶어요. '.repeat(100).slice(0,2000).trim();
+  await page.getByTestId('mobile-memory').locator('[data-action="edit"]').click();await page.getByTestId('note-input').fill(note);await page.getByTestId('save-edit').click();
+  const open=page.getByTestId('mobile-memory').locator('[data-action="detail"]');
+  const bounds=await open.boundingBox();const navigation=await page.locator('.mobile-nav').boundingBox();
+  assert.ok(bounds.y+bounds.height<navigation.y,'long note must not push the open action under navigation');
+  await page.screenshot({path:`${output}/journal-mobile-long-note.png`});
+  await open.click();await page.waitForFunction(()=>document.body.dataset.route.startsWith('title/'));
+  assert.equal(await page.locator('.detail-note').innerText(),note);
+  await page.setViewportSize({width:1440,height:1000});
+ });
+ await test('Mobile home preserves pending records and resumes interrupted restore',async()=>{
+  await page.setViewportSize({width:390,height:844});
+  for(const variant of ['archive','journal']) {
+   await start(`variant=${variant}&scenario=offline`);await page.getByTestId('record-open-mobile').click();
+   await page.getByTestId('title-search').fill('느린 빛');await page.getByTestId('search-result').click();
+   await page.getByTestId('save-DONE').click();await page.getByTestId('saved-done').click();await rows(7);await route('home');
+   const retry=page.getByTestId('mobile-sync-retry');assert.equal(await retry.isVisible(),true);
+   await retry.click();await retry.click();await page.waitForFunction(()=>!document.querySelector('[data-testid="mobile-sync-retry"]'));
+   await route('records');await rows(7);assert.equal(await page.locator('main .is-pending').count(),0);
+   await start(`variant=${variant}&scenario=restore-error`);await connect();await page.getByTestId('restore-retry').waitFor();
+   await page.keyboard.press('Escape');await route('home');assert.equal(await page.getByTestId('mobile-resume-restore').isVisible(),true);
+   await page.getByTestId('mobile-resume-restore').click();await page.getByTestId('connected-done').click();await rows(3);
+  }
+  await page.setViewportSize({width:1440,height:1000});
+ });
+ await test('Mobile first visit offers both a first record and existing-record connection',async()=>{
+  await page.setViewportSize({width:390,height:844});
+  for(const variant of ['archive','journal']) {
+   await start(`variant=${variant}&scenario=new`);
+   assert.equal(await page.getByTestId('mobile-first-record').isVisible(),true);
+   assert.equal(await page.getByTestId('mobile-connect-entry').isVisible(),true);
+   await page.screenshot({path:`${output}/${variant}-mobile-new.png`});
+   await page.getByTestId('mobile-first-record').click();await page.getByTestId('title-search').waitFor();await page.keyboard.press('Escape');
+   await page.getByTestId('mobile-connect-entry').click();await page.getByTestId('connection-code').fill('m7k2 p9wx');
+   await page.getByTestId('connect-submit').click();await page.getByTestId('connected-done').click();await rows(3);
   }
   await page.setViewportSize({width:1440,height:1000});
  });
@@ -106,6 +195,7 @@ try {
  });
  await test('Deep-link capture opens prefilled recording flow',async()=>{await start('quick=1&capture_title=Blue%20Hour&lang=en');assert.equal(await page.getByTestId('title-search').inputValue(),'Blue Hour');assert.equal(await page.getByTestId('search-result').count(),1)});
  assert.deepEqual(issues,[],'Browser console/network errors');
- await writeFile(`${output}/results.json`,JSON.stringify({passed:results,issues},null,2));
+ assert.ok(results.length,'No checks matched');
+ await writeFile(`${output}/${match?'focused-results':'results'}.json`,JSON.stringify({base,passed:results,issues},null,2));
  console.log(`${results.length} checks passed; screenshots: ${output}`);
 } finally {await browser.close();}
