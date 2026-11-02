@@ -161,7 +161,8 @@ small { font-size: 13px; }
 .timeline-list { max-width: 960px; margin: 0 auto; }
 .timeline-month { font-size: 17px; letter-spacing: -.02em; font-weight: 650; padding: 20px 0 12px; border-bottom: 1px solid var(--line); }
 .timeline-row { display: flex; gap: 26px; align-items: flex-start; padding: 25px 0; border-bottom: 1px solid var(--line-soft); }
-.timeline-date { min-width: 50px; padding-top: 4px; color: var(--muted); font-size: 12px; line-height: 1.6; }
+.timeline-date { flex: 0 0 50px; min-width: 0; padding-top: 4px; color: var(--muted); font-size: 12px; line-height: 1.6; }
+.timeline-date > small { display: block; margin-top: 4px; font-size: inherit; line-height: 1.5; overflow-wrap: anywhere; }
 .timeline-date strong { display: block; font-size: 25px; font-weight: 500; line-height: 1.3; color: var(--text); }
 .timeline-cover { width: 83px; height: 118px; flex: 0 0 83px; object-fit: cover; border-radius: 5px; }
 .timeline-content { flex: 1; min-width: 0; }
@@ -414,7 +415,7 @@ body[data-theme="dark"] .app-dialog::backdrop { background: rgb(0 0 0 / 68%); }
   .filter-chips button, .filter-chips select { min-height: 48px; padding-inline: 12px; font-size: 12px; }
   .timeline-month { font-size: 16px; }
   .timeline-row { gap: 13px; flex-wrap: wrap; padding: 21px 0; }
-  .timeline-date { min-width: 31px; font-size: 10px; }
+  .timeline-date { flex-basis: 44px; font-size: 10px; }
   .timeline-date strong { font-size: 22px; }
   .timeline-cover { width: 59px; height: 86px; flex-basis: 59px; }
   .timeline-content { min-width: 130px; }
@@ -972,4 +973,137 @@ body[data-variant="journal"] .starter-card > svg { margin-top: 0; }
     -webkit-line-clamp: 3;
     overflow: hidden;
   }
+}
+
+/* Time, place and occasion belong to the record, alongside its title and note. */
+.record-context {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 6px 16px;
+  margin: 12px 0;
+  color: var(--secondary);
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1.6;
+  text-align: left;
+}
+.record-context > span, .record-context > time {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 6px;
+  min-width: 0;
+  max-width: 100%;
+}
+.record-context > span > span, .record-context > time > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.record-context svg {
+  width: 16px;
+  height: 16px;
+  margin-top: 5px;
+  color: var(--muted);
+}
+.record-context .context-time { font-variant-numeric: tabular-nums; }
+.record-context--compact { gap: 4px 12px; margin: 8px 0 0; font-size: 14px; }
+.record-context--compact svg { width: 14px; height: 14px; margin-top: 4px; }
+.poster-meta .record-context > .context-time { flex-basis: 100%; }
+.poster-meta > .record-context + .record-note { margin-top: 12px; }
+.continue-body .record-context { margin-top: 8px; }
+.continue-footer { margin-top: 8px; }
+.timeline-content > .record-context { margin: 12px 0 0; }
+.timeline-content > .record-context + p { margin-top: 16px; }
+.timeline-content > .record-context--journal { margin: 0 0 12px; padding-bottom: 12px; border-bottom: 1px solid var(--line-soft); }
+.record-context--saved { justify-content: center; margin: 16px 0 8px; }
+.record-context--saved > .context-time { justify-content: center; flex-basis: 100%; }
+body[data-variant="journal"] .journal-date .record-context { justify-content: center; font-size: 14px; margin: 8px 0 0; }
+body[data-variant="journal"] .journal-date .record-context > * { justify-content: center; }
+body[data-variant="journal"] .journal-quote .record-context { font-size: 16px; letter-spacing: 0; margin: 0 0 16px; }
+
+.detail-context { margin: 24px 0; padding: 20px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.detail-context h2 { font-size: 18px; font-weight: 600; line-height: 1.5; }
+.context-grid { display: grid; grid-template-columns: minmax(0, 1.3fr) repeat(2, minmax(0, 1fr)); gap: 20px; margin: 16px 0 0; }
+.context-grid > div { min-width: 0; }
+.context-grid dt { color: var(--muted); font-size: 13px; line-height: 1.6; margin: 0 0 6px; }
+.context-grid dd { color: var(--text); font-size: 16px; line-height: 1.7; margin: 0; overflow-wrap: anywhere; }
+.context-grid dd time { font-variant-numeric: tabular-nums; }
+
+.tpo-editor { min-width: 0; margin: 24px 0; padding: 0; border: 0; }
+.tpo-editor legend { display: block; width: 100%; padding: 0; color: var(--text); font-size: 18px; font-weight: 600; line-height: 1.5; }
+.tpo-help { margin: 8px 0 16px; color: var(--secondary); font-size: 14px; line-height: 1.7; }
+.tpo-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.tpo-fields > .field { min-width: 0; margin: 0; gap: 8px; }
+.tpo-fields > .tpo-when-field { grid-column: 1 / -1; }
+.tpo-fields .field label { font-size: 14px; font-weight: 600; line-height: 1.5; }
+.tpo-fields .field input, .tpo-fields .field select { min-width: 0; max-width: 100%; min-height: 48px; font-size: 16px; }
+.tpo-fields input[type="datetime-local"] { font-variant-numeric: tabular-nums; }
+.tpo-fields input[type="datetime-local"]::-webkit-date-and-time-value { text-align: left; }
+.tpo-editor > .field-error { margin-top: 10px; }
+.tpo-editor:disabled { color: var(--muted); }
+.tpo-editor:disabled input, .tpo-editor:disabled select { color: var(--muted); background: var(--surface-soft); }
+.dialog-foot > .status-choices { flex: 1 1 100%; width: 100%; margin: 0; }
+.dialog-foot > .status-choices .status-choice { width: 100%; }
+.app-dialog:has(.tpo-editor) .selected-title { margin-bottom: 0; }
+.app-dialog:has(.tpo-editor) .selected-title .dialog-cover { width: 64px; height: 94px; }
+.app-dialog:has(.tpo-editor) .selected-title h3 { font-size: 20px; }
+
+@media (max-width: 1000px) {
+  .context-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .context-grid > div:first-child { grid-column: 1 / -1; }
+}
+
+@media (max-width: 760px) {
+  .record-context { gap: 6px 12px; }
+  .mobile-continue-content > .record-context { gap: 3px 10px; margin: 4px 0 0; font-size: 14px; }
+  .mobile-continue-content > .record-context > .context-time { flex-basis: 100%; }
+  .mobile-continue-content > .record-context svg { width: 14px; height: 14px; margin-top: 4px; }
+  .mobile-continue-card { align-items: flex-start; }
+  .mobile-continue-cover { align-self: flex-start; }
+  .mobile-continue-content > .button { margin-top: 6px; }
+  .mobile-memory-date { align-items: flex-start; font-size: 12px; }
+  .mobile-featured-memory > .record-context { margin: -2px 0 18px; gap: 6px 14px; font-size: 16px; }
+  .mobile-featured-memory > .record-context > .context-time { font-size: 14px; color: var(--muted); }
+  .mobile-memory-date .record-context { margin: 0; }
+  .mobile-diary-content > .record-context { margin: 0 0 8px; gap: 4px 12px; font-size: 14px; }
+  .mobile-diary-content > .record-context svg { width: 14px; height: 14px; margin-top: 4px; }
+  .mobile-diary-content > .record-context > .context-time { flex-basis: 100%; }
+  .mobile-diary-content > .record-context + h3 { margin-top: 0; }
+  .timeline-content > .record-context { font-size: 16px; gap: 6px 12px; }
+  .timeline-content > .record-context > .context-time { flex-basis: 100%; }
+  .timeline-content > .record-context--journal { margin-top: 0; }
+  .detail-context { margin: 24px 0; padding: 20px 0; }
+  .context-grid { grid-template-columns: 1fr; gap: 16px; }
+  .context-grid > div { display: grid; grid-template-columns: minmax(0, 96px) minmax(0, 1fr); gap: 16px; align-items: start; }
+  .context-grid > div:first-child { grid-column: auto; }
+  .context-grid dt { margin: 2px 0 0; font-size: 13px; }
+  .context-grid dd { font-size: 16px; }
+  .tpo-editor { margin: 20px 0; }
+  .tpo-help { margin: 6px 0 14px; font-size: 14px; }
+  .tpo-fields { gap: 14px 12px; }
+  .tpo-fields .field label { min-height: 21px; }
+  .app-dialog:has(.tpo-editor) .selected-title { gap: 14px; padding: 14px; }
+  .app-dialog:has(.tpo-editor) .selected-title .dialog-cover { width: 48px; height: 70px; }
+  .app-dialog:has(.tpo-editor) .selected-title h3 { font-size: 17px; }
+  .app-dialog:has(.tpo-editor) .selected-title p { font-size: 12px; }
+  .app-dialog:has(.tpo-editor) .dialog-head { padding-top: 18px; padding-bottom: 14px; }
+  .app-dialog:has(.tpo-editor) .dialog-title { font-size: 21px; }
+  .app-dialog:has(.tpo-editor) .dialog-foot { padding-top: 12px; }
+  .app-dialog .dialog-foot > .status-choices .status-choice { min-height: 80px; padding: 12px 6px; font-size: 14px; }
+  .app-dialog .dialog-foot > .status-choices .status-choice strong { font-size: 14px; }
+}
+
+@media (max-width: 370px) {
+  .tpo-fields > .tpo-place-field label, .tpo-fields > .tpo-occasion-field label { min-height: 42px; display: flex; align-items: flex-end; }
+  .tpo-fields .field input, .tpo-fields .field select { padding-inline: 10px; }
+  .context-grid > div { grid-template-columns: 84px minmax(0, 1fr); gap: 12px; }
+  .mobile-featured-memory > .record-context { gap: 6px 12px; }
+}
+
+@media (max-width: 760px) and (max-height: 600px) {
+  .app-dialog:has(.tpo-editor) .dialog-head { padding-top: 12px; padding-bottom: 10px; }
+  .app-dialog:has(.tpo-editor) .dialog-head .eyebrow { display: none; }
+  .app-dialog:has(.tpo-editor) .dialog-subtitle { margin-top: 5px; }
+  .app-dialog .dialog-foot > .status-choices .status-choice { min-height: 68px; padding-block: 8px; gap: 5px; }
+  .app-dialog .dialog-foot > .status-choices .status-choice svg { width: 18px; height: 18px; }
 }

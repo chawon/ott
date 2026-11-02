@@ -49,3 +49,34 @@ source_context: "prototypes/ottline-v2/app.js; prototypes/ottline-v2/styles.css"
 ```
 
 Design alternatives should differ clearly in composition and task priority, not only in colors and card styling.
+
+
+## 2026-11-02T07:47:03.776Z — tpo-is-a-core-part-of-the-recording-flow
+
+```omd-meta
+id: pref_mvyyh8m8_2d37e785
+timestamp: 2026-11-02T07:47:03.776Z
+scope: components.input
+signal: user-correction
+confidence: explicit
+status: pending
+source_agent: codex
+source_context: "prototypes/ottline-v2/app.js; prototypes/ottline-v2/styles.css"
+```
+
+TPO is a core part of the recording flow and must remain available in new input designs.
+
+## 2026-11-02T07:47:03.780Z — record-cards-and-details-need-a-clear-hi
+
+```omd-meta
+id: pref_mvyyh8mc_9bae26bc
+timestamp: 2026-11-02T07:47:03.780Z
+scope: components.card
+signal: user-correction
+confidence: explicit
+status: pending
+source_agent: codex
+source_context: "prototypes/ottline-v2/app.js; prototypes/ottline-v2/styles.css"
+```
+
+Record cards and details need a clear hierarchy for time, place, and occasion alongside the title, status, and note.
