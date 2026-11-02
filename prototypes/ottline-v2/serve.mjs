@@ -2,10 +2,14 @@ import { createServer } from 'node:http';
 import { readFile, stat } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { resolve, extname, sep } from 'node:path';
+import { networkInterfaces } from 'node:os';
 
-// Standalone, loopback-only preview. Never serves the surrounding repository.
+// Standalone preview. Never serves the surrounding repository.
 const root = fileURLToPath(new URL('.', import.meta.url));
 const port = Number(process.env.PORT || 4173);
+const hostArg = process.argv.indexOf('--host');
+const host = hostArg >= 0 ? process.argv[hostArg + 1] : '127.0.0.1';
+if (!host || host.startsWith('--')) throw new Error('Provide an address after --host.');
 const mime = {'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.jpg':'image/jpeg','.png':'image/png','.woff2':'font/woff2'};
 const server = createServer(async (req, res) => {
   try {
@@ -19,4 +23,11 @@ const server = createServer(async (req, res) => {
     res.end(req.method === 'HEAD' ? undefined : await readFile(file));
   } catch { res.writeHead(404).end(); }
 });
-server.listen(port, '127.0.0.1', () => console.log(`OTTLINE preview: http://localhost:${port}`));
+server.listen(port, host, () => {
+  console.log(`OTTLINE preview: http://localhost:${port}`);
+  if (host === '0.0.0.0') {
+    for (const network of Object.values(networkInterfaces()).flat()) {
+      if (network?.family === 'IPv4' && !network.internal) console.log(`Network: http://${network.address}:${port}`);
+    }
+  }
+});

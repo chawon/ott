@@ -4,6 +4,18 @@ import { catalog, initialRecords, remoteRecords, posts, sampleCode } from './dat
 const $ = (selector, root = document) => root.querySelector(selector);
 const esc = (value = '') => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const clone = value => structuredClone(value);
+// Local-IP HTTP is not a secure context. Preview IDs also work without randomUUID.
+const randomId = () => crypto.randomUUID?.() ?? Array.from(crypto.getRandomValues(new Uint8Array(16)), byte => byte.toString(16).padStart(2, '0')).join('');
+async function copyCode(text) {
+ if (navigator.clipboard?.writeText) {
+  try { await navigator.clipboard.writeText(text); return true; } catch { /* Try the user-triggered HTTP fallback. */ }
+ }
+ const previous=document.activeElement, input=document.createElement('textarea');
+ input.value=text;input.setAttribute('readonly','');input.style.cssText='position:fixed;left:0;top:0;opacity:0;pointer-events:none';
+ ($('#dialog').open?$('#dialog'):document.body).append(input);input.select();
+ try { return document.execCommand('copy'); } catch { return false; }
+ finally { input.remove();previous?.focus(); }
+}
 const params = new URLSearchParams(location.search);
 const oneOf = (value, choices, fallback) => choices.includes(value) ? value : fallback;
 const scenarios = ['returning', 'new', 'new-device', 'offline', 'sync-error', 'restore-error'];
@@ -247,7 +259,7 @@ function saveStatus(status) {
  if(!state.selectedId || state.busy) return;
  const now='2026-11-02T12:00:00Z';
  const existing=state.records.find(r=>r.titleId===state.selectedId);
- const r={...(existing||{}),id:existing?.id||`local-${crypto.randomUUID()}`,titleId:state.selectedId,status,watchedAt:now,updatedAt:now,note:existing?.note||{ko:'',en:''},rating:existing?.rating||null,syncStatus:savedSyncStatus()};
+ const r={...(existing||{}),id:existing?.id||`local-${randomId()}`,titleId:state.selectedId,status,watchedAt:now,updatedAt:now,note:existing?.note||{ko:'',en:''},rating:existing?.rating||null,syncStatus:savedSyncStatus()};
  if(existing)state.records=state.records.map(current=>current.id===existing.id?r:current);else state.records.unshift(r);
  state.savedId=r.id;persistSyncedRecords();render();setModal('saved');
 }
@@ -380,7 +392,7 @@ async function handleAction(action,node) {
   case 'sync-connect':syncRecords(true);break;
   case 'show-code':setModal('code');break;
   case 'copy-code':
-   try{await navigator.clipboard.writeText(state.ownCode);toast(t('연결 코드를 복사했어요.','Connection code copied.'));}catch{toast(t('복사 권한이 없어요. 코드를 직접 선택해 복사해 주세요.','Clipboard permission unavailable. Select and copy the code manually.'));}break;
+   toast(await copyCode(state.ownCode)?t('연결 코드를 복사했어요.','Connection code copied.'):t('코드를 직접 선택해 복사해 주세요.','Select and copy the code manually.'));break;
   case 'download-code':downloadCode();break;
   case 'download-report':downloadReport();break;
   case 'export':exportCSV();break;
@@ -388,7 +400,7 @@ async function handleAction(action,node) {
   case 'publish':state.savedId=node.dataset.id;state.publishError='';setModal('publish');break;
   case 'confirm-publish':{
    if(!state.online){state.publishError=t('오프라인에서는 공개할 수 없어요. 기록은 그대로 남아 있으니 연결한 뒤 다시 시도해 주세요.','You cannot publish while offline. Your record is still here; reconnect and try again.');$('#publish-error').textContent=state.publishError;return;}
-   const r=record(state.savedId);if(!r)break;const existing=state.publicPosts.find(p=>p.sourceRecordId===r.id);if(existing){existing.note=clone(r.note);existing.date=r.watchedAt;}else state.publicPosts.unshift({id:`post-${crypto.randomUUID()}`,sourceRecordId:r.id,titleId:r.titleId,note:clone(r.note),date:r.watchedAt,likes:0});closeModal();go('together');toast(t('이 기록을 함께에 공개했어요.','This record is now shared in Together.'));break;
+   const r=record(state.savedId);if(!r)break;const existing=state.publicPosts.find(p=>p.sourceRecordId===r.id);if(existing){existing.note=clone(r.note);existing.date=r.watchedAt;}else state.publicPosts.unshift({id:`post-${randomId()}`,sourceRecordId:r.id,titleId:r.titleId,note:clone(r.note),date:r.watchedAt,likes:0});closeModal();go('together');toast(t('이 기록을 함께에 공개했어요.','This record is now shared in Together.'));break;
   }
   case 'like':{const post=state.publicPosts.find(p=>p.id===node.dataset.id);if(post){post.liked=!post.liked;post.likes=(post.likes||0)+(post.liked?1:-1);render();}break;}
  }

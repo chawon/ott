@@ -12,6 +12,14 @@ node prototypes/ottline-v2/serve.mjs
 
 <http://localhost:4173>에서 열립니다. 서버는 `127.0.0.1`에만 바인딩합니다. 다른 포트가 필요하면 `PORT=4174`를 지정하세요. 종료는 실행한 터미널에서 Ctrl+C입니다.
 
+WSL에서 실행하고 Windows 브라우저에서 WSL IP로 접속하려면 다음과 같이 실행합니다. 출력된 `Network` 주소를 여세요. WSL 재시작 후에는 IP가 달라질 수 있습니다.
+
+```sh
+node prototypes/ottline-v2/serve.mjs --host 0.0.0.0
+```
+
+로컬 IP의 HTTP 환경에서도 기록 생성과 코드 복사 대체 동작을 지원합니다. 브라우저가 복사를 허용하지 않으면 표시된 코드를 직접 선택해 복사할 수 있습니다.
+
 - A 아카이브: `http://localhost:4173/?variant=archive`
 - B 감상 노트: `http://localhost:4173/?variant=journal`
 - 첫 방문: `http://localhost:4173/?scenario=new`
