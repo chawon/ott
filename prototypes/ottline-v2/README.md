@@ -1,6 +1,6 @@
 # OTTLINE 2.0 interactive design preview
 
-OTTLINE의 가입 없는 기록 경험과 코드 연결을 유지하는 **A 아카이브 확정 시안**입니다. 2026-11-02 사용자가 A를 선택했고, PC의 여유 있는 배치와 모바일 전용 기록 흐름을 이 방향으로 이어갑니다. **운영 적용 전 직접 검토하는 프로토타입**이며 실제 서버 동기화, 계정 합치기, 복구의 정확성을 검증한 결과가 아닙니다.
+OTTLINE의 가입 없는 기록 경험과 코드 연결을 유지하는 **A 아카이브 확정 시안**입니다. 2026-11-02 사용자가 A를 선택했고, PC의 여유 있는 배치와 모바일 전용 기록 흐름을 이 방향으로 이어갑니다. **운영 적용 전 직접 검토하는 프로토타입**으로 샘플 체험과 개발 API 기록 조회를 지원합니다. 기록 쓰기·서버 동기화·계정 합치기는 샘플 체험에 한정합니다.
 
 ## 실행
 
@@ -25,7 +25,31 @@ node prototypes/ottline-v2/serve.mjs --host 0.0.0.0
 - 새 기기: `http://localhost:4173/?scenario=new-device`
 - 영어·다크: `http://localhost:4173/?lang=en&theme=dark`
 
-상단에는 PC·모바일 모두 **A 아카이브**를 표시합니다. 예전 `?variant=journal` 주소도 A로 연결됩니다. 비교 시안은 Git 커밋 `9132db4`에 남아 있습니다. 언어·테마·사용자 상황·연결 상태는 미리보기 도구에서 바꾸며, 모바일에서는 **미리보기 설정**을 펼쳐 사용합니다. 상황 선택은 해당 화면의 샘플을 불러오고, 초기화는 샘플을 원래 상태로 되돌립니다. **온라인/오프라인 체험 전환은 기록을 유지**하며 실제 기기의 인터넷 연결을 바꾸지 않습니다. 새로고침하면 모든 체험 상태가 초기화됩니다.
+상단에는 PC·모바일 모두 **A 아카이브**를 표시합니다. 예전 `?variant=journal` 주소도 A로 연결됩니다. 비교 시안은 Git 커밋 `9132db4`에 남아 있습니다. 언어·테마·데이터·사용자 상황·연결 상태는 미리보기 도구에서 바꾸며, 모바일에서는 **미리보기 설정**을 펼쳐 사용합니다. 샘플 모드의 상황 선택은 해당 화면의 샘플을 불러오고, 초기화는 샘플을 원래 상태로 되돌립니다. **온라인/오프라인 체험 전환은 기록을 유지**하며 실제 기기의 인터넷 연결을 바꾸지 않습니다. 새로고침하면 샘플 체험 상태가 초기화됩니다.
+
+## 로컬 개발 API 연결
+
+기존 로컬 API가 `http://127.0.0.1:8080`에서 실행 중일 때 다음과 같이 시안 서버를 실행합니다.
+
+```sh
+PREVIEW_API_URL=http://127.0.0.1:8080 node prototypes/ottline-v2/serve.mjs --host 0.0.0.0
+```
+
+`http://localhost:4173/?data=development`를 열거나 상단 데이터 선택을 **개발 데이터**로 바꾸고 **개발 계정의 기록 연결 코드**를 입력합니다. WSL IP와 ngrok 주소에서도 같은 경로를 사용합니다. API 주소는 서버 환경변수로만 정하며 브라우저에 직접 API 포트를 열지 않습니다.
+
+- 코드 입력은 기존 `POST /api/auth/pair`로 개발 계정에 미리보기 기기를 연결합니다. 계정 합치기에 쓰이는 `oldUserId`는 보내지 않습니다. 샘플 계정·기록은 전송하지 않습니다.
+- 이후에는 `GET /api/logs/page`와 `GET /api/auth/profile`만 사용합니다. 커서가 끝날 때까지 전체 기록을 가져오고 날짜·TPO·메모·별점·시즌 표지를 표시합니다. 홈·내 기록·상세·리포트는 가져온 기록을 사용하며 함께 화면에는 가상 게시물을 섞지 않습니다. API에 없는 KDC 분류는 추정하지 않습니다.
+- 개발 모드는 조회용입니다. 기록 추가·수정·공개·합치기는 노출하지 않으며 프록시에서도 해당 쓰기 요청을 허용하지 않습니다. 연결 실패나 빈 계정에 샘플 기록을 대신 표시하지 않습니다.
+- 인증 ID는 시안 서버 메모리에 보관하고 브라우저에는 무작위 HttpOnly 세션 쿠키만 둡니다. 유효기간은 8시간이며 서버 재시작 후에는 코드를 다시 입력합니다. 연결 코드나 ID를 URL·로그·localStorage에 넣지 않습니다.
+- 미리보기 연결 해제는 쿠키와 시안 세션을 지웁니다. 개발 계정에 등록한 기기는 기존 서비스의 기기 관리에서 해제할 수 있습니다. 브라우저마다 자신의 코드로 연결합니다.
+- 실제 포스터·책 표지는 API가 제공한 HTTPS 이미지 주소에서 불러옵니다. 표지가 없으면 제목을 표시합니다.
+
+이번 WSL에서는 기존 `local` 설정의 PostgreSQL(`localhost:5433/watchlog`)을 사용합니다. 스키마가 이미 준비된 이 개발 DB에 한해 다음 명령으로 API를 실행했으며, 자동 마이그레이션과 예약 작업을 껐습니다. 새 DB를 만드는 명령은 아닙니다.
+
+```sh
+cd apps/api
+GRADLE_USER_HOME=/home/ergate23/workspace/ott/.gradle ./gradlew bootRun --no-daemon --max-workers=2 --args='--spring.profiles.active=local --server.address=127.0.0.1 --spring.flyway.enabled=false --report.schedule=- --analytics.retention.schedule=- --curator.automation.enabled=false --notify.telegram.enabled=false --spring.jpa.show-sql=false --logging.level.org.hibernate.SQL=WARN'
+```
 
 ## 선택한 방향
 
@@ -71,9 +95,9 @@ TPO(언제, 어디서, 누구와·어떤 상황)는 입력과 회상 화면에 �
 
 ## 데이터와 구현 경계
 
-- 작품·작가·감상·반응 수·코드는 모두 가상 샘플입니다. 사진은 가상 작품의 표지를 표현하는 이미지이며 실제 배급 포스터나 출판 표지가 아닙니다. 출처와 라이선스는 `assets/attribution.md`에 있습니다.
-- 데이터와 샘플 계정은 현재 페이지의 메모리에만 있습니다. 실제 브라우저 저장소, IndexedDB, 운영 API, 분석 이벤트를 사용하지 않습니다. 다른 실제 브라우저 사이를 연결하지 않습니다.
-- CSP의 `connect-src 'none'`으로 API 요청을 막습니다. 폰트·사진도 로컬 파일입니다. 서버는 프로토타입의 웹 자산만 제공하고 상위 저장소 파일은 제공하지 않습니다.
+- 샘플 모드의 작품·작가·감상·반응 수·코드는 모두 가상입니다. 샘플 사진은 가상 작품의 표지를 표현하는 이미지이며 실제 배급 포스터나 출판 표지가 아닙니다. 출처와 라이선스는 `assets/attribution.md`에 있습니다.
+- 샘플 데이터와 계정은 현재 페이지의 메모리에만 있습니다. IndexedDB·운영 API·분석 이벤트를 사용하지 않습니다. 개발 모드의 실제 데이터와 섞지 않습니다.
+- CSP의 `connect-src 'self'`는 같은 시안 서버의 제한된 API 프록시 요청만 허용합니다. 폰트·샘플 사진은 로컬 파일이며 개발 데이터의 HTTPS 표지도 허용합니다. 서버는 프로토타입의 웹 자산만 제공하고 상위 저장소 파일은 제공하지 않습니다.
 - 사용자 메모는 HTML로 실행하지 않으며, CSV 내보내기는 수식 시작 문자를 이스케이프합니다. PNG 다운로드에는 시안용 샘플임을 표시합니다.
 - CSV에는 TPO를 포함합니다. 함께 공개에는 기존 작품·감상·날짜만 전달하고 장소·상황은 포함하지 않습니다. 화면의 날짜·시간은 기기 시간대를 따르며 CSV는 ISO 시각을 사용합니다.
 - 이메일·소셜 로그인, 실제 개인정보 수집, 새 복구 서비스, QR 연결, 운영 DB/API 변경, 앱 스토어 배포는 포함하지 않습니다.
@@ -87,6 +111,10 @@ Playwright와 Chromium이 설치된 환경에서 서버를 켠 뒤 실행합니�
 node prototypes/ottline-v2/browser-check.mjs
 # 별도 worktree에서 기존 설치를 사용할 때
 node prototypes/ottline-v2/browser-check.mjs --playwright /absolute/path/to/playwright/index.mjs --browser /absolute/path/to/chrome
+# 개발 API 프록시와 응답 변환 검증 (실제 계정에 쓰지 않는 모의 서버)
+node --test prototypes/ottline-v2/dev-api-proxy.test.mjs prototypes/ottline-v2/api-data.test.mjs
+# 개발 데이터 화면 검증 (브라우저에서 API 응답을 모의 처리)
+node prototypes/ottline-v2/development-browser-check.mjs --playwright /absolute/path/to/playwright/index.mjs --browser /absolute/path/to/chrome
 ```
 
 `qa-output/`에 화면 캡처, 다운로드 이미지, 통과한 시나리오 목록을 저장하며 Git에서는 제외합니다. 검증 항목은 확정 A안·두 언어·두 테마의 320/390/1440px 화면, 기록·수정·검색·연결·합치기·오프라인·복원 실패·다운로드·키보드·기존 기록 진입 URL입니다. 실제 스마트폰의 IME·보이스오버·safe-area 동작과 운영 API는 별도 실기기 검증이 필요합니다.
@@ -96,6 +124,10 @@ node prototypes/ottline-v2/browser-check.mjs --playwright /absolute/path/to/play
 TPO 검증은 Asia/Seoul 시간대에서 새벽 입력의 날짜 유지와 ISO 내보내기, 수정·취소·빈 값, WISHLIST의 기존 맥락 보존, 언어 변경, 오프라인 기록의 동기화·새 기기 복원, 공개 글의 장소·상황 제외를 포함합니다. 날짜 선택기가 자동으로 열리지 않도록 입력 시트 제목에 초기 포커스를 두며, TPO가 없는 기록도 본문 열 위치가 유지되는지 검사합니다. 날짜 보조 문구 배치를 수정한 뒤 해당 화면 검증을 다시 통과했습니다.
 
 이번 실행에서 A 전체 페이지 8장과 모바일 첫 화면 8장, 시트·첫 방문·긴 감상·빈 메모 공개 화면, 리포트·복구 카드 PNG를 생성했습니다. 한국어·영어 문구는 독립 검토했고, 대표 모바일 화면·빈 메모 공개 화면·리포트 이미지를 직접 확인했습니다. 특정 항목만 다시 확인할 때는 `--match 'Long mobile'`처럼 이름 일부를 지정할 수 있고, 이 결과는 `focused-results.json`에 따로 저장합니다.
+
+개발 API 연결 후 기존 샘플 브라우저 27개, 개발 화면 6개, 프록시 15개, 데이터 변환 5개 검증을 통과했습니다. 개발 화면 검증은 API 계약을 따르는 모의 기록 61개로 전체 페이지 조회, TPO·별점·시즌 표지, 빈 메모·표지, 문자열 이스케이프, 두 언어의 320/390/1440px 화면, 연결 오류·인증 만료·모드 전환 중 늦은 응답을 확인합니다. 긴 제목과 감상의 모바일 넘침을 수정하고 다시 통과했습니다. 결과는 `development-results.json`, 부분 실행은 `development-focused-results.json`에 저장합니다.
+
+실제 로컬 API의 health `UP`과 미인증 기록 조회 `401`, 로컬·ngrok 프록시 연결 설정, ngrok HTTPS 모바일 화면의 코드 입력·검증도 확인했습니다. 개인 연결 코드를 자동으로 찾아 인증하거나 기존 계정의 실제 기록을 가져오지는 않았습니다. 실제 계정 데이터는 사용자가 개발 연결 코드를 입력한 뒤 확인할 수 있습니다. 브라우저 검증은 Chromium의 모바일 크기에서 수행했으며 실제 휴대폰 확인은 별도입니다.
 
 ## 실제 서비스 반영 순서
 
