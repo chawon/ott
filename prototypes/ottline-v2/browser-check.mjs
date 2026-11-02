@@ -21,8 +21,8 @@ const route=async(name)=>{await page.evaluate(name=>{location.hash=name},name);a
 const rows=async(count)=>{await page.waitForFunction(n=>document.querySelectorAll('.timeline-row').length===n,count);assert.equal(await page.locator('.timeline-row').count(),count)};
 const connect=async()=>{await route('space');await page.getByTestId('connect-entry').click();await page.getByTestId('connection-code').fill('m7k2 p9wx');await page.getByTestId('connect-submit').click()};
 try {
- await test('Both visual directions, locales, themes and mobile layouts',async()=>{
-  for(const variant of ['archive','journal']) for(const lang of ['ko','en']) for(const theme of ['light','dark']) {
+ await test('Selected A direction across locales, themes and mobile layouts',async()=>{
+  for(const variant of ['archive']) for(const lang of ['ko','en']) for(const theme of ['light','dark']) {
    await start(`variant=${variant}&lang=${lang}&theme=${theme}`);
    for(const width of [1440,390,320]) {
     await page.setViewportSize({width,height:width===1440?1000:844});
@@ -39,7 +39,7 @@ try {
  });
  await test('Every product route and recording dialog fits a mobile viewport',async()=>{
   await page.setViewportSize({width:390,height:844});
-  for(const variant of ['archive','journal'])for(const lang of ['ko','en']) {
+  for(const variant of ['archive'])for(const lang of ['ko','en']) {
    await start(`variant=${variant}&lang=${lang}&theme=dark`);
    for(const name of ['records','together','space','report','title/record-quiet',...(lang==='ko'?['shelf']:[])]) {
     await route(name);assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false,`${variant}/${lang}/${name} overflow`);
@@ -48,30 +48,27 @@ try {
   }
   await page.setViewportSize({width:1440,height:1000});
  });
- await test('Mobile directions have different first-screen priorities and compact controls',async()=>{
+ await test('Selected A keeps mobile priorities and normalizes old comparison links',async()=>{
   await page.setViewportSize({width:390,height:844});
-  for(const variant of ['archive','journal']) {
-   await start(`variant=${variant}`);
-   assert.equal(await page.getByTestId(`mobile-${variant}-home`).isVisible(),true);
+  for(const query of ['', 'variant=journal']) {
+   await start(query);
+   assert.equal(await page.evaluate(()=>document.body.dataset.variant),'archive');
+   assert.equal(new URL(page.url()).searchParams.get('variant'),'archive');
+   assert.equal(await page.getByTestId('mobile-archive-home').isVisible(),true);
+   assert.equal(await page.locator('[data-action="variant"]').count(),0);
+   assert.match(await page.getByTestId('selected-variant').innerText(),/A.*아카이브/);
    assert.equal(await page.getByTestId('scenario').isVisible(),false);
    assert.ok((await page.locator('.studio').boundingBox()).height<=64,'collapsed controls should leave room for records');
-   const focus=page.getByTestId(variant==='archive'?'mobile-search':'mobile-memory');
+   const focus=page.getByTestId('mobile-search');
    const bounds=await focus.boundingBox();const navigation=await page.locator('.mobile-nav').boundingBox();
-   assert.ok(bounds.y>=0&&bounds.y+bounds.height<navigation.y,`${variant} priority fits above navigation`);
-   if(variant==='archive') {
-    const continuing=await page.getByTestId('continue-card').first().boundingBox();
-    assert.ok(continuing.y+continuing.height<navigation.y,'in-progress title visible without scrolling');
-    await focus.click();await page.getByTestId('title-search').waitFor();await page.keyboard.press('Escape');
-   } else {
-    const savedNote=await focus.locator('.mobile-memory-note').innerText();assert.ok(savedNote.trim().length>0,'featured memory includes a saved note');
-    await focus.locator('[data-action="detail"]').click();await page.waitForFunction(()=>document.body.dataset.route.startsWith('title/'));
-    assert.equal(await page.locator('.detail-note').innerText(),savedNote);await route('home');
-   }
+   assert.ok(bounds.y>=0&&bounds.y+bounds.height<navigation.y,'record entry fits above navigation');
+   const continuing=await page.getByTestId('continue-card').first().boundingBox();
+   assert.ok(continuing.y+continuing.height<navigation.y,'in-progress title visible without scrolling');
+   await focus.click();await page.getByTestId('title-search').waitFor();await page.keyboard.press('Escape');
    await page.getByTestId('studio-toggle').click();assert.equal(await page.getByTestId('scenario').isVisible(),true);
    await page.getByTestId('language').click();assert.equal(await page.evaluate(()=>document.documentElement.lang),'en');
    await page.getByTestId('studio-toggle').click();assert.equal(await page.getByTestId('scenario').isVisible(),false);
-   await page.getByTestId(`variant-${variant==='archive'?'journal':'archive'}`).click();
-   assert.equal(await page.getByTestId(`mobile-${variant==='archive'?'journal':'archive'}-home`).isVisible(),true);
+   assert.match(await page.getByTestId('selected-variant').innerText(),/A.*Archive/);
    await route('records');await rows(6);
   }
   await page.setViewportSize({width:1440,height:1000});
@@ -95,26 +92,26 @@ try {
   }
   await page.setViewportSize({width:1440,height:1000});
  });
- await test('Long mobile memories keep actions reachable and preserve the full saved note',async()=>{
-  await page.setViewportSize({width:320,height:844});await start('variant=journal');
+ await test('Long mobile notes preserve text and keep recording actions available',async()=>{
+  await page.setViewportSize({width:320,height:844});await start();await route('title/record-quiet');
   const note='오늘의 장면을 오래 기억하고 싶어요. '.repeat(100).slice(0,2000).trim();
-  await page.getByTestId('mobile-memory').locator('[data-action="edit"]').click();await page.getByTestId('note-input').fill(note);await page.getByTestId('save-edit').click();
-  const open=page.getByTestId('mobile-memory').locator('[data-action="detail"]');
-  const bounds=await open.boundingBox();const navigation=await page.locator('.mobile-nav').boundingBox();
-  assert.ok(bounds.y+bounds.height<navigation.y,'long note must not push the open action under navigation');
-  await page.screenshot({path:`${output}/journal-mobile-long-note.png`});
-  await open.click();await page.waitForFunction(()=>document.body.dataset.route.startsWith('title/'));
+  await page.locator('[data-action="edit"]').click();await page.getByTestId('note-input').fill(note);await page.getByTestId('save-edit').click();
   assert.equal(await page.locator('.detail-note').innerText(),note);
+  await route('records');assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
+  await page.screenshot({path:`${output}/archive-mobile-long-note.png`});
+  await page.getByTestId('record-open-mobile').click();await page.getByTestId('title-search').waitFor();await page.keyboard.press('Escape');
   await page.setViewportSize({width:1440,height:1000});
  });
  await test('Mobile home preserves pending records and resumes interrupted restore',async()=>{
   await page.setViewportSize({width:390,height:844});
-  for(const variant of ['archive','journal']) {
+  for(const variant of ['archive']) {
    await start(`variant=${variant}&scenario=offline`);await page.getByTestId('record-open-mobile').click();
    await page.getByTestId('title-search').fill('느린 빛');await page.getByTestId('search-result').click();
    await page.getByTestId('save-DONE').click();await page.getByTestId('saved-done').click();await rows(7);await route('home');
+   assert.equal(await page.getByTestId('mobile-reconnect').count(),0);assert.equal(await page.getByTestId('mobile-sync-retry').count(),0);
+   await page.getByTestId('studio-toggle').click();await page.getByTestId('connectivity').click();await page.getByTestId('studio-toggle').click();
    const retry=page.getByTestId('mobile-sync-retry');assert.equal(await retry.isVisible(),true);
-   await retry.click();await retry.click();await page.waitForFunction(()=>!document.querySelector('[data-testid="mobile-sync-retry"]'));
+   await retry.click();await page.waitForFunction(()=>!document.querySelector('[data-testid="mobile-sync-retry"]'));
    await route('records');await rows(7);assert.equal(await page.locator('main .is-pending').count(),0);
    await start(`variant=${variant}&scenario=restore-error`);await connect();await page.getByTestId('restore-retry').waitFor();
    await page.keyboard.press('Escape');await route('home');assert.equal(await page.getByTestId('mobile-resume-restore').isVisible(),true);
@@ -124,7 +121,7 @@ try {
  });
  await test('Mobile first visit offers both a first record and existing-record connection',async()=>{
   await page.setViewportSize({width:390,height:844});
-  for(const variant of ['archive','journal']) {
+  for(const variant of ['archive']) {
    await start(`variant=${variant}&scenario=new`);
    assert.equal(await page.getByTestId('mobile-first-record').isVisible(),true);
    assert.equal(await page.getByTestId('mobile-connect-entry').isVisible(),true);
@@ -137,7 +134,7 @@ try {
  });
  await test('TPO entry keeps the local day through cards, editing, cancellation and export',async()=>{
   await page.setViewportSize({width:390,height:844});
-  for(const variant of ['archive','journal']) {
+  for(const variant of ['archive']) {
    await start(`variant=${variant}&scenario=new`);await page.getByTestId('mobile-first-record').click();
    await page.getByTestId('title-search').fill('느린 빛');await page.getByTestId('search-result').click();
    assert.equal(await page.getByTestId('tpo-place').inputValue(),'');assert.equal(await page.getByTestId('tpo-occasion').inputValue(),'');
@@ -184,7 +181,7 @@ try {
   await page.locator('[data-action="edit"]').click();assert.equal(await page.getByTestId('tpo-when').inputValue(),'2026-10-22T00:30');await page.keyboard.press('Escape');
  });
  await test('TPO layouts fit both languages and the short mobile recording sheet',async()=>{
-  for(const variant of ['archive','journal'])for(const lang of ['ko','en']) {
+  for(const variant of ['archive'])for(const lang of ['ko','en']) {
    await page.setViewportSize({width:320,height:844});await start(`variant=${variant}&lang=${lang}&theme=dark`);
    for(const name of ['records','title/record-quiet','title/record-forest']) {
     await route(name);assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
@@ -235,7 +232,7 @@ try {
   await start();await page.getByTestId('profile-open').click();await page.getByTestId('nickname-input').fill('<b>나의 기록</b>');await page.getByTestId('save-profile').click();await route('space');assert.match(await page.locator('main').innerText(),/<b>나의 기록<\/b>/);assert.equal(await page.locator('main b').filter({hasText:'나의 기록'}).count(),0);await route('together');assert.doesNotMatch(await page.locator('main').innerText(),/<b>나의 기록<\/b>/);
  });
  await test('Existing records require explicit merge confirmation',async()=>{
-  await start();await connect();assert.match(await page.locator('#dialog').innerText(),/이전 연결 코드/);assert.match(await page.locator('#dialog').innerText(),/덮어써질/);
+  await start();await connect();assert.match(await page.locator('#dialog').innerText(),/이전 연결 코드/);assert.match(await page.locator('#dialog').innerText(),/예전 내용.*사라질/);
   await page.getByTestId('confirm-merge').click();await page.getByTestId('connected-done').waitFor();await page.getByTestId('connected-done').click();await rows(8);assert.match(await page.locator('main').innerText(),/처음엔 놓쳤던/);
  });
  await test('Sync failure blocks merge until retry succeeds',async()=>{
@@ -250,6 +247,20 @@ try {
  });
  await test('Private record needs confirmation before publishing',async()=>{
   await start();await route('title/record-quiet');await page.locator('[data-action="publish"]').click();assert.equal(await page.locator('[data-action="confirm-publish"]').count(),1);await page.locator('[data-action="confirm-publish"]').click();await page.waitForFunction(()=>document.body.dataset.route==='together');assert.equal(await page.locator('.community-card').count(),4);
+ });
+ await test('Records without notes stay complete and never acquire a fabricated public quote',async()=>{
+  for(const lang of ['ko','en']) {
+   await start(`scenario=new&lang=${lang}`);await page.getByTestId('first-record').click();
+   await page.locator('[data-testid="search-result"][data-id="quiet-days"]').click();await page.getByTestId('save-DONE').click();await page.getByTestId('saved-done').click();await rows(1);
+   assert.doesNotMatch(await page.locator('.timeline-row').innerText(),/메모가 없|남긴 메모|No note yet|Kept with the date|여백으로/);
+   await page.locator('.timeline-row .title-link').click();await page.waitForFunction(()=>document.body.dataset.route.startsWith('title/'));
+   const detailRoute=await page.evaluate(()=>document.body.dataset.route);
+   await page.locator('[data-action="publish"]').click();assert.equal(await page.locator('#dialog blockquote').count(),0);
+   await page.getByTestId('confirm-publish').click();await page.waitForFunction(()=>document.body.dataset.route==='together');
+   assert.equal(await page.locator('.community-card').first().locator('blockquote').count(),0);
+   await page.screenshot({path:`${output}/archive-${lang}-shared-without-note.png`});
+   await route(detailRoute);await page.locator('[data-action="edit"]').click();assert.equal(await page.getByTestId('note-input').inputValue(),'');await page.keyboard.press('Escape');
+  }
  });
  await test('Offline publication asks for reconnection instead of reporting success',async()=>{
   await start('scenario=offline');await route('title/record-quiet');await page.locator('[data-action="publish"]').click();const confirm=page.locator('[data-action="confirm-publish"]');if(await confirm.count() && await confirm.isEnabled())await confirm.click();assert.match(await page.locator('#dialog').innerText(),/오프라인|연결/);await page.keyboard.press('Escape');await route('together');assert.equal(await page.locator('.community-card').count(),3);

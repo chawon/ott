@@ -69,6 +69,9 @@ small { font-size: 13px; }
 .studio .segmented { background: #1b2025; border-color: #4b535b; padding: 2px; border-radius: 5px; }
 .studio .segmented button { min-height: 31px; padding: 5px 10px; color: #d1d4d6; font-size: 12px; border-radius: 3px; }
 .studio .segmented button[aria-pressed="true"] { color: #252b31; background: #f8f6f2; box-shadow: none; }
+.studio-selected { display: inline-flex; align-items: center; gap: 10px; margin-left: auto; padding: 8px 12px; border: 1px solid #4b535b; border-radius: 8px; font-size: 12px; }
+.studio-selected strong { color: #f8f6f2; font-weight: 600; white-space: nowrap; }
+.studio-selected span { color: #d0d3d6; font-size: 11px; white-space: nowrap; }
 
 /* Shared product shell. */
 .app-header { display: flex; align-items: center; gap: 38px; min-height: 105px; max-width: 1296px; margin: 0 auto; padding: 22px 48px; border-bottom: 1px solid var(--line); }
@@ -133,7 +136,7 @@ small { font-size: 13px; }
 .poster-meta .meta { margin-top: 3px; }
 .poster-card:hover .title { color: var(--navy); }
 .poster-card:hover .cover-wrap { box-shadow: 0 4px 15px rgb(28 24 17 / 16%); }
-.record-note { display: none; color: var(--secondary); font-size: 14px; line-height: 1.8; margin-top: 12px; }
+.poster-card .record-note { display: none; color: var(--secondary); font-size: 14px; line-height: 1.8; margin-top: 12px; }
 .journal-feature { display: none; }
 .home-bottom { display: grid; grid-template-columns: 1.4fr 1fr; gap: 32px; margin-top: 44px; padding-top: 30px; border-top: 1px solid var(--line); }
 .memory-strip { display: flex; align-items: center; gap: 25px; }
@@ -361,6 +364,8 @@ body[data-theme="dark"] .app-dialog::backdrop { background: rgb(0 0 0 / 68%); }
 }
 
 @media (max-width: 760px) {
+  .studio-selected { margin-left: 0; padding: 7px 10px; gap: 8px; }
+  .studio-selected span { font-size: 10px; }
   html { scroll-padding-top: 16px; }
   body { font-size: 15px; }
   .studio { display: block; padding: 9px 16px; }

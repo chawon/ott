@@ -80,3 +80,48 @@ source_context: "prototypes/ottline-v2/app.js; prototypes/ottline-v2/styles.css"
 ```
 
 Record cards and details need a clear hierarchy for time, place, and occasion alongside the title, status, and note.
+
+## 2026-11-02T08:20:43.258Z — use-archive-a-as-the-selected-direction
+
+```omd-meta
+id: pref_mvyzoiuy_7a6f3c20
+timestamp: 2026-11-02T08:20:43.258Z
+scope: layout
+signal: user-statement
+confidence: explicit
+status: pending
+source_agent: codex
+source_context: "prototypes/ottline-v2/app.js; prototypes/ottline-v2/styles.css"
+```
+
+Use Archive A as the selected direction, preserving its roomy desktop and dedicated mobile hierarchy.
+
+## 2026-11-02T08:20:43.258Z — use-warm-everyday-copy-for-recording
+
+```omd-meta
+id: pref_mvyzoiuy_58d0fa61
+timestamp: 2026-11-02T08:20:43.258Z
+scope: voice
+signal: user-correction
+confidence: explicit
+status: pending
+source_agent: codex
+source_context: "prototypes/ottline-v2/app.js; prototypes/ottline-v2/data.js; DESIGN.md:224"
+```
+
+Use warm everyday Korean and English across recording, sharing, and connection flows, avoiding task or submission language while keeping consequences clear.
+
+## 2026-11-02T08:20:43.259Z — treat-records-without-notes-as-complete
+
+```omd-meta
+id: pref_mvyzoiuz_3080fae0
+timestamp: 2026-11-02T08:20:43.259Z
+scope: components.card
+signal: user-correction
+confidence: explicit
+status: pending
+source_agent: codex
+source_context: "prototypes/ottline-v2/app.js"
+```
+
+Treat records without notes as complete records; avoid repeated deficit messages in lists and reserve optional invitations for detail views.
