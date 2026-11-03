@@ -8,7 +8,7 @@ const option = key => process.argv[process.argv.indexOf(key) + 1];
 const { chromium } = await import(process.argv.includes('--playwright') ? option('--playwright') : 'playwright');
 const base = process.env.PREVIEW_URL || 'http://127.0.0.1:4173';
 const match = process.argv.includes('--match') ? option('--match').toLowerCase() : '';
-const output = fileURLToPath(new URL('./qa-output/archive-day/', import.meta.url));
+const output = fileURLToPath(new URL('./qa-output/tpo-platform/', import.meta.url));
 await mkdir(output, { recursive: true });
 const imageBytes = await readFile(new URL('./assets/quiet-days.jpg', import.meta.url));
 const browser = await chromium.launch({ headless: true, args: ['--no-sandbox'], ...(process.argv.includes('--browser') ? { executablePath: option('--browser') } : {}) });
@@ -134,7 +134,9 @@ try {
       assert.equal(await page.getByTestId('detail-when').locator('time').getAttribute('datetime'), '2026-10-31T15:30:00Z');
       assert.match(await page.getByTestId('detail-when').innerText(), /11월 1일/);
       assert.match(await page.locator('[aria-label="별점"]').innerText(), /4\.5/);
-      assert.match(await page.locator('.detail-copy .record-edition').innerText(), /시즌 1.*3화.*NETFLIX/);
+      assert.match(await page.locator('.detail-copy .record-edition').innerText(), /시즌 1.*3화/);
+      assert.equal(await page.getByTestId('detail-platform').innerText(), 'NETFLIX');
+      assert.doesNotMatch(await page.locator('.detail-copy .record-edition').innerText(), /NETFLIX/, 'platform has its own labelled context field');
       assert.equal(await page.locator('.detail-art img').getAttribute('src'), fixtures[0].seasonPosterUrl);
       assert.equal(await page.evaluate(() => window.__unsafe), undefined);
       await noWrites(page);
@@ -216,7 +218,8 @@ try {
       await page.locator('[data-testid="archive-month-records"][data-month="2026-10"]:visible').click();await rows(page,31);
       await page.getByTestId('archive-filter-place').selectOption('CAFE');
       await page.getByTestId('archive-filter-occasion').selectOption('BREAK');await rows(page,0);
-      mock.records=[{...fixtures[0],place:null,occasion:null}];
+      await page.getByTestId('archive-filter-platform').selectOption('NETFLIX');
+      mock.records=[{...fixtures[0],place:null,occasion:null,ott:null}];
       await route(page,'space');await page.getByTestId('development-refresh').click();
       await page.waitForFunction(()=>document.querySelector('[data-testid="development-status"]')?.dataset.phase==='ready');
       await route(page,'home');
@@ -224,7 +227,7 @@ try {
       assert.equal(await page.locator('[data-testid="archive-month"][data-month="2026-10"]:visible').count(),0);
       assert.equal(await page.locator('[data-testid="archive-month"][data-month="2026-11"]:visible').getAttribute('aria-pressed'),'true');
       await route(page,'records');await rows(page,1);
-      for(const field of ['month','place','occasion'])assert.equal(await page.getByTestId(`archive-filter-${field}`).inputValue(),'','reload drops filters missing from new data');
+      for(const field of ['month','place','occasion','platform'])assert.equal(await page.getByTestId(`archive-filter-${field}`).inputValue(),'','reload drops filters missing from new data');
       await route(page,'home');
       await page.setViewportSize({width:390,height:844});
       const status=await page.getByTestId('development-status').boundingBox();
@@ -252,6 +255,47 @@ try {
         await noSamples(page);await noWrites(page);
       }finally{await context.close();}
     }
+  });
+
+  await test('Development raw platforms stay escaped, locale-stable and filterable across source changes', async () => {
+    const raw = '<img src=x onerror="window.__platformUnsafe=true"> & 나의 플랫폼';
+    const records = [{...fixtures[0], ott:raw}, {...fixtures[1], ott:'NETFLIX'}, {...fixtures[2], ott:null}];
+    const {page,context,mock} = await setup({records});
+    try {
+      await start(page,'home');
+      const featured=page.locator('[data-testid="archive-featured"]:visible');await featured.waitFor();
+      assert.ok((await featured.locator('.record-context').innerText()).includes(raw));
+      for(const lang of ['ko','en']) {
+        if(lang==='en')await page.getByTestId('language').click();
+        await route(page,`title/${firstId}`);
+        assert.equal(await page.getByTestId('detail-platform').innerText(),raw);
+        assert.equal(await page.getByTestId('detail-platform').locator('img').count(),0);
+        assert.equal(await page.evaluate(()=>window.__platformUnsafe),undefined);
+        await route(page,'records');await rows(page,3);
+        assert.ok((await page.locator('.timeline-row').first().locator('.record-context').innerText()).includes(raw));
+        assert.doesNotMatch(await page.locator('main').innerText(),/undefined|\[object Object\]/);
+      }
+      await page.getByTestId('archive-filter-platform').selectOption(raw);await rows(page,1);
+      await page.getByTestId('archive-filter-month').selectOption('2026-11');
+      await page.getByTestId('archive-filter-place').selectOption('CAFE');
+      await page.getByTestId('archive-filter-occasion').selectOption('BREAK');
+      await page.getByTestId('status-filter').selectOption('IN_PROGRESS');
+      await page.locator('[data-action="filter-type"][data-value="series"]').click();
+      await page.getByTestId('record-search').fill('그날의 기억');await rows(page,1);
+      await page.getByTestId('status-filter').selectOption('DONE');await rows(page,0);
+      await page.getByTestId('archive-clear-filter').click();await rows(page,0);
+      assert.equal(await page.getByTestId('archive-filter-platform').inputValue(),'');
+      assert.equal(await page.getByTestId('record-search').inputValue(),'그날의 기억');
+      assert.equal(await page.getByTestId('status-filter').inputValue(),'DONE');
+      await page.getByTestId('status-filter').selectOption('all');await page.getByTestId('record-search').fill('');
+      await page.locator('[data-action="filter-type"][data-value="all"]').click();await rows(page,3);
+      await page.getByTestId('archive-filter-platform').selectOption(raw);await rows(page,1);
+      await page.getByTestId('data-source').selectOption('sample');await route(page,'records');await rows(page,6);
+      assert.equal(await page.getByTestId('archive-filter-platform').inputValue(),'');
+      await page.getByTestId('data-source').selectOption('development');await route(page,'records');await rows(page,3);
+      assert.equal(await page.getByTestId('archive-filter-platform').inputValue(),'');
+      assert.equal(mock.requests.every(request=>request.method==='GET'),true);
+    } finally { await context.close(); }
   });
 
   await test('Development account connection and invalid code stay separate from sample account', async () => {

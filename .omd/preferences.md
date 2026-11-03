@@ -140,3 +140,33 @@ source_context: "prototypes/ottline-v2/app.js; prototypes/ottline-v2/styles.css"
 ```
 
 The selected A direction should feel like a substantial redesign at first glance; the current refinement feels too similar to the existing service.
+
+## 2026-11-03T02:17:51.323Z — name-the-context-the-moment
+
+```omd-meta
+id: pref_mw025q6z_af81e542
+timestamp: 2026-11-03T02:17:51.323Z
+scope: voice
+signal: user-statement
+confidence: explicit
+status: pending
+source_agent: codex
+source_context: "prototypes/ottline-v2/app.js"
+```
+
+Use "그날의 순간" as the TPO section name. Keep input and preservation guidance concrete instead of repeating the metaphor everywhere.
+
+## 2026-11-03T02:19:22.837Z — preserve-existing-recording-fields
+
+```omd-meta
+id: pref_mw027ou3_3b8b6249
+timestamp: 2026-11-03T02:19:22.837Z
+scope: components.input
+signal: user-correction
+confidence: explicit
+status: pending
+source_agent: codex
+source_context: "prototypes/ottline-v2/app.js; apps/web/components/QuickLogCard.tsx"
+```
+
+The redesign must preserve the existing recording fields, including platform presets and custom platform entry, instead of reducing the flow to place and occasion.

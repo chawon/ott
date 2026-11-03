@@ -6,7 +6,7 @@ const modulePath = process.argv.includes('--playwright') ? option('--playwright'
 const match = process.argv.includes('--match') ? option('--match') : '';
 const { chromium } = await import(modulePath);
 const base = process.env.PREVIEW_URL || 'http://127.0.0.1:4173';
-const output = fileURLToPath(new URL('./qa-output/archive-day/', import.meta.url));
+const output = fileURLToPath(new URL('./qa-output/tpo-platform/', import.meta.url));
 await mkdir(output, {recursive:true});
 const browser = await chromium.launch({headless:true, args:['--no-sandbox'], ...(process.argv.includes('--browser') ? {executablePath:option('--browser')} : {})});
 const results=[];

@@ -1,5 +1,6 @@
 import { catalog as sampleCatalog, initialRecords, remoteRecords, posts, sampleCode } from './data.js';
 import { fetchAllRecords } from './api-data.js';
+import { platformGroups } from './record-options.js';
 
 // Sample interactions stay in memory. Development records use the preview's read-only API bridge.
 let catalog = sampleCatalog;
@@ -34,7 +35,7 @@ const state = {
   search: '', searchType: 'all', connectionInput: '', connectionStep: 'input',
   connectionError: '', busy: false, restoreFailedOnce: false, syncFailedOnce: false,
   deviceCount: 1, lastFocus: null, online: true, restorePending: false, connectionTarget: null, publishError: '', nickname: '', studioExpanded: false,
-  entryDraft: null, tpoError: '', archiveMonth: null, archiveFilter: {month:'',place:'',occasion:''},
+  entryDraft: null, tpoError: '', archiveMonth: null, archiveFilter: {month:'',platform:'',place:'',occasion:''},
 };
 const t = (ko, en) => state.lang === 'ko' ? ko : en;
 const isDevelopment = () => state.dataSource === 'development';
@@ -76,6 +77,7 @@ const paths = {
  heart:'<path d="M20 5a5 5 0 0 0-8 1 5 5 0 0 0-8-1c-4 4 1 9 8 14 7-5 12-10 8-14Z"/>',
  pin:'<path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/>',
  people:'<circle cx="9" cy="8" r="3"/><path d="M3 21v-3a6 6 0 0 1 12 0v3M17 5a3 3 0 0 1 0 6m2 10v-3a6 6 0 0 0-3-5"/>',
+ platform:'<rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8m-4-4v4"/>',
 };
 const icon = name => `<svg class="icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths[name] || paths.arrow}</svg>`;
 const developmentHiddenActions = new Set(['profile','save-profile','edit-saved','save-status','save-edit','submit-code','confirm-merge','retry-restore','sync','sync-connect','resume-restore','show-code','copy-code','download-code','download-report','lost-code','publish','confirm-publish','like','connectivity','reset']);
@@ -91,16 +93,18 @@ const button = (text, action, cls = 'secondary', attrs = '') => {
 const image = (item, cls = '') => cover(item) ? `<img class="${cls}" src="${esc(cover(item))}" alt="${esc(titleName(item))}" loading="lazy" referrerpolicy="no-referrer" width="400" height="600">` : `<span class="cover-placeholder ${cls}" role="img" aria-label="${esc(titleName(item))}"><span>${esc(titleName(item))}</span></span>`;
 const groupedCode = code => `${code.slice(0,4)} ${code.slice(4)}`;
 const pendingCount = () => state.records.filter(r => r.syncStatus !== 'synced').length;
-const recordEdition = r => !isDevelopment()?'':[r.seasonNumber!=null?t(`시즌 ${r.seasonNumber}`,`Season ${r.seasonNumber}`):'',r.episodeNumber!=null?t(`${r.episodeNumber}화`,`Episode ${r.episodeNumber}`):'',r.ott||''].filter(Boolean).join(' · ');
+const recordEdition = r => [r.seasonNumber!=null?t(`시즌 ${r.seasonNumber}`,`Season ${r.seasonNumber}`):'',r.episodeNumber!=null?t(`${r.episodeNumber}화`,`Episode ${r.episodeNumber}`):''].filter(Boolean).join(' · ');
+const platformLabel = type => type==='book'?t('읽은 곳·플랫폼','Book source or platform'):t('플랫폼','Platform');
 function recordContext(r,{timeOnly=false,modifier=''}={}) {
  const parts=[];
  if(r?.watchedAt)parts.push(`<time class="context-time" datetime="${esc(r.watchedAt)}">${icon('clock')}<span>${esc(timeOnly?timeText(r.watchedAt):`${dateText(r.watchedAt)} · ${timeText(r.watchedAt)}`)}</span></time>`);
+ if(r?.ott)parts.push(`<span class="context-platform">${icon(title(r.titleId)?.type==='book'?'book':'platform')}<span>${esc(r.ott)}</span></span>`);
  if(labelPlace(r?.place))parts.push(`<span class="context-place">${icon('pin')}<span>${esc(labelPlace(r.place))}</span></span>`);
  if(labelOccasion(r?.occasion))parts.push(`<span class="context-occasion">${icon('people')}<span>${esc(labelOccasion(r.occasion))}</span></span>`);
- return parts.length?`<div class="record-context ${modifier?`record-context--${modifier}`:''}" aria-label="${t('그날의 맥락','The moment’s context')}">${parts.join('')}</div>`:'';
+ return parts.length?`<div class="record-context ${modifier?`record-context--${modifier}`:''}" aria-label="${t('그날의 순간','That moment')}">${parts.join('')}</div>`:'';
 }
 function detailContext(r) {
- return `<section class="detail-context"><h2>${t('그날의 맥락','The moment around the story')}</h2><dl class="context-grid"><div><dt>${t('언제','When')}</dt><dd data-testid="detail-when">${r.watchedAt?`<time datetime="${esc(r.watchedAt)}">${esc(fullDateText(r.watchedAt))}</time>`:t('기록하지 않았어요','Not recorded')}</dd></div><div><dt>${t('어디서','Where')}</dt><dd data-testid="detail-place">${esc(labelPlace(r.place)||t('기록하지 않았어요','Not recorded'))}</dd></div><div><dt>${t('누구와·어떤 상황','Company or occasion')}</dt><dd data-testid="detail-occasion">${esc(labelOccasion(r.occasion)||t('기록하지 않았어요','Not recorded'))}</dd></div></dl>${r.status==='WISHLIST'?`<p class="hint">${t('나중에 만날 작품이에요. 이전에 남긴 감상 맥락은 그대로 보관해요.','Saved for later. Any previously recorded context is kept.')}</p>`:''}</section>`;
+ return `<section class="detail-context"><h2>${t('그날의 순간','That moment')}</h2><dl class="context-grid"><div><dt>${t('언제','When')}</dt><dd data-testid="detail-when">${r.watchedAt?`<time datetime="${esc(r.watchedAt)}">${esc(fullDateText(r.watchedAt))}</time>`:t('기록하지 않았어요','Not recorded')}</dd></div><div><dt>${platformLabel(title(r.titleId)?.type)}</dt><dd data-testid="detail-platform">${esc(r.ott||t('기록하지 않았어요','Not recorded'))}</dd></div><div><dt>${t('어디서','Where')}</dt><dd data-testid="detail-place">${esc(labelPlace(r.place)||t('기록하지 않았어요','Not recorded'))}</dd></div><div><dt>${t('누구와·어떤 상황','Company or occasion')}</dt><dd data-testid="detail-occasion">${esc(labelOccasion(r.occasion)||t('기록하지 않았어요','Not recorded'))}</dd></div></dl>${r.status==='WISHLIST'?`<p class="hint">${t('나중에 만날 작품이에요. 이전에 남긴 날짜·장소·상황은 그대로 보관해요.','Saved for later. Any previous date, place, and occasion are kept.')}</p>`:''}</section>`;
 }
 function localDateTime(value) {
  if(!value)return '';
@@ -109,7 +113,7 @@ function localDateTime(value) {
 }
 function prepareDraft(r=null) {
  state.tpoError='';
- state.entryDraft={sourceId:r?.id||null,when:r?localDateTime(r.watchedAt):localDateTime(new Date().toISOString()),place:r?.place||'',occasion:r?.occasion||'',note:clone(r?.note||''),rating:r?.rating||0,status:r?.status||'DONE'};
+ state.entryDraft={sourceId:r?.id||null,when:r?localDateTime(r.watchedAt):localDateTime(new Date().toISOString()),ott:r?.ott||'',platformCustom:false,seasonNumber:r?.seasonNumber??'',episodeNumber:r?.episodeNumber??'',place:r?.place||'',occasion:r?.occasion||'',note:clone(r?.note||''),rating:r?.rating||0,status:r?.status||'DONE'};
 }
 function tpoEditor({editing=false}={}) {
  const draft=state.entryDraft, current=editing?title(record(state.savedId)?.titleId):title(state.selectedId);
@@ -117,17 +121,47 @@ function tpoEditor({editing=false}={}) {
  if(draft.place&&!keys.includes(draft.place))keys.push(draft.place);
  const disabled=editing&&draft.status==='WISHLIST';
  const options=(values,label,selected)=>`<option value="">${t('선택 안 함','Not recorded')}</option>${values.map(value=>`<option value="${value}" ${selected===value?'selected':''}>${esc(label(value))}</option>`).join('')}`;
- return `<fieldset class="tpo-editor"><legend>${t('그날의 맥락','Keep the moment, too')}</legend><p class="tpo-help">${disabled?t('나중에 만날 작품이에요. 기존 감상 맥락은 바꾸지 않고 보관해요.','Saved for later. Previous context stays unchanged.'):t('기억하고 싶은 만큼만 남겨요. 비워 두어도 괜찮아요.','Keep what you want to remember. These are optional.')}</p><div class="tpo-fields"><div class="field tpo-when-field"><label for="tpo-when">${t('언제','When')}</label><input type="datetime-local" id="tpo-when" data-testid="tpo-when" data-control="tpo-when" name="watchedAt" step="60" value="${esc(draft.when)}" ${disabled?'disabled':''} aria-describedby="tpo-error"></div><div class="field tpo-place-field"><label for="tpo-place">${t('어디서','Where')}</label><select id="tpo-place" data-testid="tpo-place" data-control="tpo-place" name="place" ${disabled?'disabled':''}>${options(keys,labelPlace,draft.place)}</select></div><div class="field tpo-occasion-field"><label for="tpo-occasion">${t('누구와·어떤 상황','Company or occasion')}</label><select id="tpo-occasion" data-testid="tpo-occasion" data-control="tpo-occasion" name="occasion" ${disabled?'disabled':''}>${options(Object.keys(occasionLabels),labelOccasion,draft.occasion)}</select></div></div><p class="field-error" id="tpo-error" data-testid="tpo-error" role="alert">${esc(state.tpoError)}</p></fieldset>`;
+ const groups=platformGroups(current?.type,state.lang);
+ // Platform names are record values: a different locale must not translate or erase them.
+ const custom=draft.platformCustom||Boolean(draft.ott&&!groups.some(group=>group.options.includes(draft.ott)));
+ const platformOptions=`<option value="">${t('선택 안 함','Not recorded')}</option>${groups.map(group=>`<optgroup label="${esc(group.label)}">${group.options.map(value=>`<option value="${esc(value)}" ${!custom&&draft.ott===value?'selected':''}>${esc(value)}</option>`).join('')}</optgroup>`).join('')}<option value="__custom__" ${custom?'selected':''}>${t('직접 적기','Write another')}</option>`;
+ return `<fieldset class="tpo-editor"><legend>${t('그날의 순간','That moment')}</legend>
+ <p class="tpo-help">${disabled?t('날짜·장소·상황은 그대로 보관해요. 플랫폼은 바꿔도 괜찮아요.','Your date, place, and occasion stay as they are. You can still change the platform.'):t('기억하고 싶은 만큼만 남겨요. 비워 두어도 괜찮아요.','Keep what you want to remember. These are optional.')}</p>
+ <div class="tpo-fields">
+ <div class="field tpo-when-field"><label for="tpo-when">${t('언제','When')}</label><input type="datetime-local" id="tpo-when" data-testid="tpo-when" data-control="tpo-when" name="watchedAt" step="60" value="${esc(draft.when)}" ${disabled?'disabled':''} aria-describedby="tpo-error"></div>
+ <div class="field tpo-platform-field"><label for="tpo-platform">${platformLabel(current?.type)}</label><select id="tpo-platform" data-testid="tpo-platform" data-control="tpo-platform" name="platform">${platformOptions}</select>${custom?`<label class="sr-only" for="tpo-platform-custom">${t('플랫폼 이름','Platform name')}</label><input type="text" id="tpo-platform-custom" data-testid="tpo-platform-custom" data-control="tpo-platform-custom" name="platformCustom" value="${esc(draft.ott)}" placeholder="${t('이름을 적어주세요','Write the name')}" autocomplete="off">`:''}</div>
+ <div class="field tpo-place-field"><label for="tpo-place">${t('어디서','Where')}</label><select id="tpo-place" data-testid="tpo-place" data-control="tpo-place" name="place" ${disabled?'disabled':''}>${options(keys,labelPlace,draft.place)}</select></div>
+ <div class="field tpo-occasion-field"><label for="tpo-occasion">${t('누구와·어떤 상황','Company or occasion')}</label><select id="tpo-occasion" data-testid="tpo-occasion" data-control="tpo-occasion" name="occasion" ${disabled?'disabled':''}>${options(Object.keys(occasionLabels),labelOccasion,draft.occasion)}</select></div>
+ ${current?.type==='series'?`<div class="field tpo-season-field"><label for="tpo-season">${t('시즌 (선택)','Season (optional)')}</label><input type="number" id="tpo-season" data-testid="tpo-season" data-control="tpo-season" name="seasonNumber" min="0" step="1" inputmode="numeric" value="${esc(draft.seasonNumber)}" placeholder="${t('비워 두어도 괜찮아요','Leave blank if you like')}" aria-describedby="tpo-season-hint tpo-error"></div><div class="field tpo-episode-field"><label for="tpo-episode">${t('회차 (선택)','Episode (optional)')}</label><input type="number" id="tpo-episode" data-testid="tpo-episode" data-control="tpo-episode" name="episodeNumber" min="1" step="1" inputmode="numeric" value="${esc(draft.episodeNumber)}" ${String(draft.seasonNumber)===''?'disabled':''} placeholder="${t('몇 화까지 보셨나요?','Which episode?')}" aria-describedby="tpo-season-hint tpo-error"></div><p class="hint tpo-edition-hint" id="tpo-season-hint">${t('시즌 0은 특별편이에요. 시즌을 바꾸면 회차를 다시 골라요.','Season 0 is for specials. Changing the season clears the episode.')}</p>`:''}
+ </div><p class="field-error" id="tpo-error" data-testid="tpo-error" role="alert">${esc(state.tpoError)}</p></fieldset>`;
 }
 function readDraftContext(status,existing) {
- if(status==='WISHLIST')return {watchedAt:existing?.watchedAt||null,place:existing?.place||null,occasion:existing?.occasion||null};
  const draft=state.entryDraft, input=$('#tpo-when');
+ const current=title(existing?.titleId||state.selectedId);
+ const details={ott:draft.ott.trim()||null,seasonNumber:existing?.seasonNumber??null,episodeNumber:existing?.episodeNumber??null};
+ if(current?.type==='series') {
+  for(const [key,id,min] of [['seasonNumber','tpo-season',0],['episodeNumber','tpo-episode',1]]) {
+   const field=$(`#${id}`),raw=String(draft[key]),value=Number(raw);
+   if(field?.validity.badInput||(raw!==''&&(!/^\d+$/.test(raw)||!Number.isSafeInteger(value)||value<min))) {
+    state.tpoError=key==='seasonNumber'?t('시즌은 0 이상의 숫자로 남겨주세요. 비워 두어도 괜찮아요.','Use a whole season number of 0 or more, or leave it blank.'):t('회차는 1 이상의 숫자로 남겨주세요. 비워 두어도 괜찮아요.','Use a whole episode number of 1 or more, or leave it blank.');$('#tpo-error').textContent=state.tpoError;field?.focus();return null;
+   }
+   details[key]=raw===''?null:value;
+  }
+ }
+ if(status==='WISHLIST')return {...details,watchedAt:existing?.watchedAt||null,place:existing?.place||null,occasion:existing?.occasion||null};
  if(input){draft.when=input.value;}
  const parsed=draft.when?new Date(draft.when):null;
  if(input?.validity.badInput || (draft.when&&(!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(draft.when)||Number.isNaN(parsed.getTime())||localDateTime(parsed.toISOString())!==draft.when))) {
   state.tpoError=t('날짜와 시간을 확인해 주세요. 비워 두어도 괜찮아요.','Check the date and time, or leave it blank.');$('#tpo-error').textContent=state.tpoError;input?.focus();return null;
  }
- return {watchedAt:parsed?.toISOString()||null,place:placeLabels[draft.place]?draft.place:null,occasion:occasionLabels[draft.occasion]?draft.occasion:null};
+ return {...details,watchedAt:parsed?.toISOString()||null,place:placeLabels[draft.place]?draft.place:null,occasion:occasionLabels[draft.occasion]?draft.occasion:null};
+}
+function changeDraftSeason(value) {
+ if(String(state.entryDraft.seasonNumber)!==value) {
+  state.entryDraft.seasonNumber=value;state.entryDraft.episodeNumber='';
+  const episode=$('#tpo-episode');if(episode){episode.value='';episode.disabled=value==='';}
+ }
+ state.tpoError='';if($('#tpo-error'))$('#tpo-error').textContent='';
 }
 const initialOwnCode = 'H4N8Q6RT';
 const demoAccounts = new Map();
@@ -246,7 +280,7 @@ function developmentStatus() {
 }
 function developmentGate() {
  const dev=state.development;
- return `<div class="page-heading"><div><p class="eyebrow">${t('나의 아카이브','YOUR PERSONAL ARCHIVE')}</p><h1>${t('내 기록으로 만나보는 A 시안','See A with your own records')}</h1><p class="lead">${t('개발 서버에 남긴 작품과 그날의 맥락을 불러와요.','Bring in the titles and moments kept on your development server.')}</p></div></div>${developmentStatus()}${dev.phase==='loading'?`<div class="development-loading" role="status"><div class="development-skeletons" aria-hidden="true">${Array.from({length:6},()=>'<span></span>').join('')}</div><p data-testid="development-progress">${t(`${dev.count}개의 기록을 살펴보고 있어요.`,`${dev.count} records loaded so far.`)}</p></div>`:`<p class="hint">${t('이 미리보기에서는 기록을 읽기만 해요. 연결 코드를 입력하면 개발 계정에 미리보기 기기가 연결돼요.','This preview only reads records. Entering your code links a preview device to your development account.')}</p>`}`;
+ return `<div class="page-heading"><div><p class="eyebrow">${t('나의 아카이브','YOUR PERSONAL ARCHIVE')}</p><h1>${t('내 기록으로 만나보는 A 시안','See A with your own records')}</h1><p class="lead">${t('개발 서버에 남긴 작품과 그날의 순간을 불러와요.','Bring in the titles and moments kept on your development server.')}</p></div></div>${developmentStatus()}${dev.phase==='loading'?`<div class="development-loading" role="status"><div class="development-skeletons" aria-hidden="true">${Array.from({length:6},()=>'<span></span>').join('')}</div><p data-testid="development-progress">${t(`${dev.count}개의 기록을 살펴보고 있어요.`,`${dev.count} records loaded so far.`)}</p></div>`:`<p class="hint">${t('이 미리보기에서는 기록을 읽기만 해요. 연결 코드를 입력하면 개발 계정에 미리보기 기기가 연결돼요.','This preview only reads records. Entering your code links a preview device to your development account.')}</p>`}`;
 }
 function developmentSpace() {
  return `<div class="page-heading"><div><p class="eyebrow">${t('나의 공간','MY SPACE')}</p><h1>${t('개발 기록이 머무는 곳','Your development records, here')}</h1><p class="lead">${t('지금 연결한 계정의 기록을 살펴봐요.','Take a look through the records from your connected account.')}</p></div></div>${developmentStatus()}<section class="panel settings-panel"><h2>${t('나의 프로필','My profile')}</h2><p>${esc(state.nickname)||t('닉네임 없이 남긴 기록이에요.','Records kept without a nickname.')}</p><p class="hint">${t('프로필과 기록은 이 미리보기에서 바꾸지 않아요.','Profiles and records cannot be changed in this preview.')}</p></section><section class="panel settings-panel"><h2>${t('나에게 맞게','Make it yours')}</h2><div class="settings-list">${button(`${t('화면 테마','Appearance')}<span>${state.theme==='light'?t('라이트','Light'):t('다크','Dark')}${icon('arrow')}</span>`,'theme','quiet')}${button(`${t('언어','Language')}<span>${state.lang==='ko'?'한국어':'English'}${icon('arrow')}</span>`,'language','quiet')}${button(`${t('내 기록 내보내기','Export my records')}<span>CSV ${icon('download')}</span>`,'export','quiet')}</div></section><p class="hint">${t('미리보기에서 나가면 이 브라우저의 연결만 끝나요. 개발 계정의 기기 목록은 원래 서비스에서 관리할 수 있어요.','Leaving ends this browser’s preview session. Manage linked devices in the original service.')}</p>`;
@@ -300,10 +334,11 @@ function posterCard(r) {
  const item = title(r.titleId); if(!item) return '';
  return `<article class="poster-card"><button type="button" data-action="detail" data-id="${esc(r.id)}" aria-label="${esc(titleName(item))} ${t('기록 보기','view record')}"><div class="cover-wrap">${image(item)}<span class="cover-type">${labelType(item.type)}</span></div><div class="poster-meta"><h3 class="title">${esc(titleName(item))}</h3><p class="meta">${labelStatus(r.status,item.type)}${recordEdition(r)?` · ${esc(recordEdition(r))}`:''}</p>${recordContext(r,{modifier:'compact'})}${hasNote(r.note)?`<p class="record-note">${esc(localized(r.note))}</p>`:''}</div></button></article>`;
 }
-function resetArchive() {state.archiveMonth=null;state.archiveFilter={month:'',place:'',occasion:''};}
+function resetArchive() {state.archiveMonth=null;state.archiveFilter={month:'',platform:'',place:'',occasion:''};}
 function normalizeArchiveFilters() {
  const f=state.archiveFilter;
  if(f.month&&!state.records.some(r=>recordMonth(r)===f.month))f.month='';
+ if(f.platform&&!state.records.some(r=>r.ott===f.platform))f.platform='';
  if(f.place&&!state.records.some(r=>r.place===f.place))f.place='';
  if(f.occasion&&!state.records.some(r=>r.occasion===f.occasion))f.occasion='';
 }
@@ -387,16 +422,17 @@ function mobileArchiveHome() {
 }
 function archiveFilterControls() {
  const options=(values,current,label)=>`<option value="">${label}</option>${values.map(([value,name])=>`<option value="${esc(value)}" ${value===current?'selected':''}>${esc(name)}</option>`).join('')}`;
+ const platforms=[...new Set(state.records.map(r=>r.ott).filter(Boolean))].sort((a,b)=>a.localeCompare(b,locale())).map(v=>[v,v]);
  const places=Object.keys(placeLabels).filter(v=>state.records.some(r=>r.place===v)).map(v=>[v,labelPlace(v)]);
  const occasions=Object.keys(occasionLabels).filter(v=>state.records.some(r=>r.occasion===v)).map(v=>[v,labelOccasion(v)]);
  const active=Object.values(state.archiveFilter).some(Boolean);
- const summary=[state.archiveFilter.month?monthLabel(state.archiveFilter.month):'',labelPlace(state.archiveFilter.place),labelOccasion(state.archiveFilter.occasion)].filter(Boolean).join(' · ');
- return `<section class="archive-filters" aria-label="${t('그날의 맥락으로 찾기','Find a moment by context')}"><div class="archive-filter-fields"><label><span>${t('언제','When')}</span><select data-control="archive-filter-month" data-testid="archive-filter-month">${options(archiveMonths().map(m=>[m.key,monthLabel(m.key)]),state.archiveFilter.month,t('모든 달','Every month'))}</select></label><label><span>${t('어디서','Where')}</span><select data-control="archive-filter-place" data-testid="archive-filter-place">${options(places,state.archiveFilter.place,t('모든 장소','Every place'))}</select></label><label><span>${t('누구와·어떤 상황','Company or occasion')}</span><select data-control="archive-filter-occasion" data-testid="archive-filter-occasion">${options(occasions,state.archiveFilter.occasion,t('모든 상황','Every occasion'))}</select></label></div>${active?`<div class="archive-filter-summary"><p>${esc(summary)}</p>${button(t('날짜·장소·상황 모두 보기','Clear date and context'),'archive-clear-filter','quiet','data-testid="archive-clear-filter"')}</div>`:''}</section>`;
+ const summary=[state.archiveFilter.month?monthLabel(state.archiveFilter.month):'',state.archiveFilter.platform,labelPlace(state.archiveFilter.place),labelOccasion(state.archiveFilter.occasion)].filter(Boolean).join(' · ');
+ return `<section class="archive-filters" aria-label="${t('그날의 순간으로 찾기','Find a moment')}"><div class="archive-filter-fields"><label><span>${t('언제','When')}</span><select data-control="archive-filter-month" data-testid="archive-filter-month">${options(archiveMonths().map(m=>[m.key,monthLabel(m.key)]),state.archiveFilter.month,t('모든 달','Every month'))}</select></label><label><span>${t('플랫폼','Platform')}</span><select data-control="archive-filter-platform" data-testid="archive-filter-platform">${options(platforms,state.archiveFilter.platform,t('모든 플랫폼','Every platform'))}</select></label><label><span>${t('어디서','Where')}</span><select data-control="archive-filter-place" data-testid="archive-filter-place">${options(places,state.archiveFilter.place,t('모든 장소','Every place'))}</select></label><label><span>${t('누구와·어떤 상황','Company or occasion')}</span><select data-control="archive-filter-occasion" data-testid="archive-filter-occasion">${options(occasions,state.archiveFilter.occasion,t('모든 상황','Every occasion'))}</select></label></div>${active?`<div class="archive-filter-summary"><p>${esc(summary)}</p>${button(t('모든 순간 보기','Clear moment filters'),'archive-clear-filter','quiet','data-testid="archive-clear-filter"')}</div>`:''}</section>`;
 }
 function recordsPage() {
- const filtered=state.records.filter(r=>{const item=title(r.titleId); return item && (!state.archiveFilter.month||recordMonth(r)===state.archiveFilter.month)&&(!state.archiveFilter.place||r.place===state.archiveFilter.place)&&(!state.archiveFilter.occasion||r.occasion===state.archiveFilter.occasion)&&(state.type==='all'||item.type===state.type)&&(state.status==='all'||r.status===state.status)&&`${localized(item.title)} ${localized(r.note)}`.toLowerCase().includes(state.query.toLowerCase());}).sort(newestFirst);
+ const filtered=state.records.filter(r=>{const item=title(r.titleId); return item && (!state.archiveFilter.month||recordMonth(r)===state.archiveFilter.month)&&(!state.archiveFilter.platform||r.ott===state.archiveFilter.platform)&&(!state.archiveFilter.place||r.place===state.archiveFilter.place)&&(!state.archiveFilter.occasion||r.occasion===state.archiveFilter.occasion)&&(state.type==='all'||item.type===state.type)&&(state.status==='all'||r.status===state.status)&&`${localized(item.title)} ${localized(r.note)} ${r.ott||''}`.toLowerCase().includes(state.query.toLowerCase());}).sort(newestFirst);
  return `<div class="page-heading"><div><p class="eyebrow">${t('나의 기록','MY RECORDS')}</p><h1>${t('나의 시간이 쌓이는 곳','A little history of you')}</h1><p class="lead">${t('보고 읽은 것들, 그때의 마음까지.','What you watched and read, and how it felt.')}</p></div><div class="heading-actions"><a class="button secondary" href="#report">${icon('clock')}${t('리포트','Report')}</a>${state.lang==='ko'?`<a class="button secondary" href="#shelf">${icon('book')}내 서가</a>`:''}</div></div>
- <div class="filter-bar"><label class="search-field">${icon('search')}<input data-control="record-search" data-focus="record-search" data-testid="record-search" value="${esc(state.query)}" placeholder="${t('작품이나 메모 찾기','Search titles or notes')}" aria-label="${t('기록 검색','Search records')}"></label><div class="filter-chips">${['all','movie','series','book'].map(v=>button(v==='all'?t('전체','All'):labelType(v),'filter-type','',`data-value="${v}" aria-pressed="${state.type===v}"`)).join('')}</div><label class="status-filter"><span class="sr-only">${t('기록 상태','Record status')}</span><select data-control="status" data-testid="status-filter">${['all','DONE','IN_PROGRESS','WISHLIST'].map(v=>`<option value="${v}" ${state.status===v?'selected':''}>${({all:t('모든 상태','All statuses'),DONE:t('다 본·읽은 작품','Watched or read'),IN_PROGRESS:t('보고·읽는 중','Watching or reading'),WISHLIST:t('찜해둔 작품','Saved for later')})[v]}</option>`).join('')}</select></label></div>
+ <div class="filter-bar"><label class="search-field">${icon('search')}<input data-control="record-search" data-focus="record-search" data-testid="record-search" value="${esc(state.query)}" placeholder="${t('작품·메모·플랫폼 찾기','Search titles, notes, or platforms')}" aria-label="${t('기록 검색','Search records')}"></label><div class="filter-chips">${['all','movie','series','book'].map(v=>button(v==='all'?t('전체','All'):labelType(v),'filter-type','',`data-value="${v}" aria-pressed="${state.type===v}"`)).join('')}</div><label class="status-filter"><span class="sr-only">${t('기록 상태','Record status')}</span><select data-control="status" data-testid="status-filter">${['all','DONE','IN_PROGRESS','WISHLIST'].map(v=>`<option value="${v}" ${state.status===v?'selected':''}>${({all:t('모든 상태','All statuses'),DONE:t('다 본·읽은 작품','Watched or read'),IN_PROGRESS:t('보고·읽는 중','Watching or reading'),WISHLIST:t('찜해둔 작품','Saved for later')})[v]}</option>`).join('')}</select></label></div>
  ${archiveFilterControls()}<p class="results-summary">${t(`${filtered.length}개의 기록`,`${filtered.length} ${filtered.length===1?'record':'records'}`)}</p>
  <div class="timeline-list">${filtered.length?filtered.map((r,i)=>{const item=title(r.titleId);const month=recordMonth(r);return `${i===0||recordMonth(filtered[i-1])!==month?`<h2 class="timeline-month">${recordDate(r)?new Intl.DateTimeFormat(locale(),{year:'numeric',month:'long'}).format(asDate(recordDate(r))):t('날짜 미기록','Date not recorded')}</h2>`:''}<article class="timeline-row"><div class="timeline-date">${dateText(recordDate(r))}${!r.watchedAt?`<small>${t('기록한 날','Added')}</small>`:''}</div><button class="timeline-cover" type="button" data-action="detail" data-id="${esc(r.id)}" aria-label="${esc(titleName(item))}">${image(item)}</button><div class="timeline-content"><p class="meta">${labelType(item.type)}${item.year?` · ${item.year}`:''}${recordEdition(r)?` · ${esc(recordEdition(r))}`:''}</p><h3><button type="button" class="title-link" data-action="detail" data-id="${esc(r.id)}">${esc(titleName(item))}</button></h3><span class="status-pill">${labelStatus(r.status,item.type)}</span>${recordContext(r,{timeOnly:true})}${hasNote(r.note)?`<p class="record-note">${esc(localized(r.note))}</p>`:''}${syncPill(r)}</div><div class="row-actions">${button(t('이어 적기','Edit note'),'edit','quiet',`data-id="${esc(r.id)}"`)}</div></article>`;}).join(''):empty(t('아직 여기에는 기록이 없어요.','No records here yet.'),isDevelopment()?t('다른 조건으로 찾아보세요.','Try another filter.'):t('다른 조건으로 찾아보거나 새로운 기록을 남겨보세요.','Try another filter or leave a new record.'),isDevelopment()?null:'record',t('기록 남기기','Leave a record'))}</div>`;
 }
@@ -464,9 +500,9 @@ function renderDialog() {
  if(state.modal==='development-connect')html=developmentConnectionDialog();
  if(state.modal==='profile') html=dialogFrame(t('나의 기록에 이름 붙이기','A name for your records'),t('내 화면에서만 보이는 닉네임이에요.','This nickname is only for your own screens.'),`<div class="field"><label for="nickname">${t('닉네임','Nickname')}</label><input id="nickname" name="nickname" maxlength="32" autocomplete="off" value="${esc(state.nickname)}" placeholder="${t('예: 이야기 수집가','e.g. Story keeper')}" data-testid="nickname-input"><p class="hint">${t('최대 32자. 비워 두어도 괜찮아요.','Up to 32 characters. You can leave this blank.')}</p></div>`,button(t('닉네임 저장','Save nickname'),'save-profile','primary','data-testid="save-profile"'));
  if(state.modal==='search') html=dialogFrame(t('오늘은 어떤 이야기를 남길까요?','What story will you keep today?'),t('영상도 책도, 제목부터 가볍게 찾아요.','Start with the title. Films, series, and books belong here.'),`<label class="search-field">${icon('search')}<input autofocus data-control="title-search" data-testid="title-search" value="${esc(state.search)}" placeholder="${t('작품 제목 검색','Search for a title')}" aria-label="${t('작품 제목 검색','Search for a title')}"></label><div class="filter-chips">${['all','movie','series','book'].map(v=>button(v==='all'?t('전체','All'):labelType(v),'search-type','',`data-value="${v}" aria-pressed="${state.searchType===v}"`)).join('')}</div><div id="search-results" class="search-results">${searchResults()}</div>`);
- if(state.modal==='status'&&item) html=dialogFrame(t('어떤 순간으로 남겨둘까요?','How would you like to keep this title?'),t('그날의 맥락을 남기고, 상태를 눌러 저장해요.','Keep the context, then choose a status to save.'),`<div class="selected-title">${image(item,'dialog-cover')}<div><p class="meta">${labelType(item.type)} · ${item.year}</p><h3>${esc(titleName(item))}</h3><p>${esc(localized(item.creator))}</p></div></div>${tpoEditor()}<p class="hint">${t('보고·읽고 싶은 작품은 감상 맥락을 새로 저장하지 않아요. 기존 맥락은 그대로 남아요.','For a title saved for later, no new time, place, or occasion is added. Existing context stays.')}</p>`,`<div class="status-choices">${['DONE','IN_PROGRESS','WISHLIST'].map(v=>button(`${icon(v==='DONE'?'check':v==='IN_PROGRESS'?'book':'clock')}<strong>${labelStatus(v,item.type)}</strong>`,'save-status',v==='DONE'?'primary status-choice':'secondary status-choice',`data-value="${v}" data-testid="save-${v}"`)).join('')}</div>`);
- if(state.modal==='saved') {const r=record(state.savedId);html=dialogFrame(t('한 페이지가 더 쌓였어요.','One more moment, kept.'),t('기록은 끝났어요. 더 남기고 싶을 때 이어 적어요.','Your record is saved. Add a little more only if you want.'),`<div class="save-confirmation"><span class="success-mark">${icon('check')}</span><h3>${esc(titleName(title(r?.titleId)))}</h3><div class="saved-context" data-testid="saved-context">${recordContext(r,{modifier:'saved'})||`<p class="hint">${t('그날의 맥락은 나중에 더해도 괜찮아요.','You can add the context another time.')}</p>`}</div>${syncPill(r)}</div>${!state.codeSaved?`<div class="notice"><div><strong>${t('다른 기기에서도 이어보세요.','Keep this with you on another device.')}</strong><p>${state.connected?t('내 공간의 연결 코드를 보관해 두면 다시 찾을 수 있어요.','Keep the connection code in My space to find your records again.'):t('서버와 동기화되면 연결 코드를 보관할 수 있어요.','After syncing, you can save a connection code.')}</p></div>${button(t('코드 보관하기','Keep my code'),'show-code','quiet')}</div>`:''}`,`${button(t('맥락·감상 더 남기기','Add context or a note'),'edit-saved','secondary')}${button(t('내 기록에서 보기','See my records'),'saved-done','primary','data-testid="saved-done"')}`);}
- if(state.modal==='edit') {const r=record(state.savedId);const current=title(r?.titleId),draft=state.entryDraft;html=dialogFrame(t('그날의 맥락과 마음을 남겨요.','Keep the moment and the feeling.'),esc(titleName(current)),`<form id="edit-form">${tpoEditor({editing:true})}<div class="field"><label for="note">${t('나의 메모','My note')}</label><textarea id="note" name="note" rows="4" maxlength="2000" placeholder="${t('기억하고 싶은 장면이나 한 줄','A scene or a thought to remember')}" data-control="edit-note" data-testid="note-input">${esc(localized(draft.note))}</textarea></div><div class="details-grid"><div class="field"><label for="rating">${t('별점','Rating')}</label><select id="rating" name="rating" data-control="edit-rating">${[0,1,2,3,4,5].map(v=>`<option value="${v}" ${Number(draft.rating||0)===v?'selected':''}>${v?'★'.repeat(v):t('별점 없이','No rating')}</option>`).join('')}</select></div><div class="field"><label for="edit-status">${t('지금 상태','Current status')}</label><select id="edit-status" name="status" data-control="edit-status" data-testid="edit-status">${['DONE','IN_PROGRESS','WISHLIST'].map(v=>`<option value="${v}" ${draft.status===v?'selected':''}>${labelStatus(v,current?.type)}</option>`).join('')}</select></div></div></form>`,`${button(t('이대로 남기기','Keep this record'),'save-edit','primary','data-testid="save-edit"')}${button(t('나중에 할게요','Maybe later'),'close','quiet')}`);}
+ if(state.modal==='status'&&item) html=dialogFrame(t('어떤 순간으로 남겨둘까요?','How would you like to keep this title?'),t('상태만 골라도 괜찮아요. 날짜·장소·플랫폼은 원하는 만큼 남겨요.','A status is enough. Add a date, place, or platform if you like.'),`<div class="selected-title">${image(item,'dialog-cover')}<div><p class="meta">${labelType(item.type)} · ${item.year}</p><h3>${esc(titleName(item))}</h3><p>${esc(localized(item.creator))}</p></div></div>${tpoEditor()}<p class="hint">${t('보고·읽고 싶은 작품은 날짜·장소·상황을 새로 남기지 않아요. 이전 기록과 선택한 플랫폼은 보관해요.','For a title saved for later, the date, place, and occasion stay as they are. Your chosen platform is kept.')}</p>`,`<div class="status-choices">${['DONE','IN_PROGRESS','WISHLIST'].map(v=>button(`${icon(v==='DONE'?'check':v==='IN_PROGRESS'?'book':'clock')}<strong>${labelStatus(v,item.type)}</strong>`,'save-status',v==='DONE'?'primary status-choice':'secondary status-choice',`data-value="${v}" data-testid="save-${v}"`)).join('')}</div>`);
+ if(state.modal==='saved') {const r=record(state.savedId);html=dialogFrame(t('한 페이지가 더 쌓였어요.','One more moment, kept.'),t('기록은 끝났어요. 더 남기고 싶을 때 이어 적어요.','Your record is saved. Add a little more only if you want.'),`<div class="save-confirmation"><span class="success-mark">${icon('check')}</span><h3>${esc(titleName(title(r?.titleId)))}</h3>${recordEdition(r)?`<p class="meta">${esc(recordEdition(r))}</p>`:''}<div class="saved-context" data-testid="saved-context">${recordContext(r,{modifier:'saved'})||`<p class="hint">${t('그날의 순간은 나중에 더해도 괜찮아요.','You can add details of that moment another time.')}</p>`}</div>${syncPill(r)}</div>${!state.codeSaved?`<div class="notice"><div><strong>${t('다른 기기에서도 이어보세요.','Keep this with you on another device.')}</strong><p>${state.connected?t('내 공간의 연결 코드를 보관해 두면 다시 찾을 수 있어요.','Keep the connection code in My space to find your records again.'):t('서버와 동기화되면 연결 코드를 보관할 수 있어요.','After syncing, you can save a connection code.')}</p></div>${button(t('코드 보관하기','Keep my code'),'show-code','quiet')}</div>`:''}`,`${button(t('그날의 순간·메모 더하기','Add to this moment'),'edit-saved','secondary')}${button(t('내 기록에서 보기','See my records'),'saved-done','primary','data-testid="saved-done"')}`);}
+ if(state.modal==='edit') {const r=record(state.savedId);const current=title(r?.titleId),draft=state.entryDraft;html=dialogFrame(t('그날의 순간과 마음을 남겨요.','Keep the moment and the feeling.'),esc(titleName(current)),`<form id="edit-form">${tpoEditor({editing:true})}<div class="field"><label for="note">${t('나의 메모','My note')}</label><textarea id="note" name="note" rows="4" maxlength="2000" placeholder="${t('기억하고 싶은 장면이나 한 줄','A scene or a thought to remember')}" data-control="edit-note" data-testid="note-input">${esc(localized(draft.note))}</textarea></div><div class="details-grid"><div class="field"><label for="rating">${t('별점','Rating')}</label><select id="rating" name="rating" data-control="edit-rating">${[0,1,2,3,4,5].map(v=>`<option value="${v}" ${Number(draft.rating||0)===v?'selected':''}>${v?'★'.repeat(v):t('별점 없이','No rating')}</option>`).join('')}</select></div><div class="field"><label for="edit-status">${t('지금 상태','Current status')}</label><select id="edit-status" name="status" data-control="edit-status" data-testid="edit-status">${['DONE','IN_PROGRESS','WISHLIST'].map(v=>`<option value="${v}" ${draft.status===v?'selected':''}>${labelStatus(v,current?.type)}</option>`).join('')}</select></div></div></form>`,`${button(t('이대로 남기기','Keep this record'),'save-edit','primary','data-testid="save-edit"')}${button(t('나중에 할게요','Maybe later'),'close','quiet')}`);}
  if(state.modal==='code') html=dialogFrame(t('내 기록을 여는 작은 열쇠','A little key to your records'),'',state.connected?codeCard():`<div class="notice"><p>${t('아직 서버에 연결되지 않았어요. 이 기기의 기록을 먼저 동기화해 주세요.','Not connected to the server yet. Sync this device’s records first.')}</p>${button(t('동기화 다시 시도','Retry sync'),'sync','primary')}</div>`);
  if(state.modal==='connect') html=connectionDialog();
  if(state.modal==='lost') html=dialogFrame(t('연결 코드를 잃어버렸나요?','Lost your connection code?'),'',`<ol class="checklist"><li>${t('기록이 남아 있는 다른 기기에서 내 공간을 열어보세요.','Open My space on a device that still has your records.')}</li><li>${t('저장해 둔 보관 카드나 개인 메모에서 코드를 찾아보세요.','Look for a saved recovery card or a private note with your code.')}</li></ol><div class="notice"><p>${t('코드와 연결된 기기를 모두 잃었다면 기록을 되찾을 수 없어요. 이메일이나 전화번호를 수집하지 않아 다른 복구 방법은 제공하지 않아요.','If you have lost both the code and every connected device, the records cannot be recovered. We do not collect email addresses or phone numbers for recovery.')}</p></div>`,button(t('알겠어요','Got it'),'close','primary'));
@@ -513,7 +549,7 @@ function saveStatus(status) {
  const now=new Date(Math.max(Date.now(),(Date.parse(existing?.updatedAt)||0)+1)).toISOString();
  const r={...(existing||{}),id:existing?.id||`local-${randomId()}`,titleId:state.selectedId,status,...context,createdAt:existing?.createdAt||existing?.watchedAt||now,updatedAt:now,note:existing?.note||{ko:'',en:''},rating:existing?.rating||null,syncStatus:savedSyncStatus()};
  if(existing)state.records=state.records.map(current=>current.id===existing.id?r:current);else state.records.unshift(r);
- state.savedId=r.id;persistSyncedRecords();render();setModal('saved');
+ state.savedId=r.id;persistSyncedRecords();normalizeArchiveFilters();render();setModal('saved');
 }
 function syncRecords(forConnection=false) {
  if(state.busy)return;
@@ -603,7 +639,7 @@ async function downloadReport(){
  ctx.fillText(tr('OTTLINE 2.0 시안 · 가상 작품과 샘플 기록','OTTLINE 2.0 preview · fictional titles and sample records'),70,1820);
  canvas.toBlob(blob=>{if(blob)download(blob,'ottline-preview-report.png');},'image/png');
 }
-function exportCSV(){const cell=v=>{const raw=String(v??'');const safe=/^[=+@\-\t\r]/.test(raw)?`'${raw}`:raw;return `"${safe.replaceAll('"','""')}"`;};const rows=[['title','type','status','date','place','occasion','note','rating'],...state.records.map(r=>[titleName(title(r.titleId)),title(r.titleId).type,r.status,r.watchedAt||'',r.place||'',r.occasion||'',localized(r.note),r.rating])];download(new Blob(['\uFEFF',rows.map(row=>row.map(cell).join(',')).join('\r\n')],{type:'text/csv;charset=utf-8'}),isDevelopment()?'ottline-development-records.csv':'ottline-preview-records.csv');}
+function exportCSV(){const cell=v=>{const raw=String(v??'');const safe=/^[=+@\-\t\r]/.test(raw)?`'${raw}`:raw;return `"${safe.replaceAll('"','""')}"`;};const rows=[['title','type','status','date','place','occasion','note','rating','platform','season','episode'],...state.records.map(r=>[titleName(title(r.titleId)),title(r.titleId).type,r.status,r.watchedAt||'',r.place||'',r.occasion||'',localized(r.note),r.rating,r.ott,r.seasonNumber,r.episodeNumber])];download(new Blob(['\uFEFF',rows.map(row=>row.map(cell).join(',')).join('\r\n')],{type:'text/csv;charset=utf-8'}),isDevelopment()?'ottline-development-records.csv':'ottline-preview-records.csv');}
 
 async function handleAction(action,node) {
  if(isDevelopment()) {
@@ -638,15 +674,15 @@ async function handleAction(action,node) {
   case 'save-edit':{
    const r=record(state.savedId);if(!r)break;const form=$('#edit-form');const note=form.elements.note.value.trim();const rating=Number(form.elements.rating.value)||null;const status=form.elements.status.value;
    const context=readDraftContext(status,r);if(!context)break;Object.assign(r,context);
-   r.note=note;r.rating=rating;r.status=status;r.updatedAt=new Date(Math.max(Date.now(),(Date.parse(r.updatedAt)||0)+1)).toISOString();r.syncStatus=savedSyncStatus();persistSyncedRecords();closeModal();render();toast(t('그때의 마음을 더해두었어요.','Your note is kept with this moment.'));break;
+   r.note=note;r.rating=rating;r.status=status;r.updatedAt=new Date(Math.max(Date.now(),(Date.parse(r.updatedAt)||0)+1)).toISOString();r.syncStatus=savedSyncStatus();persistSyncedRecords();normalizeArchiveFilters();closeModal();render();toast(t('그때의 마음을 더해두었어요.','Your note is kept with this moment.'));break;
   }
   case 'archive-month':{
    if(archiveMonths().some(m=>m.key===node.dataset.month))state.archiveMonth=node.dataset.month;
    render();[...document.querySelectorAll('[data-testid="archive-month"]')].find(el=>el.dataset.month===state.archiveMonth&&el.getClientRects().length)?.focus({preventScroll:true});break;
   }
-  case 'archive-context':state.archiveFilter={month:'',place:placeLabels[node.dataset.place]?node.dataset.place:'',occasion:occasionLabels[node.dataset.occasion]?node.dataset.occasion:''};state.query='';state.type='all';state.status='all';go('records');break;
-  case 'archive-month-records':state.archiveFilter={month:archiveMonths().some(m=>m.key===node.dataset.month)?node.dataset.month:'',place:'',occasion:''};state.query='';state.type='all';state.status='all';go('records');break;
-  case 'archive-clear-filter':state.archiveFilter={month:'',place:'',occasion:''};render();break;
+  case 'archive-context':state.archiveFilter={month:'',platform:'',place:placeLabels[node.dataset.place]?node.dataset.place:'',occasion:occasionLabels[node.dataset.occasion]?node.dataset.occasion:''};state.query='';state.type='all';state.status='all';go('records');break;
+  case 'archive-month-records':state.archiveFilter={month:archiveMonths().some(m=>m.key===node.dataset.month)?node.dataset.month:'',platform:'',place:'',occasion:''};state.query='';state.type='all';state.status='all';go('records');break;
+  case 'archive-clear-filter':state.archiveFilter={month:'',platform:'',place:'',occasion:''};render();break;
   case 'filter-type':state.type=node.dataset.value;render();break;
   case 'search-type':state.searchType=node.dataset.value;renderDialog();break;
   case 'connect':beginConnect();break;
@@ -686,8 +722,9 @@ document.addEventListener('click',event=>{if(event.target.closest('.skip-link'))
 document.addEventListener('input',event=>{
  const node=event.target;
  if(state.entryDraft){
-  const field={'tpo-when':'when','tpo-place':'place','tpo-occasion':'occasion','edit-note':'note','edit-rating':'rating'}[node.dataset.control];
+  const field={'tpo-when':'when','tpo-place':'place','tpo-occasion':'occasion','tpo-platform-custom':'ott','tpo-episode':'episodeNumber','edit-note':'note','edit-rating':'rating'}[node.dataset.control];
   if(field){state.entryDraft[field]=node.value;state.tpoError='';if($('#tpo-error'))$('#tpo-error').textContent='';}
+  if(node.dataset.control==='tpo-season')changeDraftSeason(node.value);
  }
  if(node.dataset.control==='development-code'){state.development.code=node.value;state.development.error='';const error=$('#development-code-error');if(error)error.textContent='';}
  if(node.dataset.control==='title-search'){state.search=node.value;$('#search-results').innerHTML=searchResults();}
@@ -699,14 +736,20 @@ document.addEventListener('input',event=>{
 document.addEventListener('change',event=>{
  const node=event.target;
  if(state.entryDraft){
-  const field={'tpo-when':'when','tpo-place':'place','tpo-occasion':'occasion','edit-rating':'rating'}[node.dataset.control];
+  const field={'tpo-when':'when','tpo-place':'place','tpo-occasion':'occasion','tpo-platform-custom':'ott','tpo-episode':'episodeNumber','edit-rating':'rating'}[node.dataset.control];
   if(field)state.entryDraft[field]=node.value;
+  if(node.dataset.control==='tpo-season')changeDraftSeason(node.value);
+  if(node.dataset.control==='tpo-platform') {
+   state.entryDraft.platformCustom=node.value==='__custom__';
+   if(!state.entryDraft.platformCustom)state.entryDraft.ott=node.value;
+   renderDialog();$(state.entryDraft.platformCustom?'#tpo-platform-custom':'#tpo-platform')?.focus({preventScroll:true});
+  }
   if(node.dataset.control==='edit-status'){state.entryDraft.status=node.value;renderDialog();$('#edit-status')?.focus();}
  }
  if(node.dataset.control==='data-source')switchDataSource(node.value);
  if(node.dataset.control==='scenario'&&!isDevelopment()){if($('#dialog').open)closeModal();state.scenario=node.value;initScenario();render();}
  if(node.dataset.control==='status'){state.status=node.value;render();}
- if(node.dataset.control?.startsWith('archive-filter-')){const key=node.dataset.control.slice('archive-filter-'.length);if(['month','place','occasion'].includes(key)){state.archiveFilter[key]=node.value;render();$(`[data-control="archive-filter-${key}"]`)?.focus({preventScroll:true});}}
+ if(node.dataset.control?.startsWith('archive-filter-')){const key=node.dataset.control.slice('archive-filter-'.length);if(['month','platform','place','occasion'].includes(key)){state.archiveFilter[key]=node.value;render();$(`[data-control="archive-filter-${key}"]`)?.focus({preventScroll:true});}}
 });
 document.addEventListener('submit',event=>{event.preventDefault();if(event.target.id==='connection-form'&&!isDevelopment())submitCode();if(event.target.id==='development-connection-form')handleAction('development-submit',event.target);});
 $('#dialog').addEventListener('cancel',event=>{event.preventDefault();closeModal();});

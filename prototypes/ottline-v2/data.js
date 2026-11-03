@@ -16,19 +16,19 @@ export const catalog = [
 ];
 const entry = (id, titleId, status, day, ko, en, rating = null, context = {}) => ({
   id, titleId, status, watchedAt: status==='WISHLIST'?null:`${day}T12:00:00Z`, createdAt:`${day}T12:00:00Z`, updatedAt: `${day}T12:00:00Z`,
-  note: text(ko, en), rating, place:null, occasion:null, syncStatus: 'synced', ...context,
+  note: text(ko, en), rating, ott:null, seasonNumber:null, episodeNumber:null, place:null, occasion:null, syncStatus: 'synced', ...context,
 });
 export const initialRecords = [
-  entry('record-quiet', 'quiet-days', 'DONE', '2026-11-01', '별일 없는 하루도, 누군가에겐 오래 남을 이야기.', 'An ordinary day can still be a story worth keeping.', 5, {place:'HOME',occasion:'FAMILY'}),
-  entry('record-blue', 'blue-hour', 'IN_PROGRESS', '2026-10-30', '밤이 시작되기 전, 그 짧고 푸른 시간.', 'That brief blue moment before the night begins.', 4, {place:'HOME',occasion:'ALONE'}),
-  entry('record-sea', 'sea-notes', 'IN_PROGRESS', '2026-10-28', '책장을 넘길 때마다 조금씩 느려지는 마음.', 'A little slower, a little quieter, with every page.', null, {watchedAt:'2026-10-28T06:30:00Z',place:'CAFE',occasion:'BREAK'}),
-  entry('record-train', 'night-train', 'DONE', '2026-10-24', '도착보다 함께 가는 시간이 좋았다.', 'It was the time together, more than the destination.', 4, {watchedAt:'2026-10-24T10:00:00Z',place:'THEATER',occasion:'FRIENDS'}),
+  entry('record-quiet', 'quiet-days', 'DONE', '2026-11-01', '별일 없는 하루도, 누군가에겐 오래 남을 이야기.', 'An ordinary day can still be a story worth keeping.', 5, {ott:'Netflix',place:'HOME',occasion:'FAMILY'}),
+  entry('record-blue', 'blue-hour', 'IN_PROGRESS', '2026-10-30', '밤이 시작되기 전, 그 짧고 푸른 시간.', 'That brief blue moment before the night begins.', 4, {ott:'TVING',seasonNumber:1,episodeNumber:3,place:'HOME',occasion:'ALONE'}),
+  entry('record-sea', 'sea-notes', 'IN_PROGRESS', '2026-10-28', '책장을 넘길 때마다 조금씩 느려지는 마음.', 'A little slower, a little quieter, with every page.', null, {watchedAt:'2026-10-28T06:30:00Z',ott:'밀리의 서재',place:'CAFE',occasion:'BREAK'}),
+  entry('record-train', 'night-train', 'DONE', '2026-10-24', '도착보다 함께 가는 시간이 좋았다.', 'It was the time together, more than the destination.', 4, {watchedAt:'2026-10-24T10:00:00Z',ott:'CGV',place:'THEATER',occasion:'FRIENDS'}),
   entry('record-forest', 'small-forest', 'DONE', '2026-10-20', '초록색 장면들이 오래 생각날 것 같다.', 'I think those green scenes will stay with me.', 5, {watchedAt:null}),
   entry('record-library', 'winter-library', 'WISHLIST', '2026-10-16', '첫눈이 오면 읽어보고 싶은 책.', 'A book to open with the first snow.', null),
 ];
 export const remoteRecords = [
-  entry('remote-quiet', 'quiet-days', 'DONE', '2026-11-02', '다시 보니 처음엔 놓쳤던 표정이 보였다.', 'Watching again, I noticed an expression I missed.', 5, {place:'HOME',occasion:'ALONE'}),
-  entry('remote-orbit', 'orbit', 'IN_PROGRESS', '2026-10-19', '먼 곳의 이야기인데, 이상하게 가까이 느껴진다.', 'A story so far away, yet somehow close to home.', 4, {place:'TRANSIT'}),
+  entry('remote-quiet', 'quiet-days', 'DONE', '2026-11-02', '다시 보니 처음엔 놓쳤던 표정이 보였다.', 'Watching again, I noticed an expression I missed.', 5, {ott:'Netflix',place:'HOME',occasion:'ALONE'}),
+  entry('remote-orbit', 'orbit', 'IN_PROGRESS', '2026-10-19', '먼 곳의 이야기인데, 이상하게 가까이 느껴진다.', 'A story so far away, yet somehow close to home.', 4, {ott:'Disney+',seasonNumber:1,episodeNumber:2,place:'TRANSIT'}),
   entry('remote-light', 'slow-light', 'DONE', '2026-09-14', '산책하며 지나쳤던 것들을 다시 바라보게 된다.', 'It made me notice the little things on my walks.', 4),
 ];
 export const posts = [
