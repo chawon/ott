@@ -140,6 +140,8 @@ node prototypes/ottline-v2/development-browser-check.mjs --playwright /absolute/
 node --test prototypes/ottline-v2/record-options.test.mjs
 # 플랫폼·시즌·회차 저장과 모바일 입력 검증
 node prototypes/ottline-v2/tpo-platform-browser-check.mjs --playwright /absolute/path/to/playwright/index.mjs --browser /absolute/path/to/chrome
+# 작품 검색 팝업의 간격과 포커스 테두리 검증
+node prototypes/ottline-v2/search-dialog-browser-check.mjs --playwright /absolute/path/to/playwright/index.mjs --browser /absolute/path/to/chrome
 ```
 
 `qa-output/`에 화면 캡처, 다운로드 이미지, 통과한 시나리오 목록을 저장하며 Git에서는 제외합니다. 검증 항목은 확정 A안·두 언어·두 테마의 320/390/1440px 화면, 기록·수정·검색·연결·합치기·오프라인·복원 실패·다운로드·키보드·기존 기록 진입 URL입니다. 실제 스마트폰의 IME·보이스오버·safe-area 동작과 운영 API는 별도 실기기 검증이 필요합니다.
@@ -159,6 +161,8 @@ TPO 검증은 Asia/Seoul 시간대에서 새벽 입력의 날짜 유지와 ISO �
 같은 날 ‘그날의 순간’ 문구와 플랫폼·시즌·회차를 복원한 뒤 기존 선택지 대조 4개, 샘플 브라우저 29개, 개발 데이터 10개, 플랫폼 집중 검증 8개 그룹을 통과했습니다. 직접 쓴 플랫폼의 저장·수정·취소·비우기·언어 전환, 시즌 0과 잘못된 회차 입력, 찜한 작품의 기존 날짜·장소·상황 보존, 플랫폼 필터 조합, 오프라인 동기화와 새 기기 복원, CSV의 추가 열과 수식·쉼표·따옴표 처리를 확인했습니다. 높이 500px의 320/390px 입력 시트에서도 모든 입력과 저장 버튼에 접근할 수 있습니다. 결과와 캡처는 `qa-output/tpo-platform/`에 저장하며, 모바일 홈·입력·개발 기록 상세는 캡처로도 확인했습니다. 공개 ngrok URL이 수정한 `app.js`를 제공하고 로컬 개발 API health가 `UP`인 것을 확인했습니다.
 
 2026-11-03 후속 교정으로 중심 용어를 ‘아카이브’에서 ‘타임라인’으로 맞췄습니다. 홈은 ‘내 시간 위에 쌓인 이야기’, 주요 메뉴와 기록 화면은 ‘타임라인’, 저장 완료는 ‘타임라인에 한 순간이 더해졌어요.’로 연결합니다. 날짜 입력과 화면 표시에서는 시각을 제거했습니다. 관련 브라우저 집중 검증 10개가 통과했으며 기존 ISO 원문 보존, 날짜 변경·취소·비우기, 한국 및 미국 일광절약시간 경계의 날짜 왕복, 한국어·영어 모바일 배치와 용어 일치를 확인했습니다. 이번 결과와 캡처는 `qa-output/date-only/`에 있습니다. 공개 ngrok 시안이 변경한 파일을 제공하는 것도 확인했습니다.
+
+작품 검색 팝업에서 PC의 검색창·유형 선택 간격이 0px이고, 안쪽 입력칸의 포커스 선이 검색창 위아래로 2px씩 넘는 문제를 재현했습니다. 팝업의 간격을 16px로 맞추고 포커스 선을 검색창 전체 외곽 안쪽에 표시하도록 수정했습니다. 공통 검색창 스타일을 쓰는 타임라인에도 적용됩니다. 1440/390/320px의 회귀 검사 9개가 통과했고, 한국어 검색 팝업과 타임라인 캡처도 확인했습니다. 결과는 `qa-output/search-dialog/`에 수정 전·후로 보존합니다. 입력 유지 검사는 브라우저의 일반 입력과 합성 조합 이벤트를 사용하며 실제 휴대폰 키보드 검증은 아닙니다.
 
 ## 실제 서비스 반영 순서
 

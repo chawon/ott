@@ -200,3 +200,18 @@ source_context: "prototypes/ottline-v2/app.js; prototypes/ottline-v2/README.md"
 ```
 
 Use Timeline rather than Archive as the central product term, and align the experience with ottline and its subtitle on the timeline: watched and read stories connected through personal time.
+
+## 2026-11-03T04:09:41.352Z — separate-title-search-and-type-choices
+
+```omd-meta
+id: pref_mw065joo_1a81c8c6
+timestamp: 2026-11-03T04:09:41.352Z
+scope: spacing
+signal: user-correction
+confidence: explicit
+status: pending
+source_agent: codex
+source_context: "prototypes/ottline-v2/styles.css"
+```
+
+Keep clear vertical spacing between the title search field and the media-type choices.
