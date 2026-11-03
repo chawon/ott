@@ -6,7 +6,7 @@ const modulePath = process.argv.includes('--playwright') ? option('--playwright'
 const match = process.argv.includes('--match') ? option('--match') : '';
 const { chromium } = await import(modulePath);
 const base = process.env.PREVIEW_URL || 'http://127.0.0.1:4173';
-const output = fileURLToPath(new URL('./qa-output/', import.meta.url));
+const output = fileURLToPath(new URL('./qa-output/archive-day/', import.meta.url));
 await mkdir(output, {recursive:true});
 const browser = await chromium.launch({headless:true, args:['--no-sandbox'], ...(process.argv.includes('--browser') ? {executablePath:option('--browser')} : {})});
 const results=[];
@@ -62,14 +62,71 @@ try {
    const focus=page.getByTestId('mobile-search');
    const bounds=await focus.boundingBox();const navigation=await page.locator('.mobile-nav').boundingBox();
    assert.ok(bounds.y>=0&&bounds.y+bounds.height<navigation.y,'record entry fits above navigation');
-   const continuing=await page.getByTestId('continue-card').first().boundingBox();
-   assert.ok(continuing.y+continuing.height<navigation.y,'in-progress title visible without scrolling');
+   // The revised A leads with a remembered moment; continuing titles follow it.
+   // Assert the new content priority instead of fixing the old rail's position.
+   const featured=page.locator('[data-testid="archive-featured"]:visible');
+   const moment=await featured.boundingBox();
+   assert.ok(moment.y>=0&&moment.y<navigation.y,'featured moment begins in the first viewport');
+   const context=await featured.locator('.record-context').boundingBox();
+   assert.ok(context.y+context.height<navigation.y,'featured TPO is readable above mobile navigation');
    await focus.click();await page.getByTestId('title-search').waitFor();await page.keyboard.press('Escape');
    await page.getByTestId('studio-toggle').click();assert.equal(await page.getByTestId('scenario').isVisible(),true);
    await page.getByTestId('language').click();assert.equal(await page.evaluate(()=>document.documentElement.lang),'en');
    await page.getByTestId('studio-toggle').click();assert.equal(await page.getByTestId('scenario').isVisible(),false);
    assert.match(await page.getByTestId('selected-variant').innerText(),/A.*Archive/);
    await route('records');await rows(6);
+  }
+  await page.setViewportSize({width:1440,height:1000});
+ });
+ await test('Archive months and TPO open the matching records and compose with existing filters',async()=>{
+  await page.setViewportSize({width:1440,height:1000});await start();
+  const featured=()=>page.locator('[data-testid="archive-featured"]:visible');
+  const homeControl=(id,attrs='')=>page.locator(`[data-testid="${id}"]${attrs}:visible`).first();
+  assert.equal(await featured().getAttribute('data-id'),'record-quiet');
+  await homeControl('archive-month','[data-month="2026-10"]').click();
+  assert.equal(await featured().getAttribute('data-id'),'record-blue');
+  await homeControl('archive-month-records','[data-month="2026-10"]').click();await rows(5);
+  assert.equal(await page.getByTestId('archive-filter-month').inputValue(),'2026-10');
+  const added=page.locator('.timeline-row').filter({hasText:'작은 숲의 계절'});
+  assert.match(await added.locator('.timeline-date').innerText(),/기록한 날/);
+  assert.equal(await added.locator('.context-time').count(),0,'no watched time invented for date-free memory');
+  await page.getByTestId('archive-filter-occasion').selectOption('FRIENDS');await rows(1);
+  assert.match(await page.locator('.timeline-row').innerText(),/밤의 열차/);
+  await page.getByTestId('archive-clear-filter').click();await rows(6);
+
+  await route('home');await homeControl('archive-context','[data-place="HOME"]').click();await rows(2);
+  assert.equal(await page.getByTestId('archive-filter-month').inputValue(),'','context exploration spans all months');
+  await page.getByTestId('status-filter').selectOption('IN_PROGRESS');await rows(1);
+  await page.getByTestId('record-search').fill('밤');await rows(1);
+  await page.locator('[data-action="filter-type"][data-value="book"]').click();await rows(0);
+  await page.getByTestId('archive-clear-filter').click();await rows(0);
+  assert.equal(await page.getByTestId('archive-filter-place').inputValue(),'');
+  assert.equal(await page.getByTestId('record-search').inputValue(),'밤','clearing archive context preserves typed search');
+  assert.equal(await page.getByTestId('status-filter').inputValue(),'IN_PROGRESS');
+  assert.equal(await page.locator('[data-action="filter-type"][data-value="book"]').getAttribute('aria-pressed'),'true');
+  await page.locator('[data-action="filter-type"][data-value="all"]').click();await rows(1);
+  await page.getByTestId('status-filter').selectOption('all');await rows(2);
+  await page.getByTestId('record-search').fill('');await rows(6);
+  await page.getByTestId('archive-filter-place').selectOption('CAFE');await rows(1);
+  await page.getByTestId('scenario').selectOption('new');await page.getByTestId('scenario').selectOption('returning');
+  await route('records');await rows(6);
+  assert.equal(await page.getByTestId('archive-filter-place').inputValue(),'','scenario reset clears previous account filters');
+ });
+ await test('Mobile archive month controls keep TPO exploration and detail reachable',async()=>{
+  for(const lang of ['ko','en'])for(const width of [390,320]){
+   await page.setViewportSize({width,height:844});await start(`lang=${lang}`);
+   const month=page.locator('[data-testid="archive-month"][data-month="2026-10"]:visible');
+   assert.ok((await month.boundingBox()).height>=48,'month controls have generous touch targets');
+   await month.click();
+   const featured=page.locator('[data-testid="archive-featured"]:visible');
+   assert.equal(await featured.getAttribute('data-id'),'record-blue');
+   await featured.locator('[data-action="detail"]').first().click();
+   await page.waitForFunction(()=>document.body.dataset.route==='title/record-blue');
+   assert.match(await page.getByTestId('detail-place').innerText(),lang==='ko'?/집/:/Home/);
+   await route('home');
+   await page.locator('[data-testid="archive-context"][data-place="HOME"]:visible').first().click();await rows(2);
+   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
+   await page.getByTestId('archive-clear-filter').click();await rows(6);
   }
   await page.setViewportSize({width:1440,height:1000});
  });

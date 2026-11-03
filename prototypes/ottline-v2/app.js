@@ -34,7 +34,7 @@ const state = {
   search: '', searchType: 'all', connectionInput: '', connectionStep: 'input',
   connectionError: '', busy: false, restoreFailedOnce: false, syncFailedOnce: false,
   deviceCount: 1, lastFocus: null, online: true, restorePending: false, connectionTarget: null, publishError: '', nickname: '', studioExpanded: false,
-  entryDraft: null, tpoError: '',
+  entryDraft: null, tpoError: '', archiveMonth: null, archiveFilter: {month:'',place:'',occasion:''},
 };
 const t = (ko, en) => state.lang === 'ko' ? ko : en;
 const isDevelopment = () => state.dataSource === 'development';
@@ -51,7 +51,7 @@ const timeText = date => date ? new Intl.DateTimeFormat(locale(), {hour:'2-digit
 const fullDateText = date => date ? new Intl.DateTimeFormat(locale(), {year:'numeric',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}).format(asDate(date)) : t('기록하지 않았어요','Not recorded');
 const recordDate = r => r.watchedAt || r.createdAt || r.updatedAt || '';
 const newestFirst = (a,b) => (Date.parse(recordDate(b))||0)-(Date.parse(recordDate(a))||0);
-const recordMonth = r => {const date=asDate(recordDate(r));return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}`;};
+const recordMonth = r => {const date=asDate(recordDate(r));return Number.isFinite(date.getTime())?`${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}`:'undated';};
 const placeLabels = {HOME:['집','Home'],THEATER:['극장','Cinema'],TRANSIT:['이동 중','In transit'],CAFE:['카페','Café'],OFFICE:['직장','Work'],LIBRARY:['도서관','Library'],BOOKSTORE:['서점','Bookshop'],SCHOOL:['학교','School'],PARK:['공원','Park'],OUTDOOR:['야외','Outdoors'],ETC:['기타','Other']};
 const occasionLabels = {ALONE:['혼자','On my own'],DATE:['데이트','On a date'],FAMILY:['가족','With family'],FRIENDS:['친구','With friends'],BREAK:['휴식','Taking a break'],ETC:['기타','Other']};
 const labelPlace = value => placeLabels[value] ? t(...placeLabels[value]) : '';
@@ -160,7 +160,7 @@ function persistSyncedRecords() {
  state.connected=true;
 }
 function initScenario({resetAccounts=false}={}) {
- catalog=sampleCatalog;
+ resetArchive();catalog=sampleCatalog;
  cancelOperation();
  if(resetAccounts){resetDemoAccounts();state.nickname='';}
  state.online = state.scenario !== 'offline'; state.restorePending = false; state.connectionTarget=null;
@@ -210,7 +210,7 @@ async function loadDevelopment({code}={}) {
    developmentRequest('/auth/profile'),
   ]);
   if(generation!==developmentGeneration||!isDevelopment())return;
-  catalog=data.catalog;state.records=data.records;state.nickname=typeof profile?.nickname==='string'?profile.nickname:'';
+  catalog=data.catalog;state.records=data.records;normalizeArchiveFilters();state.nickname=typeof profile?.nickname==='string'?profile.nickname:'';
   state.development.phase='ready';state.development.count=data.records.length;state.connected=true;
   if(state.modal==='development-connect')closeModal();
   render();
@@ -233,7 +233,7 @@ async function disconnectDevelopment() {
 function switchDataSource(value) {
  if(value===state.dataSource)return;
  if($('#dialog').open)closeModal();cancelDevelopment();cancelOperation();
- state.dataSource=value==='development'?'development':'sample';state.query='';state.type='all';state.status='all';state.route='home';
+ resetArchive();state.dataSource=value==='development'?'development':'sample';state.query='';state.type='all';state.status='all';state.route='home';
  if(isDevelopment()){clearDevelopmentRecords();loadDevelopment();}else{initScenario({resetAccounts:true});render();}
 }
 function developmentControls() {
@@ -241,6 +241,7 @@ function developmentControls() {
 }
 function developmentStatus() {
  const dev=state.development;
+ if(dev.phase==='ready'&&state.route!=='space')return `<section class="development-status is-quiet" data-testid="development-status" data-phase="ready" aria-live="polite"><span>${icon('check')}${t(`개발 기록 ${state.records.length}개 · 읽기 전용`,`${state.records.length} development records · read only`)}</span><a href="#space" class="text-link">${t('내 공간','My space')}${icon('arrow')}</a></section>`;
  return `<section class="development-status" data-testid="development-status" data-phase="${dev.phase}" aria-live="polite"><div>${icon('cloud')}<span><strong>${t('개발 데이터 · 읽기 전용','Development data · read only')}</strong><p>${dev.phase==='ready'?t(`${state.records.length}개의 기록을 불러왔어요.`,`${state.records.length} records loaded.`):dev.phase==='loading'?t('개발 기록을 불러오고 있어요.','Loading your development records.'):dev.error?developmentError(dev.error):t('개발 계정의 연결 코드로 기록을 열어보세요.','Open your records with your development account’s connection code.')}</p></span></div>${developmentControls()}</section>`;
 }
 function developmentGate() {
@@ -299,17 +300,67 @@ function posterCard(r) {
  const item = title(r.titleId); if(!item) return '';
  return `<article class="poster-card"><button type="button" data-action="detail" data-id="${esc(r.id)}" aria-label="${esc(titleName(item))} ${t('기록 보기','view record')}"><div class="cover-wrap">${image(item)}<span class="cover-type">${labelType(item.type)}</span></div><div class="poster-meta"><h3 class="title">${esc(titleName(item))}</h3><p class="meta">${labelStatus(r.status,item.type)}${recordEdition(r)?` · ${esc(recordEdition(r))}`:''}</p>${recordContext(r,{modifier:'compact'})}${hasNote(r.note)?`<p class="record-note">${esc(localized(r.note))}</p>`:''}</div></button></article>`;
 }
+function resetArchive() {state.archiveMonth=null;state.archiveFilter={month:'',place:'',occasion:''};}
+function normalizeArchiveFilters() {
+ const f=state.archiveFilter;
+ if(f.month&&!state.records.some(r=>recordMonth(r)===f.month))f.month='';
+ if(f.place&&!state.records.some(r=>r.place===f.place))f.place='';
+ if(f.occasion&&!state.records.some(r=>r.occasion===f.occasion))f.occasion='';
+}
+function archiveMonths() {
+ const groups=new Map();
+ for(const r of [...state.records].sort(newestFirst)){const key=recordMonth(r);if(!groups.has(key))groups.set(key,[]);groups.get(key).push(r);}
+ return [...groups].sort(([a],[b])=>a==='undated'?1:b==='undated'?-1:b.localeCompare(a)).map(([key,records])=>({key,records}));
+}
+function monthLabel(key,short=false) {
+ if(key==='undated')return t('날짜 미기록','Undated');
+ const date=asDate(`${key}-01`);
+ return new Intl.DateTimeFormat(locale(),{...(!short?{year:'numeric'}:{}),month:short?'short':'long'}).format(date);
+}
+function archiveData() {
+ const months=archiveMonths();
+ if(!months.some(m=>m.key===state.archiveMonth))state.archiveMonth=months[0]?.key||null;
+ const selected=months.find(m=>m.key===state.archiveMonth);
+ return {months,selected,featured:selected?.records.find(r=>r.status!=='WISHLIST')||selected?.records[0]};
+}
+function archiveMonthNav(months) {
+ return `<nav class="archive-months" aria-label="${t('기록한 달 펼치기','Explore months')}"><p class="archive-index-label">${t('쌓아온 시간','YOUR CHAPTERS')}</p>${months.map(m=>`<button type="button" class="archive-month-button" data-action="archive-month" data-testid="archive-month" data-month="${esc(m.key)}" aria-pressed="${state.archiveMonth===m.key}"><span>${m.key==='undated'?t('날짜 없음','Undated'):m.key.slice(0,4)}</span><strong>${monthLabel(m.key,true)}</strong><small>${m.records.length}${t('개',' kept')}</small></button>`).join('')}</nav>`;
+}
+function archiveDate(r,{compact=false}={}) {
+ const when=recordDate(r);
+ const kind=r.watchedAt?(r.status==='WISHLIST'?t('전에 남긴 감상','Previously kept'):t('그날의 기록','A moment kept')):t('기록한 날','Date added');
+ if(!when)return `<span class="archive-date-kind">${t('날짜 없이 남긴 기록','Kept without a date')}</span>`;
+ return `<span class="archive-date-kind">${kind}</span><time datetime="${esc(when)}">${esc(new Intl.DateTimeFormat(locale(),compact?{month:'short',day:'numeric'}:{month:'long',day:'numeric',weekday:'short'}).format(asDate(when)))}</time>`;
+}
+function archiveMoment(r,mobile=false) {
+ const item=title(r.titleId);
+ return `<article class="archive-spread ${mobile?'is-mobile':''}" data-testid="archive-featured" data-id="${esc(r.id)}"><div class="archive-date">${archiveDate(r)}<span class="archive-rule"></span><span class="archive-page-label">${t('나의 한 장','A PAGE OF MINE')}</span></div><div class="archive-spread-body"><button type="button" class="archive-cover" data-action="detail" data-id="${esc(r.id)}" aria-label="${esc(titleName(item))} ${t('기록 보기','view record')}">${image(item)}</button><div class="archive-story"><p class="eyebrow">${labelType(item.type)}${item.year?` · ${item.year}`:''}</p><h2><button type="button" data-action="detail" data-id="${esc(r.id)}">${esc(titleName(item))}</button></h2><p class="archive-creator">${esc(localized(item.creator))}</p><p class="archive-story-meta"><span>${labelStatus(r.status,item.type)}</span>${r.rating?`<span aria-label="${t('별점','Rating')} ${r.rating} / 5">★ ${r.rating}</span>`:''}</p>${recordEdition(r)?`<p class="meta">${esc(recordEdition(r))}</p>`:''}<div class="archive-tpo">${recordContext(r,{modifier:'archive'})}</div>${hasNote(r.note)?`<blockquote class="archive-note">${esc(localized(r.note))}</blockquote>`:''}<div class="archive-story-link">${button(`${t('이 기록 펼치기','Open this memory')}${icon('arrow')}`,'detail','quiet',`data-id="${esc(r.id)}"`)}</div></div></div></article>`;
+}
+function archiveContinuing(mobile=false) {
+ const continuing=state.records.filter(r=>r.status==='IN_PROGRESS').sort(newestFirst).slice(0,mobile?4:3);
+ if(!continuing.length)return `<aside class="archive-pause"><p>${t('서두르지 않아도 괜찮아요.','No need to keep up.')}</p><a href="#records" class="text-link">${t('남겨둔 기록 보기','Explore your records')}${icon('arrow')}</a></aside>`;
+ return `<section class="archive-continuing"><div class="archive-section-heading"><h2>${t('아직 함께하는 이야기','Still in your story')}</h2><a href="#records" class="text-link">${t('전체','All')}${icon('arrow')}</a></div><div class="archive-continuing-list">${continuing.map(r=>{const item=title(r.titleId);return `<article class="archive-continuing-card" data-testid="continue-card"><button type="button" data-action="detail" data-id="${esc(r.id)}" aria-label="${esc(titleName(item))}">${image(item)}</button><div><p class="meta">${labelStatus(r.status,item.type)}</p><h3>${esc(titleName(item))}</h3>${recordEdition(r)?`<p class="meta">${esc(recordEdition(r))}</p>`:''}${button(`${t('이어 적기','Add a note')}${icon('arrow')}`,'edit','quiet',`data-id="${esc(r.id)}"`)}</div></article>`;}).join('')}</div></section>`;
+}
+function archiveContexts() {
+ const groups=[];
+ for(const [field,labels,iconName] of [['place',placeLabels,'pin'],['occasion',occasionLabels,'people']]){
+  const values=new Map();for(const r of state.records)if(labels[r[field]])values.set(r[field],(values.get(r[field])||0)+1);
+  for(const [value,count] of [...values].sort((a,b)=>b[1]-a[1]).slice(0,3))groups.push({field,value,count,iconName,label:t(...labels[value])});
+ }
+ if(!groups.length)return '';
+ return `<section class="archive-contexts"><div class="archive-section-heading"><div><p class="eyebrow">${t('다시 만나는 그날','BACK TO THAT MOMENT')}</p><h2>${t('어떤 순간을 펼쳐볼까요?','Which moments will you revisit?')}</h2></div></div><div class="archive-context-links">${groups.map(g=>`<button type="button" data-action="archive-context" data-testid="archive-context" data-${g.field}="${g.value}">${icon(g.iconName)}<span>${esc(g.label)}</span><small>${g.count}${t('개',' records')}</small>${icon('arrow')}</button>`).join('')}</div></section>`;
+}
+function archiveEntries(selected,featured) {
+ const others=selected.records.filter(r=>r.id!==featured.id);
+ return `<section class="archive-entries"><div class="archive-section-heading"><div><p class="eyebrow">${esc(monthLabel(selected.key))}</p><h2>${selected.key==='undated'?t('날짜 없이 남긴 기록','Records kept without a date'):t('이 달에 남긴 시간','Moments in this chapter')}</h2></div>${button(`${selected.records.length}${t('개 모두 보기',' records')}${icon('arrow')}`,'archive-month-records','quiet',`data-testid="archive-month-records" data-month="${esc(selected.key)}"`)}</div>${others.length?`<div class="archive-entry-list">${others.slice(0,6).map(r=>{const item=title(r.titleId);return `<button type="button" class="archive-entry" data-action="detail" data-id="${esc(r.id)}"><span class="archive-entry-date">${archiveDate(r,{compact:true})}</span>${image(item)}<span class="archive-entry-story"><strong>${esc(titleName(item))}</strong><span>${labelStatus(r.status,item.type)}</span>${recordContext(r,{modifier:'compact'})}</span>${icon('arrow')}</button>`;}).join('')}</div>`:`<p class="archive-one-page">${selected.key==='undated'?t('남겨둔 이야기가 한 장에 담겼어요.','Your story is held in this page.'):t('이 달의 이야기가 한 장에 담겼어요.','This month’s story is held in this page.')}</p>`}</section>`;
+}
+function archiveDesktopAttention() {
+ return `${pendingCount()?`<div class="notice sync-notice">${icon('cloud')}<div><strong>${t('아직 이 기기에만 있는 기록이 있어요.','Some records are only on this device.')}</strong><p>${!state.online?t('인터넷에 다시 연결한 뒤 동기화해 주세요.','Reconnect to the internet, then sync.'):t('기록은 남아 있어요. 동기화를 다시 시도할 수 있어요.','Your records are still here. You can try syncing again.')}</p></div>${button(t('동기화 다시 시도','Retry sync'),'sync','secondary','data-testid="sync-retry"')}</div>`:''}${state.restorePending?`<div class="notice"><p>${t('연결한 기록을 마저 불러와요.','Finish bringing your connected records here.')}</p>${button(t('기록 불러오기 계속','Continue loading records'),'resume-restore','secondary','data-testid="resume-restore-home"')}</div>`:''}`;
+}
 function desktopHomePage() {
- const returning = state.records.length > 0;
- const continuing = state.records.filter(r=>r.status==='IN_PROGRESS').slice(0,2);
- const recent = [...state.records].sort(newestFirst).slice(0,6);
- return `<div class="home-top"><section class="hero"><p class="eyebrow">${t('나의 아카이브','YOUR PERSONAL ARCHIVE')} <span>—</span> ${isDevelopment()?esc(new Intl.DateTimeFormat(locale(),{month:'long',day:'numeric',weekday:'long'}).format(new Date())):t('11월 2일, 월요일','MONDAY, NOVEMBER 2')}</p><h1>${returning?t('좋은 이야기는<br>오래 남으니까.','Good stories<br>stay with you.'):t('보고 읽은 순간을,<br>나의 기록으로.','Watched. Read.<br>Remembered.')}</h1><p class="lead">${isDevelopment()?t('보고, 읽고, 느낀 것들. 남겨둔 이야기를 돌아봐요.','What you watched, read, and felt. Revisit the stories you kept.'):returning?t('보고, 읽고, 느낀 것들. 오늘의 한 줄을 이어가요.','What you watched, read, and felt. Keep the story going.'):t('가입 없이 가볍게 시작해요.<br>작품 하나면 첫 페이지가 채워져요.','Start without signing up.<br>One title is all your first page needs.')}</p>${!returning?`<div class="hero-actions">${button(`${icon('plus')}${t('첫 기록 남기기','Leave your first record')}`,'record','primary','data-testid="first-record"')}${button(`${t('내 기록 이어보기','Bring my records here')}${icon('arrow')}`,'connect','quiet','data-testid="connect-entry"')}</div>`:''}</section>
- <aside class="connection-note">${icon('lock')}<div><strong>${isDevelopment()?t('개발 기록으로 둘러보기','Explore your development records'):returning?t('내 기록은, 내 곁에.','Your records, close at hand.'):t('이미 남긴 기록이 있나요?','Already have records?')}</strong><p>${isDevelopment()?t('남겨둔 작품과 메모를<br>편안하게 돌아보세요.','Revisit the titles and notes<br>you have kept.') :returning?(pendingCount()?t('이 기기에 저장된 기록이 있어요.<br>연결되면 다른 기기에서도 볼 수 있어요.','Some records are on this device.<br>Sync them to open on another device.'):t('기록 연결 코드 하나로<br>어느 기기에서든 이어보세요.','One connection code.<br>The same records on every device.')):t('다른 기기의 기록 연결 코드를<br>입력하면 그대로 이어볼 수 있어요.','Enter the code from your other device<br>to pick up where you left off.')}</p>${button(`${isDevelopment()?t('연결 상태 보기','View connection'):returning?t('내 코드 확인하기','Find my code'):t('내 기록 이어보기','Bring my records here')}${icon('arrow')}`,returning?'space':'connect','quiet')}</div></aside></div>
- ${pendingCount()?`<div class="notice sync-notice">${icon('cloud')}<div><strong>${t('아직 이 기기에만 있는 기록이 있어요.','Some records are only on this device.')}</strong><p>${!state.online?t('인터넷에 다시 연결한 뒤 동기화해 주세요.','Reconnect to the internet, then sync.'):t('기록은 남아 있어요. 동기화를 다시 시도할 수 있어요.','Your records are still here. You can try syncing again.')}</p></div>${button(t('동기화 다시 시도','Retry sync'),'sync','secondary','data-testid="sync-retry"')}</div>`:''}
-
- ${continuing.length?`<section class="continue-section">${sectionHeader('이야기를 이어갈 시간','Pick up your story','records','내 기록으로','My records')}<div class="continue-grid">${continuing.map((r)=>{const item=title(r.titleId);return `<article class="continue-card">${image(item,'continue-cover')}<div class="continue-body"><p class="eyebrow">${labelType(item.type)} · ${labelStatus(r.status,item.type)}</p><h3>${esc(titleName(item))}</h3><p class="meta">${esc(localized(item.creator))}${recordEdition(r)?` · ${esc(recordEdition(r))}`:''}</p><div class="continue-footer">${recordContext(r,{modifier:'compact'})}${button(`${t('이어 적기','Add a note')}${icon('arrow')}`,'edit','quiet',`data-id="${esc(r.id)}"`)}</div></div></article>`;}).join('')}</div></section>`:''}
- ${state.restorePending?`<div class="notice"><strong>${t('연결된 기록을 마저 불러올까요?','Ready to finish loading your records?')}</strong><p>${t('기록 연결은 완료됐어요. 불러오기를 이어서 진행할 수 있어요.','The connection is ready. You can continue loading your records.')}</p>${button(t('기록 불러오기 계속','Continue loading records'),'resume-restore','secondary','data-testid="resume-restore-home"')}</div>`:''}<section class="recent-section">${sectionHeader(returning?'최근에 남긴 순간':'첫 페이지를 채워볼까요? ',returning?'Recently kept':'What will your first page hold?',returning?'records':null)}${returning?`<div class="poster-grid">${recent.map(posterCard).join('')}</div>`:`<div class="starter-grid">${catalog.slice(0,4).map(item=>`<button type="button" class="starter-card" data-action="select-title" data-id="${esc(item.id)}">${image(item)}<span><strong>${esc(titleName(item))}</strong><small>${labelType(item.type)} · ${item.year}</small></span>${icon('plus')}</button>`).join('')}</div><p class="hint">${t('시안용 가상 작품이에요. 검색에서 다른 작품도 골라볼 수 있어요.','Fictional titles for this preview. Explore more in search.')}</p>`}</section>
- ${returning?`<div class="home-bottom"><section class="memory-strip"><div><p class="eyebrow">${t('기록 속 작은 발견','A LITTLE DISCOVERY')}</p><h2>${t('쌓아온 취향을<br>한눈에 돌아봐요.','Your stories,<br>all in one place.')}</h2><a href="#report" class="text-link">${t('나의 리포트 보기','Open my report')}${icon('arrow')}</a></div><div class="memory-covers">${recent.slice(0,3).map(r=>image(title(r.titleId))).join('')}</div></section><aside class="report-callout"><p class="eyebrow">${t('차곡차곡 쌓인 시간','YOUR TIME, COLLECTED')}</p><strong class="record-total">${state.records.length}<span>${t('개의 기록',state.records.length===1?'record':'records')}</span></strong><p>${t('서두르지 않아도 괜찮아요.<br>남기고 싶은 순간에 다시 만나요.','No need to keep up.<br>Come back when there’s something to keep.')}</p></aside></div>`:''}`;
+ if(!state.records.length)return `<div class="archive-welcome"><p class="eyebrow">${t('나의 아카이브','YOUR PERSONAL ARCHIVE')}</p><h1>${t('나의 시간,<br>첫 장을 펼쳐요.','Your time.<br>Your first page.')}</h1><p class="lead">${t('영화, 시리즈, 책. 남겨두고 싶은 작품 하나부터.','A film, a series, a book. Start with one you want to keep.')}</p><div class="hero-actions">${button(`${icon('plus')}${t('첫 기록 남기기','Leave your first record')}`,'record','primary','data-testid="first-record"')}${button(t('내 기록 이어보기','Bring my records here'),'connect','secondary','data-testid="connect-entry"')}</div></div>${archiveDesktopAttention()}<div class="starter-grid">${catalog.slice(0,4).map(item=>`<button type="button" class="starter-card" data-action="select-title" data-id="${esc(item.id)}">${image(item)}<span><strong>${esc(titleName(item))}</strong><small>${labelType(item.type)} · ${item.year}</small></span>${icon('plus')}</button>`).join('')}</div><p class="hint">${t('시안용 가상 작품이에요.','Fictional titles for this preview.')}</p>`;
+ const {months,selected,featured}=archiveData();
+ return `<header class="archive-heading"><div><p class="eyebrow">${t('나의 아카이브','YOUR PERSONAL ARCHIVE')}</p><h1>${t('나의 시간, 한 장씩','Your time, page by page')}</h1></div>${button(`${icon('plus')}${t('오늘의 기록 남기기','Keep today’s story')}`,'record','secondary','data-testid="archive-record"')}</header>${archiveDesktopAttention()}<div class="archive-layout">${archiveMonthNav(months)}<div class="archive-main">${archiveMoment(featured)}${archiveEntries(selected,featured)}</div><aside class="archive-side">${archiveContinuing()}<a href="#report" class="archive-report-link">${icon('clock')}<span>${t('쌓아온 시간 돌아보기','Look back on your time')}</span>${icon('arrow')}</a><p class="archive-side-note">${t('서두르지 않아도 괜찮아요.<br>남기고 싶은 순간에 다시 만나요.','No need to keep up.<br>Come back when there’s something to keep.')}</p></aside></div>${archiveContexts()}`;
 }
 function homePage() {
  return `<div class="desktop-home">${desktopHomePage()}</div>${mobileArchiveHome()}`;
@@ -330,15 +381,23 @@ function mobileFirstRecord() {
  return `<section class="mobile-first-record"><p>${t('영화, 시리즈, 책. 오늘의 작품 하나부터 남겨보세요.','A film, a series, a book. Start with one title from today.')}</p>${button(`${icon('plus')}${t('첫 기록 남기기','Leave your first record')}`,'record','primary','data-testid="mobile-first-record"')}${button(`${t('이미 남긴 기록 이어보기','Bring my existing records')}${icon('arrow')}`,'connect','quiet','data-testid="mobile-connect-entry"')}</section>${mobileAttention()}<section class="mobile-first-titles"><div class="mobile-section-heading"><h2>${t('이런 이야기부터','A place to begin')}</h2><span class="meta">${t('시안용 작품','Preview titles')}</span></div><div class="mobile-start-list">${catalog.slice(0,3).map(item=>`<button type="button" class="mobile-start-card" data-action="select-title" data-id="${esc(item.id)}">${image(item)}<span><strong>${esc(titleName(item))}</strong><small>${labelType(item.type)} · ${item.year}</small></span>${icon('plus')}</button>`).join('')}</div></section>`;
 }
 function mobileArchiveHome() {
- const continuing=state.records.filter(r=>r.status==='IN_PROGRESS');
- const recent=[...state.records].sort(newestFirst).slice(0,6);
- return `<div class="mobile-home mobile-home-archive" data-testid="mobile-archive-home">${mobileHomeHeading(state.records.length?(isDevelopment()?t('남겨둔 이야기를 만나요','Revisit your stories'):t('오늘의 이야기를 남겨요','Keep today’s story')):t('나의 첫 기록','Your first record'))}${!state.records.length?mobileFirstRecord():`${button(`${icon('search')}<span class="mobile-quick-copy"><strong>${t('어떤 작품을 만났나요?','What did you watch or read?')}</strong><small>${t('제목을 찾아 바로 기록하기','Find a title, keep a moment')}</small></span>${icon('arrow')}`,'record','mobile-quick-record','data-testid="mobile-search"')}${mobileAttention()}${continuing.length?`<section class="mobile-continue-section"><div class="mobile-section-heading"><h2>${isDevelopment()?t('함께하고 있는 이야기','Stories you are following'):t('이어서 남기기','Pick up where you left off')}</h2><a href="#records" class="text-link">${t('전체','View all')}${icon('arrow')}</a></div><div class="mobile-continue-rail">${continuing.map(r=>{const item=title(r.titleId);return `<article class="mobile-continue-card" data-testid="continue-card">${image(item,'mobile-continue-cover')}<div class="mobile-continue-content"><p class="meta">${labelStatus(r.status,item.type)}</p><h3>${esc(titleName(item))}</h3>${recordEdition(r)?`<p class="meta">${esc(recordEdition(r))}</p>`:''}${recordContext(r,{modifier:'compact'})}${button(`${t('이어 적기','Add a note')}${icon('arrow')}`,'edit','quiet',`data-id="${esc(r.id)}"`)}</div></article>`;}).join('')}</div></section>`:''}<section class="mobile-recent-section"><div class="mobile-section-heading"><h2>${t('최근 남긴 기록','Recently kept')}</h2><a href="#records" class="text-link">${t('전체','View all')}${icon('arrow')}</a></div><div class="mobile-recent-rail">${recent.map(r=>{const item=title(r.titleId);return `<button type="button" class="mobile-recent-card" data-action="detail" data-id="${esc(r.id)}" aria-label="${esc(titleName(item))} ${t('기록 보기','view record')}">${image(item)}<strong>${esc(titleName(item))}</strong><span>${r.watchedAt?dateText(r.watchedAt):r.status==='WISHLIST'?t('담아 둔 작품','Saved for later'):t('날짜 미기록','Date not recorded')}</span></button>`;}).join('')}</div></section>${mobileConnectionShortcut()}`}</div>`;
+ if(!state.records.length)return `<div class="mobile-home mobile-home-archive" data-testid="mobile-archive-home">${mobileHomeHeading(t('나의 첫 기록','Your first page'))}${mobileFirstRecord()}</div>`;
+ const {months,selected,featured}=archiveData();
+ return `<div class="mobile-home mobile-home-archive archive-mobile" data-testid="mobile-archive-home"><header class="archive-mobile-heading"><p class="eyebrow">${t('나의 아카이브','YOUR PERSONAL ARCHIVE')}</p><h1>${t('나의 시간, 한 장씩','Your time, page by page')}</h1></header>${button(`${icon('plus')}<span>${t('오늘의 작품을 남겨요','Keep today’s story')}</span>${icon('arrow')}`,'record','archive-mobile-record secondary','data-testid="mobile-search"')}${mobileAttention()}${archiveMonthNav(months)}${archiveMoment(featured,true)}${archiveContinuing(true)}${archiveEntries(selected,featured)}${archiveContexts()}${mobileConnectionShortcut()}</div>`;
+}
+function archiveFilterControls() {
+ const options=(values,current,label)=>`<option value="">${label}</option>${values.map(([value,name])=>`<option value="${esc(value)}" ${value===current?'selected':''}>${esc(name)}</option>`).join('')}`;
+ const places=Object.keys(placeLabels).filter(v=>state.records.some(r=>r.place===v)).map(v=>[v,labelPlace(v)]);
+ const occasions=Object.keys(occasionLabels).filter(v=>state.records.some(r=>r.occasion===v)).map(v=>[v,labelOccasion(v)]);
+ const active=Object.values(state.archiveFilter).some(Boolean);
+ const summary=[state.archiveFilter.month?monthLabel(state.archiveFilter.month):'',labelPlace(state.archiveFilter.place),labelOccasion(state.archiveFilter.occasion)].filter(Boolean).join(' · ');
+ return `<section class="archive-filters" aria-label="${t('그날의 맥락으로 찾기','Find a moment by context')}"><div class="archive-filter-fields"><label><span>${t('언제','When')}</span><select data-control="archive-filter-month" data-testid="archive-filter-month">${options(archiveMonths().map(m=>[m.key,monthLabel(m.key)]),state.archiveFilter.month,t('모든 달','Every month'))}</select></label><label><span>${t('어디서','Where')}</span><select data-control="archive-filter-place" data-testid="archive-filter-place">${options(places,state.archiveFilter.place,t('모든 장소','Every place'))}</select></label><label><span>${t('누구와·어떤 상황','Company or occasion')}</span><select data-control="archive-filter-occasion" data-testid="archive-filter-occasion">${options(occasions,state.archiveFilter.occasion,t('모든 상황','Every occasion'))}</select></label></div>${active?`<div class="archive-filter-summary"><p>${esc(summary)}</p>${button(t('날짜·장소·상황 모두 보기','Clear date and context'),'archive-clear-filter','quiet','data-testid="archive-clear-filter"')}</div>`:''}</section>`;
 }
 function recordsPage() {
- const filtered=state.records.filter(r=>{const item=title(r.titleId); return item && (state.type==='all'||item.type===state.type)&&(state.status==='all'||r.status===state.status)&&`${localized(item.title)} ${localized(r.note)}`.toLowerCase().includes(state.query.toLowerCase());}).sort(newestFirst);
+ const filtered=state.records.filter(r=>{const item=title(r.titleId); return item && (!state.archiveFilter.month||recordMonth(r)===state.archiveFilter.month)&&(!state.archiveFilter.place||r.place===state.archiveFilter.place)&&(!state.archiveFilter.occasion||r.occasion===state.archiveFilter.occasion)&&(state.type==='all'||item.type===state.type)&&(state.status==='all'||r.status===state.status)&&`${localized(item.title)} ${localized(r.note)}`.toLowerCase().includes(state.query.toLowerCase());}).sort(newestFirst);
  return `<div class="page-heading"><div><p class="eyebrow">${t('나의 기록','MY RECORDS')}</p><h1>${t('나의 시간이 쌓이는 곳','A little history of you')}</h1><p class="lead">${t('보고 읽은 것들, 그때의 마음까지.','What you watched and read, and how it felt.')}</p></div><div class="heading-actions"><a class="button secondary" href="#report">${icon('clock')}${t('리포트','Report')}</a>${state.lang==='ko'?`<a class="button secondary" href="#shelf">${icon('book')}내 서가</a>`:''}</div></div>
  <div class="filter-bar"><label class="search-field">${icon('search')}<input data-control="record-search" data-focus="record-search" data-testid="record-search" value="${esc(state.query)}" placeholder="${t('작품이나 메모 찾기','Search titles or notes')}" aria-label="${t('기록 검색','Search records')}"></label><div class="filter-chips">${['all','movie','series','book'].map(v=>button(v==='all'?t('전체','All'):labelType(v),'filter-type','',`data-value="${v}" aria-pressed="${state.type===v}"`)).join('')}</div><label class="status-filter"><span class="sr-only">${t('기록 상태','Record status')}</span><select data-control="status" data-testid="status-filter">${['all','DONE','IN_PROGRESS','WISHLIST'].map(v=>`<option value="${v}" ${state.status===v?'selected':''}>${({all:t('모든 상태','All statuses'),DONE:t('다 본·읽은 작품','Watched or read'),IN_PROGRESS:t('보고·읽는 중','Watching or reading'),WISHLIST:t('찜해둔 작품','Saved for later')})[v]}</option>`).join('')}</select></label></div>
- <p class="results-summary">${t(`${filtered.length}개의 기록`,`${filtered.length} ${filtered.length===1?'record':'records'}`)}</p>
+ ${archiveFilterControls()}<p class="results-summary">${t(`${filtered.length}개의 기록`,`${filtered.length} ${filtered.length===1?'record':'records'}`)}</p>
  <div class="timeline-list">${filtered.length?filtered.map((r,i)=>{const item=title(r.titleId);const month=recordMonth(r);return `${i===0||recordMonth(filtered[i-1])!==month?`<h2 class="timeline-month">${recordDate(r)?new Intl.DateTimeFormat(locale(),{year:'numeric',month:'long'}).format(asDate(recordDate(r))):t('날짜 미기록','Date not recorded')}</h2>`:''}<article class="timeline-row"><div class="timeline-date">${dateText(recordDate(r))}${!r.watchedAt?`<small>${t('기록한 날','Added')}</small>`:''}</div><button class="timeline-cover" type="button" data-action="detail" data-id="${esc(r.id)}" aria-label="${esc(titleName(item))}">${image(item)}</button><div class="timeline-content"><p class="meta">${labelType(item.type)}${item.year?` · ${item.year}`:''}${recordEdition(r)?` · ${esc(recordEdition(r))}`:''}</p><h3><button type="button" class="title-link" data-action="detail" data-id="${esc(r.id)}">${esc(titleName(item))}</button></h3><span class="status-pill">${labelStatus(r.status,item.type)}</span>${recordContext(r,{timeOnly:true})}${hasNote(r.note)?`<p class="record-note">${esc(localized(r.note))}</p>`:''}${syncPill(r)}</div><div class="row-actions">${button(t('이어 적기','Edit note'),'edit','quiet',`data-id="${esc(r.id)}"`)}</div></article>`;}).join(''):empty(t('아직 여기에는 기록이 없어요.','No records here yet.'),isDevelopment()?t('다른 조건으로 찾아보세요.','Try another filter.'):t('다른 조건으로 찾아보거나 새로운 기록을 남겨보세요.','Try another filter or leave a new record.'),isDevelopment()?null:'record',t('기록 남기기','Leave a record'))}</div>`;
 }
 function empty(heading,desc,action,label) { return `<div class="empty-state">${icon('book')}<h2>${heading}</h2><p>${desc}</p>${action?button(label,action,'primary'):''}</div>`; }
@@ -581,6 +640,13 @@ async function handleAction(action,node) {
    const context=readDraftContext(status,r);if(!context)break;Object.assign(r,context);
    r.note=note;r.rating=rating;r.status=status;r.updatedAt=new Date(Math.max(Date.now(),(Date.parse(r.updatedAt)||0)+1)).toISOString();r.syncStatus=savedSyncStatus();persistSyncedRecords();closeModal();render();toast(t('그때의 마음을 더해두었어요.','Your note is kept with this moment.'));break;
   }
+  case 'archive-month':{
+   if(archiveMonths().some(m=>m.key===node.dataset.month))state.archiveMonth=node.dataset.month;
+   render();[...document.querySelectorAll('[data-testid="archive-month"]')].find(el=>el.dataset.month===state.archiveMonth&&el.getClientRects().length)?.focus({preventScroll:true});break;
+  }
+  case 'archive-context':state.archiveFilter={month:'',place:placeLabels[node.dataset.place]?node.dataset.place:'',occasion:occasionLabels[node.dataset.occasion]?node.dataset.occasion:''};state.query='';state.type='all';state.status='all';go('records');break;
+  case 'archive-month-records':state.archiveFilter={month:archiveMonths().some(m=>m.key===node.dataset.month)?node.dataset.month:'',place:'',occasion:''};state.query='';state.type='all';state.status='all';go('records');break;
+  case 'archive-clear-filter':state.archiveFilter={month:'',place:'',occasion:''};render();break;
   case 'filter-type':state.type=node.dataset.value;render();break;
   case 'search-type':state.searchType=node.dataset.value;renderDialog();break;
   case 'connect':beginConnect();break;
@@ -640,6 +706,7 @@ document.addEventListener('change',event=>{
  if(node.dataset.control==='data-source')switchDataSource(node.value);
  if(node.dataset.control==='scenario'&&!isDevelopment()){if($('#dialog').open)closeModal();state.scenario=node.value;initScenario();render();}
  if(node.dataset.control==='status'){state.status=node.value;render();}
+ if(node.dataset.control?.startsWith('archive-filter-')){const key=node.dataset.control.slice('archive-filter-'.length);if(['month','place','occasion'].includes(key)){state.archiveFilter[key]=node.value;render();$(`[data-control="archive-filter-${key}"]`)?.focus({preventScroll:true});}}
 });
 document.addEventListener('submit',event=>{event.preventDefault();if(event.target.id==='connection-form'&&!isDevelopment())submitCode();if(event.target.id==='development-connection-form')handleAction('development-submit',event.target);});
 $('#dialog').addEventListener('cancel',event=>{event.preventDefault();closeModal();});

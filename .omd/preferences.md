@@ -125,3 +125,18 @@ source_context: "prototypes/ottline-v2/app.js"
 ```
 
 Treat records without notes as complete records; avoid repeated deficit messages in lists and reserve optional invitations for detail views.
+
+## 2026-11-03T01:20:49.237Z — make-the-overhaul-clearly-visible
+
+```omd-meta
+id: pref_mw004dp1_07db15d6
+timestamp: 2026-11-03T01:20:49.237Z
+scope: layout
+signal: user-correction
+confidence: explicit
+status: pending
+source_agent: codex
+source_context: "prototypes/ottline-v2/app.js; prototypes/ottline-v2/styles.css"
+```
+
+The selected A direction should feel like a substantial redesign at first glance; the current refinement feels too similar to the existing service.

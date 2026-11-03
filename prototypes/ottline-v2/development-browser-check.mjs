@@ -8,7 +8,7 @@ const option = key => process.argv[process.argv.indexOf(key) + 1];
 const { chromium } = await import(process.argv.includes('--playwright') ? option('--playwright') : 'playwright');
 const base = process.env.PREVIEW_URL || 'http://127.0.0.1:4173';
 const match = process.argv.includes('--match') ? option('--match').toLowerCase() : '';
-const output = fileURLToPath(new URL('./qa-output/', import.meta.url));
+const output = fileURLToPath(new URL('./qa-output/archive-day/', import.meta.url));
 await mkdir(output, { recursive: true });
 const imageBytes = await readFile(new URL('./assets/quiet-days.jpg', import.meta.url));
 const browser = await chromium.launch({ headless: true, args: ['--no-sandbox'], ...(process.argv.includes('--browser') ? { executablePath: option('--browser') } : {}) });
@@ -183,6 +183,77 @@ try {
     } finally { await context.close(); }
   });
 
+  await test('Development archive months and context filters use only loaded records', async () => {
+    const { page, context, mock } = await setup();
+    try {
+      await start(page, 'home');
+      const homeControl=(id,attrs='')=>page.locator(`[data-testid="${id}"]${attrs}:visible`).first();
+      await page.locator('[data-testid="archive-featured"]:visible').waitFor();
+      assert.equal(await page.locator('[data-testid="archive-featured"]:visible').getAttribute('data-id'),firstId);
+      await homeControl('archive-month','[data-month="2026-10"]').click();
+      assert.equal(await page.locator('[data-testid="archive-featured"]:visible').getAttribute('data-id'),secondId);
+      await homeControl('archive-month-records','[data-month="2026-10"]').click();await rows(page,31);
+      assert.equal(await page.getByTestId('archive-filter-month').inputValue(),'2026-10');
+      await page.getByTestId('archive-clear-filter').click();await rows(page,61);
+      await route(page,'home');await homeControl('archive-month','[data-month="2026-11"]').click();
+      await homeControl('archive-context','[data-place="CAFE"]').click();await rows(page,1);
+      assert.equal(await page.locator('.timeline-row .title-link').innerText(),fixtures[0].title.name);
+      assert.equal(await page.getByTestId('archive-filter-month').inputValue(),'');
+      await noWrites(page);await noSamples(page);
+      await page.getByTestId('data-source').selectOption('sample');await route(page,'records');await rows(page,6);
+      assert.equal(await page.getByTestId('archive-filter-place').inputValue(),'');
+      await page.getByTestId('data-source').selectOption('development');await route(page,'records');await rows(page,61);
+      assert.equal(await page.getByTestId('archive-filter-place').inputValue(),'');
+      assert.equal(mock.requests.every(request=>request.method==='GET'),true,'archive exploration never mutates development data');
+    } finally { await context.close(); }
+  });
+
+  await test('Reloading a changed development archive normalizes its selected month', async () => {
+    const { page, context, mock } = await setup();
+    try {
+      await start(page,'home');await page.locator('[data-testid="archive-featured"]:visible').waitFor();
+      await page.locator('[data-testid="archive-month"][data-month="2026-10"]:visible').click();
+      await page.locator('[data-testid="archive-month-records"][data-month="2026-10"]:visible').click();await rows(page,31);
+      await page.getByTestId('archive-filter-place').selectOption('CAFE');
+      await page.getByTestId('archive-filter-occasion').selectOption('BREAK');await rows(page,0);
+      mock.records=[{...fixtures[0],place:null,occasion:null}];
+      await route(page,'space');await page.getByTestId('development-refresh').click();
+      await page.waitForFunction(()=>document.querySelector('[data-testid="development-status"]')?.dataset.phase==='ready');
+      await route(page,'home');
+      assert.equal(await page.locator('[data-testid="archive-featured"]:visible').getAttribute('data-id'),firstId);
+      assert.equal(await page.locator('[data-testid="archive-month"][data-month="2026-10"]:visible').count(),0);
+      assert.equal(await page.locator('[data-testid="archive-month"][data-month="2026-11"]:visible').getAttribute('aria-pressed'),'true');
+      await route(page,'records');await rows(page,1);
+      for(const field of ['month','place','occasion'])assert.equal(await page.getByTestId(`archive-filter-${field}`).inputValue(),'','reload drops filters missing from new data');
+      await route(page,'home');
+      await page.setViewportSize({width:390,height:844});
+      const status=await page.getByTestId('development-status').boundingBox();
+      assert.ok(status.height<=100,'connected development chrome stays compact above the archive');
+      await noOverflow(page,'development compact status');
+    } finally { await context.close(); }
+  });
+
+  await test('Undated and wishlist archive pages do not invent viewing time or a note', async () => {
+    for(const kind of ['undated','wishlist']) {
+      const raw={...fixtures[2],id:id(700),status:kind==='wishlist'?'WISHLIST':'DONE',watchedAt:null,createdAt:kind==='undated'?null:'2026-10-14T08:00:00Z',updatedAt:null,note:null,place:null,occasion:null};
+      const {page,context}=await setup({records:[raw]});
+      try{
+        await start(page,'home');const featured=page.locator('[data-testid="archive-featured"]:visible');await featured.waitFor();
+        assert.equal(await featured.getAttribute('data-id'),raw.id);
+        assert.equal(await featured.locator('.context-time').count(),0);
+        assert.equal(await featured.locator('blockquote').count(),0,'blank notes do not become invented quotes');
+        assert.doesNotMatch(await featured.innerText(),/1970|NaN|Invalid Date/);
+        const month=kind==='undated'?'undated':'2026-10';
+        await page.locator(`[data-testid="archive-month-records"][data-month="${month}"]:visible`).click();await rows(page,1);
+        if(kind==='undated')assert.match(await page.locator('.timeline-date').innerText(),/날짜 미기록/);
+        else assert.match(await page.locator('.timeline-date').innerText(),/기록한 날|담아/);
+        await route(page,`title/${raw.id}`);
+        assert.equal(await page.getByTestId('detail-when').innerText(),'기록하지 않았어요');
+        await noSamples(page);await noWrites(page);
+      }finally{await context.close();}
+    }
+  });
+
   await test('Development account connection and invalid code stay separate from sample account', async () => {
     const { page, context, mock } = await setup({ connected: false, invalidCode: true });
     try {
@@ -230,7 +301,7 @@ try {
     try {
       await start(page); await rows(page, 61);
       mock.failure = 'SESSION_EXPIRED';
-      await studio(page); await page.getByTestId('development-refresh').first().click();
+      await route(page, 'space'); await page.getByTestId('development-refresh').first().click();
       await page.waitForFunction(() => document.querySelectorAll('.timeline-row').length === 0);
       await page.waitForFunction(() => !document.body.textContent.includes('개발 닉네임'));
       await noSamples(page);
