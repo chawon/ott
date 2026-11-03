@@ -20,6 +20,12 @@ node prototypes/ottline-v2/serve.mjs --host 0.0.0.0
 
 로컬 IP의 HTTP 환경에서도 기록 생성과 코드 복사 대체 동작을 지원합니다. 브라우저가 복사를 허용하지 않으면 표시된 코드를 직접 선택해 복사할 수 있습니다.
 
+휴대폰용 ngrok는 현재 WSL의 임시 사용자 서비스 `ottline-preview-tunnel`로 실행합니다. 터미널 세션과 분리되며 시스템 부팅 서비스로 등록하지 않습니다. 요청 본문 검사는 끈 상태입니다. 종료하려면 `systemctl --user stop ottline-preview-tunnel`을 사용합니다. 새 터널을 시작하면 주소가 바뀔 수 있습니다.
+
+```sh
+systemd-run --user --unit=ottline-preview-tunnel --collect --working-directory=/tmp/ottline-ux-v2 --property=Restart=on-failure --property=RestartSec=5s /usr/local/bin/ngrok http 4173 --inspect=false --log=stdout --log-format=json
+```
+
 - A 아카이브: `http://localhost:4173/?variant=archive`
 - 첫 방문: `http://localhost:4173/?scenario=new`
 - 새 기기: `http://localhost:4173/?scenario=new-device`
