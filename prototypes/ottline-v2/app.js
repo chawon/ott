@@ -30,7 +30,7 @@ const state = {
   theme: oneOf(params.get('theme'), ['light', 'dark'], 'light'),
   scenario: oneOf(params.get('scenario'), scenarios, 'returning'),
   route: location.hash.slice(1) || 'home', records: [], publicPosts: clone(posts),
-  query: '', type: 'all', status: 'all', codeSaved: false, connected: false,
+  query: '', type: 'all', status: 'all', codeSaved: false, codeReminderVisible: false, connected: false,
   ownCode: 'H4N8Q6RT', modal: null, selectedId: null, savedId: null,
   search: '', searchType: 'all', connectionInput: '', connectionStep: 'input',
   connectionError: '', busy: false, restoreFailedOnce: false, syncFailedOnce: false,
@@ -79,7 +79,7 @@ const paths = {
  platform:'<rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8m-4-4v4"/>',
 };
 const icon = name => `<svg class="icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths[name] || paths.arrow}</svg>`;
-const developmentHiddenActions = new Set(['profile','save-profile','edit-saved','save-status','save-edit','submit-code','confirm-merge','retry-restore','sync','sync-connect','resume-restore','show-code','copy-code','download-code','download-report','lost-code','publish','confirm-publish','like','connectivity','reset']);
+const developmentHiddenActions = new Set(['profile','save-profile','edit-saved','save-status','save-edit','submit-code','confirm-merge','retry-restore','sync','sync-connect','resume-restore','show-code','dismiss-code-reminder','copy-code','download-code','download-report','lost-code','publish','confirm-publish','like','connectivity','reset']);
 const button = (text, action, cls = 'secondary', attrs = '') => {
  if(isDevelopment()) {
   if(developmentHiddenActions.has(action)) return '';
@@ -167,13 +167,19 @@ function changeDraftSeason(value) {
 }
 const initialOwnCode = 'H4N8Q6RT';
 const demoAccounts = new Map();
+const demoDeviceCounts = new Map();
+const codeReminderSeen = new Set();
+let demoAccountGeneration = 0;
 let operationGeneration = 0;
 function cancelOperation() { operationGeneration += 1; state.busy = false; }
 function savedSyncStatus() { return !state.online ? 'pending' : state.scenario === 'sync-error' && !state.syncFailedOnce ? 'failed' : 'synced'; }
 function resetDemoAccounts() {
+ demoAccountGeneration += 1;
  demoAccounts.clear();
+ demoDeviceCounts.clear();codeReminderSeen.clear();
  demoAccounts.set(initialOwnCode, clone(initialRecords));
  demoAccounts.set(sampleCode, clone(remoteRecords));
+ demoDeviceCounts.set(initialOwnCode,1);demoDeviceCounts.set(sampleCode,1);
 }
 function freshDemoCode() {
  const alphabet='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -192,8 +198,17 @@ function newestRecords(source, target) {
 function persistSyncedRecords() {
  const synced=state.records.filter(r=>r.syncStatus==='synced');
  if(!synced.length)return;
+ if(!demoAccounts.has(state.ownCode))demoDeviceCounts.set(state.ownCode,1);
  demoAccounts.set(state.ownCode,newestRecords(demoAccounts.get(state.ownCode)||[],synced));
- state.connected=true;
+ state.connected=true;state.deviceCount=demoDeviceCounts.get(state.ownCode)??null;
+}
+function prepareCodeReminder(r) {
+ state.codeReminderVisible=state.dataSource==='sample'&&r?.syncStatus==='synced'&&state.connected&&state.deviceCount===1&&!state.restorePending&&!state.codeSaved&&!codeReminderSeen.has(state.ownCode);
+ if(state.codeReminderVisible)codeReminderSeen.add(state.ownCode);
+}
+function markCodeKept(code) {
+ codeReminderSeen.add(code);
+ if(state.ownCode===code)state.codeReminderVisible=false;
 }
 function initScenario({resetAccounts=false}={}) {
  resetArchive();catalog=sampleCatalog;
@@ -205,14 +220,14 @@ function initScenario({resetAccounts=false}={}) {
  state.ownCode=blank?freshDemoCode():(demoAccounts.has(initialOwnCode)?initialOwnCode:sampleCode);
  state.records=blank?[]:clone(demoAccounts.get(state.ownCode)||[]);
  state.publicPosts=clone(posts);state.connected=!blank&&demoAccounts.has(state.ownCode);
- state.codeSaved = false; state.deviceCount = 1; state.restoreFailedOnce = false; state.syncFailedOnce = false;
+ state.codeSaved = false; state.codeReminderVisible = false; state.deviceCount = demoDeviceCounts.get(state.ownCode)??null; state.restoreFailedOnce = false; state.syncFailedOnce = false;
  if (['offline','sync-error'].includes(state.scenario) && state.records[0]) state.records[0].syncStatus = state.scenario === 'offline' ? 'pending' : 'failed';
  state.query = ''; state.type = 'all'; state.status = 'all'; state.route = 'home';
 }
 let developmentController = null, developmentGeneration = 0;
 function cancelDevelopment() { developmentGeneration++; developmentController?.abort(); developmentController=null; }
 function clearDevelopmentRecords() {
- catalog=[];state.records=[];state.publicPosts=[];state.nickname='';state.ownCode='';state.connected=false;state.restorePending=false;state.entryDraft=null;state.online=true;state.development.count=0;
+ catalog=[];state.records=[];state.publicPosts=[];state.nickname='';state.ownCode='';state.connected=false;state.restorePending=false;state.codeReminderVisible=false;state.entryDraft=null;state.online=true;state.development.count=0;
 }
 function developmentError(code) {
  const messages={
@@ -487,7 +502,7 @@ function focusDialog() {
 }
 function closeModal() {
  cancelOperation();
- $('#dialog').close(); state.modal=null;state.entryDraft=null;state.tpoError='';
+ $('#dialog').close(); state.modal=null;state.entryDraft=null;state.tpoError='';state.codeReminderVisible=false;
  if(state.lastFocus?.isConnected) state.lastFocus.focus(); else $('#main')?.focus();
 }
 function dialogFrame(titleText,subtitle,body,foot='') {
@@ -503,7 +518,7 @@ function renderDialog() {
  if(state.modal==='profile') html=dialogFrame(t('나의 기록에 이름 붙이기','A name for your records'),t('내 화면에서만 보이는 닉네임이에요.','This nickname is only for your own screens.'),`<div class="field"><label for="nickname">${t('닉네임','Nickname')}</label><input id="nickname" name="nickname" maxlength="32" autocomplete="off" value="${esc(state.nickname)}" placeholder="${t('예: 이야기 수집가','e.g. Story keeper')}" data-testid="nickname-input"><p class="hint">${t('최대 32자. 비워 두어도 괜찮아요.','Up to 32 characters. You can leave this blank.')}</p></div>`,button(t('닉네임 저장','Save nickname'),'save-profile','primary','data-testid="save-profile"'));
  if(state.modal==='search') html=dialogFrame(t('오늘은 어떤 이야기를 남길까요?','What story will you keep today?'),t('영상도 책도, 제목부터 가볍게 찾아요.','Start with the title. Films, series, and books belong here.'),`<label class="search-field">${icon('search')}<input autofocus data-control="title-search" data-testid="title-search" value="${esc(state.search)}" placeholder="${t('작품 제목 검색','Search for a title')}" aria-label="${t('작품 제목 검색','Search for a title')}"></label><div class="filter-chips">${['all','movie','series','book'].map(v=>button(v==='all'?t('전체','All'):labelType(v),'search-type','',`data-value="${v}" aria-pressed="${state.searchType===v}"`)).join('')}</div><div id="search-results" class="search-results">${searchResults()}</div>`);
  if(state.modal==='status'&&item) html=dialogFrame(t('어떤 순간으로 남겨둘까요?','How would you like to keep this title?'),t('상태만 골라도 괜찮아요. 날짜·장소·플랫폼은 원하는 만큼 남겨요.','A status is enough. Add a date, place, or platform if you like.'),`<div class="selected-title">${image(item,'dialog-cover')}<div><p class="meta">${labelType(item.type)} · ${item.year}</p><h3>${esc(titleName(item))}</h3><p>${esc(localized(item.creator))}</p></div></div>${tpoEditor()}<p class="hint">${t('보고·읽고 싶은 작품은 날짜·장소·상황을 새로 남기지 않아요. 이전 기록과 선택한 플랫폼은 보관해요.','For a title saved for later, the date, place, and occasion stay as they are. Your chosen platform is kept.')}</p>`,`<div class="status-choices">${['DONE','IN_PROGRESS','WISHLIST'].map(v=>button(`${icon(v==='DONE'?'check':v==='IN_PROGRESS'?'book':'clock')}<strong>${labelStatus(v,item.type)}</strong>`,'save-status',v==='DONE'?'primary status-choice':'secondary status-choice',`data-value="${v}" data-testid="save-${v}"`)).join('')}</div>`);
- if(state.modal==='saved') {const r=record(state.savedId);html=dialogFrame(t('타임라인에 한 순간이 더해졌어요.','One more moment on your timeline.'),t('기록은 끝났어요. 더 남기고 싶을 때 이어 적어요.','Your record is saved. Add a little more only if you want.'),`<div class="save-confirmation"><span class="success-mark">${icon('check')}</span><h3>${esc(titleName(title(r?.titleId)))}</h3>${recordEdition(r)?`<p class="meta">${esc(recordEdition(r))}</p>`:''}<div class="saved-context" data-testid="saved-context">${recordContext(r,{modifier:'saved'})||`<p class="hint">${t('그날의 순간은 나중에 더해도 괜찮아요.','You can add details of that moment another time.')}</p>`}</div>${syncPill(r)}</div>${!state.codeSaved?`<div class="notice"><div><strong>${t('다른 기기에서도 이어보세요.','Keep this with you on another device.')}</strong><p>${state.connected?t('내 공간의 연결 코드를 보관해 두면 다시 찾을 수 있어요.','Keep the connection code in My space to find your records again.'):t('서버와 동기화되면 연결 코드를 보관할 수 있어요.','After syncing, you can save a connection code.')}</p></div>${button(t('코드 보관하기','Keep my code'),'show-code','quiet')}</div>`:''}`,`${button(t('그날의 순간·메모 더하기','Add to this moment'),'edit-saved','secondary')}${button(t('타임라인에서 보기','View my timeline'),'saved-done','primary','data-testid="saved-done"')}`);}
+ if(state.modal==='saved') {const r=record(state.savedId);html=dialogFrame(t('타임라인에 한 순간이 더해졌어요.','One more moment on your timeline.'),t('기록은 끝났어요. 더 남기고 싶을 때 이어 적어요.','Your record is saved. Add a little more only if you want.'),`<div class="save-confirmation"><span class="success-mark">${icon('check')}</span><h3>${esc(titleName(title(r?.titleId)))}</h3>${recordEdition(r)?`<p class="meta">${esc(recordEdition(r))}</p>`:''}<div class="saved-context" data-testid="saved-context">${recordContext(r,{modifier:'saved'})||`<p class="hint">${t('그날의 순간은 나중에 더해도 괜찮아요.','You can add details of that moment another time.')}</p>`}</div>${syncPill(r)}</div>${state.codeReminderVisible?`<div class="notice" data-testid="code-reminder"><div><strong>${t('아직 다른 기기가 연결되어 있지 않아요.','No other device is connected yet.')}</strong><p>${t('연결 코드를 보관해 둘까요? 나중에 내 공간에서도 확인할 수 있어요.','Would you like to keep your connection code? You can also find it later in My space.')}</p></div><div class="code-actions">${button(t('코드 보관하기','Keep my code'),'show-code','quiet','data-testid="keep-code"')}${button(t('나중에','Later'),'dismiss-code-reminder','quiet','data-testid="dismiss-code-reminder"')}</div></div>`:''}`,`${button(t('그날의 순간·메모 더하기','Add to this moment'),'edit-saved','secondary')}${button(t('타임라인에서 보기','View my timeline'),'saved-done','primary','data-testid="saved-done"')}`);}
  if(state.modal==='edit') {const r=record(state.savedId);const current=title(r?.titleId),draft=state.entryDraft;html=dialogFrame(t('그날의 순간과 마음을 남겨요.','Keep the moment and the feeling.'),esc(titleName(current)),`<form id="edit-form">${tpoEditor({editing:true})}<div class="field"><label for="note">${t('나의 메모','My note')}</label><textarea id="note" name="note" rows="4" maxlength="2000" placeholder="${t('기억하고 싶은 장면이나 한 줄','A scene or a thought to remember')}" data-control="edit-note" data-testid="note-input">${esc(localized(draft.note))}</textarea></div><div class="details-grid"><div class="field"><label for="rating">${t('별점','Rating')}</label><select id="rating" name="rating" data-control="edit-rating">${[0,1,2,3,4,5].map(v=>`<option value="${v}" ${Number(draft.rating||0)===v?'selected':''}>${v?'★'.repeat(v):t('별점 없이','No rating')}</option>`).join('')}</select></div><div class="field"><label for="edit-status">${t('지금 상태','Current status')}</label><select id="edit-status" name="status" data-control="edit-status" data-testid="edit-status">${['DONE','IN_PROGRESS','WISHLIST'].map(v=>`<option value="${v}" ${draft.status===v?'selected':''}>${labelStatus(v,current?.type)}</option>`).join('')}</select></div></div></form>`,`${button(t('이대로 남기기','Keep this record'),'save-edit','primary','data-testid="save-edit"')}${button(t('나중에 할게요','Maybe later'),'close','quiet')}`);}
  if(state.modal==='code') html=dialogFrame(t('내 기록을 여는 작은 열쇠','A little key to your records'),'',state.connected?codeCard():`<div class="notice"><p>${t('아직 서버에 연결되지 않았어요. 이 기기의 기록을 먼저 동기화해 주세요.','Not connected to the server yet. Sync this device’s records first.')}</p>${button(t('동기화 다시 시도','Retry sync'),'sync','primary')}</div>`);
  if(state.modal==='connect') html=connectionDialog();
@@ -537,12 +552,15 @@ function commitConnection() {
   const source=newestRecords(demoAccounts.get(sourceCode)||[],state.records.filter(r=>r.syncStatus==='synced'));
   demoAccounts.set(target,newestRecords(source,incoming));
   demoAccounts.delete(sourceCode);
+  demoDeviceCounts.delete(sourceCode);
  }
- state.ownCode=target;state.connected=true;state.deviceCount=2;state.restorePending=true;
+ const targetCount=demoDeviceCounts.get(target);
+ if(sourceCode!==target)demoDeviceCounts.set(target,Number.isInteger(targetCount)&&targetCount>=1?targetCount+1:null);
+ state.ownCode=target;state.connected=true;state.deviceCount=demoDeviceCounts.get(target)??null;state.codeSaved=false;state.codeReminderVisible=false;state.restorePending=true;
 }
 function finishRestoration() {
  state.records=clone(demoAccounts.get(state.connectionTarget)||[]);
- state.ownCode=state.connectionTarget;state.connected=true;state.deviceCount=2;state.restorePending=false;
+ state.ownCode=state.connectionTarget;state.connected=true;state.deviceCount=demoDeviceCounts.get(state.ownCode)??null;state.restorePending=false;
 }
 function saveStatus(status) {
  if(!state.selectedId || state.busy) return;
@@ -551,7 +569,7 @@ function saveStatus(status) {
  const now=new Date(Math.max(Date.now(),(Date.parse(existing?.updatedAt)||0)+1)).toISOString();
  const r={...(existing||{}),id:existing?.id||`local-${randomId()}`,titleId:state.selectedId,status,...context,createdAt:existing?.createdAt||existing?.watchedAt||now,updatedAt:now,note:existing?.note||{ko:'',en:''},rating:existing?.rating||null,syncStatus:savedSyncStatus()};
  if(existing)state.records=state.records.map(current=>current.id===existing.id?r:current);else state.records.unshift(r);
- state.savedId=r.id;persistSyncedRecords();normalizeArchiveFilters();render();setModal('saved');
+ state.savedId=r.id;persistSyncedRecords();prepareCodeReminder(r);normalizeArchiveFilters();render();setModal('saved');
 }
 function syncRecords(forConnection=false) {
  if(state.busy)return;
@@ -607,8 +625,9 @@ function restoreRecords() {
 function download(blob,filename) {const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=filename;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);}
 function canvasBase(height=700) { const canvas=document.createElement('canvas');canvas.width=1080;canvas.height=height;const ctx=canvas.getContext('2d');ctx.fillStyle='#F8F6F2';ctx.fillRect(0,0,1080,height);ctx.fillStyle='#1E4D8C';ctx.font='700 64px sans-serif';ctx.fillText('ottline',70,110);ctx.fillStyle='#FF9933';ctx.font='600 18px sans-serif';ctx.fillText('ON THE TIMELINE',74,142);return{canvas,ctx}; }
 function downloadCode(){
- const{canvas,ctx}=canvasBase();ctx.fillStyle='#0F0F0F';ctx.font='600 32px sans-serif';ctx.fillText(t('나의 기록 연결 코드','My record connection code'),70,240);ctx.font='600 82px monospace';ctx.fillText(groupedCode(state.ownCode),70,365);ctx.fillStyle='#4A4A4A';ctx.font='24px sans-serif';ctx.fillText(t('새 기기의 내 공간에서 이 코드를 입력하세요.','Enter this code in My space on a new device.'),70,450);ctx.fillText(t('이 코드를 아는 사람은 내 기록을 열 수 있어요.','Anyone with this code can open your records.'),70,500);ctx.fillText(t('나만 볼 수 있는 곳에 보관해 주세요.','Keep this card somewhere private.'),70,540);ctx.font='18px sans-serif';ctx.fillText(t('디자인 시안용 샘플 코드 · 실제 계정에는 쓸 수 없어요.','Design preview sample code · not a real account.'),70,640);
- canvas.toBlob(blob=>{if(blob){download(blob,'ottline-preview-recovery-card.png');state.codeSaved=true;render();if(state.modal)renderDialog();toast(t('보관 카드를 만들었어요. 다운로드한 이미지를 확인해 주세요.','Recovery card created. Check your downloaded image.'));}},'image/png');
+ const code=state.ownCode,generation=demoAccountGeneration;
+ const{canvas,ctx}=canvasBase();ctx.fillStyle='#0F0F0F';ctx.font='600 32px sans-serif';ctx.fillText(t('나의 기록 연결 코드','My record connection code'),70,240);ctx.font='600 82px monospace';ctx.fillText(groupedCode(code),70,365);ctx.fillStyle='#4A4A4A';ctx.font='24px sans-serif';ctx.fillText(t('새 기기의 내 공간에서 이 코드를 입력하세요.','Enter this code in My space on a new device.'),70,450);ctx.fillText(t('이 코드를 아는 사람은 내 기록을 열 수 있어요.','Anyone with this code can open your records.'),70,500);ctx.fillText(t('나만 볼 수 있는 곳에 보관해 주세요.','Keep this card somewhere private.'),70,540);ctx.font='18px sans-serif';ctx.fillText(t('디자인 시안용 샘플 코드 · 실제 계정에는 쓸 수 없어요.','Design preview sample code · not a real account.'),70,640);
+ canvas.toBlob(blob=>{if(blob&&generation===demoAccountGeneration){download(blob,'ottline-preview-recovery-card.png');markCodeKept(code);if(state.ownCode===code&&!isDevelopment())state.codeSaved=true;render();if(state.modal)renderDialog();toast(t('보관 카드를 만들었어요. 다운로드한 이미지를 확인해 주세요.','Recovery card created. Check your downloaded image.'));}},'image/png');
 }
 async function downloadReport(){
  const records=clone(state.records), lang=state.lang;
@@ -701,8 +720,13 @@ async function handleAction(action,node) {
   case 'sync':syncRecords();break;
   case 'sync-connect':syncRecords(true);break;
   case 'show-code':setModal('code');break;
-  case 'copy-code':
-   toast(await copyCode(state.ownCode)?t('연결 코드를 복사했어요.','Connection code copied.'):t('코드를 직접 선택해 복사해 주세요.','Select and copy the code manually.'));break;
+  case 'dismiss-code-reminder':state.codeReminderVisible=false;renderDialog();$('#dialog-title')?.focus({preventScroll:true});break;
+  case 'copy-code':{
+   const code=state.ownCode,generation=demoAccountGeneration,copied=await copyCode(code);
+   if(generation!==demoAccountGeneration)break;
+   if(copied)markCodeKept(code);
+   toast(copied?t('연결 코드를 복사했어요.','Connection code copied.'):t('코드를 직접 선택해 복사해 주세요.','Select and copy the code manually.'));break;
+  }
   case 'download-code':downloadCode();break;
   case 'download-report':downloadReport();break;
   case 'export':exportCSV();break;

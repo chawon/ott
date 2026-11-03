@@ -215,3 +215,18 @@ source_context: "prototypes/ottline-v2/styles.css"
 ```
 
 Keep clear vertical spacing between the title search field and the media-type choices.
+
+## 2026-11-03T04:19:50.577Z — show-connection-guidance-only-when-needed
+
+```omd-meta
+id: pref_mw06ilrl_dff35297
+timestamp: 2026-11-03T04:19:50.577Z
+scope: components.dialog
+signal: user-correction
+confidence: explicit
+status: pending
+source_agent: codex
+source_context: "prototypes/ottline-v2/app.js"
+```
+
+Offer code-keeping guidance only to users without another linked device, and avoid repeating it after each saved record.
