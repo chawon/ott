@@ -6,7 +6,7 @@ const modulePath = process.argv.includes('--playwright') ? option('--playwright'
 const match = process.argv.includes('--match') ? option('--match') : '';
 const { chromium } = await import(modulePath);
 const base = process.env.PREVIEW_URL || 'http://127.0.0.1:4173';
-const output = fileURLToPath(new URL('./qa-output/tpo-platform/', import.meta.url));
+const output = fileURLToPath(new URL('./qa-output/date-only/', import.meta.url));
 await mkdir(output, {recursive:true});
 const browser = await chromium.launch({headless:true, args:['--no-sandbox'], ...(process.argv.includes('--browser') ? {executablePath:option('--browser')} : {})});
 const results=[];
@@ -56,7 +56,7 @@ try {
    assert.equal(new URL(page.url()).searchParams.get('variant'),'archive');
    assert.equal(await page.getByTestId('mobile-archive-home').isVisible(),true);
    assert.equal(await page.locator('[data-action="variant"]').count(),0);
-   assert.match(await page.getByTestId('selected-variant').innerText(),/A.*아카이브/);
+   assert.match(await page.getByTestId('selected-variant').innerText(),/A.*타임라인/);
    assert.equal(await page.getByTestId('scenario').isVisible(),false);
    assert.ok((await page.locator('.studio').boundingBox()).height<=64,'collapsed controls should leave room for records');
    const focus=page.getByTestId('mobile-search');
@@ -73,8 +73,33 @@ try {
    await page.getByTestId('studio-toggle').click();assert.equal(await page.getByTestId('scenario').isVisible(),true);
    await page.getByTestId('language').click();assert.equal(await page.evaluate(()=>document.documentElement.lang),'en');
    await page.getByTestId('studio-toggle').click();assert.equal(await page.getByTestId('scenario').isVisible(),false);
-   assert.match(await page.getByTestId('selected-variant').innerText(),/A.*Archive/);
+   assert.match(await page.getByTestId('selected-variant').innerText(),/A.*Timeline/);
    await route('records');await rows(6);
+  }
+  await page.setViewportSize({width:1440,height:1000});
+ });
+ await test('TPO timeline language keeps the brand consistent and the full moment above mobile navigation',async()=>{
+  for(const lang of ['ko','en'])for(const width of [390,320]) {
+   await page.setViewportSize({width,height:844});await start(`lang=${lang}`);
+   assert.equal(await page.locator('.brand-main').innerText(),'ottline');
+   assert.equal(await page.locator('.brand-sub').innerText(),'ON THE TIMELINE');
+   assert.match(await page.getByTestId('selected-variant').innerText(),lang==='ko'?/A.*타임라인/:/A.*Timeline/);
+   assert.equal(await page.locator('.mobile-nav a[href="#records"]').innerText(),lang==='ko'?'타임라인':'Timeline');
+   assert.equal(await page.locator('h1:visible').innerText(),lang==='ko'?'내 시간 위에 쌓인 이야기':'Stories on my timeline');
+   const featured=page.locator('[data-testid="archive-featured"]:visible');
+   const context=await featured.locator('.record-context').boundingBox(),navigation=await page.locator('.mobile-nav').boundingBox();
+   assert.ok(context.y>=0&&context.y+context.height<navigation.y,`${lang}/${width}: longer timeline heading keeps all TPO above navigation`);
+   assert.equal(await featured.locator('.context-time').count(),0,'the home date is not repeated in TPO');
+   await page.screenshot({path:`${output}/timeline-${lang}-${width}-viewport.png`});
+   for(const name of ['home','records','together','space','report','title/record-quiet',...(lang==='ko'?['shelf']:[])]) {
+    await route(name);assert.doesNotMatch(await page.locator('body').innerText(),/아카이브|\barchive\b/i,`${lang}/${name}: visible language follows timeline direction`);
+    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false,`${lang}/${width}/${name} overflow`);
+   }
+   await page.getByTestId('record-open-mobile').click();await page.getByTestId('title-search').fill(lang==='ko'?'느린 빛':'Slow Light');await page.getByTestId('search-result').click();
+   assert.equal(await page.getByTestId('tpo-when').getAttribute('type'),'date');
+   await page.getByTestId('save-DONE').click();assert.match(await page.locator('#dialog-title').innerText(),lang==='ko'?/타임라인/:/timeline/);
+   assert.equal(await page.getByTestId('saved-done').innerText(),lang==='ko'?'타임라인에서 보기':'View my timeline');
+   await page.getByTestId('saved-done').click();await rows(7);
   }
   await page.setViewportSize({width:1440,height:1000});
  });
@@ -194,23 +219,24 @@ try {
   for(const variant of ['archive']) {
    await start(`variant=${variant}&scenario=new`);await page.getByTestId('mobile-first-record').click();
    await page.getByTestId('title-search').fill('느린 빛');await page.getByTestId('search-result').click();
+   assert.equal(await page.getByTestId('tpo-when').getAttribute('type'),'date');
    assert.equal(await page.getByTestId('tpo-place').inputValue(),'');assert.equal(await page.getByTestId('tpo-occasion').inputValue(),'');
-   await page.getByTestId('tpo-when').fill('2026-10-22T00:30');await page.getByTestId('tpo-place').selectOption('CAFE');await page.getByTestId('tpo-occasion').selectOption('FRIENDS');
+   await page.getByTestId('tpo-when').fill('2026-10-22');await page.getByTestId('tpo-place').selectOption('CAFE');await page.getByTestId('tpo-occasion').selectOption('FRIENDS');
    await page.screenshot({path:`${output}/${variant}-tpo-input.png`});await page.getByTestId('save-DONE').click();
    assert.match(await page.locator('.saved-context').innerText(),/카페/);assert.match(await page.locator('.saved-context').innerText(),/친구/);
    await page.getByTestId('saved-done').click();await rows(1);assert.match(await page.locator('.timeline-row').innerText(),/10월 22일/);
    await page.locator('.timeline-row .title-link').click();await page.waitForFunction(()=>document.body.dataset.route.startsWith('title/'));
    const detailRoute=await page.evaluate(()=>document.body.dataset.route);
    assert.match(await page.getByTestId('detail-place').innerText(),/카페/);assert.match(await page.getByTestId('detail-occasion').innerText(),/친구/);
-   await page.locator('[data-action="edit"]').click();assert.equal(await page.getByTestId('tpo-when').inputValue(),'2026-10-22T00:30');
-   await page.getByTestId('tpo-place').selectOption('HOME');await page.getByTestId('tpo-when').fill('2026-10-23T09:00');await page.keyboard.press('Escape');
+   await page.locator('[data-action="edit"]').click();assert.equal(await page.getByTestId('tpo-when').inputValue(),'2026-10-22');
+   await page.getByTestId('tpo-place').selectOption('HOME');await page.getByTestId('tpo-when').fill('2026-10-23');await page.keyboard.press('Escape');
    assert.match(await page.getByTestId('detail-place').innerText(),/카페/);
-   await page.locator('[data-action="edit"]').click();assert.equal(await page.getByTestId('tpo-when').inputValue(),'2026-10-22T00:30');
+   await page.locator('[data-action="edit"]').click();assert.equal(await page.getByTestId('tpo-when').inputValue(),'2026-10-22');
    await page.getByTestId('tpo-occasion').selectOption('FAMILY');await page.getByTestId('note-input').fill('함께 기억하고 싶은 새벽');await page.getByTestId('save-edit').click();
    await route('home');await page.getByTestId('studio-toggle').click();await page.getByTestId('language').click();await page.getByTestId('studio-toggle').click();
    await route(detailRoute);assert.match(await page.getByTestId('detail-place').innerText(),/Caf[eé]/i);assert.match(await page.getByTestId('detail-occasion').innerText(),/family/i);
    await route('space');const pendingDownload=page.waitForEvent('download');await page.locator('[data-action="export"]').click();const download=await pendingDownload;
-   const csv=await readFile(await download.path(),'utf8');assert.match(csv,/2026-10-21T15:30:00\.000Z/);assert.match(csv,/CAFE/);assert.match(csv,/FAMILY/);
+   const csv=await readFile(await download.path(),'utf8');assert.match(csv,/2026-10-21T15:00:00\.000Z/);assert.match(csv,/CAFE/);assert.match(csv,/FAMILY/);
    await route(detailRoute);await page.locator('[data-action="publish"]').click();await page.getByTestId('confirm-publish').click();await page.waitForFunction(()=>document.body.dataset.route==='together');
    assert.doesNotMatch(await page.locator('.community-card').first().innerText(),/Caf[eé]|family/i);
   }
@@ -230,12 +256,12 @@ try {
  });
  await test('TPO stays with an offline record through sync and new-device restore',async()=>{
   await start('scenario=offline');await page.getByTestId('record-open').click();await page.getByTestId('title-search').fill('느린 빛');await page.getByTestId('search-result').click();
-  await page.getByTestId('tpo-when').fill('2026-10-22T00:30');await page.getByTestId('tpo-place').selectOption('LIBRARY');await page.getByTestId('tpo-occasion').selectOption('ALONE');await page.getByTestId('save-DONE').click();await page.getByTestId('saved-done').click();await rows(7);
+  await page.getByTestId('tpo-when').fill('2026-10-22');await page.getByTestId('tpo-place').selectOption('LIBRARY');await page.getByTestId('tpo-occasion').selectOption('ALONE');await page.getByTestId('save-DONE').click();await page.getByTestId('saved-done').click();await rows(7);
   await page.getByTestId('connectivity').click();await route('home');await page.getByTestId('sync-retry').click();await page.waitForFunction(()=>!document.querySelector('[data-testid="sync-retry"]'));
   await route('space');const code=await page.getByTestId('own-code').innerText();await page.getByTestId('scenario').selectOption('new-device');await route('space');await page.getByTestId('connect-entry').click();await page.getByTestId('connection-code').fill(code);await page.getByTestId('connect-submit').click();await page.getByTestId('connected-done').click();await rows(7);
   await page.getByTestId('record-search').fill('느린 빛');await rows(1);await page.locator('.timeline-row .title-link').click();await page.waitForFunction(()=>document.body.dataset.route.startsWith('title/'));
   assert.match(await page.getByTestId('detail-place').innerText(),/도서관/);assert.match(await page.getByTestId('detail-occasion').innerText(),/혼자/);
-  await page.locator('[data-action="edit"]').click();assert.equal(await page.getByTestId('tpo-when').inputValue(),'2026-10-22T00:30');await page.keyboard.press('Escape');
+  await page.locator('[data-action="edit"]').click();assert.equal(await page.getByTestId('tpo-when').inputValue(),'2026-10-22');await page.keyboard.press('Escape');
  });
  await test('TPO layouts fit both languages and the short mobile recording sheet',async()=>{
   for(const variant of ['archive'])for(const lang of ['ko','en']) {

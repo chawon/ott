@@ -1077,8 +1077,8 @@ body[data-variant="journal"] .journal-quote .record-context { font-size: 16px; l
 .record-context > .context-platform > span { min-width: 0; overflow-wrap: anywhere; }
 .tpo-fields .field label { font-size: 14px; font-weight: 600; line-height: 1.5; }
 .tpo-fields .field input, .tpo-fields .field select { min-width: 0; max-width: 100%; min-height: 48px; font-size: 16px; }
-.tpo-fields input[type="datetime-local"] { font-variant-numeric: tabular-nums; }
-.tpo-fields input[type="datetime-local"]::-webkit-date-and-time-value { text-align: left; }
+.tpo-fields input[type="date"] { font-variant-numeric: tabular-nums; }
+.tpo-fields input[type="date"]::-webkit-date-and-time-value { text-align: left; }
 .tpo-editor > .field-error { margin-top: 10px; }
 .tpo-editor:disabled { color: var(--muted); }
 .tpo-editor:disabled input, .tpo-editor:disabled select { color: var(--muted); background: var(--surface-soft); }

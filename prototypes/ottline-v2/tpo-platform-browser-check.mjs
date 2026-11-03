@@ -7,7 +7,7 @@ const option = key => process.argv[process.argv.indexOf(key) + 1];
 const { chromium } = await import(process.argv.includes('--playwright') ? option('--playwright') : 'playwright');
 const base = process.env.PREVIEW_URL || 'http://127.0.0.1:4173';
 const match = process.argv.includes('--match') ? option('--match').toLowerCase() : '';
-const output = fileURLToPath(new URL('./qa-output/tpo-platform/', import.meta.url));
+const output = fileURLToPath(new URL('./qa-output/date-only/', import.meta.url));
 await mkdir(output, { recursive: true });
 const browser = await chromium.launch({ headless: true, args: ['--no-sandbox'], ...(process.argv.includes('--browser') ? { executablePath: option('--browser') } : {}) });
 const page = await browser.newPage({ viewport: { width: 1440, height: 1000 }, acceptDownloads: true, timezoneId: 'Asia/Seoul' });
@@ -26,6 +26,7 @@ const platformValue = async () => await page.getByTestId('tpo-platform').inputVa
 const contextValue = async () => ({ when: await page.getByTestId('tpo-when').inputValue(), place: await page.getByTestId('tpo-place').inputValue(), occasion: await page.getByTestId('tpo-occasion').inputValue() });
 const exportCSV = async () => { await route('space'); const pending = page.waitForEvent('download'); await page.locator('[data-action="export"]').click(); return readFile(await (await pending).path(), 'utf8'); };
 const test = async (name, action) => { if (match && !name.toLowerCase().includes(match)) return; await action(); passed.push(name); console.log(`PASS ${name}`); };
+const clockPattern = /\b\d{1,2}:\d{2}\b|오전|오후|\b(?:AM|PM)\b/;
 
 try {
   await test('Platform presets retain video and locale-specific book choices alongside complete TPO choices', async () => {
@@ -50,7 +51,7 @@ try {
   await test('Custom platform survives save, display, language, edit and cancel, and can be cleared', async () => {
     await start('scenario=new'); await open('느린 빛');
     const raw = '<b>나의 서점, "책방" & 책</b>';
-    await custom(raw); await page.getByTestId('tpo-when').fill('2026-10-22T00:30');
+    await custom(raw); await page.getByTestId('tpo-when').fill('2026-10-22');
     await page.getByTestId('tpo-place').selectOption('LIBRARY'); await page.getByTestId('tpo-occasion').selectOption('ALONE');
     await page.getByTestId('save-DONE').click(); assert.ok((await page.locator('.saved-context').innerText()).includes(raw));
     await savedDetail(); const detailRoute = await page.evaluate(() => document.body.dataset.route);
@@ -102,7 +103,7 @@ try {
 
   await test('Wishlist accepts a platform without inventing a date and retains existing date, place and occasion', async () => {
     await start('scenario=new'); await open('겨울 도서관'); await custom('동네 책방');
-    await page.getByTestId('tpo-when').fill('2026-10-22T00:30'); await page.getByTestId('tpo-place').selectOption('HOME'); await page.getByTestId('tpo-occasion').selectOption('ALONE');
+    await page.getByTestId('tpo-when').fill('2026-10-22'); await page.getByTestId('tpo-place').selectOption('HOME'); await page.getByTestId('tpo-occasion').selectOption('ALONE');
     await page.getByTestId('save-WISHLIST').click(); await savedDetail(); assert.equal(await page.getByTestId('detail-platform').innerText(), '동네 책방');
     await edit(); assert.deepEqual(await contextValue(), { when: '', place: '', occasion: '' }); assert.equal(await platformValue(), '동네 책방'); await page.keyboard.press('Escape');
     await start(); await route('title/record-quiet'); await edit(); const context = await contextValue();
@@ -114,16 +115,16 @@ try {
   await test('Platform and edition survive offline sync, new-device restore and formula-safe CSV export', async () => {
     await start('scenario=offline'); await open('궤도 밖에서'); await custom('=1+2');
     await page.getByTestId('tpo-season').fill('2'); await page.getByTestId('tpo-episode').fill('5');
-    await page.getByTestId('tpo-when').fill('2026-10-22T00:30'); await page.getByTestId('tpo-place').selectOption('TRANSIT'); await page.getByTestId('tpo-occasion').selectOption('ALONE');
+    await page.getByTestId('tpo-when').fill('2026-10-22'); await page.getByTestId('tpo-place').selectOption('TRANSIT'); await page.getByTestId('tpo-occasion').selectOption('ALONE');
     await page.getByTestId('save-IN_PROGRESS').click(); await page.getByTestId('saved-done').click(); await rows(7);
     await page.getByTestId('connectivity').click(); await route('home'); await page.getByTestId('sync-retry').click(); await page.waitForFunction(() => !document.querySelector('[data-testid="sync-retry"]'));
     await route('space'); const code = await page.getByTestId('own-code').innerText(); await page.getByTestId('scenario').selectOption('new-device');
     await route('space'); await page.getByTestId('connect-entry').click(); await page.getByTestId('connection-code').fill(code); await page.getByTestId('connect-submit').click(); await page.getByTestId('connected-done').click(); await rows(7);
     await page.getByTestId('record-search').fill('궤도'); await rows(1); await page.locator('.timeline-row .title-link').click();
     assert.equal(await page.getByTestId('detail-platform').innerText(), '=1+2'); assert.match(await page.locator('.record-edition').innerText(), /시즌 2.*5화/);
-    await edit(); assert.equal(await page.getByTestId('tpo-when').inputValue(), '2026-10-22T00:30'); await page.keyboard.press('Escape');
+    await edit(); assert.equal(await page.getByTestId('tpo-when').inputValue(), '2026-10-22'); await page.keyboard.press('Escape');
     const csv = await exportCSV(); assert.ok(csv.startsWith('\uFEFF"title","type","status","date","place","occasion","note","rating","platform","season","episode"'));
-    assert.match(csv, /"'=1\+2","2","5"/); assert.match(csv, /2026-10-21T15:30:00\.000Z/);
+    assert.match(csv, /"'=1\+2","2","5"/); assert.match(csv, /2026-10-21T15:00:00\.000Z/);
   });
 
   await test('Platform filter composes with month, place, occasion, status, type and search and clears selectively', async () => {
@@ -142,6 +143,70 @@ try {
     assert.equal(await page.getByTestId('archive-filter-platform').inputValue(), '', 'editing the final matching platform removes its stale filter');
     await page.getByTestId('scenario').selectOption('new'); await page.getByTestId('scenario').selectOption('returning'); await route('records'); await rows(6);
     assert.equal(await page.getByTestId('archive-filter-platform').inputValue(), '');
+  });
+
+  await test('Date-only edits preserve untouched timestamps, cancel changes and clear the stored date', async () => {
+    const original = '2026-11-01T23:47:31.246+09:00';
+    // An existing record may contain seconds and its original offset. Supply
+    // that legacy fixture through the module response, not application state.
+    await page.route('**/data.js', async route => {
+      const response = await route.fetch();
+      await route.fulfill({ response, body: `${await response.text()}\ninitialRecords[0].watchedAt = ${JSON.stringify(original)};\n` });
+    });
+    try {
+      await start(); await route('title/record-quiet'); await edit();
+      assert.equal(await page.getByTestId('tpo-when').getAttribute('type'), 'date');
+      assert.equal(await page.getByTestId('tpo-when').inputValue(), '2026-11-01');
+      await page.getByTestId('note-input').fill('날짜는 그대로 두고 메모만 남겨요.'); await page.getByTestId('save-edit').click();
+      assert.equal(await page.getByTestId('detail-when').locator('time').getAttribute('datetime'), original);
+      assert.ok((await exportCSV()).includes(`"${original}"`), 'note-only edits preserve every timestamp character');
+      for (const lang of ['ko', 'en']) {
+        if (lang === 'en') await page.getByTestId('language').click();
+        await route('home'); const featured = page.locator('[data-testid="archive-featured"]:visible');
+        assert.equal(await featured.locator('.context-time').count(), 0, 'home has only the dedicated date heading');
+        assert.doesNotMatch(await featured.locator('.archive-date').innerText(), clockPattern);
+        await route('records'); assert.equal(await page.locator('.timeline-row .context-time').count(), 0, 'list does not repeat each date inside TPO');
+        assert.doesNotMatch(await page.locator('.timeline-date').allTextContents().then(values => values.join(' ')), clockPattern);
+        await route('title/record-quiet'); const detail = await page.getByTestId('detail-when').innerText();
+        assert.match(detail, /2026/); assert.doesNotMatch(detail, clockPattern);
+        await edit(); assert.equal(await page.getByTestId('tpo-when').inputValue(), '2026-11-01'); await page.keyboard.press('Escape');
+      }
+      await edit(); await page.getByTestId('tpo-when').fill('2026-11-02'); await page.keyboard.press('Escape');
+      assert.equal(await page.getByTestId('detail-when').locator('time').getAttribute('datetime'), original, 'cancel retains the exact timestamp');
+      await edit(); await page.getByTestId('tpo-when').fill('2026-11-02'); await page.getByTestId('save-edit').click();
+      assert.equal(await page.getByTestId('detail-when').locator('time').getAttribute('datetime'), '2026-11-01T15:00:00.000Z');
+      await edit(); assert.equal(await page.getByTestId('tpo-when').inputValue(), '2026-11-02'); await page.getByTestId('tpo-when').fill(''); await page.getByTestId('save-edit').click();
+      assert.equal(await page.getByTestId('detail-when').locator('time').count(), 0);
+      await edit(); assert.equal(await page.getByTestId('tpo-when').inputValue(), ''); await page.keyboard.press('Escape');
+      assert.ok((await exportCSV()).includes('"Our Quiet Days","movie","DONE",""'), 'cleared dates export as empty');
+    } finally { await page.unroute('**/data.js'); }
+  });
+
+  await test('Date-only new records round-trip in Korea and across both US daylight-saving boundaries', async () => {
+    const cases = [
+      ['Asia/Seoul', [['2026-10-22', '2026-10-21T15:00:00.000Z']]],
+      ['America/New_York', [['2026-03-08', '2026-03-08T05:00:00.000Z'], ['2026-03-09', '2026-03-09T04:00:00.000Z'], ['2026-11-01', '2026-11-01T04:00:00.000Z'], ['2026-11-02', '2026-11-02T05:00:00.000Z']]],
+    ];
+    for (const [timezoneId, dates] of cases) {
+      const context = await browser.newContext({ viewport: { width: 390, height: 844 }, timezoneId, acceptDownloads: true });
+      const local = await context.newPage(); local.on('pageerror', error => issues.push(error.message));
+      try {
+        for (const [day, expected] of dates) {
+          await local.goto(`${base}/?scenario=new&lang=en`); await local.getByTestId('mobile-first-record').click();
+          await local.getByTestId('title-search').fill('Slow Light'); await local.getByTestId('search-result').click();
+          assert.equal(await local.getByTestId('tpo-when').getAttribute('type'), 'date');
+          await local.getByTestId('tpo-when').fill(day); await local.getByTestId('save-DONE').click();
+          assert.equal(await local.locator('.saved-context time').getAttribute('datetime'), expected, `${timezoneId}/${day} saves local midnight`);
+          assert.doesNotMatch(await local.locator('.saved-context').innerText(), clockPattern);
+          await local.getByTestId('saved-done').click(); await local.locator('.timeline-row .title-link').click();
+          assert.equal(await local.getByTestId('detail-when').locator('time').getAttribute('datetime'), expected);
+          assert.doesNotMatch(await local.getByTestId('detail-when').innerText(), clockPattern);
+          await local.locator('[data-action="edit"]').click(); assert.equal(await local.getByTestId('tpo-when').inputValue(), day, `${timezoneId}/${day} reopens on the same day`);
+          await local.getByTestId('note-input').fill('Still the same day.'); await local.getByTestId('save-edit').click();
+          assert.equal(await local.getByTestId('detail-when').locator('time').getAttribute('datetime'), expected);
+        }
+      } finally { await context.close(); }
+    }
   });
 
   await test('Complete TPO controls and sticky actions fit short mobile sheets in both languages', async () => {

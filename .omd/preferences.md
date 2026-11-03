@@ -170,3 +170,33 @@ source_context: "prototypes/ottline-v2/app.js; apps/web/components/QuickLogCard.
 ```
 
 The redesign must preserve the existing recording fields, including platform presets and custom platform entry, instead of reducing the flow to place and occasion.
+
+## 2026-11-03T02:37:52.653Z — choose-and-show-calendar-dates-only
+
+```omd-meta
+id: pref_mw02vh5i_27cfb4b6
+timestamp: 2026-11-03T02:37:52.653Z
+scope: components.input
+signal: user-correction
+confidence: explicit
+status: pending
+source_agent: codex
+source_context: "prototypes/ottline-v2/app.js"
+```
+
+Choose and show calendar dates without time-of-day inputs in the recording flow.
+
+## 2026-11-03T02:37:52.653Z — align-the-experience-with-the-timeline
+
+```omd-meta
+id: pref_mw02vh5i_3377023f
+timestamp: 2026-11-03T02:37:52.653Z
+scope: voice
+signal: user-correction
+confidence: explicit
+status: pending
+source_agent: codex
+source_context: "prototypes/ottline-v2/app.js; prototypes/ottline-v2/README.md"
+```
+
+Use Timeline rather than Archive as the central product term, and align the experience with ottline and its subtitle on the timeline: watched and read stories connected through personal time.

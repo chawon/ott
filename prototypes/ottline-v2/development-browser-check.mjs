@@ -8,7 +8,7 @@ const option = key => process.argv[process.argv.indexOf(key) + 1];
 const { chromium } = await import(process.argv.includes('--playwright') ? option('--playwright') : 'playwright');
 const base = process.env.PREVIEW_URL || 'http://127.0.0.1:4173';
 const match = process.argv.includes('--match') ? option('--match').toLowerCase() : '';
-const output = fileURLToPath(new URL('./qa-output/tpo-platform/', import.meta.url));
+const output = fileURLToPath(new URL('./qa-output/date-only/', import.meta.url));
 await mkdir(output, { recursive: true });
 const imageBytes = await readFile(new URL('./assets/quiet-days.jpg', import.meta.url));
 const browser = await chromium.launch({ headless: true, args: ['--no-sandbox'], ...(process.argv.includes('--browser') ? { executablePath: option('--browser') } : {}) });
@@ -158,6 +158,35 @@ try {
       assert.equal(await page.getByTestId('detail-when').innerText(), '기록하지 않았어요');
       assert.equal(await page.locator('img[src=""], img[src^="javascript:"]').count(), 0);
       assert.equal(mock.requests.every(request => request.method === 'GET'), true);
+    } finally { await context.close(); }
+  });
+
+  await test('Development date-only display hides time and duplicate dates while preserving API timestamps', async () => {
+    const {page,context,mock} = await setup({records:fixtures.slice(0,3)});
+    try {
+      for(const lang of ['ko','en']) {
+        await start(page,'home',`&lang=${lang}`);const featured=page.locator('[data-testid="archive-featured"]:visible');await featured.waitFor();
+        for(const width of [1440,390,320]) {
+          await page.setViewportSize({width,height:width===1440?1000:844});
+          await route(page,'home');
+          assert.equal(await featured.locator('.context-time').count(),0,'archive date heading is not repeated in context');
+          assert.doesNotMatch(await featured.locator('.archive-date').innerText(),/\b\d{1,2}:\d{2}\b|오전|오후/);
+          await noOverflow(page,`date-only/${lang}/${width}/home`);
+          await route(page,'records');await rows(page,3);
+          assert.equal(await page.locator('.timeline-row .context-time').count(),0);
+          await noOverflow(page,`date-only/${lang}/${width}/records`);
+          await route(page,`title/${firstId}`);
+          assert.equal(await page.getByTestId('detail-when').locator('time').getAttribute('datetime'),fixtures[0].watchedAt);
+          const shown=await page.getByTestId('detail-when').innerText();
+          assert.match(shown,/2026/);assert.doesNotMatch(shown,/\b\d{1,2}:\d{2}\b|오전|오후|\b(?:AM|PM)\b/);
+          await noOverflow(page,`date-only/${lang}/${width}/detail`);
+          if(width===390)await page.screenshot({path:`${output}/development-${lang}-date-detail.png`,fullPage:true});
+        }
+      }
+      await route(page,'space');const pending=page.waitForEvent('download');await page.locator('[data-action="export"]').click();
+      const csv=await readFile(await (await pending).path(),'utf8');
+      assert.ok(csv.includes(`"${fixtures[0].watchedAt}"`),'presentation does not rewrite API timestamps in export');
+      assert.equal(mock.requests.every(request=>request.method==='GET'),true);
     } finally { await context.close(); }
   });
 
