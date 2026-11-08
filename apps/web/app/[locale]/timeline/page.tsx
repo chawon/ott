@@ -310,10 +310,23 @@ function FutureTimelineSection({
       aria-label={t("futureTitle")}
       aria-busy={loading}
     >
+      <p
+        id="recommendation-data-notice"
+        className="text-sm leading-relaxed text-muted-foreground"
+      >
+        {t("futureDataNotice")}{" "}
+        <IntlLink
+          href="/privacy#recommendations"
+          className="underline underline-offset-4"
+        >
+          {t("futureDataDetails")}
+        </IntlLink>
+      </p>
       <div className="flex flex-wrap items-center gap-3">
         <button
           type="button"
           onClick={generate}
+          aria-describedby="recommendation-data-notice"
           disabled={loading || !canRefresh}
           className={cn(
             "min-h-12 rounded-lg border border-border bg-card px-4 text-sm text-muted-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",

@@ -5,6 +5,7 @@ import { loadLatestPublicLogDate } from "@/lib/sitemap-public.mjs";
 
 const CONTENT_DATE = new Date("2026-07-19T00:00:00+09:00");
 const APP_ENTITY_DATE = new Date("2026-07-25T00:00:00+09:00");
+const PRIVACY_DATE = new Date("2026-11-08T00:00:00+09:00");
 const LOCALIZED_PATHS = [
   "/",
   "/about",
@@ -42,7 +43,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
           ? publicLastModified[locale]
           : pathname === "/" || pathname === "/about"
             ? APP_ENTITY_DATE
-            : CONTENT_DATE,
+            : pathname === "/privacy"
+              ? PRIVACY_DATE
+              : CONTENT_DATE,
       alternates: languageAlternates(pathname),
     })),
   );
