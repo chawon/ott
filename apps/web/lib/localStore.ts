@@ -170,6 +170,23 @@ export async function listLogsByTitleLocal(titleId: string, limit: number) {
   return items.filter((l) => !l.deletedAt);
 }
 
+/** A sync pull may replace a temporary title and merge its log into an older log. */
+export async function resolveLogLocal(logId: string, title: Title) {
+  const exact = await db.logs.get(logId);
+  if (exact && !exact.deletedAt) return exact;
+  const canonical =
+    title.provider && title.providerId
+      ? await findTitleByProvider(title.provider, title.providerId, title)
+      : await getTitleLocal(title.id);
+  if (!canonical) return undefined;
+  const logs = await db.logs
+    .where("titleId")
+    .equals(canonical.id)
+    .filter((log) => !log.deletedAt)
+    .sortBy("updatedAt");
+  return logs.at(-1);
+}
+
 export async function listHistoryLocal(logId: string, limit: number) {
   const items = await db.history.where("logId").equals(logId).toArray();
   return items
@@ -250,9 +267,14 @@ export async function deleteLog(id: string) {
 }
 
 export async function removeLogsByTitleExcept(titleId: string, keepId: string) {
-  const logs = await db.logs.where("titleId").equals(titleId).toArray();
-  const ids = logs.filter((l) => l.id !== keepId).map((l) => l.id);
-  if (ids.length) await db.logs.bulkDelete(ids);
+  await db.transaction("rw", [db.logs, db.history], async () => {
+    const logs = await db.logs.where("titleId").equals(titleId).toArray();
+    const ids = logs.filter((l) => l.id !== keepId).map((l) => l.id);
+    if (ids.length === 0) return;
+    // Offline edits belong to the kept record after the server merges its ID.
+    await db.history.where("logId").anyOf(ids).modify({ logId: keepId });
+    await db.logs.bulkDelete(ids);
+  });
 }
 
 export function getUserId() {
@@ -358,6 +380,7 @@ export async function resetLocalState() {
   localStorage.removeItem("watchlog.pairingCode");
   localStorage.removeItem("watchlog.analytics.clientId");
   localStorage.removeItem("watchlog.lastSyncAt");
+  localStorage.removeItem("watchlog.lastSyncUserId");
   clearUserProfileState();
 }
 

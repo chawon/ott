@@ -62,6 +62,9 @@ jobs:
       - name: Test report share cards
         run: npm run test:report-share --workspace ott
 
+      - name: Test timeline v2 data and synchronization
+        run: npm run test:timeline-v2 --workspace ott
+
       - name: Build web
         env:
           BACKEND_URL: http://127.0.0.1:8080
@@ -99,3 +102,4 @@ jobs:
           WEB_STORAGE_PROFILE_DIR=/tmp/ott-web-storage-ci npm run test:web-storage --workspace ott -- --seed
           WEB_STORAGE_PROFILE_DIR=/tmp/ott-web-storage-ci npm run test:web-storage --workspace ott
           npm run test:book-search --workspace ott
+          WEB_RUNTIME_URL=http://127.0.0.1:3000 node apps/web/scripts/test-record-save-intent.mjs

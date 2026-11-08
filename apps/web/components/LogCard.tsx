@@ -1,10 +1,12 @@
-import { BookOpen, Film, MessageSquare, Share2, Tv } from "lucide-react";
-import Link from "next/link";
+"use client";
+
+import { ArrowRight, BookOpen, MessageSquare, Share2 } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { useState } from "react";
-import { Link as IntlLink } from "@/i18n/routing";
+import { Link } from "@/i18n/routing";
 import { api, apiWithAuth } from "@/lib/api";
 import { isKdcBookshelfLocale, type KdcMajor } from "@/lib/bookshelf";
+import { recordDisplayYear } from "@/lib/recordMetadata";
 import type {
   BookClassification,
   Comment,
@@ -12,23 +14,15 @@ import type {
   Discussion,
   WatchLog,
 } from "@/lib/types";
+import { formatNoteInline, statusLabel } from "@/lib/utils";
 import {
-  cn,
-  formatNoteInline,
-  occasionLabel,
-  placeLabel,
-  statusLabel,
-  tmdbResize,
-} from "@/lib/utils";
-
-function formatDate(iso: string, locale: string) {
-  const d = new Date(iso);
-  return d.toLocaleDateString(locale === "ko" ? "ko-KR" : "en-US", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  });
-}
+  RecordEdition,
+  RecordFeeling,
+  RecordMoment,
+  RecordPoster,
+  recordDate,
+} from "./timeline-v2/RecordParts";
+import styles from "./timeline-v2/timeline.module.css";
 
 function renderBody(text: string) {
   const parts = text.split(/(@\{[^}]+\})/g);
@@ -61,26 +55,6 @@ function renderBody(text: string) {
   });
 }
 
-function chip(label: string, tone: "place" | "occasion") {
-  const toneClass =
-    tone === "place"
-      ? "border-ott-sage bg-ott-sage/50 text-ott-sage-foreground"
-      : "border-ott-warm bg-ott-warm/55 text-ott-warm-foreground";
-  return (
-    <span className={`rounded-full border px-3 py-1 text-xs ${toneClass}`}>
-      {label}
-    </span>
-  );
-}
-
-function seasonEpisodeLabel(log: WatchLog) {
-  if (typeof log.seasonNumber !== "number") return null;
-  if (typeof log.episodeNumber === "number") {
-    return `S${log.seasonNumber} · E${log.episodeNumber}`;
-  }
-  return `S${log.seasonNumber}`;
-}
-
 export default function LogCard({
   log,
   onShareCard,
@@ -92,19 +66,20 @@ export default function LogCard({
 }) {
   const t = log.title;
   const locale = useLocale();
+  const ko = locale === "ko";
   const tStatus = useTranslations("Status");
   const tQuick = useTranslations("QuickLogCard");
-  const tCommon = useTranslations("Common");
   const tBookshelf = useTranslations("Bookshelf");
   const [isSharing, setIsSharing] = useState(false);
   const [isShared, setIsShared] = useState(false);
-
-  if (log.deletedAt) return null;
-  if (!t?.id) return null;
+  const [shareError, setShareError] = useState(false);
+  if (log.deletedAt || !t?.id) return null;
+  const displayYear = recordDisplayYear(t, log);
 
   async function handleSharePublic() {
     if (isSharing || isShared) return;
     setIsSharing(true);
+    setShareError(false);
     try {
       const discussion = await api<Discussion>("/discussions", {
         method: "POST",
@@ -126,15 +101,13 @@ export default function LogCard({
       }
       setIsShared(true);
     } catch {
-      // ignore
+      setShareError(true);
     } finally {
       setIsSharing(false);
     }
   }
 
-  const seasonLabel = seasonEpisodeLabel(log);
-  const isCommentOrigin = log.origin === "COMMENT";
-  const isBook = t.type === "book";
+  const date = recordDate(log);
   const kdcMajor =
     bookClassification?.status === "RESOLVED" &&
     typeof bookClassification.kdcMajor === "number"
@@ -143,175 +116,108 @@ export default function LogCard({
 
   return (
     <article
-      className={cn(
-        "flex gap-5 rounded-2xl border border-border bg-card/90 p-5 text-card-foreground shadow-sm transition-colors duration-150 hover:border-muted-foreground/25",
-        isBook &&
-          "bg-ott-sage/20 ring-1 ring-ott-sage/50 dark:bg-emerald-950/25 dark:ring-emerald-900/60",
-        isBook &&
-          !isCommentOrigin &&
-          "border-ott-sage dark:border-emerald-900/50",
-        isCommentOrigin
-          ? "border-ott-warm bg-ott-warm/35 dark:border-amber-800 dark:bg-amber-950/30"
-          : "hover:border-border/80",
-      )}
+      className={styles.recordRow}
+      data-testid="timeline-record"
+      data-log-id={log.id}
     >
-      <div className="shrink-0">
-        <div className="h-32 w-20 overflow-hidden rounded-xl border border-border bg-muted shadow-sm">
-          {(log.seasonPosterUrl ?? t.posterUrl) ? (
-            <img
-              src={
-                tmdbResize(
-                  (log.seasonPosterUrl ?? t.posterUrl) || "",
-                  "w185",
-                ) ??
-                log.seasonPosterUrl ??
-                t.posterUrl ??
-                ""
-              }
-              alt={t.name}
-              className="h-full w-full object-cover"
-              loading="lazy"
-            />
-          ) : (
-            <div className="h-full w-full flex items-center justify-center text-[10px] text-muted-foreground font-medium">
-              NO IMAGE
-            </div>
-          )}
-        </div>
-      </div>
-      <div className="flex-1 min-w-0">
-        <div className="flex items-start justify-between gap-3 mb-1">
-          <div className="min-w-0">
-            <Link
-              href={`/title/${t.id}`}
-              className="text-lg font-bold text-foreground hover:underline decoration-muted-foreground underline-offset-4 truncate block"
-            >
-              {t.name}
-            </Link>
-            <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs font-medium text-muted-foreground">
-              {isBook ? (
-                <span className="inline-flex items-center gap-1 rounded-full border border-border bg-muted/60 px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
-                  <BookOpen className="h-3 w-3" />
-                  BOOK
-                </span>
-              ) : t.type === "movie" ? (
-                <span className="inline-flex items-center gap-1 rounded-full border border-border bg-muted/60 px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
-                  <Film className="h-3 w-3" />
-                  MOVIE
-                </span>
-              ) : (
-                <span className="inline-flex items-center gap-1 rounded-full border border-border bg-muted/60 px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
-                  <Tv className="h-3 w-3" />
-                  SERIES
-                </span>
-              )}
-              {isKdcBookshelfLocale(locale) && isBook && kdcMajor !== null ? (
-                <IntlLink
-                  href={`/me/bookshelf?kdc=${kdcMajor}`}
-                  className="inline-flex min-h-8 items-center rounded-lg border border-[#1E4D8C]/30 bg-card px-2 text-[10px] font-semibold text-[#1E4D8C] transition-colors hover:bg-[#FEF9EE] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF9933]/50 dark:text-foreground dark:hover:bg-[#2B241F]"
-                >
-                  {tBookshelf("shelfBadge", {
-                    code: bookClassification?.kdcCode ?? `${kdcMajor}00`,
-                    category: tBookshelf(`categories.${kdcMajor}`),
-                  })}
-                </IntlLink>
-              ) : null}
-              <span>{statusLabel(log.status, t.type, tStatus)}</span>
-              {seasonLabel ? (
-                <>
-                  <span className="text-muted-foreground/60">·</span>
-                  <span>{seasonLabel}</span>
-                </>
-              ) : null}
-              <span className="text-muted-foreground/60">·</span>
-              <span>{formatDate(log.watchedAt ?? log.createdAt, locale)}</span>
-              {log.ott ? (
-                <>
-                  <span className="text-muted-foreground/60">·</span>
-                  <span>{log.ott}</span>
-                </>
-              ) : null}
-            </div>
-          </div>
-          {typeof log.rating === "number" ? (
-            <div className="shrink-0 rounded-xl bg-accent px-2.5 py-1 text-xs font-bold text-accent-foreground">
-              {log.rating.toFixed(1)}
-            </div>
+      <time
+        className={styles.recordDate}
+        dateTime={log.watchedAt || log.createdAt}
+      >
+        {date ? (
+          <>
+            <span>
+              {date.toLocaleDateString(ko ? "ko-KR" : "en-US", {
+                month: "short",
+              })}
+            </span>
+            <strong>{date.getDate()}</strong>
+          </>
+        ) : (
+          <span>{ko ? "날짜 없음" : "Undated"}</span>
+        )}
+        {!log.watchedAt ? <small>{ko ? "기록한 날" : "Added"}</small> : null}
+      </time>
+      <RecordPoster log={log} />
+      <div className={styles.recordContent}>
+        <div className={styles.recordMeta}>
+          <span>
+            {t.type === "book"
+              ? tQuick("typeBook")
+              : t.type === "series"
+                ? tQuick("typeSeriesModern")
+                : tQuick("typeMovie")}
+            {displayYear ? ` · ${displayYear}` : ""}
+          </span>
+          <RecordEdition log={log} />
+          {log.origin === "COMMENT" ? (
+            <span>{ko ? "함께 남긴 기록" : "From a conversation"}</span>
+          ) : null}
+          {log.syncStatus === "pending" || log.syncStatus === "failed" ? (
+            <span>{ko ? "이 기기에 보관 중" : "Kept on this device"}</span>
           ) : null}
         </div>
-        {log.place || log.occasion ? (
-          <div className="flex flex-wrap gap-1.5 mb-3">
-            {log.place
-              ? chip(
-                  placeLabel(log.place, (k: string) =>
-                    tCommon(
-                      `placeLabels.${k}` as Parameters<typeof tCommon>[0],
-                    ),
-                  ),
-                  "place",
-                )
-              : null}
-            {log.occasion
-              ? chip(
-                  occasionLabel(log.occasion, (k: string) =>
-                    tCommon(
-                      `occasionLabels.${k}` as Parameters<typeof tCommon>[0],
-                    ),
-                  ),
-                  "occasion",
-                )
-              : null}
-          </div>
-        ) : null}
-        {log.note ? (
-          <p className="text-sm leading-relaxed text-muted-foreground line-clamp-2">
+        <Link href={`/title/${t.id}`} className={styles.recordTitle}>
+          {t.name}
+        </Link>
+        <div className={styles.recordState}>
+          <span>{statusLabel(log.status, t.type, tStatus)}</span>
+          <RecordFeeling log={log} />
+        </div>
+        <RecordMoment log={log} />
+        {log.note?.trim() ? (
+          <p className={styles.recordNote}>
             {renderBody(formatNoteInline(log.note))}
           </p>
         ) : null}
-
-        <div className="mt-3 flex flex-wrap items-center gap-2">
-          {onShareCard && (
-            <button
-              type="button"
-              onClick={(e) => {
-                e.preventDefault();
-                onShareCard();
-              }}
-              className="inline-flex items-center gap-1.5 rounded-full border border-border bg-ott-paper px-2.5 py-1 text-[11px] font-medium text-muted-foreground transition-colors hover:bg-ott-paper-strong hover:text-foreground dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-300"
-            >
-              <Share2 className="h-3 w-3" />
+        <div className={styles.recordActions}>
+          <Link href={`/title/${t.id}`}>
+            {ko ? "기록 펼치기" : "Open record"}
+            <ArrowRight size={15} aria-hidden="true" />
+          </Link>
+          {onShareCard ? (
+            <button type="button" onClick={onShareCard}>
+              <Share2 size={15} aria-hidden="true" />
               {tQuick("createShareCard")}
             </button>
-          )}
+          ) : null}
           {log.note?.trim() ? (
             <button
               type="button"
-              onClick={(e) => {
-                e.preventDefault();
-                handleSharePublic();
-              }}
+              onClick={() => void handleSharePublic()}
               disabled={isSharing || isShared}
-              className={cn(
-                "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors",
-                isShared
-                  ? "border-emerald-200/60 bg-emerald-50 text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-950/40 dark:text-emerald-400"
-                  : "border-border bg-ott-paper text-muted-foreground hover:bg-ott-paper-strong hover:text-foreground dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-300 disabled:opacity-50",
-              )}
             >
-              <MessageSquare className="h-3 w-3" />
+              <MessageSquare size={15} aria-hidden="true" />
               {isShared
-                ? tQuick("saveSuccessPrompt").split(".")[0]
-                : tQuick("shareToPublic")}
+                ? ko
+                  ? "함께 나눴어요"
+                  : "Shared with everyone"
+                : isSharing
+                  ? ko
+                    ? "공유 중"
+                    : "Sharing"
+                  : tQuick("shareToPublic")}
             </button>
-          ) : (
-            <Link
-              href={`/title/${t.id}`}
-              className="inline-flex items-center gap-1.5 rounded-full border border-border bg-ott-paper px-2.5 py-1 text-[11px] font-medium text-muted-foreground transition-colors hover:bg-ott-paper-strong hover:text-foreground"
-            >
-              <MessageSquare className="h-3 w-3" />+ {tCommon("addMoreDetails")}
+          ) : null}
+          {isKdcBookshelfLocale(locale) &&
+          t.type === "book" &&
+          kdcMajor !== null ? (
+            <Link href={`/me/bookshelf?kdc=${kdcMajor}`}>
+              <BookOpen size={15} aria-hidden="true" />
+              {tBookshelf("shelfBadge", {
+                code: bookClassification?.kdcCode ?? `${kdcMajor}00`,
+                category: tBookshelf(`categories.${kdcMajor}`),
+              })}
             </Link>
-          )}
+          ) : null}
         </div>
+        {shareError ? (
+          <p className={styles.recordError} role="status">
+            {ko
+              ? "공유하지 못했어요. 연결 상태를 확인하고 다시 시도해 주세요."
+              : "Couldn’t share this record. Check your connection and try again."}
+          </p>
+        ) : null}
       </div>
     </article>
   );

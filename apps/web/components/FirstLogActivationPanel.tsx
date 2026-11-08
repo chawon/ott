@@ -10,6 +10,16 @@ import { cn, tmdbResize } from "@/lib/utils";
 
 type ActivationContentType = "video" | "book";
 
+// Match the mobile rail and desktop 3/4-column grid inside ottline-app-main.
+// Intrinsic width alone cannot describe the cards after the desktop layout expands.
+const POSTER_SIZES = [
+  "(max-width: 639.98px) 114px",
+  "(max-width: 767.98px) calc((100vw - 108px) / 3)",
+  "(max-width: 1023.98px) calc((100vw - 136px) / 3)",
+  "(max-width: 1343.98px) calc((100vw - 150px) / 4)",
+  "298.5px",
+].join(", ");
+
 type VideoDiscussionItem = {
   item: DiscussionListItem;
   source: "activation_recent_discussion";
@@ -81,12 +91,13 @@ function PosterRail({
                 {titleItem.posterUrl ? (
                   <Image
                     src={
-                      tmdbResize(titleItem.posterUrl, "w185") ??
+                      tmdbResize(titleItem.posterUrl, "w1280") ??
                       titleItem.posterUrl
                     }
                     alt={titleItem.name}
-                    width={116}
-                    height={174}
+                    width={1280}
+                    height={1920}
+                    sizes={POSTER_SIZES}
                     className="h-full w-full object-cover"
                     loading="lazy"
                   />

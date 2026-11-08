@@ -13,6 +13,8 @@ REQUIRED_SUITES = (
     "com.watchlog.api.service.CuratedContentAdminServiceTest",
     "com.watchlog.api.service.CuratedContentServiceTest",
     "com.watchlog.api.service.CuratorAutomationServiceTest",
+    "com.watchlog.api.service.RecommendationAccountStoreDatabaseTest",
+    "com.watchlog.api.repo.DiscussionConnectionRepositoryTest",
 )
 
 

@@ -38,6 +38,21 @@
       "react": "recommended"
     }
   },
+  "overrides": [
+    {
+      "includes": ["**/*.module.css"],
+      "linter": {
+        "rules": {
+          "correctness": {
+            "noUnknownPseudoClass": {
+              "level": "error",
+              "options": { "ignore": ["global", "local"] }
+            }
+          }
+        }
+      }
+    }
+  ],
   "assist": {
     "actions": {
       "source": {

@@ -2,10 +2,10 @@
 
 import Image from "next/image";
 import { useLocale, useTranslations } from "next-intl";
-import GoogleBooksAttribution from "@/components/GoogleBooksAttribution";
-import { googleBooksUrl } from "@/lib/googleBooks";
 import { useEffect, useMemo, useRef, useState } from "react";
+import GoogleBooksAttribution from "@/components/GoogleBooksAttribution";
 import { api } from "@/lib/api";
+import { googleBooksUrl } from "@/lib/googleBooks";
 import { selectPopularTitleFillers } from "@/lib/titleFallback";
 import type {
   DiscussionListItem,
@@ -13,6 +13,7 @@ import type {
   TitleSelectSource,
 } from "@/lib/types";
 import { cn, tmdbResize } from "@/lib/utils";
+import styles from "./recording.module.css";
 
 const TITLE_SUGGESTION_LIMIT = 6;
 
@@ -42,6 +43,8 @@ export default function TitleSearchBox({
   initialQuery,
   autoFocus = false,
   focusSignal = 0,
+  dialogLayout = false,
+  onContentTypeChange,
 }: {
   onSelect: (item: TitleSearchItem) => void;
   onSearchComplete?: (result: {
@@ -63,16 +66,26 @@ export default function TitleSearchBox({
   initialQuery?: string;
   autoFocus?: boolean;
   focusSignal?: number;
+  dialogLayout?: boolean;
+  onContentTypeChange?: (type: "video" | "book") => void;
 }) {
   const tTitleSearch = useTranslations("TitleSearchBox");
   const locale = useLocale();
-  const googleBooksSearch = contentType === "book" && locale === "en";
   const [q, setQ] = useState("");
+  const [searchType, setSearchType] = useState<
+    "all" | "movie" | "series" | "book"
+  >(contentType === "book" ? "book" : "all");
+  const [composing, setComposing] = useState(false);
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState<TitleSearchItem[]>([]);
+  const googleBooksSearch =
+    locale === "en" &&
+    (contentType === "book" ||
+      items.some((item) => item.provider === "GOOGLE_BOOKS"));
   const [activeIndex, setActiveIndex] = useState(0);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [partialSearch, setPartialSearch] = useState(false);
   const [recent, setRecent] = useState<DiscussionListItem[]>([]);
   const [popularSuggestions, setPopularSuggestions] = useState<
     TitleSearchItem[]
@@ -95,9 +108,11 @@ export default function TitleSearchBox({
   }, [initialQuery]);
 
   useEffect(() => {
+    // IME composition guards keyboard selection, not the debounced live query.
     if (!open) return;
 
     if (!query) {
+      setPartialSearch(false);
       setItems([]);
       setErr(null);
       setLoading(false);
@@ -110,12 +125,46 @@ export default function TitleSearchBox({
     const t = setTimeout(async () => {
       setLoading(true);
       setErr(null);
+      setPartialSearch(false);
 
       try {
-        const typeQuery = contentType === "book" ? "&type=book" : "";
-        const res = await api<TitleSearchItem[]>(
-          `/titles/search?q=${encodeURIComponent(query)}${typeQuery}`,
-        );
+        const selectedType =
+          dialogLayout || onContentTypeChange
+            ? searchType
+            : contentType === "book"
+              ? "book"
+              : "all";
+        const typeQuery =
+          selectedType === "book"
+            ? "&type=book"
+            : selectedType === "movie"
+              ? "&type=movie"
+              : selectedType === "series"
+                ? "&type=tv"
+                : "";
+        const searchPath = `/titles/search?q=${encodeURIComponent(query)}`;
+        let res: TitleSearchItem[];
+        if (dialogLayout && selectedType === "all") {
+          const results = await Promise.allSettled([
+            api<TitleSearchItem[]>(searchPath),
+            api<TitleSearchItem[]>(`${searchPath}&type=book`),
+          ]);
+          const successful = results.filter(
+            (result): result is PromiseFulfilledResult<TitleSearchItem[]> =>
+              result.status === "fulfilled",
+          );
+          if (!successful.length)
+            throw new Error(
+              locale === "ko"
+                ? "검색을 불러오지 못했어요. 잠시 후 다시 찾아보세요."
+                : "Search is unavailable. Please try again.",
+            );
+          res = successful.flatMap((result) => result.value);
+          if (!cancelled)
+            setPartialSearch(successful.length !== results.length);
+        } else {
+          res = await api<TitleSearchItem[]>(`${searchPath}${typeQuery}`);
+        }
         if (!cancelled) {
           setItems(res);
           setActiveIndex(0);
@@ -147,7 +196,16 @@ export default function TitleSearchBox({
       cancelled = true;
       clearTimeout(t);
     };
-  }, [query, open, contentType, onSearchComplete]);
+  }, [
+    query,
+    open,
+    contentType,
+    onSearchComplete,
+    dialogLayout,
+    searchType,
+    onContentTypeChange,
+    locale,
+  ]);
 
   useEffect(() => {
     if (!open || !showRecentDiscussions) return;
@@ -207,7 +265,7 @@ export default function TitleSearchBox({
   }, [open, query, showRecentDiscussions, contentType]);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open || dialogLayout) return;
 
     function onPointerDown(e: MouseEvent | TouchEvent) {
       const root = rootRef.current;
@@ -222,7 +280,7 @@ export default function TitleSearchBox({
       document.removeEventListener("mousedown", onPointerDown);
       document.removeEventListener("touchstart", onPointerDown);
     };
-  }, [open]);
+  }, [open, dialogLayout]);
 
   function pick(
     item: TitleSearchItem,
@@ -231,11 +289,12 @@ export default function TitleSearchBox({
   ) {
     onSelectAnalytics?.({
       item,
-      contentType,
+      contentType: item.type === "book" ? "book" : "video",
       source,
       queryLength: query.length,
       resultRank,
     });
+    inputRef.current?.blur();
     onSelect(item);
     setQ("");
     setOpen(false);
@@ -245,11 +304,15 @@ export default function TitleSearchBox({
   }
 
   const filteredRecent = useMemo(() => {
-    return filterRecentDiscussions(recent, contentType).slice(
-      0,
-      TITLE_SUGGESTION_LIMIT,
-    );
-  }, [contentType, recent]);
+    return filterRecentDiscussions(recent, contentType)
+      .filter(
+        (item) =>
+          !dialogLayout ||
+          searchType === "all" ||
+          item.titleType === searchType,
+      )
+      .slice(0, TITLE_SUGGESTION_LIMIT);
+  }, [contentType, recent, searchType, dialogLayout]);
 
   const showRecentPanel =
     showRecentDiscussions &&
@@ -259,7 +322,13 @@ export default function TitleSearchBox({
       filteredRecent.length > 0 ||
       popularSuggestions.length > 0);
   const showPanel =
-    open && (loading || err || items.length > 0 || showRecentPanel);
+    open &&
+    (dialogLayout ||
+      loading ||
+      err ||
+      items.length > 0 ||
+      showRecentPanel ||
+      Boolean(query));
 
   useEffect(() => {
     if (!autoFocus && focusSignal === 0) return;
@@ -270,9 +339,16 @@ export default function TitleSearchBox({
   const modernPlaceholder = placeholder || tTitleSearch("defaultPlaceholder");
 
   return (
-    <div ref={rootRef} className="relative">
+    <div ref={rootRef} className={dialogLayout ? styles.search : "relative"}>
       <input
         ref={inputRef}
+        type="search"
+        data-testid="title-search"
+        aria-label={modernPlaceholder}
+        maxLength={200}
+        autoComplete="off"
+        onCompositionStart={() => setComposing(true)}
+        onCompositionEnd={() => setComposing(false)}
         value={q}
         onChange={(e) => {
           setQ(e.target.value);
@@ -282,6 +358,8 @@ export default function TitleSearchBox({
           setOpen(true);
         }}
         onKeyDown={(e) => {
+          if (e.nativeEvent.isComposing || composing || e.keyCode === 229)
+            return;
           if (e.key === "Escape") {
             setOpen(false);
             return;
@@ -295,6 +373,7 @@ export default function TitleSearchBox({
             setActiveIndex((i) => (i - 1 + items.length) % items.length);
           }
           if (e.key === "Enter" && items.length > 0) {
+            e.preventDefault();
             pick(
               items[Math.max(0, Math.min(activeIndex, items.length - 1))],
               "search_result",
@@ -303,12 +382,52 @@ export default function TitleSearchBox({
           }
         }}
         placeholder={modernPlaceholder}
-        className={cn(
-          "w-full transition-all outline-none",
-          "min-h-12 rounded-xl border border-border bg-card px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary/30 focus:ring-2 focus:ring-primary/10",
-        )}
+        className={
+          dialogLayout
+            ? styles.searchInput
+            : cn(
+                "w-full transition-all outline-none",
+                "min-h-12 rounded-lg border border-border bg-card px-4 py-3 text-base text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/10",
+              )
+        }
       />
 
+      {dialogLayout || onContentTypeChange ? (
+        <fieldset className={styles.typeChoices}>
+          <legend className="sr-only">
+            {locale === "ko" ? "작품 종류" : "Title type"}
+          </legend>
+          {(["all", "movie", "series", "book"] as const).map((type) => (
+            <button
+              key={type}
+              type="button"
+              aria-pressed={searchType === type}
+              onClick={() => {
+                setSearchType(type);
+                onContentTypeChange?.(type === "book" ? "book" : "video");
+                setItems([]);
+                setPartialSearch(false);
+                setErr(null);
+                setOpen(true);
+              }}
+            >
+              {type === "all"
+                ? locale === "ko"
+                  ? dialogLayout
+                    ? "전체"
+                    : "영상 전체"
+                  : dialogLayout
+                    ? "All"
+                    : "All video"
+                : type === "movie"
+                  ? tTitleSearch("typeMovie")
+                  : type === "series"
+                    ? tTitleSearch("typeSeries")
+                    : tTitleSearch("typeBook")}
+            </button>
+          ))}
+        </fieldset>
+      ) : null}
       {googleBooksSearch ? (
         <div className="mt-2 flex justify-end">
           <GoogleBooksAttribution />
@@ -317,10 +436,14 @@ export default function TitleSearchBox({
 
       {showPanel && (
         <div
-          className={cn(
-            "absolute z-50 mt-2 w-full max-h-[calc(100dvh-var(--mobile-bottom-nav-height)-9rem)] overflow-auto bg-card text-card-foreground sm:max-h-[70vh]",
-            "rounded-2xl border border-border shadow-[0_20px_56px_rgba(52,45,37,0.14)]",
-          )}
+          className={
+            dialogLayout
+              ? styles.searchResults
+              : cn(
+                  "absolute z-50 mt-2 w-full max-h-[calc(100dvh-var(--mobile-bottom-nav-height)-9rem)] overflow-auto bg-card text-card-foreground sm:max-h-[70vh]",
+                  "rounded-lg border border-border shadow-lg",
+                )
+          }
           data-onboarding-target="title-search-panel"
         >
           {showRecentPanel ? (
@@ -393,19 +516,26 @@ export default function TitleSearchBox({
                           <img
                             src={tmdbResize(d.posterUrl, "w185") ?? d.posterUrl}
                             alt={d.titleName}
-                            className={cn("h-full w-full object-cover")}
+                            className={cn(
+                              "h-full w-full",
+                              d.titleType === "book"
+                                ? "object-contain"
+                                : "object-cover",
+                            )}
                             loading="lazy"
                           />
                         ) : null}
                       </div>
                       <div className="min-w-0 flex-1">
-                        <div className={cn("truncate text-sm font-bold")}>
+                        <div
+                          className={cn("line-clamp-2 text-base font-semibold")}
+                        >
                           {d.titleName}
                         </div>
                         <div
                           className={cn(
                             "mt-0.5",
-                            "text-[10px] font-bold text-muted-foreground",
+                            "text-xs text-muted-foreground",
                           )}
                         >
                           {meta}
@@ -440,74 +570,97 @@ export default function TitleSearchBox({
                   >
                     {tTitleSearch("popularModern")}
                   </div>
-                  {popularSuggestions.map((t) => {
-                    const key = `popular:${t.provider}:${t.providerId}`;
-                    const typeLabel =
-                      t.type === "movie"
-                        ? tTitleSearch("typeMovie")
-                        : t.type === "series"
-                          ? tTitleSearch("typeSeries")
-                          : tTitleSearch("typeBook");
-                    const meta = `${typeLabel}${t.year ? ` · ${t.year}` : ""}`;
+                  {popularSuggestions
+                    .filter(
+                      (item) =>
+                        !dialogLayout ||
+                        searchType === "all" ||
+                        item.type === searchType,
+                    )
+                    .map((t) => {
+                      const key = `popular:${t.provider}:${t.providerId}`;
+                      const typeLabel =
+                        t.type === "movie"
+                          ? tTitleSearch("typeMovie")
+                          : t.type === "series"
+                            ? tTitleSearch("typeSeries")
+                            : tTitleSearch("typeBook");
+                      const meta = `${typeLabel}${t.year ? ` · ${t.year}` : ""}`;
 
-                    return (
-                      <button
-                        key={key}
-                        type="button"
-                        onClick={() => pick(t, "popular_title")}
-                        className={cn(
-                          "flex w-full items-center gap-4 px-4 py-3 text-left transition-colors",
-                          "hover:bg-ott-paper-strong",
-                        )}
-                      >
-                        <div
+                      return (
+                        <button
+                          key={key}
+                          type="button"
+                          onClick={() => pick(t, "popular_title")}
                           className={cn(
-                            "h-20 w-14 shrink-0 overflow-hidden bg-muted",
-                            "rounded-lg border border-border shadow-sm",
+                            "flex w-full items-center gap-4 px-4 py-3 text-left transition-colors",
+                            "hover:bg-ott-paper-strong",
                           )}
                         >
-                          {t.posterUrl ? (
-                            <Image
-                              src={
-                                tmdbResize(t.posterUrl, "w185") ?? t.posterUrl
-                              }
-                              alt={t.name}
-                              width={56}
-                              height={80}
-                              className={cn("h-full w-full object-cover")}
-                              loading="lazy"
-                            />
-                          ) : null}
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <div className={cn("truncate text-sm font-bold")}>
-                            {t.name}
-                          </div>
                           <div
                             className={cn(
-                              "mt-0.5",
-                              "text-[10px] font-bold text-muted-foreground",
+                              "h-20 w-14 shrink-0 overflow-hidden bg-muted",
+                              "rounded-lg border border-border shadow-sm",
                             )}
                           >
-                            {meta}
+                            {t.posterUrl ? (
+                              <Image
+                                src={
+                                  tmdbResize(t.posterUrl, "w185") ?? t.posterUrl
+                                }
+                                alt={t.name}
+                                width={56}
+                                height={80}
+                                className={cn(
+                                  "h-full w-full",
+                                  t.type === "book"
+                                    ? "object-contain"
+                                    : "object-cover",
+                                )}
+                                loading="lazy"
+                              />
+                            ) : null}
                           </div>
-                          <div
-                            className={cn(
-                              "mt-1 text-xs font-semibold",
-                              "text-muted-foreground",
-                            )}
-                          >
-                            {tTitleSearch("popularSource")}
+                          <div className="min-w-0 flex-1">
+                            <div
+                              className={cn(
+                                "line-clamp-2 text-base font-semibold",
+                              )}
+                            >
+                              {t.name}
+                            </div>
+                            <div
+                              className={cn(
+                                "mt-0.5",
+                                "text-xs text-muted-foreground",
+                              )}
+                            >
+                              {meta}
+                            </div>
+                            <div
+                              className={cn(
+                                "mt-1 text-xs font-semibold",
+                                "text-muted-foreground",
+                              )}
+                            >
+                              {tTitleSearch("popularSource")}
+                            </div>
                           </div>
-                        </div>
-                      </button>
-                    );
-                  })}
+                        </button>
+                      );
+                    })}
                 </div>
               ) : null}
             </div>
           ) : null}
 
+          {partialSearch && !loading ? (
+            <p className={styles.hint} role="status">
+              {locale === "ko"
+                ? "일부 종류의 작품을 불러오지 못했어요. 종류를 골라 다시 찾아보세요."
+                : "Some title types could not be loaded. Choose a type to try again."}
+            </p>
+          ) : null}
           {loading && (
             <div className="px-4 py-3 text-sm font-bold">
               {tTitleSearch("searchLoading")}
@@ -550,6 +703,11 @@ export default function TitleSearchBox({
                 >
                   <button
                     type="button"
+                    data-testid="title-search-result"
+                    data-title-provider={t.provider}
+                    data-title-type={t.type}
+                    data-title-id={t.providerId}
+                    data-title-name={t.name}
                     onClick={() => pick(t, "search_result", idx + 1)}
                     onMouseEnter={() => setActiveIndex(idx)}
                     className={cn(
@@ -569,20 +727,27 @@ export default function TitleSearchBox({
                         <img
                           src={tmdbResize(t.posterUrl, "w185") ?? t.posterUrl}
                           alt={t.name}
-                          className={cn("h-full w-full object-cover")}
+                          className={cn(
+                            "h-full w-full",
+                            t.type === "book"
+                              ? "object-contain"
+                              : "object-cover",
+                          )}
                           loading="lazy"
                         />
                       ) : null}
                     </div>
 
                     <div className="min-w-0 flex-1">
-                      <div className={cn("truncate text-sm font-bold")}>
+                      <div
+                        className={cn("line-clamp-2 text-base font-semibold")}
+                      >
                         {t.name}
                       </div>
                       <div
                         className={cn(
                           "mt-0.5",
-                          "text-[10px] font-bold text-muted-foreground",
+                          "text-xs text-muted-foreground",
                         )}
                       >
                         {t.type === "book"
@@ -594,7 +759,7 @@ export default function TitleSearchBox({
                         <div
                           className={cn(
                             "mt-1 line-clamp-1",
-                            "text-[10px] font-bold text-muted-foreground",
+                            "text-xs text-muted-foreground",
                           )}
                         >
                           {detailLine}

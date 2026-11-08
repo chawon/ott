@@ -53,7 +53,7 @@ test("builds complete localized Open Graph metadata for child pages", () => {
       type: "website",
       images: [
         {
-          url: "https://ottline.app/og-image-20260418.png",
+          url: "https://ottline.app/brand/v2/og-image.png",
           width: 1200,
           height: 630,
           alt: "ottline",

@@ -87,10 +87,10 @@ export function buildSoftwareApplicationSchema({
     operatingSystem: ["Web", "Android", "iOS", "Windows"],
     sameAs: [GOOGLE_PLAY_URL, APP_STORE_URL, MICROSOFT_STORE_URL],
     installUrl: [storeUrls.googlePlay, storeUrls.appStore, MICROSOFT_STORE_URL],
-    image: "https://ottline.app/icon.png",
+    image: absoluteUrl("/brand/v2/app-icon-512.png"),
     screenshot: [
-      "https://ottline.app/pwa/screenshot-desktop-wide.png",
-      "https://ottline.app/pwa/screenshot-mobile-narrow.png",
+      absoluteUrl(`/pwa/v2-${isEnglish ? "en" : "ko"}-desktop.png`),
+      absoluteUrl(`/pwa/v2-${isEnglish ? "en" : "ko"}-mobile.png`),
     ],
     offers: { "@type": "Offer", price: "0", priceCurrency: "KRW" },
     isAccessibleForFree: true,
@@ -191,7 +191,7 @@ export function localizedOpenGraph(
     type: "website",
     images: [
       {
-        url: absoluteUrl("/og-image-20260418.png"),
+        url: absoluteUrl("/brand/v2/og-image.png"),
         width: 1200,
         height: 630,
         alt: "ottline",

@@ -10,8 +10,8 @@ export const PERSONA_KEYS = [
 ] as const satisfies readonly PersonaKey[];
 
 export const DEFAULT_PERSONA_KEY: PersonaKey = "cinema_keeper";
-export const AVATAR_IMAGE_SCALE = 1.5;
-export const SHARE_CARD_AVATAR_IMAGE_SCALE = 1.4;
+export const AVATAR_IMAGE_SCALE = 1;
+export const SHARE_CARD_AVATAR_IMAGE_SCALE = 1;
 
 export function isPersonaKey(value: unknown): value is PersonaKey {
   return (
@@ -21,26 +21,10 @@ export function isPersonaKey(value: unknown): value is PersonaKey {
 
 export function avatarSrc(personaKey: PersonaKey | null | undefined) {
   const key = isPersonaKey(personaKey) ? personaKey : DEFAULT_PERSONA_KEY;
-  return `/avatars/clean-bg/avatar-${key.replaceAll("_", "-")}.webp`;
+  return `/avatars/storybook/${key}.webp`;
 }
 
-export function avatarLayerStyle(personaKey: PersonaKey | null | undefined) {
-  if (personaKey === "archive_collector") {
-    return { top: "10%", left: "8%" };
-  }
-
-  if (personaKey === "deep_watcher") {
-    return { top: "-14%", left: "8%" };
-  }
-
-  if (personaKey === "midnight_logger" || personaKey === "weekend_curator") {
-    return { top: "10%", left: 0 };
-  }
-
-  if (personaKey === "book_drifter" || personaKey === "cinema_keeper") {
-    return { top: "-14%", left: 0 };
-  }
-
+export function avatarLayerStyle(_personaKey: PersonaKey | null | undefined) {
   return { top: 0, left: 0 };
 }
 

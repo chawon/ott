@@ -15,6 +15,7 @@
     "test:android-acquisition": "node --test lib/android-acquisition.test.mjs",
     "test:client-recovery": "node --test lib/client-recovery.test.mjs lib/service-worker-cache.test.mjs",
     "test:report-share": "node --test lib/report-weekly-posters.test.mjs",
+    "test:timeline-v2": "node --experimental-vm-modules --test lib/bookCover.test.mjs lib/recordDate.test.mjs lib/timelineMoments.test.mjs lib/recommendations.test.mjs lib/sync.test.mjs",
     "test:seo": "node --test lib/seo.test.mjs lib/seo-boundary.test.mjs lib/sitemap-public.test.mjs scripts/ping-indexnow.test.mjs",
     "test:theme-first-paint": "node --test lib/theme-first-paint.test.mjs",
     "test:chatgpt-mcp": "node scripts/test-chatgpt-mcp.mjs",

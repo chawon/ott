@@ -78,12 +78,13 @@ If present, read `./.omd/preferences.md` — pending corrections not yet folded 
 41. EN 도서 검색·독서 서비스 국제화: 영어 도서 검색을 Google Books로 분기하고 EN 책 구매처·독서 서비스를 Kindle, Apple Books, Kobo, Audible, Libby 등으로 제공한다. KO Kakao 검색, 같은 ISBN 판본의 기존 식별자·기록과 직접 입력 플랫폼을 보존하며 영상 기본값은 유지한다. `2026-10-26` PR `#124`, API/Web SHA `98417a9`, production run `40252251489`/`40252514676`으로 배포했다. 별도 `ott-google-books-secrets`의 `SecretSynced`, ArgoCD `Synced Healthy`, 두 Pod `1/1` ready·restart 0, 실제 API·Web 프록시 검색 14건의 HTTP 200과 공식 출처 이미지를 확인했다. 현재 iOS 바이너리는 Kakao를 유지하고 다음 capability 지원 바이너리부터 Google 검색을 사용한다. 상세는 `docs/google-books-en-search.md`를 따른다.
 
 ### 제품 방향
-1. 추천 기능은 현재 범위에서 제외한다.
+1. 추천 기능은 기본 제품 범위에서 제외한다. 단, `2026-11-08` 사용자 요청으로 기존 **미래의 타임라인**의 OpenAI 전환·계정별 제외·하루 3회 정책·기록 연결은 이번 v2 작업에 포함한다. 현재 계약은 `docs/future-timeline-account-policy.md`, 최초 검토는 `docs/future-timeline-openai-review.md`를 따른다.
 2. 기록 가치(회상, 공유, 재방문)를 높이는 기능에 집중한다.
 3. 글로벌 서비스 확장을 위해 모든 UI/데이터는 다국어 대응을 기본으로 한다.
 4. 사용자용 개별 기록 삭제는 제공하지 않는다. 기록 정정은 수정과 히스토리로 관리한다.
 5. ChatGPT 앱은 ottline 기록을 대화에 연결하는 읽기 전용 커넥터로 유지하고, 해석과 추천은 ChatGPT에 맡긴다.
 6. 개인 프로필은 로그인 기능이 아니라 기존 페어링 계정의 개인화 메타데이터다. v1에서는 공개 댓글/함께 화면에 닉네임·아바타를 노출하지 않는다.
+7. `2026-11-08` 사용자 확인 기준 Android의 다음 출시 대상은 준비 중인 네이티브 앱이다. 현재 운영 TWA(`apps/twa`)는 웹 v2 호환 확인 대상으로 유지하며, 네이티브 작업 위치·스택·기존 설치/기록의 전환 계획은 별도로 확인한다. 플랫폼별 준비는 `docs/ottline-v2-release-readiness.md`를 따른다.
 
 ---
 
@@ -212,7 +213,7 @@ feature/* ──PR/CI──→ main ──→ GitHub Actions workflow_dispatch
 
 1. **새 기능/수정 작업은 반드시 브랜치 먼저**: 작업 시작 전 `feature/작업명` 또는 `fix/작업명` 브랜치를 만든다.
 2. **main 직접 커밋 금지**: main에는 PR(머지)로만 반영한다. 단, 문서-only 변경은 사용자의 상시 허용에 따라 브랜치/PR 없이 main에 직접 커밋·푸시한다.
-3. **상시 스테이징 없음**: main 머지는 클러스터에 자동 배포하지 않는다. PR/CI 검증 후 프로덕션은 사용자가 직접 `workflow_dispatch`로 수동 트리거한다.
+3. **상시 스테이징 없음**: main 머지만으로 앱 이미지를 자동 배포하지 않는다. PR/CI 검증 후 프로덕션 이미지는 승인된 `workflow_dispatch`로 수동 배포한다. 단, `deploy/oke/` 설정은 ArgoCD가 main에서 자동 동기화하므로 코드만 반영하는 단계에서는 운영 설정 변경을 분리한다.
 4. **hotfix 예외**: 긴급 수정은 `hotfix/*` 브랜치에서 main으로 직접 PR 가능. 배포 전 사용자에게 프로덕션 즉시 반영 여부를 확인한다.
 
 ### 프로덕션 배포 방법
@@ -273,7 +274,7 @@ feature/* ──PR/CI──→ main ──→ GitHub Actions workflow_dispatch
    2. 온라인/오프라인 전환
    3. 히스토리 누락/중복 여부
 2. UI 변경 시 모바일 레이아웃 깨짐 여부를 함께 확인한다.
-3. 검증 기본 커맨드는 루트 기준 `npm run test`를 사용한다.
+3. 검증은 해당 영역의 package 스크립트와 CI 워크플로우를 기준으로 한다. 루트 `npm run test`는 등록되어 있지 않다. v2 데이터·동기화는 `npm run test:timeline-v2 --workspace ott`, API는 `apps/api`의 Gradle test를 사용하고 UI 흐름은 빌드된 웹의 브라우저 검사로 확인한다.
 4. Android 시청 기록 알림은 앱별 일별 통계 구간과 미알림 사용시간 증가분을 함께 관리하고, 최근 증가분을 여러 감지 주기에 걸쳐 합산해 5분 이상이면 후보로 삼는다. 전체 3시간/앱별 24시간 cooldown을 유지한다. 변경 시 `python3 apps/twa/scripts/test-watch-reminder-worker.py`와 TWA 단위 테스트를 실행하며, OS 실행 정책과 실제 알림 표시는 실기기로 별도 검증한다. 상세는 `docs/android-watch-reminder-reliability.md`를 따른다.
 
 ---
@@ -348,6 +349,18 @@ feature/* ──PR/CI──→ main ──→ GitHub Actions workflow_dispatch
    5. 리액션 클릭으로 내 기록을 남기는 동작은 프론트 local-first outbox 경로로 처리한다
 10. `DiscussionListItem` 응답에는 트렌드 중복 제거용 `titleProvider`, `titleProviderId`가 포함된다
 11. `DiscussionListItem`/`DiscussionDto` 응답에는 `reactionSummary(done, curious, save)`가 포함된다
+12. `GET /api/discussions/connection?titleId=`: 기존 활성 기기 헤더로 실제 다른 사용자의 내용 있는 공개 댓글 존재를 확인하고 `{discussionId, titleId}` 또는 `null`을 반환한다. 기존 익명 댓글도 포함하며 누적 `commentSeq`나 200개 목록 제한에 의존하지 않는다. `Cache-Control: private, no-store`인 읽기 전용 조회로 신규 계정·이야기·댓글을 만들지 않는다. 저장 완료 뒤 같은 작품 연결에만 사용하며 실패는 기록 저장에 영향을 주지 않는다. 상세는 `docs/saved-discussion-connection.md`를 따른다.
+
+### Recommendations
+1. 모든 경로는 `X-User-Id`·`X-Device-Id` 활성 기기를 검사하고 캐시하지 않는다.
+2. `GET /api/recommendations/state`: 읽기 전용. 후보·계정 제외·서버 횟수·생성 상태·완료 기록 5개 자격 여부를 반환한다.
+3. `POST /api/recommendations/generate`: `{requestId: UUID}`. **첫 생성 포함 계정당 한국 날짜 하루 3회** 성공 생성, 모든 기기·언어가 공유한다. 실패는 차감하지 않으며 조회는 무료다. 같은 요청과 동시 기기의 요청은 중복 생성·차감하지 않는다. 진행 `202`, 소진 `429`도 상태 본문을 반환한다.
+4. `GET|PUT /api/recommendations/exclusions`, `DELETE /api/recommendations/exclusions/{key}`: 감상 기록과 분리한 서버 계정 선택. 종류·카탈로그 ID와 책의 ISBN·알려진 원제/저자로 판별하며 연결 기기에 반영한다. 계정 합치기·삭제에 포함한다.
+5. `GET /api/recommendations/catalog?name=&type=&year=&author=`: 실제 작품/책 판본 확인. 조회 자체로 기록이나 추천 횟수를 만들지 않는다. 선택 후 기존 local-first 기록 창에서 사용자가 저장한다.
+6. 새 기록은 추천에서 즉시 제외하며, 그날의 후보는 직접 저장·outbox 저장 모두 유지한다. 취향 변경은 다음 생성에 반영한다. 언어별 성공 후보를 따로 보관한다.
+7. 기존 배열 `GET /api/recommendations?refresh=&excluded=`는 호환 유지하며 같은 서버 한도를 적용한다. V32 계정 상태·후보·시도·제외 테이블이 필요하다.
+8. 새 추천은 6개 목표로 최대 12개 후보를 먼저 받고, 제외·중복 후 부족하면 한 번만 보충한다. 두 모델 호출도 계정 횟수는 1회다. 단계별 수량만 진단 로그에 남기며 기존 배치 조회·제외에는 자동 생성이 없다.
+9. 운영 OpenAI 키는 OCI Vault의 `OPENAI_API_KEY` → 별도 `ott-openai-secrets` ExternalSecret → API 환경변수로 전달한다. 모델·추론은 Deployment의 일반 환경변수다. 배포 전 `SecretSynced`·키 존재·새 Pod 주입을 값 출력 없이 확인하고 V32 API → 동일 SHA 웹 순서로 배포한다.
 
 ### Auth
 1. `POST /api/auth/register`
@@ -490,6 +503,12 @@ feature/* ──PR/CI──→ main ──→ GitHub Actions workflow_dispatch
    1. 공개 글의 가벼운 리액션 집계
    2. `discussion_id`, `user_id`, `type(DONE|CURIOUS|SAVE)`를 관리
    3. `unique(discussion_id, user_id)`로 사용자별 공개 글당 1개 리액션만 유지
+8. 미래의 타임라인 계정 상태(V32)
+   1. `recommendation_account_state`: 계정별 한국 날짜 성공 횟수·2분 생성 임대
+   2. `recommendation_batches`: 계정·언어별 마지막 성공 후보
+   3. `recommendation_generation_attempts`: 소유/동시 참여 요청 ID의 멱등 처리, 완료·실패, 7일 보존
+   4. `recommendation_exclusions`: 감상 기록과 분리한 계정별 제외 스냅샷
+   5. 네 테이블 모두 계정 삭제 FK cascade. 계정 합치기는 제외를 합치고 당일 사용 횟수를 보존한다.
 
 ---
 

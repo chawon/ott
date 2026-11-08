@@ -148,6 +148,11 @@ export interface Discussion {
   reactionSummary?: DiscussionReactionSummary;
 }
 
+export interface DiscussionConnection {
+  discussionId: string;
+  titleId: string;
+}
+
 export interface Comment {
   id: string;
   discussionId: string;
@@ -309,6 +314,48 @@ export interface RecommendationItem {
   reason: string;
   genres: string[];
   posterUrl?: string | null;
+  provider?: string | null;
+  providerId?: string | null;
+  year?: number | null;
+  alternateNames?: string[] | null;
+  originalName?: string | null;
+  author?: string | null;
+  isbn10?: string | null;
+  isbn13?: string | null;
+  catalogTitle?: TitleSearchItem | null;
+}
+
+export type RecommendationSnapshot = Omit<
+  RecommendationItem,
+  "type" | "reason" | "genres"
+> & {
+  type: TitleType | null;
+  reason?: string;
+  genres?: string[];
+};
+
+export interface RecommendationExclusion extends RecommendationSnapshot {
+  key: string;
+}
+
+export interface RecommendationQuota {
+  date: string;
+  timezone: "Asia/Seoul";
+  limit: number;
+  used: number;
+  remaining: number;
+  resetsAt: string;
+}
+
+export interface RecommendationState {
+  items: RecommendationItem[];
+  exclusions: RecommendationExclusion[];
+  quota: RecommendationQuota;
+  generatedAt: string | null;
+  generationId: string | null;
+  generating: boolean;
+  hasBatch: boolean;
+  eligible: boolean;
 }
 
 export interface WatchLogHistory {

@@ -23,39 +23,40 @@ export function GET(request: NextRequest) {
       categories: ["entertainment", "books", "lifestyle", "productivity"],
       icons: [
         {
-          src: "/icon-192.png",
+          src: "/brand/v2/app-icon-192.png",
           sizes: "192x192",
           type: "image/png",
         },
         {
-          src: "/icon.png",
+          src: "/brand/v2/app-icon-512.png",
           sizes: "512x512",
           type: "image/png",
+          purpose: "any maskable",
         },
         {
-          src: "/apple-touch-icon.png",
+          src: "/brand/v2/app-icon-180.png",
           sizes: "180x180",
           type: "image/png",
         },
       ],
       screenshots: [
         {
-          src: "/pwa/screenshot-desktop-wide.png",
+          src: isEn ? "/pwa/v2-en-desktop.png" : "/pwa/v2-ko-desktop.png",
           sizes: "1280x720",
           type: "image/png",
           form_factor: "wide",
           label: isEn
-            ? "Home timeline and quick log entry (Desktop)"
-            : "홈 타임라인과 퀵로그 입력 화면 (데스크톱)",
+            ? "Your timeline on Home (desktop)"
+            : "홈의 내 타임라인 (PC)",
         },
         {
-          src: "/pwa/screenshot-mobile-narrow.png",
+          src: isEn ? "/pwa/v2-en-mobile.png" : "/pwa/v2-ko-mobile.png",
           sizes: "720x1280",
           type: "image/png",
           form_factor: "narrow",
           label: isEn
-            ? "Home timeline and quick log entry (Mobile)"
-            : "홈 타임라인과 퀵로그 입력 화면 (모바일)",
+            ? "Your timeline on Home (mobile)"
+            : "홈의 내 타임라인 (모바일)",
         },
       ],
       share_target: {

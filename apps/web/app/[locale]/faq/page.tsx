@@ -103,7 +103,7 @@ export default async function FaqPage({
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
       />
-      <div className="mx-auto max-w-2xl space-y-8 py-10">
+      <div className="v2-secondary-page space-y-8 py-10">
         <section className="space-y-2">
           <h1 className="text-xl font-semibold">{t("heading")}</h1>
           <p className="text-sm text-muted-foreground">{t("description")}</p>

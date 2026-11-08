@@ -1,5 +1,6 @@
+import { UserRound } from "lucide-react";
 import Image from "next/image";
-import { AVATAR_IMAGE_SCALE, avatarLayerStyle, avatarSrc } from "@/lib/profile";
+import { avatarSrc, isPersonaKey } from "@/lib/profile";
 import type { PersonaKey } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -16,29 +17,30 @@ export default function ProfileAvatar({
   imageClassName?: string;
   alt?: string;
 }) {
-  const imageRequestSize = Math.ceil(size * AVATAR_IMAGE_SCALE);
-
   return (
     <span
       className={cn(
-        "relative block shrink-0 overflow-hidden rounded-lg border border-border bg-muted",
+        "relative flex shrink-0 items-center justify-center overflow-hidden rounded-lg bg-ott-paper-strong text-brand-navy dark:text-foreground",
         className,
       )}
       style={{ width: size, height: size }}
     >
-      <span
-        className="absolute h-full w-full"
-        style={avatarLayerStyle(personaKey)}
-      >
+      {isPersonaKey(personaKey) ? (
         <Image
           src={avatarSrc(personaKey)}
           alt={alt}
           fill
-          sizes={`${imageRequestSize}px`}
-          className={cn("object-cover", imageClassName)}
-          style={{ transform: `scale(${AVATAR_IMAGE_SCALE})` }}
+          sizes={`${size}px`}
+          className={cn("object-contain", imageClassName)}
         />
-      </span>
+      ) : (
+        <UserRound
+          aria-hidden={alt ? undefined : true}
+          aria-label={alt || undefined}
+          size={Math.round(size * 0.45)}
+          strokeWidth={1.5}
+        />
+      )}
     </span>
   );
 }

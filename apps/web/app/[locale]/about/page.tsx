@@ -189,7 +189,7 @@ export default function AboutPage() {
         locale={locale}
         description={tAbout("platformExtensionDesc")}
       />
-      <div className="mx-auto max-w-2xl space-y-10 py-10 text-foreground">
+      <div className="v2-secondary-page space-y-10 py-10 text-foreground">
         <section className="space-y-2">
           <h1 className="text-xl font-semibold">{tAbout("subtitle")}</h1>
           <p className="text-sm leading-relaxed text-muted-foreground">

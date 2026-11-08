@@ -316,13 +316,7 @@ async function renderShareCard(body: ShareCardPayload) {
                     height: s(48),
                   }}
                 >
-                  <span>⭐</span>
-                  <span>
-                    {body.ratingLabel}
-                    {typeof body.ratingValue === "number"
-                      ? ` ${body.ratingValue.toFixed(1)}`
-                      : ""}
-                  </span>
+                  <span>{body.ratingLabel}</span>
                 </div>
               ) : null}
               <div
@@ -574,7 +568,7 @@ async function renderRecapShareCard(body: RecapShareCardPayload) {
                 const posterUrl = posterImageUrls[index];
                 return (
                   <div
-                    key={`${item.title}-${index}`}
+                    key={`${slot.left}:${slot.top}`}
                     style={{
                       position: "absolute",
                       display: "flex",

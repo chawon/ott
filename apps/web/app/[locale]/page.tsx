@@ -1,17 +1,17 @@
 "use client";
 
-import { MessageCircle, NotebookPen, PencilLine } from "lucide-react";
+import { ArrowRight, MessageCircle } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import AndroidWatchReminderCard from "@/components/AndroidWatchReminderCard";
 import DiscussionList from "@/components/DiscussionList";
 import FirstLogActivationPanel from "@/components/FirstLogActivationPanel";
-import LogCard from "@/components/LogCard";
-import ProfileAvatar from "@/components/ProfileAvatar";
 import ProfilePromptCard from "@/components/ProfilePromptCard";
-import QuickLogCard from "@/components/QuickLogCard";
+import QuickLogDialog from "@/components/QuickLogDialog";
 import ShareBottomSheet from "@/components/ShareBottomSheet";
 import SoftwareApplicationJsonLd from "@/components/SoftwareApplicationJsonLd";
+import HomeTimelineView from "@/components/timeline-v2/HomeTimelineView";
+import styles from "@/components/timeline-v2/timeline.module.css";
 import { Link } from "@/i18n/routing";
 import { trackEvent } from "@/lib/analytics";
 import { api, apiWithAuth } from "@/lib/api";
@@ -22,7 +22,7 @@ import {
   getPairingCode,
   getUserId,
   isProfilePromptDismissed,
-  listLogsLocal,
+  listAllLogsLocal,
   upsertLogsLocal,
 } from "@/lib/localStore";
 import { isProfileComplete } from "@/lib/profile";
@@ -83,43 +83,6 @@ function platformFromCaptureKey(
   }
 }
 
-function RecentLogsSkeleton() {
-  const rows = [
-    "home-log-skeleton-1",
-    "home-log-skeleton-2",
-    "home-log-skeleton-3",
-    "home-log-skeleton-4",
-    "home-log-skeleton-5",
-    "home-log-skeleton-6",
-    "home-log-skeleton-7",
-    "home-log-skeleton-8",
-  ];
-
-  return (
-    <div className="grid grid-cols-1 gap-3" aria-hidden="true">
-      {rows.map((row) => (
-        <div
-          key={row}
-          className="min-h-[193px] rounded-2xl border border-border bg-card p-5 shadow-sm sm:min-h-[170px]"
-        >
-          <div className="flex gap-3">
-            <div className="h-32 w-20 shrink-0 rounded-xl bg-muted animate-pulse" />
-            <div className="min-w-0 flex-1 space-y-3 py-1">
-              <div className="h-4 w-2/3 rounded bg-muted animate-pulse" />
-              <div className="flex gap-2">
-                <div className="h-5 w-14 rounded-full bg-muted animate-pulse" />
-                <div className="h-5 w-20 rounded-full bg-muted animate-pulse" />
-              </div>
-              <div className="h-3 w-full rounded bg-muted animate-pulse" />
-              <div className="h-3 w-4/5 rounded bg-muted animate-pulse" />
-            </div>
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
 function DiscussionsSkeleton() {
   const rows = [
     "home-discussion-skeleton-1",
@@ -153,8 +116,8 @@ export default function HomePage() {
   const locale = useLocale();
   const tHome = useTranslations("HomePage");
   const tMetadata = useTranslations("Metadata");
-  const tProfile = useTranslations("Profile");
   const tQuick = useTranslations("QuickLogCard");
+  const [composerOpen, setComposerOpen] = useState(false);
   const [logs, setLogs] = useState<WatchLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [discussions, setDiscussions] = useState<DiscussionListItem[]>([]);
@@ -163,6 +126,7 @@ export default function HomePage() {
     TitleSearchItem[]
   >([]);
   const [discussionsLoading, setDiscussionsLoading] = useState(true);
+  const [discussionsError, setDiscussionsError] = useState(false);
   const [quickType, setQuickType] = useState<"video" | "book">("video");
   const [shareOpen, setShareOpen] = useState(false);
   const [shareLog, setShareLog] = useState<WatchLog | null>(null);
@@ -188,7 +152,6 @@ export default function HomePage() {
     null,
   );
   const [searchFocusSignal, setSearchFocusSignal] = useState(0);
-  const quickLogRef = useRef<HTMLDivElement | null>(null);
   const { profile } = useUserProfile();
 
   const refreshProfilePromptState = useCallback(() => {
@@ -202,12 +165,29 @@ export default function HomePage() {
   }, []);
 
   const focusQuickLog = useCallback(() => {
-    window.requestAnimationFrame(() => {
-      quickLogRef.current?.scrollIntoView({
-        behavior: "smooth",
-        block: "start",
-      });
-    });
+    setComposerOpen(true);
+    setAutoFocusSearch(true);
+  }, []);
+
+  useEffect(() => {
+    const openComposer = () => {
+      setComposerOpen(true);
+      setAutoFocusSearch(true);
+      setSearchFocusSignal((value) => value + 1);
+    };
+    window.addEventListener("ottline:quick-log", openComposer);
+    return () => window.removeEventListener("ottline:quick-log", openComposer);
+  }, []);
+
+  const handleComposerOpenChange = useCallback((open: boolean) => {
+    setComposerOpen(open);
+    if (!open) {
+      setSharedQuery("");
+      setSharedPlatform("");
+      setShareImportStatus(null);
+      setActivationTitleSelection(null);
+      setHighlightedStatus(null);
+    }
   }, []);
 
   const hideActivationCurrent = useCallback(() => {
@@ -257,15 +237,16 @@ export default function HomePage() {
       const hasSharedInput = Boolean(rawShared.trim() || rawSubject?.trim());
 
       if (!cancelled) {
-        setActivationForcedBypass(
+        const shouldOpenComposer =
           quickEnabled ||
-            quickFocus ||
-            Boolean(captureTitle) ||
-            Boolean(captureType) ||
-            Boolean(capturePlatform) ||
-            fromWatchReminder ||
-            hasSharedInput,
-        );
+          quickFocus ||
+          Boolean(captureTitle) ||
+          Boolean(captureType) ||
+          Boolean(capturePlatform) ||
+          fromWatchReminder ||
+          hasSharedInput;
+        setActivationForcedBypass(shouldOpenComposer);
+        if (shouldOpenComposer) setComposerOpen(true);
       }
 
       if (quickEnabled) {
@@ -355,6 +336,7 @@ export default function HomePage() {
 
   const loadDiscussions = useCallback(async () => {
     setDiscussionsLoading(true);
+    setDiscussionsError(false);
     try {
       const latest = await api<DiscussionListItem[]>(
         `/discussions/latest?limit=${HOME_DISCUSSION_LIMIT}&days=14`,
@@ -390,10 +372,12 @@ export default function HomePage() {
           ),
         );
       } catch {
+        setDiscussionsError(true);
         setTrendingTitles([]);
         setActivationPopularTitles([]);
       }
     } catch {
+      setDiscussionsError(true);
       setDiscussions([]);
       setTrendingTitles([]);
       setActivationPopularTitles([]);
@@ -409,7 +393,8 @@ export default function HomePage() {
     setSharedPlatform("");
     setShareImportStatus(null);
     setAutoFocusSearch(true);
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    setComposerOpen(true);
+    setSearchFocusSignal((value) => value + 1);
   }, []);
 
   const handleActivationVideoSelect = useCallback(
@@ -477,14 +462,14 @@ export default function HomePage() {
     (async () => {
       setLoading(true);
       try {
-        const cached = await listLogsLocal({ limit: 8 });
+        const cached = await listAllLogsLocal();
         if (cached.length > 0) setLogs(cached);
         await refreshActivationEligibility();
 
         if (getUserId()) {
           const l = await apiWithAuth<WatchLog[]>("/logs?limit=8");
           await upsertLogsLocal(l);
-          const refreshed = await listLogsLocal({ limit: 8 });
+          const refreshed = await listAllLogsLocal();
           if (refreshed.length > 0) setLogs(refreshed);
           await refreshActivationEligibility();
         }
@@ -502,13 +487,19 @@ export default function HomePage() {
 
   useEffect(() => {
     function handleSync() {
-      listLogsLocal({ limit: 8 }).then((cached) => setLogs(cached));
+      listAllLogsLocal().then((cached) => setLogs(cached));
       loadDiscussions();
       refreshProfilePromptState();
       void refreshActivationEligibility();
     }
     window.addEventListener("sync:updated", handleSync);
-    return () => window.removeEventListener("sync:updated", handleSync);
+    window.addEventListener("auth:changed", handleSync);
+    window.addEventListener("auth:revoked", handleSync);
+    return () => {
+      window.removeEventListener("sync:updated", handleSync);
+      window.removeEventListener("auth:changed", handleSync);
+      window.removeEventListener("auth:revoked", handleSync);
+    };
   }, [
     loadDiscussions,
     refreshActivationEligibility,
@@ -524,196 +515,144 @@ export default function HomePage() {
     .filter((item) => item.titleType === "movie" || item.titleType === "series")
     .slice(0, HOME_DISCUSSION_LIMIT);
   const showActivationPanel =
-    activationEligible && !activationDismissed && !activationForcedBypass;
-  const profileComplete = isProfileComplete(profile);
-  const nickname = profile?.nickname ?? "";
-  const heroTitle =
-    quickType === "book"
-      ? profileComplete
-        ? tHome("heroTimelineBookPersonalized", { nickname })
-        : tHome("heroTimelineBook")
-      : profileComplete
-        ? tHome("heroTimelineVideoPersonalized", { nickname })
-        : tHome("heroTimelineVideo");
-  const heroDescription =
-    profileComplete && profile?.personaKey
-      ? tHome("heroTimelineProfileDesc", {
-          persona: tProfile(`personas.${profile.personaKey}`),
-        })
-      : tHome("heroTimelineDesc");
-  const recordsTitle = profileComplete
-    ? tHome("myRecordsPersonalized", { nickname })
-    : tHome("myRecords");
-
+    activationEligible &&
+    !activationDismissed &&
+    !activationForcedBypass &&
+    (discussionsLoading ||
+      activationContentType === "book" ||
+      activationRecentVideoItems.length > 0 ||
+      activationPopularTitles.length > 0);
   return (
     <>
       <SoftwareApplicationJsonLd
         locale={locale}
         description={tMetadata("description")}
       />
-      <div className="grid min-h-[calc(100dvh-12rem)] grid-cols-1 gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
-        <div className="space-y-6">
-          <section className="space-y-3">
-            <div className="flex items-end justify-between">
-              <div className="flex min-w-0 items-center gap-3">
-                {profileComplete ? (
-                  <ProfileAvatar
-                    personaKey={profile?.personaKey}
-                    size={52}
-                    alt=""
-                  />
-                ) : null}
-                <div className="min-w-0 space-y-1">
-                  <h1 className="flex items-center gap-2 text-2xl font-semibold text-foreground">
-                    {!profileComplete ? (
-                      <PencilLine className="h-4 w-4" />
-                    ) : null}
-                    <span className="truncate">{heroTitle}</span>
-                  </h1>
-                  <p
-                    className={
-                      profileComplete
-                        ? "text-sm leading-relaxed text-muted-foreground"
-                        : "ml-6 text-sm leading-relaxed text-muted-foreground"
-                    }
-                  >
-                    {heroDescription}
-                  </p>
-                </div>
-              </div>
-            </div>
-            {showActivationPanel ? (
-              <FirstLogActivationPanel
-                contentType={activationContentType}
-                recentVideoItems={activationRecentVideoItems}
-                popularVideoItems={activationPopularTitles}
-                loading={discussionsLoading}
-                onContentTypeChange={setActivationContentType}
-                onDismiss={dismissActivationForSession}
-                onVideoSelect={handleActivationVideoSelect}
-                onBookStatusSelect={handleActivationBookStatusSelect}
-                onFindOther={handleActivationFindOther}
-              />
-            ) : null}
-            <div ref={quickLogRef}>
-              <QuickLogCard
-                onCreated={async (created, options) => {
-                  setActivationEligible(false);
-                  setLogs((prev) => {
-                    const idx = prev.findIndex((l) => l.id === created.id);
-                    if (idx >= 0) {
-                      const next = [...prev];
-                      next[idx] = created;
-                      return next;
-                    }
-                    return [created, ...prev].slice(0, 8);
-                  });
-                  await upsertLogsLocal([created]);
-                  await refreshActivationEligibility();
-                  await loadDiscussions();
-                  if (options?.shareCard) {
-                    setShareLog(created);
-                    setShareOpen(true);
-                  }
-                }}
-                onContentTypeChange={handleQuickTypeChange}
-                initialContentType={sharedQuery ? sharedContentType : quickType}
-                initialSearchQuery={sharedQuery}
-                initialPlatform={sharedPlatform}
-                autoFocusSearch={autoFocusSearch}
-                searchFocusSignal={searchFocusSignal}
-                shareImportStatus={shareImportStatus}
-                shareImportFeedbackHref={feedbackHref("android-alpha-share")}
-                activationTitleSelection={activationTitleSelection}
-                highlightedStatus={highlightedStatus}
-              />
-            </div>
-            {!loading && logs.length > 0 ? <AndroidWatchReminderCard /> : null}
-          </section>
-          <section className="space-y-3">
-            <div className="flex items-baseline justify-between">
-              <div className="flex items-center gap-2 text-base font-semibold">
-                <NotebookPen className="h-4 w-4" />
-                {recordsTitle}
-              </div>
-              <Link
-                href="/timeline"
-                className="text-sm font-medium text-[#1E4D8C] hover:underline dark:text-foreground"
-              >
-                {tHome("viewAll")}
-              </Link>
-            </div>
-
-            {loading && logs.length === 0 ? (
-              <div>
-                <output className="sr-only">{tHome("loading")}</output>
-                <RecentLogsSkeleton />
-              </div>
-            ) : null}
-
-            {!loading && logs.length === 0 ? (
-              <div className="rounded-2xl border border-border bg-card/85 p-5 text-sm text-muted-foreground shadow-sm">
-                {tHome("emptyRecords")}
-              </div>
-            ) : null}
-
-            <div className="grid grid-cols-1 gap-3">
-              {logs.map((l) => (
-                <LogCard
-                  key={l.id}
-                  log={l}
-                  onShareCard={() => {
-                    setShareLog(l);
-                    setShareOpen(true);
-                  }}
-                />
-              ))}
-            </div>
-          </section>
-          {showProfilePrompt ? (
-            <ProfilePromptCard
-              onDismiss={() => {
-                dismissProfilePrompt();
-                refreshProfilePromptState();
-              }}
-            />
-          ) : null}
+      <HomeTimelineView
+        logs={logs}
+        loading={loading}
+        onRecord={focusQuickLog}
+        onShare={(log) => {
+          setShareLog(log);
+          setShareOpen(true);
+        }}
+      />
+      {showActivationPanel && !loading ? (
+        <div className={styles.activation}>
+          <FirstLogActivationPanel
+            contentType={activationContentType}
+            recentVideoItems={activationRecentVideoItems}
+            popularVideoItems={activationPopularTitles}
+            loading={discussionsLoading}
+            onContentTypeChange={setActivationContentType}
+            onDismiss={dismissActivationForSession}
+            onVideoSelect={handleActivationVideoSelect}
+            onBookStatusSelect={handleActivationBookStatusSelect}
+            onFindOther={handleActivationFindOther}
+          />
         </div>
-
-        <aside className="space-y-3">
-          <div className="flex items-end justify-between min-h-[52px]">
-            <div className="text-base font-semibold flex items-center gap-2">
-              <MessageCircle className="h-4 w-4" />
-              {tHome("publicTitleModern")}
-            </div>
-            <Link
-              href="/public"
-              className="text-sm font-medium text-[#1E4D8C] hover:underline dark:text-foreground"
-            >
-              {tHome("viewAll")}
-            </Link>
+      ) : null}
+      <QuickLogDialog
+        open={composerOpen}
+        onOpenChange={handleComposerOpenChange}
+        onCreated={async (created, options) => {
+          setActivationEligible(false);
+          setLogs((prev) => {
+            const idx = prev.findIndex((log) => log.id === created.id);
+            if (idx >= 0) {
+              const next = [...prev];
+              next[idx] = created;
+              return next;
+            }
+            return [created, ...prev];
+          });
+          await upsertLogsLocal([created]);
+          await refreshActivationEligibility();
+          await loadDiscussions();
+          if (options?.shareCard) {
+            setShareLog(created);
+            setShareOpen(true);
+          }
+        }}
+        onContentTypeChange={handleQuickTypeChange}
+        initialContentType={sharedQuery ? sharedContentType : quickType}
+        initialSearchQuery={sharedQuery}
+        initialPlatform={sharedPlatform}
+        autoFocusSearch={autoFocusSearch}
+        searchFocusSignal={searchFocusSignal}
+        shareImportStatus={shareImportStatus}
+        shareImportFeedbackHref={feedbackHref("android-alpha-share")}
+        activationTitleSelection={activationTitleSelection}
+        highlightedStatus={highlightedStatus}
+      />
+      {!loading && logs.length > 0 ? (
+        <div className="mt-8">
+          <AndroidWatchReminderCard />
+        </div>
+      ) : null}
+      {showProfilePrompt ? (
+        <div className="mt-8">
+          <ProfilePromptCard
+            onDismiss={() => {
+              dismissProfilePrompt();
+              refreshProfilePromptState();
+            }}
+          />
+        </div>
+      ) : null}
+      <section className={styles.publicSection}>
+        <div className={styles.sectionHeading}>
+          <div>
+            <p className={styles.eyebrow}>
+              {locale === "ko" ? "함께" : "TOGETHER"}
+            </p>
+            <h2 className="flex items-center gap-2">
+              <MessageCircle size={19} aria-hidden="true" />
+              {locale === "ko" ? "함께 만나는 이야기" : "Stories to share"}
+            </h2>
           </div>
-          {discussionsLoading &&
+          <Link href="/public" className={styles.quietLink}>
+            {tHome("viewAll")}
+            <ArrowRight size={17} aria-hidden="true" />
+          </Link>
+        </div>
+        {discussionsLoading &&
+        discussions.length === 0 &&
+        trendingTitles.length === 0 ? (
+          <div>
+            <output className="sr-only">{tHome("loading")}</output>
+            <DiscussionsSkeleton />
+          </div>
+        ) : discussionsError &&
           discussions.length === 0 &&
           trendingTitles.length === 0 ? (
-            <div>
-              <output className="sr-only">{tHome("loading")}</output>
-              <DiscussionsSkeleton />
-            </div>
-          ) : (
-            <DiscussionList
-              items={discussions}
-              trendingItems={trendingTitles}
-              onTrendingSelect={handleTrendingSelect}
-            />
-          )}
-        </aside>
-        <ShareBottomSheet
-          open={shareOpen}
-          log={shareLog}
-          onClose={() => setShareOpen(false)}
-        />
-      </div>
+          <div className={styles.publicError} role="status">
+            <p>
+              {locale === "ko"
+                ? "함께 남긴 이야기를 불러오지 못했어요. 잠시 뒤 다시 시도해 주세요."
+                : "Couldn’t load the shared stories. Please try again in a moment."}
+            </p>
+            <button
+              type="button"
+              className={styles.quietLink}
+              onClick={() => void loadDiscussions()}
+            >
+              {locale === "ko" ? "다시 불러오기" : "Try again"}
+            </button>
+          </div>
+        ) : (
+          <DiscussionList
+            items={discussions}
+            trendingItems={trendingTitles}
+            onTrendingSelect={handleTrendingSelect}
+          />
+        )}
+      </section>
+      <ShareBottomSheet
+        open={shareOpen}
+        log={shareLog}
+        onClose={() => setShareOpen(false)}
+      />
     </>
   );
 }

@@ -75,8 +75,8 @@ export default async function GuideHubPage({
   const guides = getGuideDocuments(locale);
 
   return (
-    <div className="mx-auto max-w-4xl space-y-12 py-6 sm:py-10">
-      <header className="max-w-3xl space-y-4">
+    <div className="v2-secondary-page space-y-12 py-6 sm:py-10">
+      <header className="space-y-4">
         <p className="text-sm font-semibold text-brand-navy dark:text-foreground">
           {hub.eyebrow}
         </p>

@@ -1,12 +1,13 @@
 const CACHE_PREFIXES = ["ottline-cache-", "ott-pwa-"];
-const CACHE_NAME = "ottline-cache-v3";
+const CACHE_NAME = "ottline-cache-v6";
 const PRECACHE_URLS = [
   "/",
   "/timeline",
   "/offline",
-  "/icon-192.png",
-  "/icon.png",
-  "/apple-touch-icon.png",
+  "/brand/v2/app-icon-192.png",
+  "/brand/v2/app-icon-512.png",
+  "/brand/v2/app-icon-180.png",
+  "/brand/v2/favicon.svg",
   "/favicon.ico",
 ];
 

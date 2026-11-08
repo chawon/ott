@@ -1,13 +1,13 @@
 "use client";
 
 import { Check, Clock3 } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { type FormEvent, useEffect, useMemo, useState } from "react";
 import { DEFAULT_PERSONA_KEY, isPersonaKey, PERSONA_KEYS } from "@/lib/profile";
 import { saveUserProfile } from "@/lib/profileApi";
 import type { PersonaKey, UserProfile } from "@/lib/types";
-import { cn } from "@/lib/utils";
 import ProfileAvatar from "./ProfileAvatar";
+import styles from "./ProfileEditor.module.css";
 
 function getErrorMessage(error: unknown, fallback: string) {
   return error instanceof Error ? error.message : fallback;
@@ -27,6 +27,7 @@ export default function ProfileEditor({
   disabled?: boolean;
 }) {
   const t = useTranslations("Profile");
+  const ko = useLocale() === "ko";
   const initialPersona = useMemo(
     () =>
       isPersonaKey(profile?.personaKey)
@@ -78,102 +79,95 @@ export default function ProfileEditor({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
-        <label className="space-y-1.5">
-          <span className="text-xs font-semibold text-muted-foreground">
-            {t("nicknameLabel")}
-          </span>
-          <input
-            value={nickname}
-            onChange={(event) => setNickname(event.target.value)}
-            maxLength={32}
-            placeholder={t("nicknamePlaceholder")}
-            disabled={disabled || saving}
-            className={cn(
-              "min-h-12 w-full rounded-xl border border-border bg-background px-3 text-sm outline-none transition",
-              "focus:ring-2 focus:ring-ring/40 disabled:opacity-50",
-            )}
-          />
-        </label>
-        <div className="flex items-center gap-3 rounded-xl bg-muted/40 px-3 py-2">
-          <ProfileAvatar
-            personaKey={personaKey}
-            size={44}
-            alt={t("avatarAlt")}
-          />
-          <div className="min-w-0">
-            <div className="truncate text-sm font-semibold">
-              {t(`personas.${personaKey}`)}
-            </div>
-            <div className="text-xs text-muted-foreground">
-              {t("personaCurrent")}
-            </div>
-          </div>
+    <form onSubmit={handleSubmit} className={styles.editor}>
+      <div className={styles.preview} aria-live="polite">
+        <ProfileAvatar personaKey={personaKey} size={72} alt={t("avatarAlt")} />
+        <div>
+          <strong>
+            {nickname.trim() || (ko ? "나의 타임라인" : "My timeline")}
+          </strong>
+          <p>
+            {personaKey === "archive_collector" && !ko
+              ? "Timeline keeper"
+              : t(`personas.${personaKey}`)}
+          </p>
         </div>
       </div>
-
-      <div className="space-y-2">
-        <div className="text-xs font-semibold text-muted-foreground">
-          {t("personaLabel")}
+      <label className={styles.field}>
+        <span>{t("nicknameLabel")}</span>
+        <input
+          name="nickname"
+          value={nickname}
+          onChange={(event) => setNickname(event.target.value)}
+          maxLength={32}
+          placeholder={t("nicknamePlaceholder")}
+          autoComplete="off"
+          disabled={disabled || saving}
+          required
+        />
+      </label>
+      <fieldset className={styles.choices} disabled={disabled || saving}>
+        <legend>
+          {ko ? "나와 닮은 아바타" : "An avatar that feels like you"}
+        </legend>
+        <div className={styles.choiceGrid}>
+          {PERSONA_KEYS.map((key) => (
+            <label key={key} className={styles.choice}>
+              <input
+                type="radio"
+                name="persona"
+                value={key}
+                checked={personaKey === key}
+                onChange={() => setPersonaKey(key)}
+              />
+              <ProfileAvatar personaKey={key} size={72} />
+              <span>
+                {key === "archive_collector" && !ko
+                  ? "Timeline keeper"
+                  : t(`personas.${key}`)}
+              </span>
+            </label>
+          ))}
         </div>
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-          {PERSONA_KEYS.map((key) => {
-            const selected = personaKey === key;
-            return (
-              <button
-                key={key}
-                type="button"
-                onClick={() => setPersonaKey(key)}
-                disabled={disabled || saving}
-                aria-pressed={selected}
-                className={cn(
-                  "flex min-h-[96px] flex-col items-center justify-center gap-2 rounded-xl border px-2 py-3 text-center text-xs font-semibold transition",
-                  selected
-                    ? "border-[#1E4D8C]/40 bg-ott-paper-strong text-[#1E4D8C] shadow-sm ring-1 ring-[#1E4D8C]/15 dark:border-border dark:text-foreground dark:ring-border"
-                    : "border-border bg-background text-muted-foreground hover:bg-muted",
-                  "disabled:opacity-50",
-                )}
-              >
-                <ProfileAvatar personaKey={key} size={48} alt="" />
-                <span className="break-keep">{t(`personas.${key}`)}</span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {error ? (
-        <p className="text-xs font-medium text-red-600">{error}</p>
-      ) : null}
-      {message ? (
-        <p className="text-xs font-medium text-[#1E4D8C] dark:text-foreground">
+      </fieldset>
+      <p className={styles.privacy}>
+        {ko
+          ? "닉네임과 아바타는 내 화면에서만 보여요. 함께 화면에는 공개되지 않아요."
+          : "Your nickname and avatar stay on your own screens. They are not shown in Together."}
+      </p>
+      {error && (
+        <p role="alert" className="text-sm text-red-600">
+          {error}
+        </p>
+      )}
+      {message && (
+        <p
+          aria-live="polite"
+          className="text-sm text-brand-navy dark:text-foreground"
+        >
           {message}
         </p>
-      ) : null}
-
-      <div className="flex flex-col gap-2 sm:flex-row">
+      )}
+      <div className={styles.actions}>
         <button
           type="submit"
           disabled={disabled || saving || !nickname.trim()}
-          className={cn(
-            "inline-flex min-h-[52px] flex-1 items-center justify-center gap-2 rounded-xl bg-neutral-900 px-4 text-sm font-bold text-white transition hover:bg-neutral-800 disabled:opacity-40",
-          )}
+          className={styles.save}
         >
-          <Check className="h-4 w-4" />
+          <Check aria-hidden="true" size={18} />
           {saving ? t("saving") : (submitLabel ?? t("saveAction"))}
         </button>
-        {onDismiss ? (
+        {onDismiss && (
           <button
             type="button"
             onClick={onDismiss}
             disabled={saving}
-            className="inline-flex min-h-[52px] items-center justify-center gap-2 rounded-xl border border-border px-4 text-sm font-semibold text-muted-foreground transition hover:bg-muted disabled:opacity-40"
+            className={styles.dismiss}
           >
-            <Clock3 className="h-4 w-4" />
+            <Clock3 aria-hidden="true" size={18} />
             {t("laterAction")}
           </button>
-        ) : null}
+        )}
       </div>
     </form>
   );

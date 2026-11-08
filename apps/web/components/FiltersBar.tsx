@@ -1,9 +1,15 @@
 "use client";
 
-import { useTranslations } from "next-intl";
-import { useEffect, useMemo, useState } from "react";
-import type { Status } from "@/lib/types";
-import { cn, statusOptionsForType } from "@/lib/utils";
+import { ChevronDown } from "lucide-react";
+import { useLocale, useTranslations } from "next-intl";
+import { useEffect, useId, useMemo, useState } from "react";
+import type { Occasion, Place, Status } from "@/lib/types";
+import {
+  OCCASION_LABELS,
+  PLACE_LABELS,
+  statusOptionsForType,
+} from "@/lib/utils";
+import styles from "./timeline-v2/timeline.module.css";
 
 const VIDEO_PLATFORM_GROUPS = [
   {
@@ -59,11 +65,6 @@ const BOOK_PLATFORM_GROUPS = [
 
 const VIDEO_CUSTOM_KEY = "watchlog.ott.custom";
 const BOOK_CUSTOM_KEY = "watchlog.book.platform.custom";
-const filterFieldClass =
-  "flex shrink-0 min-w-0 flex-col gap-1 text-sm sm:flex-row sm:items-center sm:gap-3 sm:mr-8 lg:mr-10";
-const filterSelectClass =
-  "flex h-10 w-full items-center select-base rounded-lg px-2.5 py-0 text-[13px] outline-none transition-all sm:w-auto sm:min-w-[100px]";
-
 function loadCustomOptions(key: string): string[] {
   if (typeof localStorage === "undefined") return [];
   try {
@@ -88,7 +89,15 @@ export default function FiltersBar({
   setQuery,
   contentType,
   setContentType,
+  place,
+  setPlace,
+  occasion,
+  setOccasion,
 }: {
+  place: Place | "";
+  setPlace: (value: Place | "") => void;
+  occasion: Occasion | "";
+  setOccasion: (value: Occasion | "") => void;
   status: Status | "ALL";
   setStatus: (s: Status | "ALL") => void;
   ott: string;
@@ -100,15 +109,21 @@ export default function FiltersBar({
   contentType: "ALL" | "video" | "book";
   setContentType: (s: "ALL" | "video" | "book") => void;
 }) {
+  const locale = useLocale();
+  const ko = locale === "ko";
+  const tCommon = useTranslations("Common");
   const tFilters = useTranslations("FiltersBar");
   const tQuick = useTranslations("QuickLogCard");
   const tStatus = useTranslations("Status");
 
   const [customOttOptions, setCustomOttOptions] = useState<string[]>([]);
   const isBookMode = contentType === "book";
-  const platformGroups = isBookMode
-    ? BOOK_PLATFORM_GROUPS
-    : VIDEO_PLATFORM_GROUPS;
+  const platformGroups =
+    contentType === "ALL"
+      ? [...VIDEO_PLATFORM_GROUPS, ...BOOK_PLATFORM_GROUPS]
+      : isBookMode
+        ? BOOK_PLATFORM_GROUPS
+        : VIDEO_PLATFORM_GROUPS;
   const platformCustomKey = isBookMode ? BOOK_CUSTOM_KEY : VIDEO_CUSTOM_KEY;
 
   const statusOptions = useMemo(() => {
@@ -116,120 +131,203 @@ export default function FiltersBar({
   }, [isBookMode, tStatus]);
 
   useEffect(() => {
-    setCustomOttOptions(loadCustomOptions(platformCustomKey));
-  }, [platformCustomKey]);
+    setCustomOttOptions(
+      contentType === "ALL"
+        ? [
+            ...new Set([
+              ...loadCustomOptions(VIDEO_CUSTOM_KEY),
+              ...loadCustomOptions(BOOK_CUSTOM_KEY),
+            ]),
+          ]
+        : loadCustomOptions(platformCustomKey),
+    );
+  }, [contentType, platformCustomKey]);
 
+  const active =
+    status !== "ALL" ||
+    origin !== "ALL" ||
+    Boolean(ott || query || place || occasion);
+  const momentCount = [
+    status !== "ALL",
+    Boolean(ott),
+    Boolean(place),
+    Boolean(occasion),
+    origin !== "ALL",
+  ].filter(Boolean).length;
+  const [momentsOpen, setMomentsOpen] = useState(momentCount > 0);
+  const momentFieldsId = useId();
+  useEffect(() => {
+    if (status !== "ALL" || ott || place || occasion || origin !== "ALL")
+      setMomentsOpen(true);
+  }, [status, ott, place, occasion, origin]);
   return (
-    <div className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-3 shadow-sm md:flex-row md:items-center overflow-hidden">
-      <div className="flex flex-nowrap items-center gap-3 overflow-x-auto no-scrollbar pb-1 sm:flex-wrap sm:gap-x-12 sm:gap-y-4 sm:pb-0">
-        <label className={filterFieldClass}>
-          <div className="text-sm text-muted-foreground">
-            {tFilters("contentLabel")}
-          </div>
-          <select
-            value={contentType}
-            onChange={(e) =>
-              setContentType(e.target.value as "ALL" | "video" | "book")
-            }
-            className={filterSelectClass}
-          >
-            <option value="ALL">{tFilters("all")}</option>
-            <option value="video">{tFilters("video")}</option>
-            <option value="book">{tFilters("book")}</option>
-          </select>
+    <section
+      className={styles.filterBar}
+      aria-label={ko ? "타임라인에서 찾기" : "Find a record"}
+    >
+      <div className={styles.filterTop}>
+        <fieldset className={styles.typeTabs}>
+          <legend className="sr-only">{tFilters("contentLabel")}</legend>
+          {(["ALL", "video", "book"] as const).map((type) => (
+            <button
+              key={type}
+              type="button"
+              aria-pressed={contentType === type}
+              onClick={() => setContentType(type)}
+            >
+              {tFilters(type === "ALL" ? "all" : type)}
+            </button>
+          ))}
+        </fieldset>
+        <label className={styles.searchField}>
+          <span className="sr-only">{tFilters("searchLabel")}</span>
+          <input
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder={tFilters("searchPlaceholder")}
+          />
         </label>
-
-        <label className={filterFieldClass}>
-          <div className="text-sm text-muted-foreground">
-            {tFilters("filterLabel")}
-          </div>
+      </div>
+      <button
+        type="button"
+        className={styles.momentToggle}
+        data-testid="timeline-moment-toggle"
+        aria-expanded={momentsOpen}
+        aria-controls={momentFieldsId}
+        onClick={() => setMomentsOpen((open) => !open)}
+      >
+        <span>{ko ? "그날의 순간으로 찾기" : "Find a moment"}</span>
+        {momentCount > 0 ? (
+          <span
+            className={styles.momentCount}
+            data-testid="timeline-moment-count"
+          >
+            {momentCount}
+            <span className="sr-only">
+              {ko ? "개 조건 선택" : " filters selected"}
+            </span>
+          </span>
+        ) : null}
+        <ChevronDown size={18} aria-hidden="true" />
+      </button>
+      <div
+        id={momentFieldsId}
+        className={styles.filterFields}
+        data-testid="timeline-moment-fields"
+        data-expanded={momentsOpen}
+      >
+        <label>
+          <span>{tFilters("filterLabel")}</span>
           <select
             value={status}
-            onChange={(e) => setStatus(e.target.value as Status | "ALL")}
-            className={filterSelectClass}
+            onChange={(event) =>
+              setStatus(event.target.value as Status | "ALL")
+            }
           >
             <option value="ALL">{tFilters("all")}</option>
-            {statusOptions.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
+            {statusOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
               </option>
             ))}
           </select>
         </label>
-
-        <label className={filterFieldClass}>
-          <div className="text-sm text-muted-foreground">
-            {tFilters("categoryLabel")}
-          </div>
+        <label>
+          <span>{tFilters("platformLabel")}</span>
+          <select value={ott} onChange={(event) => setOtt(event.target.value)}>
+            <option value="">{tFilters("all")}</option>
+            {platformGroups.map((group) => (
+              <optgroup
+                key={group.label}
+                label={group.label === "OTT" ? "OTT" : tQuick(group.label)}
+              >
+                {group.options.map((option) => (
+                  <option key={option} value={tQuick(option)}>
+                    {tQuick(option)}
+                  </option>
+                ))}
+              </optgroup>
+            ))}
+            {customOttOptions.length ? (
+              <optgroup label={tQuick("myInput")}>
+                {customOttOptions.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </optgroup>
+            ) : null}
+          </select>
+        </label>
+        <label>
+          <span>{ko ? "어디서" : "Where"}</span>
+          <select
+            value={place}
+            onChange={(event) => setPlace(event.target.value as Place | "")}
+          >
+            <option value="">{ko ? "모든 장소" : "Every place"}</option>
+            {Object.keys(PLACE_LABELS).map((value) => (
+              <option key={value} value={value}>
+                {tCommon(`placeLabels.${value}`)}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          <span>
+            {ko ? "누구와·어떤 상황" : "Who you were with or the occasion"}
+          </span>
+          <select
+            value={occasion}
+            onChange={(event) =>
+              setOccasion(event.target.value as Occasion | "")
+            }
+          >
+            <option value="">{ko ? "모든 상황" : "Every occasion"}</option>
+            {Object.keys(OCCASION_LABELS).map((value) => (
+              <option key={value} value={value}>
+                {tCommon(`occasionLabels.${value}`)}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          <span>{tFilters("categoryLabel")}</span>
           <select
             value={origin}
-            onChange={(e) =>
-              setOrigin(e.target.value as "ALL" | "LOG" | "COMMENT")
+            onChange={(event) =>
+              setOrigin(event.target.value as "ALL" | "LOG" | "COMMENT")
             }
-            className={filterSelectClass}
           >
             <option value="ALL">{tFilters("all")}</option>
             <option value="LOG">{tFilters("myLog")}</option>
             <option value="COMMENT">{tFilters("comment")}</option>
           </select>
         </label>
-
-        {contentType !== "ALL" && (
-          <label className={filterFieldClass}>
-            <div className="text-sm text-muted-foreground">
-              {tFilters("platformLabel")}
-            </div>
-            <select
-              value={ott}
-              onChange={(e) => setOtt(e.target.value)}
-              className={cn(filterSelectClass, "sm:min-w-44 lg:max-w-[220px]")}
-            >
-              <option value="">{tFilters("all")}</option>
-              {platformGroups.map((g) => {
-                const groupLabel =
-                  g.label === "OTT"
-                    ? "OTT"
-                    : tQuick(g.label as Parameters<typeof tQuick>[0]);
-                return (
-                  <optgroup key={g.label} label={groupLabel}>
-                    <option value={`__group:${g.label}`}>
-                      {tFilters("groupAll", { group: groupLabel })}
-                    </option>
-                    {g.options.map((o) => (
-                      <option
-                        key={o}
-                        value={tQuick(o as Parameters<typeof tQuick>[0])}
-                      >
-                        {tQuick(o as Parameters<typeof tQuick>[0])}
-                      </option>
-                    ))}
-                  </optgroup>
-                );
-              })}
-              {customOttOptions.length > 0 ? (
-                <optgroup label={tQuick("myInput")}>
-                  {customOttOptions.map((o) => (
-                    <option key={o} value={o}>
-                      {o}
-                    </option>
-                  ))}
-                </optgroup>
-              ) : null}
-            </select>
-          </label>
-        )}
       </div>
-      <label className="flex min-w-0 flex-1 flex-col gap-1 text-sm sm:flex-row sm:items-center sm:gap-3 md:max-w-xs">
-        <div className="text-sm text-muted-foreground">
-          {tFilters("searchLabel")}
+      {active ? (
+        <div className={styles.filterSummary}>
+          <p>
+            {ko
+              ? "고른 조건에 맞는 기록을 펼쳤어요."
+              : "Showing the records that match your choices."}
+          </p>
+          <button
+            type="button"
+            onClick={() => {
+              setStatus("ALL");
+              setOrigin("ALL");
+              setOtt("");
+              setQuery("");
+              setPlace("");
+              setOccasion("");
+              setMomentsOpen(false);
+            }}
+          >
+            {ko ? "조건 지우기" : "Clear filters"}
+          </button>
         </div>
-        <input
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder={tFilters("searchPlaceholder")}
-          className="h-10 w-full rounded-lg border border-border bg-card px-3 text-[13px] outline-none transition-all focus:ring-2 focus:ring-ring/40"
-        />
-      </label>
-    </div>
+      ) : null}
+    </section>
   );
 }

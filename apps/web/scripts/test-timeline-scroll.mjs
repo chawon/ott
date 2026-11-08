@@ -90,7 +90,10 @@ function fixture(count) {
 let browser;
 try {
   if (server) await waitForServer();
-  browser = await chromium.launch({ headless: true });
+  browser = await chromium.launch({
+    headless: true,
+    executablePath: process.env.PLAYWRIGHT_EXECUTABLE_PATH || undefined,
+  });
   const context = await browser.newContext({
     viewport: { width: 390, height: 844 },
     serviceWorkers: "block",
@@ -217,7 +220,7 @@ try {
   });
   await page.reload();
   await countIs(50);
-  await page.getByRole("button", { name: "Show earlier logs" }).click();
+  await page.getByRole("button", { name: "Show earlier records" }).click();
   await countIs(75);
 
   serverLogs = fixture(50);
@@ -225,7 +228,7 @@ try {
   await page.reload();
   await countIs(50);
   assert.equal(
-    await page.getByRole("button", { name: "Show earlier logs" }).count(),
+    await page.getByRole("button", { name: "Show earlier records" }).count(),
     0,
   );
 
@@ -233,7 +236,7 @@ try {
   await clearLocalLogs();
   await page.reload();
   await countIs(50);
-  await page.getByRole("button", { name: "Show earlier logs" }).click();
+  await page.getByRole("button", { name: "Show earlier records" }).click();
   await countIs(51);
 
   await page.setViewportSize({ width: 1280, height: 900 });
@@ -241,7 +244,7 @@ try {
   await clearLocalLogs();
   await page.reload();
   await countIs(50);
-  await page.getByRole("button", { name: "Show earlier logs" }).click();
+  await page.getByRole("button", { name: "Show earlier records" }).click();
   await countIs(100);
 
   console.log(
