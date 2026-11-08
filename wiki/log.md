@@ -1,5 +1,16 @@
 # Wiki Log
 
+## [2026-11-08] feat: ottline v2 Web/PWA·API 운영 배포
+
+- 기능 PR `#125`, 운영 설정·전송 안내 PR `#126`, 배포 SHA `b9f88a6d5f329ffa1bfaea4dacc3b7be8bfb3022`.
+- API production `42481109076` → 실제 API 확인 → Web production `42482058132`; manifest commit `64a485b` / `182c4e9`.
+- PC 기록장·모바일 수첩, 월별 감상 목록과 진행 중 영역, 상태 선택 뒤 하단 저장, 실제 포스터·TPO·느낌·기기 연결·동기화를 반영했다.
+- OpenAI `gpt-6-luna`, 계정별 제외·되돌리기·성공 생성 하루 3회와 생성 전 전송 안내·정책을 연결했다. 실제 6개 → 제외 후 5개 → 재추천 6개, 기기 간 공유와 네 번째 요청 429를 확인했다.
+- DB 백업·V32, SecretSynced, API/Web 이미지·APP_VERSION `b9f88a6`, 두 Pod Ready·restart 0과 ArgoCD Synced/Healthy를 확인했다. 기존 기록·이력 수를 보존했다.
+- 실제 브라우저 저장 후 정식 서버 ID와 outbox 0개, 모바일·PC 저장 버튼과 전송 안내를 확인했다. 테스트 계정·추천 데이터와 임시 DB 클라이언트는 정리했다.
+- 네이티브·스토어 바이너리 제출은 별도다. Android는 준비 중인 네이티브 앱을 기준으로 진행한다.
+- 문서: AGENTS.md, docs/ottline-v2-production-rollout.md, docs/ottline-v2-release-readiness.md, features/ottline-v2.md, features/future-timeline.md, index.md, log.md.
+
 ## [2026-10-26] feat: 영어 Google Books 검색·독서 서비스 운영 배포
 
 - PR `#124`, API/Web SHA `98417a9f22079e17650b6f1d2dfd2c022c5afd30`.

@@ -77,6 +77,8 @@ If present, read `./.omd/preferences.md` — pending corrections not yet folded 
 
 41. EN 도서 검색·독서 서비스 국제화: 영어 도서 검색을 Google Books로 분기하고 EN 책 구매처·독서 서비스를 Kindle, Apple Books, Kobo, Audible, Libby 등으로 제공한다. KO Kakao 검색, 같은 ISBN 판본의 기존 식별자·기록과 직접 입력 플랫폼을 보존하며 영상 기본값은 유지한다. `2026-10-26` PR `#124`, API/Web SHA `98417a9`, production run `40252251489`/`40252514676`으로 배포했다. 별도 `ott-google-books-secrets`의 `SecretSynced`, ArgoCD `Synced Healthy`, 두 Pod `1/1` ready·restart 0, 실제 API·Web 프록시 검색 14건의 HTTP 200과 공식 출처 이미지를 확인했다. 현재 iOS 바이너리는 Kakao를 유지하고 다음 capability 지원 바이너리부터 Google 검색을 사용한다. 상세는 `docs/google-books-en-search.md`를 따른다.
 
+42. ottline v2 Web/PWA·API 운영 개편: PC는 펼쳐보는 기록장, 모바일은 한 손 수첩으로 홈·타임라인·기록·상세·내 공간을 개편하고 상태 선택 뒤 하단 기록 버튼으로 저장한다. 실제 카탈로그·TPO·느낌 3단계·기기 연결·동기화·공유 카드를 유지하며 홈 월별 목록은 감상한 작품만 모은다. 미래의 타임라인은 OpenAI `gpt-6-luna`와 계정별 제외·되돌리기·하루 3회 생성, 실제 카탈로그 기록 연결을 제공한다. PR `#125` 기능 코드와 `#126` 운영 설정·전송 안내를 합친 SHA `b9f88a6d5f329ffa1bfaea4dacc3b7be8bfb3022`로 `2026-11-08` API production `42481109076` → 실제 API 검증 → Web production `42482058132`를 완료했다. DB 백업·Flyway V32, OpenAI SecretSynced, 두 이미지·APP_VERSION `b9f88a6`·Pod Ready/restart 0, ArgoCD Synced/Healthy와 실제 브라우저 저장·정식 ID·대기 0개를 확인했다. 테스트 계정·추천 데이터는 정리했고 기존 기록·이력 수를 보존했다. Android 네이티브·iOS·스토어 바이너리는 배포하지 않았다. 상세는 `docs/ottline-v2-production-rollout.md`를 따른다.
+
 ### 제품 방향
 1. 추천 기능은 기본 제품 범위에서 제외한다. 단, `2026-11-08` 사용자 요청으로 기존 **미래의 타임라인**의 OpenAI 전환·계정별 제외·하루 3회 정책·기록 연결은 이번 v2 작업에 포함한다. 현재 계약은 `docs/future-timeline-account-policy.md`, 최초 검토는 `docs/future-timeline-openai-review.md`를 따른다.
 2. 기록 가치(회상, 공유, 재방문)를 높이는 기능에 집중한다.

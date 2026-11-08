@@ -1,70 +1,48 @@
-# 미래의 타임라인 (AI 추천)
+# 미래의 타임라인
 
-> 시청 기록 기반으로 LLM이 다음에 볼 컨텐츠를 추천하는 기능.  
-> 타임라인 페이지 "나의 미래는?" 버튼 → "미래의 타임라인" 뷰 전환.
+사용자가 남긴 영상·책 기록에서 다음에 만날 작품을 고르는 기능이다. 2026-11-08 v2 운영 배포부터 OpenAI와 서버 계정 기반 제외·횟수 정책을 사용한다.
 
-## 관련 페이지
-- [[timeline-export]]
-- [[book-log]]
+## 화면과 기록 연결
 
----
+타임라인의 ‘나의 미래는?’ 또는 개인화된 진입 버튼으로 연다. 저장된 결과를 읽는 것은 무료이며 새 추천은 생성 버튼을 눌러 요청한다. 버튼 앞에서 OpenAI로 보내는 항목과 개인정보처리방침을 안내한다.
 
-## UX 흐름
+카드는 작품·종류·장르·추천 이유를 보여준다. 이미 본·읽은 작품은 제외하고 되돌릴 수 있다. 영상은 확인한 카탈로그 작품으로, 책은 판본을 고른 뒤 기록창으로 이어진다. 상태가 미리 선택돼도 하단 기록 버튼을 직접 눌러야 저장한다.
 
-1. 타임라인 상단 **"나의 미래는?"** 버튼 (그라디언트, 로그인 사용자만 노출)
-2. 클릭 시 "미래의 타임라인" 뷰로 전환 — 스켈레톤 + 상태 메시지 로딩
-3. 추천 카드: 포스터 / 제목 / 타입 뱃지 / 장르 태그 / 추천 이유
-4. **"과거에 봤던 작품"** 버튼으로 개별 카드 숨기기 (localStorage 저장)
-5. **"새로 추천받기"** — 하루 1회 제한, dismissed 목록을 LLM에 전달해 제외
+## 서버 정책
 
----
+| 항목 | 동작 |
+| --- | --- |
+| 최소 기록 | 대상 기록 5개 이상 |
+| 이력 | 최근 3개월 최대 50개, 부족하면 감상한 기록으로 보충 |
+| 생성 | 한국 시간 기준 계정 전체에서 성공 3회/일, 첫 생성 포함 |
+| 읽기·제외·되돌리기 | 생성 횟수 차감 없음 |
+| 실패 | 성공 횟수를 차감하지 않으며 기존 결과 보존 |
+| 여러 기기 | 제외·되돌리기·사용 횟수 공유, 언어별 결과 보관 |
+| 재시도 | 요청 UUID와 서버 임대로 중복 생성·차감 방지 |
+| 계정 정리 | 연결 계정 합치기와 서버 데이터 전체 삭제에 포함 |
 
-## 제약 조건
+OpenAI `gpt-6-luna`, reasoning effort `low`를 사용하며 키는 OCI Vault → 별도 ExternalSecret → API 환경변수로 전달한다. 다른 provider 구현은 호환을 위해 남아 있지만 OpenAI가 설정되면 우선한다.
 
-| 조건 | 내용 |
-|---|---|
-| 최소 기록 수 | DONE 상태 기록 **5개 이상** 필요 |
-| 이력 범위 | 최근 **3개월** 최대 **50개** |
-| 추천 새로고침 | 하루 **1회** (프론트 localStorage 제어) |
-| 캐시 | DB 기반 **24시간** (로그 추가/수정 시 자동 무효화) |
-| dedup | LLM 결과를 시청 이력 + dismissed 목록과 서버 측 비교 제거 |
+최종 후보는 6개를 목표로 한다. 첫 후보군 12개에서 실제 카탈로그·기록·제외를 확인하고 필요하면 한 번 더 보충한다. 같은 생성의 보충은 추가 횟수를 차감하지 않는다. 새 기록은 기존 후보에서 바로 제외하며 취향 변경은 다음 생성에 반영한다.
 
----
+## API와 저장
 
-## 에러 상태
+- `GET /api/recommendations/state`: 결과·제외·KST 횟수·진행 상태 조회.
+- `POST /api/recommendations/generate`: 요청 UUID로 생성, 진행 중 202·하루 제한 429.
+- `GET|PUT /api/recommendations/exclusions`, `DELETE /api/recommendations/exclusions/{key}`: 계정별 제외·되돌리기.
+- `GET /api/recommendations/catalog`: 종류·연도·저자·판본을 확인하는 읽기 전용 검색.
+- 기존 배열형 `GET /api/recommendations` 계약은 유지한다.
 
-| 상황 | 표시 메시지 |
-|---|---|
-| 기록 5개 미만 | "기록을 5개 이상 남기면 미래를 볼 수 있어요." |
-| LLM 키 없음 / rate limit / 연결 실패 | "미래의 타임라인이 그려지지 않아요." |
+V32의 `recommendation_account_state`, `recommendation_batches`, `recommendation_generation_attempts`, `recommendation_exclusions`를 사용한다. 기록·제목 테이블은 마이그레이션에서 변경하지 않는다.
 
----
+## 운영 검증
 
-## LLM 구성
+배포 SHA `b9f88a6`에서 실제 OpenAI 추천 6개 → 제외 후 5개 → 새 추천 6개와 기기 간 공유를 확인했다. 성공 3회 뒤 네 번째 요청은 429이며 동일 UUID 재시도와 제외 되돌리기는 추가 차감하지 않았다. 테스트 계정과 추천 데이터는 정리했다.
 
-- **Anthropic Claude** (`ANTHROPIC_API_KEY`) + **Google Gemini** (`GEMINI_API_KEY`)
-- 두 키 모두 설정 시 **병렬 호출 후 결과 병합** (이름 기준 중복 제거)
-- 하나만 설정해도 동작, 둘 다 없으면 503 반환
-- 기본 모델: `claude-sonnet-4-6`, `gemini-2.5-flash`
+- [정책·동시성·카탈로그 계약](../../../docs/future-timeline-account-policy.md)
+- [운영 배포·백업·검증](../../../docs/ottline-v2-production-rollout.md)
+- [OpenAI 전환 검토](../../../docs/future-timeline-openai-review.md)
 
----
+구현: `apps/api/src/main/java/com/watchlog/api/llm`, `service/RecommendationAccountStore.java`, `RecommendationService.java`, `RecommendationCatalogService.java`, `apps/web/lib/useRecommendations.ts`, `recommendations.ts`, `app/[locale]/timeline/page.tsx`.
 
-## 포스터
-
-- 추천 생성 시 TMDB `searchMulti`로 포스터 URL 병렬 조회
-- 포스터 포함하여 캐시 저장 (재조회 없음)
-- 책(`book`) 타입은 TMDB 조회 스킵
-
----
-
-## 구현 위치
-
-**Backend**
-- `apps/api/.../llm/` — LlmProvider, AnthropicProvider, GeminiProvider
-- `apps/api/.../service/RecommendationService.java`
-- `apps/api/.../web/RecommendationController.java`
-- `apps/api/.../db/migration/V22__recommendation_cache.sql`
-
-**Frontend**
-- `apps/web/app/[locale]/timeline/page.tsx` — FutureTimelineSection, FutureLoadingSkeleton
-- `apps/web/lib/types.ts` — RecommendationItem
+관련: [[ottline-v2]], [[timeline]], [[book-log]], [[share-card]].
