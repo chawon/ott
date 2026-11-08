@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-const MOBILE_BOTTOM_NAV_QUERY = "(max-width: 639.98px) and (pointer: coarse)";
+const MOBILE_BOTTOM_NAV_QUERY = "(max-width: 767.98px)";
 
 export function useMobileBottomNav() {
   const [enabled, setEnabled] = useState(false);

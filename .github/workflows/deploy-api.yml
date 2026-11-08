@@ -20,6 +20,20 @@ permissions:
 jobs:
   verify-api:
     runs-on: ubuntu-24.04-arm
+    services:
+      recommendation-postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: watchlog
+          POSTGRES_USER: watchlog
+          POSTGRES_PASSWORD: watchlog
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U watchlog -d watchlog"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -42,6 +56,9 @@ jobs:
 
       - name: Test API
         working-directory: apps/api
+        env:
+          OTTLINE_RECOMMENDATION_DB_TEST: "1"
+          OTTLINE_DISCUSSION_DB_TEST: "1"
         run: ./gradlew test --no-daemon
 
       - name: Verify PostgreSQL tests executed

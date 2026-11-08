@@ -1,15 +1,20 @@
 "use client";
 
 import {
+  ArrowRight,
   ChevronDown,
+  Copy,
   Download,
+  Link2,
   Settings,
   Smartphone,
-  UserRound,
 } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
-import { type ReactNode, useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import styles from "@/components/AccountSpace.module.css";
+import ProfileAvatar from "@/components/ProfileAvatar";
 import ProfileEditor from "@/components/ProfileEditor";
+import QuickLogAction from "@/components/QuickLogAction";
 import { Link as IntlLink } from "@/i18n/routing";
 import { isGooglePlayTwaContext } from "@/lib/androidAppContext";
 import { api } from "@/lib/api";
@@ -22,11 +27,12 @@ import {
   listAllLogsLocal,
   resetLocalState,
 } from "@/lib/localStore";
+import { isPersonaKey } from "@/lib/profile";
 import { createPairingRecoveryCardBlob } from "@/lib/recoveryCard";
 import { downloadBlob } from "@/lib/share";
+import { getSyncState, syncOutbox } from "@/lib/sync";
 import type { WatchLog } from "@/lib/types";
 import { useUserProfile } from "@/lib/useUserProfile";
-import { cn } from "@/lib/utils";
 
 type DeviceSummary = {
   id: string;
@@ -40,95 +46,16 @@ function getErrorMessage(error: unknown, fallback: string) {
   return error instanceof Error ? error.message : fallback;
 }
 
-const SETTINGS_CARD_CLASS =
-  "space-y-4 rounded-2xl border border-border bg-card p-6 shadow-sm";
-
-function SettingsGroup({
-  title,
-  description,
-  children,
-}: {
-  title: string;
-  description: string;
-  children: ReactNode;
-}) {
-  return (
-    <div className="space-y-3">
-      <div className="space-y-1 px-1">
-        <h2 className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
-          {title}
-        </h2>
-        <p className="text-sm text-muted-foreground">{description}</p>
-      </div>
-      <div className="space-y-4">{children}</div>
-    </div>
-  );
-}
-
-function SettingsAccordionCard({
-  title,
-  description,
-  meta,
-  icon,
-  open,
-  onOpenChange,
-  children,
-}: {
-  title: string;
-  description: string;
-  meta?: string;
-  icon?: ReactNode;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  children: ReactNode;
-}) {
-  return (
-    <section className={SETTINGS_CARD_CLASS}>
-      <button
-        type="button"
-        aria-expanded={open}
-        onClick={() => onOpenChange(!open)}
-        className="flex w-full items-start justify-between gap-3 text-left"
-      >
-        <div className="flex min-w-0 items-start gap-3">
-          {icon ? (
-            <div className="shrink-0 rounded-2xl bg-ott-paper-strong p-2 text-[#1E4D8C] dark:text-foreground">
-              {icon}
-            </div>
-          ) : null}
-          <div className="min-w-0 space-y-1">
-            <div className="text-base font-semibold">{title}</div>
-            <p className="text-sm text-muted-foreground">{description}</p>
-          </div>
-        </div>
-        <div className="flex shrink-0 items-center gap-2">
-          {meta ? (
-            <span className="rounded-full border border-border bg-muted px-2 py-1 text-[11px] font-semibold text-muted-foreground">
-              {meta}
-            </span>
-          ) : null}
-          <ChevronDown
-            className={cn(
-              "mt-1 h-5 w-5 text-muted-foreground transition-transform",
-              open && "rotate-180",
-            )}
-          />
-        </div>
-      </button>
-      {open ? (
-        <div className="border-t border-border pt-4">{children}</div>
-      ) : null}
-    </section>
-  );
-}
-
 export default function AccountPage() {
+  const tProfile = useTranslations("Profile");
   const tAccount = useTranslations("Account");
   const tCsv = useTranslations("CSV");
   const tStatus = useTranslations("Status");
   const tCommon = useTranslations("Common");
   const tQuick = useTranslations("QuickLogCard");
   const locale = useLocale();
+  const ko = locale === "ko";
+  const copy = (korean: string, english: string) => (ko ? korean : english);
   const [userId, setUserId] = useState<string | null>(null);
   const [deviceId, setDeviceId] = useState<string | null>(null);
   const [pairingCode, setPairingCode] = useState<string | null>(null);
@@ -136,7 +63,9 @@ export default function AccountPage() {
   const [status, setStatus] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [initializing, setInitializing] = useState(true);
-  const [devices, setDevices] = useState<DeviceSummary[]>([]);
+  const [devices, setDevices] = useState<DeviceSummary[] | null>(null);
+  const [devicesLoading, setDevicesLoading] = useState(false);
+  const [devicesError, setDevicesError] = useState(false);
   const [logs, setLogs] = useState<WatchLog[]>([]);
   const [exportRange, setExportRange] = useState<"ALL" | "video" | "book">(
     "ALL",
@@ -149,27 +78,43 @@ export default function AccountPage() {
   );
   const [showAndroidAppSection, setShowAndroidAppSection] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
-  const [devicesOpen, setDevicesOpen] = useState(false);
   const { profile } = useUserProfile();
 
   const loadDevices = useCallback(async () => {
-    if (!getUserId()) return;
+    if (!getUserId()) {
+      setDevices(null);
+      setDevicesError(false);
+      return;
+    }
+    setDevicesLoading(true);
+    setDevicesError(false);
     try {
-      const res = await api<DeviceSummary[]>("/auth/devices");
-      setDevices(res);
+      setDevices(await api<DeviceSummary[]>("/auth/devices"));
     } catch {
-      // ignore
+      setDevices(null);
+      setDevicesError(true);
+    } finally {
+      setDevicesLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    setUserId(getUserId());
-    setDeviceId(getDeviceId());
-    setPairingCode(getPairingCode());
-    setShowAndroidAppSection(isGooglePlayTwaContext());
-    setInitializing(false);
-    loadDevices();
-    listAllLogsLocal().then(setLogs);
+    function refreshAccount() {
+      setUserId(getUserId());
+      setDeviceId(getDeviceId());
+      setPairingCode(getPairingCode());
+      setShowAndroidAppSection(isGooglePlayTwaContext());
+      setInitializing(false);
+      void loadDevices();
+      void listAllLogsLocal().then(setLogs);
+    }
+    refreshAccount();
+    for (const event of ["auth:changed", "auth:revoked", "sync:updated"])
+      window.addEventListener(event, refreshAccount);
+    return () => {
+      for (const event of ["auth:changed", "auth:revoked", "sync:updated"])
+        window.removeEventListener(event, refreshAccount);
+    };
   }, [loadDevices]);
 
   async function handlePair() {
@@ -181,7 +126,19 @@ export default function AccountPage() {
       setUserId(getUserId());
       setDeviceId(getDeviceId());
       setPairingCode(getPairingCode());
-      setStatus(tAccount("statusConnected"));
+      setInput("");
+      let synced = false;
+      try {
+        // The connection is ready when the linked timeline is cached, too.
+        await syncOutbox();
+        synced = getSyncState().status === "idle";
+      } catch {
+        // Pairing succeeded; a failed pull must not undo the new connection.
+      }
+      setStatus(
+        tAccount(synced ? "statusConnected" : "statusConnectedSyncPending"),
+      );
+      setLogs(await listAllLogsLocal());
       await loadDevices();
     } catch (error) {
       setStatus(getErrorMessage(error, tAccount("statusConnectFailed")));
@@ -192,11 +149,20 @@ export default function AccountPage() {
 
   async function revokeDevice(id: string) {
     if (loading) return;
+    if (
+      !confirm(
+        copy(
+          "이 기기의 연결을 해제할까요? 해제한 기기에서는 내 기록을 열 수 없어요.",
+          "Disconnect this device? It will no longer be able to access your records.",
+        ),
+      )
+    )
+      return;
     setLoading(true);
     try {
       await api(`/auth/devices/${id}`, { method: "DELETE" });
       if (id === getDeviceId()) {
-        resetLocalState();
+        await resetLocalState();
         setStatus(tAccount("statusResetAll"));
         window.location.reload();
       } else {
@@ -212,6 +178,15 @@ export default function AccountPage() {
 
   async function revokeAll() {
     if (loading) return;
+    if (
+      !confirm(
+        copy(
+          "지금 사용하는 기기를 포함해 모든 기기를 연결 해제할까요? 다시 연결하려면 보관한 연결 코드가 필요해요.",
+          "Disconnect every device, including this one? You will need your saved connection code to reconnect.",
+        ),
+      )
+    )
+      return;
     setLoading(true);
     try {
       await api("/auth/devices/all", { method: "DELETE" });
@@ -262,7 +237,7 @@ export default function AccountPage() {
     const y = now.getFullYear();
     const m = String(now.getMonth() + 1).padStart(2, "0");
     const d = String(now.getDate()).padStart(2, "0");
-    return `ottline-recovery-card-${y}${m}${d}.png`;
+    return `ottline-code-card-${y}${m}${d}.png`;
   }
 
   async function saveRecoveryCard() {
@@ -330,391 +305,474 @@ export default function AccountPage() {
     });
   }
 
-  const headerTitle = tAccount("titleModern");
+  const otherDevices = devices?.filter((device) => device.id !== deviceId);
+  const hasPersona = isPersonaKey(profile?.personaKey);
+
+  async function copyCode() {
+    if (!pairingCode) return;
+    try {
+      await navigator.clipboard.writeText(pairingCode);
+      setRecoveryCardStatus(
+        copy(
+          "연결 코드를 복사했어요. 나만 볼 수 있는 곳에 보관해 주세요.",
+          "Code copied. Keep it somewhere private.",
+        ),
+      );
+    } catch {
+      setRecoveryCardStatus(
+        copy(
+          "복사하지 못했어요. 코드를 직접 선택하거나 보관 카드로 저장해 주세요.",
+          "Could not copy. Select the code or save a recovery card.",
+        ),
+      );
+    }
+  }
 
   return (
-    <div className="space-y-8">
-      <header className="space-y-1">
-        <h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight">
-          <Settings className="h-6 w-6" />
-          {headerTitle}
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          {tAccount("descriptionModern")}
+    <div className={styles.page}>
+      <header className={styles.heading}>
+        <p className={styles.eyebrow}>{copy("나의 공간", "MY SPACE")}</p>
+        <h1>{copy("어디서든, 나의 기록", "Your records, wherever you are")}</h1>
+        <p>
+          {copy(
+            "계정을 외우는 대신, 내 기록을 이어가는 방법.",
+            "A simple way to carry your records with you.",
+          )}
         </p>
       </header>
-
-      <SettingsGroup
-        title={tAccount("groupPersonalTitle")}
-        description={tAccount("groupPersonalDesc")}
+      <section
+        className={styles.panel}
+        aria-label={copy("나의 프로필", "My profile")}
       >
-        <SettingsAccordionCard
-          title={tAccount("profileTitle")}
-          description={tAccount("profileDesc")}
-          icon={<UserRound className="h-5 w-5" />}
-          open={profileOpen}
-          onOpenChange={setProfileOpen}
-        >
-          {userId ? (
-            <ProfileEditor profile={profile} />
-          ) : (
-            <div className="rounded-xl border border-dashed border-border bg-muted/30 p-4 text-sm text-muted-foreground">
-              {tAccount("profileUnavailable")}
-            </div>
-          )}
-        </SettingsAccordionCard>
-      </SettingsGroup>
-
-      <SettingsGroup
-        title={tAccount("groupConnectionTitle")}
-        description={tAccount("groupConnectionDesc")}
-      >
-        <section className={SETTINGS_CARD_CLASS}>
-          <div className="space-y-1">
-            <div className="text-sm font-semibold">
-              {tAccount("pairingCodeLabel")}
-            </div>
-            <div
-              className={cn(
-                "flex h-12 items-center justify-center text-xl font-bold tracking-widest",
-                "rounded-xl bg-muted/50",
-              )}
-            >
-              {initializing
-                ? tAccount("pairingCodeLoading")
-                : (pairingCode ?? "—")}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {logs.length > 0
-                ? tAccount("pairingCodeDescModern")
-                : tAccount("pairingCodeDescEmpty")}
+        <div className={styles.profile}>
+          <ProfileAvatar personaKey={profile?.personaKey} size={80} />
+          <div className={styles.profileCopy}>
+            <p className={styles.eyebrow}>
+              {copy("나의 프로필", "My profile")}
             </p>
-            {!pairingCode && !initializing && (
-              <p className="mt-2 rounded-lg border border-[#1E4D8C]/20 bg-ott-paper-strong p-2 text-[11px] font-medium text-[#1E4D8C] dark:border-border dark:text-foreground">
-                {tAccount("pairingCodeNotice")}
-              </p>
+            <h2>
+              {profile?.nickname ||
+                copy(
+                  "나의 타임라인에, 나다운 모습",
+                  "A familiar face for your timeline",
+                )}
+            </h2>
+            <p>
+              {hasPersona
+                ? profile?.personaKey === "archive_collector" && !ko
+                  ? "Timeline keeper"
+                  : tProfile(`personas.${profile?.personaKey}`)
+                : copy(
+                    "닉네임과 아바타로 내 공간을 꾸며보세요.",
+                    "Make this space yours with a nickname and avatar.",
+                  )}
+            </p>
+            <p className={styles.privacy}>
+              {copy(
+                "닉네임과 아바타는 내 화면에서만 보여요.",
+                "Your nickname and avatar appear only on your own screens.",
+              )}
+            </p>
+          </div>
+          {userId && (
+            <button
+              type="button"
+              className={styles.button}
+              onClick={() => setProfileOpen(!profileOpen)}
+              aria-expanded={profileOpen}
+              aria-controls="my-profile-editor"
+            >
+              {profileOpen
+                ? copy("닫기", "Close")
+                : copy("내 모습 고르기", "Choose my look")}
+            </button>
+          )}
+        </div>
+        {profileOpen && userId && (
+          <div id="my-profile-editor" className={styles.profileEditor}>
+            <ProfileEditor
+              profile={profile}
+              onDismiss={() => setProfileOpen(false)}
+            />
+          </div>
+        )}
+        {!userId && !initializing && (
+          <p>
+            {copy(
+              "첫 기록을 남기거나 기존 기록을 연결한 뒤 내 모습을 고를 수 있어요.",
+              "Leave your first record or connect your existing records to choose your profile.",
             )}
-            {pairingCode && !initializing ? (
-              <div className="mt-3 space-y-2 rounded-xl border border-amber-200 bg-amber-50/60 p-3 dark:border-amber-900/60 dark:bg-amber-950/20">
-                <p className="text-xs text-amber-900 dark:text-amber-100">
-                  {tAccount("recoveryCardHelp")}
-                </p>
+          </p>
+        )}
+      </section>
+      {status && (
+        <p aria-live="polite" className={styles.status}>
+          {status}
+        </p>
+      )}
+      <div className={styles.grid}>
+        <section className={styles.panel}>
+          <div className={styles.panelHead}>
+            <Link2 aria-hidden="true" size={24} />
+            <h2>{copy("내 기록 이어보기", "Keep your records with you")}</h2>
+          </div>
+          {initializing ? (
+            <p aria-live="polite">{tAccount("pairingCodeLoading")}</p>
+          ) : pairingCode ? (
+            <>
+              <p>
+                {copy(
+                  "다른 기기의 내 공간에서 이 코드를 입력하면 같은 기록을 열 수 있어요.",
+                  "Enter this code in My space on another device to open the same records.",
+                )}
+              </p>
+              <code className={styles.code}>{pairingCode}</code>
+              <p>
+                {copy(
+                  "이 코드를 아는 사람은 내 기록을 열 수 있어요. 나만 볼 수 있는 곳에 보관해 주세요.",
+                  "Anyone with this code can open your records. Keep it somewhere private.",
+                )}
+              </p>
+              <div className={styles.actions}>
                 <button
                   type="button"
+                  className={styles.button}
+                  onClick={copyCode}
+                >
+                  <Copy aria-hidden="true" size={17} />
+                  {copy("코드 복사", "Copy code")}
+                </button>
+                <button
+                  type="button"
+                  className={styles.button}
                   onClick={saveRecoveryCard}
                   disabled={recoveryCardSaving}
-                  className={cn(
-                    "inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl px-4 text-sm font-bold transition-all sm:w-auto",
-                    "bg-amber-700 text-white hover:bg-amber-800 disabled:opacity-40",
-                  )}
                 >
-                  <Download className="h-4 w-4" />
+                  <Download aria-hidden="true" size={17} />
                   {recoveryCardSaving
                     ? tAccount("recoveryCardSaving")
                     : tAccount("recoveryCardAction")}
                 </button>
-                {recoveryCardStatus ? (
-                  <p className="text-xs font-medium text-amber-900 dark:text-amber-100">
-                    {recoveryCardStatus}
-                  </p>
-                ) : null}
               </div>
-            ) : null}
-          </div>
-
-          <div className="space-y-3 pt-2">
-            <div className="text-sm font-semibold">
-              {tAccount("connectDevice")}
-            </div>
-            <div className="flex flex-col gap-2 sm:flex-row">
-              <input
-                value={input}
-                onChange={(e) => setInput(e.target.value.toUpperCase())}
-                placeholder={tAccount("pairingCodePlaceholder")}
-                className={cn(
-                  "min-h-12 flex-1 px-3 text-sm outline-none",
-                  "rounded-xl border border-border bg-card focus:ring-2 focus:ring-ring/40",
+              {recoveryCardStatus && (
+                <p aria-live="polite">{recoveryCardStatus}</p>
+              )}
+              {otherDevices?.length === 0 &&
+                !devicesLoading &&
+                !devicesError && (
+                  <div className={styles.notice}>
+                    <p>
+                      {copy(
+                        "아직 다른 기기가 연결되어 있지 않아요. 기기를 바꾸기 전에 연결 코드를 보관해 두세요.",
+                        "No other device is connected yet. Keep your code before switching devices.",
+                      )}
+                    </p>
+                  </div>
                 )}
-              />
-              <button
-                type="button"
-                onClick={handlePair}
-                disabled={loading || !input.trim()}
-                className={cn(
-                  "min-h-[52px] px-5 text-sm font-bold transition-all",
-                  "rounded-xl bg-neutral-900 text-white hover:bg-neutral-800 disabled:opacity-40",
+            </>
+          ) : (
+            <>
+              <p>
+                {copy(
+                  "첫 기록이 서버와 동기화되면 연결 코드가 생겨요.",
+                  "Your connection code appears after your first record syncs.",
                 )}
-              >
-                {loading ? tAccount("connecting") : tAccount("connectAction")}
-              </button>
-            </div>
-            {status && (
-              <div className="text-xs font-medium text-[#1E4D8C] dark:text-foreground">
-                {status}
+              </p>
+              <div className={styles.actions}>
+                <QuickLogAction className={styles.primary} />
               </div>
+            </>
+          )}
+          <div className={styles.divider} />
+          <h3>
+            {copy(
+              "다른 기기에 기록이 있나요?",
+              "Have records on another device?",
             )}
-          </div>
+          </h3>
+          <p>
+            {copy(
+              "그 기기의 내 공간에서 코드를 확인해 여기서 이어보세요.",
+              "Find the code in My space on that device to bring your records here.",
+            )}
+          </p>
+          <form
+            className={styles.pairForm}
+            onSubmit={(event) => {
+              event.preventDefault();
+              void handlePair();
+            }}
+          >
+            <label htmlFor="pairing-code">
+              {copy("기록 연결 코드", "Record connection code")}
+            </label>
+            <input
+              id="pairing-code"
+              value={input}
+              onChange={(event) => setInput(event.target.value.toUpperCase())}
+              placeholder={tAccount("pairingCodePlaceholder")}
+              autoComplete="off"
+              autoCapitalize="characters"
+              spellCheck={false}
+              disabled={loading}
+            />
+            <button
+              type="submit"
+              disabled={loading || !input.trim()}
+              className={styles.primary}
+            >
+              {loading ? tAccount("connecting") : tAccount("connectAction")}
+            </button>
+          </form>
+          <details className={styles.details} style={{ marginTop: 16 }}>
+            <summary>
+              {copy("코드를 잃어버렸어요", "I lost my code")}
+              <ChevronDown aria-hidden="true" size={18} />
+            </summary>
+            <p>
+              {copy(
+                "기록이 남아 있는 다른 기기의 내 공간이나, 개인적으로 보관한 보관 카드에서 코드를 찾아보세요.",
+                "Look in My space on a device that still has your records, or in a recovery card you saved privately.",
+              )}
+            </p>
+            <p>
+              {copy(
+                "코드와 연결된 기기를 모두 잃었다면 기록을 되찾을 수 없어요. 이메일이나 전화번호를 수집하지 않아 다른 복구 방법은 제공하지 않아요.",
+                "If you have lost both your code and every connected device, the records cannot be recovered. We do not collect email addresses or phone numbers for recovery.",
+              )}
+            </p>
+          </details>
         </section>
-
-        <SettingsAccordionCard
-          title={tAccount("connectedDevices")}
-          description={tAccount("connectedDevicesDesc")}
-          meta={tAccount("connectedDevicesCount", { count: devices.length })}
-          open={devicesOpen}
-          onOpenChange={setDevicesOpen}
-        >
-          <div className="space-y-3">
-            {devices.length === 0 ? (
-              <div className="flex h-32 flex-col items-center justify-center rounded-xl border border-dashed border-border bg-muted/30 p-6 text-center text-sm text-muted-foreground">
-                {tAccount("noConnectedDevices")}
-              </div>
+        <div className={styles.column}>
+          <section className={styles.panel}>
+            <div className={styles.deviceHeader}>
+              <h2>{tAccount("connectedDevices")}</h2>
+              {devices && !devicesLoading && (
+                <span className={styles.count}>
+                  {tAccount("connectedDevicesCount", { count: devices.length })}
+                </span>
+              )}
+            </div>
+            {initializing || devicesLoading ? (
+              <p aria-live="polite">
+                {copy(
+                  "연결된 기기를 확인하고 있어요…",
+                  "Checking connected devices…",
+                )}
+              </p>
+            ) : devicesError ? (
+              <>
+                <p role="alert">
+                  {copy(
+                    "연결된 기기를 불러오지 못했어요.",
+                    "Could not load connected devices.",
+                  )}
+                </p>
+                <button
+                  type="button"
+                  className={styles.quiet}
+                  onClick={() => void loadDevices()}
+                >
+                  {copy("다시 확인", "Try again")}
+                </button>
+              </>
+            ) : !userId ? (
+              <p>
+                {copy(
+                  "첫 기록을 동기화하거나 기존 연결 코드를 입력하면 이 기기가 연결돼요.",
+                  "Sync your first record or enter an existing code to connect this device.",
+                )}
+              </p>
+            ) : devices?.length === 0 ? (
+              <p>{tAccount("noConnectedDevices")}</p>
             ) : (
-              devices.map((d) => {
-                const isCurrent = d.id === getDeviceId();
+              devices?.map((device) => {
+                const current = device.id === deviceId;
                 return (
-                  <div
-                    key={d.id}
-                    className={cn(
-                      "flex flex-col gap-3 rounded-xl border p-3 sm:flex-row sm:items-center sm:justify-between",
-                      isCurrent
-                        ? "border-[#1E4D8C]/25 bg-ott-paper-strong dark:border-border"
-                        : "border-border",
-                    )}
-                  >
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-bold text-foreground">
-                          {isCurrent
-                            ? tAccount("currentDevice")
-                            : tAccount("otherDevice")}
-                        </span>
-                        <span className="text-[10px] text-muted-foreground">
-                          {d.browser ?? tAccount("browser")} ·{" "}
-                          {d.os ?? tAccount("os")}
-                        </span>
-                      </div>
-                      <div className="text-xs text-muted-foreground">
+                  <div key={device.id} className={styles.device}>
+                    <Smartphone aria-hidden="true" size={22} />
+                    <div>
+                      <strong>
+                        {current
+                          ? tAccount("currentDevice")
+                          : tAccount("otherDevice")}
+                      </strong>
+                      <p>
+                        {device.browser ?? tAccount("browser")} ·{" "}
+                        {device.os ?? tAccount("os")}
+                      </p>
+                      <p>
                         {tAccount("createdAt", {
-                          date: formatShort(d.createdAt, locale),
+                          date: formatShort(device.createdAt, locale),
                         })}{" "}
                         ·{" "}
                         {tAccount("lastActiveAt", {
-                          date: formatShort(d.lastSeenAt, locale),
+                          date: formatShort(device.lastSeenAt, locale),
                         })}
-                      </div>
+                      </p>
                     </div>
-                    {!isCurrent ? (
+                    {current ? (
+                      <span className={styles.current}>
+                        {tAccount("currentLabel")}
+                      </span>
+                    ) : (
                       <button
                         type="button"
-                        onClick={() => revokeDevice(d.id)}
+                        onClick={() => void revokeDevice(device.id)}
                         disabled={loading}
-                        className="min-h-12 shrink-0 rounded-xl border border-red-200 px-3 text-xs font-bold text-red-600 transition-colors hover:bg-red-50 hover:text-red-700"
+                        className={styles.button}
                       >
                         {tAccount("unlinkAction")}
                       </button>
-                    ) : (
-                      <div className="shrink-0 rounded-full border border-[#1E4D8C]/20 bg-card px-2 py-0.5 text-[10px] font-bold uppercase text-[#1E4D8C] dark:border-border dark:text-foreground">
-                        {tAccount("currentLabel")}
-                      </div>
                     )}
                   </div>
                 );
               })
             )}
-
-            {devices.length > 0 && (
+            {devices && devices.length > 0 && (
               <button
                 type="button"
-                onClick={revokeAll}
+                onClick={() => void revokeAll()}
                 disabled={loading}
-                className="mt-2 min-h-[52px] w-full rounded-2xl border border-border bg-card text-xs font-bold text-muted-foreground transition-all hover:bg-muted hover:text-foreground"
+                className={styles.quiet}
               >
                 {tAccount("unlinkAllAction")}
               </button>
             )}
-          </div>
-        </SettingsAccordionCard>
-
-        <section className={SETTINGS_CARD_CLASS}>
-          <div className="text-sm font-semibold">
-            {tAccount("accountInfoLabel")}
-          </div>
-          <div className="space-y-2 text-xs text-muted-foreground">
-            <div className="flex justify-between">
-              <span>User ID</span>
-              <span className="font-mono">{userId?.slice(0, 8) ?? "—"}</span>
-            </div>
-            <div className="flex justify-between">
-              <span>Device ID</span>
-              <span className="font-mono">{deviceId?.slice(0, 8) ?? "—"}</span>
-            </div>
-            <p className="mt-2 opacity-70">{tAccount("accountInfoNotice")}</p>
-          </div>
-        </section>
-      </SettingsGroup>
-
-      <SettingsGroup
-        title={tAccount("groupSupportTitle")}
-        description={tAccount("groupSupportDesc")}
-      >
-        <section className={SETTINGS_CARD_CLASS}>
-          <div>
-            <div className="text-base font-semibold">
-              {tAccount("feedbackTitle")}
-            </div>
-            <p className="text-sm text-muted-foreground">
-              {tAccount("feedbackDesc")}
-            </p>
-          </div>
-          <IntlLink
-            href="/feedback"
-            className={cn(
-              "flex w-full items-center justify-center gap-2 px-4 py-3 text-center text-sm font-bold transition-all break-keep",
-              "rounded-2xl border border-border bg-card text-foreground hover:bg-muted",
-            )}
-          >
-            {tAccount("feedbackAction")}
-          </IntlLink>
-        </section>
-
-        {showAndroidAppSection ? (
-          <section className="space-y-4 rounded-2xl border border-[#1E4D8C]/20 bg-ott-paper-strong p-6 shadow-sm dark:border-border">
-            <div className="flex items-start gap-3">
-              <div className="rounded-2xl bg-card p-2 text-[#1E4D8C] shadow-sm dark:text-foreground">
-                <Smartphone className="h-5 w-5" />
-              </div>
-              <div className="min-w-0 space-y-1">
-                <div className="text-base font-semibold">
-                  {tAccount("androidAppTitle")}
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  {tAccount("androidAppDesc")}
-                </p>
-              </div>
-            </div>
-            <a
-              href="ottline://watch-reminder"
-              className={cn(
-                "flex w-full items-center justify-center gap-2 px-4 py-3 text-center text-sm font-bold transition-all break-keep",
-                "rounded-2xl border border-[#1E4D8C]/25 bg-card text-[#1E4D8C] hover:bg-ott-paper-strong dark:border-border dark:text-foreground",
-              )}
-            >
-              <Settings className="h-4 w-4" />
-              {tAccount("androidWatchReminderAction")}
-            </a>
-            <p className="text-xs text-muted-foreground">
-              {tAccount("androidWatchReminderDesc")}
-            </p>
           </section>
-        ) : null}
-      </SettingsGroup>
-
-      <SettingsGroup
-        title={tAccount("groupDataTitle")}
-        description={tAccount("groupDataDesc")}
-      >
-        <section className={SETTINGS_CARD_CLASS}>
-          <div>
-            <div className="text-base font-semibold">
-              {tAccount("exportTitle")}
+          <details className={`${styles.panel} ${styles.details}`}>
+            <summary>
+              {tAccount("accountInfoLabel")}
+              <ChevronDown aria-hidden="true" size={18} />
+            </summary>
+            <div className={styles.identity}>
+              <span>User ID</span>
+              <code>{userId?.slice(0, 8) ?? "—"}</code>
             </div>
-            <p className="text-sm text-muted-foreground">
-              {logs.length > 0
-                ? tAccount("exportDescModern")
-                : tAccount("exportDescEmpty")}
-            </p>
-          </div>
-
-          <div className="flex flex-col gap-4">
-            <div className="space-y-2">
-              <div className="px-1 text-xs font-semibold text-muted-foreground">
-                {tAccount("exportRangeLabel")}
-              </div>
-              <div className="grid grid-cols-3 gap-2">
-                {(["ALL", "video", "book"] as const).map((r) => (
-                  <button
-                    key={r}
-                    type="button"
-                    onClick={() => setExportRange(r)}
-                    className={cn(
-                      "min-h-[52px] rounded-xl border px-2 text-xs font-medium transition-all",
-                      exportRange === r
-                        ? "border-[#1E4D8C]/40 bg-ott-paper-strong text-[#1E4D8C] shadow-sm ring-1 ring-[#1E4D8C]/15 dark:border-border dark:text-foreground dark:ring-border"
-                        : "border-border bg-card text-muted-foreground hover:bg-muted",
-                    )}
-                  >
-                    {r === "ALL"
-                      ? tAccount("rangeAll")
-                      : r === "video"
-                        ? tAccount("rangeVideo")
-                        : tAccount("rangeBook")}
-                  </button>
-                ))}
-              </div>
+            <div className={styles.identity}>
+              <span>Device ID</span>
+              <code>{deviceId?.slice(0, 8) ?? "—"}</code>
             </div>
-
-            <button
-              type="button"
-              onClick={exportLogs}
-              disabled={exporting || logs.length === 0}
-              className={cn(
-                "min-h-[52px] w-full rounded-2xl bg-neutral-900 text-sm font-semibold text-white transition-all hover:bg-neutral-800 disabled:opacity-40",
+            <p>{tAccount("accountInfoNotice")}</p>
+          </details>
+          <section className={styles.panel}>
+            <h2>
+              {copy(
+                "기록을 더 잘 이어가도록",
+                "A little help with your records",
               )}
+            </h2>
+            <nav
+              className={styles.linkList}
+              aria-label={tAccount("groupSupportTitle")}
             >
-              {exporting ? tAccount("exporting") : tAccount("exportAction")}
-            </button>
-            {exportStatus && (
-              <p className="text-center text-xs font-medium text-[#1E4D8C] dark:text-foreground">
-                {exportStatus}
-              </p>
-            )}
-            <p className="text-center text-[11px] text-muted-foreground">
-              {tAccount("exportNotice")}
-            </p>
-          </div>
-        </section>
-
-        <section className={SETTINGS_CARD_CLASS}>
-          <div>
-            <div className="text-sm font-semibold">
-              {tAccount("resetLocalTitle")}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {tAccount("resetLocalDesc")}
-            </p>
-          </div>
+              <IntlLink href="/feedback">
+                {tAccount("feedbackAction")}
+                <ArrowRight aria-hidden="true" size={17} />
+              </IntlLink>
+              <IntlLink href="/guide">
+                {copy("기록 가이드", "Recording guides")}
+                <ArrowRight aria-hidden="true" size={17} />
+              </IntlLink>
+              <IntlLink href="/about">
+                {copy("ottline과 함께하는 방법", "Ways to use ottline")}
+                <ArrowRight aria-hidden="true" size={17} />
+              </IntlLink>
+            </nav>
+          </section>
+          {showAndroidAppSection && (
+            <section className={styles.panel}>
+              <div className={styles.panelHead}>
+                <Smartphone aria-hidden="true" size={22} />
+                <h2>{tAccount("androidAppTitle")}</h2>
+              </div>
+              <p>{tAccount("androidAppDesc")}</p>
+              <div className={styles.actions}>
+                <a href="ottline://watch-reminder" className={styles.button}>
+                  <Settings aria-hidden="true" size={18} />
+                  {tAccount("androidWatchReminderAction")}
+                </a>
+              </div>
+              <p>{tAccount("androidWatchReminderDesc")}</p>
+            </section>
+          )}
+        </div>
+      </div>
+      <div className={styles.lowerGrid}>
+        <section className={styles.panel}>
+          <h2>{tAccount("exportTitle")}</h2>
+          <p>
+            {logs.length > 0
+              ? tAccount("exportDescModern")
+              : tAccount("exportDescEmpty")}
+          </p>
+          <fieldset className={styles.exportOptions}>
+            <legend className="sr-only">{tAccount("exportRangeLabel")}</legend>
+            {(["ALL", "video", "book"] as const).map((range) => (
+              <button
+                type="button"
+                key={range}
+                className={styles.button}
+                aria-pressed={exportRange === range}
+                onClick={() => setExportRange(range)}
+              >
+                {range === "ALL"
+                  ? tAccount("rangeAll")
+                  : range === "video"
+                    ? tAccount("rangeVideo")
+                    : tAccount("rangeBook")}
+              </button>
+            ))}
+          </fieldset>
           <button
             type="button"
-            onClick={handleResetLocal}
-            className={cn(
-              "min-h-[52px] w-full rounded-2xl border border-red-200 bg-red-50 text-sm font-bold text-red-600 transition-all hover:bg-red-100",
-            )}
+            onClick={() => void exportLogs()}
+            disabled={exporting || logs.length === 0}
+            className={styles.button}
           >
-            {tAccount("resetLocalAction")}
+            <Download aria-hidden="true" size={18} />
+            {exporting ? tAccount("exporting") : tAccount("exportAction")}
           </button>
+          {exportStatus && <p aria-live="polite">{exportStatus}</p>}
+          <p>{tAccount("exportNotice")}</p>
         </section>
-
-        <section className="space-y-4 rounded-2xl border border-red-200 bg-red-50/60 p-6 shadow-sm">
-          <div>
-            <div className="text-sm font-semibold text-red-700">
-              {tAccount("deleteAccountTitle")}
+        <details className={`${styles.panel} ${styles.details}`}>
+          <summary>
+            {copy(
+              "기록과 연결 데이터 관리",
+              "Manage records and connection data",
+            )}
+            <ChevronDown aria-hidden="true" size={18} />
+          </summary>
+          <div className={styles.dataAction}>
+            <h3>{tAccount("resetLocalTitle")}</h3>
+            <p>{tAccount("resetLocalDesc")}</p>
+            <div className={styles.actions}>
+              <button
+                type="button"
+                onClick={() => void handleResetLocal()}
+                className={styles.dangerButton}
+              >
+                {tAccount("resetLocalAction")}
+              </button>
             </div>
-            <p className="text-xs text-red-700/80">
-              {tAccount("deleteAccountDesc")}
-            </p>
           </div>
-          <button
-            type="button"
-            onClick={deleteAccount}
-            disabled={loading || !userId}
-            className={cn(
-              "min-h-[52px] w-full rounded-2xl border border-red-300 bg-red-600 text-sm font-bold text-white transition-all hover:bg-red-700 disabled:opacity-40",
-            )}
-          >
-            {tAccount("deleteAccountAction")}
-          </button>
-        </section>
-      </SettingsGroup>
+          <div className={styles.dataAction}>
+            <h3>{tAccount("deleteAccountTitle")}</h3>
+            <p>{tAccount("deleteAccountDesc")}</p>
+            <div className={styles.actions}>
+              <button
+                type="button"
+                onClick={() => void deleteAccount()}
+                disabled={loading || !userId}
+                className={styles.dangerButton}
+              >
+                {tAccount("deleteAccountAction")}
+              </button>
+            </div>
+          </div>
+        </details>
+      </div>
     </div>
   );
 }

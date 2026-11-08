@@ -33,7 +33,7 @@ export default async function PrivacyPage({
   const t = await getTranslations({ locale, namespace: "Privacy" });
 
   return (
-    <div className="mx-auto max-w-2xl space-y-8 py-10">
+    <div className="v2-secondary-page space-y-8 py-10">
       <section className="space-y-2">
         <h1 className="text-2xl font-semibold">{t("title")}</h1>
         <p className="text-sm text-muted-foreground">{t("lastUpdated")}</p>

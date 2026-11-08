@@ -3,21 +3,22 @@
 import {
   ArrowRight,
   Calendar,
+  Check,
   Clock,
   MapPin,
   MessageSquare,
   MonitorPlay,
   Share2,
-  Star,
   Users,
   X,
 } from "lucide-react";
 import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import GoogleBooksAttribution from "@/components/GoogleBooksAttribution";
+import SavedDiscussionLink from "@/components/SavedDiscussionLink";
 import TitleSearchBox from "@/components/TitleSearchBox";
 import { Link as IntlLink } from "@/i18n/routing";
-import { EN_BOOK_PLATFORM_GROUPS } from "../../../shared/bookPlatforms";
 import {
   clearCuratedAttribution,
   readCuratedAttribution,
@@ -26,15 +27,21 @@ import {
 import { api, apiWithAuth } from "@/lib/api";
 import { isKdcBookshelfLocale, type KdcMajor } from "@/lib/bookshelf";
 import { resolveTitleClassification } from "@/lib/bookshelfStore";
+import { googleBooksUrl } from "@/lib/googleBooks";
 import {
   countLogsLocal,
   enqueueCreateLog,
+  enqueueUpdateLog,
   findTitleByProvider,
+  listOutbox,
+  resolveLogLocal,
+  updatePendingCreatePayload,
+  upsertHistoryLocal,
   upsertLogLocal,
 } from "@/lib/localStore";
+import { editedRecordDate, recordDateInput } from "@/lib/recordDate";
+import { recordDisplayYear } from "@/lib/recordMetadata";
 import { syncOutbox } from "@/lib/sync";
-import GoogleBooksAttribution from "@/components/GoogleBooksAttribution";
-import { googleBooksUrl } from "@/lib/googleBooks";
 import type {
   Comment,
   CreateCommentRequest,
@@ -48,14 +55,15 @@ import type {
   WatchLog,
 } from "@/lib/types";
 import {
-  cn,
   OCCASION_LABELS,
   placeOptionsForType,
-  ratingOptionsForType,
   safeUUID,
   statusOptionsForType,
   tmdbResize,
 } from "@/lib/utils";
+import { EN_BOOK_PLATFORM_GROUPS } from "../../../shared/bookPlatforms";
+import RecordFeelings from "./RecordFeelings";
+import styles from "./recording.module.css";
 
 type SeasonOption = {
   seasonNumber: number;
@@ -82,11 +90,6 @@ type ActivationTitleSelection = {
 const OTT_CUSTOM_VALUE = "__custom__";
 const VIDEO_CUSTOM_KEY = "watchlog.ott.custom";
 const BOOK_CUSTOM_KEY = "watchlog.book.platform.custom";
-const fieldControlClass =
-  "min-h-[40px] w-full select-base rounded-xl px-3 py-2 text-sm outline-none transition-all focus:border-primary/30 focus:ring-2 focus:ring-primary/10";
-const selectControlClass =
-  "flex h-10 w-full items-center select-base rounded-xl px-3 py-0 text-sm outline-none transition-all focus:border-primary/30 focus:ring-2 focus:ring-primary/10";
-const disabledControlClass = "cursor-not-allowed opacity-50";
 type QuickLogTranslator = ReturnType<typeof useTranslations>;
 
 function resolvePlatformSelect(
@@ -142,17 +145,6 @@ function errorMessage(error: unknown, fallback: string) {
   return error instanceof Error ? error.message : fallback;
 }
 
-function toDateInput(d: Date) {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
-}
-
-function dateToIso(date: string) {
-  return new Date(`${date}T00:00:00`).toISOString();
-}
-
 function bookMeta(
   item: Pick<TitleSearchItem, "author" | "publisher" | "year">,
 ) {
@@ -172,7 +164,11 @@ export default function QuickLogCard({
   shareImportStatus,
   shareImportFeedbackHref,
   activationTitleSelection,
+  initialCatalogTitle,
   highlightedStatus,
+  dialogLayout = false,
+  onStageChange,
+  onDone,
 }: {
   onCreated: (log: WatchLog, options?: { shareCard: boolean }) => void;
   onContentTypeChange?: (type: "video" | "book") => void;
@@ -184,19 +180,27 @@ export default function QuickLogCard({
   shareImportStatus?: "imported" | "unresolved" | null;
   shareImportFeedbackHref?: string;
   activationTitleSelection?: ActivationTitleSelection | null;
+  initialCatalogTitle?: TitleSearchItem | null;
   highlightedStatus?: Status | null;
+  dialogLayout?: boolean;
+  onStageChange?: (stage: "search" | "status" | "saved" | "edit") => void;
+  onDone?: () => void;
 }) {
   const locale = useLocale();
   const tQuick = useTranslations("QuickLogCard");
   const tBookshelf = useTranslations("Bookshelf");
   const tCommon = useTranslations("Common");
-  const tDetail = useTranslations("TitleDetail");
   const tStatus = useTranslations("Status");
   const [contentType, setContentType] = useState<"video" | "book">(
     initialContentType,
   );
+  const contentTypeRef = useRef(contentType);
+  contentTypeRef.current = contentType;
   const [selected, setSelected] = useState<TitleSearchItem | null>(null);
   const [status, setStatus] = useState<Status>("IN_PROGRESS");
+  const [pendingStatus, setPendingStatus] = useState<Status | null>(
+    highlightedStatus ?? null,
+  );
   const [rating, setRating] = useState<number | "">("");
   const [note, setNote] = useState("");
   const [ott, setOtt] = useState("");
@@ -204,8 +208,12 @@ export default function QuickLogCard({
   const [customOttOptions, setCustomOttOptions] = useState<string[]>([]);
   const [place, setPlace] = useState<Place | "">("");
   const [occasion, setOccasion] = useState<Occasion | "">("");
-  const [useWatchedAt, setUseWatchedAt] = useState(false);
-  const [watchedDate, setWatchedDate] = useState("");
+  const [watchedDate, setWatchedDate] = useState(() =>
+    recordDateInput(new Date().toISOString()),
+  );
+  const [savedRecord, setSavedRecord] = useState<WatchLog | null>(null);
+  const [editing, setEditing] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [seasons, setSeasons] = useState<SeasonOption[]>([]);
   const [episodes, setEpisodes] = useState<EpisodeOption[]>([]);
   const [selectedSeason, setSelectedSeason] = useState<number | "">("");
@@ -214,6 +222,7 @@ export default function QuickLogCard({
   const [seasonYear, setSeasonYear] = useState<number | null>(null);
   const [shareToDiscussion, setShareToDiscussion] = useState(false);
   const [shareCard, setShareCard] = useState(false);
+  const [pendingShare, setPendingShare] = useState<WatchLog | null>(null);
   const [seasonLoading, setSeasonLoading] = useState(false);
   const [episodeLoading, setEpisodeLoading] = useState(false);
   const [seasonError, setSeasonError] = useState<string | null>(null);
@@ -227,7 +236,26 @@ export default function QuickLogCard({
     shelfMajor?: KdcMajor | null;
   } | null>(null);
 
-  const isBookMode = contentType === "book";
+  const isBookMode = selected
+    ? selected.type === "book"
+    : contentType === "book";
+  const selectedDisplayYear = selected
+    ? recordDisplayYear(selected, {
+        seasonNumber: selectedSeason === "" ? null : selectedSeason,
+        seasonYear,
+      })
+    : null;
+  const copy = (ko: string, en: string) => (locale === "ko" ? ko : en);
+  const stage = !selected
+    ? "search"
+    : !localLogId
+      ? "status"
+      : editing
+        ? "edit"
+        : "saved";
+  useEffect(() => {
+    onStageChange?.(stage);
+  }, [stage, onStageChange]);
 
   const videoPlatformGroups = useMemo(
     () =>
@@ -319,7 +347,6 @@ export default function QuickLogCard({
   );
 
   const canSave = useMemo(() => !!selected && !saving, [selected, saving]);
-  const isWishlist = status === "WISHLIST";
   const statusOptions = useMemo(
     () => statusOptionsForType(isBookMode ? "book" : "movie", tStatus),
     [isBookMode, tStatus],
@@ -328,12 +355,13 @@ export default function QuickLogCard({
     () => placeOptionsForType(isBookMode ? "book" : "movie", tCommon),
     [isBookMode, tCommon],
   );
-  const ratingOptions = useMemo(() => {
-    return ratingOptionsForType(isBookMode ? "book" : "movie", tQuick);
-  }, [isBookMode, tQuick]);
 
   const platformGroups = isBookMode ? bookPlatformGroups : videoPlatformGroups;
   const platformCustomKey = isBookMode ? BOOK_CUSTOM_KEY : VIDEO_CUSTOM_KEY;
+  const selectedProvider = selected?.provider;
+  const selectedProviderId = selected?.providerId;
+  const selectedType = selected?.type;
+  const selectedHasGenres = Boolean(selected?.genres);
   const selectedLocalTitleId =
     selected?.provider === "LOCAL" ? selected.titleId : null;
   const handleTitleSearchComplete = useCallback(
@@ -374,6 +402,11 @@ export default function QuickLogCard({
 
   const clearSelectedTitleState = useCallback(() => {
     setSelected(null);
+    setPendingStatus(null);
+    setSavedRecord(null);
+    setEditing(false);
+    setSaveError(null);
+    setPendingShare(null);
     setLocalLogId(null);
     setLocalTitleId(null);
     setSeasons([]);
@@ -385,30 +418,37 @@ export default function QuickLogCard({
   }, []);
 
   useEffect(() => {
-    if (!activationTitleSelection) return;
-    const item = activationTitleSelection.item;
+    const item = activationTitleSelection?.item ?? initialCatalogTitle;
+    if (!item) return;
     const nextContentType = item.type === "book" ? "book" : "video";
 
     clearSelectedTitleState();
     setContentType(nextContentType);
     setSelected(item);
-    handleTitleSelectAnalytics({
-      item,
-      contentType: nextContentType,
-      source: activationTitleSelection.source,
-      queryLength: 0,
-    });
+    setPendingStatus(highlightedStatus ?? null);
+    if (activationTitleSelection) {
+      handleTitleSelectAnalytics({
+        item,
+        contentType: nextContentType,
+        source: activationTitleSelection.source,
+        queryLength: 0,
+      });
+    } else {
+      void trackEvent("title_select", {
+        contentType: nextContentType,
+        titleType: item.type,
+        provider: item.provider,
+        source: "future_recommendation",
+        queryLength: 0,
+      });
+    }
   }, [
     activationTitleSelection,
+    initialCatalogTitle,
+    highlightedStatus,
     clearSelectedTitleState,
     handleTitleSelectAnalytics,
   ]);
-
-  useEffect(() => {
-    if (useWatchedAt && !watchedDate) {
-      setWatchedDate(toDateInput(new Date()));
-    }
-  }, [useWatchedAt, watchedDate]);
 
   useEffect(() => {
     if (!selectedLocalTitleId) return;
@@ -444,16 +484,22 @@ export default function QuickLogCard({
     };
   }, [selectedLocalTitleId]);
   useEffect(() => {
-    if (!selected || selected.genres || selected.provider !== "TMDB") return;
+    if (
+      selectedHasGenres ||
+      selectedProvider !== "TMDB" ||
+      !selectedProviderId ||
+      !selectedType
+    )
+      return;
     let cancelled = false;
     (async () => {
       try {
         const details = await api<Pick<Title, "genres" | "directors" | "cast">>(
-          `/tmdb/${selected.type}/${selected.providerId}`,
+          `/tmdb/${selectedType}/${selectedProviderId}`,
         );
         if (cancelled) return;
         setSelected((prev) => {
-          if (!prev || prev.providerId !== selected.providerId) return prev;
+          if (!prev || prev.providerId !== selectedProviderId) return prev;
           return {
             ...prev,
             genres: details.genres,
@@ -468,15 +514,22 @@ export default function QuickLogCard({
     return () => {
       cancelled = true;
     };
-  }, [selected]);
+  }, [selectedProvider, selectedProviderId, selectedType, selectedHasGenres]);
 
   useEffect(() => {
     setCustomOttOptions(loadCustomOptions(platformCustomKey));
   }, [platformCustomKey]);
 
   useEffect(() => {
+    // Parent echoes this type after selection; that must not clear the chosen title.
+    if (contentTypeRef.current === initialContentType) return;
     setContentType(initialContentType);
     setSelected(null);
+    setPendingStatus(null);
+    setSavedRecord(null);
+    setEditing(false);
+    setSaveError(null);
+    setPendingShare(null);
     setLocalLogId(null);
     setLocalTitleId(null);
     setSeasons([]);
@@ -513,13 +566,13 @@ export default function QuickLogCard({
     let cancelled = false;
 
     async function loadSeasons() {
-      if (!selected || selected.type !== "series") return;
-      if (!selected.providerId || selected.provider === "LOCAL") return;
+      if (selectedType !== "series") return;
+      if (!selectedProviderId || selectedProvider === "LOCAL") return;
       setSeasonLoading(true);
       setSeasonError(null);
       try {
         const res = await api<SeasonOption[]>(
-          `/tmdb/tv/${selected.providerId}/seasons`,
+          `/tmdb/tv/${selectedProviderId}/seasons`,
         );
         if (!cancelled) {
           setSeasons(res);
@@ -542,25 +595,25 @@ export default function QuickLogCard({
     setSeasonYear(null);
     setSeasonError(null);
 
-    if (selected?.type === "series") {
+    if (selectedType === "series") {
       loadSeasons();
     }
 
     return () => {
       cancelled = true;
     };
-  }, [selected]);
+  }, [selectedProvider, selectedProviderId, selectedType]);
 
   useEffect(() => {
     let cancelled = false;
     async function loadEpisodes() {
-      if (!selected || selected.type !== "series") return;
+      if (selectedType !== "series") return;
       if (selectedSeason === "") return;
-      if (!selected.providerId || selected.provider === "LOCAL") return;
+      if (!selectedProviderId || selectedProvider === "LOCAL") return;
       setEpisodeLoading(true);
       try {
         const res = await api<EpisodeOption[]>(
-          `/tmdb/tv/${selected.providerId}/seasons/${selectedSeason}`,
+          `/tmdb/tv/${selectedProviderId}/seasons/${selectedSeason}`,
         );
         if (!cancelled) {
           setEpisodes(res);
@@ -575,7 +628,6 @@ export default function QuickLogCard({
     }
 
     setEpisodes([]);
-    setSelectedEpisode("");
     if (selectedSeason !== "") {
       const season = seasons.find((s) => s.seasonNumber === selectedSeason);
       setSeasonPosterUrl(season?.posterUrl ?? null);
@@ -589,10 +641,102 @@ export default function QuickLogCard({
     return () => {
       cancelled = true;
     };
-  }, [selected, selectedSeason, seasons]);
+  }, [
+    selectedProvider,
+    selectedProviderId,
+    selectedType,
+    selectedSeason,
+    seasons,
+  ]);
+
+  async function refreshSavedRecord(record: WatchLog) {
+    const current = (await resolveLogLocal(record.id, record.title)) ?? record;
+    setLocalLogId(current.id);
+    setLocalTitleId(current.title.id);
+    setSavedRecord(current);
+    return current;
+  }
+
+  async function synchronizeSavedRecord(record: WatchLog) {
+    // A kept local record remains valid even when the network cannot sync it yet.
+    await syncOutbox().catch(() => undefined);
+    return refreshSavedRecord(record);
+  }
+
+  async function shareSavedRecord(record: WatchLog) {
+    setPendingShare(record);
+    setSaveError(null);
+    try {
+      // Publishing requires the pull that resolves server IDs to finish too.
+      await syncOutbox();
+      const current = await refreshSavedRecord(record);
+      const outbox = await listOutbox();
+      const hasPendingChanges = outbox.some((item) => {
+        const id = item.type === "create_log" ? item.localLogId : item.logId;
+        return id === record.id || id === current.id;
+      });
+      if (
+        !navigator.onLine ||
+        current.syncStatus !== "synced" ||
+        hasPendingChanges
+      ) {
+        setSaveError(
+          copy(
+            "기록은 이 기기에 보관했어요. 연결된 뒤 함께 나누기를 다시 눌러주세요.",
+            "Your record is kept on this device. Try sharing again when connected.",
+          ),
+        );
+        return false;
+      }
+
+      const discussion = await api<Discussion>("/discussions", {
+        method: "POST",
+        body: JSON.stringify({ titleId: current.title.id }),
+      });
+      if (record.note?.trim()) {
+        const request: CreateCommentRequest = {
+          body: record.note.trim(),
+          mentions: [],
+          syncLog: false,
+        };
+        await apiWithAuth<Comment>(`/discussions/${discussion.id}/comments`, {
+          method: "POST",
+          body: JSON.stringify(request),
+        });
+      }
+      setPendingShare(null);
+      setShareToDiscussion(false);
+      window.dispatchEvent(new CustomEvent("sync:updated"));
+      if (shareCard) {
+        onCreated(current, { shareCard: true });
+        onDone?.();
+      }
+      setShareCard(false);
+      return true;
+    } catch {
+      setSaveError(
+        copy(
+          "기록은 보관했지만 함께 나누지 못했어요. 잠시 뒤 다시 눌러주세요.",
+          "Your record is kept, but sharing to Together failed. Please try again in a moment.",
+        ),
+      );
+      return false;
+    }
+  }
+
+  async function retrySharing() {
+    if (!pendingShare || saving) return;
+    setSaving(true);
+    try {
+      await shareSavedRecord(pendingShare);
+    } finally {
+      setSaving(false);
+    }
+  }
 
   async function handleInitialSave(clickedStatus: Status) {
-    if (!selected || saving) return;
+    if (!selected || saving || !watchedDate) return;
+    setSaveError(null);
     setSaving(true);
     try {
       const now = new Date().toISOString();
@@ -608,9 +752,7 @@ export default function QuickLogCard({
         selected.titleId ?? existingTitle?.id ?? safeUUID();
       const newLocalLogId = safeUUID();
 
-      setLocalTitleId(newLocalTitleId);
-      setLocalLogId(newLocalLogId);
-      setStatus(clickedStatus);
+      const pickedWatchedAt = editedRecordDate(now, watchedDate);
 
       const localLog: WatchLog = {
         id: newLocalLogId,
@@ -633,17 +775,17 @@ export default function QuickLogCard({
         status: clickedStatus,
         rating: null,
         note: null,
-        ott: null,
-        seasonNumber: null,
-        episodeNumber: null,
-        seasonPosterUrl: null,
-        seasonYear: null,
+        ott: ott.trim() || null,
+        seasonNumber: selectedSeason === "" ? null : selectedSeason,
+        episodeNumber: selectedEpisode === "" ? null : selectedEpisode,
+        seasonPosterUrl,
+        seasonYear,
         origin: "LOG",
         spoiler: false,
-        watchedAt: now,
+        watchedAt: pickedWatchedAt,
         createdAt: now,
-        place: null,
-        occasion: null,
+        place: place || null,
+        occasion: occasion || null,
         syncStatus: "pending",
         updatedAt: now,
       };
@@ -662,16 +804,16 @@ export default function QuickLogCard({
             status: clickedStatus,
             rating: null,
             note: null,
-            ott: null,
-            seasonNumber: null,
-            episodeNumber: null,
-            seasonPosterUrl: null,
-            seasonYear: null,
+            ott: ott.trim() || null,
+            seasonNumber: selectedSeason === "" ? null : selectedSeason,
+            episodeNumber: selectedEpisode === "" ? null : selectedEpisode,
+            seasonPosterUrl,
+            seasonYear,
             origin: "LOG",
             spoiler: false,
-            watchedAt: now,
-            place: null,
-            occasion: null,
+            watchedAt: pickedWatchedAt,
+            place: place || null,
+            occasion: occasion || null,
           },
         },
         title: {
@@ -695,6 +837,12 @@ export default function QuickLogCard({
           },
         },
       });
+      setLocalTitleId(newLocalTitleId);
+      setLocalLogId(newLocalLogId);
+      setStatus(clickedStatus);
+      setSavedRecord(localLog);
+      setWatchedDate(recordDateInput(localLog.watchedAt));
+      setEditing(false);
       const logCreateProperties = {
         entryPoint: "quick_log",
         titleType: selected.type,
@@ -726,7 +874,7 @@ export default function QuickLogCard({
         bookshelfEnabled && localLog.title.type === "book"
           ? resolveTitleClassification(localLog.title).catch(() => null)
           : null;
-      await syncOutbox();
+      await synchronizeSavedRecord(localLog);
 
       const totalCount = await countLogsLocal();
       setBanner({
@@ -754,15 +902,30 @@ export default function QuickLogCard({
         });
       }
       window.setTimeout(() => setBanner(null), 3000);
+    } catch (error) {
+      setSaveError(
+        errorMessage(
+          error,
+          copy(
+            "기록을 보관하지 못했어요. 다시 시도해 주세요.",
+            "Your record could not be kept. Please try again.",
+          ),
+        ),
+      );
     } finally {
       setSaving(false);
     }
   }
 
   async function handleUpdateSave() {
-    if (!selected || !localLogId || !localTitleId || saving) return;
+    if (!selected || !savedRecord || !localLogId || !localTitleId || saving)
+      return;
+    setSaveError(null);
     setSaving(true);
     try {
+      const current = await synchronizeSavedRecord(savedRecord);
+      const currentLogId = current.id;
+      const currentTitleId = current.title.id;
       const now = new Date().toISOString();
 
       if (ott.trim()) {
@@ -778,25 +941,15 @@ export default function QuickLogCard({
         }
       }
 
-      const pickedWatchedAt =
-        useWatchedAt && watchedDate ? dateToIso(watchedDate) : now;
+      const pickedWatchedAt = editedRecordDate(
+        current.watchedAt || now,
+        watchedDate,
+      );
 
       const updatedLog: WatchLog = {
-        id: localLogId,
+        id: currentLogId,
         title: {
-          id: localTitleId,
-          type: selected.type,
-          name: selected.name,
-          year: selected.year ?? undefined,
-          posterUrl: selected.posterUrl ?? undefined,
-          overview: selected.overview ?? undefined,
-          author: selected.author ?? undefined,
-          publisher: selected.publisher ?? undefined,
-          isbn10: selected.isbn10 ?? undefined,
-          isbn13: selected.isbn13 ?? undefined,
-          pubdate: selected.pubdate ?? undefined,
-          provider: selected.provider,
-          providerId: selected.providerId,
+          ...current.title,
           updatedAt: now,
         },
         status,
@@ -810,7 +963,7 @@ export default function QuickLogCard({
         origin: "LOG",
         spoiler: false,
         watchedAt: pickedWatchedAt,
-        createdAt: now, // Will be overwritten by DB layer properly
+        createdAt: current.createdAt || now,
         place: place === "" ? null : place,
         occasion: occasion === "" ? null : occasion,
         syncStatus: "pending",
@@ -818,94 +971,74 @@ export default function QuickLogCard({
       };
 
       await upsertLogLocal(updatedLog);
-      await enqueueCreateLog({
-        logId: localLogId,
-        titleId: localTitleId,
+      const payload = {
+        id: currentLogId,
+        op: "upsert",
         updatedAt: now,
-        log: {
-          id: localLogId,
-          op: "upsert",
-          updatedAt: now,
-          payload: {
-            titleId: localTitleId,
-            status,
-            rating: rating === "" ? null : rating,
-            note: note.trim() ? note.trim() : null,
-            ott: ott.trim() ? ott.trim() : null,
-            seasonNumber: selectedSeason === "" ? null : selectedSeason,
-            episodeNumber: selectedEpisode === "" ? null : selectedEpisode,
-            seasonPosterUrl: seasonPosterUrl ?? null,
-            seasonYear: seasonYear ?? null,
-            origin: "LOG",
-            spoiler: false,
-            watchedAt: pickedWatchedAt,
-            place: place === "" ? null : place,
-            occasion: occasion === "" ? null : occasion,
-          },
+        payload: {
+          titleId: currentTitleId,
+          status,
+          rating: updatedLog.rating,
+          note: updatedLog.note,
+          ott: updatedLog.ott,
+          seasonNumber: updatedLog.seasonNumber,
+          episodeNumber: updatedLog.episodeNumber,
+          seasonPosterUrl: updatedLog.seasonPosterUrl,
+          seasonYear: updatedLog.seasonYear,
+          origin: "LOG",
+          spoiler: false,
+          watchedAt: pickedWatchedAt,
+          place: updatedLog.place,
+          occasion: updatedLog.occasion,
         },
-        title: {
-          id: localTitleId,
-          op: "upsert",
-          updatedAt: now,
-          payload: {
-            type: selected.type,
-            name: selected.name,
-            year: selected.year ?? null,
-            genres: null,
-            overview: selected.overview ?? null,
-            posterUrl: selected.posterUrl ?? null,
-            author: selected.author ?? null,
-            publisher: selected.publisher ?? null,
-            isbn10: selected.isbn10 ?? null,
-            isbn13: selected.isbn13 ?? null,
-            pubdate: selected.pubdate ?? null,
-            provider: selected.provider,
-            providerId: selected.providerId,
-          },
+      };
+      const merged = await updatePendingCreatePayload(currentLogId, payload);
+      if (!merged) await enqueueUpdateLog(currentLogId, payload);
+      await upsertHistoryLocal([
+        {
+          id: safeUUID(),
+          logId: currentLogId,
+          recordedAt: now,
+          status: updatedLog.status,
+          rating: updatedLog.rating,
+          note: updatedLog.note,
+          ott: updatedLog.ott,
+          seasonNumber: updatedLog.seasonNumber,
+          episodeNumber: updatedLog.episodeNumber,
+          seasonPosterUrl: updatedLog.seasonPosterUrl,
+          seasonYear: updatedLog.seasonYear,
+          origin: updatedLog.origin,
+          spoiler: updatedLog.spoiler,
+          watchedAt: updatedLog.watchedAt,
+          place: updatedLog.place,
+          occasion: updatedLog.occasion,
         },
-      });
-      onCreated(updatedLog, { shareCard });
-      await syncOutbox();
+      ]);
+      setSavedRecord(updatedLog);
+      setEditing(false);
+      onCreated(updatedLog);
 
       if (shareToDiscussion) {
-        try {
-          const discussion = await api<Discussion>("/discussions", {
-            method: "POST",
-            body: JSON.stringify({ titleId: localTitleId }),
-          });
-          if (note.trim()) {
-            const req: CreateCommentRequest = {
-              body: note.trim(),
-              mentions: [],
-              syncLog: false,
-            };
-            await apiWithAuth<Comment>(
-              `/discussions/${discussion.id}/comments`,
-              {
-                method: "POST",
-                body: JSON.stringify(req),
-              },
-            );
-          }
-          if (typeof window !== "undefined") {
-            window.dispatchEvent(new CustomEvent("sync:updated"));
-          }
-        } catch {}
+        await shareSavedRecord(updatedLog);
+      } else {
+        const synced = await synchronizeSavedRecord(updatedLog);
+        setPendingShare(null);
+        if (shareCard) {
+          onCreated(synced, { shareCard: true });
+          onDone?.();
+        }
+        setShareCard(false);
       }
-
-      clearSelectedTitleState();
-      setStatus("IN_PROGRESS");
-      setRating("");
-      setNote("");
-      setOtt("");
-      setOttSelect("");
-      setCustomOttOptions(loadCustomOptions(platformCustomKey));
-      setPlace("");
-      setOccasion("");
-      setUseWatchedAt(false);
-      setWatchedDate("");
-      setShareCard(false);
-      setShareToDiscussion(false);
+    } catch (error) {
+      setSaveError(
+        errorMessage(
+          error,
+          copy(
+            "기록을 보관하지 못했어요. 다시 시도해 주세요.",
+            "Your record could not be kept. Please try again.",
+          ),
+        ),
+      );
     } finally {
       setSaving(false);
     }
@@ -919,657 +1052,574 @@ export default function QuickLogCard({
     setOttSelect("");
     setPlace("");
     setOccasion("");
-    setUseWatchedAt(false);
-    setWatchedDate("");
+    setWatchedDate(recordDateInput(new Date().toISOString()));
     setShareCard(false);
     setShareToDiscussion(false);
   }
 
-  function contentTypeButtonClass(type: "video" | "book") {
-    const active = contentType === type;
-    return cn(
-      "inline-flex h-10 items-center justify-center rounded-xl border px-4 text-xs font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-      active
-        ? "border-[#1E4D8C]/40 bg-ott-paper-strong text-[#1E4D8C] shadow-sm ring-1 ring-[#1E4D8C]/15 dark:border-border dark:text-foreground dark:ring-border"
-        : "border-transparent bg-card text-muted-foreground hover:bg-ott-paper-strong hover:text-foreground",
-    );
+  function cancelEdit() {
+    if (savedRecord) {
+      setStatus(savedRecord.status);
+      setRating(savedRecord.rating ?? "");
+      setNote(savedRecord.note ?? "");
+      setOtt(savedRecord.ott ?? "");
+      setOttSelect(
+        resolvePlatformSelect(
+          savedRecord.ott ?? "",
+          allOttOptions,
+          platformGroups,
+        ),
+      );
+      setPlace(savedRecord.place ?? "");
+      setOccasion(savedRecord.occasion ?? "");
+      setWatchedDate(recordDateInput(savedRecord.watchedAt));
+      setSelectedSeason(savedRecord.seasonNumber ?? "");
+      setSelectedEpisode(savedRecord.episodeNumber ?? "");
+      setSeasonPosterUrl(savedRecord.seasonPosterUrl ?? null);
+      setSeasonYear(savedRecord.seasonYear ?? null);
+    }
+    setShareCard(false);
+    setShareToDiscussion(false);
+    setEditing(false);
   }
 
-  function statusButtonClass(value: Status, className: string) {
-    return cn(
-      className,
-      highlightedStatus === value &&
-        "ring-2 ring-foreground/20 ring-offset-2 ring-offset-card",
-    );
-  }
+  const contextFields = (
+    <div className={styles.contextGrid}>
+      <label className={styles.field}>
+        <span>
+          <Calendar size={16} />
+          {copy("날짜", "Date")}
+        </span>
+        <input
+          type="date"
+          data-testid="record-date"
+          required
+          value={watchedDate}
+          onChange={(event) => setWatchedDate(event.target.value)}
+          aria-describedby="record-date-hint"
+        />
+        <small id="record-date-hint">
+          {copy(
+            isBookMode ? "읽은 날을 골라주세요." : "본 날을 골라주세요.",
+            isBookMode
+              ? "Choose the day you read it."
+              : "Choose the day you watched it.",
+          )}
+        </small>
+      </label>
+      <label className={styles.field}>
+        <span>
+          <MonitorPlay size={16} />
+          {isBookMode
+            ? copy("읽은 곳·플랫폼", "Where you got or read it")
+            : tQuick("detailPlatform")}
+        </span>
+        <select
+          data-testid="record-platform"
+          value={ottSelect}
+          onChange={(event) => {
+            setOttSelect(event.target.value);
+            setOtt(
+              event.target.value === OTT_CUSTOM_VALUE ? "" : event.target.value,
+            );
+          }}
+        >
+          <option value="">{tCommon("none")}</option>
+          {platformGroups.map((group) => (
+            <optgroup key={group.label} label={group.label}>
+              {group.options.map((value) => (
+                <option key={value} value={value}>
+                  {value}
+                </option>
+              ))}
+            </optgroup>
+          ))}
+          {customOttOptions.length ? (
+            <optgroup label={tQuick("myInput")}>
+              {customOttOptions.map((value) => (
+                <option key={value} value={value}>
+                  {value}
+                </option>
+              ))}
+            </optgroup>
+          ) : null}
+          <option value={OTT_CUSTOM_VALUE}>{tQuick("customInput")}</option>
+        </select>
+        {ottSelect === OTT_CUSTOM_VALUE ? (
+          <input
+            data-testid="record-platform-custom"
+            value={ott}
+            onChange={(event) => setOtt(event.target.value)}
+            placeholder={tQuick("customInputPlaceholder")}
+            aria-label={tQuick("customInput")}
+          />
+        ) : null}
+      </label>
+      <label className={styles.field}>
+        <span>
+          <MapPin size={16} />
+          {tQuick("detailPlace")}
+        </span>
+        <select
+          data-testid="record-place"
+          value={place}
+          onChange={(event) => setPlace(event.target.value as Place | "")}
+        >
+          <option value="">{tCommon("none")}</option>
+          {placeOptions.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label className={styles.field}>
+        <span>
+          <Users size={16} />
+          {copy("누구와·어떤 상황", "Who you were with or the occasion")}
+        </span>
+        <select
+          data-testid="record-occasion"
+          value={occasion}
+          onChange={(event) => setOccasion(event.target.value as Occasion | "")}
+        >
+          <option value="">{tCommon("none")}</option>
+          {occasionOptions.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+      </label>
+      {selected?.type === "series" ? (
+        <>
+          <label className={styles.field}>
+            <span>{tQuick("seasonLabel")}</span>
+            <select
+              data-testid="record-season"
+              value={selectedSeason}
+              onChange={(event) => {
+                setSelectedSeason(
+                  event.target.value ? Number(event.target.value) : "",
+                );
+                setSelectedEpisode("");
+              }}
+              disabled={seasonLoading}
+            >
+              <option value="">{tCommon("none")}</option>
+              {seasons.map((season) => (
+                <option key={season.seasonNumber} value={season.seasonNumber}>
+                  {tQuick("seasonValue", { number: season.seasonNumber })}
+                  {season.name ? ` · ${season.name}` : ""}
+                </option>
+              ))}
+            </select>
+            {seasonLoading ? <small>{tQuick("loadingSeasons")}</small> : null}
+            {seasonError ? <small>{seasonError}</small> : null}
+          </label>
+          <label className={styles.field}>
+            <span>{tQuick("episodeLabel")}</span>
+            <select
+              data-testid="record-episode"
+              value={selectedEpisode}
+              onChange={(event) =>
+                setSelectedEpisode(
+                  event.target.value ? Number(event.target.value) : "",
+                )
+              }
+              disabled={selectedSeason === "" || episodeLoading}
+            >
+              <option value="">{tCommon("none")}</option>
+              {episodes.map((episode) => (
+                <option
+                  key={episode.episodeNumber}
+                  value={episode.episodeNumber}
+                >
+                  {copy(
+                    `${episode.episodeNumber}화`,
+                    `Episode ${episode.episodeNumber}`,
+                  )}
+                  {episode.name ? ` · ${episode.name}` : ""}
+                </option>
+              ))}
+            </select>
+            {episodeLoading ? <small>{tQuick("loadingEpisodes")}</small> : null}
+          </label>
+        </>
+      ) : null}
+    </div>
+  );
 
   return (
-    <>
-      <section
-        className={cn(
-          "space-y-4 rounded-3xl border border-border bg-card/90 p-5 text-card-foreground shadow-[0_18px_60px_rgba(52,45,37,0.08)] transition-all hover:border-muted-foreground/25 sm:p-6",
-          isBookMode &&
-            "border-ott-sage bg-ott-sage/25 ring-1 ring-ott-sage/50 dark:border-emerald-900/50 dark:bg-emerald-950/25 dark:ring-emerald-900/60",
-        )}
+    <section
+      className={styles.card}
+      data-stage={stage}
+      data-record-layout={dialogLayout ? "dialog" : "inline"}
+    >
+      <div
+        className={styles.cardBody}
+        data-testid={editing ? "record-edit-body" : undefined}
       >
         {!selected ? (
           <>
-            <div
-              className="flex items-center gap-2"
-              data-onboarding-target="content-type"
-            >
-              <button
-                type="button"
-                onClick={() => {
-                  if (contentType !== "video") clearSelectedTitleState();
-                  setContentType("video");
-                }}
-                className={contentTypeButtonClass("video")}
-              >
-                {tQuick("tabVideo")}
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  if (contentType !== "book") clearSelectedTitleState();
-                  setContentType("book");
-                }}
-                className={contentTypeButtonClass("book")}
-              >
-                {tQuick("tabBook")}
-              </button>
-            </div>
-
-            <div
-              data-onboarding-target="title-search"
-              className="rounded-2xl border border-ott-warm bg-ott-paper p-3 shadow-inner shadow-white/60 ring-1 ring-ott-warm/70 dark:shadow-none"
-            >
-              <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-foreground">
-                <ArrowRight className="h-4 w-4" />
-                {tQuick("searchStartModern")}
+            {shareImportStatus ? (
+              <div className={styles.notice}>
+                <strong>
+                  {shareImportStatus === "imported"
+                    ? tQuick("shareImportTitle")
+                    : tQuick("shareImportUnresolvedTitle")}
+                </strong>
+                <p>
+                  {shareImportStatus === "imported"
+                    ? tQuick("shareImportDesc")
+                    : tQuick("shareImportUnresolvedDesc")}
+                </p>
+                {shareImportFeedbackHref ? (
+                  <Link href={shareImportFeedbackHref}>
+                    {tQuick("shareImportFeedbackAction")}
+                  </Link>
+                ) : null}
               </div>
-              {shareImportStatus ? (
-                <div
-                  className={cn(
-                    "mb-3 rounded-xl border px-3 py-2 text-xs leading-relaxed",
-                    shareImportStatus === "imported"
-                      ? "border-border bg-card/85 text-foreground"
-                      : "border-ott-warm bg-ott-warm/60 text-ott-warm-foreground dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-100",
-                  )}
-                >
-                  <div className="font-semibold">
-                    {shareImportStatus === "imported"
-                      ? tQuick("shareImportTitle")
-                      : tQuick("shareImportUnresolvedTitle")}
-                  </div>
-                  <div className="mt-0.5">
-                    {shareImportStatus === "imported"
-                      ? tQuick("shareImportDesc")
-                      : tQuick("shareImportUnresolvedDesc")}
-                  </div>
-                  {shareImportFeedbackHref ? (
-                    <Link
-                      href={shareImportFeedbackHref}
-                      className="mt-1.5 inline-flex min-h-9 items-center font-semibold text-[#1E4D8C] underline underline-offset-4 dark:text-foreground"
-                    >
-                      {tQuick("shareImportFeedbackAction")}
-                    </Link>
-                  ) : null}
-                </div>
-              ) : null}
-              <TitleSearchBox
-                key={contentType}
-                onSelect={(item) => setSelected(item)}
-                onSearchComplete={handleTitleSearchComplete}
-                onSelectAnalytics={handleTitleSelectAnalytics}
-                placeholder={
-                  isBookMode
-                    ? tQuick("searchPlaceholderBook")
-                    : tQuick("searchPlaceholderVideo")
-                }
-                showRecentDiscussions
-                contentType={isBookMode ? "book" : "video"}
-                initialQuery={initialSearchQuery}
-                autoFocus={autoFocusSearch}
-                focusSignal={searchFocusSignal}
-              />
-            </div>
+            ) : null}
+            <TitleSearchBox
+              dialogLayout={dialogLayout}
+              onSelect={(item) => {
+                setSelected(item);
+                setPendingStatus(highlightedStatus ?? null);
+                setContentType(item.type === "book" ? "book" : "video");
+              }}
+              onSearchComplete={handleTitleSearchComplete}
+              onSelectAnalytics={handleTitleSelectAnalytics}
+              contentType={contentType}
+              onContentTypeChange={setContentType}
+              initialQuery={initialSearchQuery}
+              autoFocus={autoFocusSearch}
+              focusSignal={searchFocusSignal}
+              showRecentDiscussions
+            />
           </>
-        ) : null}
-
-        {selected ? (
-          <div className="animate-in slide-in-from-top-2 duration-300 fade-in space-y-4">
-            <div
-              className="rounded-2xl border border-border bg-ott-paper p-4 transition-colors"
-              data-onboarding-target="selected-title"
-            >
-              <div className="flex items-center gap-5">
-                <div className="h-32 w-20 shrink-0 overflow-hidden rounded-xl border border-border bg-muted shadow-sm">
-                  {(seasonPosterUrl ?? selected.posterUrl) ? (
-                    <img
-                      src={
-                        tmdbResize(
-                          (seasonPosterUrl ?? selected.posterUrl) || "",
-                          "w185",
-                        ) ??
-                        seasonPosterUrl ??
-                        selected.posterUrl ??
-                        ""
-                      }
-                      alt={selected.name}
-                      className="h-full w-full object-cover"
-                      loading="lazy"
-                    />
-                  ) : null}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="truncate text-base font-bold text-foreground">
-                    {selected.name}
-                  </div>
-                  <div className="mt-1 text-sm text-muted-foreground font-medium">
-                    {titleTypeLabel(selected.type, tQuick)}
-                    {selected.type === "book" ? (
-                      bookMeta(selected) ? (
-                        ` · ${bookMeta(selected)}`
-                      ) : (
-                        ""
-                      )
-                    ) : (
-                      <>
-                        {(seasonYear ?? selected.year)
-                          ? ` · ${seasonYear ?? selected.year}`
-                          : ""}
-                        {selectedSeason !== ""
-                          ? " · " +
-                            tQuick("seasonValue", { number: selectedSeason })
-                          : ""}
-                        {selectedEpisode !== ""
-                          ? ` · EP ${selectedEpisode}`
-                          : ""}
-                      </>
-                    )}
-                  </div>
-
-                  <div className="mt-3 space-y-2">
-                    {selected.genres && selected.genres.length > 0 && (
-                      <div className="flex flex-wrap gap-1.5">
-                        {selected.genres.map((g) => (
-                          <span
-                            key={g}
-                            className="rounded-full border border-border bg-card/80 px-2 py-0.5 text-[10px] text-muted-foreground dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-400"
-                          >
-                            {g}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                    <div className="space-y-0.5">
-                      {selected.directors && selected.directors.length > 0 && (
-                        <div className="text-[11px] text-muted-foreground line-clamp-1">
-                          {tDetail("director")} ·{" "}
-                          {selected.directors.join(", ")}
-                        </div>
-                      )}
-                      {selected.cast && selected.cast.length > 0 && (
-                        <div className="text-[11px] text-muted-foreground line-clamp-1">
-                          {tDetail("cast")} · {selected.cast.join(", ")}
-                        </div>
-                      )}
-                    </div>
-                    {selected.type === "book" && selected.overview && (
-                      <div className="text-[11px] text-muted-foreground line-clamp-2 mt-1 leading-relaxed">
-                        {selected.overview}
-                      </div>
-                    )}
-                  </div>
-                </div>
+        ) : (
+          <>
+            <div className={styles.titleSummary} data-book={isBookMode}>
+              {seasonPosterUrl || selected.posterUrl ? (
+                <img
+                  src={
+                    tmdbResize(
+                      seasonPosterUrl || selected.posterUrl || "",
+                      "w342",
+                    ) ||
+                    seasonPosterUrl ||
+                    selected.posterUrl ||
+                    ""
+                  }
+                  alt={selected.name}
+                  width={88}
+                  height={132}
+                />
+              ) : null}
+              <div>
+                <h3>{selected.name}</h3>
+                <p>
+                  {titleTypeLabel(selected.type, tQuick)}
+                  {isBookMode
+                    ? bookMeta(selected)
+                      ? ` · ${bookMeta(selected)}`
+                      : ""
+                    : selectedDisplayYear
+                      ? ` · ${selectedDisplayYear}`
+                      : ""}
+                </p>
+                {selectedSeason !== "" ? (
+                  <p>
+                    {tQuick("seasonValue", { number: selectedSeason })}
+                    {selectedEpisode !== ""
+                      ? copy(
+                          ` · ${selectedEpisode}화`,
+                          ` · Episode ${selectedEpisode}`,
+                        )
+                      : ""}
+                  </p>
+                ) : null}
+              </div>
+              {!localLogId ? (
                 <button
                   type="button"
-                  aria-label={tQuick("cancelAction")}
                   onClick={handleCancel}
-                  className="flex min-h-12 min-w-12 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-ott-paper-strong hover:text-foreground"
+                  disabled={saving}
+                  className={styles.close}
+                  aria-label={copy("다른 작품 찾기", "Choose another title")}
                 >
-                  <X className="h-5 w-5" />
+                  <X size={20} />
                 </button>
-              </div>
+              ) : null}
             </div>
-
             {googleBooksUrl(selected) ? (
               <GoogleBooksAttribution href={googleBooksUrl(selected)!} />
             ) : null}
-
+            {saveError ? (
+              <p className={styles.error} role="alert">
+                {saveError}
+              </p>
+            ) : null}
+            {pendingShare && !editing ? (
+              <div className={styles.actions}>
+                <button
+                  type="button"
+                  data-testid="record-retry-sharing"
+                  className={styles.secondary}
+                  disabled={saving}
+                  onClick={() => void retrySharing()}
+                >
+                  {saving
+                    ? copy("함께 나누는 중…", "Sharing…")
+                    : copy("함께 나누기 다시 시도", "Try sharing again")}
+                </button>
+              </div>
+            ) : null}
             {!localLogId ? (
-              <div className="space-y-4 pt-4 pb-2 animate-in fade-in duration-300">
-                <div className="text-center text-sm font-semibold text-foreground">
-                  {tQuick("statusPrompt")}
+              <>
+                <p className={styles.hint}>{tQuick("statusPrompt")}</p>
+                <div
+                  className={styles.statusChoices}
+                  data-onboarding-target="status-save"
+                >
+                  {(["DONE", "IN_PROGRESS", "WISHLIST"] as Status[]).map(
+                    (value) => (
+                      <button
+                        key={value}
+                        data-testid={`record-status-${value}`}
+                        type="button"
+                        disabled={saving}
+                        onClick={() => setPendingStatus(value)}
+                        aria-pressed={pendingStatus === value}
+                      >
+                        {
+                          statusOptions.find((option) => option.value === value)
+                            ?.label
+                        }
+                      </button>
+                    ),
+                  )}
                 </div>
-                <div className="grid grid-cols-3 gap-2">
+                <p className={styles.hint}>
+                  {copy(
+                    "상태를 고른 뒤 아래의 ‘기록 남기기’를 눌러요. 그날의 순간은 원할 때만 더해요.",
+                    "Choose a status, then tap ‘Keep this record’ below. Add the moment only if you like.",
+                  )}
+                </p>
+                <details className={styles.context}>
+                  <summary>
+                    {copy("그날의 순간 (선택)", "The moment (optional)")}
+                  </summary>
+                  {contextFields}
+                </details>
+              </>
+            ) : !editing ? (
+              <div className={styles.confirmation}>
+                <Check size={32} aria-hidden="true" />
+                <h3>
+                  {copy("타임라인에 남겨두었어요.", "Kept on your timeline.")}
+                </h3>
+                <p>
+                  {copy(
+                    "더 남기고 싶을 때 그날의 순간과 메모를 더해요.",
+                    "Add the moment and a note whenever you want.",
+                  )}
+                </p>
+                <p className={styles.hint}>
+                  {copy(
+                    "이 기기에 보관했어요. 연결되면 다른 기기에도 이어져요.",
+                    "Kept on this device. It will sync when connected.",
+                  )}
+                </p>
+                {banner?.bookshelf ? (
+                  <p className={styles.hint}>
+                    {banner.shelfMajor == null
+                      ? tBookshelf("findingShelf")
+                      : tBookshelf("shelvedIn", {
+                          category: tBookshelf(
+                            `categories.${banner.shelfMajor}`,
+                          ),
+                        })}
+                  </p>
+                ) : null}
+                {savedRecord ? (
+                  <SavedDiscussionLink
+                    record={savedRecord}
+                    sourceTitle={selected}
+                    onOpen={onDone}
+                  />
+                ) : null}
+                <div className={styles.actions}>
                   <button
                     type="button"
-                    onClick={() => handleInitialSave("DONE")}
-                    disabled={saving}
-                    className={statusButtonClass(
-                      "DONE",
-                      "min-h-[52px] rounded-xl bg-primary text-sm font-bold text-primary-foreground transition-all active:scale-[0.98] disabled:opacity-50",
-                    )}
+                    className={styles.secondary}
+                    data-testid="record-edit-details"
+                    onClick={() => setEditing(true)}
                   >
-                    {isBookMode
-                      ? tQuick("statusDoneBook")
-                      : tQuick("statusDoneVideo")}
+                    {copy("그날의 순간·메모 더하기", "Add to this moment")}
                   </button>
                   <button
                     type="button"
-                    onClick={() => handleInitialSave("IN_PROGRESS")}
-                    disabled={saving}
-                    className={statusButtonClass(
-                      "IN_PROGRESS",
-                      "min-h-[52px] rounded-xl bg-ott-sky-soft text-sm font-bold text-foreground transition-all active:scale-[0.98] disabled:opacity-50",
-                    )}
+                    className={styles.primary}
+                    data-testid="record-done"
+                    onClick={() => {
+                      if (onDone) onDone();
+                      else handleCancel();
+                    }}
                   >
-                    {isBookMode
-                      ? tQuick("statusInProgressBook")
-                      : tQuick("statusInProgressVideo")}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleInitialSave("WISHLIST")}
-                    disabled={saving}
-                    className={statusButtonClass(
-                      "WISHLIST",
-                      "min-h-[52px] rounded-xl border border-ott-warm bg-ott-warm/55 text-sm font-bold text-ott-warm-foreground transition-all active:scale-[0.98] disabled:opacity-50",
-                    )}
-                  >
-                    {isBookMode
-                      ? tQuick("statusWishlistBook")
-                      : tQuick("statusWishlistVideo")}
+                    {copy("완료", "Done")}
                   </button>
                 </div>
-                <div className="text-center text-xs text-muted-foreground mt-2">
-                  {tQuick("savedLocally")}
+                <div className={styles.actions}>
+                  <IntlLink
+                    href="/timeline"
+                    className={styles.quiet}
+                    onClick={onDone}
+                  >
+                    {copy("타임라인에서 보기", "View my timeline")}
+                    <ArrowRight size={16} />
+                  </IntlLink>
+                  {savedRecord ? (
+                    <button
+                      type="button"
+                      className={styles.quiet}
+                      onClick={() => {
+                        onDone?.();
+                        onCreated(savedRecord, { shareCard: true });
+                      }}
+                    >
+                      <Share2 size={16} />
+                      {copy("공유 카드 만들기", "Create a share card")}
+                    </button>
+                  ) : null}
                 </div>
               </div>
             ) : (
-              <div className="space-y-6 pt-2 animate-in slide-in-from-top-4 fade-in duration-300">
-                <div className="rounded-2xl border border-ott-sage bg-ott-sage/45 p-4 text-center text-sm font-semibold text-ott-sage-foreground dark:border-emerald-900/50 dark:bg-emerald-950/40 dark:text-emerald-400">
-                  {tQuick("saveSuccessPrompt")}
-                </div>
-
-                <div>
-                  <div className="mb-4 ml-1 text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                    {tQuick("optionalDetailsTitle")}
-                  </div>
-                  <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-                    <div className="space-y-2">
-                      <div className="ml-1 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-                        <Clock className="h-3 w-3" />
-                        {tQuick("detailStatus")}
-                      </div>
-                      <select
-                        value={status}
-                        onChange={(e) => setStatus(e.target.value as Status)}
-                        className={fieldControlClass}
-                      >
-                        {statusOptions.map((o) => (
-                          <option key={o.value} value={o.value}>
-                            {o.label}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    {selected?.type === "series" ? (
-                      <>
-                        <div className="space-y-2">
-                          <div className="ml-1 text-xs font-medium text-muted-foreground">
-                            {tQuick("seasonLabel")}
-                          </div>
-                          <select
-                            value={selectedSeason}
-                            onChange={(e) =>
-                              setSelectedSeason(
-                                e.target.value ? Number(e.target.value) : "",
-                              )
-                            }
-                            className={fieldControlClass}
-                          >
-                            <option value="">{tCommon("none")}</option>
-                            {seasons.map((s) => (
-                              <option
-                                key={s.seasonNumber}
-                                value={s.seasonNumber}
-                              >
-                                {tQuick("seasonValue", {
-                                  number: s.seasonNumber,
-                                })}
-                                {s.name ? ` · ${s.name}` : ""}
-                              </option>
-                            ))}
-                          </select>
-                          {seasonLoading ? (
-                            <div className="text-[11px] text-muted-foreground">
-                              {tQuick("loadingSeasons")}
-                            </div>
-                          ) : null}
-                          {seasonError ? (
-                            <div className="text-[11px] text-red-500">
-                              {seasonError}
-                            </div>
-                          ) : null}
-                        </div>
-
-                        <div className="space-y-2">
-                          <div className="ml-1 text-xs font-medium text-muted-foreground">
-                            {tQuick("episodeLabel")}
-                          </div>
-                          <select
-                            value={selectedEpisode}
-                            onChange={(e) =>
-                              setSelectedEpisode(
-                                e.target.value ? Number(e.target.value) : "",
-                              )
-                            }
-                            className={cn(
-                              fieldControlClass,
-                              (selectedSeason === "" || episodeLoading) &&
-                                disabledControlClass,
-                            )}
-                            disabled={selectedSeason === "" || episodeLoading}
-                          >
-                            <option value="">{tCommon("none")}</option>
-                            {episodes.map((e) => (
-                              <option
-                                key={e.episodeNumber}
-                                value={e.episodeNumber}
-                              >
-                                EP {e.episodeNumber}
-                                {e.name ? ` · ${e.name}` : ""}
-                              </option>
-                            ))}
-                          </select>
-                          {episodeLoading ? (
-                            <div className="text-[11px] text-muted-foreground">
-                              {tQuick("loadingEpisodes")}
-                            </div>
-                          ) : null}
-                        </div>
-                      </>
-                    ) : null}
-
-                    <div className="space-y-2">
-                      <div className="ml-1 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-                        <Star className="h-3 w-3" />
-                        {tQuick("detailRating")}
-                      </div>
-                      <select
-                        value={rating === "" ? "" : String(rating)}
-                        onChange={(e) =>
-                          setRating(
-                            e.target.value === "" ? "" : Number(e.target.value),
-                          )
-                        }
-                        className={cn(
-                          fieldControlClass,
-                          isWishlist && disabledControlClass,
-                        )}
-                        disabled={isWishlist}
-                      >
-                        <option value="">{tCommon("none")}</option>
-                        {ratingOptions.map((o) => (
-                          <option key={o.value} value={String(o.value)}>
-                            {o.label}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div className="md:col-span-2 space-y-2">
-                      <div className="ml-1 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-                        <MonitorPlay className="h-3 w-3" />
-                        {tQuick("detailPlatform")}
-                      </div>
-                      <select
-                        value={ottSelect}
-                        onChange={(e) => {
-                          const next = e.target.value;
-                          setOttSelect(next);
-                          if (next === OTT_CUSTOM_VALUE) {
-                            setOtt("");
-                          } else {
-                            setOtt(next);
-                          }
-                        }}
-                        className={fieldControlClass}
-                      >
-                        <option value="">{tCommon("none")}</option>
-                        {platformGroups.map((g) => (
-                          <optgroup key={g.label} label={g.label}>
-                            {g.options.map((o) => (
-                              <option key={o} value={o}>
-                                {o}
-                              </option>
-                            ))}
-                          </optgroup>
-                        ))}
-                        {customOttOptions.length > 0 ? (
-                          <optgroup label={tQuick("myInput")}>
-                            {customOttOptions.map((o) => (
-                              <option key={o} value={o}>
-                                {o}
-                              </option>
-                            ))}
-                          </optgroup>
-                        ) : null}
-                        <option value={OTT_CUSTOM_VALUE}>
-                          {tQuick("customInput")}
-                        </option>
-                      </select>
-                      {ottSelect === OTT_CUSTOM_VALUE ? (
-                        <input
-                          value={ott}
-                          onChange={(e) => setOtt(e.target.value)}
-                          className={cn(fieldControlClass, "mt-2")}
-                          placeholder={
-                            isBookMode
-                              ? tQuick("customInputPlaceholder")
-                              : tQuick("customInput")
-                          }
-                        />
-                      ) : null}
-                    </div>
-
-                    <div className="space-y-2">
-                      <div className="ml-1 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-                        <MapPin className="h-3 w-3" />
-                        {tQuick("detailPlace")}
-                      </div>
-                      <select
-                        value={place}
-                        onChange={(e) => setPlace(e.target.value as Place | "")}
-                        className={cn(
-                          fieldControlClass,
-                          isWishlist && disabledControlClass,
-                        )}
-                        disabled={isWishlist}
-                      >
-                        <option value="">{tCommon("none")}</option>
-                        {placeOptions.map((o) => (
-                          <option key={o.value} value={o.value}>
-                            {o.label}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div className="space-y-2">
-                      <div className="ml-1 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-                        <Users className="h-3 w-3" />
-                        {tQuick("detailOccasion")}
-                      </div>
-                      <select
-                        value={occasion}
-                        onChange={(e) =>
-                          setOccasion(e.target.value as Occasion)
-                        }
-                        className={cn(
-                          fieldControlClass,
-                          isWishlist && disabledControlClass,
-                        )}
-                        disabled={isWishlist}
-                      >
-                        {occasionOptions.map((o) => (
-                          <option key={o.value} value={o.value}>
-                            {o.label}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div className="md:col-span-2 space-y-2">
-                      <button
-                        type="button"
-                        onClick={() => setUseWatchedAt(!useWatchedAt)}
-                        className={cn(
-                          "flex min-h-[52px] items-center gap-2 rounded-xl px-2 text-xs font-medium transition-colors",
-                          useWatchedAt
-                            ? "text-foreground"
-                            : "text-muted-foreground hover:text-foreground",
-                        )}
-                      >
-                        <Calendar className="h-3.5 w-3.5" />
-                        {useWatchedAt
-                          ? tQuick("dateSelecting")
-                          : tQuick("dateOther")}
-                      </button>
-                      {useWatchedAt ? (
-                        <input
-                          type="date"
-                          value={watchedDate}
-                          onChange={(e) => setWatchedDate(e.target.value)}
-                          className={selectControlClass}
-                        />
-                      ) : null}
-                    </div>
-
-                    <div className="md:col-span-2 space-y-2">
-                      <div className="ml-1 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-                        <MessageSquare className="h-3 w-3" />
-                        {tQuick("detailNote")}
-                      </div>
-                      <textarea
-                        value={note}
-                        onChange={(e) => setNote(e.target.value)}
-                        className={cn(
-                          fieldControlClass,
-                          "min-h-28 resize-none",
-                        )}
-                        placeholder={tQuick("notePlaceholder")}
-                        rows={3}
-                      />
-                    </div>
-                  </div>
-
-                  <div
-                    className="mt-3 grid grid-cols-1 gap-2"
-                    data-onboarding-target="status-save"
+              <>
+                <label className={styles.field}>
+                  <span>
+                    <Clock size={16} />
+                    {tQuick("detailStatus")}
+                  </span>
+                  <select
+                    data-testid="record-edit-status"
+                    value={status}
+                    onChange={(event) =>
+                      setStatus(event.target.value as Status)
+                    }
                   >
-                    <div className="space-y-1">
-                      <div className="ml-1 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-                        <Share2 className="h-3 w-3" />
-                        {tQuick("saveAndShare")}
-                      </div>
-                      <div className="flex flex-row flex-nowrap items-center overflow-x-auto rounded-xl border border-border bg-ott-paper px-4 py-2 no-scrollbar sm:px-6">
-                        <label className="flex min-h-[40px] cursor-pointer items-center whitespace-nowrap text-xs font-medium text-foreground/80">
-                          <input
-                            type="checkbox"
-                            checked={shareToDiscussion}
-                            onChange={(e) =>
-                              setShareToDiscussion(e.target.checked)
-                            }
-                            style={{
-                              width: "20px",
-                              height: "20px",
-                              marginRight: "12px",
-                            }}
-                            className="shrink-0"
-                          />
-                          <span>{tQuick("shareToPublic")}</span>
-                        </label>
-                        <div className="w-10 sm:w-24 shrink-0" />
-                        <label className="flex min-h-[40px] cursor-pointer items-center whitespace-nowrap text-xs font-medium text-foreground/80">
-                          <input
-                            type="checkbox"
-                            checked={shareCard}
-                            onChange={(e) => setShareCard(e.target.checked)}
-                            style={{
-                              width: "20px",
-                              height: "20px",
-                              marginRight: "12px",
-                            }}
-                            className="shrink-0"
-                          />
-                          <span>{tQuick("createShareCard")}</span>
-                        </label>
-                      </div>
-                    </div>
-
-                    <button
-                      type="button"
-                      disabled={!canSave}
-                      onClick={handleUpdateSave}
-                      className="flex h-12 min-h-[48px] w-full items-center justify-center whitespace-nowrap rounded-2xl bg-primary px-8 text-sm font-semibold text-primary-foreground transition-all hover:bg-primary/90 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-40 sm:h-14 sm:min-h-[56px]"
-                    >
-                      {saving ? tQuick("saving") : tQuick("saveActionModern")}
-                    </button>
-                  </div>
+                    {statusOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <section className={styles.context}>
+                  <h3>{copy("그날의 순간", "The moment")}</h3>
+                  {contextFields}
+                </section>
+                <RecordFeelings
+                  value={rating}
+                  type={selected.type}
+                  onChange={setRating}
+                />
+                <label className={styles.field}>
+                  <span>
+                    <MessageSquare size={16} />
+                    {tQuick("detailNote")}
+                  </span>
+                  <textarea
+                    data-testid="record-note"
+                    value={note}
+                    onChange={(event) => setNote(event.target.value)}
+                    placeholder={tQuick("notePlaceholder")}
+                    rows={4}
+                  />
+                </label>
+                <div className={styles.shareChoices}>
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={shareToDiscussion}
+                      onChange={(event) =>
+                        setShareToDiscussion(event.target.checked)
+                      }
+                    />
+                    {tQuick("shareToPublic")}
+                  </label>
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={shareCard}
+                      onChange={(event) => setShareCard(event.target.checked)}
+                    />
+                    {tQuick("createShareCard")}
+                  </label>
                 </div>
-              </div>
+                {shareToDiscussion ? (
+                  <p className={styles.hint}>
+                    {copy(
+                      "작품과 메모를 다른 사람들도 볼 수 있어요. 날짜·장소·상황은 공개되지 않아요.",
+                      "Your title and note will be public. Date, place and occasion stay private.",
+                    )}
+                  </p>
+                ) : null}
+              </>
             )}
-          </div>
-        ) : null}
-      </section>
-
-      {banner?.visible ? (
-        <div className="fixed bottom-[var(--mobile-bottom-overlay-offset)] left-1/2 z-[100] w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 animate-in fade-in slide-in-from-bottom-4 duration-300 sm:bottom-6">
-          <div className="flex items-center justify-between gap-4 rounded-2xl border border-border bg-card/95 p-4 shadow-xl backdrop-blur-md">
-            <div className="min-w-0 text-sm font-medium text-foreground">
-              <div>
-                {tQuick("successLike")}{" "}
-                <span className="font-bold text-foreground">
-                  {tQuick("successCount", { count: banner.count })}
-                </span>
-              </div>
-              {banner.bookshelf ? (
-                <div className="mt-1 text-xs font-normal text-muted-foreground">
-                  {banner.shelfMajor === null || banner.shelfMajor === undefined
-                    ? tBookshelf("findingShelf")
-                    : tBookshelf("shelvedIn", {
-                        category: tBookshelf(`categories.${banner.shelfMajor}`),
-                      })}
-                </div>
-              ) : null}
-            </div>
-            <IntlLink
-              href={
-                banner.bookshelf
-                  ? `/me/bookshelf${
-                      banner.shelfMajor === null ||
-                      banner.shelfMajor === undefined
-                        ? ""
-                        : `?kdc=${banner.shelfMajor}`
-                    }`
-                  : "/timeline"
-              }
-              data-onboarding-target="timeline-confirm"
-              className="flex min-h-12 items-center gap-1 text-xs font-bold text-[#1E4D8C] hover:underline dark:text-foreground"
-            >
-              {banner.bookshelf
-                ? tBookshelf("viewShelf")
-                : tQuick("viewTimeline")}{" "}
-              <ArrowRight className="h-3 w-3" />
-            </IntlLink>
-          </div>
+          </>
+        )}
+      </div>
+      {selected && !localLogId ? (
+        <div className={styles.saveFooter} data-testid="record-initial-footer">
+          <p className={styles.hint} aria-live="polite">
+            {pendingStatus
+              ? statusOptions.find((option) => option.value === pendingStatus)
+                  ?.label
+              : copy("상태를 골라주세요.", "Choose a status.")}
+          </p>
+          <button
+            type="button"
+            data-testid="record-save-initial"
+            disabled={!canSave || !pendingStatus || !watchedDate}
+            className={styles.primary}
+            onClick={() => {
+              if (pendingStatus) void handleInitialSave(pendingStatus);
+            }}
+          >
+            {saving
+              ? tQuick("saving")
+              : copy("기록 남기기", "Keep this record")}
+          </button>
         </div>
       ) : null}
-    </>
+      {selected && localLogId && editing ? (
+        <div
+          className={`${styles.actions} ${styles.saveFooter}`}
+          data-testid="record-edit-footer"
+        >
+          <button
+            type="button"
+            disabled={saving}
+            className={styles.secondary}
+            onClick={cancelEdit}
+          >
+            {copy("나중에 더할게요", "Maybe later")}
+          </button>
+          <button
+            type="button"
+            data-testid="record-save-details"
+            disabled={!canSave || !watchedDate}
+            className={styles.primary}
+            onClick={() => void handleUpdateSave()}
+          >
+            {saving
+              ? tQuick("saving")
+              : copy("이 순간 보관하기", "Keep this moment")}
+          </button>
+        </div>
+      ) : null}
+    </section>
   );
 }

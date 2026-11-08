@@ -1,35 +1,65 @@
 "use client";
 
+import * as Dialog from "@radix-ui/react-dialog";
 import {
+  ArrowRight,
   BarChart3,
   BookOpen,
-  Clock,
   Download,
+  Plus,
   Sparkles,
   X,
 } from "lucide-react";
 import Image from "next/image";
+import { useSearchParams } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import FiltersBar from "@/components/FiltersBar";
+import GoogleBooksAttribution from "@/components/GoogleBooksAttribution";
 import LogCard from "@/components/LogCard";
+import QuickLogDialog from "@/components/QuickLogDialog";
+import recordingStyles from "@/components/recording.module.css";
 import ShareBottomSheet from "@/components/ShareBottomSheet";
+import { monthKey, monthLabel } from "@/components/timeline-v2/RecordParts";
+import styles from "@/components/timeline-v2/timeline.module.css";
 import { Link as IntlLink } from "@/i18n/routing";
 import { trackEvent } from "@/lib/analytics";
 import { apiWithAuth } from "@/lib/api";
 import { isKdcBookshelfLocale, normalizeBookIsbn13 } from "@/lib/bookshelf";
 import { getCachedClassificationsForLogs } from "@/lib/bookshelfStore";
 import { downloadTimelineCsv } from "@/lib/export";
+import { googleBooksUrl } from "@/lib/googleBooks";
 import { getUserId, listLogsLocal, upsertLogsLocal } from "@/lib/localStore";
 import { isProfileComplete } from "@/lib/profile";
+import { recommendationRequest } from "@/lib/recommendationApi";
+import { readMomentFilters } from "@/lib/timelineMoments";
 import type {
   BookClassification,
+  Occasion,
+  Place,
   RecommendationItem,
   Status,
+  TitleSearchItem,
   WatchLog,
 } from "@/lib/types";
+import { useRecommendations } from "@/lib/useRecommendations";
 import { useUserProfile } from "@/lib/useUserProfile";
-import { cn, statusOptionsForType } from "@/lib/utils";
+import { cn } from "@/lib/utils";
+
+export default function TimelinePage() {
+  return (
+    <Suspense fallback={<TimelineLoadingSkeleton />}>
+      <TimelinePageContent />
+    </Suspense>
+  );
+}
 
 const TIMELINE_PAGE_SIZE = 50;
 
@@ -52,18 +82,18 @@ function getErrorMessage(error: unknown, fallback: string) {
 }
 
 const FUTURE_LOADING_MESSAGES_KO = [
-  "AI가 당신의 취향을 분석하는 중...",
-  "시청 기록에서 패턴을 찾는 중...",
-  "다음에 볼 작품을 예언하는 중...",
-  "미래의 타임라인을 그리는 중...",
-  "포스터를 가져오는 중...",
+  "남겨둔 이야기를 펼쳐보고 있어요.",
+  "마음에 남았던 작품들을 살펴보고 있어요.",
+  "다음에 만날 이야기를 고르고 있어요.",
+  "미래의 타임라인을 준비하고 있어요.",
+  "작품의 표지를 불러오고 있어요.",
 ];
 const FUTURE_LOADING_MESSAGES_EN = [
-  "AI is analyzing your taste...",
-  "Finding patterns in your history...",
-  "Predicting your next watch...",
-  "Drawing your future timeline...",
-  "Fetching posters...",
+  "Looking through the stories you kept.",
+  "Revisiting the titles that stayed with you.",
+  "Finding a few stories you might enjoy.",
+  "Putting your future timeline together.",
+  "Bringing in the covers.",
 ];
 
 function FutureLoadingSkeleton({
@@ -101,7 +131,7 @@ function FutureLoadingSkeleton({
       {[1, 2, 3, 4].map((i) => (
         <div
           key={i}
-          className="overflow-hidden rounded-2xl border border-dashed border-border bg-card/60 shadow-sm"
+          className="overflow-hidden rounded-lg border border-border bg-card"
         >
           <div className="flex gap-3 p-3">
             <div className="shrink-0 h-[84px] w-[56px] rounded-lg bg-muted animate-pulse" />
@@ -137,12 +167,9 @@ function TimelineLoadingSkeleton() {
   return (
     <div className="space-y-3" aria-hidden="true">
       {rows.map((row) => (
-        <div
-          key={row}
-          className="rounded-2xl border border-border bg-card p-3 shadow-sm"
-        >
+        <div key={row} className="rounded-lg border border-border bg-card p-3">
           <div className="flex gap-3">
-            <div className="h-32 w-20 shrink-0 rounded-xl bg-muted animate-pulse" />
+            <div className="h-32 w-20 shrink-0 rounded-lg bg-muted animate-pulse" />
             <div className="min-w-0 flex-1 space-y-3 py-1">
               <div className="h-4 w-2/3 rounded bg-muted animate-pulse" />
               <div className="flex gap-2">
@@ -159,174 +186,455 @@ function TimelineLoadingSkeleton() {
   );
 }
 
-const DISMISSED_KEY = "watchlog.dismissedRecs";
-const LAST_REFRESH_KEY = "watchlog.lastRecommendRefresh";
-
-function canRefreshToday(): boolean {
-  const last = localStorage.getItem(LAST_REFRESH_KEY);
-  if (!last) return true;
-  const lastDate = new Date(last).toDateString();
-  return lastDate !== new Date().toDateString();
-}
-
-function markRefreshed() {
-  localStorage.setItem(LAST_REFRESH_KEY, new Date().toISOString());
-}
-
-function getDismissed(): Set<string> {
-  try {
-    const raw = localStorage.getItem(DISMISSED_KEY);
-    return new Set(raw ? JSON.parse(raw) : []);
-  } catch {
-    return new Set();
-  }
-}
-
-function saveDismissed(set: Set<string>) {
-  localStorage.setItem(DISMISSED_KEY, JSON.stringify([...set]));
-}
-
 function FutureTimelineSection({
-  items,
-  loading,
-  error,
-  onRefresh,
+  recommendations,
   t,
 }: {
-  items: RecommendationItem[];
-  loading: boolean;
-  error: string | null;
-  onRefresh: () => void;
+  recommendations: ReturnType<typeof useRecommendations>;
   t: ReturnType<typeof useTranslations>;
 }) {
-  const [dismissed, setDismissed] = useState<Set<string>>(new Set());
-  const [canRefresh, setCanRefresh] = useState(true);
+  const locale = useLocale();
+  const {
+    visible,
+    loading,
+    error,
+    canRefresh,
+    generate,
+    retry,
+    dismiss,
+    lastDismissed,
+    undoDismiss,
+    quota,
+    pendingCount,
+    syncError,
+    eligible,
+  } = recommendations;
+  const [catalog, setCatalog] = useState<RecommendationItem | null>(null);
+  const [candidates, setCandidates] = useState<TitleSearchItem[]>([]);
+  const [catalogLoading, setCatalogLoading] = useState(false);
+  const [catalogError, setCatalogError] = useState(false);
+  const [recording, setRecording] = useState<{
+    title?: TitleSearchItem;
+    item: RecommendationItem;
+  } | null>(null);
+  const catalogRequest = useRef<AbortController | null>(null);
+  const openingRecord = useRef(false);
 
-  useEffect(() => {
-    setDismissed(getDismissed());
-    setCanRefresh(canRefreshToday());
-  }, []);
+  useEffect(() => () => catalogRequest.current?.abort(), []);
 
-  function dismiss(name: string) {
-    const next = new Set(dismissed);
-    next.add(name.toLowerCase());
-    setDismissed(next);
-    saveDismissed(next);
-    trackEvent("recommendation_dismiss", { title: name });
+  const typeLabel = (type: string) =>
+    type === "movie"
+      ? t("typeMovie")
+      : type === "series"
+        ? t("typeSeries")
+        : t("typeBook");
+
+  async function findCatalog(item: RecommendationItem) {
+    catalogRequest.current?.abort();
+    const userId = getUserId();
+    if (!userId) return;
+    const controller = new AbortController();
+    catalogRequest.current = controller;
+    setCatalog(item);
+    setCandidates([]);
+    setCatalogLoading(true);
+    setCatalogError(false);
+    try {
+      const params = new URLSearchParams({ name: item.name, type: item.type });
+      if (item.year) params.set("year", String(item.year));
+      if (item.author) params.set("author", item.author);
+      const response = await recommendationRequest<TitleSearchItem[]>(
+        `/catalog?${params}`,
+        { userId, locale, signal: controller.signal },
+      );
+      if (
+        controller.signal.aborted ||
+        catalogRequest.current !== controller ||
+        getUserId() !== userId
+      )
+        return;
+      const all = [
+        ...(item.catalogTitle?.type === item.type ? [item.catalogTitle] : []),
+        ...response.data.filter((candidate) => candidate.type === item.type),
+      ];
+      setCandidates(
+        all.filter(
+          (candidate, index) =>
+            !all
+              .slice(0, index)
+              .some(
+                (previous) =>
+                  previous.provider === candidate.provider &&
+                  previous.providerId === candidate.providerId,
+              ),
+        ),
+      );
+    } catch {
+      if (!controller.signal.aborted && catalogRequest.current === controller)
+        setCatalogError(true);
+    } finally {
+      if (!controller.signal.aborted && catalogRequest.current === controller)
+        setCatalogLoading(false);
+    }
   }
 
-  function handleRefresh() {
-    if (!canRefresh) return;
-    localStorage.removeItem(DISMISSED_KEY);
-    setDismissed(new Set());
-    markRefreshed();
-    setCanRefresh(false);
-    trackEvent("recommendation_refresh");
-    onRefresh();
+  function openRecommendation(item: RecommendationItem) {
+    if (item.type !== "book" && item.catalogTitle?.type === item.type) {
+      setRecording({ title: item.catalogTitle, item });
+    } else {
+      void findCatalog(item);
+    }
   }
 
-  const typeLabel = (type: string) => {
-    if (type === "movie") return t("typeMovie");
-    if (type === "series") return t("typeSeries");
-    return t("typeBook");
-  };
+  function chooseCatalog(title: TitleSearchItem) {
+    if (!catalog) return;
+    openingRecord.current = true;
+    setRecording({ title, item: catalog });
+    setCatalog(null);
+  }
 
-  const visible = items.filter(
-    (item) => !dismissed.has(item.name.toLowerCase()),
-  );
+  const reset = quota
+    ? new Intl.DateTimeFormat(locale, {
+        timeZone: quota.timezone,
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        hourCycle: "h23",
+      }).format(new Date(quota.resetsAt))
+    : "";
 
   return (
-    <div className="space-y-3">
-      <button
-        type="button"
-        onClick={handleRefresh}
-        disabled={loading || !canRefresh || items.length === 0}
-        title={!canRefresh ? t("refreshCooldown") : undefined}
-        className={cn(
-          "min-h-[52px] rounded-lg border border-border bg-card px-4 text-sm text-muted-foreground hover:bg-muted",
-          (loading || !canRefresh || items.length === 0) &&
-            "opacity-40 cursor-not-allowed",
+    <section
+      className="space-y-3"
+      aria-label={t("futureTitle")}
+      aria-busy={loading}
+    >
+      <div className="flex flex-wrap items-center gap-3">
+        <button
+          type="button"
+          onClick={generate}
+          disabled={loading || !canRefresh}
+          className={cn(
+            "min-h-12 rounded-lg border border-border bg-card px-4 text-sm text-muted-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
+            (loading || !canRefresh) && "opacity-40 cursor-not-allowed",
+          )}
+        >
+          {t("refreshButton")}
+        </button>
+        {quota && (
+          <p role="status" className="text-sm text-muted-foreground">
+            {quota.remaining > 0
+              ? t("futureQuotaRemaining", { remaining: quota.remaining })
+              : t("futureQuotaExhausted")}
+          </p>
         )}
-      >
-        {!canRefresh ? t("refreshCooldown") : t("refreshButton")}
-      </button>
+      </div>
+      {quota?.remaining === 0 && (
+        <p className="text-sm text-muted-foreground">
+          {t("futureQuotaReset", { reset })}
+        </p>
+      )}
+      <p className="text-sm text-muted-foreground">{t("futureTasteHint")}</p>
 
+      {lastDismissed && (
+        <div
+          role="status"
+          className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-card px-4 py-2 text-sm text-muted-foreground"
+        >
+          <span>{t("dismissedNotice")}</span>
+          <button
+            type="button"
+            onClick={undoDismiss}
+            className="min-h-12 rounded-lg border border-border px-4 hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+          >
+            {t("undoDismiss")}
+          </button>
+        </div>
+      )}
+      {(pendingCount > 0 || syncError) && (
+        <div
+          role="status"
+          className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-card px-4 py-2 text-sm text-muted-foreground"
+        >
+          <span>{t("futureSyncPending")}</span>
+          <button
+            type="button"
+            onClick={recommendations.load}
+            className="min-h-12 rounded-lg border border-border px-4 hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+          >
+            {t("retryLoadMore")}
+          </button>
+        </div>
+      )}
       {loading && <FutureLoadingSkeleton t={t} />}
-
       {!loading && error && (
-        <div className="rounded-2xl border border-border bg-card p-5 text-sm text-destructive shadow-sm">
-          {t("futureError")}
+        <div
+          role="alert"
+          className="rounded-lg border border-border bg-card p-5 text-sm text-muted-foreground"
+        >
+          <p>{t("futureError")}</p>
+          <button
+            type="button"
+            onClick={retry}
+            className="mt-3 min-h-12 rounded-lg border border-border px-4 hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+          >
+            {t("retryLoadMore")}
+          </button>
         </div>
       )}
-
-      {!loading && !error && items.length === 0 && (
-        <div className="rounded-2xl border border-border bg-card p-10 text-center text-sm text-muted-foreground shadow-sm">
-          {t("futureNeedMoreLogs")}
+      {!loading && !error && visible.length === 0 && (
+        <div
+          role="status"
+          className="rounded-lg border border-border bg-card p-10 text-center text-sm text-muted-foreground"
+        >
+          {t(eligible ? "futureEmpty" : "futureNeedMoreLogs")}
         </div>
       )}
-
       {!loading && visible.length > 0 && (
         <div className="grid grid-cols-1 gap-3">
           {visible.map((item) => (
             <div
-              key={`${item.type}:${item.name}`}
-              className="flex gap-5 rounded-2xl border border-dashed border-border bg-card p-5 shadow-sm"
+              key={`${item.type}:${item.provider ?? ""}:${item.providerId ?? item.name}`}
+              className="flex gap-5 rounded-lg border border-border bg-card p-5"
             >
-              <div className="h-32 w-20 shrink-0 overflow-hidden rounded-xl bg-muted shadow-sm border border-border">
+              <button
+                type="button"
+                onClick={() => openRecommendation(item)}
+                aria-label={t("futureOpenTitle", { name: item.name })}
+                className="h-32 w-20 shrink-0 overflow-hidden rounded-lg border border-border bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+              >
                 {item.posterUrl ? (
                   <Image
                     src={item.posterUrl}
-                    alt={item.name}
+                    alt=""
                     width={80}
                     height={128}
                     className="h-full w-full object-cover"
                   />
                 ) : (
-                  <div className="h-full w-full flex items-center justify-center text-[10px] text-muted-foreground font-medium">
+                  <span className="text-xs text-muted-foreground">
                     {typeLabel(item.type)}
-                  </div>
-                )}
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-start justify-between gap-3 mb-1">
-                  <span className="font-semibold text-sm leading-snug">
-                    {item.name}
                   </span>
-                  <button
-                    type="button"
-                    onClick={() => dismiss(item.name)}
-                    className="flex min-h-10 shrink-0 items-center gap-1 rounded-full border border-border px-3 text-xs text-muted-foreground hover:bg-muted"
-                  >
-                    <X className="h-3 w-3" />
-                    {t("dismissButton")}
-                  </button>
-                </div>
-                <div className="flex flex-wrap gap-1.5 mb-3">
+                )}
+              </button>
+              <div className="grid min-w-0 flex-1 grid-cols-1 content-start gap-2 md:grid-cols-[minmax(0,1fr)_auto] md:gap-x-3">
+                <button
+                  type="button"
+                  onClick={() => openRecommendation(item)}
+                  className="min-w-0 text-left font-semibold leading-snug hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 md:col-start-1"
+                >
+                  {item.name}
+                </button>
+                <div className="flex flex-wrap gap-1.5 md:col-start-1">
                   <span className="rounded-full border border-border bg-muted/60 px-2 py-0.5 text-xs font-medium text-muted-foreground">
                     {typeLabel(item.type)}
                   </span>
-                  {item.genres?.map((g) => (
+                  {item.year != null && (
+                    <span className="self-center text-xs text-muted-foreground">
+                      {item.year}
+                    </span>
+                  )}
+                  {item.genres?.map((genre) => (
                     <span
-                      key={g}
+                      key={genre}
                       className="rounded-full border border-border bg-muted px-2 py-0.5 text-xs text-muted-foreground"
                     >
-                      {g}
+                      {genre}
                     </span>
                   ))}
                 </div>
-                <p className="text-sm leading-relaxed text-muted-foreground line-clamp-2">
+                {item.author && (
+                  <p className="text-sm text-muted-foreground md:col-start-1">
+                    {item.author}
+                  </p>
+                )}
+                <p className="text-sm leading-relaxed text-muted-foreground md:col-start-1">
                   {item.reason}
                 </p>
+                {item.catalogTitle && googleBooksUrl(item.catalogTitle) && (
+                  <div className="md:col-start-1">
+                    <GoogleBooksAttribution
+                      href={googleBooksUrl(item.catalogTitle) ?? undefined}
+                    />
+                  </div>
+                )}
+                <button
+                  type="button"
+                  onClick={() => openRecommendation(item)}
+                  className="min-h-12 justify-self-start rounded-lg border border-border px-4 text-sm hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 md:col-start-1"
+                >
+                  {t(
+                    item.type === "book" ? "futureWantRead" : "futureWantWatch",
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => dismiss(item)}
+                  className="flex min-h-12 items-center gap-1 self-start justify-self-start rounded-lg border border-border px-3 text-xs text-muted-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 md:col-start-2 md:row-start-1 md:row-span-3"
+                >
+                  <X className="h-3 w-3" aria-hidden="true" />
+                  {t("dismissButton")}
+                </button>
               </div>
             </div>
           ))}
         </div>
       )}
-    </div>
+      <Dialog.Root
+        open={catalog !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            catalogRequest.current?.abort();
+            setCatalog(null);
+          }
+        }}
+      >
+        <Dialog.Portal>
+          <Dialog.Overlay className={recordingStyles.overlay} />
+          <Dialog.Content
+            className={recordingStyles.dialog}
+            data-record-stage="catalog"
+            onCloseAutoFocus={(event) => {
+              if (openingRecord.current) {
+                event.preventDefault();
+                openingRecord.current = false;
+              }
+            }}
+          >
+            <header className={recordingStyles.dialogHeader}>
+              <div className="min-w-0 flex-1">
+                <Dialog.Title>
+                  {t(
+                    catalog?.type === "book"
+                      ? "futureChooseEdition"
+                      : "futureChooseTitle",
+                  )}
+                </Dialog.Title>
+                <Dialog.Description className={recordingStyles.description}>
+                  {t(
+                    catalog?.type === "book"
+                      ? "futureEditionHint"
+                      : "futureCatalogHint",
+                  )}
+                </Dialog.Description>
+              </div>
+              <Dialog.Close
+                className={recordingStyles.close}
+                aria-label={t("futureCatalogClose")}
+              >
+                <X aria-hidden="true" size={22} />
+              </Dialog.Close>
+            </header>
+            <div
+              className={cn(
+                recordingStyles.dialogBody,
+                "space-y-3 overflow-y-auto p-4",
+              )}
+              aria-busy={catalogLoading}
+            >
+              {catalogLoading ? (
+                <p role="status" className="p-4 text-sm text-muted-foreground">
+                  {t("futureCatalogLoading")}
+                </p>
+              ) : catalogError ? (
+                <div role="alert">
+                  <p>{t("futureCatalogError")}</p>
+                  <button
+                    type="button"
+                    className="mt-3 min-h-12 rounded-lg border border-border px-4"
+                    onClick={() => catalog && void findCatalog(catalog)}
+                  >
+                    {t("retryLoadMore")}
+                  </button>
+                </div>
+              ) : candidates.length ? (
+                candidates.map((candidate) => (
+                  <div key={`${candidate.provider}:${candidate.providerId}`}>
+                    <button
+                      type="button"
+                      onClick={() => chooseCatalog(candidate)}
+                      className="flex w-full items-start gap-4 rounded-lg border border-border bg-card p-4 text-left hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+                    >
+                      {candidate.posterUrl && (
+                        <Image
+                          src={candidate.posterUrl}
+                          alt=""
+                          width={48}
+                          height={72}
+                          className="h-[72px] w-12 shrink-0 object-cover"
+                        />
+                      )}
+                      <span className="min-w-0">
+                        <strong className="block font-semibold">
+                          {candidate.name}
+                        </strong>
+                        <span className="mt-1 block text-sm text-muted-foreground">
+                          {[
+                            candidate.author,
+                            candidate.publisher,
+                            candidate.year,
+                          ]
+                            .filter(Boolean)
+                            .join(" · ")}
+                        </span>
+                        {(candidate.isbn13 || candidate.isbn10) && (
+                          <span className="mt-1 block text-xs text-muted-foreground">
+                            ISBN {candidate.isbn13 || candidate.isbn10}
+                          </span>
+                        )}
+                      </span>
+                    </button>
+                    {googleBooksUrl(candidate) && (
+                      <GoogleBooksAttribution
+                        href={googleBooksUrl(candidate) ?? undefined}
+                      />
+                    )}
+                  </div>
+                ))
+              ) : (
+                <div
+                  role="status"
+                  className="p-4 text-sm text-muted-foreground"
+                >
+                  <p>{t("futureCatalogEmpty")}</p>
+                  <button
+                    type="button"
+                    className="mt-3 min-h-12 rounded-lg border border-border px-4"
+                    onClick={() => {
+                      if (catalog) {
+                        openingRecord.current = true;
+                        setRecording({ item: catalog });
+                        setCatalog(null);
+                      }
+                    }}
+                  >
+                    {t("futureSearchAgain")}
+                  </button>
+                </div>
+              )}
+            </div>
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog.Root>
+      {recording && (
+        <QuickLogDialog
+          open
+          onOpenChange={(open) => {
+            if (!open) setRecording(null);
+          }}
+          initialCatalogTitle={recording.title}
+          initialContentType={recording.item.type === "book" ? "book" : "video"}
+          initialSearchQuery={recording.title ? undefined : recording.item.name}
+          highlightedStatus="WISHLIST"
+          onCreated={recommendations.recordCreated}
+        />
+      )}
+    </section>
   );
 }
 
-export default function TimelinePage() {
+function TimelinePageContent() {
   const [shareOpen, setShareOpen] = useState(false);
   const [shareLog, setShareLog] = useState<WatchLog | null>(null);
   const locale = useLocale();
@@ -345,6 +653,24 @@ export default function TimelinePage() {
   );
   const [origin, setOrigin] = useState<"ALL" | "LOG" | "COMMENT">("ALL");
   const [ott, setOtt] = useState("");
+  const searchParams = useSearchParams();
+  const { place, occasion } = readMomentFilters(searchParams);
+  const updateMoment = (
+    field: "place" | "occasion",
+    value: Place | Occasion | "",
+  ) => {
+    const params = new URLSearchParams(window.location.search);
+    if (value) params.set(field, value);
+    else params.delete(field);
+    const query = params.toString();
+    window.history.replaceState(
+      null,
+      "",
+      `${window.location.pathname}${query ? `?${query}` : ""}${window.location.hash}`,
+    );
+  };
+  const setPlace = (value: Place | "") => updateMoment("place", value);
+  const setOccasion = (value: Occasion | "") => updateMoment("occasion", value);
   const [query, setQuery] = useState("");
   const [logs, setLogs] = useState<WatchLog[]>([]);
   const [visibleLimit, setVisibleLimit] = useState(TIMELINE_PAGE_SIZE);
@@ -361,9 +687,7 @@ export default function TimelinePage() {
 
   const [mounted, setMounted] = useState(false);
   const [futureMode, setFutureMode] = useState(false);
-  const [futureItems, setFutureItems] = useState<RecommendationItem[]>([]);
-  const [futureLoading, setFutureLoading] = useState(false);
-  const [futureError, setFutureError] = useState<string | null>(null);
+  const recommendations = useRecommendations(locale, futureMode);
   const loadMoreSentinelRef = useRef<HTMLDivElement>(null);
   const loadingMoreRef = useRef(false);
   const filterGenerationRef = useRef(0);
@@ -388,6 +712,8 @@ export default function TimelinePage() {
         status: status === "ALL" ? undefined : status,
         origin: origin === "ALL" ? undefined : origin,
         ott: ott.trim() ? ott : undefined,
+        place: place || undefined,
+        occasion: occasion || undefined,
         query: query.trim() ? query : undefined,
         sortBy: "history",
       });
@@ -396,7 +722,7 @@ export default function TimelinePage() {
         hasMore: items.length > limit,
       };
     },
-    [contentType, origin, ott, query, status],
+    [contentType, origin, ott, query, status, place, occasion],
   );
 
   const serverPagePath = useCallback(
@@ -406,6 +732,8 @@ export default function TimelinePage() {
         status: status === "ALL" ? undefined : status,
         origin: origin === "ALL" ? undefined : origin,
         ott: ott.trim() ? ott : undefined,
+        place: place || undefined,
+        occasion: occasion || undefined,
         q: query.trim() ? query : undefined,
         sort: "history",
         contentType: contentType === "ALL" ? undefined : contentType,
@@ -413,7 +741,7 @@ export default function TimelinePage() {
       });
       return `/logs/page${requestQuery}`;
     },
-    [contentType, origin, ott, query, status],
+    [contentType, origin, ott, query, status, place, occasion],
   );
 
   useEffect(() => {
@@ -452,7 +780,7 @@ export default function TimelinePage() {
         }
       } catch (error) {
         if (!cancelled && generation === filterGenerationRef.current) {
-          setErr(getErrorMessage(error, "Failed to load logs"));
+          setErr(getErrorMessage(error, "Failed to load records"));
           if (!hadLocal) setLogs([]);
         }
       } finally {
@@ -581,33 +909,9 @@ export default function TimelinePage() {
     return () => observer.disconnect();
   }, [futureMode, hasMore, loadMore, loadMoreError, loading, loadingMore]);
 
-  async function loadFuture(refresh = false) {
-    if (!getUserId()) return;
-    setFutureLoading(true);
-    setFutureError(null);
-    try {
-      const params = new URLSearchParams();
-      if (refresh) params.set("refresh", "true");
-      const dismissed = getDismissed();
-      dismissed.forEach((name) => {
-        params.append("excluded", name);
-      });
-      const url = `/recommendations${params.toString() ? `?${params}` : ""}`;
-      const items = await apiWithAuth<RecommendationItem[]>(url);
-      setFutureItems(items);
-    } catch (error) {
-      setFutureError(getErrorMessage(error, "error"));
-    } finally {
-      setFutureLoading(false);
-    }
-  }
-
   function enterFutureMode() {
     setFutureMode(true);
     trackEvent("recommendation_open");
-    if (futureItems.length === 0 && !futureLoading) {
-      loadFuture(false);
-    }
   }
 
   const profileComplete = isProfileComplete(profile);
@@ -635,14 +939,6 @@ export default function TimelinePage() {
     return tTimeline("subtitleModern");
   }, [futureMode, loading, err, personaLabel, tTimeline]);
 
-  const statusLabel = useMemo(() => {
-    if (status === "ALL") return null;
-    const labels = statusOptionsForType(
-      contentType === "book" ? "book" : "movie",
-    );
-    return labels.find((s) => s.value === status)?.label ?? null;
-  }, [contentType, status]);
-
   function exportFileName() {
     const now = new Date();
     const y = now.getFullYear();
@@ -662,6 +958,8 @@ export default function TimelinePage() {
         status: status === "ALL" ? undefined : status,
         origin: origin === "ALL" ? undefined : origin,
         ott: ott.trim() ? ott : undefined,
+        place: place || undefined,
+        occasion: occasion || undefined,
         query: query.trim() ? query : undefined,
         sortBy: "history",
       });
@@ -685,230 +983,170 @@ export default function TimelinePage() {
     }
   }
 
-  const enableYearGrouping = logs.length > 0;
-  const yearGroups = useMemo(() => {
-    if (!enableYearGrouping) return [];
-    const groups: { year: number; items: WatchLog[] }[] = [];
-    const index = new Map<number, number>();
+  const monthGroups = useMemo(() => {
+    const groups = new Map<string, WatchLog[]>();
     for (const log of logs) {
-      const base = log.updatedAt ?? log.watchedAt ?? log.createdAt;
-      const year = new Date(base).getFullYear();
-      const existing = index.get(year);
-      if (existing === undefined) {
-        index.set(year, groups.length);
-        groups.push({ year, items: [log] });
-      } else {
-        groups[existing].items.push(log);
-      }
+      const date = new Date(log.updatedAt ?? log.watchedAt ?? log.createdAt);
+      const key = monthKey(Number.isNaN(date.getTime()) ? null : date);
+      groups.set(key, [...(groups.get(key) ?? []), log]);
     }
-    return groups;
-  }, [enableYearGrouping, logs]);
+    return [...groups].map(([key, items]) => ({ key, items }));
+  }, [logs]);
 
   return (
-    <div className="min-h-[calc(100dvh-12rem)] space-y-4">
-      <div>
-        <div className="flex items-center justify-between gap-3 mb-1">
-          <div className="flex items-center gap-2 text-lg sm:text-xl font-semibold whitespace-nowrap">
-            {futureMode ? (
-              <Sparkles className="h-5 w-5 text-[#1E4D8C] dark:text-foreground" />
-            ) : (
-              <Clock className="h-5 w-5" />
-            )}
-            {headerTitle}
-          </div>
-          <div className="flex items-center gap-1.5 sm:gap-2">
-            {mounted && getUserId() && !futureMode && (
-              <button
-                type="button"
-                onClick={enterFutureMode}
-                className="flex h-9 items-center justify-center rounded-xl border border-border bg-card px-3 text-[11px] font-bold text-[#1E4D8C] shadow-sm transition-all hover:bg-ott-paper-strong active:scale-[0.98] dark:text-foreground sm:h-11 sm:px-4 sm:text-xs"
-              >
-                <span className="flex items-center gap-1.5">
-                  <Sparkles className="h-3.5 w-3.5" />
-                  {futureButtonLabel}
-                </span>
-              </button>
-            )}
-            {!futureMode && (
-              <button
-                type="button"
-                onClick={exportTimelineCsv}
-                disabled={exporting}
-                title={tTimeline("exportCsv")}
-                aria-label={tTimeline("exportCsv")}
-                className={cn(
-                  "flex h-9 w-9 sm:h-11 sm:w-11 items-center justify-center rounded-xl border border-border bg-card text-muted-foreground transition-all active:scale-[0.98] hover:bg-muted",
-                  exporting && "opacity-40",
-                )}
-              >
-                <Download className="h-4 w-4" />
-              </button>
-            )}
-            {futureMode && (
-              <button
-                type="button"
-                onClick={() => setFutureMode(false)}
-                className="flex h-9 sm:h-11 items-center justify-center rounded-xl border border-border bg-card px-3 sm:px-4 text-xs sm:text-sm font-medium text-muted-foreground transition-all active:scale-[0.98] hover:bg-muted"
-              >
-                {tTimeline("backButton")}
-              </button>
-            )}
-          </div>
+    <div className={styles.timelinePage}>
+      <header className={styles.pageHeading}>
+        <div>
+          <p className={styles.eyebrow}>
+            {locale === "ko" ? "남겨둔 이야기" : "THE STORIES YOU KEPT"}
+          </p>
+          <h1>{headerTitle}</h1>
+          {headerSubtitle ? (
+            <p className={styles.smallNote}>{headerSubtitle}</p>
+          ) : null}
         </div>
-        {headerSubtitle && (
-          <div className="text-sm text-muted-foreground">{headerSubtitle}</div>
-        )}
-        {exportStatus ? (
-          <div className="text-sm text-muted-foreground">{exportStatus}</div>
-        ) : null}
-      </div>
-
+        <div className={styles.timelineTools}>
+          {!futureMode ? (
+            <IntlLink
+              href="/?quick=1"
+              className={cn(styles.primaryButton, styles.mobileTimelineRecord)}
+            >
+              <Plus size={18} aria-hidden="true" />
+              {locale === "ko" ? "기록 남기기" : "Leave a record"}
+            </IntlLink>
+          ) : null}
+          {mounted && getUserId() && !futureMode ? (
+            <button
+              type="button"
+              onClick={enterFutureMode}
+              className="inline-flex min-h-12 items-center justify-center gap-2 rounded-lg border border-border bg-card px-4 text-sm text-muted-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+            >
+              <Sparkles size={16} aria-hidden="true" />
+              {futureButtonLabel}
+            </button>
+          ) : null}
+          {!futureMode ? (
+            <button
+              type="button"
+              onClick={exportTimelineCsv}
+              disabled={exporting}
+              title={tTimeline("exportCsv")}
+              aria-label={tTimeline("exportCsv")}
+              className={cn(
+                "inline-flex min-h-12 w-12 items-center justify-center rounded-lg border border-border bg-card text-muted-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:hover:bg-card",
+                exporting && "opacity-40",
+              )}
+            >
+              <Download size={18} aria-hidden="true" />
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setFutureMode(false)}
+              className="inline-flex min-h-12 items-center justify-center rounded-lg border border-border bg-card px-4 text-sm text-muted-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+            >
+              {tTimeline("backButton")}
+            </button>
+          )}
+        </div>
+      </header>
+      {exportStatus ? (
+        <p className={styles.smallNote} role="status">
+          {exportStatus}
+        </p>
+      ) : null}
       {futureMode ? (
         <FutureTimelineSection
-          items={futureItems}
-          loading={futureLoading}
-          error={futureError}
-          onRefresh={() => loadFuture(true)}
+          key={`${locale}:${recommendations.ownerId}`}
+          recommendations={recommendations}
           t={tTimeline}
         />
       ) : (
         <>
-          {logs.length > 0 ? (
-            <IntlLink
-              href="/me/report"
-              className="flex min-h-[64px] items-center justify-between gap-3 rounded-2xl border border-border bg-card px-4 py-3 shadow-sm transition-colors hover:bg-muted"
-            >
-              <div className="min-w-0">
-                <div className="text-sm font-semibold text-foreground">
-                  {tTimeline("reportShortcutTitle")}
-                </div>
-                <p className="mt-0.5 text-xs text-muted-foreground">
-                  {tTimeline("reportShortcutDesc")}
-                </p>
-              </div>
-              <div className="flex shrink-0 items-center gap-2 rounded-xl bg-ott-paper-strong px-3 py-2 text-xs font-bold text-[#1E4D8C] dark:text-foreground">
-                <BarChart3 className="h-4 w-4" />
-                {tTimeline("reportShortcutAction")}
-              </div>
+          <nav
+            className={styles.timelineShortcuts}
+            aria-label={
+              locale === "ko" ? "기록 돌아보기" : "Explore your records"
+            }
+          >
+            <IntlLink href="/me/report">
+              <BarChart3 size={17} aria-hidden="true" />
+              {tTimeline("reportShortcutTitle")}
+              <ArrowRight size={16} aria-hidden="true" />
             </IntlLink>
-          ) : null}
-
-          <div className="space-y-2">
-            <FiltersBar
-              status={status}
-              setStatus={setStatus}
-              origin={origin}
-              setOrigin={setOrigin}
-              ott={ott}
-              setOtt={setOtt}
-              query={query}
-              setQuery={setQuery}
-              contentType={contentType}
-              setContentType={setContentType}
-            />
-            {isKdcBookshelfLocale(locale) && contentType === "book" ? (
-              <div className="flex justify-end">
-                <IntlLink
-                  href="/me/bookshelf"
-                  className="inline-flex min-h-12 items-center gap-1.5 rounded-lg px-2 text-sm font-semibold text-[#1E4D8C] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF9933]/50 dark:text-foreground"
-                >
-                  <BookOpen className="h-4 w-4" aria-hidden="true" />
-                  {tBookshelf("viewShelf")}
-                </IntlLink>
-              </div>
+            {isKdcBookshelfLocale(locale) ? (
+              <IntlLink href="/me/bookshelf">
+                <BookOpen size={17} aria-hidden="true" />
+                {tBookshelf("viewShelf")}
+                <ArrowRight size={16} aria-hidden="true" />
+              </IntlLink>
             ) : null}
-          </div>
-
-          {loading && logs.length === 0 && (
+          </nav>
+          <FiltersBar
+            status={status}
+            setStatus={setStatus}
+            origin={origin}
+            setOrigin={setOrigin}
+            ott={ott}
+            setOtt={setOtt}
+            query={query}
+            setQuery={setQuery}
+            contentType={contentType}
+            setContentType={setContentType}
+            place={place}
+            setPlace={setPlace}
+            occasion={occasion}
+            setOccasion={setOccasion}
+          />
+          {loading && logs.length === 0 ? (
             <div>
               <output className="sr-only">{tTimeline("loading")}</output>
               <TimelineLoadingSkeleton />
             </div>
-          )}
-
-          {!loading && logs.length === 0 && !err && (
-            <div className="rounded-2xl border border-border bg-card p-10 text-center text-sm text-muted-foreground shadow-sm">
-              {tTimeline("emptyModern")}
+          ) : null}
+          {!loading && logs.length === 0 && !err ? (
+            <div className={styles.emptyTimeline}>
+              <p>{tTimeline("emptyModern")}</p>
+              <IntlLink href="/?quick=1" className={styles.quietLink}>
+                {locale === "ko" ? "새로운 기록 남기기" : "Leave a new record"}
+                <ArrowRight size={17} aria-hidden="true" />
+              </IntlLink>
             </div>
-          )}
-
-          {enableYearGrouping ? (
-            <div className="space-y-6">
-              {yearGroups.map((group) => (
-                <div key={group.year} className="space-y-3">
-                  <div className="text-sm font-semibold text-muted-foreground">
-                    {status === "ALL" ? (
-                      <>
-                        <span className="font-bold text-foreground">
-                          {group.year}
-                        </span>
-                        <span> </span>
-                        <span className="font-bold text-[#1E4D8C] dark:text-foreground">
-                          ({group.items.length})
-                        </span>
-                      </>
-                    ) : (
-                      <>
-                        <span className="font-bold text-foreground">
-                          {tTimeline("yearFormat", { year: group.year })}
-                        </span>
-                        <span>{tTimeline("yearSuffix")}</span>
-                        <span className="font-bold text-[#1E4D8C] dark:text-foreground">
-                          {group.items.length}
-                        </span>
-                        <span>
-                          {contentType === "book"
-                            ? tTimeline("unitBook")
-                            : tTimeline("unitVideo")}
-                          {statusLabel || tStatus("DONE")}
-                        </span>
-                      </>
-                    )}
-                  </div>
-                  <div className="grid grid-cols-1 gap-3">
-                    {group.items.map((l) => (
-                      <LogCard
-                        key={l.id}
-                        log={l}
-                        bookClassification={
-                          l.title.type === "book"
-                            ? bookClassifications.get(
-                                normalizeBookIsbn13(l.title) ?? "",
-                              )
-                            : null
-                        }
-                        onShareCard={() => {
-                          setShareLog(l);
-                          setShareOpen(true);
-                        }}
-                      />
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 gap-3">
-              {logs.map((l) => (
-                <LogCard
-                  key={l.id}
-                  log={l}
-                  bookClassification={
-                    l.title.type === "book"
-                      ? bookClassifications.get(
-                          normalizeBookIsbn13(l.title) ?? "",
-                        )
-                      : null
-                  }
-                  onShareCard={() => {
-                    setShareLog(l);
-                    setShareOpen(true);
-                  }}
-                />
-              ))}
-            </div>
-          )}
-
+          ) : null}
+          <div className={styles.timelineList}>
+            {monthGroups.map((group) => (
+              <section
+                key={group.key}
+                aria-label={monthLabel(group.key, locale)}
+              >
+                <h2 className={styles.timelineMonth}>
+                  {monthLabel(group.key, locale)}
+                  <span>
+                    {locale === "ko"
+                      ? "최근 기록·수정한 날 기준"
+                      : "By last recorded or updated"}
+                  </span>
+                </h2>
+                {group.items.map((log) => (
+                  <LogCard
+                    key={log.id}
+                    log={log}
+                    bookClassification={
+                      log.title.type === "book"
+                        ? bookClassifications.get(
+                            normalizeBookIsbn13(log.title) ?? "",
+                          )
+                        : null
+                    }
+                    onShareCard={() => {
+                      setShareLog(log);
+                      setShareOpen(true);
+                    }}
+                  />
+                ))}
+              </section>
+            ))}
+          </div>
           {logs.length > 0 &&
           (hasMore ||
             loadingMore ||

@@ -234,8 +234,14 @@ export default function BookshelfPageClient({
 
   if (shelf.books.length === 0) {
     return (
-      <div className="space-y-6">
-        <header>
+      <div className="v2-secondary-page space-y-6">
+        <header className="v2-page-heading">
+          <IntlLink href="/timeline" className="v2-back-link">
+            ← {locale === "ko" ? "타임라인" : "Timeline"}
+          </IntlLink>
+          <p className="v2-eyebrow">
+            {locale === "ko" ? "나의 서가" : "MY BOOKSHELF"}
+          </p>
           <h1 className="flex items-center gap-2 text-2xl font-semibold text-foreground">
             <BookOpen className="h-6 w-6" aria-hidden="true" />
             {pageTitle}
@@ -266,8 +272,14 @@ export default function BookshelfPageClient({
   }
 
   return (
-    <div className="space-y-8">
-      <header className="space-y-3">
+    <div className="v2-secondary-page space-y-8">
+      <header className="v2-page-heading space-y-3">
+        <IntlLink href="/timeline" className="v2-back-link">
+          ← {locale === "ko" ? "타임라인" : "Timeline"}
+        </IntlLink>
+        <p className="v2-eyebrow">
+          {locale === "ko" ? "나의 서가" : "MY BOOKSHELF"}
+        </p>
         <div className="flex items-center gap-2">
           <BookOpen className="h-6 w-6" aria-hidden="true" />
           <h1 className="text-2xl font-semibold text-foreground">

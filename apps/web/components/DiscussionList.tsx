@@ -47,7 +47,10 @@ export default function DiscussionList({
 
   return (
     <div className="rounded-2xl border border-border bg-card/85 p-4 text-card-foreground shadow-sm">
-      <div className="space-y-3">
+      <div
+        className="grid grid-cols-1 gap-3 md:grid-cols-2"
+        data-testid="discussion-grid"
+      >
         {items.map((d) => (
           <article
             key={d.id}

@@ -3,6 +3,7 @@
 import { Download, Share2 } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
+import { Link } from "@/i18n/routing";
 import { trackEvent } from "@/lib/analytics";
 import { api } from "@/lib/api";
 import { listAllLogsLocal } from "@/lib/localStore";
@@ -123,6 +124,12 @@ export default function MyReportPage() {
     ? tProfile(`personas.${profile?.personaKey}`)
     : null;
   const previousWeekLogs = report.previousWeekLogs ?? 0;
+  const shareable = {
+    weekly: report.totalLogs > 0 && previousWeekLogs > 0,
+    monthly: report.totalLogs > 0 && report.thisMonthLogs > 0,
+    "half-year":
+      report.totalLogs > 0 && (report.seasonalRecap?.totalLogs ?? 0) > 0,
+  };
   const monthlyTopGenre = report.monthlyTopGenre ?? "-";
   const monthlyTopGenreCount = report.monthlyTopGenreCount ?? 0;
   const daysSinceLastLog = report.daysSinceLastLog ?? 0;
@@ -138,7 +145,7 @@ export default function MyReportPage() {
           : null;
 
   async function handleRecapShare(kind: "weekly" | "monthly" | "half-year") {
-    if (!report || shareBusy) return;
+    if (!report || shareBusy || !shareable[kind]) return;
     try {
       setShareBusy(kind);
       const payload = buildRecapSharePayload(kind);
@@ -241,9 +248,20 @@ export default function MyReportPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <section className="space-y-2">
-        <h1 className="text-2xl font-bold tracking-tight">{reportTitle}</h1>
+    <div className="v2-secondary-page space-y-8">
+      <section className="v2-page-heading space-y-2">
+        <Link href="/timeline" className="v2-back-link">
+          ← {locale === "ko" ? "타임라인" : "Timeline"}
+        </Link>
+        <p className="v2-eyebrow">
+          {locale === "ko" ? "보고 읽은 시간" : "WATCHED, READ, REMEMBERED"}
+        </p>
+        <h1>{reportTitle}</h1>
+        <p className="v2-page-lead">
+          {locale === "ko"
+            ? "내 시간 위에 쌓인 이야기를 천천히 돌아봐요."
+            : "Take a little time to revisit the stories on your timeline."}
+        </p>
         {personaLabel ? (
           <p className="text-sm font-medium text-[#1E4D8C] dark:text-muted-foreground">
             {t("profileNotice", { persona: personaLabel })}
@@ -261,9 +279,9 @@ export default function MyReportPage() {
         >
           <div className="grid gap-0 md:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
             <div className="grid min-h-[280px] grid-cols-3 gap-1 bg-[#ECEBE9] p-1 sm:min-h-[320px]">
-              {report.seasonalRecap.posters.slice(0, 6).map((item, index) => (
+              {report.seasonalRecap.posters.slice(0, 6).map((item) => (
                 <div
-                  key={`${item.titleId}-${index}`}
+                  key={item.titleId}
                   className="relative overflow-hidden rounded-md bg-[#0F0F0F]"
                 >
                   {item.posterUrl ? (
@@ -326,25 +344,38 @@ export default function MyReportPage() {
               <button
                 type="button"
                 onClick={() => handleRecapShare("half-year")}
-                disabled={shareBusy !== null}
+                disabled={shareBusy !== null || !shareable["half-year"]}
+                aria-describedby={
+                  !shareable["half-year"]
+                    ? "half-year-card-unavailable"
+                    : undefined
+                }
                 className="inline-flex min-h-12 items-center justify-center gap-2 rounded-lg bg-[#FF9933] px-5 py-3 text-sm font-semibold text-[#0F0F0F] transition-colors hover:bg-[#e88724] disabled:opacity-50"
               >
                 <Share2 className="h-4 w-4" />
                 {shareBusy === "half-year" ? t("sharing") : t("h1ShareAction")}
               </button>
+              {!shareable["half-year"] ? (
+                <p
+                  id="half-year-card-unavailable"
+                  className="text-xs text-muted-foreground"
+                >
+                  {t("noRecordsToShare")}
+                </p>
+              ) : null}
             </div>
           </div>
         </section>
       ) : null}
 
       <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        <article className="rounded-2xl border border-border bg-card p-4">
+        <article className="rounded-lg border border-border bg-card p-4">
           <div className="text-xs text-muted-foreground">
             {t("totalRecords")}
           </div>
           <div className="mt-1 text-2xl font-semibold">{report.totalLogs}</div>
         </article>
-        <article className="rounded-2xl border border-border bg-card p-4">
+        <article className="rounded-lg border border-border bg-card p-4">
           <div className="text-xs text-muted-foreground">
             {t("monthlyRecords")}
           </div>
@@ -352,7 +383,7 @@ export default function MyReportPage() {
             {report.thisMonthLogs}
           </div>
         </article>
-        <article className="rounded-2xl border border-border bg-card p-4">
+        <article className="rounded-lg border border-border bg-card p-4">
           <div className="text-xs text-muted-foreground">
             {t("completionRate")}
           </div>
@@ -360,19 +391,19 @@ export default function MyReportPage() {
             {report.doneRatePct}%
           </div>
         </article>
-        <article className="rounded-2xl border border-border bg-card p-4">
+        <article className="rounded-lg border border-border bg-card p-4">
           <div className="text-xs text-muted-foreground">{t("ratingRate")}</div>
           <div className="mt-1 text-2xl font-semibold">
             {report.ratingFillPct}%
           </div>
         </article>
-        <article className="rounded-2xl border border-border bg-card p-4">
+        <article className="rounded-lg border border-border bg-card p-4">
           <div className="text-xs text-muted-foreground">{t("memoRate")}</div>
           <div className="mt-1 text-2xl font-semibold">
             {report.noteFillPct}%
           </div>
         </article>
-        <article className="rounded-2xl border border-border bg-card p-4">
+        <article className="rounded-lg border border-border bg-card p-4">
           <div className="text-xs text-muted-foreground">{t("recentDate")}</div>
           <div className="mt-1 text-base font-semibold">
             {report.lastLoggedAt
@@ -395,7 +426,7 @@ export default function MyReportPage() {
           </p>
         </div>
         <div className="grid gap-3 sm:grid-cols-2">
-          <article className="rounded-2xl border border-border bg-card p-4">
+          <article className="rounded-lg border border-border bg-card p-4">
             <div className="text-xs text-muted-foreground">
               {t("weeklyRecords")}
             </div>
@@ -405,14 +436,25 @@ export default function MyReportPage() {
             <button
               type="button"
               onClick={() => handleRecapShare("weekly")}
-              disabled={shareBusy !== null}
-              className="mt-4 inline-flex items-center gap-2 rounded-2xl border border-border px-3 py-2 text-xs font-medium hover:bg-muted disabled:opacity-50"
+              disabled={shareBusy !== null || !shareable.weekly}
+              aria-describedby={
+                !shareable.weekly ? "weekly-card-unavailable" : undefined
+              }
+              className="mt-4 inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-xs font-medium hover:bg-muted disabled:opacity-50"
             >
               <Share2 className="h-3.5 w-3.5" />
               {shareBusy === "weekly" ? t("sharing") : t("weeklyShareAction")}
             </button>
+            {!shareable.weekly ? (
+              <p
+                id="weekly-card-unavailable"
+                className="mt-2 text-xs text-muted-foreground"
+              >
+                {t("noRecordsToShare")}
+              </p>
+            ) : null}
           </article>
-          <article className="rounded-2xl border border-border bg-card p-4">
+          <article className="rounded-lg border border-border bg-card p-4">
             <div className="text-xs text-muted-foreground">
               {t("monthlyTopGenre")}
             </div>
@@ -427,14 +469,25 @@ export default function MyReportPage() {
             <button
               type="button"
               onClick={() => handleRecapShare("monthly")}
-              disabled={shareBusy !== null}
-              className="mt-4 inline-flex items-center gap-2 rounded-2xl border border-border px-3 py-2 text-xs font-medium hover:bg-muted disabled:opacity-50"
+              disabled={shareBusy !== null || !shareable.monthly}
+              aria-describedby={
+                !shareable.monthly ? "monthly-card-unavailable" : undefined
+              }
+              className="mt-4 inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-xs font-medium hover:bg-muted disabled:opacity-50"
             >
               <Download className="h-3.5 w-3.5" />
               {shareBusy === "monthly" ? t("sharing") : t("monthlyShareAction")}
             </button>
+            {!shareable.monthly ? (
+              <p
+                id="monthly-card-unavailable"
+                className="mt-2 text-xs text-muted-foreground"
+              >
+                {t("noRecordsToShare")}
+              </p>
+            ) : null}
           </article>
-          <article className="rounded-2xl border border-border bg-card p-4">
+          <article className="rounded-lg border border-border bg-card p-4">
             <div className="text-xs text-muted-foreground">
               {t("daysSinceLastLog")}
             </div>
@@ -442,7 +495,7 @@ export default function MyReportPage() {
               {t("daysSinceLastLogValue", { count: daysSinceLastLog })}
             </div>
           </article>
-          <article className="rounded-2xl border border-border bg-card p-4">
+          <article className="rounded-lg border border-border bg-card p-4">
             <div className="text-xs text-muted-foreground">
               {t("continueSeries")}
             </div>
@@ -459,7 +512,7 @@ export default function MyReportPage() {
       </section>
 
       <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        <article className="rounded-2xl border border-border bg-card p-4">
+        <article className="rounded-lg border border-border bg-card p-4">
           <div className="text-xs text-muted-foreground">
             {t("mostLoggedType")}
           </div>
@@ -467,19 +520,19 @@ export default function MyReportPage() {
             {typeLabel(report.topType)}
           </div>
         </article>
-        <article className="rounded-2xl border border-border bg-card p-4">
+        <article className="rounded-lg border border-border bg-card p-4">
           <div className="text-xs text-muted-foreground">
             {t("frequentPlace")}
           </div>
           <div className="mt-1 text-lg font-semibold">{placeText}</div>
         </article>
-        <article className="rounded-2xl border border-border bg-card p-4">
+        <article className="rounded-lg border border-border bg-card p-4">
           <div className="text-xs text-muted-foreground">
             {t("frequentOccasion")}
           </div>
           <div className="mt-1 text-lg font-semibold">{occasionText}</div>
         </article>
-        <article className="rounded-2xl border border-border bg-card p-4 sm:col-span-2 lg:col-span-3">
+        <article className="rounded-lg border border-border bg-card p-4 sm:col-span-2 lg:col-span-3">
           <div className="text-xs text-muted-foreground">{t("streak")}</div>
           <div className="mt-1 text-lg font-semibold">
             {t("streakDesc", {

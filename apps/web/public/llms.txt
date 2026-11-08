@@ -1,28 +1,29 @@
 # ottline
 
 > ottline은 가입 없이 영상과 책 기록을 시작하고, 개인 타임라인으로 다시 돌아보는 무료 기록 서비스입니다.
-> ottline is a free personal timeline for logging videos and books without creating an account first.
+> ottline is a free personal timeline for keeping video and book records without creating an account first.
 
 ottline은 한국어와 영어로 제공되며 Web, 설치형 PWA, Android, iOS, Windows, 브라우저 확장, 토스 인앱에서 같은 기록 흐름을 이어갑니다.
 
 ## How data works
 
 - 기록은 현재 기기에 먼저 저장됩니다.
-- 사용자가 페어링을 선택하면 기록과 기기 연결 정보가 서버에 동기화됩니다.
+- 인터넷에 연결되면 기기에 먼저 보관한 기록이 서버와 자동으로 동기화됩니다.
+- 기록 연결 코드로 다른 기기를 연결하면 같은 타임라인을 이어볼 수 있습니다.
 - 공개 기록·댓글을 남기면 해당 내용이 다른 사용자에게 표시됩니다.
 - 서비스 안정성과 사용 흐름을 이해하기 위한 운영 분석 정보가 처리됩니다.
-- 기록 전체와 연결 정보를 지우는 기능은 설정에서 제공합니다.
+- 기기 연결, 내보내기, 데이터 관리는 내 공간에서 제공합니다.
 
 ## Main pages
 
 - [Home](https://ottline.app/): 영상·책 기록 시작
-- [English home](https://ottline.app/en): Start a video or book log
+- [English home](https://ottline.app/en): Start a video or book record
 - [About](https://ottline.app/about): 서비스 소개와 지원 플랫폼
 - [About in English](https://ottline.app/en/about): Product overview and supported platforms
 - [Guide](https://ottline.app/guide): 영상·책 기록 가이드
-- [Guides in English](https://ottline.app/en/guide): Video and book logging guides
+- [Guides in English](https://ottline.app/en/guide): Video and book recording guides
 - [Public records](https://ottline.app/public): 공개 기록 목록
-- [FAQ](https://ottline.app/faq): 저장, 페어링, 내보내기 안내
+- [FAQ](https://ottline.app/faq): 기록 보관, 기기 연결, 내보내기 안내
 - [Privacy policy](https://ottline.app/privacy): 데이터 처리와 보관 정책
 
 ## Product boundaries

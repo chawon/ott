@@ -401,6 +401,12 @@ public class TmdbClient {
         @JsonProperty("name")
         String name;
 
+        @JsonProperty("original_title")
+        String originalTitle;
+
+        @JsonProperty("original_name")
+        String originalName;
+
         @JsonProperty("release_date")
         String releaseDate;
 
@@ -424,6 +430,10 @@ public class TmdbClient {
 
         public String displayName() {
             return (title != null && !title.isBlank()) ? title : name;
+        }
+
+        public String originalNameValue() {
+            return (originalTitle != null && !originalTitle.isBlank()) ? originalTitle : originalName;
         }
 
         public Integer displayYear() {

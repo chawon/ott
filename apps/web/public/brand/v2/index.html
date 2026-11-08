@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#F8F6F2">
+  <title>ottline CI v2 검토</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <style>
+    @font-face { font-family: Pretendard; src: url("../../fonts/PretendardVariable.woff2") format("woff2"); font-weight: 100 900; font-display: swap; }
+    :root { color-scheme: light; --cream: #F8F6F2; --navy: #1E4D8C; --orange: #FF9933; --ink: #0F0F0F; --gray: #4A4A4A; --line: #ECEBE9; }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body { margin: 0; background: var(--cream); color: var(--ink); font: 16px/1.65 Pretendard, system-ui, sans-serif; word-break: keep-all; }
+    img, svg { display: block; max-width: 100%; }
+    a { color: var(--navy); text-underline-offset: 4px; }
+    a:focus-visible { outline: 3px solid var(--orange); outline-offset: 4px; border-radius: 8px; }
+    button, a { -webkit-tap-highlight-color: transparent; }
+    .wrap { width: min(1184px, calc(100% - 80px)); margin-inline: auto; }
+    .top { min-height: 112px; display: flex; align-items: center; justify-content: space-between; gap: 24px; border-bottom: 1px solid var(--line); }
+    .top-brand { display: flex; align-items: center; gap: 24px; }
+    .top-brand img { width: 150px; height: auto; }
+    .context { border-left: 1px solid var(--line); padding-left: 24px; font-size: 13px; color: var(--gray); }
+    nav { display: flex; gap: 24px; font-size: 14px; }
+    nav a { text-decoration: none; padding-block: 12px; }
+    .intro { padding-block: 72px 64px; max-width: 760px; }
+    .eyebrow { margin: 0 0 16px; color: var(--navy); font-size: 13px; font-weight: 600; letter-spacing: .07em; }
+    h1 { margin: 0 0 20px; font-size: clamp(32px, 4vw, 48px); line-height: 1.25; font-weight: 650; letter-spacing: -.035em; }
+    h2 { margin: 0; font-size: 24px; line-height: 1.4; font-weight: 650; letter-spacing: -.025em; }
+    h3 { margin: 0; font-size: 18px; font-weight: 600; letter-spacing: -.015em; }
+    p { margin: 0; }
+    .lead { font-size: 18px; line-height: 1.75; color: var(--gray); }
+    .notice { margin-top: 24px; padding-left: 16px; border-left: 2px solid var(--navy); color: var(--gray); font-size: 14px; }
+    section { padding-block: 0 72px; scroll-margin-top: 28px; }
+    .section-head { margin-bottom: 28px; display: flex; justify-content: space-between; align-items: baseline; gap: 24px; }
+    .section-head p { color: var(--gray); font-size: 14px; }
+    .directions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; }
+    .card { padding: 28px; border: 1px solid var(--line); border-radius: 8px; background: #FFFFFF; }
+    .card.recommended { border-color: var(--navy); box-shadow: 0 0 0 1px var(--navy); }
+    .card-heading { display: flex; gap: 12px; flex-wrap: wrap; align-items: baseline; }
+    .badge { font-size: 12px; color: var(--navy); }
+    .display { display: grid; place-items: center; min-height: 224px; padding-block: 32px; }
+    .display img { width: 144px; height: 144px; }
+    .icon-squircle { border-radius: 22%; }
+    .icon-circle { border-radius: 50%; }
+    .card p { font-size: 14px; color: var(--gray); }
+    .directions .card p { min-height: 84px; }
+    .wordmark-row { min-height: 56px; padding-top: 20px; border-top: 1px solid var(--line); margin-top: 24px; }
+    .wordmark-row img { width: 130px; height: auto; }
+    .wordmark-row span { font-size: 12px; color: var(--gray); }
+    .size-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+    .sample-title { color: var(--gray); font-size: 14px; margin-bottom: 32px; }
+    .samples { display: flex; align-items: end; gap: 40px; flex-wrap: wrap; min-height: 112px; }
+    figure { margin: 0; }
+    figcaption { color: var(--gray); font-size: 12px; margin-top: 16px; }
+    .sample-art { height: 72px; display: flex; align-items: center; }
+    .favicon-card { grid-column: 1 / -1; }
+    .favicon-card .samples { min-height: 80px; gap: 48px; }
+    .favicon-card .sample-art { height: 48px; }
+    .small-note { margin-top: 24px; color: var(--gray); font-size: 13px; }
+    .headers { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; }
+    .header-example { overflow: hidden; border: 1px solid var(--line); border-radius: 8px; background: #FFFFFF; }
+    .header-example.dark { background: var(--navy); color: var(--cream); border-color: var(--navy); }
+    .header-label { font-size: 12px; color: var(--gray); padding: 16px 24px 0; }
+    .dark .header-label { color: var(--cream); opacity: .8; }
+    .header-line { min-height: 108px; padding: 24px; display: flex; align-items: center; justify-content: space-between; gap: 20px; }
+    .header-line img { height: auto; flex: none; }
+    .header-links { display: flex; gap: 16px; color: var(--gray); font-size: 12px; white-space: nowrap; }
+    .dark .header-links { color: var(--cream); }
+    .download-panel { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 48px; align-items: start; }
+    .downloads { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .download { min-height: 48px; display: flex; align-items: center; justify-content: center; padding: 10px 16px; text-decoration: none; border-radius: 8px; border: 1px solid var(--line); background: #FFFFFF; font-size: 14px; font-weight: 550; }
+    .download.primary { background: var(--orange); color: var(--ink); border-color: var(--orange); }
+    .download:hover { border-color: var(--navy); }
+    .download-copy { color: var(--gray); font-size: 14px; }
+    .download-copy p + p { margin-top: 16px; }
+    .technical { border-top: 1px solid var(--line); padding-top: 32px; margin-top: 40px; display: grid; grid-template-columns: 216px minmax(0, 1fr); gap: 40px; align-items: center; }
+    .og-preview { margin-top: 32px; }
+    .og-preview img { width: 100%; height: auto; border: 1px solid var(--line); border-radius: 8px; }
+    .adaptive { position: relative; width: 216px; height: 216px; background: var(--cream); border: 1px solid var(--line); }
+    .adaptive img, .adaptive svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+    .technical h3 { margin-bottom: 12px; }
+    .technical p { color: var(--gray); font-size: 14px; }
+    .technical p + p { margin-top: 12px; }
+    .sources { display: flex; gap: 20px; flex-wrap: wrap; margin-top: 16px; font-size: 13px; }
+    footer { border-top: 1px solid var(--line); padding-block: 28px 40px; display: flex; justify-content: space-between; gap: 24px; font-size: 12px; color: var(--gray); }
+    @media (max-width: 1000px) { .directions { gap: 16px; } .card { padding: 24px; } .header-links { display: none; } nav { gap: 16px; } .context { display: none; } }
+    @media (max-width: 700px) {
+      .wrap { width: calc(100% - 40px); }
+      .top { min-height: 104px; align-items: flex-start; justify-content: center; flex-direction: column; gap: 8px; padding-block: 20px 8px; }
+      .top-brand img { width: 138px; }
+      nav { gap: 24px; font-size: 13px; width: 100%; overflow-x: auto; white-space: nowrap; }
+      nav a { min-height: 48px; display: flex; align-items: center; padding-block: 8px; }
+      .intro { padding-block: 48px; }
+      .lead { font-size: 16px; }
+      .section-head { display: block; margin-bottom: 20px; }
+      .section-head p { margin-top: 10px; }
+      section { padding-bottom: 48px; }
+      .directions, .size-grid, .headers, .download-panel { grid-template-columns: 1fr; }
+      .directions { gap: 20px; }
+      .display { min-height: 200px; }
+      .directions .card p { min-height: 0; }
+      .samples { gap: 32px; }
+      .download-panel { gap: 28px; }
+      .technical { grid-template-columns: 1fr; gap: 24px; }
+      .adaptive { width: 180px; height: 180px; }
+      footer { display: block; }
+      footer p + p { margin-top: 8px; }
+    }
+    @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+  </style>
+</head>
+<body>
+  <header class="top wrap">
+    <div class="top-brand"><img src="lockup.svg" width="136.445" height="48" alt="ottline — on the timeline"><span class="context">CI v2 · 디자인 검토</span></div>
+    <nav aria-label="검토 영역"><a href="#directions">방향 비교</a><a href="#sizes">작은 크기</a><a href="#headers">헤더</a><a href="#assets">자산 받기</a></nav>
+  </header>
+  <main class="wrap">
+    <div class="intro">
+      <p class="eyebrow">ottline · Identity v2</p>
+      <h1>한 장, 한 순간.</h1>
+      <p class="lead">책과 영상을 기억하던 익숙한 심볼을, 따뜻한 타임라인에 맞춰 정리했어요. 작은 아이콘에서도 책과 재생 모양을 알아볼 수 있고, 이름 옆에서는 조용히 자리를 지켜요.</p>
+      <p class="notice">제품 화면과 분리된 CI 검토용 페이지예요. 앱 아이콘의 원본은 모서리를 미리 둥글게 만들지 않은 정사각형이며, 아래 모양은 시스템 마스크를 적용한 미리보기예요.</p>
+    </div>
+
+    <section id="directions" aria-labelledby="directions-title">
+      <div class="section-head"><h2 id="directions-title">익숙함을 이어가는 방향</h2><p>기존 심볼과 두 가지 방향을 함께 비교해요.</p></div>
+      <div class="directions">
+        <article class="card">
+          <div class="card-heading"><h3>기존 CI</h3></div>
+          <div class="display"><img src="../../ottline_logo.png" width="297" height="298" alt="연한 파랑 바탕의 기존 열린 책과 재생 심볼"></div>
+          <p>열린 책과 재생 모양의 조합이에요. 기존 바탕의 둥근 모서리와 파란 톤을 그대로 보여줘요.</p>
+          <div class="wordmark-row"><span>현재 배포 자산 · 비교 기준</span></div>
+        </article>
+        <article class="card recommended">
+          <div class="card-heading"><h3>A · 한 장, 한 순간</h3><span class="badge">권장 방향</span></div>
+          <div class="display"><img class="icon-squircle" src="app-icon-512.png" width="144" height="144" alt="크림 바탕과 남색으로 정리한 책과 재생 심볼"></div>
+          <p>심볼은 따뜻한 화면에 맞춰 정리하고, 이름은 익숙한 Pretendard 글자체와 자간을 그대로 사용해요.</p>
+          <div class="wordmark-row"><img src="wordmark.svg" width="86" height="36" alt="기존 Pretendard 700 글자체와 자간을 유지한 ottline 워드마크"></div>
+        </article>
+        <article class="card">
+          <div class="card-heading"><h3>B · 시간과 책갈피</h3><span class="badge">탐색 시안</span></div>
+          <div class="display"><img class="icon-squircle" src="alternative-b-app-icon.svg" width="144" height="144" alt="원형 시간 궤적 안의 책갈피와 재생 심볼"></div>
+          <p>시간의 궤적과 책갈피를 한 모양으로 묶었어요. A보다 다른 인상이지만, 작은 크기에서 겹친 선의 구분이 약해져요.</p>
+          <div class="wordmark-row"><span>실루엣을 다르게 살펴본 대안</span></div>
+        </article>
+      </div>
+    </section>
+
+    <section id="sizes" aria-labelledby="sizes-title">
+      <div class="section-head"><h2 id="sizes-title">실제 크기로 확인해요</h2><p>확대하지 않은 48·64px 앱 아이콘과 작은 파비콘이에요.</p></div>
+      <div class="size-grid">
+        <div class="card">
+          <p class="sample-title">원형 시스템 마스크</p>
+          <div class="samples">
+            <figure><div class="sample-art"><img class="icon-circle" src="app-icon-48.png" width="48" height="48" alt="48px 원형 A 아이콘"></div><figcaption>48px</figcaption></figure>
+            <figure><div class="sample-art"><img class="icon-circle" src="app-icon-64.png" width="64" height="64" alt="64px 원형 A 아이콘"></div><figcaption>64px</figcaption></figure>
+          </div>
+        </div>
+        <div class="card">
+          <p class="sample-title">Squircle 시스템 마스크</p>
+          <div class="samples">
+            <figure><div class="sample-art"><img class="icon-squircle" src="app-icon-48.png" width="48" height="48" alt="48px 둥근 사각형 A 아이콘"></div><figcaption>48px</figcaption></figure>
+            <figure><div class="sample-art"><img class="icon-squircle" src="app-icon-64.png" width="64" height="64" alt="64px 둥근 사각형 A 아이콘"></div><figcaption>64px</figcaption></figure>
+          </div>
+        </div>
+        <div class="card favicon-card">
+          <p class="sample-title">브라우저 탭 · 파비콘</p>
+          <div class="samples">
+            <figure><div class="sample-art"><img src="favicon-16.png" width="16" height="16" alt="16px 파비콘"></div><figcaption>16px</figcaption></figure>
+            <figure><div class="sample-art"><img src="favicon-24.png" width="24" height="24" alt="24px 파비콘"></div><figcaption>24px</figcaption></figure>
+            <figure><div class="sample-art"><img src="favicon-32.png" width="32" height="32" alt="32px 파비콘"></div><figcaption>32px</figcaption></figure>
+          </div>
+          <p class="small-note">파비콘은 같은 심볼을 조금 크게 배치해요. 앱 아이콘의 마스크용 여백과 별도로, 작은 브라우저 탭에서 윤곽이 잘 남게 맞췄어요.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="headers" aria-labelledby="headers-title">
+      <div class="section-head"><h2 id="headers-title">이름과 함께 놓았을 때</h2><p>기존 Pretendard 700과 자간을 실제 140·150·168px 크기로 확인해요.</p></div>
+      <div class="headers">
+        <div class="header-example"><p class="header-label">밝은 헤더 · 140px</p><div class="header-line"><img src="lockup.svg" width="140" height="49.25" alt="140px 밝은 헤더의 ottline 로고"><span class="header-links" aria-hidden="true">홈　타임라인</span></div></div>
+        <div class="header-example"><p class="header-label">밝은 헤더 · 150px</p><div class="header-line"><img src="lockup.svg" width="150" height="52.77" alt="150px 밝은 헤더의 ottline 로고"><span class="header-links" aria-hidden="true">홈　타임라인</span></div></div>
+        <div class="header-example"><p class="header-label">밝은 헤더 · 168px</p><div class="header-line"><img src="lockup.svg" width="168" height="59.10" alt="168px 밝은 헤더의 ottline 로고"><span class="header-links" aria-hidden="true">홈　타임라인</span></div></div>
+        <div class="header-example dark"><p class="header-label">어두운 헤더 · 140px</p><div class="header-line"><img src="lockup-inverse.svg" width="140" height="49.25" alt="140px 어두운 헤더의 ottline 로고"><span class="header-links" aria-hidden="true">홈　타임라인</span></div></div>
+        <div class="header-example dark"><p class="header-label">어두운 헤더 · 150px</p><div class="header-line"><img src="lockup-inverse.svg" width="150" height="52.77" alt="150px 어두운 헤더의 ottline 로고"><span class="header-links" aria-hidden="true">홈　타임라인</span></div></div>
+        <div class="header-example dark"><p class="header-label">어두운 헤더 · 168px</p><div class="header-line"><img src="lockup-inverse.svg" width="168" height="59.10" alt="168px 어두운 헤더의 ottline 로고"><span class="header-links" aria-hidden="true">홈　타임라인</span></div></div>
+      </div>
+    </section>
+
+    <section id="assets" aria-labelledby="assets-title">
+      <div class="section-head"><h2 id="assets-title">자산 받기</h2><p>A안의 원본과 플랫폼별 출력을 준비했어요.</p></div>
+      <div class="card">
+        <div class="download-panel">
+          <div class="downloads">
+            <a class="download primary" href="app-icon-1024.png" download>앱 아이콘 · 1024 PNG</a>
+            <a class="download" href="app-icon.svg" download>앱 아이콘 · SVG</a>
+            <a class="download" href="lockup.svg" download>기본 로고 · SVG</a>
+            <a class="download" href="lockup-inverse.svg" download>어두운 배경 로고 · SVG</a>
+            <a class="download" href="mark.svg" download>심볼 · SVG</a>
+            <a class="download" href="wordmark.svg" download>워드마크 · SVG</a>
+            <a class="download" href="adaptive-foreground.svg" download>Android 전경 · SVG</a>
+            <a class="download" href="adaptive-background.svg" download>Android 배경 · SVG</a>
+            <a class="download" href="adaptive-monochrome.svg" download>Android 단색 · SVG</a>
+            <a class="download" href="adaptive-foreground-432.png" download>Android 전경 · 432 PNG</a>
+            <a class="download" href="app-foreground.svg" download>Apple용 전경 · SVG</a>
+            <a class="download" href="app-background.svg" download>Apple용 배경 · SVG</a>
+            <a class="download" href="favicon.ico" download>파비콘 · ICO</a>
+            <a class="download" href="comparison-board.png" download>비교 보드 · PNG</a>
+            <a class="download" href="og-image.png" download>공유 미리보기 · 1200 PNG</a>
+            <a class="download" href="og-image.svg" download>공유 미리보기 · SVG</a>
+          </div>
+          <div class="download-copy">
+            <p><strong>앱 아이콘</strong><br>1024·512·192·180·128·64·48·32·16px 불투명 정사각형 PNG를 만들었어요. 바탕은 크림색으로 끝까지 채우고 모서리는 시스템이 적용해요.</p>
+            <p><strong>레이어</strong><br>Android는 108×108 좌표의 전경·배경·단색 SVG와 432px PNG를 제공해요. Apple은 1024px 전경·배경 SVG와 PNG를 준비했어요. Icon Composer 구성과 실제 네이티브 앱 배포는 별도 작업이에요.</p>
+            <p><a href="asset-manifest.json">전체 파일의 크기·투명도·검증값 보기</a></p>
+          </div>
+        </div>
+        <figure class="og-preview"><img src="og-image.png" width="1200" height="630" alt="크림 바탕 중앙에 A 로고를 배치한 공유 미리보기"><figcaption>공유 미리보기 · 1200×630px · 별도의 제품 문구 없이 CI만 배치했어요.</figcaption></figure>
+        <div class="technical">
+          <figure>
+            <div class="adaptive"><img src="adaptive-foreground.svg" width="216" height="216" alt="108dp 캔버스 안에 배치한 심볼"><svg viewBox="0 0 108 108" aria-hidden="true"><circle cx="54" cy="54" r="33" fill="none" stroke="#1E4D8C" stroke-width=".5" stroke-dasharray="2 2" opacity=".4"/></svg></div>
+            <figcaption>Android · 중앙 66dp 원 안의 전경</figcaption>
+          </figure>
+          <div>
+            <h3>잘리지 않는지 수치로도 확인했어요.</h3>
+            <p>Android 전경의 가장 먼 픽셀은 중심에서 32.899dp로, 33dp 반경 안에 있어요. PWA 아이콘은 1024px 원본에서 405.663px 반경 안에 들어가, 너비 40%인 409.6px 안전 영역을 지켜요.</p>
+            <p>파일의 투명도, PNG 크기, 안전 영역은 생성 스크립트가 함께 검사해요. 실제 iOS·Android 기기의 시스템 효과와 최종 렌더링 검증은 네이티브 적용 단계에서 이어가요.</p>
+            <div class="sources"><a href="https://developer.apple.com/design/human-interface-guidelines/app-icons/">Apple 앱 아이콘 가이드</a><a href="https://developer.android.com/develop/ui/compose/system/icon_design_adaptive">Android adaptive 가이드</a><a href="https://www.w3.org/TR/appmanifest/#icon-masks">PWA 안전 영역 명세</a></div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+  <footer class="wrap"><p>ottline CI v2 · A 권장 / B 탐색 · 2026.11.04</p><p>검토용 자산과 실제 앱·스토어 배포는 별도로 관리해요.</p></footer>
+</body>
+</html>

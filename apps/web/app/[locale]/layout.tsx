@@ -40,8 +40,19 @@ export async function generateMetadata({
     alternates: localizedAlternates(locale),
     manifest: "/manifest.webmanifest",
     icons: {
-      icon: "/icon.png",
-      apple: "/apple-touch-icon.png",
+      icon: [
+        {
+          url: "/brand/v2/favicon-32.png?v=transparent-20261107",
+          sizes: "32x32",
+          type: "image/png",
+        },
+        {
+          url: "/brand/v2/favicon.svg?v=transparent-20261107",
+          sizes: "any",
+          type: "image/svg+xml",
+        },
+      ],
+      apple: "/brand/v2/app-icon-180.png",
     },
     appleWebApp: {
       capable: true,
@@ -57,7 +68,7 @@ export async function generateMetadata({
       type: "website",
       images: [
         {
-          url: "https://ottline.app/og-image-20260418.png",
+          url: "https://ottline.app/brand/v2/og-image.png",
           width: 1200,
           height: 630,
         },
@@ -67,7 +78,7 @@ export async function generateMetadata({
       card: "summary_large_image",
       title: "ottline",
       description: t("description"),
-      images: ["https://ottline.app/og-image-20260418.png"],
+      images: ["https://ottline.app/brand/v2/og-image.png"],
     },
   };
 }
@@ -166,7 +177,7 @@ export default async function RootLayout({
               url: "https://ottline.app",
               logo: {
                 "@type": "ImageObject",
-                url: "https://ottline.app/icon.png",
+                url: "https://ottline.app/brand/v2/app-icon-512.png",
                 width: 512,
                 height: 512,
               },
@@ -210,7 +221,7 @@ export default async function RootLayout({
             <SwipeNav />
             <PwaInstallBanner />
             <SyncWorker />
-            <main className="mx-auto max-w-5xl px-4 py-8 pb-[var(--mobile-bottom-content-padding)] sm:py-10 sm:pb-10">
+            <main id="main-content" className="ottline-app-main">
               {children}
             </main>
             <AppFooter />

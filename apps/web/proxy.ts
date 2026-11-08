@@ -11,6 +11,31 @@ import {
 
 const handleI18n = createMiddleware(routing);
 
+function protectLocaleCookie(request: NextRequest, response: NextResponse) {
+  const destination = request.headers.get("sec-fetch-dest");
+  // HTTP LAN browsers omit Fetch Metadata. Next.js also strips router headers,
+  // so use the document Accept header when that metadata isn't available.
+  const isDocument =
+    destination === "document" ||
+    (destination === null &&
+      request.headers.get("accept")?.includes("text/html"));
+  if (isDocument || !response.cookies.has("NEXT_LOCALE")) return response;
+
+  const otherCookies = response.cookies
+    .getAll()
+    .filter((cookie) => cookie.name !== "NEXT_LOCALE");
+  const headers = new Headers(response.headers);
+  headers.delete("set-cookie");
+  headers.delete("x-middleware-set-cookie");
+  const protectedResponse = new NextResponse(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
+  for (const cookie of otherCookies) protectedResponse.cookies.set(cookie);
+  return protectedResponse;
+}
+
 function withPrivateAdminHeaders(response: NextResponse) {
   response.headers.set("Cache-Control", "no-store");
   response.headers.set("Referrer-Policy", "no-referrer");
@@ -61,7 +86,7 @@ export default async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  return handleI18n(request);
+  return protectLocaleCookie(request, handleI18n(request));
 }
 
 export const config = {

@@ -81,7 +81,7 @@ export default async function GuideArticlePage({
   );
 
   return (
-    <div className="mx-auto max-w-4xl py-4 sm:py-8">
+    <div className="v2-secondary-page py-4 sm:py-8">
       <nav aria-label={locale === "ko" ? "가이드 경로" : "Guide breadcrumb"}>
         <Link
           href="/guide"
@@ -93,7 +93,7 @@ export default async function GuideArticlePage({
       </nav>
 
       <article className="mt-7">
-        <header className="max-w-3xl space-y-4">
+        <header className="space-y-4">
           <p className="text-sm font-semibold text-brand-navy dark:text-foreground">
             {guide.eyebrow}
           </p>
@@ -118,7 +118,7 @@ export default async function GuideArticlePage({
             width={guide.image.width}
             height={guide.image.height}
             priority
-            sizes="(max-width: 767px) 100vw, 640px"
+            sizes="(max-width: 767px) calc(100vw - 62px), (max-width: 1130px) calc(100vw - 106px), 1024px"
             className="mx-auto max-h-[640px] w-auto rounded-lg border border-border object-contain object-top"
           />
           <figcaption className="mx-auto mt-3 max-w-2xl text-sm leading-6 text-muted-foreground">
@@ -126,7 +126,7 @@ export default async function GuideArticlePage({
           </figcaption>
         </figure>
 
-        <div className="mx-auto mt-12 max-w-3xl space-y-12">
+        <div className="mt-12 space-y-12">
           {guide.sections.map((section) => (
             <section key={section.title} className="space-y-4">
               <h2 className="text-2xl font-semibold leading-snug">

@@ -3,6 +3,7 @@ package com.watchlog.api.repo;
 import com.watchlog.api.domain.Occasion;
 import com.watchlog.api.domain.Place;
 import com.watchlog.api.domain.Status;
+import com.watchlog.api.domain.TitleEntity;
 import com.watchlog.api.domain.WatchLogEntity;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.Query;
@@ -183,6 +184,7 @@ public interface WatchLogRepository extends JpaRepository<WatchLogEntity, UUID> 
             join fetch w.title t
             where w.userId = :userId
               and w.status = 'DONE'
+              and w.origin = 'LOG'
               and w.deletedAt is null
               and w.watchedAt >= :since
             order by w.watchedAt desc
@@ -191,4 +193,22 @@ public interface WatchLogRepository extends JpaRepository<WatchLogEntity, UUID> 
             @Param("userId") UUID userId,
             @Param("since") OffsetDateTime since,
             Pageable pageable);
+
+    @Query("""
+            select w from WatchLogEntity w
+            join fetch w.title
+            where w.userId = :userId and w.status = 'DONE'
+              and w.origin = 'LOG' and w.deletedAt is null
+            order by w.watchedAt desc, w.updatedAt desc
+            """)
+    List<WatchLogEntity> findCompletedForRecommendation(@Param("userId") UUID userId, Pageable pageable);
+
+    @Query("""
+            select distinct t from WatchLogEntity w join w.title t
+            where w.userId = :userId and w.origin = 'LOG' and w.deletedAt is null
+            """)
+    List<TitleEntity> findTitlesForRecommendationExclusion(@Param("userId") UUID userId);
+
+    @Query("select count(w) from WatchLogEntity w where w.userId=:userId and w.status='DONE' and w.origin='LOG' and w.deletedAt is null")
+    long countForRecommendation(@Param("userId") UUID userId);
 }

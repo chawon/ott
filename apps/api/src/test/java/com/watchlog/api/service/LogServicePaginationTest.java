@@ -35,7 +35,7 @@ class LogServicePaginationTest {
                     throw new UnsupportedOperationException(method.getName());
                 }
         );
-        var service = new LogService(repository, null, null, null);
+        var service = new LogService(repository, null, null);
 
         var page = service.listPage(
                 null, null, null, null, null, null, null,

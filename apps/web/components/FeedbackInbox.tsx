@@ -287,7 +287,7 @@ export default function FeedbackInbox({ preset }: { preset?: FeedbackPreset }) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="v2-secondary-page space-y-6">
       <section className="space-y-2">
         <div className="flex items-center gap-2">
           <MailQuestion className="h-5 w-5" />

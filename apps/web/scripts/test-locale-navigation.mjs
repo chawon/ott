@@ -8,7 +8,11 @@ assert.ok(
   "Locale verification must use a local server",
 );
 
-const browser = await chromium.launch({ headless: true });
+const browser = await chromium.launch({
+  executablePath: process.env.PLAYWRIGHT_EXECUTABLE_PATH,
+  headless: true,
+  args: ["--no-sandbox"],
+});
 try {
   const context = await browser.newContext({ serviceWorkers: "block" });
   const page = await context.newPage();
@@ -91,7 +95,9 @@ try {
           assert.ok((await link.boundingBox())?.height >= 48);
         }
       }
-      const themeButton = page.locator("header button:has(svg.lucide)");
+      const themeButton = page.locator(
+        "header button:has(svg.lucide-monitor, svg.lucide-moon, svg.lucide-sun)",
+      );
       const name = await themeButton.getAttribute("aria-label");
       assert.ok(name, "The icon-only theme button has an accessible name");
       assert.equal(

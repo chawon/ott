@@ -1,0 +1,239 @@
+{
+  "schema": "ottline.brand-assets/v2",
+  "palette": {
+    "navy": "#1E4D8C",
+    "cream": "#F8F6F2",
+    "orange": "#FF9933",
+    "ink": "#0F0F0F",
+    "gray": "#4A4A4A",
+    "line": "#ECEBE9"
+  },
+  "typography": {
+    "file": "typography-outlines.json",
+    "source": {
+      "path": "apps/web/public/fonts/PretendardVariable.woff2",
+      "sha256": "9599f12fd42fc0bce1cd50b47a0c022e108d7aa64dd0d1bb0ed44f3282d900b4",
+      "family": "Pretendard Variable",
+      "version": "Version 1.309;Glyphs 3.2 (3225)",
+      "copyright": "Copyright © 2023 Kil Hyung-jin",
+      "upstream": "https://github.com/orioncactus/pretendard",
+      "license": "SIL Open Font License 1.1"
+    },
+    "wordmark": {
+      "fontSize": 30,
+      "weight": 700,
+      "letterSpacing": -0.75,
+      "lineHeight": 36,
+      "advanceWidth": 85.5556640625
+    },
+    "tagline": {
+      "fontSize": 9,
+      "weight": 600,
+      "letterSpacing": 0.9,
+      "lineHeight": 9,
+      "advanceWidth": 88.4443359375
+    }
+  },
+  "dimensions": {
+    "wordmark": [86, 36],
+    "lockup": [136.445, 48]
+  },
+  "masters": [
+    "mark.svg",
+    "mark-mono.svg",
+    "mark-inverse.svg",
+    "wordmark.svg",
+    "wordmark-inverse.svg",
+    "lockup.svg",
+    "lockup-inverse.svg",
+    "app-icon.svg",
+    "app-foreground.svg",
+    "app-background.svg",
+    "app-monochrome.svg",
+    "adaptive-foreground.svg",
+    "adaptive-background.svg",
+    "adaptive-monochrome.svg",
+    "favicon.svg",
+    "og-image.svg",
+    "alternative-b-mark.svg",
+    "alternative-b-app-icon.svg"
+  ],
+  "rasters": [
+    {
+      "name": "app-icon-1024.png",
+      "master": "app-icon.svg",
+      "width": 1024,
+      "height": 1024,
+      "alpha": false,
+      "sha256": "e0fcf8ae0866f69ae4fc38a723f1c226570f05a7e3bd277b1e5f50bea9a159c4"
+    },
+    {
+      "name": "app-icon-512.png",
+      "master": "app-icon.svg",
+      "width": 512,
+      "height": 512,
+      "alpha": false,
+      "sha256": "cc1ec498deb516aa65ad8b743e91a2cdcabb613329e8c2cf6d60cbbce77505f7"
+    },
+    {
+      "name": "app-icon-192.png",
+      "master": "app-icon.svg",
+      "width": 192,
+      "height": 192,
+      "alpha": false,
+      "sha256": "3437fc5362e7aada82792f9408b19535a6ae1233a9e696fcc9977381707f85e5"
+    },
+    {
+      "name": "app-icon-180.png",
+      "master": "app-icon.svg",
+      "width": 180,
+      "height": 180,
+      "alpha": false,
+      "sha256": "0cd07bebecfcea6fa427891c6bd0941971208815c374dd3b74ddddfa4c1a2c27"
+    },
+    {
+      "name": "app-icon-128.png",
+      "master": "app-icon.svg",
+      "width": 128,
+      "height": 128,
+      "alpha": false,
+      "sha256": "3b2ac8531174d6a9b8cd69255c518d6796487f5e29f80ed1a1aea2f5a97db59a"
+    },
+    {
+      "name": "app-icon-64.png",
+      "master": "app-icon.svg",
+      "width": 64,
+      "height": 64,
+      "alpha": false,
+      "sha256": "cedadbd19c0ebbe0277e0a1af1060358a9e82640f74cfe07e2d4545600a7d8ce"
+    },
+    {
+      "name": "app-icon-48.png",
+      "master": "app-icon.svg",
+      "width": 48,
+      "height": 48,
+      "alpha": false,
+      "sha256": "6f556f93361c3e476758992003b31cf93cafa02dd38096ccb6f0c85ae5421af3"
+    },
+    {
+      "name": "app-icon-32.png",
+      "master": "app-icon.svg",
+      "width": 32,
+      "height": 32,
+      "alpha": false,
+      "sha256": "bdecd01e9425c79555a2c69f3902ad8f0e541ecb58291a39a314237b05680bf8"
+    },
+    {
+      "name": "app-icon-16.png",
+      "master": "app-icon.svg",
+      "width": 16,
+      "height": 16,
+      "alpha": false,
+      "sha256": "f301d629e2ef42be5ba7f207e1edc36cb603c7491d459f48fd4e59d5ed10e2af"
+    },
+    {
+      "name": "app-foreground-1024.png",
+      "master": "app-foreground.svg",
+      "width": 1024,
+      "height": 1024,
+      "alpha": true,
+      "sha256": "1a27c14905564077fdb5abee9c82bbd2d07e8d8fea1b5f6d5c25b2c798f21b97"
+    },
+    {
+      "name": "app-background-1024.png",
+      "master": "app-background.svg",
+      "width": 1024,
+      "height": 1024,
+      "alpha": false,
+      "sha256": "f0965cb8117986b43e4d26a13425d14d7d0e87ecf5af55b035566236f1c880c5"
+    },
+    {
+      "name": "app-monochrome-1024.png",
+      "master": "app-monochrome.svg",
+      "width": 1024,
+      "height": 1024,
+      "alpha": true,
+      "sha256": "3eee100a6fd7291105669199a09a0c47831a577777a1754f796b8eea5ba67ed8"
+    },
+    {
+      "name": "og-image.png",
+      "master": "og-image.svg",
+      "width": 1200,
+      "height": 630,
+      "alpha": false,
+      "sha256": "ff1ed903a10d0149126870c757b01f4f0a6225ddecdfcfc4cb790a7b84bce351"
+    },
+    {
+      "name": "adaptive-foreground-432.png",
+      "master": "adaptive-foreground.svg",
+      "width": 432,
+      "height": 432,
+      "alpha": true,
+      "sha256": "bade2aab050e78b55f8f4203d3630c768a8530aba0fdaebb1df7c7b83f7dc4ce"
+    },
+    {
+      "name": "adaptive-background-432.png",
+      "master": "adaptive-background.svg",
+      "width": 432,
+      "height": 432,
+      "alpha": false,
+      "sha256": "9dff9466bd4a7934b2540566ee5d5743754ca5465ba7a4a967b6309b89496ef4"
+    },
+    {
+      "name": "adaptive-monochrome-432.png",
+      "master": "adaptive-monochrome.svg",
+      "width": 432,
+      "height": 432,
+      "alpha": true,
+      "sha256": "ee1e37467b5311bba3638abb3fa7d1c05c27f8ab1540da5154566d9485ca3968"
+    },
+    {
+      "name": "favicon-16.png",
+      "master": "favicon.svg",
+      "width": 16,
+      "height": 16,
+      "alpha": true,
+      "sha256": "6cf6db205742eb11ff90821cd13e1153e8bbb328b2f7f2ad90283386f5a8cdba"
+    },
+    {
+      "name": "favicon-24.png",
+      "master": "favicon.svg",
+      "width": 24,
+      "height": 24,
+      "alpha": true,
+      "sha256": "51c84b70171fe0fe9051c2396f05ba346257818ec108779f0d3f1d8618909b44"
+    },
+    {
+      "name": "favicon-32.png",
+      "master": "favicon.svg",
+      "width": 32,
+      "height": 32,
+      "alpha": true,
+      "sha256": "bdc5d23fa312b342071600d48e89c49c3637b971769b79d00f38eae8f5ac8def"
+    },
+    {
+      "name": "favicon-48.png",
+      "master": "favicon.svg",
+      "width": 48,
+      "height": 48,
+      "alpha": true,
+      "sha256": "b0fdbf5943bc53ee8e2dcde092d9fdd923e45459fc168d6538cca0f1eecafdda"
+    }
+  ],
+  "safety": {
+    "pwa": {
+      "canvas": 1024,
+      "maxArtworkRadius": 405.663,
+      "safeRadius": 409.6,
+      "bounds": [178, 215, 855, 809],
+      "cornerAlpha": 0
+    },
+    "android": {
+      "canvas": 108,
+      "maxArtworkRadius": 32.899,
+      "safeRadius": 33,
+      "bounds": [26.9, 29.9, 81.8, 78.1],
+      "cornerAlpha": 0
+    }
+  }
+}

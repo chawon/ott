@@ -1,33 +1,42 @@
 "use client";
-import { EN_BOOK_PLATFORM_GROUPS } from "../../../../../../shared/bookPlatforms";
-
-import { useEffect, useMemo, useState } from "react";
 import {
+  ArrowLeft,
+  Calendar,
   Clock,
   MapPin,
   MessageSquare,
   MonitorPlay,
-  Star,
+  Pencil,
+  Share2,
   Users,
 } from "lucide-react";
 import { useParams } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
-import { api, apiWithAuth } from "@/lib/api";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import CommentsPanel from "@/components/CommentsPanel";
+import GoogleBooksAttribution from "@/components/GoogleBooksAttribution";
+import RecordFeelings from "@/components/RecordFeelings";
+import styles from "@/components/recording.module.css";
+import ShareBottomSheet from "@/components/ShareBottomSheet";
+import { Link } from "@/i18n/routing";
+import { api, apiWithAuth } from "@/lib/api";
+import { googleBooksUrl } from "@/lib/googleBooks";
 import {
+  enqueueUpdateLog,
   getTitleLocal,
   getUserId,
   listHistoryLocal,
   listLogsByTitleLocal,
+  updateLogLocal,
+  updatePendingCreatePayload,
   upsertHistoryLocal,
   upsertLogsLocal,
   upsertTitleLocal,
-  updateLogLocal,
-  updatePendingCreatePayload,
-  enqueueUpdateLog,
 } from "@/lib/localStore";
+import { editedRecordDate, recordDateInput } from "@/lib/recordDate";
+import { recordDisplayYear } from "@/lib/recordMetadata";
 import { syncOutbox } from "@/lib/sync";
-import {
+import type {
   Occasion,
   Place,
   Status,
@@ -38,15 +47,14 @@ import {
 import {
   formatNoteInline,
   OCCASION_LABELS,
-  PLACE_LABELS,
-  placeOptionsForType,
-  placeLabel,
   occasionLabel,
+  placeLabel,
+  placeOptionsForType,
   ratingDisplay,
-  ratingOptionsForType,
   safeUUID,
   statusOptionsForType,
 } from "@/lib/utils";
+import { EN_BOOK_PLATFORM_GROUPS } from "../../../../../../shared/bookPlatforms";
 
 type SeasonOption = {
   seasonNumber: number;
@@ -111,29 +119,13 @@ function fmt(iso: string, locale: string) {
   return d.toLocaleString(locale === "ko" ? "ko-KR" : "en-US", {
     month: "short",
     day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
+    year: "numeric",
   });
 }
 
-function toDateInput(d: Date) {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
-}
-
-function dateToIso(date: string) {
-  return new Date(`${date}T00:00:00`).toISOString();
-}
-
-function chip(label: string, tone: "place" | "occasion") {
-  const toneClass =
-    tone === "place"
-      ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-      : "bg-amber-50 text-amber-700 border-amber-200";
+function chip(label: string, _tone: "place" | "occasion") {
   return (
-    <span className={`rounded-full border px-3 py-1 text-xs ${toneClass}`}>
+    <span className="rounded-lg border border-border bg-secondary px-3 py-1 text-xs text-muted-foreground">
       {label}
     </span>
   );
@@ -141,12 +133,16 @@ function chip(label: string, tone: "place" | "occasion") {
 
 function renderBody(text: string) {
   const parts = text.split(/(@\{[^}]+\})/g);
-  return parts.map((p, idx) => {
+  const occurrences = new Map<string, number>();
+  return parts.map((p) => {
+    const occurrence = occurrences.get(p) ?? 0;
+    occurrences.set(p, occurrence + 1);
+    const key = `${p}:${occurrence}`;
     if (p.startsWith("@{") && p.endsWith("}")) {
       const name = p.slice(2, -1);
       return (
         <span
-          key={idx}
+          key={key}
           className="rounded-md bg-indigo-50 px-1 text-indigo-700"
         >
           @{name}
@@ -156,14 +152,14 @@ function renderBody(text: string) {
     if (p.startsWith("@")) {
       return (
         <span
-          key={idx}
+          key={key}
           className="rounded-md bg-indigo-50 px-1 text-indigo-700"
         >
           {p}
         </span>
       );
     }
-    return <span key={idx}>{p}</span>;
+    return <span key={key}>{p}</span>;
   });
 }
 
@@ -185,9 +181,7 @@ function titleTypeLabel(type: Title["type"], t: any) {
       : t("typeBook");
 }
 
-function bookMeta(
-  item: Pick<Title, "author" | "publisher" | "year">,
-) {
+function bookMeta(item: Pick<Title, "author" | "publisher" | "year">) {
   return [item.author, item.publisher, item.year ? String(item.year) : null]
     .filter(Boolean)
     .join(" · ");
@@ -215,9 +209,8 @@ export default function TitlePage() {
   const [ott, setOtt] = useState("");
   const [ottSelect, setOttSelect] = useState<string>("");
   const [note, setNote] = useState("");
-  const [place, setPlace] = useState<Place>("HOME");
-  const [occasion, setOccasion] = useState<Occasion>("ALONE");
-  const [useWatchedAt, setUseWatchedAt] = useState(false);
+  const [place, setPlace] = useState<Place | "">("");
+  const [occasion, setOccasion] = useState<Occasion | "">("");
   const [watchedDate, setWatchedDate] = useState("");
   const [seasons, setSeasons] = useState<SeasonOption[]>([]);
   const [episodes, setEpisodes] = useState<EpisodeOption[]>([]);
@@ -233,6 +226,12 @@ export default function TitlePage() {
   const [userId, setUserId] = useState<string | null>(null);
 
   const isBook = title?.type === "book";
+  const titleType = title?.type;
+  const titleProviderId = title?.providerId;
+  const [editOpen, setEditOpen] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
+  const [updateError, setUpdateError] = useState<string | null>(null);
+  const copy = (ko: string, en: string) => (locale === "ko" ? ko : en);
 
   const videoPlatformGroups = useMemo(
     () =>
@@ -334,10 +333,6 @@ export default function TitlePage() {
     () => placeOptionsForType(title?.type, tCommon),
     [title?.type, tCommon],
   );
-  const ratingOptions = useMemo(
-    () => ratingOptionsForType(title?.type, tQuick),
-    [title?.type, tQuick],
-  );
 
   const occasionOptions = useMemo(
     () =>
@@ -348,7 +343,55 @@ export default function TitlePage() {
     [tCommon],
   );
 
-  async function reloadAll() {
+  const loadLocalOnly = useCallback(async () => {
+    if (!titleId) return false;
+    let applied = false;
+    const localTitle = await getTitleLocal(titleId);
+    const localLogs = await listLogsByTitleLocal(titleId, 1);
+    const localCurrent = localLogs[0] ?? null;
+
+    if (localTitle) {
+      applied = true;
+      setTitle(localTitle);
+    }
+    if (localCurrent) {
+      applied = true;
+      setLog(localCurrent);
+      setStatus(localCurrent.status);
+      setRating(
+        typeof localCurrent.rating === "number" ? localCurrent.rating : "",
+      );
+      setOtt(localCurrent.ott ?? "");
+      setOttSelect("");
+      setNote(localCurrent.note ?? "");
+      setPlace(localCurrent.place ?? "");
+      setOccasion(localCurrent.occasion ?? "");
+      setSelectedSeason(
+        typeof localCurrent.seasonNumber === "number"
+          ? localCurrent.seasonNumber
+          : "",
+      );
+      setSelectedEpisode(
+        typeof localCurrent.episodeNumber === "number"
+          ? localCurrent.episodeNumber
+          : "",
+      );
+      setSeasonPosterUrl(localCurrent.seasonPosterUrl ?? null);
+      setSeasonYear(
+        typeof localCurrent.seasonYear === "number"
+          ? localCurrent.seasonYear
+          : null,
+      );
+      setOrigin(localCurrent.origin ?? "LOG");
+      setWatchedDate(recordDateInput(localCurrent.watchedAt));
+
+      const localHistory = await listHistoryLocal(localCurrent.id, 50);
+      if (localHistory.length > 0) setHistory(localHistory);
+    }
+    return applied;
+  }, [titleId]);
+
+  const reloadAll = useCallback(async () => {
     if (!titleId) return;
     setLoading(true);
     setErr(null);
@@ -382,12 +425,10 @@ export default function TitlePage() {
       setStatus(current.status);
       setRating(typeof current.rating === "number" ? current.rating : "");
       setOtt(current.ott ?? "");
-      setOttSelect(
-        resolvePlatformSelect(current.ott ?? "", allOttOptions, platformGroups),
-      );
+      setOttSelect("");
       setNote(current.note ?? "");
-      setPlace((current.place ?? "HOME") as Place);
-      setOccasion((current.occasion ?? "ALONE") as Occasion);
+      setPlace(current.place ?? "");
+      setOccasion(current.occasion ?? "");
       setSelectedSeason(
         typeof current.seasonNumber === "number" ? current.seasonNumber : "",
       );
@@ -399,9 +440,7 @@ export default function TitlePage() {
         typeof current.seasonYear === "number" ? current.seasonYear : null,
       );
       setOrigin(current.origin ?? "LOG");
-      setWatchedDate(
-        toDateInput(new Date(current.watchedAt ?? current.createdAt)),
-      );
+      setWatchedDate(recordDateInput(current.watchedAt));
 
       const h = await apiWithAuth<WatchLogHistory[]>(
         `/logs/${current.id}/history?limit=50`,
@@ -415,67 +454,11 @@ export default function TitlePage() {
     } finally {
       setLoading(false);
     }
-  }
-
-  async function loadLocalOnly() {
-    if (!titleId) return false;
-    let applied = false;
-    const localTitle = await getTitleLocal(titleId);
-    const localLogs = await listLogsByTitleLocal(titleId, 1);
-    const localCurrent = localLogs[0] ?? null;
-
-    if (localTitle) {
-      applied = true;
-      setTitle(localTitle);
-    }
-    if (localCurrent) {
-      applied = true;
-      setLog(localCurrent);
-      setStatus(localCurrent.status);
-      setRating(
-        typeof localCurrent.rating === "number" ? localCurrent.rating : "",
-      );
-      setOtt(localCurrent.ott ?? "");
-      setOttSelect(
-        resolvePlatformSelect(
-          localCurrent.ott ?? "",
-          allOttOptions,
-          platformGroups,
-        ),
-      );
-      setNote(localCurrent.note ?? "");
-      setPlace((localCurrent.place ?? "HOME") as Place);
-      setOccasion((localCurrent.occasion ?? "ALONE") as Occasion);
-      setSelectedSeason(
-        typeof localCurrent.seasonNumber === "number"
-          ? localCurrent.seasonNumber
-          : "",
-      );
-      setSelectedEpisode(
-        typeof localCurrent.episodeNumber === "number"
-          ? localCurrent.episodeNumber
-          : "",
-      );
-      setSeasonPosterUrl(localCurrent.seasonPosterUrl ?? null);
-      setSeasonYear(
-        typeof localCurrent.seasonYear === "number"
-          ? localCurrent.seasonYear
-          : null,
-      );
-      setOrigin(localCurrent.origin ?? "LOG");
-      setWatchedDate(
-        toDateInput(new Date(localCurrent.watchedAt ?? localCurrent.createdAt)),
-      );
-
-      const localHistory = await listHistoryLocal(localCurrent.id, 50);
-      if (localHistory.length > 0) setHistory(localHistory);
-    }
-    return applied;
-  }
+  }, [titleId, loadLocalOnly, tDetail]);
 
   useEffect(() => {
-    reloadAll();
-  }, [titleId]);
+    void reloadAll();
+  }, [reloadAll]);
 
   useEffect(() => {
     setCustomOttOptions(loadCustomOptions(platformCustomKey));
@@ -487,20 +470,14 @@ export default function TitlePage() {
   }, [ott, ottSelect, allOttOptions, platformGroups]);
 
   useEffect(() => {
-    if (useWatchedAt && !watchedDate) {
-      setWatchedDate(toDateInput(new Date()));
-    }
-  }, [useWatchedAt, watchedDate]);
-
-  useEffect(() => {
     let cancelled = false;
     async function loadSeasons() {
-      if (!title || title.type !== "series" || !title.providerId) return;
+      if (titleType !== "series" || !titleProviderId) return;
       setSeasonLoading(true);
       setSeasonError(null);
       try {
         const res = await api<SeasonOption[]>(
-          `/tmdb/tv/${title.providerId}/seasons`,
+          `/tmdb/tv/${titleProviderId}/seasons`,
         );
         if (!cancelled) setSeasons(res);
       } catch (e: any) {
@@ -516,26 +493,25 @@ export default function TitlePage() {
     setSeasons([]);
     setEpisodes([]);
     setSeasonError(null);
-    setSeasonYear(null);
 
-    if (title?.type === "series" && title.providerId) {
+    if (titleType === "series" && titleProviderId) {
       loadSeasons();
     }
 
     return () => {
       cancelled = true;
     };
-  }, [title]);
+  }, [titleType, titleProviderId, tQuick]);
 
   useEffect(() => {
     let cancelled = false;
     async function loadEpisodes() {
-      if (!title || title.type !== "series" || !title.providerId) return;
+      if (titleType !== "series" || !titleProviderId) return;
       if (selectedSeason === "") return;
       setEpisodeLoading(true);
       try {
         const res = await api<EpisodeOption[]>(
-          `/tmdb/tv/${title.providerId}/seasons/${selectedSeason}`,
+          `/tmdb/tv/${titleProviderId}/seasons/${selectedSeason}`,
         );
         if (!cancelled) setEpisodes(res);
       } catch {
@@ -548,8 +524,10 @@ export default function TitlePage() {
     setEpisodes([]);
     if (selectedSeason !== "") {
       const season = seasons.find((s) => s.seasonNumber === selectedSeason);
-      setSeasonPosterUrl(season?.posterUrl ?? null);
-      setSeasonYear(typeof season?.year === "number" ? season.year : null);
+      if (season) {
+        setSeasonPosterUrl(season.posterUrl ?? null);
+        setSeasonYear(typeof season.year === "number" ? season.year : null);
+      }
       loadEpisodes();
     } else {
       setSeasonPosterUrl(null);
@@ -560,7 +538,7 @@ export default function TitlePage() {
     return () => {
       cancelled = true;
     };
-  }, [title, selectedSeason, seasons]);
+  }, [titleType, titleProviderId, selectedSeason, seasons]);
 
   useEffect(() => {
     setUserId(getUserId());
@@ -568,22 +546,20 @@ export default function TitlePage() {
 
   useEffect(() => {
     function handleSync() {
-      loadLocalOnly();
+      void loadLocalOnly();
     }
     window.addEventListener("sync:updated", handleSync);
     return () => window.removeEventListener("sync:updated", handleSync);
-  }, [titleId]);
+  }, [loadLocalOnly]);
 
   const isDirty = useMemo(() => {
     if (!log) return false;
     const baselineRating = typeof log.rating === "number" ? log.rating : null;
     const baselineOtt = log.ott ?? "";
     const baselineNote = log.note ?? "";
-    const baselinePlace = (log.place ?? "HOME") as Place;
-    const baselineOccasion = (log.occasion ?? "ALONE") as Occasion;
-    const baselineWatchedDate = toDateInput(
-      new Date(log.watchedAt ?? log.createdAt),
-    );
+    const baselinePlace = log.place ?? "";
+    const baselineOccasion = log.occasion ?? "";
+    const baselineWatchedDate = recordDateInput(log.watchedAt);
     const baselineSeason =
       typeof log.seasonNumber === "number" ? log.seasonNumber : "";
     const baselineEpisode =
@@ -600,7 +576,7 @@ export default function TitlePage() {
       selectedSeason !== baselineSeason ||
       selectedEpisode !== baselineEpisode ||
       seasonYear !== baselineSeasonYear ||
-      (useWatchedAt && watchedDate && watchedDate !== baselineWatchedDate)
+      Boolean(watchedDate && watchedDate !== baselineWatchedDate)
     );
   }, [
     log,
@@ -610,7 +586,6 @@ export default function TitlePage() {
     note,
     place,
     occasion,
-    useWatchedAt,
     watchedDate,
     selectedSeason,
     selectedEpisode,
@@ -624,12 +599,12 @@ export default function TitlePage() {
 
   async function updateLog() {
     if (!log || saving) return;
+    setUpdateError(null);
     setSaving(true);
     try {
       if (!isDirty) return;
       const now = new Date().toISOString();
-      const pickedWatchedAt =
-        useWatchedAt && watchedDate ? dateToIso(watchedDate) : null;
+      const pickedWatchedAt = editedRecordDate(log.watchedAt, watchedDate);
       if (ott.trim()) {
         const trimmed = ott.trim();
         const baseOptions = Array.from(platformOptions) as string[];
@@ -656,8 +631,8 @@ export default function TitlePage() {
           seasonPosterUrl: seasonPosterUrl ?? null,
           seasonYear: seasonYear ?? null,
           origin,
-          place,
-          occasion,
+          place: place || null,
+          occasion: occasion || null,
           watchedAt: pickedWatchedAt,
         },
       };
@@ -673,8 +648,8 @@ export default function TitlePage() {
         seasonPosterUrl: seasonPosterUrl ?? null,
         seasonYear: seasonYear ?? null,
         origin,
-        place,
-        occasion,
+        place: place || null,
+        occasion: occasion || null,
         syncStatus: "pending",
         updatedAt: now,
         watchedAt: pickedWatchedAt ?? log.watchedAt,
@@ -697,8 +672,8 @@ export default function TitlePage() {
         seasonYear: seasonYear ?? null,
         origin,
         watchedAt: pickedWatchedAt ?? log.watchedAt,
-        place,
-        occasion,
+        place: place || null,
+        occasion: occasion || null,
       };
       setHistory((prev) => [historyEntry, ...prev]);
       await upsertHistoryLocal([historyEntry]);
@@ -711,6 +686,16 @@ export default function TitlePage() {
         await enqueueUpdateLog(log.id, payload);
       }
       await syncOutbox();
+      setEditOpen(false);
+    } catch (error) {
+      setUpdateError(
+        error instanceof Error
+          ? error.message
+          : copy(
+              "수정 내용을 보관하지 못했어요. 다시 시도해 주세요.",
+              "Your changes could not be kept. Please try again.",
+            ),
+      );
     } finally {
       setSaving(false);
     }
@@ -749,59 +734,151 @@ export default function TitlePage() {
     );
   }
 
+  const feeling = ratingDisplay(log?.rating, title.type, tQuick);
+  const displayYear = recordDisplayYear(title, log);
   return (
-    <div className="space-y-4">
-      <section className="rounded-2xl border border-border bg-card p-6 shadow-sm">
-        <div className="flex flex-col gap-4 sm:flex-row">
-          <div className="h-28 w-20 overflow-hidden rounded-xl bg-neutral-100 sm:h-36 sm:w-24">
-            {(log?.seasonPosterUrl ?? title.posterUrl) ? (
-              <img
-                src={log?.seasonPosterUrl ?? title.posterUrl ?? ""}
-                alt={title.name}
-                className="h-full w-full object-cover"
-                loading="lazy"
-              />
+    <div className={styles.detail}>
+      <Link href="/timeline" className={styles.quiet}>
+        <ArrowLeft size={16} />
+        {copy("타임라인", "Timeline")}
+      </Link>
+      <section className={styles.detailHero}>
+        {log?.seasonPosterUrl || title.posterUrl ? (
+          <img
+            className={styles.detailPoster}
+            data-book={isBook}
+            src={log?.seasonPosterUrl || title.posterUrl || ""}
+            alt={title.name}
+            width={280}
+            height={420}
+          />
+        ) : (
+          <div className={styles.detailPoster} aria-hidden="true" />
+        )}
+        <div className={styles.detailStory}>
+          <p className={styles.eyebrow}>
+            {titleTypeLabel(title.type, tQuick)}
+            {displayYear ? ` · ${displayYear}` : ""}
+          </p>
+          <h1>{title.name}</h1>
+          <div className={styles.detailMeta}>
+            {isBook ? bookMeta(title) : title.directors?.join(", ")}
+            {log ? (
+              <span>
+                {
+                  statusOptions.find((option) => option.value === log.status)
+                    ?.label
+                }
+              </span>
+            ) : null}
+            {feeling ? <span>{feeling.label}</span> : null}
+            {log && seasonEpisodeLabel(log.seasonNumber, log.episodeNumber) ? (
+              <span>
+                {seasonEpisodeLabel(log.seasonNumber, log.episodeNumber)}
+              </span>
             ) : null}
           </div>
-          <div className="min-w-0 flex-1">
-            <div className="text-xl font-semibold">{title.name}</div>
-            <div className="mt-1 text-sm text-muted-foreground">
-              {titleTypeLabel(title.type, tQuick)}
-              {(seasonYear ?? title.year)
-                ? ` · ${seasonYear ?? title.year}`
-                : ""}
-            </div>
-            {title.genres && title.genres.length > 0 ? (
-              <div className="mt-3 flex flex-wrap gap-2">
-                {title.genres.map((g) => (
-                  <span
-                    key={g}
-                    className="rounded-full border border-neutral-200 bg-neutral-50 px-3 py-1 text-xs text-neutral-700"
-                  >
-                    {g}
-                  </span>
-                ))}
+          {log ? (
+            <>
+              <dl
+                className={styles.detailTpo}
+                aria-label={copy("그날의 온기", "The moment")}
+              >
+                <div>
+                  <dt>{copy("언제", "When")}</dt>
+                  <dd>
+                    {log.watchedAt
+                      ? fmt(log.watchedAt, locale)
+                      : copy("기록하지 않았어요", "Not recorded")}
+                  </dd>
+                </div>
+                <div>
+                  <dt>
+                    {isBook
+                      ? copy("읽은 곳·플랫폼", "Where you got or read it")
+                      : tQuick("detailPlatform")}
+                  </dt>
+                  <dd>
+                    {log.ott || copy("기록하지 않았어요", "Not recorded")}
+                  </dd>
+                </div>
+                <div>
+                  <dt>{copy("어디서", "Where")}</dt>
+                  <dd>
+                    {log.place
+                      ? placeLabel(log.place, (key: Place) =>
+                          tCommon(`placeLabels.${key}`),
+                        )
+                      : copy("기록하지 않았어요", "Not recorded")}
+                  </dd>
+                </div>
+                <div>
+                  <dt>
+                    {copy(
+                      "누구와·어떤 상황",
+                      "Who you were with or the occasion",
+                    )}
+                  </dt>
+                  <dd>
+                    {log.occasion
+                      ? occasionLabel(log.occasion, (key: Occasion) =>
+                          tCommon(`occasionLabels.${key}`),
+                        )
+                      : copy("기록하지 않았어요", "Not recorded")}
+                  </dd>
+                </div>
+              </dl>
+              {log.note ? (
+                <p className={styles.detailNote}>{log.note}</p>
+              ) : null}
+              <div className={styles.actions}>
+                <button
+                  type="button"
+                  className={styles.primary}
+                  data-testid="record-detail-edit"
+                  onClick={() => setEditOpen((value) => !value)}
+                >
+                  <Pencil size={16} />
+                  {copy("기록 수정하기", "Edit this record")}
+                </button>
+                <button
+                  type="button"
+                  className={styles.secondary}
+                  onClick={() => setShareOpen(true)}
+                >
+                  <Share2 size={16} />
+                  {copy("공유 카드 만들기", "Create a share card")}
+                </button>
               </div>
-            ) : null}
-            {title.directors && title.directors.length > 0 ? (
-              <div className="mt-3 text-xs text-neutral-600">
-                {tDetail("director")} · {title.directors.join(", ")}
-              </div>
-            ) : null}
-            {title.cast && title.cast.length > 0 ? (
-              <div className="mt-1 text-xs text-neutral-600">
-                {tDetail("cast")} · {title.cast.join(", ")}
-              </div>
-            ) : null}
-          </div>
+              <p className={styles.hint}>
+                {copy(
+                  "내 기록은 직접 공개하기 전까지 나에게만 보여요.",
+                  "Your record stays private until you choose to share it.",
+                )}
+              </p>
+            </>
+          ) : (
+            <p className={styles.hint}>{tDetail("myRecordEmpty")}</p>
+          )}
         </div>
       </section>
-
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1.1fr_0.9fr]">
-        <section className="rounded-2xl border border-border bg-card p-6 shadow-sm space-y-4">
+      {googleBooksUrl(title) ? (
+        <GoogleBooksAttribution href={googleBooksUrl(title)!} />
+      ) : null}
+      <ShareBottomSheet
+        open={shareOpen}
+        log={log}
+        onClose={() => setShareOpen(false)}
+      />
+      <div>
+        <section
+          className={styles.detailEditor}
+          hidden={!editOpen}
+          aria-label={copy("기록 수정", "Edit record")}
+        >
           <div>
             <div className="text-base font-semibold">
-              {tDetail("myRecordTitle")}
+              {copy("그날의 순간", "The moment")}
             </div>
             <div className="text-sm text-neutral-600">
               {log ? tDetail("myRecordDesc") : tDetail("myRecordEmpty")}
@@ -817,6 +894,7 @@ export default function TitlePage() {
                     {tQuick("detailStatus")}
                   </div>
                   <select
+                    data-testid="record-edit-status"
                     value={status}
                     onChange={(e) => setStatus(e.target.value as Status)}
                     className="w-full select-base rounded-xl px-3 py-2 text-sm"
@@ -835,15 +913,25 @@ export default function TitlePage() {
                       {tQuick("seasonLabel")}
                     </div>
                     <select
+                      data-testid="record-season"
                       value={selectedSeason}
-                      onChange={(e) =>
+                      onChange={(e) => {
                         setSelectedSeason(
                           e.target.value ? Number(e.target.value) : "",
-                        )
-                      }
+                        );
+                        setSelectedEpisode("");
+                      }}
                       className="w-full select-base rounded-xl px-3 py-2 text-sm"
                     >
                       <option value="">{tCommon("none")}</option>
+                      {selectedSeason !== "" &&
+                      !seasons.some(
+                        (season) => season.seasonNumber === selectedSeason,
+                      ) ? (
+                        <option value={selectedSeason}>
+                          {tQuick("seasonValue", { number: selectedSeason })}
+                        </option>
+                      ) : null}
                       {seasons.map((s) => (
                         <option key={s.seasonNumber} value={s.seasonNumber}>
                           {tQuick("seasonValue", { number: s.seasonNumber })}
@@ -870,6 +958,7 @@ export default function TitlePage() {
                       {tQuick("episodeLabel")}
                     </div>
                     <select
+                      data-testid="record-episode"
                       value={selectedEpisode}
                       onChange={(e) =>
                         setSelectedEpisode(
@@ -880,6 +969,17 @@ export default function TitlePage() {
                       disabled={selectedSeason === "" || episodeLoading}
                     >
                       <option value="">{tCommon("none")}</option>
+                      {selectedEpisode !== "" &&
+                      !episodes.some(
+                        (episode) => episode.episodeNumber === selectedEpisode,
+                      ) ? (
+                        <option value={selectedEpisode}>
+                          {copy(
+                            `${selectedEpisode}화`,
+                            `Episode ${selectedEpisode}`,
+                          )}
+                        </option>
+                      ) : null}
                       {episodes.map((e) => (
                         <option key={e.episodeNumber} value={e.episodeNumber}>
                           EP {e.episodeNumber}
@@ -895,28 +995,13 @@ export default function TitlePage() {
                   </label>
                 ) : null}
 
-                <label className="space-y-1">
-                  <div className="text-xs text-neutral-600 flex items-center gap-1.5">
-                    <Star className="h-3 w-3" />
-                    {tQuick("detailRating")}
-                  </div>
-                  <select
-                    value={rating === "" ? "" : String(rating)}
-                    onChange={(e) =>
-                      setRating(
-                        e.target.value === "" ? "" : Number(e.target.value),
-                      )
-                    }
-                    className="w-full select-base rounded-xl px-3 py-2 text-sm"
-                  >
-                    <option value="">{tCommon("none")}</option>
-                    {ratingOptions.map((o) => (
-                      <option key={o.value} value={String(o.value)}>
-                        {o.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                <div className="md:col-span-2">
+                  <RecordFeelings
+                    value={rating}
+                    type={title.type}
+                    onChange={setRating}
+                  />
+                </div>
 
                 <label className="space-y-1">
                   <div className="text-xs text-neutral-600 flex items-center gap-1.5">
@@ -924,10 +1009,12 @@ export default function TitlePage() {
                     {tQuick("detailPlace")}
                   </div>
                   <select
+                    data-testid="record-place"
                     value={place}
-                    onChange={(e) => setPlace(e.target.value as Place)}
+                    onChange={(e) => setPlace(e.target.value as Place | "")}
                     className="w-full select-base rounded-xl px-3 py-2 text-sm"
                   >
+                    <option value="">{tCommon("none")}</option>
                     {placeOptions.map((p) => (
                       <option key={p.value} value={p.value}>
                         {p.label}
@@ -942,10 +1029,12 @@ export default function TitlePage() {
                     {tQuick("detailOccasion")}
                   </div>
                   <select
+                    data-testid="record-occasion"
                     value={occasion}
                     onChange={(e) => setOccasion(e.target.value as Occasion)}
                     className="w-full select-base rounded-xl px-3 py-2 text-sm"
                   >
+                    <option value="">{tCommon("none")}</option>
                     {occasionOptions.map((o) => (
                       <option key={o.value} value={o.value}>
                         {o.label}
@@ -954,13 +1043,20 @@ export default function TitlePage() {
                   </select>
                 </label>
 
-                <label className="space-y-1 md:col-span-2">
+                <label
+                  htmlFor="record-detail-platform"
+                  className="space-y-1 md:col-span-2"
+                >
                   <div className="text-xs text-neutral-600 flex items-center gap-1.5">
                     <MonitorPlay className="h-3 w-3" />
-                    {tQuick("detailPlatform")}
+                    {title.type === "book" && locale !== "ko"
+                      ? "Where you got or read it"
+                      : tQuick("detailPlatform")}
                   </div>
                   <>
                     <select
+                      id="record-detail-platform"
+                      data-testid="record-platform"
                       value={ottSelect}
                       onChange={(e) => {
                         const next = e.target.value;
@@ -1007,24 +1103,19 @@ export default function TitlePage() {
                   </>
                 </label>
 
-                <div className="space-y-2 md:col-span-2">
-                  <label className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <input
-                      type="checkbox"
-                      checked={useWatchedAt}
-                      onChange={(e) => setUseWatchedAt(e.target.checked)}
-                    />
-                    {tDetail("changeDate")}
-                  </label>
-                  {useWatchedAt ? (
-                    <input
-                      type="date"
-                      value={watchedDate}
-                      onChange={(e) => setWatchedDate(e.target.value)}
-                      className="w-full select-base rounded-xl px-3 py-2 text-sm"
-                    />
-                  ) : null}
-                </div>
+                <label className={styles.field}>
+                  <span>
+                    <Calendar size={16} />
+                    {copy("날짜", "Date")}
+                  </span>
+                  <input
+                    type="date"
+                    data-testid="record-date"
+                    required
+                    value={watchedDate}
+                    onChange={(event) => setWatchedDate(event.target.value)}
+                  />
+                </label>
 
                 <label className="space-y-1 md:col-span-2">
                   <div className="text-xs text-muted-foreground flex items-center gap-1.5">
@@ -1032,6 +1123,7 @@ export default function TitlePage() {
                     {tQuick("detailNote")}
                   </div>
                   <textarea
+                    data-testid="record-note"
                     value={note}
                     onChange={(e) => setNote(e.target.value)}
                     className="w-full select-base rounded-xl px-3 py-2 text-sm"
@@ -1040,11 +1132,17 @@ export default function TitlePage() {
                 </label>
               </div>
 
+              {updateError ? (
+                <p className={styles.error} role="alert">
+                  {updateError}
+                </p>
+              ) : null}
               <button
                 type="button"
-                disabled={!canUpdate}
+                data-testid="record-detail-save"
+                disabled={!canUpdate || !watchedDate}
                 onClick={updateLog}
-                className="w-full rounded-2xl bg-neutral-900 px-4 py-3 text-sm font-semibold text-white disabled:opacity-40"
+                className={styles.primary}
               >
                 {saving ? tDetail("updating") : tDetail("updateAction")}
               </button>
@@ -1052,7 +1150,7 @@ export default function TitlePage() {
           ) : null}
         </section>
 
-        <section className="rounded-2xl border border-border bg-card p-6 shadow-sm space-y-3">
+        <section className={styles.detailHistory} data-testid="record-history">
           <div>
             <div className="text-base font-semibold">
               {tDetail("historyTitle")}
@@ -1078,18 +1176,13 @@ export default function TitlePage() {
                   statusOptions.find((s) => s.value === h.status)?.label ??
                   h.status;
                 return (
-                  <div
-                    key={h.id}
-                    className="rounded-xl border border-border bg-card/80 p-4 text-card-foreground"
-                  >
+                  <article key={h.id} data-testid="record-history-entry">
                     <div className="text-sm font-semibold text-foreground">
                       {fmt(h.recordedAt, locale)} · {statusText}
                       {seasonEpisodeLabel(h.seasonNumber, h.episodeNumber)
                         ? ` · ${seasonEpisodeLabel(h.seasonNumber, h.episodeNumber)}`
                         : ""}
-                      {ratingInfo
-                        ? ` · ${ratingInfo.emoji} ${ratingInfo.label}`
-                        : ""}
+                      {ratingInfo ? ` · ${ratingInfo.label}` : ""}
                     </div>
                     <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
                       {h.place
@@ -1119,7 +1212,7 @@ export default function TitlePage() {
                         {renderBody(formatNoteInline(h.note))}
                       </div>
                     ) : null}
-                  </div>
+                  </article>
                 );
               })}
             </div>

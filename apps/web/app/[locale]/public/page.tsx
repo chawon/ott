@@ -1,4 +1,3 @@
-import { MessageCircle } from "lucide-react";
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import CuratedContentList from "@/components/CuratedContentList";
@@ -73,19 +72,27 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function PublicDiscussionsPage({ params }: Props) {
   const { locale } = await params;
-  const t = await getTranslations({ locale, namespace: "Public" });
   const [{ items, failed }, curatedItems] = await Promise.all([
     loadPublicDiscussions(locale),
     loadCuratedContents(locale),
   ]);
 
   return (
-    <div className="space-y-4">
-      <header className="space-y-1">
-        <h1 className="flex items-center gap-2 text-xl font-semibold">
-          <MessageCircle className="h-5 w-5" aria-hidden="true" />
-          {t("title")}
+    <div className="v2-secondary-page space-y-6">
+      <header className="v2-page-heading">
+        <p className="v2-eyebrow">
+          {locale === "ko" ? "함께 나누는 이야기" : "STORIES, SHARED"}
+        </p>
+        <h1>
+          {locale === "ko"
+            ? "같은 이야기, 다른 마음"
+            : "Same story, different feelings"}
         </h1>
+        <p className="v2-page-lead">
+          {locale === "ko"
+            ? "같은 작품에서 만난 장면과 생각을 함께 나눠요."
+            : "Share the scenes and thoughts that stayed with you."}
+        </p>
       </header>
 
       <CuratedContentList items={curatedItems} />

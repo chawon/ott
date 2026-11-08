@@ -1,88 +1,34 @@
 import { getTranslations } from "next-intl/server";
 import { Link as IntlLink } from "@/i18n/routing";
-import { cn } from "@/lib/utils";
+import styles from "./AppShell.module.css";
 
 export default async function AppFooter() {
   const t = await getTranslations("AppFooter");
-  const currentYear = new Date().getFullYear();
-
   return (
-    <footer
-      className={cn(
-        "mt-20 border-t py-12 pb-[var(--mobile-bottom-content-padding)] sm:pb-12",
-        "border-border bg-ott-paper-strong/70 dark:bg-card/80",
-      )}
-    >
-      <div className="mx-auto max-w-5xl px-4">
-        <div className="grid grid-cols-1 gap-10 md:grid-cols-3">
-          <div className="space-y-4">
-            <div
-              className={cn(
-                "text-sm font-bold tracking-tighter",
-                "text-foreground",
-              )}
-            >
-              {t("titleModern")}
-            </div>
-            <p
-              className={cn("text-xs leading-relaxed", "text-muted-foreground")}
-            >
-              {t("descriptionModern")}
-            </p>
-          </div>
-
-          <div className="space-y-4">
-            <h3
-              className={cn(
-                "text-xs font-bold uppercase tracking-widest",
-                "text-foreground",
-              )}
-            >
-              {t("sectionGuideModern")}
-            </h3>
-            <ul className={cn("space-y-2 text-xs", "text-muted-foreground")}>
-              <li>
-                <IntlLink
-                  href="/guide"
-                  className="font-semibold text-brand-navy hover:underline dark:text-foreground"
-                >
-                  {t("linkGuidesModern")}
-                </IntlLink>
-              </li>
-              <li>
-                <IntlLink href="/about" className="hover:underline">
-                  {t("linkAboutModern")}
-                </IntlLink>
-              </li>
-              <li>
-                <IntlLink href="/faq" className="hover:underline">
-                  {t("linkFaqModern")}
-                </IntlLink>
-              </li>
-              <li>
-                <IntlLink href="/privacy" className="hover:underline">
-                  {t("linkPrivacyModern")}
-                </IntlLink>
-              </li>
-              <li>
-                <IntlLink href="/feedback" className="hover:underline">
-                  {t("linkFeedbackModern")}
-                </IntlLink>
-              </li>
-            </ul>
-          </div>
-
-          <div className={cn("space-y-4 text-xs", "text-muted-foreground")}>
-            <p>
-              © {currentYear} {t("titleModern")}. {t("allRightsReserved")}
-            </p>
-            <a
-              href="mailto:contact@ottline.app"
-              className="block hover:underline"
-            >
-              contact@ottline.app
-            </a>
-          </div>
+    <footer className={styles.footer}>
+      <div className={styles.footerInner}>
+        <div>
+          <div className={styles.footerBrand}>ottline · ON THE TIMELINE</div>
+          <p className={styles.footerDescription}>{t("descriptionModern")}</p>
+        </div>
+        <nav
+          className={styles.footerLinks}
+          aria-label={t("sectionGuideModern")}
+        >
+          <IntlLink href="/guide">{t("linkGuidesModern")}</IntlLink>
+          <IntlLink href="/about">{t("linkAboutModern")}</IntlLink>
+          <IntlLink href="/faq">{t("linkFaqModern")}</IntlLink>
+          <IntlLink href="/privacy">{t("linkPrivacyModern")}</IntlLink>
+          <IntlLink href="/feedback">{t("linkFeedbackModern")}</IntlLink>
+        </nav>
+        <div>
+          <p>
+            © {new Date().getFullYear()} {t("titleModern")}.{" "}
+            {t("allRightsReserved")}
+          </p>
+          <a className={styles.footerContact} href="mailto:contact@ottline.app">
+            contact@ottline.app
+          </a>
         </div>
       </div>
     </footer>

@@ -5,8 +5,12 @@ const withNextIntl = createNextIntlPlugin("./i18n/request.ts");
 
 const nextConfig: NextConfig = {
   allowedDevOrigins: [
-    "172.24.75.199",
-    "unmellow-dimple-untouchably.ngrok-free.dev",
+    "localhost",
+    "127.0.0.1",
+    ...(process.env.OTTLINE_DEV_ORIGINS ?? "")
+      .split(",")
+      .map((origin) => origin.trim())
+      .filter(Boolean),
   ],
   images: {
     localPatterns: [
