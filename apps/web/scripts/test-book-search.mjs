@@ -52,7 +52,11 @@ try {
     "new-google-edition",
     "existing-kakao-edition",
     "without-isbn",
-  ]) {
+  ].filter(
+    (scenario) =>
+      !process.env.BOOK_SEARCH_QA_CASE ||
+      scenario === process.env.BOOK_SEARCH_QA_CASE,
+  )) {
     const context = await browser.newContext({
       viewport: { width: 390, height: 844 },
       serviceWorkers: "block",
@@ -133,6 +137,7 @@ try {
           });
         }
         if (path === "/api/sync/pull") {
+          if (pushMode === "fail" && failedPushes > 0) await delay(100);
           return route.fulfill({
             json: {
               serverTime: new Date().toISOString(),
@@ -167,7 +172,7 @@ try {
 
       await page.goto(new URL("/en/?quick=1", baseUrl).href);
       await page
-        .locator('[data-onboarding-target="content-type"]')
+        .getByRole("dialog")
         .getByRole("button", { name: "Book", exact: true })
         .click();
       const existingId = "44444444-4444-4444-8444-444444444444";
@@ -197,28 +202,29 @@ try {
           { existingId, isbn },
         );
       }
-      await page
-        .locator('[data-onboarding-target="title-search"] input')
-        .fill("Atomic Habits");
-      const result = page.getByRole("button", { name: /Atomic Habits/ });
+      await page.getByTestId("title-search").fill("Atomic Habits");
+      const result = page.getByTestId("title-search-result").filter({
+        hasText: "Atomic Habits",
+      });
       await result.waitFor();
       assert.equal(searchLocale, "en");
-      assert.ok(await page.locator('img[alt="Powered by Google"]').isVisible());
+      assert.ok(
+        await page.locator('img[alt="Powered by Google"]').first().isVisible(),
+      );
       assert.equal(
         await page.locator(`a[href="${selected.sourceUrl}"]`).count(),
         1,
       );
       await result.click();
       await context.setOffline(true);
-      await page.getByRole("button", { name: "Read", exact: true }).click();
-      await page
-        .getByText("Kept. Anything else to remember?", { exact: true })
-        .waitFor();
-      await page
-        .getByPlaceholder("Keep a scene, line, or feeling you may want later.")
-        .fill("My own book note");
-      await page.locator('select:has(option[value="5"])').selectOption("5");
-      const platforms = page.locator('select:has(option[value="Kindle"])');
+      await page.getByTestId("record-status-DONE").click();
+      assert.equal((await snapshot(page)).logs.length, 0);
+      await page.getByTestId("record-save-initial").click();
+      await page.getByTestId("record-done").waitFor();
+      await page.getByTestId("record-edit-details").click();
+      await page.getByTestId("record-note").fill("My own book note");
+      await page.getByTestId("record-feeling-5").click();
+      const platforms = page.getByTestId("record-platform");
       const choices = await platforms
         .locator("optgroup option")
         .allTextContents();
@@ -234,14 +240,12 @@ try {
       for (const value of ["Kyobo", "Ridi", "Millie", "TVING"])
         assert.ok(!choices.includes(value));
       await platforms.selectOption("Kindle");
-      await page
-        .getByRole("button", { name: "Keep This Log", exact: true })
-        .click();
+      await page.getByTestId("record-save-details").click();
       const offline = await waitForSnapshot(
         page,
         (state) =>
           state.logs[0]?.note === "My own book note" &&
-          state.outbox.length >= 2,
+          state.outbox.length === 1,
       );
       assert.equal(offline.logs.length, 1);
       assert.equal(offline.titles.length, 1);
@@ -252,6 +256,13 @@ try {
       assert.equal(offline.logs[0].title.isbn13 ?? null, isbn);
       assert.equal(offline.logs[0].rating, 5);
       assert.equal(offline.logs[0].ott, "Kindle");
+      assert.equal(offline.outbox[0].type, "create_log");
+      assert.equal(
+        offline.outbox[0].payload.log.payload.note,
+        "My own book note",
+      );
+      assert.equal(offline.outbox[0].payload.log.payload.rating, 5);
+      assert.equal(offline.outbox[0].payload.log.payload.ott, "Kindle");
 
       await context.setOffline(false);
       await waitForSnapshot(page, (state) =>
@@ -259,6 +270,11 @@ try {
       );
       assert.ok(failedPushes > 0);
       assert.equal((await snapshot(page)).logs[0].note, "My own book note");
+      // A failed push still performs its canonical pull before another retry.
+      // Wait for the same finished-failure state that enables the user's retry.
+      await page
+        .locator('[data-testid="home-sync-notice"][data-sync-state="failed"]')
+        .waitFor();
       pushMode = "ok";
       await page.evaluate(() => window.dispatchEvent(new Event("online")));
       const synced = await waitForSnapshot(
@@ -291,14 +307,13 @@ try {
             state.logs[0]?.ott === legacyPlatform && state.outbox.length === 0,
         );
         await page.goto(new URL(`/en/title/${canonicalId}`, baseUrl).href);
+        await page.getByTestId("record-detail-edit").click();
         await page.locator('select:has(option[value="Kindle"])').waitFor();
         const legacyInput = page.locator(`input[value="${legacyPlatform}"]`);
         await legacyInput.waitFor();
         assert.equal(await legacyInput.inputValue(), legacyPlatform);
-        await page
-          .getByRole("textbox", { name: "Note", exact: true })
-          .fill("Legacy platform preserved");
-        await page.getByRole("button", { name: "Update", exact: true }).click();
+        await page.getByTestId("record-note").fill("Legacy platform preserved");
+        await page.getByTestId("record-detail-save").click();
         const updated = await waitForSnapshot(
           page,
           (state) =>
