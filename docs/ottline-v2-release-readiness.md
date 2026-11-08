@@ -39,7 +39,7 @@ Windows는 HTML/CSS/JS 변경만으로는 보통 새 패키지가 필요 없지�
 
 ### OpenAI 전송 안내와 정책 정합성
 
-현재 `RecommendationPromptBuilder.formatLog`는 작품명·종류·장르·느낌 값·장소·상황·메모를 추천 요청에 포함한다. 현재 개인정보처리방침의 외부 처리 설명에는 GA4·Clarity가 있고 OpenAI 추천 처리 설명은 없다. 운영 공개 전 전송 항목과 목적, 사용자 안내·동의, 정책 문구를 함께 정리한다. 메모·장소·상황의 포함 범위를 최소화할지 여부도 이 단계에서 결정한다.
+`RecommendationPromptBuilder.formatLog`는 작품명·종류·장르·느낌 값·장소·상황·메모를 추천 요청에 포함한다. 배포 준비 변경에서 추천 버튼 앞에 전송 항목과 OpenAI를 안내하고, `/privacy#recommendations`에 최대 50개 기록과 제외 작품명, 처리 목적, 계정에 보관하는 추천 결과·이용 횟수·삭제 방법을 맞췄다. 사용자가 생성 버튼을 직접 눌렀을 때 실행하는 기존 흐름과 전송 범위를 유지한다. OpenAI에 요청하는 `store: false`를 보관 기간이 전혀 없다는 보장으로 표현하지 않는다.
 
 iOS에 해당 기능을 제공할 경우 Apple의 제3자 AI 개인정보 공유 고지·명시적 허락 요건을 반영하고, 실제 데이터 처리에 맞춰 App Privacy를 점검한다. [Apple App Review 5.1.2](https://developer.apple.com/app-store/review/guidelines/#data-use-and-sharing)
 

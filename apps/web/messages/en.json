@@ -278,7 +278,9 @@
     "dismissButton": "Already seen or read",
     "dismissedNotice": "This title is hidden from your recommendations.",
     "undoDismiss": "Undo",
-    "refreshCooldown": "You can choose again tomorrow."
+    "refreshCooldown": "You can choose again tomorrow.",
+    "futureDataNotice": "When you request new stories, OpenAI receives your recent titles, types, genres, feelings, any notes, places or occasions, and excluded titles.",
+    "futureDataDetails": "How your records are used"
   },
   "Bookshelf": {
     "viewShelf": "View bookshelf",
@@ -773,20 +775,23 @@
   },
   "Privacy": {
     "title": "Privacy Policy",
-    "lastUpdated": "Last Updated: July 19, 2026",
+    "lastUpdated": "Last updated: November 8, 2026",
     "intro": "ottline (\"the Service\") values your privacy and complies with relevant laws. This policy guides you through the items of information processed, purposes, storage methods, and user rights.",
     "section1Title": "1. Information Collected",
-    "section1List": "<li>Log data: Title, watching or reading status, rating, note, and timestamp</li><li>Sync data: Internal account and client identifiers used for pairing and synchronization</li><li>Service usage data: Session identifier, feature events, initial landing path, referring origin, and UTM source, medium, campaign, term, and content</li><li>Environment data: Device, browser, OS, and PWA or TWA installation status</li>",
+    "section1List": "<li>Record data: Title, type, genres, watching or reading status, feeling, note, date, platform, place or occasion, season and episode</li><li>Sync data: Internal account and client identifiers used for pairing and synchronization</li><li>Recommendation data: Suggested titles and reasons, excluded titles, daily usage counts and request status</li><li>Service usage data: Session identifier, feature events, initial landing path, referring origin, and UTM source, medium, campaign, term, and content</li><li>Environment data: Device, browser, OS, and PWA or TWA installation status</li>",
     "section2Title": "2. Purpose of Usage",
-    "section2List": "<li>Storing and viewing records, building timelines, and providing sync</li><li>Analyzing errors and improving service stability</li><li>Aggregating acquisition paths and feature usage to improve the experience</li>",
+    "section2List": "<li>Storing and viewing records, building timelines, and providing sync</li><li>Providing requested title recommendations, applying exclusions, and managing daily recommendation usage</li><li>Analyzing errors and improving service stability</li><li>Aggregating acquisition paths and feature usage to improve the experience</li>",
     "section3Title": "3. Retention and Destruction",
     "section3List": "<li>Synced records and account data are kept until you request My space > Delete all server data.</li><li>First-party analytics events are automatically deleted 180 days after collection.</li><li>Deleting an account also deletes analytics events that store its account identifier. Anonymous events without an account identifier cannot be matched to a specific person for selective deletion and are automatically deleted after 180 days.</li><li>Data sent to Google Analytics 4 and Microsoft Clarity is retained and deleted under each provider's configured settings and policies.</li><li>When the law requires retention, information is kept only for the required period.</li>",
     "section4Title": "4. Third-party Disclosure",
-    "section4Desc": "The Service uses Google Analytics 4 from Google and Clarity from Microsoft to aggregate visits and usage flows. Online identifiers such as cookies and environment information may be processed under each provider's policy. The Service does not sell user information or disclose it to other third parties except when required by law.",
+    "section4Desc": "The Service uses Google Analytics 4 from Google and Clarity from Microsoft to aggregate visits and usage flows. Online identifiers such as cookies and environment information may be processed under each provider’s policy. Title recommendations use OpenAI as described below. The Service does not sell user information.",
     "section5Title": "5. User Rights",
     "section5Desc": "Users may request access, correction, or deletion of their data. This can be done through <strong>My space > Delete all server data</strong> or by contacting the operator.",
     "section6Title": "6. Inquiry",
-    "section6Desc": "Please submit privacy-related inquiries through our service channels. We will process them without delay after verification."
+    "section6Desc": "Please submit privacy-related inquiries through our service channels. We will process them without delay after verification.",
+    "recommendationTitle": "Future timeline · OpenAI title recommendations",
+    "recommendationDesc": "When you request new stories in Future timeline, we send OpenAI the titles, types, genres, feelings, and any notes, places or occasions from up to 50 selected records, plus excluded titles. OpenAI returns suggested titles and reasons. Record connection codes and internal account or device identifiers are not included as recommendation input fields.",
+    "recommendationStorage": "Suggested titles and reasons, excluded titles, daily usage counts and request status are kept with your account for connected devices. They are deleted when you choose My space > Delete all server data. OpenAI processes and retains data under its applicable policies and settings."
   },
   "CSV": {
     "date": "Date",

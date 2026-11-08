@@ -77,6 +77,15 @@ export default async function PrivacyPage({
           <p className="text-sm leading-relaxed text-neutral-700">
             {t("section4Desc")}
           </p>
+          <section id="recommendations" className="scroll-mt-24 space-y-2">
+            <h3 className="font-semibold">{t("recommendationTitle")}</h3>
+            <p className="text-sm leading-relaxed text-neutral-700">
+              {t("recommendationDesc")}
+            </p>
+            <p className="text-sm leading-relaxed text-neutral-700">
+              {t("recommendationStorage")}
+            </p>
+          </section>
         </div>
 
         <div className="space-y-3">

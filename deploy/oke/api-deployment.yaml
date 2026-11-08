@@ -25,6 +25,16 @@ spec:
           env:
             - name: APP_VERSION
               value: "98417a9"
+            - name: OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: ott-openai-secrets
+                  key: OPENAI_API_KEY
+                  optional: true
+            - name: OPENAI_MODEL
+              value: "gpt-6-luna"
+            - name: OPENAI_REASONING_EFFORT
+              value: "low"
             - name: GOOGLE_BOOKS_API_KEY
               valueFrom:
                 secretKeyRef:
