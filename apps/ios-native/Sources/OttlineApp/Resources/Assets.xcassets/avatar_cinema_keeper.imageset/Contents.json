@@ -1,0 +1,12 @@
+{
+  "images" : [
+    {
+      "filename" : "avatar_cinema_keeper.png",
+      "idiom" : "universal"
+    }
+  ],
+  "info" : {
+    "author" : "xcode",
+    "version" : 1
+  }
+}
