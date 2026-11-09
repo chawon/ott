@@ -1,0 +1,175 @@
+name: Build & Deploy Native Android Release AAB
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_code:
+        description: "Android versionCode (must increase every release, e.g. 24)"
+        required: true
+        default: "24"
+        type: string
+      version_name:
+        description: "Android versionName (e.g. 2.0.0)"
+        required: true
+        default: "2.0.0"
+        type: string
+      track:
+        description: "Google Play track (select 'none' to only build signed AAB)"
+        required: true
+        default: "production"
+        type: choice
+        options:
+          - none
+          - internal
+          - alpha
+          - beta
+          - production
+      release_status:
+        description: "Google Play release status"
+        required: true
+        default: "completed"
+        type: choice
+        options:
+          - completed
+          - inProgress
+          - halted
+          - draft
+      rollout:
+        description: "Staged rollout fraction (0.0 - 1.0, ignored for internal)"
+        required: false
+        default: "1.0"
+        type: string
+      release_notes:
+        description: "Google Play release notes (plain text, en-US)"
+        required: false
+        default: "ottline 2.0 native Android update with faster offline-first timeline, quick record, and bookshelf."
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  build-release-aab:
+    runs-on: ubuntu-latest
+    env:
+      TWA_KEYSTORE_BASE64: ${{ secrets.TWA_KEYSTORE_BASE64 }}
+      TWA_KEYSTORE_PASSWORD: ${{ secrets.TWA_KEYSTORE_PASSWORD }}
+      TWA_KEY_ALIAS: ${{ secrets.TWA_KEY_ALIAS }}
+      TWA_KEY_PASSWORD: ${{ secrets.TWA_KEY_PASSWORD }}
+      GPLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.GPLAY_SERVICE_ACCOUNT_JSON }}
+      PLAY_PACKAGE: app.ottline
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: "17"
+          cache: "gradle"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: "platform-tools platforms;android-36 build-tools;36.0.0"
+
+      - name: Prepare signing keystore
+        shell: bash
+        run: |
+          if [[ -z "$TWA_KEYSTORE_BASE64" || -z "$TWA_KEYSTORE_PASSWORD" || -z "$TWA_KEY_ALIAS" || -z "$TWA_KEY_PASSWORD" ]]; then
+            echo "Missing one or more required secrets: TWA_KEYSTORE_BASE64, TWA_KEYSTORE_PASSWORD, TWA_KEY_ALIAS, TWA_KEY_PASSWORD"
+            exit 1
+          fi
+          echo "$TWA_KEYSTORE_BASE64" | base64 --decode > apps/android-native/android.keystore
+          cat > apps/android-native/keystore.properties <<EOF
+          storeFile=android.keystore
+          storePassword=$TWA_KEYSTORE_PASSWORD
+          keyAlias=$TWA_KEY_ALIAS
+          keyPassword=$TWA_KEY_PASSWORD
+          EOF
+
+      - name: Validate version inputs
+        shell: bash
+        run: |
+          if ! [[ "${{ github.event.inputs.version_code }}" =~ ^[0-9]+$ ]]; then
+            echo "version_code must be a positive integer."
+            exit 1
+          fi
+          if [[ -z "${{ github.event.inputs.version_name }}" ]]; then
+            echo "version_name must not be empty."
+            exit 1
+          fi
+          if ! [[ "${{ github.event.inputs.rollout }}" =~ ^(0(\.[0-9]+)?|1(\.0+)?)$ ]]; then
+            echo "rollout must be between 0.0 and 1.0."
+            exit 1
+          fi
+
+      - name: Run unit tests, lint, and build signed Release AAB
+        working-directory: apps/android-native
+        shell: bash
+        run: |
+          sed -i 's/\r$//' gradlew scripts/verify-release-aab.sh
+          chmod +x gradlew scripts/verify-release-aab.sh
+          ./gradlew :app:testDebugUnitTest :app:lintDebug :app:bundleRelease --no-daemon \
+            -PreleaseVersionCode=${{ github.event.inputs.version_code }} \
+            -PreleaseVersionName=${{ github.event.inputs.version_name }}
+
+      - name: Verify release startup & R8 contract
+        working-directory: apps/android-native
+        shell: bash
+        run: bash scripts/verify-release-aab.sh app/build/outputs/bundle/release/app-release.aab
+
+      - name: Install gplay CLI
+        if: ${{ github.event.inputs.track != 'none' }}
+        shell: bash
+        run: |
+          if [[ -z "$GPLAY_SERVICE_ACCOUNT_JSON" ]]; then
+            echo "Missing required secret: GPLAY_SERVICE_ACCOUNT_JSON"
+            exit 1
+          fi
+          curl -fsSL https://raw.githubusercontent.com/tamtom/play-console-cli/main/install.sh | bash
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Authenticate gplay
+        if: ${{ github.event.inputs.track != 'none' }}
+        shell: bash
+        run: |
+          SERVICE_ACCOUNT_PATH="$RUNNER_TEMP/gplay-service-account.json"
+          printf '%s' "$GPLAY_SERVICE_ACCOUNT_JSON" > "$SERVICE_ACCOUNT_PATH"
+          gplay auth login --service-account "$SERVICE_ACCOUNT_PATH" --profile ci --set-default
+          gplay auth doctor
+
+      - name: Deploy to Google Play
+        if: ${{ github.event.inputs.track != 'none' }}
+        working-directory: apps/android-native
+        shell: bash
+        env:
+          RELEASE_NOTES: ${{ github.event.inputs.release_notes }}
+        run: |
+          release_args=(
+            --package "$PLAY_PACKAGE"
+            --track "${{ github.event.inputs.track }}"
+            --status "${{ github.event.inputs.release_status }}"
+            --bundle "app/build/outputs/bundle/release/app-release.aab"
+            --pretty
+          )
+          if [[ "${{ github.event.inputs.track }}" != "internal" ]]; then
+            release_args+=(--rollout "${{ github.event.inputs.rollout }}")
+          fi
+          if [[ -n "$RELEASE_NOTES" ]]; then
+            release_args+=(--release-notes "$RELEASE_NOTES")
+          fi
+          gplay release "${release_args[@]}"
+
+      - name: Rename AAB
+        run: cp apps/android-native/app/build/outputs/bundle/release/app-release.aab apps/android-native/app/build/outputs/bundle/release/ottline-release.aab
+
+      - name: Upload AAB & R8 mapping artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ottline-native-release-${{ github.event.inputs.version_name }}-${{ github.event.inputs.version_code }}
+          path: |
+            apps/android-native/app/build/outputs/bundle/release/ottline-release.aab
+            apps/android-native/app/build/outputs/mapping/release/mapping.txt
+          if-no-files-found: error

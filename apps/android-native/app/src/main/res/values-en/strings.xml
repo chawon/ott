@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">ottline</string>
+    <string name="shortcut_name_0">Leave a record</string>
+    <string name="shortcut_short_name_0">Record</string>
+    <string name="shortcut_name_1">Log video</string>
+    <string name="shortcut_short_name_1">Video</string>
+    <string name="shortcut_name_2">Log book</string>
+    <string name="shortcut_short_name_2">Book</string>
+    <string name="shortcut_name_3">Timeline</string>
+    <string name="shortcut_short_name_3">Timeline</string>
+
+    <string name="widget_quick_log_title">ottline Timeline &amp; Quick Log</string>
+    <string name="widget_quick_log_description">See what you are watching or reading and capture moments right from your home screen.</string>
+    <string name="widget_action_record">Quick Record</string>
+    <string name="widget_action_video">Video</string>
+    <string name="widget_action_book">Book</string>
+    <string name="widget_action_timeline">Timeline</string>
+
+    <string name="watch_reminder_title">Post-watch reminder</string>
+    <string name="watch_reminder_channel_name">Post-watch reminder</string>
+    <string name="watch_reminder_channel_desc">Reminds you to jot down a moment after watching on OTT apps.</string>
+    <string name="revisit_reminder_channel_name">Timeline revisit reminder</string>
+    <string name="revisit_reminder_channel_desc">Quietly reminds you of titles in progress and memories kept.</string>
+</resources>

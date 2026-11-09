@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="ott_paper">#F8F6F2</color>
+    <color name="ott_paper_strong">#FEF9EE</color>
+    <color name="ott_navy">#1E4D8C</color>
+    <color name="ott_orange">#FF9933</color>
+    <color name="ott_ink">#0F0F0F</color>
+    <color name="ott_dark_bg">#15120F</color>
+
+    <!-- Widget Day/Night Semantic Tokens (Light: Editorial Paper & Ink) -->
+    <color name="widget_surface">#FAF8F4</color>
+    <color name="widget_surface_stroke">#E6E0D6</color>
+    <color name="widget_card_surface">#FFFFFF</color>
+    <color name="widget_card_stroke">#EAE4DA</color>
+    <color name="widget_tile_surface">#F2EFE8</color>
+    <color name="widget_tile_stroke">#E3DDD2</color>
+    <color name="widget_search_surface">#FFFFFF</color>
+    <color name="widget_search_stroke">#DBD4C7</color>
+    <color name="widget_ink">#141210</color>
+    <color name="widget_muted_ink">#57514A</color>
+    <color name="widget_subtle_ink">#867E73</color>
+    <color name="widget_brand_mark">#1E4D8C</color>
+    <color name="widget_navy_accent">#1E4D8C</color>
+    <color name="widget_accent">#FF9933</color>
+    <color name="widget_accent_on">#141210</color>
+    <color name="widget_badge_active_bg">#EBF1FA</color>
+    <color name="widget_badge_active_text">#1E4D8C</color>
+    <color name="widget_badge_recent_bg">#EEF2F8</color>
+    <color name="widget_badge_recent_text">#1E4D8C</color>
+    <color name="widget_poster_placeholder_bg">#EFEBE2</color>
+</resources>

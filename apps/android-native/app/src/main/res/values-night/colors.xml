@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Widget Day/Night Semantic Tokens (Night: Warm Espresso Charcoal) -->
+    <color name="widget_surface">#1B1714</color>
+    <color name="widget_surface_stroke">#332B24</color>
+    <color name="widget_card_surface">#25201B</color>
+    <color name="widget_card_stroke">#3A3129</color>
+    <color name="widget_tile_surface">#2B2520</color>
+    <color name="widget_tile_stroke">#3C332B</color>
+    <color name="widget_search_surface">#27211C</color>
+    <color name="widget_search_stroke">#463B31</color>
+    <color name="widget_ink">#FAF5EE</color>
+    <color name="widget_muted_ink">#C9BFB3</color>
+    <color name="widget_subtle_ink">#8F8579</color>
+    <color name="widget_brand_mark">#F8F6F2</color>
+    <color name="widget_navy_accent">#8BB4EE</color>
+    <color name="widget_accent">#FF9933</color>
+    <color name="widget_accent_on">#141210</color>
+    <color name="widget_badge_active_bg">#212E42</color>
+    <color name="widget_badge_active_text">#9DC0F5</color>
+    <color name="widget_badge_recent_bg">#222B38</color>
+    <color name="widget_badge_recent_text">#9CC0F4</color>
+    <color name="widget_poster_placeholder_bg">#322B25</color>
+</resources>

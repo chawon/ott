@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">ottline</string>
+    <string name="shortcut_name_0">기록하기</string>
+    <string name="shortcut_short_name_0">기록</string>
+    <string name="shortcut_name_1">영상 기록</string>
+    <string name="shortcut_short_name_1">영상</string>
+    <string name="shortcut_name_2">책 기록</string>
+    <string name="shortcut_short_name_2">책</string>
+    <string name="shortcut_name_3">타임라인</string>
+    <string name="shortcut_short_name_3">타임라인</string>
+
+    <string name="widget_quick_log_title">ottline 타임라인 · 빠른 기록</string>
+    <string name="widget_quick_log_description">이어보는 작품과 최근 기록을 확인하고 영상·책을 바로 남기는 에디토리얼 위젯입니다.</string>
+    <string name="widget_action_record">빠른 기록</string>
+    <string name="widget_action_video">영상</string>
+    <string name="widget_action_book">책</string>
+    <string name="widget_action_timeline">타임라인</string>
+
+    <string name="watch_reminder_title">감상 후 기록 알림</string>
+    <string name="watch_reminder_channel_name">감상 후 기록 알림</string>
+    <string name="watch_reminder_channel_desc">OTT 앱에서 감상을 마친 뒤 기록을 남길 수 있도록 알려드려요.</string>
+    <string name="revisit_reminder_channel_name">기록 돌아보기 알림</string>
+    <string name="revisit_reminder_channel_desc">남겨둔 작품과 이어보는 이야기를 조용히 알려드려요.</string>
+</resources>

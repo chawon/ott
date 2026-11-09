@@ -1,0 +1,215 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_bg"
+    android:orientation="vertical"
+    android:padding="12dp">
+
+    <!-- Header: Brand CI Lockup + Timeline icon button -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="28dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <ImageView
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:contentDescription="@string/app_name"
+            android:src="@drawable/ic_widget_brand_mark" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="6dp"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:includeFontPadding="false"
+                android:letterSpacing="-0.025"
+                android:maxLines="1"
+                android:text="ottline"
+                android:textColor="@color/widget_brand_mark"
+                android:textSize="15sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:includeFontPadding="false"
+                android:letterSpacing="0.06"
+                android:maxLines="1"
+                android:text="ON THE TIMELINE"
+                android:textColor="@color/widget_accent"
+                android:textSize="5.5sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <FrameLayout
+            android:id="@+id/widget_btn_timeline"
+            android:layout_width="28dp"
+            android:layout_height="26dp"
+            android:background="@drawable/widget_tile_bg">
+
+            <ImageView
+                android:layout_width="14dp"
+                android:layout_height="14dp"
+                android:layout_gravity="center"
+                android:contentDescription="@string/widget_action_timeline"
+                android:src="@drawable/ic_widget_timeline" />
+        </FrameLayout>
+    </LinearLayout>
+
+    <!-- Optional 1-line In-Progress / Recent chip -->
+    <LinearLayout
+        android:id="@+id/widget_continue_container"
+        android:layout_width="match_parent"
+        android:layout_height="30dp"
+        android:layout_marginTop="6dp"
+        android:background="@drawable/widget_card_bg"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="9dp"
+        android:paddingEnd="7dp"
+        android:visibility="gone">
+
+        <ImageView
+            android:layout_width="6dp"
+            android:layout_height="6dp"
+            android:contentDescription="@null"
+            android:src="@drawable/widget_dot_accent" />
+
+        <TextView
+            android:id="@+id/widget_continue_title"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="6dp"
+            android:layout_weight="1"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:textColor="@color/widget_ink"
+            android:textSize="11.5sp"
+            android:textStyle="bold" />
+
+        <ImageView
+            android:layout_width="12dp"
+            android:layout_height="12dp"
+            android:layout_marginStart="2dp"
+            android:contentDescription="@null"
+            android:src="@drawable/ic_widget_chevron" />
+    </LinearLayout>
+
+    <!-- Primary Tactile Record / Search Card -->
+    <LinearLayout
+        android:id="@+id/widget_btn_record"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_marginTop="6dp"
+        android:layout_weight="1.05"
+        android:background="@drawable/widget_search_bar_bg"
+        android:gravity="center"
+        android:orientation="horizontal"
+        android:paddingStart="10dp"
+        android:paddingEnd="10dp">
+
+        <FrameLayout
+            android:layout_width="22dp"
+            android:layout_height="22dp"
+            android:background="@drawable/widget_plus_badge_bg">
+
+            <ImageView
+                android:layout_width="13dp"
+                android:layout_height="13dp"
+                android:layout_gravity="center"
+                android:contentDescription="@null"
+                android:src="@drawable/ic_widget_plus" />
+        </FrameLayout>
+
+        <TextView
+            android:id="@+id/widget_btn_record_label"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="7dp"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:text="@string/widget_action_record"
+            android:textColor="@color/widget_ink"
+            android:textSize="12.5sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <!-- Bottom 2-Column Category Tiles (Video / Book) -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_marginTop="6dp"
+        android:layout_weight="0.95"
+        android:orientation="horizontal">
+
+        <LinearLayout
+            android:id="@+id/widget_btn_video"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:background="@drawable/widget_tile_bg"
+            android:gravity="center"
+            android:orientation="horizontal"
+            android:paddingStart="6dp"
+            android:paddingEnd="6dp">
+
+            <ImageView
+                android:layout_width="15dp"
+                android:layout_height="15dp"
+                android:contentDescription="@null"
+                android:src="@drawable/ic_widget_video" />
+
+            <TextView
+                android:id="@+id/widget_btn_video_label"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="4dp"
+                android:maxLines="1"
+                android:text="@string/widget_action_video"
+                android:textColor="@color/widget_ink"
+                android:textSize="12sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/widget_btn_book"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_marginStart="6dp"
+            android:layout_weight="1"
+            android:background="@drawable/widget_tile_bg"
+            android:gravity="center"
+            android:orientation="horizontal"
+            android:paddingStart="6dp"
+            android:paddingEnd="6dp">
+
+            <ImageView
+                android:layout_width="15dp"
+                android:layout_height="15dp"
+                android:contentDescription="@null"
+                android:src="@drawable/ic_widget_book" />
+
+            <TextView
+                android:id="@+id/widget_btn_book_label"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="4dp"
+                android:maxLines="1"
+                android:text="@string/widget_action_book"
+                android:textColor="@color/widget_ink"
+                android:textSize="12sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+    </LinearLayout>
+</LinearLayout>

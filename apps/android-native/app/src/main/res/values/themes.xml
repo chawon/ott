@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.Ottline" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/ott_paper</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+    </style>
+
+    <style name="Theme.Ottline.Splash" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/ott_paper</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash_transparent</item>
+        <item name="postSplashScreenTheme">@style/Theme.Ottline</item>
+    </style>
+</resources>

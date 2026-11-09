@@ -1,0 +1,463 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_bg"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <!-- Editorial Header (v2 CI Lockup) -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="32dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <ImageView
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:contentDescription="@string/app_name"
+            android:src="@drawable/ic_widget_brand_mark" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:includeFontPadding="false"
+                android:letterSpacing="-0.025"
+                android:maxLines="1"
+                android:text="ottline"
+                android:textColor="@color/widget_brand_mark"
+                android:textSize="18sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:includeFontPadding="false"
+                android:letterSpacing="0.08"
+                android:maxLines="1"
+                android:text="ON THE TIMELINE"
+                android:textColor="@color/widget_accent"
+                android:textSize="6sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/widget_header_timeline"
+            android:layout_width="wrap_content"
+            android:layout_height="26dp"
+            android:background="@drawable/widget_tile_bg"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="10dp"
+            android:paddingEnd="10dp">
+
+            <ImageView
+                android:layout_width="13dp"
+                android:layout_height="13dp"
+                android:contentDescription="@null"
+                android:src="@drawable/ic_widget_timeline" />
+
+            <TextView
+                android:id="@+id/widget_month_badge"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="5dp"
+                android:maxLines="1"
+                android:text="@string/widget_action_timeline"
+                android:textColor="@color/widget_muted_ink"
+                android:textSize="11sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- Hero Story Card (expands vertically so 3x3 / 4x3 has zero dead space) -->
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_marginTop="10dp"
+        android:layout_weight="1">
+
+        <LinearLayout
+            android:id="@+id/widget_continue_container"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@drawable/widget_card_bg"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:padding="12dp"
+            android:visibility="gone">
+
+            <FrameLayout
+                android:layout_width="58dp"
+                android:layout_height="86dp">
+
+                <FrameLayout
+                    android:id="@+id/widget_continue_poster_fallback"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="@drawable/widget_poster_placeholder_bg">
+
+                    <ImageView
+                        android:layout_width="22dp"
+                        android:layout_height="22dp"
+                        android:layout_gravity="center"
+                        android:contentDescription="@null"
+                        android:src="@drawable/ic_widget_brand_mark" />
+                </FrameLayout>
+
+                <ImageView
+                    android:id="@+id/widget_continue_poster"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:contentDescription="@null"
+                    android:scaleType="centerCrop"
+                    android:visibility="gone" />
+            </FrameLayout>
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="12dp"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:id="@+id/widget_continue_badge"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:background="@drawable/widget_badge_active_bg"
+                        android:paddingStart="8dp"
+                        android:paddingTop="2dp"
+                        android:paddingEnd="8dp"
+                        android:paddingBottom="2dp"
+                        android:text="이어보는 중"
+                        android:textColor="@color/widget_badge_active_text"
+                        android:textSize="10.5sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/widget_continue_meta"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="6dp"
+                        android:layout_weight="1"
+                        android:ellipsize="end"
+                        android:maxLines="1"
+                        android:textColor="@color/widget_subtle_ink"
+                        android:textSize="11sp" />
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/widget_continue_title"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="5dp"
+                    android:ellipsize="end"
+                    android:maxLines="2"
+                    android:textColor="@color/widget_ink"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/widget_continue_note"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:ellipsize="end"
+                    android:maxLines="2"
+                    android:textColor="@color/widget_muted_ink"
+                    android:textSize="12sp" />
+            </LinearLayout>
+
+            <ImageView
+                android:layout_width="15dp"
+                android:layout_height="15dp"
+                android:layout_marginStart="4dp"
+                android:contentDescription="@null"
+                android:src="@drawable/ic_widget_chevron" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/widget_empty_container"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@drawable/widget_card_bg"
+            android:gravity="center_vertical"
+            android:orientation="vertical"
+            android:padding="14dp">
+
+            <TextView
+                android:id="@+id/widget_empty_badge"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@drawable/widget_badge_active_bg"
+                android:letterSpacing="0.06"
+                android:paddingStart="8dp"
+                android:paddingTop="3dp"
+                android:paddingEnd="8dp"
+                android:paddingBottom="3dp"
+                android:text="EDITORIAL TIMELINE"
+                android:textColor="@color/widget_badge_active_text"
+                android:textSize="9.5sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/widget_empty_title"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:ellipsize="end"
+                android:maxLines="2"
+                android:text="오늘 본 장면, 잊히기 전에 한 줄로"
+                android:textColor="@color/widget_ink"
+                android:textSize="15sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/widget_empty_subtitle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:ellipsize="end"
+                android:maxLines="2"
+                android:text="아래에서 바로 검색하거나 OTT·도서 앱에서 ‘공유하기 → ottline’을 눌러 기록해보세요."
+                android:textColor="@color/widget_muted_ink"
+                android:textSize="12sp" />
+        </LinearLayout>
+    </FrameLayout>
+
+    <!-- Secondary Recent Timeline Strip (shown when 2+ logs exist) -->
+    <LinearLayout
+        android:id="@+id/widget_recent_list_container"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:background="@drawable/widget_card_bg"
+        android:orientation="vertical"
+        android:paddingStart="12dp"
+        android:paddingTop="6dp"
+        android:paddingEnd="12dp"
+        android:paddingBottom="6dp"
+        android:visibility="gone">
+
+        <LinearLayout
+            android:id="@+id/widget_recent_row_1"
+            android:layout_width="match_parent"
+            android:layout_height="24dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <ImageView
+                android:layout_width="5dp"
+                android:layout_height="5dp"
+                android:contentDescription="@null"
+                android:src="@drawable/widget_dot_muted" />
+
+            <TextView
+                android:id="@+id/widget_recent_title_1"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:layout_weight="1"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:textColor="@color/widget_ink"
+                android:textSize="12sp" />
+
+            <TextView
+                android:id="@+id/widget_recent_status_1"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:maxLines="1"
+                android:textColor="@color/widget_subtle_ink"
+                android:textSize="11sp" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/widget_recent_row_2"
+            android:layout_width="match_parent"
+            android:layout_height="24dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:visibility="gone">
+
+            <ImageView
+                android:layout_width="5dp"
+                android:layout_height="5dp"
+                android:contentDescription="@null"
+                android:src="@drawable/widget_dot_muted" />
+
+            <TextView
+                android:id="@+id/widget_recent_title_2"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:layout_weight="1"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:textColor="@color/widget_ink"
+                android:textSize="12sp" />
+
+            <TextView
+                android:id="@+id/widget_recent_status_2"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:maxLines="1"
+                android:textColor="@color/widget_subtle_ink"
+                android:textSize="11sp" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- Primary Tactile Search / Quick Record Bar -->
+    <LinearLayout
+        android:id="@+id/widget_btn_record"
+        android:layout_width="match_parent"
+        android:layout_height="44dp"
+        android:layout_marginTop="10dp"
+        android:background="@drawable/widget_search_bar_bg"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp">
+
+        <FrameLayout
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:background="@drawable/widget_plus_badge_bg">
+
+            <ImageView
+                android:layout_width="14dp"
+                android:layout_height="14dp"
+                android:layout_gravity="center"
+                android:contentDescription="@null"
+                android:src="@drawable/ic_widget_plus" />
+        </FrameLayout>
+
+        <TextView
+            android:id="@+id/widget_btn_record_label"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="10dp"
+            android:layout_weight="1"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:text="작품 검색 · 빠른 기록"
+            android:textColor="@color/widget_ink"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+
+        <ImageView
+            android:layout_width="14dp"
+            android:layout_height="14dp"
+            android:contentDescription="@null"
+            android:src="@drawable/ic_widget_chevron" />
+    </LinearLayout>
+
+    <!-- Bottom 3-Column Action Tiles -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="38dp"
+        android:layout_marginTop="8dp"
+        android:orientation="horizontal">
+
+        <LinearLayout
+            android:id="@+id/widget_btn_video"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:background="@drawable/widget_tile_bg"
+            android:gravity="center"
+            android:orientation="horizontal">
+
+            <ImageView
+                android:layout_width="15dp"
+                android:layout_height="15dp"
+                android:contentDescription="@null"
+                android:src="@drawable/ic_widget_video" />
+
+            <TextView
+                android:id="@+id/widget_btn_video_label"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="5dp"
+                android:maxLines="1"
+                android:text="@string/widget_action_video"
+                android:textColor="@color/widget_ink"
+                android:textSize="12sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/widget_btn_book"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_marginStart="8dp"
+            android:layout_weight="1"
+            android:background="@drawable/widget_tile_bg"
+            android:gravity="center"
+            android:orientation="horizontal">
+
+            <ImageView
+                android:layout_width="15dp"
+                android:layout_height="15dp"
+                android:contentDescription="@null"
+                android:src="@drawable/ic_widget_book" />
+
+            <TextView
+                android:id="@+id/widget_btn_book_label"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="5dp"
+                android:maxLines="1"
+                android:text="@string/widget_action_book"
+                android:textColor="@color/widget_ink"
+                android:textSize="12sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/widget_btn_timeline"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_marginStart="8dp"
+            android:layout_weight="1"
+            android:background="@drawable/widget_tile_bg"
+            android:gravity="center"
+            android:orientation="horizontal">
+
+            <ImageView
+                android:layout_width="14dp"
+                android:layout_height="14dp"
+                android:contentDescription="@null"
+                android:src="@drawable/ic_widget_timeline" />
+
+            <TextView
+                android:id="@+id/widget_btn_timeline_label"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="5dp"
+                android:maxLines="1"
+                android:text="@string/widget_action_timeline"
+                android:textColor="@color/widget_muted_ink"
+                android:textSize="12sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+    </LinearLayout>
+</LinearLayout>
