@@ -287,7 +287,8 @@ data class UserProfile(
     val userId: String,
     val nickname: String? = null,
     val personaKey: PersonaKey? = null,
-    val profileUpdatedAt: String? = null
+    val profileUpdatedAt: String? = null,
+    val pairingCode: String? = null
 )
 
 @Serializable

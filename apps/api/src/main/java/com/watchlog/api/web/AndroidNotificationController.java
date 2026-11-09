@@ -6,6 +6,7 @@ import com.watchlog.api.dto.AndroidNotificationPreferenceRequest;
 import com.watchlog.api.dto.AndroidReminderAckRequest;
 import com.watchlog.api.dto.AndroidReminderNextRequest;
 import com.watchlog.api.dto.AndroidReminderNextResponse;
+import com.watchlog.api.dto.AndroidSessionRestoreResponse;
 import com.watchlog.api.service.AndroidReminderService;
 import com.watchlog.api.service.AuthService;
 import org.springframework.web.bind.annotation.*;
@@ -36,6 +37,13 @@ public class AndroidNotificationController {
         authService.requireActiveDevice(userId, deviceId);
         authService.touchDevice(userId, deviceId);
         return androidReminderService.bindDevice(userId, deviceId, request);
+    }
+
+    @PostMapping("/notification-devices/restore-session")
+    public AndroidSessionRestoreResponse restoreSession(
+            @RequestBody(required = false) AndroidReminderAckRequest request
+    ) {
+        return androidReminderService.restoreSession(request == null ? null : request.installToken());
     }
 
     @PatchMapping("/notification-devices/preferences")

@@ -11,6 +11,7 @@ import com.watchlog.api.dto.AndroidNotificationPreferenceRequest;
 import com.watchlog.api.dto.AndroidReminderCandidateDto;
 import com.watchlog.api.dto.AndroidReminderNextRequest;
 import com.watchlog.api.dto.AndroidReminderNextResponse;
+import com.watchlog.api.dto.AndroidSessionRestoreResponse;
 import com.watchlog.api.repo.WatchLogRepository;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -99,6 +100,35 @@ public class AndroidReminderService {
 
         DeviceRow row = requireDevice(tokenHash);
         return new AndroidNotificationDeviceBindResponse(true, row.revisitRemindersEnabled());
+    }
+
+    @Transactional(readOnly = true)
+    public AndroidSessionRestoreResponse restoreSession(String installToken) {
+        final String tokenHash;
+        try {
+            tokenHash = tokenHash(installToken);
+        } catch (IllegalArgumentException e) {
+            return AndroidSessionRestoreResponse.empty();
+        }
+        List<AndroidSessionRestoreResponse> rows = jdbcTemplate.query("""
+                select d.user_id, d.device_id, u.pairing_code, u.nickname, u.persona_key
+                from android_notification_devices d
+                join users u on u.id = d.user_id
+                join user_devices ud on ud.id = d.device_id and ud.user_id = d.user_id
+                where d.install_token_hash = ?
+                  and d.revoked_at is null
+                """,
+                (rs, rowNum) -> new AndroidSessionRestoreResponse(
+                        true,
+                        rs.getObject("user_id", UUID.class),
+                        rs.getObject("device_id", UUID.class),
+                        rs.getString("pairing_code"),
+                        rs.getString("nickname"),
+                        rs.getString("persona_key")
+                ),
+                tokenHash
+        );
+        return rows.stream().findFirst().orElseGet(AndroidSessionRestoreResponse::empty);
     }
 
     @Transactional

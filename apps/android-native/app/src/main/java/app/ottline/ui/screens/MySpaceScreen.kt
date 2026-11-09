@@ -74,6 +74,7 @@ import app.ottline.RevisitReminderScheduler
 import app.ottline.data.OttlineRepository
 import app.ottline.data.local.AppPreferences
 import app.ottline.data.local.PreferencesSnapshot
+import app.ottline.data.local.TwaBrowserBridge
 import app.ottline.domain.CsvExporter
 import app.ottline.domain.RecordDate
 import app.ottline.model.DeviceInfo
@@ -514,6 +515,24 @@ fun MySpaceScreen(
 
                     if (pairMessage != null) {
                         Text(pairMessage!!, style = MaterialTheme.typography.bodySmall, color = palette.danger)
+                    }
+
+                    OutlinedButton(
+                        onClick = {
+                            TwaBrowserBridge.launchTwaHandoff(
+                                context = context,
+                                locale = locale,
+                                apiBaseUrl = prefsSnapshot.apiBaseUrl
+                            )
+                        },
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(min = 46.dp)
+                    ) {
+                        Icon(Icons.Outlined.Refresh, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(6.dp))
+                        Text(tr("기존 앱(브라우저) 기록 자동 연결", "Auto-connect from previous app / browser"))
                     }
 
                     // Collapsible "Lost your code?" helper

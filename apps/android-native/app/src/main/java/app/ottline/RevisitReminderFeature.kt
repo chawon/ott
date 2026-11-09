@@ -92,6 +92,16 @@ object RevisitReminderApiClient {
         val installToken: String
     )
 
+    @Serializable
+    data class RestoreSessionResponse(
+        val found: Boolean = false,
+        val userId: String? = null,
+        val deviceId: String? = null,
+        val pairingCode: String? = null,
+        val nickname: String? = null,
+        val personaKey: String? = null
+    )
+
     private val json = Json {
         ignoreUnknownKeys = true
         encodeDefaults = true
@@ -214,6 +224,15 @@ object RevisitReminderApiClient {
             val payload = DeliveryMarkPayload(AndroidInstallToken.getOrCreate(context))
             executeRequest(context, "POST", "/reminders/$deliveryId/opened", json.encodeToString(payload))
         }
+    }
+
+    suspend fun restoreSession(context: Context): RestoreSessionResponse? {
+        val existingToken = AndroidInstallToken.peekExistingToken(context) ?: return null
+        return runCatching {
+            val payload = DeliveryMarkPayload(existingToken)
+            val raw = executeRequest(context, "POST", "/notification-devices/restore-session", json.encodeToString(payload))
+            if (raw.isBlank()) null else json.decodeFromString<RestoreSessionResponse>(raw)
+        }.getOrNull()
     }
 }
 

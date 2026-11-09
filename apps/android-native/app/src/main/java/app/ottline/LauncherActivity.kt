@@ -12,6 +12,7 @@ import androidx.compose.runtime.setValue
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.lifecycleScope
 import app.ottline.model.Occasion
+import app.ottline.model.PersonaKey
 import app.ottline.model.Place
 import app.ottline.ui.LaunchCommand
 import app.ottline.ui.OttlineAppRoot
@@ -124,11 +125,21 @@ class LauncherActivity : ComponentActivity() {
         private const val KEY_INITIAL_INTENT_HANDLED = "ottline.initial_intent_handled"
 
         fun parseDeepLinkUri(uri: Uri): LaunchCommand? {
+            if (uri.getQueryParameter("handoff") == "1") {
+                return LaunchCommand.CompleteTwaHandoff(
+                    status = uri.getQueryParameter("status") ?: "empty",
+                    userId = uri.getQueryParameter("user_id"),
+                    deviceId = uri.getQueryParameter("device_id"),
+                    pairingCode = uri.getQueryParameter("pairing_code"),
+                    nickname = uri.getQueryParameter("nickname"),
+                    personaKey = PersonaKey.fromWire(uri.getQueryParameter("persona_key"))
+                )
+            }
             if (uri.scheme == "ottline") {
-                return if (uri.host == "watch-reminder") {
-                    LaunchCommand.OpenRoute("watch_reminder")
-                } else {
-                    null
+                return when (uri.host) {
+                    "watch-reminder" -> LaunchCommand.OpenRoute("watch_reminder")
+                    "open" -> LaunchCommand.OpenRoute("home")
+                    else -> null
                 }
             }
             if (uri.scheme !in listOf("http", "https")) {

@@ -36,6 +36,7 @@ data class PreferencesSnapshot(
     val customBookPlatforms: List<String>,
     val singleDeviceCodeReminderShown: Boolean,
     val twaMigrationBannerDismissed: Boolean,
+    val twaBrowserHandoffCompleted: Boolean,
     val dismissedRecommendations: Set<String>,
     val apiBaseUrl: String
 ) {
@@ -107,6 +108,7 @@ class AppPreferences(context: Context) {
             customBookPlatforms = bookCustom,
             singleDeviceCodeReminderShown = prefs.getBoolean(KEY_SINGLE_DEVICE_REMINDER_SHOWN, false),
             twaMigrationBannerDismissed = prefs.getBoolean(KEY_TWA_MIGRATION_DISMISSED, false),
+            twaBrowserHandoffCompleted = prefs.getBoolean(KEY_TWA_BROWSER_HANDOFF_COMPLETED, false),
             dismissedRecommendations = dismissedRecs,
             apiBaseUrl = baseUrl
         )
@@ -148,11 +150,14 @@ class AppPreferences(context: Context) {
         refresh()
     }
 
-    fun saveProfile(nickname: String?, personaKey: PersonaKey?) {
-        prefs.edit()
-            .putString(KEY_NICKNAME, nickname?.trim())
-            .putString(KEY_PERSONA_KEY, personaKey?.wireValue)
-            .apply()
+    fun saveProfile(nickname: String?, personaKey: PersonaKey?, pairingCode: String? = null) {
+        prefs.edit().apply {
+            putString(KEY_NICKNAME, nickname?.trim())
+            putString(KEY_PERSONA_KEY, personaKey?.wireValue)
+            if (!pairingCode.isNullOrBlank()) {
+                putString(KEY_PAIRING_CODE, pairingCode.trim())
+            }
+        }.apply()
         refresh()
     }
 
@@ -190,6 +195,11 @@ class AppPreferences(context: Context) {
         refresh()
     }
 
+    fun markTwaBrowserHandoffCompleted() {
+        prefs.edit().putBoolean(KEY_TWA_BROWSER_HANDOFF_COMPLETED, true).apply()
+        refresh()
+    }
+
     fun addDismissedRecommendation(titleName: String) {
         val next = current.dismissedRecommendations + titleName
         prefs.edit().putStringSet(KEY_DISMISSED_RECOMMENDATIONS, next).apply()
@@ -219,6 +229,7 @@ class AppPreferences(context: Context) {
         private const val KEY_CUSTOM_BOOK_PLATFORMS = "watchlog.customBookPlatforms"
         private const val KEY_SINGLE_DEVICE_REMINDER_SHOWN = "watchlog.singleDeviceCodeReminderShown"
         private const val KEY_TWA_MIGRATION_DISMISSED = "watchlog.twaMigrationDismissed"
+        private const val KEY_TWA_BROWSER_HANDOFF_COMPLETED = "watchlog.twaBrowserHandoffCompleted"
         private const val KEY_DISMISSED_RECOMMENDATIONS = "watchlog.dismissedRecommendations"
         private const val KEY_DEBUG_API_BASE_URL = "watchlog.debugApiBaseUrl"
 

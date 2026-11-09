@@ -2,7 +2,7 @@ package app.ottline.ui
 
 import android.content.Intent
 import android.net.Uri
-import androidx.browser.customtabs.CustomTabsIntent
+import android.widget.Toast
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Box
@@ -34,8 +34,10 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import app.ottline.data.OttlineRepository
 import app.ottline.data.local.ThemeMode
+import app.ottline.data.local.TwaBrowserBridge
 import app.ottline.domain.ShareIntentParser
 import app.ottline.model.Occasion
+import app.ottline.model.PersonaKey
 import app.ottline.model.Place
 import app.ottline.ui.components.LocalNoSwipeNavTracker
 import app.ottline.ui.components.MainTab
@@ -80,6 +82,14 @@ sealed interface LaunchCommand {
         val sharedSubject: String?
     ) : LaunchCommand
     data class OpenExternalBrowser(val url: String) : LaunchCommand
+    data class CompleteTwaHandoff(
+        val status: String,
+        val userId: String?,
+        val deviceId: String?,
+        val pairingCode: String?,
+        val nickname: String?,
+        val personaKey: PersonaKey?
+    ) : LaunchCommand
 }
 
 @Composable
@@ -123,9 +133,36 @@ fun OttlineAppRoot(
         }
     }
 
-    // Track session-deduplicated `app_open` once per app session (F08)
+    // Track session-deduplicated `app_open` once per app session (F08) + automatic TWA upgrade migration
     LaunchedEffect(Unit) {
         repository.trackAppOpenOnce(entrySource = if (pendingCommand != null) "deeplink" else "launcher")
+
+        if (pendingCommand !is LaunchCommand.CompleteTwaHandoff &&
+            !repository.prefs.current.twaBrowserHandoffCompleted &&
+            TwaBrowserBridge.hasTwaOrUpgradeFootprint(context)
+        ) {
+            val restoredByToken = if (repository.prefs.current.userId.isNullOrBlank()) {
+                repository.tryRestoreFromTwaInstallToken()
+            } else {
+                false
+            }
+            if (restoredByToken) {
+                val msg = if (repository.prefs.current.locale == "en") {
+                    "Connected your previous records."
+                } else {
+                    "기존 기록을 자동으로 연결했어요."
+                }
+                Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+            } else if (!repository.prefs.current.twaBrowserHandoffCompleted) {
+                repository.prefs.markTwaBrowserHandoffCompleted()
+                val snap = repository.prefs.current
+                TwaBrowserBridge.launchTwaHandoff(
+                    context = context,
+                    locale = snap.locale,
+                    apiBaseUrl = snap.apiBaseUrl
+                )
+            }
+        }
     }
 
     // Initial background sync if already registered
@@ -194,16 +231,25 @@ fun OttlineAppRoot(
                 )
             }
             is LaunchCommand.OpenExternalBrowser -> {
-                runCatching {
-                    CustomTabsIntent.Builder().build().launchUrl(context, Uri.parse(cmd.url))
-                }.onFailure {
-                    runCatching {
-                        context.startActivity(
-                            Intent(Intent.ACTION_VIEW, Uri.parse(cmd.url)).apply {
-                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                            }
-                        )
+                TwaBrowserBridge.launchInExternalCustomTab(context, cmd.url)
+            }
+            is LaunchCommand.CompleteTwaHandoff -> {
+                val connected = repository.completeTwaHandoff(
+                    status = cmd.status,
+                    userId = cmd.userId,
+                    deviceId = cmd.deviceId,
+                    pairingCode = cmd.pairingCode,
+                    nickname = cmd.nickname,
+                    personaKey = cmd.personaKey
+                )
+                if (connected) {
+                    val msg = if (repository.prefs.current.locale == "en") {
+                        "Connected your previous records."
+                    } else {
+                        "기존 기록을 성공적으로 연결했어요."
                     }
+                    Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+                    navigateTopTab(MainTab.HOME)
                 }
             }
         }

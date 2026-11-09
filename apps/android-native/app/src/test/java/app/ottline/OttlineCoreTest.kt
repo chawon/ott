@@ -391,6 +391,28 @@ class OttlineCoreTest {
         ) as? LaunchCommand.OpenRoute
         assertEquals("watch_reminder", watchReminderLink?.route)
 
+        val handoffLink = LauncherActivity.parseDeepLinkUri(
+            Uri.parse("ottline://open?handoff=1&status=ok&user_id=u-123&device_id=d-456&pairing_code=OTTL-9999&nickname=%EC%9D%80%ED%95%98%EC%88%98&persona_key=cinema_keeper")
+        ) as? LaunchCommand.CompleteTwaHandoff
+        assertNotNull(handoffLink)
+        assertEquals("ok", handoffLink!!.status)
+        assertEquals("u-123", handoffLink.userId)
+        assertEquals("d-456", handoffLink.deviceId)
+        assertEquals("OTTL-9999", handoffLink.pairingCode)
+        assertEquals("은하수", handoffLink.nickname)
+        assertEquals(PersonaKey.CINEMA_KEEPER, handoffLink.personaKey)
+
+        assertTrue(
+            app.ottline.data.local.AndroidInstallToken.isLegacyTwaTokenFormat(
+                "A1b2C3d4E5f6G7h8I9j0K1l2M3n4O5p6Q7r8S9t0U1v"
+            )
+        )
+        assertFalse(
+            app.ottline.data.local.AndroidInstallToken.isLegacyTwaTokenFormat(
+                "30000000-0000-4000-8000-000000000031"
+            )
+        )
+
         assertNull(LauncherActivity.parseDeepLinkUri(Uri.parse("ottline://unknown-target")))
     }
 

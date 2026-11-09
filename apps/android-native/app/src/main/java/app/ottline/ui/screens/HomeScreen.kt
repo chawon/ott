@@ -75,6 +75,7 @@ import app.ottline.data.OttlineRepository
 import app.ottline.data.SyncState
 import app.ottline.data.local.AndroidInstallToken
 import app.ottline.data.local.PreferencesSnapshot
+import app.ottline.data.local.TwaBrowserBridge
 import app.ottline.domain.RecordDate
 import app.ottline.domain.TimelineMoments
 import app.ottline.domain.TitleFallback
@@ -170,9 +171,10 @@ fun HomeScreen(
     }
     var shareCardLog by remember { mutableStateOf<WatchLog?>(null) }
 
-    val showTwaMigrationCard = remember(prefsSnapshot.userId, prefsSnapshot.twaMigrationBannerDismissed) {
+    val showTwaMigrationCard = remember(prefsSnapshot.userId, prefsSnapshot.twaMigrationBannerDismissed, logs.size) {
         !prefsSnapshot.twaMigrationBannerDismissed &&
-            AndroidInstallToken.isUpgradedFromTwaWithoutNativeAuth(context, !prefsSnapshot.userId.isNullOrBlank())
+            logs.isEmpty() &&
+            TwaBrowserBridge.hasTwaOrUpgradeFootprint(context)
     }
 
     LaunchedEffect(reloadNonce, logs.size) {
@@ -355,8 +357,8 @@ fun HomeScreen(
                         )
                         Text(
                             text = tr(
-                                "ottline 2.0 네이티브 앱으로 새로워졌어요. 기존 웹/앱 화면에서 연결 코드를 복사해 붙여넣으면 기록이 그대로 이어져요.",
-                                "ottline is now a native app! Open your previous web session to copy your connection code and continue right where you left off."
+                                "ottline 2.0 네이티브 앱으로 새로워졌어요. 기존 앱(브라우저)에서 쓰던 기록을 버튼 한 번으로 바로 연결할 수 있어요.",
+                                "ottline is now a native app! Connect your previous app/browser records automatically with one tap."
                             ),
                             style = MaterialTheme.typography.bodySmall,
                             color = palette.mutedInk
@@ -365,26 +367,27 @@ fun HomeScreen(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                             verticalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
-                            OutlinedButton(
-                                onClick = {
-                                    runCatching {
-                                        CustomTabsIntent.Builder().build()
-                                            .launchUrl(context, Uri.parse("https://ottline.app/account"))
-                                    }
-                                },
-                                shape = RoundedCornerShape(8.dp)
-                            ) {
-                                Text(tr("기존 연결 코드 확인", "Open web account"))
-                            }
                             Button(
-                                onClick = onOpenMySpacePairing,
+                                onClick = {
+                                    TwaBrowserBridge.launchTwaHandoff(
+                                        context = context,
+                                        locale = locale,
+                                        apiBaseUrl = prefsSnapshot.apiBaseUrl
+                                    )
+                                },
                                 shape = RoundedCornerShape(8.dp),
                                 colors = ButtonDefaults.buttonColors(
                                     containerColor = palette.brandNavy,
                                     contentColor = palette.onBrandNavy
                                 )
                             ) {
-                                Text(tr("코드 입력하기", "Enter code"), fontWeight = FontWeight.Bold)
+                                Text(tr("기존 기록 자동 연결", "Auto-connect records"), fontWeight = FontWeight.Bold)
+                            }
+                            OutlinedButton(
+                                onClick = onOpenMySpacePairing,
+                                shape = RoundedCornerShape(8.dp)
+                            ) {
+                                Text(tr("코드 직접 입력", "Enter code"))
                             }
                             TextButton(onClick = { repository.prefs.dismissTwaMigrationBanner() }) {
                                 Text(tr("닫기", "Dismiss"))

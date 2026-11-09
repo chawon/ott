@@ -5,6 +5,7 @@ import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import app.ottline.BuildConfig
 import app.ottline.QuickLogWidgetProvider
+import app.ottline.RevisitReminderApiClient
 import app.ottline.RevisitReminderScheduler
 import app.ottline.data.local.AppPreferences
 import app.ottline.data.local.BookClassificationEntity
@@ -754,7 +755,7 @@ class OttlineRepository(
         trackEvent("login_success", mapOf("method" to "pairing_code"))
         runCatching {
             val profile = api.getProfile()
-            prefs.saveProfile(profile.nickname, profile.personaKey)
+            prefs.saveProfile(profile.nickname, profile.personaKey, profile.pairingCode)
         }
         syncOutbox()
         return AuthPairResult(res.userId, res.pairingCode)
@@ -762,11 +763,105 @@ class OttlineRepository(
 
     data class AuthPairResult(val userId: String, val pairingCode: String?)
 
+    suspend fun completeTwaHandoff(
+        status: String,
+        userId: String?,
+        deviceId: String?,
+        pairingCode: String?,
+        nickname: String?,
+        personaKey: PersonaKey?,
+        markBrowserHandoffDone: Boolean = true
+    ): Boolean {
+        if (markBrowserHandoffDone) {
+            prefs.markTwaBrowserHandoffCompleted()
+        }
+        val cleanUserId = userId?.trim()?.takeIf { it.isNotEmpty() }
+        val cleanDeviceId = deviceId?.trim()?.takeIf { it.isNotEmpty() }
+        val cleanCode = pairingCode?.trim()?.takeIf { it.isNotEmpty() }
+
+        if (status != "ok" || cleanUserId == null || cleanDeviceId == null) {
+            return false
+        }
+
+        val currentUserId = prefs.current.userId
+        val localActiveLogs = runCatching { db.watchLogDao().getActiveLogs() }.getOrDefault(emptyList())
+
+        if (!currentUserId.isNullOrBlank() && currentUserId != cleanUserId && localActiveLogs.isNotEmpty() && !cleanCode.isNullOrBlank()) {
+            val paired = runCatching { pairWithCode(cleanCode) }.getOrNull()
+            if (paired != null) {
+                prefs.dismissTwaMigrationBanner()
+                return true
+            }
+        }
+
+        if (!currentUserId.isNullOrBlank() && currentUserId != cleanUserId && localActiveLogs.isEmpty()) {
+            saveMutex.withLock {
+                db.outboxDao().clearAll()
+                db.watchLogHistoryDao().clearAll()
+                db.watchLogDao().clearAll()
+            }
+        }
+
+        prefs.setLastSyncAt(null)
+        prefs.saveAuth(cleanUserId, cleanDeviceId, cleanCode)
+        if (!nickname.isNullOrBlank() || personaKey != null) {
+            prefs.saveProfile(
+                nickname = nickname ?: prefs.current.nickname,
+                personaKey = personaKey ?: prefs.current.personaKey,
+                pairingCode = cleanCode
+            )
+        }
+        prefs.dismissTwaMigrationBanner()
+
+        repoScope.launch {
+            runCatching {
+                RevisitReminderScheduler.bindDeviceIfAuthenticated(
+                    context = appContext,
+                    force = true,
+                    explicitUserId = cleanUserId,
+                    explicitDeviceId = cleanDeviceId
+                )
+            }
+        }
+
+        runCatching {
+            val profile = api.getProfile()
+            prefs.saveProfile(profile.nickname, profile.personaKey, profile.pairingCode)
+        }
+
+        syncOutbox()
+        trackEvent("login_success", mapOf("method" to "twa_handoff"))
+        return true
+    }
+
+    suspend fun tryRestoreFromTwaInstallToken(): Boolean {
+        val restored = RevisitReminderApiClient.restoreSession(appContext) ?: return false
+        if (!restored.found || restored.userId.isNullOrBlank() || restored.deviceId.isNullOrBlank()) {
+            return false
+        }
+        val ok = completeTwaHandoff(
+            status = "ok",
+            userId = restored.userId,
+            deviceId = restored.deviceId,
+            pairingCode = restored.pairingCode,
+            nickname = restored.nickname,
+            personaKey = PersonaKey.fromWire(restored.personaKey),
+            markBrowserHandoffDone = false
+        )
+        if (!ok) return false
+        val syncedLogs = runCatching { db.watchLogDao().getActiveLogs() }.getOrDefault(emptyList())
+        if (syncedLogs.isNotEmpty()) {
+            prefs.markTwaBrowserHandoffCompleted()
+            return true
+        }
+        return false
+    }
+
     suspend fun refreshProfile(): UserProfile? {
         if (prefs.current.userId.isNullOrBlank()) return null
         return runCatching {
             val profile = api.getProfile()
-            prefs.saveProfile(profile.nickname, profile.personaKey)
+            prefs.saveProfile(profile.nickname, profile.personaKey, profile.pairingCode)
             profile
         }.getOrNull()
     }

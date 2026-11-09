@@ -9,14 +9,16 @@ public record UserProfileDto(
         UUID userId,
         String nickname,
         String personaKey,
-        OffsetDateTime profileUpdatedAt
+        OffsetDateTime profileUpdatedAt,
+        String pairingCode
 ) {
     public static UserProfileDto from(UserEntity user) {
         return new UserProfileDto(
                 user.getId(),
                 user.getNickname(),
                 user.getPersonaKey(),
-                user.getProfileUpdatedAt()
+                user.getProfileUpdatedAt(),
+                user.getPairingCode()
         );
     }
 }

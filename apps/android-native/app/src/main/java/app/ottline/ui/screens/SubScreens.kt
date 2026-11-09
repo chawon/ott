@@ -71,6 +71,7 @@ import app.ottline.WatchReminderTargets
 import app.ottline.WatchReminderWorker
 import app.ottline.data.OttlineRepository
 import app.ottline.data.local.PreferencesSnapshot
+import app.ottline.data.local.TwaBrowserBridge
 import app.ottline.domain.BookshelfBuilder
 import app.ottline.domain.PersonalReportBuilder
 import app.ottline.domain.RecordDate
@@ -1300,10 +1301,7 @@ fun GuideInfoScreen(
         item {
             OutlinedButton(
                 onClick = {
-                    runCatching {
-                        CustomTabsIntent.Builder().build()
-                            .launchUrl(context, Uri.parse("https://ottline.app/privacy"))
-                    }
+                    TwaBrowserBridge.launchInExternalCustomTab(context, "https://ottline.app/privacy")
                 },
                 modifier = Modifier.fillMaxWidth()
             ) {

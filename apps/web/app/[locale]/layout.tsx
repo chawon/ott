@@ -137,6 +137,30 @@ export default async function RootLayout({
       themeColors = document.querySelectorAll('meta[name="theme-color"]');
     }
     themeColors.forEach((themeColor) => themeColor.setAttribute("content", background));
+    const sp = new URLSearchParams(window.location.search);
+    if (sp.get("native_handoff") === "1") {
+      const uid = localStorage.getItem("watchlog.userId");
+      const did = localStorage.getItem("watchlog.deviceId");
+      const code = localStorage.getItem("watchlog.pairingCode") || "";
+      if (uid && did) {
+        let nick = "", persona = "";
+        try {
+          const prof = JSON.parse(localStorage.getItem("watchlog.profile.v1") || "null");
+          if (prof && typeof prof === "object") {
+            nick = prof.nickname || "";
+            persona = prof.personaKey || "";
+          }
+        } catch (_) {}
+        const target =
+          "ottline://open?handoff=1&status=ok" +
+          "&user_id=" + encodeURIComponent(uid) +
+          "&device_id=" + encodeURIComponent(did) +
+          "&pairing_code=" + encodeURIComponent(code) +
+          "&nickname=" + encodeURIComponent(nick) +
+          "&persona_key=" + encodeURIComponent(persona);
+        window.location.replace(target);
+      }
+    }
   } catch (_) {}
 })();
 `;
