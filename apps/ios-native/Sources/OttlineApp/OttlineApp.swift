@@ -90,7 +90,7 @@ public struct OttlineRootContainerView: View {
             .background(palette.background.ignoresSafeArea())
 
             if showSplash {
-                OttlineIntroSplashOverlay {
+                OttlineIntroSplashOverlay(nickname: snap.nickname) {
                     showSplash = false
                 }
             }
@@ -236,6 +236,7 @@ public struct OttlineRootContainerView: View {
     // MARK: - Deep Link & Widget URL Routing (`ottline://` and `https://ottline.app`)
 
     private func handleIncomingUrl(_ url: URL) {
+        showSplash = false
         let components = URLComponents(url: url, resolvingAgainstBaseURL: false)
         let queryItems = components?.queryItems ?? []
         func qVal(_ name: String) -> String? {
