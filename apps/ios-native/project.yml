@@ -25,10 +25,6 @@ targets:
           - "Resources/Fonts/**"
       - path: Sources/OttlineApp/Resources/Fonts
         buildPhase: resources
-    info:
-      path: Sources/OttlineApp/Info.plist
-    entitlements:
-      path: Sources/OttlineApp/OttlineApp.entitlements
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: app.ottline
@@ -50,14 +46,11 @@ targets:
         excludes:
           - "Info.plist"
           - "OttlineWidget.entitlements"
-    info:
-      path: Sources/OttlineWidget/Info.plist
-    entitlements:
-      path: Sources/OttlineWidget/OttlineWidget.entitlements
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: app.ottline.QuickLogWidget
         PRODUCT_NAME: OttlineWidgetExtension
+        PRODUCT_BUNDLE_PACKAGE_TYPE: "XPC!"
         INFOPLIST_FILE: Sources/OttlineWidget/Info.plist
         CODE_SIGN_ENTITLEMENTS: Sources/OttlineWidget/OttlineWidget.entitlements
         SKIP_INSTALL: YES

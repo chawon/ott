@@ -364,19 +364,29 @@ public final class OttlineRepository: @unchecked Sendable {
 
     // MARK: - 3. Outbox Sync (Push + Pull with Monotonic Revision Check & LWW)
 
-    @discardableResult
-    public func syncOutbox() async -> Bool {
+    private func tryAcquireSyncLock() -> Bool {
         syncLock.lock()
+        defer { syncLock.unlock() }
         if isSyncingFlag {
-            syncLock.unlock()
             return false
         }
         isSyncingFlag = true
+        return true
+    }
+
+    private func releaseSyncLock() {
+        syncLock.lock()
+        isSyncingFlag = false
         syncLock.unlock()
+    }
+
+    @discardableResult
+    public func syncOutbox() async -> Bool {
+        guard tryAcquireSyncLock() else {
+            return false
+        }
         defer {
-            syncLock.lock()
-            isSyncingFlag = false
-            syncLock.unlock()
+            releaseSyncLock()
         }
 
         let pending = db.getAllOutbox()

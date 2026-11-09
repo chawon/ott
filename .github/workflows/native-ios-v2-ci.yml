@@ -37,6 +37,7 @@ jobs:
             brew install xcodegen
           fi
           xcodegen generate
+          bash scripts/verify-ios-project.sh
 
       - name: Build & Run XCTest Suite on iOS Simulator
         working-directory: apps/ios-native
