@@ -16,11 +16,11 @@ final class OttlineCoreTests: XCTestCase {
 
         let videoFeeling = RecordFeelings.resolveFeeling(rating: 4.5, isBook: false, locale: "ko")
         XCTAssertEqual(videoFeeling?.value, 3)
-        XCTAssertEqual(videoFeeling?.label, "여운이 오래 남았어요")
+        XCTAssertEqual(videoFeeling?.label, "최고예요")
 
         let bookFeelingEn = RecordFeelings.resolveFeeling(rating: 3.5, isBook: true, locale: "en")
         XCTAssertEqual(bookFeelingEn?.value, 2)
-        XCTAssertEqual(bookFeelingEn?.label, "Read with a warm heart")
+        XCTAssertEqual(bookFeelingEn?.label, "Not bad")
     }
 
     // MARK: - 2. KST Date & Month Formatting (`RecordDate`)

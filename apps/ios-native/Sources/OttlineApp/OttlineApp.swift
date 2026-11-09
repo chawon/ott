@@ -55,8 +55,13 @@ public struct OttlineRootContainerView: View {
                         nickname: snap.nickname,
                         personaKey: snap.personaKey,
                         onLogoTap: { activeTab = .home },
-                        onQuickRecordTap: {
-                            quickRecordRequest = QuickRecordRequest(autoFocusSearch: true)
+                        onSelectLocale: { nextLocale in
+                            repository.prefs.setLocale(nextLocale)
+                            RecapNotificationManager.shared.syncScheduleIfEnabled(prefs: repository.prefs)
+                        },
+                        onToggleTheme: {
+                            let nextTheme: ThemeMode = snap.themeMode == .dark ? .light : .dark
+                            repository.prefs.setThemeMode(nextTheme)
                         },
                         onProfileTap: { activeTab = .mySpace }
                     )

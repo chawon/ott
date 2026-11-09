@@ -76,7 +76,7 @@ public struct QuickRecordSheet: View {
     @State private var noteText: String = ""
     @State private var spoiler: Bool = false
     @State private var shareInTogether: Bool = false
-    @State private var momentExpanded: Bool = true
+    @State private var momentExpanded: Bool = false
 
     // Search & Catalog state
     @State private var searchResults: [TitleSearchItem] = []
@@ -146,30 +146,40 @@ public struct QuickRecordSheet: View {
         }
     }
 
-    // MARK: - Header
+    // MARK: - Header (`QuickLogDialog.tsx` 1:1 Parity)
 
     private var headerView: some View {
         HStack(alignment: .top, spacing: 12) {
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: 5) {
+                Text("ON THE TIMELINE")
+                    .font(OttlineFont.bold(10.5))
+                    .kerning(0.72)
+                    .foregroundStyle(palette.mutedInk)
+
                 Text(headerTitle)
                     .font(OttlineFont.semiBold(20))
                     .foregroundStyle(palette.ink)
-                if stage != .search {
-                    Text(OttlineStrings.tr(
-                        "영화, 시리즈, 책. 남겨두고 싶은 만큼만 적어요.",
-                        "Films, series, books. Keep as much as you want.",
-                        locale: locale
-                    ))
-                    .font(OttlineFont.regular(13.5))
-                    .foregroundStyle(palette.mutedInk)
-                }
+
+                Text(OttlineStrings.tr(
+                    "영화, 시리즈, 책. 남겨두고 싶은 만큼만 적어요.",
+                    "Films, series, books. Keep as much as you want.",
+                    locale: locale
+                ))
+                .font(OttlineFont.regular(13.5))
+                .foregroundStyle(palette.mutedInk)
             }
             Spacer()
             Button(action: onDismiss) {
                 Image(systemName: "xmark")
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(.system(size: 15, weight: .semibold))
                     .foregroundStyle(palette.ink)
                     .frame(width: 36, height: 36)
+                    .background(palette.background)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8)
+                            .stroke(palette.border, lineWidth: 1)
+                    )
             }
             .buttonStyle(.plain)
         }
@@ -188,7 +198,7 @@ public struct QuickRecordSheet: View {
         }
     }
 
-    // MARK: - Stage 1: SEARCH
+    // MARK: - Stage 1: SEARCH (`TitleSearchBox.tsx` 1:1 Parity)
 
     private var searchStageView: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -238,13 +248,13 @@ public struct QuickRecordSheet: View {
                     } label: {
                         Text(label)
                             .font(selected ? OttlineFont.semiBold(13.5) : OttlineFont.regular(13.5))
-                            .foregroundStyle(selected ? palette.ink : palette.mutedInk)
+                            .foregroundStyle(selected ? palette.primaryAccent : palette.mutedInk)
                             .frame(maxWidth: .infinity, minHeight: 40)
                             .background(selected ? palette.paperStrong : Color.clear)
                             .clipShape(RoundedRectangle(cornerRadius: 8))
                             .overlay(
                                 RoundedRectangle(cornerRadius: 8)
-                                    .stroke(selected ? palette.ink : palette.border, lineWidth: 1)
+                                    .stroke(selected ? palette.primaryAccent : palette.border, lineWidth: selected ? 1.5 : 1)
                             )
                     }
                     .buttonStyle(.plain)
@@ -277,7 +287,7 @@ public struct QuickRecordSheet: View {
                                 .padding(.vertical, 32)
                         } else {
                             ForEach(searchResults) { item in
-                                searchResultRow(item: item, source: "search_result")
+                                searchResultRow(item: item, source: "search_result", rightBadge: nil)
                                 Divider().overlay(palette.border)
                             }
                             if searchResults.contains(where: { $0.provider == .google }) {
@@ -293,9 +303,9 @@ public struct QuickRecordSheet: View {
                             }
                         }
                     } else {
-                        // Empty-query suggestions: Together + Popular
+                        // Empty-query suggestions: Together (`요즘 함께 하는 작품들`) + Popular (`요즘 인기 작품`)
                         if !recentDiscussions.isEmpty {
-                            Text(OttlineStrings.tr("요즘 함께 기록하는 작품", "Recently logged together", locale: locale))
+                            Text(OttlineStrings.tr("요즘 함께 하는 작품들", "Titles shared together", locale: locale))
                                 .font(OttlineFont.semiBold(12.5))
                                 .foregroundStyle(palette.mutedInk)
                                 .padding(.horizontal, 20)
@@ -332,6 +342,9 @@ public struct QuickRecordSheet: View {
                                                 .foregroundStyle(palette.mutedInk)
                                         }
                                         Spacer()
+                                        Text(locale == "en" ? "Comments \(disc.commentCount)" : "댓글 \(disc.commentCount)")
+                                            .font(OttlineFont.medium(12))
+                                            .foregroundStyle(palette.mutedInk)
                                     }
                                     .padding(.horizontal, 20)
                                     .padding(.vertical, 10)
@@ -342,7 +355,7 @@ public struct QuickRecordSheet: View {
                         }
 
                         if searchTab != "book" && !popularSuggestions.isEmpty {
-                            Text(OttlineStrings.tr("요즘 인기 작품", "Popular right now", locale: locale))
+                            Text(OttlineStrings.tr("요즘 인기 작품", "Popular now", locale: locale))
                                 .font(OttlineFont.semiBold(12.5))
                                 .foregroundStyle(palette.mutedInk)
                                 .padding(.horizontal, 20)
@@ -350,7 +363,11 @@ public struct QuickRecordSheet: View {
                                 .padding(.bottom, 6)
 
                             ForEach(popularSuggestions.prefix(6)) { item in
-                                searchResultRow(item: item, source: "popular_title")
+                                searchResultRow(
+                                    item: item,
+                                    source: "popular_title",
+                                    rightBadge: OttlineStrings.tr("인기 작품", "Popular title", locale: locale)
+                                )
                                 Divider().overlay(palette.border)
                             }
                         }
@@ -360,7 +377,7 @@ public struct QuickRecordSheet: View {
         }
     }
 
-    private func searchResultRow(item: TitleSearchItem, source: String) -> some View {
+    private func searchResultRow(item: TitleSearchItem, source: String, rightBadge: String?) -> some View {
         Button {
             selectTitle(item.toNewTitle(), source: source, infoUrl: item.infoUrl)
         } label: {
@@ -397,6 +414,11 @@ public struct QuickRecordSheet: View {
                     }
                 }
                 Spacer()
+                if let rightBadge {
+                    Text(rightBadge)
+                        .font(OttlineFont.regular(12))
+                        .foregroundStyle(palette.mutedInk)
+                }
             }
             .padding(.horizontal, 20)
             .padding(.vertical, 10)
@@ -405,7 +427,7 @@ public struct QuickRecordSheet: View {
         .buttonStyle(.plain)
     }
 
-    // MARK: - Stage 2 & 4: STATUS + MOMENT FORM
+    // MARK: - Stage 2 & 4: STATUS + MOMENT FORM (`QuickLogCard.tsx` 1:1 Parity)
 
     private var recordFormStageView: some View {
         let title = selectedTitle ?? Title(id: "unknown", name: "")
@@ -414,48 +436,70 @@ public struct QuickRecordSheet: View {
         return VStack(spacing: 0) {
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
-                    // Selected Title Summary
+                    // Selected Title Summary (`styles.titleSummary`)
                     HStack(alignment: .top, spacing: 14) {
                         PosterImage(
                             posterUrl: seasonPosterUrl ?? title.posterUrl,
                             titleName: title.name,
                             titleType: title.type,
-                            width: 64,
-                            height: 94
+                            width: 56,
+                            height: 84
                         )
-                        VStack(alignment: .leading, spacing: 5) {
-                            Text(OttlineStrings.titleTypeLabel(title.type, locale: locale))
-                                .font(OttlineFont.medium(12))
-                                .foregroundStyle(palette.primaryAccent)
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text([
+                                OttlineStrings.titleTypeLabel(title.type, locale: locale),
+                                (seasonYear ?? title.year).map(String.init)
+                            ].compactMap { $0 }.joined(separator: " · "))
+                            .font(OttlineFont.regular(12))
+                            .foregroundStyle(palette.mutedInk)
+
                             Text(title.name)
                                 .font(OttlineFont.semiBold(17))
                                 .foregroundStyle(palette.ink)
                                 .lineLimit(2)
-                            if let year = seasonYear ?? title.year {
-                                Text(String(year))
+
+                            if isBook, let author = title.author, !author.isEmpty {
+                                Text(author)
                                     .font(OttlineFont.regular(12.5))
                                     .foregroundStyle(palette.mutedInk)
                             }
-                            if !isEditingExisting {
-                                Button {
-                                    stage = .search
-                                } label: {
-                                    Text(OttlineStrings.tr("다른 작품 고르기", "Change title", locale: locale))
-                                        .font(OttlineFont.medium(12.5))
-                                        .foregroundStyle(palette.primaryAccent)
-                                }
-                                .buttonStyle(.plain)
-                                .padding(.top, 2)
-                            }
                         }
                         Spacer()
+                        if !isEditingExisting {
+                            Button {
+                                stage = .search
+                            } label: {
+                                Image(systemName: "xmark")
+                                    .font(.system(size: 13, weight: .semibold))
+                                    .foregroundStyle(palette.mutedInk)
+                                    .frame(width: 32, height: 32)
+                                    .background(palette.background)
+                                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 8)
+                                            .stroke(palette.border, lineWidth: 1)
+                                    )
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel(OttlineStrings.tr("다른 작품 찾기", "Find another title", locale: locale))
+                        }
                     }
+                    .padding(14)
+                    .background(palette.paperStrong)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8)
+                            .stroke(palette.border, lineWidth: 1)
+                    )
 
-                    // 1. Status Choice (`봤어요/읽었어요`, `보는 중/읽는 중`, `보고 싶어요/읽고 싶어요`)
+                    // 1. Status Choice (`어떻게 기억해 둘까요?` / `상태`)
                     VStack(alignment: .leading, spacing: 8) {
-                        Text(OttlineStrings.tr("어떻게 남길까요?", "How would you like to keep it?", locale: locale))
-                            .font(OttlineFont.semiBold(14))
-                            .foregroundStyle(palette.ink)
+                        Text(stage == .edit
+                            ? OttlineStrings.tr("상태", "Status", locale: locale)
+                            : OttlineStrings.tr("어떻게 기억해 둘까요?", "How would you like to remember it?", locale: locale)
+                        )
+                        .font(OttlineFont.semiBold(15))
+                        .foregroundStyle(palette.ink)
 
                         HStack(spacing: 8) {
                             ForEach([LogStatus.done, LogStatus.inProgress, LogStatus.wishlist], id: \.self) { st in
@@ -465,17 +509,27 @@ public struct QuickRecordSheet: View {
                                 } label: {
                                     Text(OttlineStrings.statusLabel(st, type: title.type, locale: locale))
                                         .font(selected ? OttlineFont.semiBold(14) : OttlineFont.medium(14))
-                                        .foregroundStyle(selected ? palette.onBrandNavy : palette.ink)
+                                        .foregroundStyle(selected ? palette.primaryAccent : palette.ink)
                                         .frame(maxWidth: .infinity, minHeight: 46)
-                                        .background(selected ? palette.brandNavy : palette.paperStrong)
+                                        .background(selected ? palette.paperStrong : palette.card)
                                         .clipShape(RoundedRectangle(cornerRadius: 8))
                                         .overlay(
                                             RoundedRectangle(cornerRadius: 8)
-                                                .stroke(selected ? palette.brandNavy : palette.border, lineWidth: 1)
+                                                .stroke(selected ? palette.primaryAccent : palette.border, lineWidth: selected ? 1.5 : 1)
                                         )
                                 }
                                 .buttonStyle(.plain)
                             }
+                        }
+
+                        if stage == .status {
+                            Text(OttlineStrings.tr(
+                                "상태를 고른 뒤 아래의 ‘기록 남기기’를 눌러요. 그날의 순간은 원할 때만 더해요.",
+                                "Choose a status, then tap ‘Keep this record’ below. Add the moment only if you want.",
+                                locale: locale
+                            ))
+                            .font(OttlineFont.regular(12.5))
+                            .foregroundStyle(palette.mutedInk)
                         }
                     }
 
@@ -528,12 +582,12 @@ public struct QuickRecordSheet: View {
                         }
                     }
 
-                    // 3. Moment Details Section (`그날의 순간`)
+                    // 3. Moment Details Section (`그날의 순간 (선택)` / `그날의 순간`)
                     DisclosureGroup(isExpanded: $momentExpanded) {
                         VStack(alignment: .leading, spacing: 18) {
                             // Date Picker
                             DatePicker(
-                                OttlineStrings.tr("기록 날짜", "Date", locale: locale),
+                                OttlineStrings.tr("날짜", "Date", locale: locale),
                                 selection: $watchedDate,
                                 displayedComponents: .date
                             )
@@ -541,56 +595,11 @@ public struct QuickRecordSheet: View {
                             .tint(palette.brandNavy)
                             .padding(.top, 8)
 
-                            // 3-Level Feeling Selector
-                            VStack(alignment: .leading, spacing: 8) {
-                                Text(OttlineStrings.tr("남은 여운", "How it stayed with you", locale: locale))
-                                    .font(OttlineFont.semiBold(13.5))
-                                    .foregroundStyle(palette.ink)
-
-                                let feelingOptions = RecordFeelings.options(isBook: isBook, locale: locale)
-                                let currentVal = RecordFeelings.ratingToFeelingValue(feelingScore)
-                                VStack(spacing: 8) {
-                                    ForEach(feelingOptions, id: \.value) { opt in
-                                        let selected = currentVal == opt.value
-                                        Button {
-                                            feelingScore = selected ? nil : opt.score
-                                        } label: {
-                                            HStack(spacing: 10) {
-                                                FeelingIcon(
-                                                    value: opt.value,
-                                                    isBook: isBook,
-                                                    size: 18,
-                                                    tint: selected ? palette.primaryAccent : palette.mutedInk
-                                                )
-                                                Text(opt.label)
-                                                    .font(selected ? OttlineFont.semiBold(14) : OttlineFont.regular(14))
-                                                    .foregroundStyle(palette.ink)
-                                                Spacer()
-                                                if selected {
-                                                    Image(systemName: "checkmark")
-                                                        .font(.system(size: 13, weight: .bold))
-                                                        .foregroundStyle(palette.primaryAccent)
-                                                }
-                                            }
-                                            .padding(.horizontal, 14)
-                                            .padding(.vertical, 11)
-                                            .background(selected ? palette.paperStrong : palette.card)
-                                            .clipShape(RoundedRectangle(cornerRadius: 8))
-                                            .overlay(
-                                                RoundedRectangle(cornerRadius: 8)
-                                                    .stroke(selected ? palette.primaryAccent : palette.border, lineWidth: 1)
-                                            )
-                                        }
-                                        .buttonStyle(.plain)
-                                    }
-                                }
-                            }
-
                             // Platform / Medium Chips
                             VStack(alignment: .leading, spacing: 8) {
                                 Text(isBook
-                                    ? OttlineStrings.tr("읽은 방식 · 서점", "Format or bookstore", locale: locale)
-                                    : OttlineStrings.tr("어디서 보셨나요? (플랫폼)", "Where did you watch?", locale: locale)
+                                    ? OttlineStrings.tr("읽은 곳·플랫폼", "Where you read", locale: locale)
+                                    : OttlineStrings.tr("플랫폼", "Platform", locale: locale)
                                 )
                                 .font(OttlineFont.semiBold(13.5))
                                 .foregroundStyle(palette.ink)
@@ -625,7 +634,7 @@ public struct QuickRecordSheet: View {
                                 if showCustomPlatformField {
                                     HStack(spacing: 8) {
                                         TextField(
-                                            OttlineStrings.tr("플랫폼 직접 입력", "Enter platform", locale: locale),
+                                            OttlineStrings.tr("예: 킨들, 도서관, 오더블", "e.g. Kindle, Library, Audible", locale: locale),
                                             text: $customPlatformInput
                                         )
                                         .font(OttlineFont.regular(13.5))
@@ -654,14 +663,14 @@ public struct QuickRecordSheet: View {
                                 }
                             }
 
-                            // Place Chips
+                            // Place Chips (`장소`)
                             VStack(alignment: .leading, spacing: 8) {
-                                Text(OttlineStrings.tr("함께한 공간", "Place", locale: locale))
+                                Text(OttlineStrings.tr("장소", "Place", locale: locale))
                                     .font(OttlineFont.semiBold(13.5))
                                     .foregroundStyle(palette.ink)
                                 ScrollView(.horizontal, showsIndicators: false) {
                                     HStack(spacing: 8) {
-                                        ForEach(Place.allCases, id: \.self) { p in
+                                        ForEach(Place.cases(for: title.type), id: \.self) { p in
                                             chipButton(
                                                 label: OttlineStrings.placeLabel(p, locale: locale),
                                                 selected: selectedPlace == p
@@ -673,9 +682,9 @@ public struct QuickRecordSheet: View {
                                 }
                             }
 
-                            // Occasion Chips
+                            // Occasion Chips (`누구와·어떤 상황`)
                             VStack(alignment: .leading, spacing: 8) {
-                                Text(OttlineStrings.tr("함께한 순간", "Occasion", locale: locale))
+                                Text(OttlineStrings.tr("누구와·어떤 상황", "Who you were with or the occasion", locale: locale))
                                     .font(OttlineFont.semiBold(13.5))
                                     .foregroundStyle(palette.ink)
                                 ScrollView(.horizontal, showsIndicators: false) {
@@ -691,83 +700,149 @@ public struct QuickRecordSheet: View {
                                     }
                                 }
                             }
-
-                            // Note Field
-                            VStack(alignment: .leading, spacing: 8) {
-                                Text(OttlineStrings.tr("남겨두고 싶은 한 줄 (선택)", "A line to keep (optional)", locale: locale))
-                                    .font(OttlineFont.semiBold(13.5))
-                                    .foregroundStyle(palette.ink)
-
-                                TextField(
-                                    OttlineStrings.tr(
-                                        "기억하고 싶은 대사나 그날의 기분을 적어도 좋아요.",
-                                        "Write a favorite quote or how the moment felt.",
-                                        locale: locale
-                                    ),
-                                    text: $noteText,
-                                    axis: .vertical
-                                )
-                                .lineLimit(3...6)
-                                .font(OttlineFont.regular(14))
-                                .padding(12)
-                                .background(palette.paperStrong)
-                                .clipShape(RoundedRectangle(cornerRadius: 8))
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 8)
-                                        .stroke(palette.border, lineWidth: 1)
-                                )
-
-                                Toggle(
-                                    OttlineStrings.tr("스포일러 포함", "Contains spoilers", locale: locale),
-                                    isOn: $spoiler
-                                )
-                                .font(OttlineFont.regular(13))
-                                .tint(palette.brandNavy)
-
-                                if !noteText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                                    Toggle(
-                                        OttlineStrings.tr("함께 화면에도 이 이야기 나누기", "Also share this note in Together", locale: locale),
-                                        isOn: $shareInTogether
-                                    )
-                                    .font(OttlineFont.regular(13))
-                                    .tint(palette.brandNavy)
-                                }
-                            }
                         }
                     } label: {
-                        Text(OttlineStrings.tr("그날의 순간 더 적기 (선택)", "Moment details (optional)", locale: locale))
+                        Text(OttlineStrings.tr("그날의 순간 (선택)", "The moment (optional)", locale: locale))
                             .font(OttlineFont.semiBold(14.5))
                             .foregroundStyle(palette.ink)
                     }
                     .tint(palette.ink)
+                    .padding(14)
+                    .background(palette.background)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8)
+                            .stroke(palette.border, lineWidth: 1)
+                    )
+
+                    // 4. Feeling & Note (shown in `.edit` stage or when user expands moment details)
+                    if stage == .edit || momentExpanded {
+                        // 3-Level Feeling Selector (`RecordFeelings.tsx` parity)
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text(OttlineStrings.tr("어떤 느낌으로 남았나요? (선택)", "How did it feel? (optional)", locale: locale))
+                                .font(OttlineFont.semiBold(14))
+                                .foregroundStyle(palette.ink)
+
+                            let feelingOptions = RecordFeelings.options(isBook: isBook, locale: locale)
+                            let currentVal = RecordFeelings.ratingToFeelingValue(feelingScore)
+                            HStack(spacing: 8) {
+                                ForEach(feelingOptions, id: \.value) { opt in
+                                    let selected = currentVal == opt.value
+                                    Button {
+                                        feelingScore = selected ? nil : opt.score
+                                    } label: {
+                                        VStack(spacing: 6) {
+                                            FeelingIcon(
+                                                value: opt.value,
+                                                isBook: isBook,
+                                                size: 20,
+                                                tint: selected ? palette.primaryAccent : palette.mutedInk
+                                            )
+                                            Text(opt.label)
+                                                .font(selected ? OttlineFont.semiBold(13) : OttlineFont.medium(13))
+                                                .foregroundStyle(selected ? palette.primaryAccent : palette.ink)
+                                        }
+                                        .frame(maxWidth: .infinity, minHeight: 62)
+                                        .background(selected ? palette.paperStrong : palette.card)
+                                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 8)
+                                                .stroke(selected ? palette.primaryAccent : palette.border, lineWidth: selected ? 1.5 : 1)
+                                        )
+                                    }
+                                    .buttonStyle(.plain)
+                                }
+                            }
+                        }
+
+                        // Note Field (`메모`)
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text(OttlineStrings.tr("메모", "Note", locale: locale))
+                                .font(OttlineFont.semiBold(14))
+                                .foregroundStyle(palette.ink)
+
+                            TextField(
+                                OttlineStrings.tr(
+                                    "나중에 떠올리고 싶은 장면이나 마음을 적어두세요.",
+                                    "Keep a scene, line, or feeling you may want later.",
+                                    locale: locale
+                                ),
+                                text: $noteText,
+                                axis: .vertical
+                            )
+                            .lineLimit(3...6)
+                            .font(OttlineFont.regular(14))
+                            .padding(12)
+                            .background(palette.paperStrong)
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 8)
+                                    .stroke(palette.border, lineWidth: 1)
+                            )
+
+                            Toggle(
+                                OttlineStrings.tr("함께 나누기", "Also share in Together", locale: locale),
+                                isOn: $shareInTogether
+                            )
+                            .font(OttlineFont.regular(13.5))
+                            .tint(palette.brandNavy)
+
+                            Toggle(
+                                OttlineStrings.tr("스포일러 포함", "Contains spoilers", locale: locale),
+                                isOn: $spoiler
+                            )
+                            .font(OttlineFont.regular(13.5))
+                            .tint(palette.brandNavy)
+                        }
+                    }
                 }
                 .padding(20)
             }
 
-            // Bottom Sticky Primary Action (`#FF9933` with `#0F0F0F` text per `DESIGN.md`)
+            // Bottom Sticky Footer (`QuickLogCard.tsx` `.stickyFooter` parity)
             VStack(spacing: 0) {
                 Divider().overlay(palette.border)
-                Button {
-                    Task { await submitRecord() }
-                } label: {
-                    HStack(spacing: 8) {
-                        if saving {
-                            ProgressView()
-                                .tint(palette.onBrandOrange)
+                HStack(spacing: 12) {
+                    if stage == .edit && !isEditingExisting {
+                        Button(action: onDismiss) {
+                            Text(OttlineStrings.tr("나중에 더할게요", "Maybe later", locale: locale))
+                                .font(OttlineFont.medium(13.5))
+                                .foregroundStyle(palette.mutedInk)
                         }
-                        Text(chosenStatus == nil
-                            ? OttlineStrings.tr("위에서 감상 상태를 먼저 골라주세요", "Choose a status above first", locale: locale)
-                            : OttlineStrings.tr("기록 남기기", "Save to timeline", locale: locale)
+                        .buttonStyle(.plain)
+                    } else {
+                        Text(chosenStatus.map { OttlineStrings.statusLabel($0, type: title.type, locale: locale) }
+                            ?? OttlineStrings.tr("상태를 골라주세요.", "Choose a status.", locale: locale)
                         )
-                        .font(OttlineFont.semiBold(15))
+                        .font(OttlineFont.regular(13))
+                        .foregroundStyle(palette.mutedInk)
                     }
-                    .foregroundStyle(chosenStatus == nil ? palette.mutedInk : palette.onBrandOrange)
-                    .frame(maxWidth: .infinity, minHeight: 48)
-                    .background(chosenStatus == nil ? palette.mutedBg : palette.brandOrange)
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
+
+                    Spacer()
+
+                    Button {
+                        Task { await submitRecord() }
+                    } label: {
+                        HStack(spacing: 8) {
+                            if saving {
+                                ProgressView()
+                                    .tint(palette.onBrandOrange)
+                            }
+                            Text(stage == .edit
+                                ? OttlineStrings.tr("이 순간 보관하기", "Keep this moment", locale: locale)
+                                : OttlineStrings.tr("기록 남기기", "Keep this record", locale: locale)
+                            )
+                            .font(OttlineFont.semiBold(15))
+                        }
+                        .foregroundStyle(chosenStatus == nil ? palette.mutedInk : palette.onBrandOrange)
+                        .padding(.horizontal, 22)
+                        .frame(minHeight: 46)
+                        .background(chosenStatus == nil ? palette.mutedBg : palette.brandOrange)
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(chosenStatus == nil || saving)
                 }
-                .buttonStyle(.plain)
-                .disabled(chosenStatus == nil || saving)
                 .padding(.horizontal, 20)
                 .padding(.vertical, 12)
                 .background(palette.card)
@@ -775,97 +850,146 @@ public struct QuickRecordSheet: View {
         }
     }
 
-    // MARK: - Stage 3: SAVED
+    // MARK: - Stage 3: SAVED (`QuickLogCard.tsx` `stage === "saved"` 1:1 Parity)
 
     private var savedStageView: some View {
         let log = savedLog
         let title = log?.title ?? selectedTitle ?? Title(id: "unknown", name: "")
         return ScrollView {
             VStack(alignment: .leading, spacing: 18) {
+                // Selected Title Summary
                 HStack(alignment: .top, spacing: 14) {
                     PosterImage(
                         posterUrl: log?.seasonPosterUrl ?? title.posterUrl,
                         titleName: title.name,
                         titleType: title.type,
-                        width: 64,
-                        height: 94
+                        width: 56,
+                        height: 84
                     )
-                    VStack(alignment: .leading, spacing: 6) {
+                    VStack(alignment: .leading, spacing: 5) {
+                        Text([
+                            OttlineStrings.titleTypeLabel(title.type, locale: locale),
+                            (log?.seasonYear ?? title.year).map(String.init)
+                        ].compactMap { $0 }.joined(separator: " · "))
+                        .font(OttlineFont.regular(12))
+                        .foregroundStyle(palette.mutedInk)
+
                         Text(title.name)
                             .font(OttlineFont.semiBold(17))
                             .foregroundStyle(palette.ink)
+
                         if let st = log?.status {
                             Text(OttlineStrings.statusLabel(st, type: title.type, locale: locale))
-                                .font(OttlineFont.medium(13))
+                                .font(OttlineFont.semiBold(13))
                                 .foregroundStyle(palette.primaryAccent)
-                        }
-                        RecordFeelingBadge(rating: log?.rating, isBook: title.type == .book, compact: true)
-
-                        if title.type == .book, locale == "ko" {
-                            Text(BookshelfBuilder.kdcSectionName(major: savedBookShelfMajor, locale: locale))
-                                .font(OttlineFont.medium(12))
-                                .foregroundStyle(palette.mutedInk)
                         }
                     }
                     Spacer()
                 }
-                .padding(16)
+                .padding(14)
                 .background(palette.paperStrong)
-                .clipShape(RoundedRectangle(cornerRadius: 10))
+                .clipShape(RoundedRectangle(cornerRadius: 8))
                 .overlay(
-                    RoundedRectangle(cornerRadius: 10)
+                    RoundedRectangle(cornerRadius: 8)
                         .stroke(palette.border, lineWidth: 1)
                 )
 
-                HStack(spacing: 10) {
-                    Button {
-                        stage = .edit
-                    } label: {
-                        Text(OttlineStrings.tr("순간 더 다듬기", "Refine moment", locale: locale))
-                            .font(OttlineFont.semiBold(14))
-                            .foregroundStyle(palette.ink)
-                            .frame(maxWidth: .infinity, minHeight: 44)
-                            .background(palette.card)
-                            .clipShape(RoundedRectangle(cornerRadius: 8))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 8)
-                                    .stroke(palette.border, lineWidth: 1)
-                            )
-                    }
-                    .buttonStyle(.plain)
-
-                    Button {
-                        showShareCard = true
-                    } label: {
-                        HStack(spacing: 5) {
-                            Image(systemName: "square.and.arrow.up")
-                            Text(OttlineStrings.tr("공유 카드", "Share card", locale: locale))
-                                .font(OttlineFont.semiBold(14))
-                        }
+                // Saved Confirmation Box (`.savedBox` in `QuickLogCard.tsx`)
+                VStack(alignment: .leading, spacing: 12) {
+                    Image(systemName: "checkmark.circle")
+                        .font(.system(size: 22, weight: .semibold))
                         .foregroundStyle(palette.primaryAccent)
-                        .frame(maxWidth: .infinity, minHeight: 44)
-                        .background(palette.card)
-                        .clipShape(RoundedRectangle(cornerRadius: 8))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 8)
-                                .stroke(palette.primaryAccent, lineWidth: 1)
-                        )
-                    }
-                    .buttonStyle(.plain)
-                }
 
-                Button {
-                    onDismiss()
-                    onOpenTimeline()
-                } label: {
-                    Text(OttlineStrings.tr("내 타임라인에서 보기", "View on my timeline", locale: locale))
-                        .font(OttlineFont.semiBold(14.5))
-                        .foregroundStyle(palette.onBrandNavy)
-                        .frame(maxWidth: .infinity, minHeight: 46)
-                        .background(palette.brandNavy)
-                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                    Text(OttlineStrings.tr("타임라인에 남겨두었어요.", "Kept on your timeline.", locale: locale))
+                        .font(OttlineFont.semiBold(18))
+                        .foregroundStyle(palette.ink)
+
+                    Text(OttlineStrings.tr(
+                        "더 남기고 싶을 때 그날의 순간과 메모를 더해요.",
+                        "Add the moment and a note whenever you want.",
+                        locale: locale
+                    ))
+                    .font(OttlineFont.regular(14))
+                    .foregroundStyle(palette.mutedInk)
+
+                    Text(OttlineStrings.tr(
+                        "이 기기에 보관했어요. 연결되면 다른 기기에도 이어져요.",
+                        "Saved on this device. It will sync to your other devices when connected.",
+                        locale: locale
+                    ))
+                    .font(OttlineFont.regular(12.5))
+                    .foregroundStyle(palette.mutedInk)
+
+                    if title.type == .book, locale == "ko" {
+                        Text(savedBookShelfMajor != nil
+                            ? "내 서가의 \(BookshelfBuilder.kdcSectionName(major: savedBookShelfMajor, locale: locale)) 칸에도 함께 두었어요."
+                            : "알맞은 서가를 찾고 있어요."
+                        )
+                        .font(OttlineFont.regular(12.5))
+                        .foregroundStyle(palette.mutedInk)
+                    }
+
+                    HStack(spacing: 8) {
+                        Button {
+                            momentExpanded = true
+                            stage = .edit
+                        } label: {
+                            Text(OttlineStrings.tr("그날의 순간·메모 더하기", "Add to this moment", locale: locale))
+                                .font(OttlineFont.semiBold(14.5))
+                                .foregroundStyle(palette.onBrandOrange)
+                                .padding(.horizontal, 16)
+                                .frame(minHeight: 46)
+                                .background(palette.brandOrange)
+                                .clipShape(RoundedRectangle(cornerRadius: 8))
+                        }
+                        .buttonStyle(.plain)
+
+                        Button(action: onDismiss) {
+                            Text(OttlineStrings.tr("완료", "Done", locale: locale))
+                                .font(OttlineFont.semiBold(14.5))
+                                .foregroundStyle(palette.ink)
+                                .padding(.horizontal, 18)
+                                .frame(minHeight: 46)
+                                .background(palette.card)
+                                .clipShape(RoundedRectangle(cornerRadius: 8))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 8)
+                                        .stroke(palette.border, lineWidth: 1)
+                                )
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    .padding(.top, 4)
+
+                    HStack(spacing: 16) {
+                        Button {
+                            onDismiss()
+                            onOpenTimeline()
+                        } label: {
+                            Text(OttlineStrings.tr("타임라인에서 보기 →", "View my timeline →", locale: locale))
+                                .font(OttlineFont.semiBold(13.5))
+                                .foregroundStyle(palette.primaryAccent)
+                        }
+                        .buttonStyle(.plain)
+
+                        Button {
+                            showShareCard = true
+                        } label: {
+                            Text(OttlineStrings.tr("공유 카드 만들기", "Create a share card", locale: locale))
+                                .font(OttlineFont.regular(13.5))
+                                .foregroundStyle(palette.mutedInk)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    .padding(.top, 4)
                 }
-                .buttonStyle(.plain)
+                .padding(18)
+                .background(palette.paperStrong)
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(palette.border, lineWidth: 1)
+                )
             }
             .padding(20)
         }

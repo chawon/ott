@@ -37,38 +37,50 @@ public struct ReportScreen: View {
                 )
             }
 
+        let nickname = (repository.prefs.snapshot.nickname ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        let headerTitle = nickname.isEmpty
+            ? OttlineStrings.tr("내 이용 리포트", "My usage report", locale: locale)
+            : OttlineStrings.tr("\(nickname)의 이용 리포트", "\(nickname)'s usage report", locale: locale)
+
         VStack(spacing: 0) {
-            subScreenHeader(title: OttlineStrings.tr("개인 이용 리포트", "Personal Report", locale: locale), onBack: onBack)
+            subScreenHeader(title: headerTitle, onBack: onBack)
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
                     // Summary Metrics Grid
                     LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
                         metricCard(
-                            label: OttlineStrings.tr("전체 기록", "Total", locale: locale),
+                            label: OttlineStrings.tr("총 기록", "Total records", locale: locale),
                             value: "\(report.totalLogs)"
                         )
                         metricCard(
-                            label: OttlineStrings.tr("이번 달", "This month", locale: locale),
+                            label: OttlineStrings.tr("이번 달 기록", "Records this month", locale: locale),
                             value: "\(report.thisMonthLogs)"
                         )
                         metricCard(
-                            label: OttlineStrings.tr("메모 비율", "With note", locale: locale),
+                            label: OttlineStrings.tr("메모 남긴 비율", "Records with a note", locale: locale),
                             value: "\(report.noteFillPct)%"
                         )
                     }
 
                     // 9:16 Recap Share Card Studio (`WEEKLY` / `MONTHLY` / `HALF_YEAR`)
                     VStack(alignment: .leading, spacing: 14) {
-                        Text(OttlineStrings.tr("9:16 리캡 스토리 카드", "9:16 Story Recap Studio", locale: locale))
+                        Text(OttlineStrings.tr("다시 열어볼 이유", "Reasons to revisit", locale: locale))
                             .font(OttlineFont.semiBold(17))
                             .foregroundStyle(palette.ink)
+                        Text(OttlineStrings.tr(
+                            "주간 회고, 월간 장르, 기록 공백, 시리즈 이어보기를 한곳에 모았습니다.",
+                            "Weekly recaps, monthly genres, record gaps, and series reminders live here.",
+                            locale: locale
+                        ))
+                        .font(OttlineFont.regular(12.5))
+                        .foregroundStyle(palette.mutedInk)
 
                         HStack(spacing: 8) {
-                            recapTabButton(.weekly, label: OttlineStrings.tr("주간 회고", "Weekly", locale: locale))
-                            recapTabButton(.monthly, label: OttlineStrings.tr("월간 장르", "Monthly", locale: locale))
+                            recapTabButton(.weekly, label: OttlineStrings.tr("지난주 기록 회고", "Weekly record recap", locale: locale))
+                            recapTabButton(.monthly, label: OttlineStrings.tr("이번 달 장르 회고", "Monthly genre recap", locale: locale))
                             if report.seasonalRecap != nil {
-                                recapTabButton(.halfYear, label: OttlineStrings.tr("상반기", "H1 Recap", locale: locale))
+                                recapTabButton(.halfYear, label: OttlineStrings.tr("2026년 상반기 돌아보기", "2026 first-half recap", locale: locale))
                             }
                         }
 
@@ -381,7 +393,7 @@ public struct FeedbackScreen: View {
     public var body: some View {
         VStack(spacing: 0) {
             subScreenHeader(
-                title: activeDetail?.subject ?? OttlineStrings.tr("내 문의함", "Feedback & Support", locale: locale),
+                title: activeDetail?.subject ?? OttlineStrings.tr("내 문의함", "My inbox", locale: locale),
                 onBack: {
                     if activeDetail != nil {
                         activeDetail = nil
@@ -398,8 +410,8 @@ public struct FeedbackScreen: View {
                             let isAdmin = msg.authorRole == .admin
                             VStack(alignment: .leading, spacing: 6) {
                                 Text(isAdmin
-                                    ? OttlineStrings.tr("ottline 운영팀", "ottline Team", locale: locale)
-                                    : OttlineStrings.tr("내가 남긴 글", "You", locale: locale)
+                                    ? OttlineStrings.tr("ottline 답변", "ottline team", locale: locale)
+                                    : OttlineStrings.tr("내 문의", "My message", locale: locale)
                                 )
                                 .font(OttlineFont.semiBold(12))
                                 .foregroundStyle(palette.primaryAccent)
@@ -431,7 +443,7 @@ public struct FeedbackScreen: View {
                             Button {
                                 Task { await sendReply(threadId: detail.id) }
                             } label: {
-                                Text(OttlineStrings.tr("전송", "Send", locale: locale))
+                                Text(OttlineStrings.tr("문의 보내기", "Send message", locale: locale))
                                     .font(OttlineFont.semiBold(13.5))
                                     .foregroundStyle(palette.onBrandNavy)
                                     .padding(.horizontal, 14)
@@ -443,9 +455,17 @@ public struct FeedbackScreen: View {
                             .disabled(replyText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || submitting)
                         }
                     } else {
+                        Text(OttlineStrings.tr(
+                            "질문이나 불편한 점, 아이디어를 남겨주세요. ottline의 답변도 여기에서 확인할 수 있어요.",
+                            "Send a question, report a problem, or share an idea. Replies from the ottline team appear here.",
+                            locale: locale
+                        ))
+                        .font(OttlineFont.regular(13))
+                        .foregroundStyle(palette.mutedInk)
+
                         // Composer
                         VStack(alignment: .leading, spacing: 10) {
-                            Text(OttlineStrings.tr("새 의견 또는 문의 남기기", "Send a message", locale: locale))
+                            Text(OttlineStrings.tr("문의 남기기", "Send a message", locale: locale))
                                 .font(OttlineFont.semiBold(16))
                                 .foregroundStyle(palette.ink)
 
@@ -470,7 +490,7 @@ public struct FeedbackScreen: View {
                             }
 
                             TextField(
-                                OttlineStrings.tr("제목 (선택)", "Subject (optional)", locale: locale),
+                                OttlineStrings.tr("예: 기록 연결 코드가 보이지 않아요", "Example: I can’t find my connection code", locale: locale),
                                 text: $subject
                             )
                             .font(OttlineFont.regular(14))
@@ -479,7 +499,11 @@ public struct FeedbackScreen: View {
                             .clipShape(RoundedRectangle(cornerRadius: 8))
 
                             TextField(
-                                OttlineStrings.tr("내용을 입력해 주세요", "Write your message", locale: locale),
+                                OttlineStrings.tr(
+                                    "무엇이 궁금한지, 어떤 상황에서 문제가 발생했는지 자세히 남겨주세요.",
+                                    "Tell us what you are trying to do and what went wrong.",
+                                    locale: locale
+                                ),
                                 text: $bodyText,
                                 axis: .vertical
                             )
@@ -492,7 +516,7 @@ public struct FeedbackScreen: View {
                             Button {
                                 Task { await createThread() }
                             } label: {
-                                Text(OttlineStrings.tr("보내기", "Submit", locale: locale))
+                                Text(OttlineStrings.tr("문의 보내기", "Send message", locale: locale))
                                     .font(OttlineFont.semiBold(14))
                                     .foregroundStyle(palette.onBrandNavy)
                                     .frame(maxWidth: .infinity, minHeight: 44)
@@ -509,6 +533,18 @@ public struct FeedbackScreen: View {
                             RoundedRectangle(cornerRadius: 10)
                                 .stroke(palette.border, lineWidth: 1)
                         )
+
+                        Text(OttlineStrings.tr("내 문의 목록", "My messages", locale: locale))
+                            .font(OttlineFont.semiBold(16))
+                            .foregroundStyle(palette.ink)
+                            .padding(.top, 4)
+
+                        if threads.isEmpty && !loading {
+                            Text(OttlineStrings.tr("아직 보낸 문의가 없어요.", "You haven’t sent any messages yet.", locale: locale))
+                                .font(OttlineFont.regular(13.5))
+                                .foregroundStyle(palette.mutedInk)
+                                .padding(.vertical, 12)
+                        }
 
                         // Thread list
                         ForEach(threads) { t in

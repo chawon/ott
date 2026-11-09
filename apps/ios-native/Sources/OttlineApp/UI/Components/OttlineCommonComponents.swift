@@ -133,32 +133,50 @@ public struct OttlineIntroSplashOverlay: View {
     }
 }
 
-// MARK: - 3. Top Header Bar (`DESIGN.md` Wordmark Lockup)
+// MARK: - 3. Top Header Bar (`AppHeader.tsx` + `AppShell.module.css` Mobile Parity)
 
 public struct OttlineTopBar: View {
     public var nickname: String?
     public var personaKey: PersonaKey?
     public var onLogoTap: () -> Void
-    public var onQuickRecordTap: () -> Void
+    public var onSelectLocale: (String) -> Void
+    public var onToggleTheme: () -> Void
     public var onProfileTap: () -> Void
 
     @Environment(\.ottlinePalette) private var palette
     @Environment(\.appLocale) private var locale
 
+    public init(
+        nickname: String?,
+        personaKey: PersonaKey?,
+        onLogoTap: @escaping () -> Void,
+        onSelectLocale: @escaping (String) -> Void,
+        onToggleTheme: @escaping () -> Void,
+        onProfileTap: @escaping () -> Void
+    ) {
+        self.nickname = nickname
+        self.personaKey = personaKey
+        self.onLogoTap = onLogoTap
+        self.onSelectLocale = onSelectLocale
+        self.onToggleTheme = onToggleTheme
+        self.onProfileTap = onProfileTap
+    }
+
     public var body: some View {
         VStack(spacing: 0) {
-            HStack(spacing: 10) {
+            HStack(spacing: 8) {
                 Button(action: onLogoTap) {
-                    HStack(spacing: 9) {
-                        OttlineBrandMark(size: 28)
-                        VStack(alignment: .leading, spacing: 0) {
+                    HStack(spacing: 10) {
+                        OttlineBrandMark(size: 30)
+                            .frame(width: 36, height: 36)
+                        VStack(alignment: .leading, spacing: 1) {
                             Text("ottline")
                                 .font(OttlineFont.extraBold(20))
                                 .kerning(-0.6)
                                 .foregroundStyle(palette.isDark ? palette.ink : palette.brandNavy)
                             Text("ON THE TIMELINE")
-                                .font(OttlineFont.bold(8.5))
-                                .kerning(0.7)
+                                .font(OttlineFont.bold(9))
+                                .kerning(0.72)
                                 .foregroundStyle(palette.brandOrange)
                         }
                     }
@@ -167,33 +185,50 @@ public struct OttlineTopBar: View {
 
                 Spacer()
 
-                Button(action: onQuickRecordTap) {
-                    HStack(spacing: 4) {
-                        Image(systemName: "plus")
-                            .font(.system(size: 12, weight: .bold))
-                        Text(OttlineStrings.tr("기록 남기기", "Keep a story", locale: locale))
-                            .font(OttlineFont.semiBold(12.5))
+                // Language Switcher (`KO` / `EN`) matching `AppHeader.tsx`
+                HStack(spacing: 2) {
+                    ForEach([("ko", "KO"), ("en", "EN")], id: \.0) { code, label in
+                        let active = locale == code
+                        Button {
+                            if !active {
+                                onSelectLocale(code)
+                            }
+                        } label: {
+                            VStack(spacing: 2) {
+                                Text(label)
+                                    .font(OttlineFont.semiBold(13))
+                                    .foregroundStyle(active ? palette.ink : palette.mutedInk)
+                                Rectangle()
+                                    .fill(active ? palette.ink : Color.clear)
+                                    .frame(width: 18, height: 1.5)
+                            }
+                            .frame(minWidth: 28, minHeight: 34)
+                        }
+                        .buttonStyle(.plain)
                     }
-                    .foregroundStyle(palette.primaryAccent)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 6)
-                    .background(palette.card)
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 8)
-                            .stroke(palette.border, lineWidth: 1)
-                    )
                 }
-                .buttonStyle(.plain)
 
-                Button(action: onProfileTap) {
-                    PersonaAvatar(personaKey: personaKey, size: 32)
+                // Theme Toggle (`Sun` / `Moon`) matching `AppHeader.tsx`
+                Button(action: onToggleTheme) {
+                    Image(systemName: palette.isDark ? "moon" : "sun.max")
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundStyle(palette.mutedInk)
+                        .frame(width: 36, height: 36)
+                        .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel(OttlineStrings.tr("테마 변경", "Toggle theme", locale: locale))
+
+                // Profile Link (`40x40` circle on mobile web)
+                Button(action: onProfileTap) {
+                    PersonaAvatar(personaKey: personaKey, size: 36, circular: true)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(OttlineStrings.tr("내 프로필 꾸미기", "Edit my profile", locale: locale))
             }
-            .padding(.horizontal, 18)
-            .padding(.vertical, 10)
-            .background(palette.background.opacity(0.96))
+            .padding(.horizontal, 16)
+            .frame(minHeight: 62)
+            .background(palette.background.opacity(0.95))
 
             Rectangle()
                 .fill(palette.border)
@@ -202,7 +237,7 @@ public struct OttlineTopBar: View {
     }
 }
 
-// MARK: - 4. Bottom Navigation Bar (`DESIGN.md` 5-item bar with center `#FF9933` `+` CTA & 15×2pt top marker)
+// MARK: - 4. Bottom Navigation Bar (`BottomNav.tsx` + `AppShell.module.css` Mobile Parity)
 
 public struct OttlineBottomBar: View {
     public var activeTab: TopLevelTab
@@ -213,83 +248,84 @@ public struct OttlineBottomBar: View {
     @Environment(\.appLocale) private var locale
 
     public var body: some View {
-        VStack(spacing: 0) {
-            Rectangle()
-                .fill(palette.border)
-                .frame(height: 1)
+        HStack(spacing: 4) {
+            navTabButton(
+                tab: .home,
+                label: OttlineStrings.tr("홈", "Home", locale: locale),
+                systemImage: "house"
+            )
+            navTabButton(
+                tab: .timeline,
+                label: OttlineStrings.tr("타임라인", "Timeline", locale: locale),
+                systemImage: "clock"
+            )
 
-            HStack(spacing: 0) {
-                navTabButton(
-                    tab: .home,
-                    label: OttlineStrings.tr("홈", "Home", locale: locale),
-                    systemImage: activeTab == .home ? "house.fill" : "house"
-                )
-                navTabButton(
-                    tab: .timeline,
-                    label: OttlineStrings.tr("타임라인", "Timeline", locale: locale),
-                    systemImage: activeTab == .timeline ? "clock.fill" : "clock"
-                )
-
-                // Center Quick Record CTA (`#FF9933` with `#0F0F0F` icon)
-                Button(action: onQuickRecordTap) {
-                    VStack(spacing: 3) {
-                        ZStack {
-                            RoundedRectangle(cornerRadius: 10)
-                                .fill(palette.brandOrange)
-                                .frame(width: 42, height: 32)
-                            Image(systemName: "plus")
-                                .font(.system(size: 17, weight: .bold))
-                                .foregroundStyle(palette.onBrandOrange)
-                        }
-                        Text(OttlineStrings.tr("기록", "Record", locale: locale))
-                            .font(OttlineFont.semiBold(10.5))
-                            .foregroundStyle(palette.ink)
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 6)
+            // Center Quick Record CTA (`QuickLogAction iconOnly` in `BottomNav.tsx` — no text label)
+            Button(action: onQuickRecordTap) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(palette.brandOrange)
+                        .frame(width: 48, height: 48)
+                    Image(systemName: "plus")
+                        .font(.system(size: 19, weight: .semibold))
+                        .foregroundStyle(palette.onBrandOrange)
                 }
-                .buttonStyle(.plain)
-                .accessibilityLabel(OttlineStrings.tr("빠른 기록 열기", "Open Quick Record", locale: locale))
-
-                navTabButton(
-                    tab: .together,
-                    label: OttlineStrings.tr("함께", "Together", locale: locale),
-                    systemImage: activeTab == .together ? "bubble.left.and.bubble.right.fill" : "bubble.left.and.bubble.right"
-                )
-                navTabButton(
-                    tab: .mySpace,
-                    label: OttlineStrings.tr("내 공간", "My Space", locale: locale),
-                    systemImage: activeTab == .mySpace ? "person.fill" : "person"
-                )
+                .frame(maxWidth: .infinity)
             }
-            .padding(.horizontal, 6)
-            .padding(.bottom, 2)
-            .background(palette.background.opacity(0.97))
+            .buttonStyle(.plain)
+            .accessibilityLabel(OttlineStrings.tr("기록 남기기", "Keep a story", locale: locale))
+
+            navTabButton(
+                tab: .together,
+                label: OttlineStrings.tr("함께", "Together", locale: locale),
+                systemImage: "bubble.left"
+            )
+            navTabButton(
+                tab: .mySpace,
+                label: OttlineStrings.tr("내 공간", "My space", locale: locale),
+                systemImage: "person"
+            )
         }
+        .padding(.horizontal, 6)
+        .padding(.vertical, 6)
+        .background(palette.card.opacity(0.96))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(palette.border, lineWidth: 1)
+        )
+        .shadow(color: Color.black.opacity(palette.isDark ? 0.28 : 0.08), radius: 10, x: 0, y: 4)
+        .padding(.horizontal, 14)
+        .padding(.top, 4)
+        .padding(.bottom, 6)
     }
 
     private func navTabButton(tab: TopLevelTab, label: String, systemImage: String) -> some View {
         let selected = activeTab == tab
+        let activeColor = palette.isDark ? palette.ink : palette.brandNavy
         return Button {
             onSelectTab(tab)
         } label: {
-            VStack(spacing: 4) {
+            ZStack(alignment: .top) {
                 Capsule()
                     .fill(selected ? palette.brandOrange : Color.clear)
                     .frame(width: 15, height: 2)
-                    .padding(.top, 4)
+                    .offset(y: -6)
 
-                Image(systemName: systemImage)
-                    .font(.system(size: 18, weight: selected ? .semibold : .regular))
-                    .foregroundStyle(selected ? palette.ink : palette.mutedInk)
-                    .frame(height: 20)
+                VStack(spacing: 4) {
+                    Image(systemName: systemImage)
+                        .font(.system(size: 17, weight: selected ? .semibold : .medium))
+                        .foregroundStyle(selected ? activeColor : palette.mutedInk)
+                        .frame(height: 19)
 
-                Text(label)
-                    .font(selected ? OttlineFont.semiBold(11) : OttlineFont.medium(11))
-                    .foregroundStyle(selected ? palette.ink : palette.mutedInk)
+                    Text(label)
+                        .font(OttlineFont.semiBold(11))
+                        .foregroundStyle(selected ? activeColor : palette.mutedInk)
+                        .lineLimit(1)
+                }
+                .padding(.vertical, 4)
             }
-            .frame(maxWidth: .infinity)
-            .padding(.bottom, 6)
+            .frame(maxWidth: .infinity, minHeight: 48)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -301,23 +337,26 @@ public struct OttlineBottomBar: View {
 public struct PersonaAvatar: View {
     public var personaKey: PersonaKey?
     public var size: CGFloat = 40
+    public var circular: Bool = true
     @Environment(\.ottlinePalette) private var palette
 
-    public init(personaKey: PersonaKey?, size: CGFloat = 40) {
+    public init(personaKey: PersonaKey?, size: CGFloat = 40, circular: Bool = true) {
         self.personaKey = personaKey
         self.size = size
+        self.circular = circular
     }
 
     public var body: some View {
         let preset = OttlineStrings.personaPreset(personaKey)
+        let radius = circular ? size * 0.5 : max(8, size * 0.25)
         Image(preset.assetName)
             .resizable()
             .scaledToFill()
             .frame(width: size, height: size)
             .background(palette.paperStrong)
-            .clipShape(RoundedRectangle(cornerRadius: max(8, size * 0.25)))
+            .clipShape(RoundedRectangle(cornerRadius: radius))
             .overlay(
-                RoundedRectangle(cornerRadius: max(8, size * 0.25))
+                RoundedRectangle(cornerRadius: radius)
                     .stroke(palette.border, lineWidth: 1)
             )
     }
@@ -413,10 +452,10 @@ public struct PosterImage: View {
     }
 }
 
-// MARK: - 6. Feeling Icon & Badge (`RecordFeelings.tsx` parity)
+// MARK: - 6. Feeling Icon & Badge (`FeelingIcon.tsx` + `RecordFeelings.tsx` parity)
 
 public struct FeelingIcon: View {
-    public var value: Int // 1, 2, 3
+    public var value: Int // 1 (Bad), 2 (Soso), 3 or 5 (Best)
     public var isBook: Bool = false
     public var size: CGFloat = 16
     public var tint: Color
@@ -432,36 +471,70 @@ public struct FeelingIcon: View {
         Canvas { context, canvasSize in
             let w = canvasSize.width
             let h = canvasSize.height
-            let stroke = StrokeStyle(lineWidth: max(1.5, w * 0.1), lineCap: .round, lineJoin: .round)
+            let stroke = StrokeStyle(lineWidth: max(1.4, w * 0.095), lineCap: .round, lineJoin: .round)
 
-            if isBook {
-                // Book page bars (1, 2, or 3 horizontal lines inside an open bookmark/page)
-                var frame = Path()
-                frame.addRoundedRect(
-                    in: CGRect(x: w * 0.18, y: h * 0.14, width: w * 0.64, height: h * 0.72),
-                    cornerSize: CGSize(width: w * 0.12, height: w * 0.12)
+            if value >= 3 && isBook {
+                // Lucide `BookOpen`
+                var leftPage = Path()
+                leftPage.move(to: CGPoint(x: w * 0.5, y: h * 0.25))
+                leftPage.addCurve(
+                    to: CGPoint(x: w * 0.14, y: h * 0.20),
+                    control1: CGPoint(x: w * 0.40, y: h * 0.18),
+                    control2: CGPoint(x: w * 0.26, y: h * 0.18)
                 )
-                context.stroke(frame, with: .color(tint), style: stroke)
+                leftPage.addLine(to: CGPoint(x: w * 0.14, y: h * 0.76))
+                leftPage.addCurve(
+                    to: CGPoint(x: w * 0.5, y: h * 0.82),
+                    control1: CGPoint(x: w * 0.26, y: h * 0.76),
+                    control2: CGPoint(x: w * 0.40, y: h * 0.76)
+                )
+                leftPage.closeSubpath()
+                context.stroke(leftPage, with: .color(tint), style: stroke)
 
-                let count = min(max(value, 1), 3)
-                for i in 0..<count {
-                    let y = h * (0.34 + CGFloat(i) * 0.16)
-                    var line = Path()
-                    line.move(to: CGPoint(x: w * 0.32, y: y))
-                    line.addLine(to: CGPoint(x: w * 0.68, y: y))
-                    context.stroke(line, with: .color(tint), style: stroke)
-                }
+                var rightPage = Path()
+                rightPage.move(to: CGPoint(x: w * 0.5, y: h * 0.25))
+                rightPage.addCurve(
+                    to: CGPoint(x: w * 0.86, y: h * 0.20),
+                    control1: CGPoint(x: w * 0.60, y: h * 0.18),
+                    control2: CGPoint(x: w * 0.74, y: h * 0.18)
+                )
+                rightPage.addLine(to: CGPoint(x: w * 0.86, y: h * 0.76))
+                rightPage.addCurve(
+                    to: CGPoint(x: w * 0.5, y: h * 0.82),
+                    control1: CGPoint(x: w * 0.74, y: h * 0.76),
+                    control2: CGPoint(x: w * 0.60, y: h * 0.76)
+                )
+                rightPage.closeSubpath()
+                context.stroke(rightPage, with: .color(tint), style: stroke)
             } else {
-                // Concentric / warm wave rings (1, 2, or 3 dots/rings)
-                let count = min(max(value, 1), 3)
-                let spacing = w / CGFloat(count + 1)
-                for i in 1...count {
-                    let cx = spacing * CGFloat(i)
-                    let cy = h * 0.5
-                    let r = w * 0.11
-                    let rect = CGRect(x: cx - r, y: cy - r, width: r * 2, height: r * 2)
-                    context.fill(Path(ellipseIn: rect), with: .color(tint))
+                // Lucide `Smile`, `Meh`, or `Frown`
+                let circleRect = CGRect(x: w * 0.12, y: h * 0.12, width: w * 0.76, height: h * 0.76)
+                context.stroke(Path(ellipseIn: circleRect), with: .color(tint), style: stroke)
+
+                let eyeR = max(1.1, w * 0.055)
+                let leftEye = CGRect(x: w * 0.36 - eyeR, y: h * 0.40 - eyeR, width: eyeR * 2, height: eyeR * 2)
+                let rightEye = CGRect(x: w * 0.64 - eyeR, y: h * 0.40 - eyeR, width: eyeR * 2, height: eyeR * 2)
+                context.fill(Path(ellipseIn: leftEye), with: .color(tint))
+                context.fill(Path(ellipseIn: rightEye), with: .color(tint))
+
+                var mouth = Path()
+                if value >= 3 {
+                    mouth.move(to: CGPoint(x: w * 0.34, y: h * 0.58))
+                    mouth.addQuadCurve(
+                        to: CGPoint(x: w * 0.66, y: h * 0.58),
+                        control: CGPoint(x: w * 0.50, y: h * 0.73)
+                    )
+                } else if value == 2 {
+                    mouth.move(to: CGPoint(x: w * 0.35, y: h * 0.63))
+                    mouth.addLine(to: CGPoint(x: w * 0.65, y: h * 0.63))
+                } else {
+                    mouth.move(to: CGPoint(x: w * 0.34, y: h * 0.68))
+                    mouth.addQuadCurve(
+                        to: CGPoint(x: w * 0.66, y: h * 0.68),
+                        control: CGPoint(x: w * 0.50, y: h * 0.54)
+                    )
                 }
+                context.stroke(mouth, with: .color(tint), style: stroke)
             }
         }
         .frame(width: size, height: size)
@@ -484,30 +557,22 @@ public struct RecordFeelingBadge: View {
 
     public var body: some View {
         if let feeling = RecordFeelings.resolveFeeling(rating: rating, isBook: isBook, locale: locale) {
-            HStack(spacing: 5) {
+            HStack(spacing: 4) {
                 FeelingIcon(
                     value: feeling.value,
                     isBook: isBook,
-                    size: compact ? 13 : 15,
-                    tint: palette.primaryAccent
+                    size: compact ? 13 : 14,
+                    tint: palette.mutedInk
                 )
                 Text(compact ? feeling.shortLabel : feeling.label)
-                    .font(OttlineFont.medium(compact ? 11.5 : 12.5))
-                    .foregroundStyle(palette.ink)
+                    .font(OttlineFont.regular(compact ? 12 : 12.5))
+                    .foregroundStyle(palette.mutedInk)
             }
-            .padding(.horizontal, compact ? 8 : 10)
-            .padding(.vertical, compact ? 4 : 5)
-            .background(palette.paperStrong)
-            .clipShape(RoundedRectangle(cornerRadius: 8))
-            .overlay(
-                RoundedRectangle(cornerRadius: 8)
-                    .stroke(palette.border, lineWidth: 1)
-            )
         }
     }
 }
 
-// MARK: - 7. Sync Notice Banner
+// MARK: - 7. Sync Notice Banner (`HomeTimelineView.tsx` `.syncNotice` parity)
 
 public struct SyncNoticeBanner: View {
     public var syncState: SyncState
@@ -518,85 +583,87 @@ public struct SyncNoticeBanner: View {
     @Environment(\.appLocale) private var locale
 
     public var body: some View {
-        let isFailed = syncState.status == .failed
-        let bg = isFailed ? palette.dangerSoft : palette.paperStrong
-        let border = isFailed ? palette.danger.opacity(0.4) : palette.border
-
-        HStack(spacing: 10) {
-            if syncState.status == .syncing {
-                ProgressView()
-                    .controlSize(.small)
-            } else {
-                Image(systemName: isFailed ? "exclamationmark.circle" : "icloud.and.arrow.up")
-                    .foregroundStyle(isFailed ? palette.danger : palette.primaryAccent)
-            }
-
-            VStack(alignment: .leading, spacing: 2) {
+        HStack(alignment: .center, spacing: 14) {
+            VStack(alignment: .leading, spacing: 3) {
                 Text(bannerTitle)
-                    .font(OttlineFont.semiBold(13))
+                    .font(OttlineFont.semiBold(14))
                     .foregroundStyle(palette.ink)
-                if let sub = bannerSubtitle {
-                    Text(sub)
-                        .font(OttlineFont.regular(11.5))
-                        .foregroundStyle(palette.mutedInk)
-                }
+                Text(bannerSubtitle)
+                    .font(OttlineFont.regular(13))
+                    .foregroundStyle(palette.mutedInk)
+                    .lineSpacing(2)
             }
 
-            Spacer()
+            Spacer(minLength: 8)
 
-            if syncState.status != .syncing {
-                Button(action: onRetryTap) {
-                    Text(OttlineStrings.tr("지금 맞추기", "Sync now", locale: locale))
-                        .font(OttlineFont.semiBold(12))
-                        .foregroundStyle(palette.primaryAccent)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 6)
-                        .background(palette.card)
-                        .clipShape(RoundedRectangle(cornerRadius: 8))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 8)
-                                .stroke(palette.border, lineWidth: 1)
-                        )
+            Button(action: onRetryTap) {
+                HStack(spacing: 6) {
+                    Image(systemName: "arrow.triangle.2.circlepath")
+                        .font(.system(size: 13, weight: .semibold))
+                    Text(syncState.status == .syncing
+                        ? OttlineStrings.tr("동기화 중", "Syncing", locale: locale)
+                        : OttlineStrings.tr("다시 시도", "Retry", locale: locale)
+                    )
+                    .font(OttlineFont.semiBold(12.5))
                 }
-                .buttonStyle(.plain)
+                .foregroundStyle(palette.ink)
+                .padding(.horizontal, 12)
+                .frame(minHeight: 38)
+                .background(palette.card)
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(palette.border, lineWidth: 1)
+                )
             }
+            .buttonStyle(.plain)
+            .disabled(syncState.status == .syncing)
         }
-        .padding(12)
-        .background(bg)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 14)
+        .background(palette.paperStrong)
         .clipShape(RoundedRectangle(cornerRadius: 8))
         .overlay(
             RoundedRectangle(cornerRadius: 8)
-                .stroke(border, lineWidth: 1)
+                .stroke(palette.border, lineWidth: 1)
         )
     }
 
     private var bannerTitle: String {
+        if syncState.status == .failed {
+            return OttlineStrings.tr(
+                "다른 기기로 아직 옮기지 못한 기록이 있어요.",
+                "Some records haven’t reached your other devices yet.",
+                locale: locale
+            )
+        }
+        return OttlineStrings.tr(
+            "다른 기기에 아직 반영되지 않은 기록이 있어요.",
+            "Some changes haven’t synced yet.",
+            locale: locale
+        )
+    }
+
+    private var bannerSubtitle: String {
         switch syncState.status {
         case .syncing:
-            return OttlineStrings.tr("기록을 서버와 맞추고 있어요...", "Syncing your timeline...", locale: locale)
+            return OttlineStrings.tr(
+                "기록은 이 기기에 보관했어요. 지금 다른 기기와 맞추고 있어요.",
+                "Your records are safe on this device. Syncing now.",
+                locale: locale
+            )
         case .failed:
             return OttlineStrings.tr(
-                "이 기기에 안전하게 보관 중이에요 (\(outboxCount)건 대기)",
-                "Saved safely on this device (\(outboxCount) pending)",
+                "기록은 이 기기에 안전하게 남아 있어요. 잠시 후 다시 시도해 주세요.",
+                "Your records are safe on this device. Try again in a moment.",
                 locale: locale
             )
         case .idle:
             return OttlineStrings.tr(
-                "연결이 돌아오면 자동으로 맞춰둘게요 (\(outboxCount)건)",
-                "Will sync automatically when online (\(outboxCount))",
+                "기록은 이 기기에 보관했어요. 동기화가 끝나면 다른 기기에서도 이어볼 수 있어요.",
+                "Your records are safe on this device. They’ll appear on your other devices once sync finishes.",
                 locale: locale
             )
         }
-    }
-
-    private var bannerSubtitle: String? {
-        if syncState.status == .failed {
-            return OttlineStrings.tr(
-                "네트워크 연결이 불안정해도 남긴 기록은 사라지지 않아요.",
-                "Your records are kept locally even offline.",
-                locale: locale
-            )
-        }
-        return nil
     }
 }

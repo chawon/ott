@@ -93,13 +93,40 @@ public enum LogOrigin: String, Codable, Sendable {
 public enum Place: String, Codable, CaseIterable, Sendable {
     case home = "HOME"
     case theater = "THEATER"
-    case move = "MOVE"
+    case transit = "TRANSIT"
     case cafe = "CAFE"
-    case other = "OTHER"
+    case office = "OFFICE"
+    case library = "LIBRARY"
+    case bookstore = "BOOKSTORE"
+    case school = "SCHOOL"
+    case park = "PARK"
+    case outdoor = "OUTDOOR"
+    case etc = "ETC"
+
+    public static var move: Place { .transit }
+    public static var other: Place { .etc }
+
+    public static let videoCases: [Place] = [.home, .theater, .transit, .cafe, .office, .etc]
+    public static let bookCases: [Place] = [.home, .cafe, .library, .bookstore, .school, .park, .outdoor, .transit, .etc]
+
+    public static func cases(for type: TitleType) -> [Place] {
+        type == .book ? bookCases : videoCases
+    }
 
     public static func fromWire(_ raw: String?) -> Place? {
-        guard let raw, !raw.isEmpty else { return nil }
-        return Place.allCases.first { $0.rawValue.caseInsensitiveCompare(raw) == .orderedSame }
+        guard let raw = raw?.trimmingCharacters(in: .whitespacesAndNewlines), !raw.isEmpty else { return nil }
+        switch raw.uppercased() {
+        case "MOVE", "TRANSIT": return .transit
+        case "OTHER", "ETC": return .etc
+        default:
+            return Place.allCases.first { $0.rawValue.caseInsensitiveCompare(raw) == .orderedSame }
+        }
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        let raw = try? container.decode(String.self)
+        self = Place.fromWire(raw) ?? .etc
     }
 }
 
@@ -107,13 +134,27 @@ public enum Occasion: String, Codable, CaseIterable, Sendable {
     case alone = "ALONE"
     case date = "DATE"
     case family = "FAMILY"
-    case friend = "FRIEND"
+    case friends = "FRIENDS"
     case breakTime = "BREAK"
-    case other = "OTHER"
+    case etc = "ETC"
+
+    public static var friend: Occasion { .friends }
+    public static var other: Occasion { .etc }
 
     public static func fromWire(_ raw: String?) -> Occasion? {
-        guard let raw, !raw.isEmpty else { return nil }
-        return Occasion.allCases.first { $0.rawValue.caseInsensitiveCompare(raw) == .orderedSame }
+        guard let raw = raw?.trimmingCharacters(in: .whitespacesAndNewlines), !raw.isEmpty else { return nil }
+        switch raw.uppercased() {
+        case "FRIEND", "FRIENDS": return .friends
+        case "OTHER", "ETC": return .etc
+        default:
+            return Occasion.allCases.first { $0.rawValue.caseInsensitiveCompare(raw) == .orderedSame }
+        }
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        let raw = try? container.decode(String.self)
+        self = Occasion.fromWire(raw) ?? .etc
     }
 }
 

@@ -124,9 +124,16 @@ public struct TitleDetailScreen: View {
                         // 3. Revision History ("남겨온 기록")
                         if !historyItems.isEmpty {
                             VStack(alignment: .leading, spacing: 10) {
-                                Text(OttlineStrings.tr("남겨온 기록 히스토리", "Revision history", locale: locale))
+                                Text(OttlineStrings.tr("남겨온 기록", "Records along the way", locale: locale))
                                     .font(OttlineFont.semiBold(16))
                                     .foregroundStyle(palette.ink)
+                                Text(OttlineStrings.tr(
+                                    "기록을 고칠 때마다 그때의 모습이 차곡차곡 남아요.",
+                                    "Each edit keeps a record of how it looked at the time.",
+                                    locale: locale
+                                ))
+                                .font(OttlineFont.regular(12.5))
+                                .foregroundStyle(palette.mutedInk)
 
                                 ForEach(historyItems) { h in
                                     VStack(alignment: .leading, spacing: 4) {
@@ -188,7 +195,7 @@ public struct TitleDetailScreen: View {
     private func myRecordSection(log: WatchLog, title: Title) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Text(OttlineStrings.tr("내가 남긴 순간", "My recorded moment", locale: locale))
+                Text(OttlineStrings.tr("내 기록", "My record", locale: locale))
                     .font(OttlineFont.semiBold(14))
                     .foregroundStyle(palette.primaryAccent)
                 Spacer()
@@ -196,6 +203,14 @@ public struct TitleDetailScreen: View {
                     .font(OttlineFont.regular(12))
                     .foregroundStyle(palette.mutedInk)
             }
+
+            Text(OttlineStrings.tr(
+                "바꾸고 싶은 내용을 고치면 지난 기록도 함께 남아요.",
+                "Change what you need. Your earlier records stay here too.",
+                locale: locale
+            ))
+            .font(OttlineFont.regular(12.5))
+            .foregroundStyle(palette.mutedInk)
 
             HStack(spacing: 8) {
                 Text(OttlineStrings.statusLabel(log.status, type: title.type, locale: locale))
@@ -232,7 +247,7 @@ public struct TitleDetailScreen: View {
                 Button {
                     onOpenQuickRecord(QuickRecordRequest(existingLog: log, autoFocusSearch: false))
                 } label: {
-                    Text(OttlineStrings.tr("다듬기", "Refine", locale: locale))
+                    Text(OttlineStrings.tr("수정하기", "Save changes", locale: locale))
                         .font(OttlineFont.semiBold(13.5))
                         .foregroundStyle(palette.ink)
                         .frame(maxWidth: .infinity, minHeight: 42)
@@ -250,7 +265,7 @@ public struct TitleDetailScreen: View {
                 } label: {
                     HStack(spacing: 5) {
                         Image(systemName: "square.and.arrow.up")
-                        Text(OttlineStrings.tr("공유 카드", "Share card", locale: locale))
+                        Text(OttlineStrings.tr("공유 카드 만들기", "Create a share card", locale: locale))
                             .font(OttlineFont.semiBold(13.5))
                     }
                     .foregroundStyle(palette.primaryAccent)
@@ -276,9 +291,18 @@ public struct TitleDetailScreen: View {
 
     private func togetherCommentsSection(title: Title) -> some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text(OttlineStrings.tr("함께 나누는 이야기", "Shared thoughts", locale: locale))
-                .font(OttlineFont.semiBold(17))
-                .foregroundStyle(palette.ink)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(OttlineStrings.tr("함께 기록", "Together Records", locale: locale))
+                    .font(OttlineFont.semiBold(17))
+                    .foregroundStyle(palette.ink)
+                Text(OttlineStrings.tr(
+                    "한 줄 남기면 내 타임라인에도 함께 기록돼요.",
+                    "Leave a line and it becomes part of your timeline too.",
+                    locale: locale
+                ))
+                .font(OttlineFont.regular(12.5))
+                .foregroundStyle(palette.mutedInk)
+            }
 
             // 3 Reaction Chips (`나도 봤어요/읽었어요`, `궁금해요`, `저장해둘래요`)
             ScrollView(.horizontal, showsIndicators: false) {
@@ -317,7 +341,7 @@ public struct TitleDetailScreen: View {
             VStack(alignment: .leading, spacing: 8) {
                 HStack(spacing: 8) {
                     TextField(
-                        OttlineStrings.tr("이 작품에 대한 생각을 남겨보세요", "Leave a thought on this title", locale: locale),
+                        OttlineStrings.tr("이 작품에 대한 한 줄을 남겨주세요.", "Leave a line about this title.", locale: locale),
                         text: $commentText,
                         axis: .vertical
                     )
@@ -342,7 +366,7 @@ public struct TitleDetailScreen: View {
                     Button {
                         Task { await submitComment(title: title) }
                     } label: {
-                        Text(OttlineStrings.tr("남기기", "Post", locale: locale))
+                        Text(OttlineStrings.tr("댓글 등록", "Post Comment", locale: locale))
                             .font(OttlineFont.semiBold(13.5))
                             .foregroundStyle(palette.onBrandNavy)
                             .padding(.horizontal, 14)

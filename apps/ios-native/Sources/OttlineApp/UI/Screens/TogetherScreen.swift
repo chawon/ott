@@ -13,227 +13,284 @@ public struct TogetherScreen: View {
     @State private var discussions: [DiscussionListItem] = []
     @State private var loading: Bool = true
     @State private var searchQuery: String = ""
-    @State private var typeFilter: String = "all" // "all" | "movie" | "series" | "book"
-    @State private var sortMode: String = "recent" // "recent" | "popular"
+    @State private var sortMode: String = "latest" // "latest" | "comments"
     @State private var reactionOverrides: [String: [DiscussionReactionItem]] = [:]
 
     public var body: some View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 20) {
-                // Header
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(OttlineStrings.tr("함께", "Together", locale: locale))
-                        .font(OttlineFont.semiBold(24))
+                // 1. Page Header (`app/[locale]/public/page.tsx` `.pageHeader` 1:1 parity)
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(OttlineStrings.tr("함께 나누는 이야기", "STORIES, SHARED", locale: locale))
+                        .font(OttlineFont.medium(11))
+                        .kerning(0.88)
+                        .foregroundStyle(palette.mutedInk)
+
+                    Text(OttlineStrings.tr("같은 이야기, 다른 마음", "Same story, different feelings", locale: locale))
+                        .font(OttlineFont.semiBold(25))
+                        .kerning(-0.7)
                         .foregroundStyle(palette.ink)
+
                     Text(OttlineStrings.tr(
-                        "다른 사람들이 남긴 여운과 작품 이야기를 조용히 둘러봐요.",
-                        "Quietly browse lingering notes and stories from others.",
+                        "같은 작품에서 만난 장면과 생각을 함께 나눠요.",
+                        "Share the scenes and thoughts that stayed with you.",
                         locale: locale
                     ))
-                    .font(OttlineFont.regular(13.5))
+                    .font(OttlineFont.regular(14.5))
                     .foregroundStyle(palette.mutedInk)
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.bottom, 16)
+                .overlay(alignment: .bottom) {
+                    Rectangle().fill(palette.border).frame(height: 1)
+                }
 
-                // AI Curator Section (`AI 운영 계정`)
+                // 2. AI Curator Section (`CuratedContentList.tsx` 1:1 parity)
                 if !curatedItems.isEmpty {
-                    VStack(alignment: .leading, spacing: 10) {
-                        HStack(spacing: 6) {
-                            Text(OttlineStrings.tr("오늘의 질문", "Today's prompt", locale: locale))
-                                .font(OttlineFont.semiBold(16))
-                                .foregroundStyle(palette.ink)
-                            Text(OttlineStrings.tr("AI 운영 계정", "AI Curator", locale: locale))
-                                .font(OttlineFont.medium(11))
+                    VStack(alignment: .leading, spacing: 14) {
+                        HStack(alignment: .top, spacing: 10) {
+                            Image(systemName: "sparkles")
+                                .font(.system(size: 16, weight: .semibold))
                                 .foregroundStyle(palette.primaryAccent)
-                                .padding(.horizontal, 7)
-                                .padding(.vertical, 3)
+                                .padding(.top, 2)
+
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text(OttlineStrings.tr("ottline 큐레이터의 질문", "A question from the ottline curator", locale: locale))
+                                    .font(OttlineFont.semiBold(15))
+                                    .foregroundStyle(palette.ink)
+                                Text(OttlineStrings.tr(
+                                    "사람의 기록과는 구분된, 오늘의 대화 소재예요.",
+                                    "A conversation starter, kept separate from people's records.",
+                                    locale: locale
+                                ))
+                                .font(OttlineFont.regular(12.5))
+                                .foregroundStyle(palette.mutedInk)
+                            }
+
+                            Spacer()
+
+                            Text(OttlineStrings.tr("AI 운영 계정", "AI-operated account", locale: locale))
+                                .font(OttlineFont.semiBold(11))
+                                .foregroundStyle(palette.mutedInk)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 4)
                                 .background(palette.paperStrong)
-                                .clipShape(RoundedRectangle(cornerRadius: 6))
+                                .clipShape(Capsule())
+                                .overlay(
+                                    Capsule().stroke(palette.border, lineWidth: 1)
+                                )
                         }
 
-                        ScrollView(.horizontal, showsIndicators: false) {
-                            HStack(spacing: 12) {
-                                ForEach(curatedItems) { item in
-                                    Button {
-                                        onOpenTitleDetail(item.titleId)
-                                    } label: {
-                                        HStack(alignment: .top, spacing: 12) {
-                                            PosterImage(
-                                                posterUrl: item.posterUrl,
-                                                titleName: item.titleName,
-                                                titleType: item.titleType,
-                                                width: 54,
-                                                height: 80
-                                            )
-                                            VStack(alignment: .leading, spacing: 5) {
-                                                Text(item.titleName)
-                                                    .font(OttlineFont.semiBold(15))
-                                                    .foregroundStyle(palette.ink)
-                                                    .lineLimit(1)
-                                                if let body = item.latestCommentBody {
-                                                    Text(body)
-                                                        .font(OttlineFont.regular(13))
-                                                        .foregroundStyle(palette.mutedInk)
-                                                        .lineLimit(3)
-                                                        .multilineTextAlignment(.leading)
-                                                }
-                                            }
-                                            .frame(width: 210, alignment: .leading)
-                                        }
-                                        .padding(14)
-                                        .background(palette.paperStrong)
-                                        .clipShape(RoundedRectangle(cornerRadius: 8))
-                                        .overlay(
-                                            RoundedRectangle(cornerRadius: 8)
-                                                .stroke(palette.border, lineWidth: 1)
+                        VStack(spacing: 10) {
+                            ForEach(curatedItems) { item in
+                                Button {
+                                    onOpenTitleDetail(item.titleId)
+                                } label: {
+                                    HStack(alignment: .top, spacing: 12) {
+                                        PosterImage(
+                                            posterUrl: item.posterUrl,
+                                            titleName: item.titleName,
+                                            titleType: item.titleType,
+                                            width: 56,
+                                            height: 80
                                         )
+                                        VStack(alignment: .leading, spacing: 5) {
+                                            Text(item.titleName)
+                                                .font(OttlineFont.semiBold(15))
+                                                .foregroundStyle(palette.ink)
+                                                .lineLimit(1)
+
+                                            Text([
+                                                OttlineStrings.titleTypeLabel(item.titleType, locale: locale),
+                                                item.latestAuthorName ?? OttlineStrings.tr("ottline 큐레이터", "ottline curator", locale: locale)
+                                            ].joined(separator: " · "))
+                                            .font(OttlineFont.regular(11.5))
+                                            .foregroundStyle(palette.mutedInk)
+
+                                            if let body = item.latestCommentBody, !body.isEmpty {
+                                                Text(body)
+                                                    .font(OttlineFont.regular(13.5))
+                                                    .foregroundStyle(palette.ink)
+                                                    .lineLimit(3)
+                                                    .multilineTextAlignment(.leading)
+                                                    .padding(.top, 2)
+                                            }
+                                        }
+                                        Spacer()
                                     }
-                                    .buttonStyle(.plain)
+                                    .padding(14)
+                                    .background(palette.paperStrong)
+                                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 8)
+                                            .stroke(palette.border, lineWidth: 1)
+                                    )
                                 }
+                                .buttonStyle(.plain)
                             }
                         }
                     }
-                }
-
-                // Search & Filters
-                VStack(alignment: .leading, spacing: 10) {
-                    TextField(
-                        OttlineStrings.tr("작품이나 대화 검색", "Search titles or thoughts", locale: locale),
-                        text: $searchQuery
-                    )
-                    .font(OttlineFont.regular(14))
-                    .padding(11)
+                    .padding(16)
                     .background(palette.card)
                     .clipShape(RoundedRectangle(cornerRadius: 8))
                     .overlay(
                         RoundedRectangle(cornerRadius: 8)
                             .stroke(palette.border, lineWidth: 1)
                     )
-
-                    HStack {
-                        ScrollView(.horizontal, showsIndicators: false) {
-                            HStack(spacing: 6) {
-                                ForEach([
-                                    ("all", OttlineStrings.tr("전체", "All", locale: locale)),
-                                    ("movie", OttlineStrings.tr("영화", "Movie", locale: locale)),
-                                    ("series", OttlineStrings.tr("시리즈", "Series", locale: locale)),
-                                    ("book", OttlineStrings.tr("책", "Book", locale: locale))
-                                ], id: \.0) { key, label in
-                                    let selected = typeFilter == key
-                                    Button {
-                                        typeFilter = key
-                                    } label: {
-                                        Text(label)
-                                            .font(selected ? OttlineFont.semiBold(13) : OttlineFont.regular(13))
-                                            .foregroundStyle(selected ? palette.onBrandNavy : palette.ink)
-                                            .padding(.horizontal, 12)
-                                            .padding(.vertical, 7)
-                                            .background(selected ? palette.brandNavy : palette.card)
-                                            .clipShape(RoundedRectangle(cornerRadius: 8))
-                                            .overlay(
-                                                RoundedRectangle(cornerRadius: 8)
-                                                    .stroke(selected ? palette.brandNavy : palette.border, lineWidth: 1)
-                                            )
-                                    }
-                                    .buttonStyle(.plain)
-                                }
-                            }
-                        }
-                        Spacer()
-                        Button {
-                            sortMode = (sortMode == "recent") ? "popular" : "recent"
-                        } label: {
-                            Text(sortMode == "recent"
-                                ? OttlineStrings.tr("최신순", "Recent", locale: locale)
-                                : OttlineStrings.tr("공감순", "Popular", locale: locale)
-                            )
-                            .font(OttlineFont.medium(12.5))
-                            .foregroundStyle(palette.primaryAccent)
-                        }
-                        .buttonStyle(.plain)
-                    }
                 }
 
-                // Discussion Cards
+                // 3. Sub-description & Search/Sort Bar (`PublicDiscussionsClient.tsx` 1:1 parity)
+                VStack(alignment: .leading, spacing: 12) {
+                    Text(OttlineStrings.tr(
+                        "다른 사람들은 요즘 무엇을 보고 읽을까요?",
+                        "What are others watching and reading these days?",
+                        locale: locale
+                    ))
+                    .font(OttlineFont.regular(13.5))
+                    .foregroundStyle(palette.mutedInk)
+
+                    HStack(spacing: 10) {
+                        HStack(spacing: 8) {
+                            Image(systemName: "magnifyingglass")
+                                .font(.system(size: 13.5))
+                                .foregroundStyle(palette.mutedInk)
+                            TextField(
+                                OttlineStrings.tr("제목 검색", "Search title", locale: locale),
+                                text: $searchQuery
+                            )
+                            .font(OttlineFont.regular(14))
+                            .foregroundStyle(palette.ink)
+
+                            if !searchQuery.isEmpty {
+                                Button {
+                                    searchQuery = ""
+                                } label: {
+                                    Image(systemName: "xmark.circle.fill")
+                                        .foregroundStyle(palette.mutedInk)
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                        .padding(.horizontal, 12)
+                        .frame(minHeight: 38)
+                        .background(palette.background)
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8)
+                                .stroke(palette.border, lineWidth: 1)
+                        )
+
+                        HStack(spacing: 6) {
+                            Text(OttlineStrings.tr("정렬", "Sort", locale: locale))
+                                .font(OttlineFont.regular(12))
+                                .foregroundStyle(palette.mutedInk)
+
+                            Menu {
+                                Button(OttlineStrings.tr("최신", "Latest", locale: locale)) {
+                                    sortMode = "latest"
+                                }
+                                Button(OttlineStrings.tr("댓글 많은 순", "Most Comments", locale: locale)) {
+                                    sortMode = "comments"
+                                }
+                            } label: {
+                                HStack(spacing: 4) {
+                                    Text(sortMode == "comments"
+                                        ? OttlineStrings.tr("댓글 많은 순", "Most Comments", locale: locale)
+                                        : OttlineStrings.tr("최신", "Latest", locale: locale)
+                                    )
+                                    .font(OttlineFont.medium(13))
+                                    .foregroundStyle(palette.ink)
+                                    Image(systemName: "chevron.up.chevron.down")
+                                        .font(.system(size: 10))
+                                        .foregroundStyle(palette.mutedInk)
+                                }
+                                .padding(.horizontal, 10)
+                                .frame(minHeight: 38)
+                                .background(palette.background)
+                                .clipShape(RoundedRectangle(cornerRadius: 8))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 8)
+                                        .stroke(palette.border, lineWidth: 1)
+                                )
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                    .padding(12)
+                    .background(palette.card)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8)
+                            .stroke(palette.border, lineWidth: 1)
+                    )
+                }
+
+                // 4. Discussion List (`DiscussionList.tsx` with `showReactions=true`)
                 if loading {
                     ProgressView()
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 36)
                 } else if discussions.isEmpty {
-                    Text(OttlineStrings.tr("아직 나누어진 이야기가 없어요.", "No shared stories yet.", locale: locale))
+                    Text(OttlineStrings.tr("아직 공개된 이야기가 없어요.", "No stories shared yet.", locale: locale))
                         .font(OttlineFont.regular(14))
                         .foregroundStyle(palette.mutedInk)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 36)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.vertical, 12)
                 } else {
-                    ForEach(discussions) { disc in
-                        discussionCard(disc)
+                    VStack(spacing: 8) {
+                        ForEach(discussions) { disc in
+                            discussionRowCard(disc)
+                        }
                     }
                 }
             }
             .padding(.horizontal, 18)
-            .padding(.top, 18)
+            .padding(.top, 20)
             .padding(.bottom, 36)
         }
         .background(palette.background)
-        .task(id: "\(searchQuery)-\(typeFilter)-\(sortMode)") {
+        .task(id: "\(searchQuery)-\(sortMode)") {
             await loadTogetherFeeds()
         }
     }
 
-    private func discussionCard(_ disc: DiscussionListItem) -> some View {
+    private func discussionRowCard(_ disc: DiscussionListItem) -> some View {
         let currentReactions = reactionOverrides[disc.titleId] ?? disc.reactions ?? []
-        return VStack(alignment: .leading, spacing: 12) {
+        return VStack(alignment: .leading, spacing: 10) {
             Button {
                 onOpenTitleDetail(disc.titleId)
             } label: {
-                HStack(alignment: .top, spacing: 14) {
+                HStack(spacing: 12) {
                     PosterImage(
                         posterUrl: disc.posterUrl,
                         titleName: disc.titleName,
                         titleType: disc.titleType,
-                        width: 58,
-                        height: 86
+                        width: 48,
+                        height: 64
                     )
-                    VStack(alignment: .leading, spacing: 5) {
-                        HStack {
-                            Text(OttlineStrings.titleTypeLabel(disc.titleType, locale: locale))
-                                .font(OttlineFont.semiBold(11.5))
-                                .foregroundStyle(palette.primaryAccent)
-                            if disc.isCurated {
-                                Text(OttlineStrings.tr("AI 운영 계정", "AI Curator", locale: locale))
-                                    .font(OttlineFont.medium(10.5))
-                                    .foregroundStyle(palette.primaryAccent)
-                                    .padding(.horizontal, 6)
-                                    .padding(.vertical, 2)
-                                    .background(palette.paperStrong)
-                                    .clipShape(RoundedRectangle(cornerRadius: 4))
-                            }
-                            Spacer()
-                            Text("💬 \(disc.commentCount)")
-                                .font(OttlineFont.regular(12))
-                                .foregroundStyle(palette.mutedInk)
-                        }
-
+                    VStack(alignment: .leading, spacing: 4) {
                         Text(disc.titleName)
-                            .font(OttlineFont.semiBold(16))
+                            .font(OttlineFont.semiBold(15))
                             .foregroundStyle(palette.ink)
-                            .lineLimit(2)
-                            .multilineTextAlignment(.leading)
-
-                        if let body = disc.latestCommentBody, !body.isEmpty {
-                            Text(body)
-                                .font(OttlineFont.regular(13.5))
-                                .foregroundStyle(palette.mutedInk)
-                                .lineLimit(2)
-                                .multilineTextAlignment(.leading)
-                        }
+                            .lineLimit(1)
+                        Text(OttlineStrings.titleTypeLabel(disc.titleType, locale: locale))
+                            .font(OttlineFont.regular(12))
+                            .foregroundStyle(palette.mutedInk)
                     }
                     Spacer()
+                    VStack(alignment: .trailing, spacing: 4) {
+                        Text(RecordDate.formatShortMonthDay(disc.latestCommentAt, locale: locale))
+                            .font(OttlineFont.regular(11.5))
+                            .foregroundStyle(palette.mutedInk)
+                        Text(locale == "en" ? "\(disc.commentCount) comments" : "\(disc.commentCount)개의 이야기들")
+                            .font(OttlineFont.semiBold(12))
+                            .foregroundStyle(palette.primaryAccent)
+                    }
                 }
             }
             .buttonStyle(.plain)
 
-            // 3 Reaction Chips
+            // 3 Reaction Chips (`DiscussionReactionButtons.tsx` parity)
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
                     ForEach(DiscussionReactionType.allCases, id: \.self) { rType in
@@ -243,7 +300,7 @@ public struct TogetherScreen: View {
                         Button {
                             Task { await toggleReaction(disc: disc, type: rType) }
                         } label: {
-                            HStack(spacing: 4) {
+                            HStack(spacing: 5) {
                                 Text(OttlineStrings.reactionLabel(rType, titleType: disc.titleType, locale: locale))
                                     .font(active ? OttlineFont.semiBold(12) : OttlineFont.regular(12))
                                 if count > 0 {
@@ -251,14 +308,14 @@ public struct TogetherScreen: View {
                                         .font(OttlineFont.semiBold(11.5))
                                 }
                             }
-                            .foregroundStyle(active ? palette.onBrandNavy : palette.ink)
+                            .foregroundStyle(active ? palette.primaryAccent : palette.mutedInk)
                             .padding(.horizontal, 10)
                             .padding(.vertical, 6)
-                            .background(active ? palette.brandNavy : palette.paperStrong)
+                            .background(active ? palette.paperStrong : palette.background)
                             .clipShape(RoundedRectangle(cornerRadius: 8))
                             .overlay(
                                 RoundedRectangle(cornerRadius: 8)
-                                    .stroke(active ? palette.brandNavy : palette.border, lineWidth: 1)
+                                    .stroke(active ? palette.primaryAccent : palette.border, lineWidth: 1)
                             )
                         }
                         .buttonStyle(.plain)
@@ -278,14 +335,15 @@ public struct TogetherScreen: View {
     private func loadTogetherFeeds() async {
         loading = true
         if curatedItems.isEmpty {
-            curatedItems = (try? await repository.api.getCuratedDiscussions(limit: 5)) ?? []
+            curatedItems = (try? await repository.api.getCuratedDiscussions(limit: 4)) ?? []
         }
+        let wireSort = sortMode == "comments" ? "popular" : "recent"
         discussions = (try? await repository.api.getDiscussionsLatest(
-            limit: 30,
+            limit: 50,
             days: nil,
             query: searchQuery,
-            typeFilter: typeFilter,
-            sort: sortMode
+            typeFilter: "all",
+            sort: wireSort
         )) ?? []
         loading = false
     }

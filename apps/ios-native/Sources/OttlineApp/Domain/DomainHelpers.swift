@@ -15,43 +15,43 @@ public enum RecordFeelings {
         if isBook {
             return [
                 FeelingOption(
-                    value: 1,
-                    score: 2.0,
-                    label: isEn ? "Lightly turned the pages" : "가볍게 읽혔어요",
-                    shortLabel: isEn ? "Light read" : "가볍게"
+                    value: 3,
+                    score: 5.0,
+                    label: isEn ? "Life-changing" : "인생책",
+                    shortLabel: isEn ? "Life-changing" : "인생책"
                 ),
                 FeelingOption(
                     value: 2,
-                    score: 3.5,
-                    label: isEn ? "Read with a warm heart" : "기분 좋게 읽었어요",
-                    shortLabel: isEn ? "Good read" : "기분 좋게"
+                    score: 3.0,
+                    label: isEn ? "Not bad" : "괜찮아요",
+                    shortLabel: isEn ? "Not bad" : "괜찮아요"
                 ),
                 FeelingOption(
-                    value: 3,
-                    score: 4.5,
-                    label: isEn ? "Left a deep lingering note" : "오래 남는 책이었어요",
-                    shortLabel: isEn ? "Lingering" : "오래 남음"
+                    value: 1,
+                    score: 1.0,
+                    label: isEn ? "Disappointing" : "아쉬워요",
+                    shortLabel: isEn ? "Disappointing" : "아쉬워요"
                 )
             ]
         } else {
             return [
                 FeelingOption(
-                    value: 1,
-                    score: 2.0,
-                    label: isEn ? "Watched lightly" : "가볍게 봤어요",
-                    shortLabel: isEn ? "Light watch" : "가볍게"
+                    value: 3,
+                    score: 5.0,
+                    label: isEn ? "Excellent" : "최고예요",
+                    shortLabel: isEn ? "Excellent" : "최고예요"
                 ),
                 FeelingOption(
                     value: 2,
-                    score: 3.5,
-                    label: isEn ? "Enjoyed the time" : "기분 좋게 봤어요",
-                    shortLabel: isEn ? "Good watch" : "기분 좋게"
+                    score: 3.0,
+                    label: isEn ? "Worth watching" : "볼만해요",
+                    shortLabel: isEn ? "Worth watching" : "볼만해요"
                 ),
                 FeelingOption(
-                    value: 3,
-                    score: 4.5,
-                    label: isEn ? "Stayed with me a long time" : "여운이 오래 남았어요",
-                    shortLabel: isEn ? "Deeply stayed" : "깊은 여운"
+                    value: 1,
+                    score: 1.0,
+                    label: isEn ? "Disappointing" : "아쉬워요",
+                    shortLabel: isEn ? "Disappointing" : "아쉬워요"
                 )
             ]
         }
@@ -66,9 +66,9 @@ public enum RecordFeelings {
 
     public static func feelingValueToRating(_ value: Int?) -> Double? {
         switch value {
-        case 1: return 2.0
-        case 2: return 3.5
-        case 3: return 4.5
+        case 1: return 1.0
+        case 2: return 3.0
+        case 3: return 5.0
         default: return nil
         }
     }
@@ -183,12 +183,67 @@ public enum RecordDate {
         df.timeZone = kstTimeZone
         if locale == "en" {
             df.locale = Locale(identifier: "en_US")
-            df.dateFormat = "EEEE, MMM d, yyyy"
+            df.dateFormat = "EEEE, MMMM d"
         } else {
             df.locale = Locale(identifier: "ko_KR")
-            df.dateFormat = "yyyy년 M월 d일 EEEE"
+            df.dateFormat = "M월 d일 EEEE"
         }
         return df.string(from: Date())
+    }
+
+    public static func formatFeaturedDate(_ iso: String?, locale: String) -> String {
+        let d = parseDate(iso) ?? Date()
+        let df = DateFormatter()
+        df.calendar = kstCalendar
+        df.timeZone = kstTimeZone
+        if locale == "en" {
+            df.locale = Locale(identifier: "en_US")
+            df.dateFormat = "MMM d (EEE)"
+        } else {
+            df.locale = Locale(identifier: "ko_KR")
+            df.dateFormat = "M월 d일 (E)"
+        }
+        return df.string(from: d)
+    }
+
+    public static func formatShortMonthDay(_ iso: String?, locale: String) -> String {
+        let d = parseDate(iso) ?? Date()
+        let df = DateFormatter()
+        df.calendar = kstCalendar
+        df.timeZone = kstTimeZone
+        if locale == "en" {
+            df.locale = Locale(identifier: "en_US")
+            df.dateFormat = "MMM d"
+        } else {
+            df.locale = Locale(identifier: "ko_KR")
+            df.dateFormat = "M월 d일"
+        }
+        return df.string(from: d)
+    }
+
+    public static func formatTimelineMonth(_ iso: String?, locale: String) -> String {
+        let d = parseDate(iso) ?? Date()
+        let df = DateFormatter()
+        df.calendar = kstCalendar
+        df.timeZone = kstTimeZone
+        if locale == "en" {
+            df.locale = Locale(identifier: "en_US")
+            df.dateFormat = "MMM"
+        } else {
+            df.locale = Locale(identifier: "ko_KR")
+            df.dateFormat = "M월"
+        }
+        return df.string(from: d)
+    }
+
+    public static func formatTimelineDay(_ iso: String?) -> String {
+        let d = parseDate(iso) ?? Date()
+        let df = DateFormatter()
+        df.calendar = kstCalendar
+        df.timeZone = kstTimeZone
+        df.locale = Locale(identifier: "en_US_POSIX")
+        df.dateFormat = "d"
+        return df.string(from: d)
     }
 
     public static func monthKey(_ iso: String?) -> String {
