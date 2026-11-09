@@ -7,7 +7,7 @@
 - 웹·PWA v2와 API는 `2026-11-08` SHA `b9f88a6`로 운영에 반영했다. 기록·수정·동기화·기기 연결, 추천의 계정별 제외/하루 3회, 저장 뒤 기존 이야기 연결, 빈 기간의 리포트 공유 제한을 포함한다. 운영 검증은 [배포 기록](ottline-v2-production-rollout.md), 구현 근거는 [웹 통합 기록](ottline-ux-v2-web.md), [추천 정책](future-timeline-account-policy.md), [이야기 연결](saved-discussion-connection.md)에 있다.
 - 초기 시안 커밋 `4f5b17c`에는 실제 웹·API 통합이 포함되지 않으므로 v2 출시 SHA로 사용하지 않았다. PR #125·#126과 CI를 거친 main의 `b9f88a6d5f329ffa1bfaea4dacc3b7be8bfb3022`를 공통 배포 SHA로 확정했다.
 - `apps/native`, `apps/twa`, `apps/browser-extension`에는 이번 v2의 플랫폼별 소스·패키지 변경이 아직 없다. 웹용 새 CI·PWA 아이콘·가이드 이미지는 준비했지만 앱 바이너리와 스토어 자료의 갱신은 별도 작업이다.
-- Android의 다음 출시 대상은 사용자가 준비 중인 **네이티브 앱**이다. 현재 운영 중인 `apps/twa`와 구분하고, 네이티브 작업의 소스·스택·브랜치와 전환 계획은 해당 작업에서 확인한다. 기존 TWA는 웹 v2의 호환 확인 대상으로 유지한다.
+- **Android 네이티브(`apps/android-native`) 전환 및 Google Play 프로덕션 출시 완료 (`2026-11-09`)**: 기존 `apps/twa`(`versionCode <= 23`)를 대체하는 순수 Android Native(`Kotlin + Jetpack Compose + Room + WorkManager`) 앱을 모노레포 `apps/android-native`에 통합하고 `2.0.0`(`versionCode=24`, SHA `45ccac3`, run `42550886641`) 및 기존 TWA 세션·기록 자동 복구를 포함한 `2.0.1`(`versionCode=25`, SHA `916be7a`, API run `42564733989`, Web run `42564731554`, Android run `42564729159`)을 Google Play `production` 트랙과 스토어 등록정보(v2 아이콘·피처 그래픽·스크린샷 5장)까지 반영 완료했다. 자세한 내용은 [Android Native v2 전환 기록](android-native-v2-transition.md)에 정리했다.
 - 운영 API/Web 이미지와 APP_VERSION은 모두 `b9f88a6`이며 두 Pod Ready 1/1·restart 0, ArgoCD Synced/Healthy를 확인했다.
 - 운영 `ott-openai-secrets`의 Ready/SecretSynced와 API 환경변수 연결을 확인했다. 실제 OpenAI 생성·제외·재생성·기기별 공유·하루 3회 제한도 운영에서 통과했다.
 - 함께 페이지의 SEO 확장은 별도 후속 범위다. 이번 출시 준비에서 공개 상세의 검색 제외 설정을 변경하지 않는다. Google Books 개발 키 연결도 앞서 보류한 범위를 유지하며 운영 검색의 회귀 확인과 구분한다.
@@ -18,7 +18,7 @@
 | --- | --- | --- | --- |
 | API / OCI | 서버 이미지·설정·Flyway 배포 | V32 적용 검증, DB 백업, OpenAI 환경변수, 기존 클라이언트 호환, 확정 SHA | 운영 반영·실제 기능 검증 완료 |
 | 웹 / 설치형 PWA | 운영 웹 배포와 서비스워커 갱신 | 기존 설치 앱의 업데이트·기록 보존, 모바일 실기기 확인 | 운영 반영·브라우저 저장 검증 완료, 설치 앱 실기기 확인은 별도 |
-| Android / Google Play | 준비 중인 네이티브 앱에 v2를 적용해 별도 출시 | 네이티브 작업 기준 확인, v2 UI·기능 연결, 기존 설치·기록의 이전, 서명 AAB, 내부/베타 검증, 스토어 자료 | 네이티브 전환을 기준으로 준비, 현재 TWA는 웹 호환 확인 |
+| Android / Google Play | `apps/android-native` 순수 네이티브 앱으로 전환 출시 | v2 UI·기능 연결, 기존 TWA 세션·기록 2단계 자동 복원(`install_token` + 브라우저 핸드오프), 서명 AAB(`vc24`·`vc25`), v2 스토어 그래픽·문구 | **Google Play production `2.0.1 (25)` 배포 및 스토어 에셋 반영 완료 (`2026-11-09`)** |
 | iOS / App Store | Expo React Native 앱을 별도로 개편해야 함 | 모바일 v2 UI·문구·아바타·기능 동등성, 아이콘/스플래시, 새 빌드, TestFlight, 스토어 자료 | 추가 구현 단계가 필요 |
 | Windows / Microsoft Store | 웹 본문은 공통이며 manifest 정보는 패키지에 복사됨 | v2 manifest로 PWABuilder 재패키징, 기존 제품 식별자 유지, 새 아이콘·PC 스크린샷, 업데이트 제출 | 패키지 갱신 필요 |
 | Chrome / Edge / Whale 확장 | 기록 창으로 여는 웹은 공통, 확장 팝업·아이콘은 별도 | 새 CI·팝업 정렬, manifest 버전 증가, ZIP, 브라우저별 실동작, 세 스토어 자료·제출 | 기존 연결 계약 검증, 패키지 작업 필요 |
@@ -57,14 +57,13 @@ iOS에 해당 기능을 제공할 경우 Apple의 제3자 AI 개인정보 공유
 
 ## 4. 채널별 추가 준비
 
-### Android / Google Play
+### Android / Google Play (`2026-11-09` 완료)
 
-- [ ] 준비 중인 네이티브 앱의 소스 위치·스택·작업 브랜치·빌드 경로를 확인한다. 웹 v2나 iOS의 Expo 구현이 자동으로 적용된다고 가정하지 않는다.
-- [ ] 모바일 v2 구성·문구·아바타·CI를 네이티브 화면과 내장 자산에 적용한다. 검색·상태 선택·기록·수정·TPO·시즌/회차·느낌·동기화·기기 연결·공유·리포트·추천 중 제공할 범위를 정하고 API 계약을 맞춘다.
-- [ ] 기존 Google Play 앱을 업데이트하는 경우 패키지 ID·서명·Play App Signing·빌드 번호의 연속성을 확인한다. TWA의 브라우저 저장소에 있는 기록과 연결 정보를 네이티브 저장소로 이어가는 방법을 검증하고, 업데이트 뒤 기존 사용자가 기록을 다시 볼 수 있는 안내를 준비한다.
-- [ ] 위젯·바로가기·시청 기록 알림의 유지 범위를 정한다. 실제 기기에서 뒤로가기·키보드·하단 내비게이션·edge-to-edge·권한·오프라인 복귀를 검증한다.
-- [ ] Play Console의 실제 최신 `versionCode`보다 높은 서명 AAB를 준비하고 내부/베타에서 기존 설치본의 업데이트를 확인한 뒤 같은 산출물을 production에 승격한다. KO/EN 변경사항·새 아이콘·실제 네이티브 스크린샷과 데이터 처리 설명을 준비한다.
-- [ ] 네이티브 전환 전 현재 운영 TWA의 웹 v2 진입·저장·공유·알림 링크 호환을 확인한다. TWA 패키지 자체를 수정할 때만 기존 시작 화면·Room/R8·브랜드 자산 검사와 TWA 릴리스 경로를 적용한다.
+- [x] `apps/android-native`(`Kotlin + Jetpack Compose + Room + WorkManager`)로 모노레포 통합 및 CI/CD(`.github/workflows/native-android-ci.yml`, `native-android-release.yml`) 구축 완료.
+- [x] 모바일 v2 구성·문구·6종 아바타·CI v2 디자인과 풀화면 빠른 기록 모달(상태 선택 후 하단 `기록 남기기` 명시적 저장, `그날의 순간` 기본 펼침), 오프라인 우선 Outbox 동기화, KDC `내 서가`, `내 미래는?`(OpenAI 추천), `함께`, `내 이용 리포트` 전면 적용 완료.
+- [x] 기존 Google Play `app.ottline` 패키지·서명·컴포넌트 연속성 유지 및 **기존 TWA(`versionCode <= 23`) → 네이티브(`versionCode >= 24`) 2단계 자동 세션·기록 복구**(`POST /api/android/notification-devices/restore-session` 서버 토큰 복원 + `TwaBrowserBridge` 외부 브라우저 `?native_handoff=1` → `ottline://open?handoff=1` 자동 핸드오프 및 임시 계정 자동 병합) 반영 완료.
+- [x] 홈 위젯(`QuickLogWidgetProvider`), 앱 바로가기, UsageStats 기반 시청 기록 알림(`WatchReminderWorker`), 회고 알림(`RevisitReminderWorker`) 및 R8/DEX 시작 계약 검증(`scripts/verify-release-aab.sh`) 통과.
+- [x] Google Play `production` 트랙에 `2.0.0`(`versionCode=24`, run `42550886641`) 및 `2.0.1`(`versionCode=25`, run `42564729159`) 배포 완료, Play Store `ko-KR`/`en-US` 출시 노트와 v2 신규 아이콘(`512x512`)·피처 그래픽(`1024x500`)·휴대폰 스크린샷 5장(`1080x1920`) 커밋 완료.
 
 ### iOS / App Store
 

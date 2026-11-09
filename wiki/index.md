@@ -20,7 +20,7 @@
 | [[public-reactions]] | 함께 메뉴 공개 글에 `나도 봤어요`/`나도 읽었어요`/`궁금해요`/`저장해둘래요` 리액션을 남기고 내 타임라인 기록으로 이어주는 v1 후보 |
 | [[share-card]] | 개별 기록과 주간 이용 리포트를 포스터 중심 이미지 카드로 생성·공유 |
 | [[timeline]] | 개인 영상/책 기록을 서버 커서 무한 스크롤, 필터와 검색으로 재방문하는 타임라인 화면 |
-| [[ottline-v2]] | PC 기록장·모바일 수첩 개편, 명시적 저장·TPO·기기 동기화와 2026-11-08 운영 배포 |
+| [[ottline-v2]] | PC 기록장·모바일 수첩 개편, 명시적 저장·TPO·기기 동기화(2026-11-08 Web/API, 2026-11-09 Android Native 2.0.1 운영 배포) |
 | [[timeline-export]] | 사용자 타임라인 CSV/XLSX 내보내기, 복원 제외 |
 | [[future-timeline]] | OpenAI 추천, 계정별 제외·되돌리기·하루 3회 제한과 실제 카탈로그 기록 연결 |
 
@@ -43,7 +43,8 @@
 | [[pwa]] | 로컬 우선 아키텍처 기반 설치형 웹앱, Service Worker 및 오프라인 지원 포함 |
 | [[native]] | App Store 출시된 Expo iOS 앱, 카카오 호환 `1.0.4 (24)` TestFlight 배포·App Store 심사 접수 완료 |
 | [[toss-inapp]] | 앱인토스 WebView 미니앱 — 2026-05-18 승인 및 출시 완료, 표시명 `내 OTT 타임라인`, 공유는 텍스트 |
-| [[twa]] | Android 7.0 이상 Bubblewrap TWA, Google Play production `1.0.19 (23)`, 시청 기록 알림 감지 누락 복구 및 Play 자동 보호 유지, APK/AAB는 GitHub Actions 기준 |
+| [[android-native]] | 순수 Android Native(`Kotlin + Compose + Room + WorkManager`), Google Play production `2.0.1 (25)` 출시 및 TWA 2단계 자동 세션·기록 복구 |
+| [[twa]] | 레거시 Bubblewrap TWA (`1.0.19 (23)`까지 운영, `2026-11-09`부터 `[[android-native]]`로 전환) |
 
 ## Processes
 

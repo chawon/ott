@@ -1,4 +1,9 @@
-# TWA 내부 테스트 가이드
+# TWA 내부 테스트 가이드 (레거시 — `versionCode <= 23`)
+
+> **[전환 안내 — 2026-11-09]**
+> `2026-11-09` (`v2.0.0` `versionCode=24` / `v2.0.1` `versionCode=25`)부터 Google Play `app.ottline` 프로덕션 앱은 기존 Bubblewrap TWA(`apps/twa`)에서 **순수 Android Native 앱(`apps/android-native`, Kotlin + Jetpack Compose + Room + WorkManager)**으로 전환되었습니다.
+> 현행 Android 네이티브 아키텍처, TWA→Native 자동 세션 복구, 빌드 및 배포 가이드는 [`docs/android-native-v2-transition.md`](android-native-v2-transition.md)와 [`apps/android-native/README.md`](../apps/android-native/README.md)를 참고하세요. 아래 문서는 레거시 TWA(`versionCode <= 23`) 기준 기록입니다.
+
 
 ## 목표
 - PWA를 Android TWA로 패키징해 내부 테스트용 APK 생성

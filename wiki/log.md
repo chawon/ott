@@ -1,5 +1,13 @@
 # Wiki Log
 
+## [2026-11-09] ingest: Android Native v2 전환 및 TWA 자동 세션·기록 복구 프로덕션 출시
+- 대상: `apps/android-native/`, `docs/android-native-v2-transition.md`, `docs/ottline-v2-release-readiness.md`, `docs/ottline-v2-production-rollout.md`, `AGENTS.md`
+- 생성/수정: `pages/platforms/android-native.md` (신규), `pages/platforms/twa.md`, `pages/features/ottline-v2.md`, `index.md`
+- 노트:
+  - Google Play `app.ottline` 프로덕션을 기존 Bubblewrap TWA(`versionCode <= 23`)에서 순수 Android Native(`Kotlin + Jetpack Compose + Room + WorkManager`) `2.0.0`(`vc24`, SHA `45ccac3`, run `42550886641`) 및 `2.0.1`(`vc25`, SHA `916be7a`, run `42564729159`)로 전환 배포 완료
+  - Play Store v2 아이콘(`512x512`)·피처 그래픽(`1024x500`)·스크린샷 5장(`1080x1920`) 및 `ko-KR`/`en-US` 스토어 문구·출시 노트 반영 완료
+  - 기존 TWA 업데이트 시 2단계 자동 복구(`install_token` 기반 `POST /api/android/notification-devices/restore-session` + `TwaBrowserBridge` 외부 브라우저 `?native_handoff=1` → `ottline://open?handoff=1` 자동 핸드오프 및 임시 계정 자동 병합) API/Web/Android 동시 반영 완료
+
 ## [2026-11-08] feat: ottline v2 Web/PWA·API 운영 배포
 
 - 기능 PR `#125`, 운영 설정·전송 안내 PR `#126`, 배포 SHA `b9f88a6d5f329ffa1bfaea4dacc3b7be8bfb3022`.

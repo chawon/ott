@@ -1,17 +1,19 @@
-# TWA (Trusted Web Activity)
+# TWA (Trusted Web Activity — 레거시 `versionCode <= 23`)
 
-> 현재 Android 배포에 사용하는 Bubblewrap 기반 TWA 프로젝트 — `apps/twa/`
+> `2026-11-09`(`versionCode >= 24`, `v2.0.0+`)부터 Google Play `app.ottline`은 순수 네이티브 앱인 [[android-native]](`apps/android-native/`)로 전환되었다. 이 문서는 `1.0.19`(`versionCode=23`)까지의 Bubblewrap TWA(`apps/twa/`) 운영 이력을 보존한다.
 
 ## 관련 페이지
+- [[android-native]]
+- [[ottline-v2]]
 - [[pwa]]
 - [[ms-store]]
 - [[analytics]]
 
 ---
 
-## 현재 상태
+## 현재 상태 (`2026-11-09` 네이티브 전환 완료)
 
-**Android 배포 현행 경로는 TWA다.**
+**`2026-11-09`부터 Android 프로덕션 배포 경로는 [[android-native]](`apps/android-native`, `2.0.1` `versionCode=25`)로 전환되었다.** 기존 TWA(`versionCode <= 23`)에서 업데이트하는 사용자는 첫 실행 시 `install_token` 서버 세션 복원 및 `TwaBrowserBridge` 외부 브라우저 자동 핸드오프를 통해 이전 기록과 프로필을 자동으로 이어받는다.
 
 - 패키지명: `app.ottline`
 - 도메인: `https://ottline.app`

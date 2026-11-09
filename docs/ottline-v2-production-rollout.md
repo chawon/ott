@@ -41,3 +41,14 @@
 - 검증 호스트와 서버의 약 5초 시각 차이로 직접 API 수정 직후 전송한 요청은 stale 정책에 따라 거절됐다. 최신 서버 revision을 받아 재전송하는 경로를 검증했다. 브라우저의 실제 저장·동기화는 별도로 통과했다.
 - WSL의 운영 도메인 자동 요청은 Cloudflare 403이어서 화면·기능 검사는 운영 Pod 연결로 수행했다. GitHub 배포 워크플로우의 공개 버전 확인은 통과했다. 실제 설치형 PWA·네이티브 앱의 실기기 업데이트 검증은 플랫폼별 후속 항목이다.
 - DB 백업과 검증 근거는 권한을 제한한 Git 제외 경로 `.recovery/ottline-v2/production-backups`, `.recovery/ottline-v2/production-smoke`에 보관한다. 테스트 계정과 임시 DB 클라이언트는 정리했다.
+
+
+## 후속 배포: Android Native v2 전환 및 TWA 자동 세션·기록 복구 (`2026-11-09`)
+
+- **Android Native `2.0.0` (`versionCode=24`) 모노레포 통합 및 출시**:
+  - `apps/android-native` 및 `.github/workflows/native-android-ci.yml`·`native-android-release.yml`을 `main` SHA `45ccac3b797a29bf78691e52972748b1a9cf3a47`로 반영하고, [Android Release 42550886641](https://github.com/chawon/ott/actions/runs/42550886641)로 Google Play `production` 트랙에 배포했다.
+  - Play Store 등록정보(`ko-KR` 앱 설명, v2 `512x512` 아이콘, `1024x500` 피처 그래픽, `1080x1920` 네이티브 스크린샷 5장)를 Play edit `12908968039807814595`로 커밋했다.
+- **Android Native `2.0.1` (`versionCode=25`) + API/Web TWA 자동 세션 복구 출시**:
+  - 기존 TWA(`versionCode <= 23`)에서 업데이트한 사용자가 첫 실행 시 이전 기록과 프로필을 자동으로 이어받도록 2단계 자동 복구(`install_token` 기반 `POST /api/android/notification-devices/restore-session` + `TwaBrowserBridge` 외부 브라우저 `?native_handoff=1` → `ottline://open?handoff=1` 핸드오프 및 임시 계정 자동 병합)를 `main` SHA `916be7abe9a8712d3f5a0a5e460a7bf820e23b0c`로 반영했다.
+  - [API production 42564733989](https://github.com/chawon/ott/actions/runs/42564733989), [Web production 42564731554](https://github.com/chawon/ott/actions/runs/42564731554), [Android Release 42564729159](https://github.com/chawon/ott/actions/runs/42564729159)(`2.0.1`, `versionCode=25`, `production` 트랙)가 모두 성공했으며, Play edit `18276584036455797705`로 `ko-KR`/`en-US` 출시 노트를 반영했다.
+  - 상세 설계와 동작 기준은 [Android Native v2 전환 기록](android-native-v2-transition.md)에 정리했다.

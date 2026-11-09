@@ -20,12 +20,15 @@ If present, read `./.omd/preferences.md` — pending corrections not yet folded 
 
 ---
 
-## 2) 프로젝트 스냅샷 (기준일: 2026-08-18)
+## 2) 프로젝트 스냅샷 (기준일: 2026-11-09)
 
 ### 아키텍처
 1. 모노레포
    1. 프론트: `apps/web` (Next.js App Router)
    2. 백엔드: `apps/api` (Spring Boot + JPA + PostgreSQL)
+   3. Android 네이티브: `apps/android-native` (Kotlin + Jetpack Compose + Room + WorkManager, Google Play `app.ottline` v2.0+)
+   4. iOS 네이티브: `apps/native` (Expo React Native, App Store 출시)
+   5. 브라우저 확장: `apps/browser-extension` (Chrome / Edge / Whale)
 2. 프론트는 `/api/*`를 백엔드로 프록시(rewrite)한다.
 3. 외부 메타데이터 검색은 TMDB를 백엔드에서만 호출한다(키 노출 방지).
 
@@ -147,11 +150,11 @@ If present, read `./.omd/preferences.md` — pending corrections not yet folded 
    4. 남은 작업: Netflix 모달 selector 정밀화, 사이트별 캡처 정확도 검증, locale/base URL 설정 페이지 검토
 
 ### P1
-1. Android 배포 경로 정리
+1. Android 배포 경로 정리 (순수 네이티브 전환 완료)
 2. 현재 기준
-   1. Google Play internal/release 경로는 `apps/twa` 기반 Bubblewrap TWA
-   2. 패키지명 `app.ottline`, 도메인 `ottline.app`, 워크플로우는 `twa-debug.yml` / `twa-build-aab.yml` / `twa-release.yml`
-   3. `2026-08-20` 기준 Google Play `beta`와 `production` 최신 버전은 모두 `1.0.18` (`versionCode=22`, `status=completed`)이고, `internal`은 `1.0.14` (`versionCode=18`, `status=completed`)이다. 시청 기록 알림은 Usage Access 기반으로 대상 OTT 앱 사용 종료 후 기록 알림을 띄우며 콘텐츠 제목·재생 상태·화면 내용은 읽지 않는다. 다음 Play 업데이트는 `versionCode=23` 이상을 사용한다.
+   1. `2026-11-09`부터 Google Play `app.ottline` 정식 배포 경로는 기존 `apps/twa`(Bubblewrap TWA, `versionCode <= 23`)에서 **순수 Android Native 프로젝트인 `apps/android-native`(Kotlin + Jetpack Compose + Room + WorkManager)**로 전환됐다.
+   2. 패키지명 `app.ottline`, 도메인 `ottline.app`, 워크플로우는 `.github/workflows/native-android-ci.yml`(PR/main 검증) 및 `.github/workflows/native-android-release.yml`(서명 AAB 빌드·DEX/R8 시작 계약 검사·Google Play 트랙 배포)을 사용한다.
+   3. `2026-11-09` 기준 Google Play `production` 최신 버전은 `2.0.1` (`versionCode=25`, `status=completed`)이다. 다음 Play 업데이트는 `versionCode=26` 이상을 사용한다.
    4. Google Play 프로덕션 액세스는 `2026-06-06` 기준 심사 통과했다. 같은 날 `gplay promote --package app.ottline --from alpha --to production --status completed --rollout 1.0`로 alpha `1.0.9`(`versionCode=13`)를 production 트랙에 등록했고, `gplay tracks get`으로 production `1.0.9`/`13`/`completed` 반영을 확인했다. Production 릴리스 노트는 `Adds Apple TV as a supported watch reminder app.`로 정리했다. 이전 Play 검토 반려 사유는 비공개 테스트 중 실제 테스터 참여가 없었고, 사용자 의견 수집/조치/앱 업데이트 같은 테스트 권장사항을 충족하지 못했다는 점이었다. `alpha` 테스터 그룹은 `ottline-beta-testers@googlegroups.com`가 연결돼 있다.
    5. `2026-05-11` 기준 비공개 테스트를 재진행했고, `1.0.5` (`versionCode=9`) 테스트 피드백 루프 업데이트를 `alpha`에 업로드했다. Google Play TWA 세션에서만 보이는 설정 화면 Android 테스트 체크리스트, 문의함 preset(`/feedback?source=android-alpha`, `/feedback?source=android-alpha-share`), QuickLog 공유 진입 성공/실패 안내, Play release notes 입력을 함께 반영했다.
    6. `2026-05-21` 기준 `1.0.6` (`versionCode=10`)을 Google Play `alpha`에 업로드해 비공개 테스트를 다시 시작했다. 12명 이상 테스터가 모두 opt-in한 시점부터 14일 연속 조건을 계산했으며, `2026-06-06` 기준 14일 조건 완료 후 프로덕션 심사 통과까지 진행했다.
@@ -169,6 +172,8 @@ If present, read `./.omd/preferences.md` — pending corrections not yet folded 
    18. 같은 날 SM-S937N/Android 16에서 beta `1.0.14`가 splash 전 종료됐고, 선택적 알림 초기화 예외를 격리한 PR `#95` main SHA `ab607fe0508c4a59f10d60a66caf0fe9914277a8`, release run `32139664251`, beta `1.0.15` (`versionCode=19`)에서도 동일했다. PR `#96` main SHA `435b2a85ab1d83191006a4f540a3e15e6bc57b63`은 R8 축소·난독화는 유지하고 `-dontoptimize`로 코드 최적화만 껐다. 수동 AAB run `32145077156`에서 R8 메타데이터 `shrinking=true`, `obfuscation=true`, `optimizations=false`를 확인했고, release run `32146423912`로 beta `1.0.16` (`versionCode=20`, `status=completed`)을 배포했지만 같은 기기에서 동일 종료됐다.
    19. Play Vitals에서 `WorkManagerInitializer`가 `androidx.work.impl.WorkDatabase_Impl.<init>()`을 찾지 못한 스택을 확인했다. PR `#98`, main SHA `ef9f6a9fe459cd62a23127dbd4c284aa4076e021`은 해당 생성자만 보존하고 실제 release DEX를 검사하는 CI 게이트를 추가했다. 수정 전 run `32149018524`는 생성자 누락으로 실패하고 수정 후 run `32149260760`은 통과했으며, release run `32149573778`로 beta `1.0.17` (`versionCode=21`, `status=completed`)을 배포했다. 같은 SM-S937N/Android 16에서 정상 실행을 확인한 뒤 `gplay promote` edit `01669516731482208088`로 production에 100%, `completed`로 승격했고 별도 Play 조회에서 production·beta `1.0.17`/`21`/`completed`를 확인했다. R8 코드 최적화 권장 조치를 완전히 닫으려면 DEX 게이트를 유지한 별도 beta에서 코드 최적화를 다시 켜 검증해야 한다.
    20. 다른 Android 기기의 새 설치본에서 옛 `ott.preview.pe.kr` 시절 로고가 splash에 표시되는 것을 확인했다. 런처 아이콘만 교체되고 `@drawable/splash` 5종이 최초 TWA 생성 시점에 머문 것이 원인이었다. PR `#100`, main SHA `45f75666737fa3fa080bded0ef754b239b9e7ff5`로 현재 canonical 로고와 store icon을 동기화하고 AAB의 디코딩된 ARGB 픽셀을 검사하는 게이트를 추가했다. 수동 AAB run `32334961736`과 release run `32335236662`가 통과했고, beta `1.0.18`/`22`에서 현재 로고 splash와 정상 실행을 실기기 확인했다. 이어 `gplay promote` edit `03467688027415996575`로 동일 번들을 production에 100%, `completed`로 승격했으며, 새 Play edit `08239648148585704199` 재조회에서 production·beta 모두 `1.0.18`/`22`/`completed`임을 확인했다.
+   21. `2026-11-09` `ottline v2`(한 손 수첩 UX v2 + CI v2) 개편에 맞춰 순수 Android Native 앱(`apps/android-native`, Kotlin + Jetpack Compose + Room + WorkManager)을 모노레포에 통합하고 Google Play `production`에 `2.0.0`(`versionCode=24`, main SHA `45ccac3b797a29bf78691e52972748b1a9cf3a47`, release run `42550886641`)으로 출시했다. 기존 TWA의 패키지(`app.ottline`), 서명 키스토어, 진입 액티비티·위젯·워커 컴포넌트, R8/DEX 시작 계약 검증(`scripts/verify-release-aab.sh`)을 유지했고, Play edit `12908968039807814595`로 v2 신규 아이콘(`512x512`)·피처 그래픽(`1024x500`)·휴대폰 스크린샷 5장(`1080x1920`) 및 `ko-KR` 스토어 설명을 반영했다.
+   22. 같은 날 기존 TWA(`versionCode <= 23`)에서 업데이트한 사용자가 첫 실행 시 이전 기록과 계정을 자동으로 이어받도록 **2단계 TWA→Native 자동 세션·기록 복구**를 `main` SHA `916be7abe9a8712d3f5a0a5e460a7bf820e23b0c`로 배포했다. 1단계는 `ottline.android_install.xml`의 43자 Base64URL `install_token`으로 신규 API `POST /api/android/notification-devices/restore-session`을 호출해 브라우저 실행 없이 서버 매핑 계정을 즉시 복원하고, 2단계는 `TwaBrowserBridge`가 기존 TWA 브라우저 패키지(`com.google.androidbrowserhelper.trusted.PREFS_FILE.xml` 또는 `CustomTabsClient.getPackageName`)를 명시 지정해 App Link 가로채기 없이 `https://ottline.app/{ko|en}?native_handoff=1` → `ottline://open?handoff=1&...`로 `localStorage`·`IndexedDB` 세션을 가져오며, `2.0.0`에서 임시 계정에 새 기록을 남긴 경우에도 `pairWithCode`로 자동 병합한다. API production run `42564733989`, Web production run `42564731554`, Android Native release run `42564729159`(`2.0.1`, `versionCode=25`, `production` 트랙) 및 Play edit `18276584036455797705` 출시 노트 반영을 모두 완료했다.
 
 ### P1
 1. Public repo 보안 후속 정리
@@ -559,6 +564,17 @@ feature/* ──PR/CI──→ main ──→ GitHub Actions workflow_dispatch
 6. 마이그레이션: `apps/api/src/main/resources/db/migration/`
 7. ChatGPT OAuth: `apps/api/src/main/java/com/watchlog/api/web/ChatGptOAuthController.java`
 8. ChatGPT token/auth service: `apps/api/src/main/java/com/watchlog/api/service/ChatGptOAuthService.java`, `apps/api/src/main/java/com/watchlog/api/service/ChatGptTokenService.java`
+9. Android 알림 디바이스·TWA 세션 복원 API: `apps/api/src/main/java/com/watchlog/api/web/AndroidNotificationController.java`, `apps/api/src/main/java/com/watchlog/api/service/AndroidReminderService.java`
+
+### Android 네이티브 (`apps/android-native`)
+1. 진입 액티비티 및 딥링크/핸드오프 라우팅: `apps/android-native/app/src/main/java/app/ottline/LauncherActivity.kt`
+2. 루트 네비게이션 및 첫 실행 자동 복구: `apps/android-native/app/src/main/java/app/ottline/ui/OttlineAppRoot.kt`
+3. 빠른 기록 풀화면 모달: `apps/android-native/app/src/main/java/app/ottline/ui/QuickLogModal.kt`
+4. 로컬 우선 저장소·동기화·TWA 핸드오프 병합: `apps/android-native/app/src/main/java/app/ottline/data/OttlineRepository.kt`
+5. TWA 외부 브라우저 결정 및 Custom Tabs 브릿지: `apps/android-native/app/src/main/java/app/ottline/data/local/TwaBrowserBridge.kt`
+6. Android 설치 토큰 및 업그레이드 감지: `apps/android-native/app/src/main/java/app/ottline/data/local/AndroidInstallToken.kt`
+7. 시청 기록 알림·회고 알림·홈 위젯: `WatchReminderFeature.kt`, `RevisitReminderFeature.kt`, `QuickLogWidgetProvider.kt`
+8. CI/CD 및 AAB 계약 검증: `.github/workflows/native-android-ci.yml`, `.github/workflows/native-android-release.yml`, `apps/android-native/scripts/verify-release-aab.sh`
 
 ---
 

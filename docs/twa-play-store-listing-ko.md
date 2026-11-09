@@ -1,3 +1,6 @@
+> **[업데이트 안내 — 2026-11-09]**
+> `2026-11-09` Android Native v2(`2.0.0` `vc24` / `2.0.1` `vc25`) 프로덕션 출시에 맞춰 Google Play 스토어 등록정보(`ko-KR` 문구, 신규 v2 아이콘 `512x512`, 피처 그래픽 `1024x500`, 네이티브 스크린샷 5장 `1080x1920`, `ko-KR`/`en-US` 출시 노트)가 v2 기준으로 업데이트되었습니다. 자세한 내용은 [`docs/android-native-v2-transition.md`](android-native-v2-transition.md)를 참고하세요.
+
 # ottline Android 출시 브랜딩 + Play Console 등록정보
 
 ## 목적
