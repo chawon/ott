@@ -1,5 +1,13 @@
 # Wiki Log
 
+## [2026-11-11] fix: v2 sitemap·공유 메타데이터·가이드 구조화 데이터 Web 운영 배포
+
+- PR `#127`, Web SHA `aa991545f5fb3a914561f7fcd3e12c817275144c`, production run `43014772986`, manifest commit `c8a39db5e10aa644bc68cfb073e419441a003158`.
+- 홈·소개·FAQ 수정일과 가이드 목록의 문서 수정일 연동, v2 OG 이미지·페이지별 Twitter 정보, 한·영 가이드 `Article`·`BreadcrumbList`를 반영했다.
+- PR/main Web CI, 운영 공개 URL 19개·개인 화면 14개·구조화 데이터 6세트·이미지 7개 검사가 통과했다. ArgoCD `Synced Healthy`, Web `APP_VERSION=aa99154`와 Pod `1/1` ready·restart 0, IndexNow 19개 URL HTTP 200 접수를 확인했다.
+- API는 기존 `916be7a` 이미지·Pod `1/1` ready·restart 0을 유지하며 사용자 기록을 생성·수정하거나 네이티브 바이너리를 배포하지 않았다.
+- 문서: AGENTS.md, docs/seo-v2-refresh-2026-11-11.md, architecture/geo-seo.md, features/ottline-v2.md, index.md, log.md.
+
 ## [2026-11-09] ingest: Android Native v2 전환 및 TWA 자동 세션·기록 복구 프로덕션 출시
 - 대상: `apps/android-native/`, `docs/android-native-v2-transition.md`, `docs/ottline-v2-release-readiness.md`, `docs/ottline-v2-production-rollout.md`, `AGENTS.md`
 - 생성/수정: `pages/platforms/android-native.md` (신규), `pages/platforms/twa.md`, `pages/features/ottline-v2.md`, `index.md`

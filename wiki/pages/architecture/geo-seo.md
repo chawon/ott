@@ -9,16 +9,19 @@
 
 ---
 
-## 운영 기준 (2026-07-25)
+## 운영 기준 (2026-11-11)
 
 - 한국어·영어 공개 페이지는 self-canonical, 상호 hreflang, `x-default`, 언어별 OG를 제공한다.
 - 검색 유입용 `/guide`와 한국어·영어 가이드 6개를 운영한다.
 - `sitemap.xml`은 공개 URL 19개만 포함하고, robots.txt는 `/admin`을 차단하며 sitemap 위치를 알린다.
+- v2 콘텐츠의 실제 수정일을 사용하며 가이드 목록은 언어별 문서의 최신 수정일을 따른다. 공통 OG는 v2 CI 이미지를 사용하고 Twitter는 각 페이지의 제목·설명·이미지를 따른다.
+- 한국어·영어 가이드 6개에 본문 제목·수정일·실제 이미지 기반 `Article`과 상위 가이드 목록·현재 문서의 `BreadcrumbList`를 제공한다. 개인 화면은 sitemap에서 제외하고 noindex를 유지한다.
 - 홈·서비스 소개는 `SoftwareApplication`, 공통 레이아웃은 `Organization`, FAQ는 `FAQPage` JSON-LD를 제공한다. `SoftwareApplication`은 운영체제를 개별 배열로 표기하고 Google Play, App Store, Microsoft Store를 `sameAs`와 `installUrl`로 연결한다.
 - `/about`은 한국어 스토어 URL과 설명형 링크 문구를 사용하며, 세 개의 기록 가이드로 직접 연결한다.
 - Web production 배포 뒤 sitemap URL을 IndexNow로 전송한다.
 - 검색 노출·클릭은 Search Console, landing 이후 세션·첫 기록은 자체 acquisition analytics로 분리해 본다.
 - 기반 배포는 PR `#81`, main SHA `8303f4f51ccc12c1eda4a41efe58c79afd28f378`이며, 검색어 후속 최적화는 PR `#83`, main SHA `524b00139e8495024dca67177c58956855ce56ed` 기준 production 배포와 ArgoCD `Synced Healthy`를 확인했다.
+- v2 후속 보완은 PR `#127`, Web SHA `aa991545f5fb3a914561f7fcd3e12c817275144c`, production run `43014772986`으로 배포했다. 운영 HTML·XML의 공개 URL 19개·개인 화면 14개·구조화 데이터 6세트·이미지 7개 검사와 IndexNow 19개 접수가 성공했다. [배포·검증 기록](../../../docs/seo-v2-refresh-2026-11-11.md)을 따른다.
 
 아래 `29/100` 평가는 2026-03-29 당시의 과거 기준이다. 현재 운영 상태를 다시 점수화한 값은 아니며, 외부 브랜드 엔티티와 독립 출처 확보 과제는 여전히 유효하다.
 
@@ -105,17 +108,18 @@
 
 ## Schema.org 현황
 
-| 스키마 | 상태 | 주요 미흡 |
+| 스키마 | 상태 | 운영 기준·남은 확인 |
 |---|---|---|
 | Organization | 있음 | `foundingDate` 없음 |
-| SoftwareApplication | 있음 | `aggregateRating`, `softwareVersion` 없음 |
-| FAQPage | 있음 (6개 Q&A) | 항목 수 부족 |
+| SoftwareApplication | 있음 | 확인된 앱 정보만 표시하며 평점을 만들지 않음 |
+| FAQPage | 있음 (6개 Q&A) | 일반 서비스의 Google FAQ 리치 결과 노출을 전제로 하지 않음 |
+| Article | 있음 (한·영 가이드 6개) | 실제 본문 제목·이미지·수정일 사용 |
 | Person | 없음 | 창업자/팀 정보 없음 |
-| BreadcrumbList | 없음 | 서브 페이지 전체 미적용 |
+| BreadcrumbList | 있음 (한·영 가이드 6개) | 가이드 목록과 현재 문서의 실제 경로 사용 |
 
 ---
 
-## robots.txt AI 크롤러 명시 (완료)
+## robots.txt·llms.txt
 
-GPTBot, ClaudeBot, anthropic-ai, PerplexityBot, GoogleOther 명시 허용 완료.
+별도 AI 크롤러 이름을 열거하지 않고 `User-agent: *`에 `Allow: /`을 적용한다. `/api/`, `/internal/`, `/og/`, `/admin`은 차단한다.
 `llms.txt`도 함께 제공 중 (`https://ottline.app/llms.txt`).

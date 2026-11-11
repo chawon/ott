@@ -3,8 +3,8 @@
 ## 범위와 기준
 
 - 기준은 원격 main `84f8d87`이다. Netflix 가져오기 PR #109는 닫고, 미커밋 소스와 신규 파일은 stash `8c2d5af14c9b49c29d55c2aec7c4f508dc538097`에 보존했다. 브랜치는 삭제하지 않는다.
-- 코드 변경은 최신 main에서 분기한 `fix/sitemap-seo-v2-20261111`에서 검증한 뒤 PR로 main에 반영한다.
-- 변경 범위는 Web의 sitemap, 공개 페이지 메타데이터와 가이드 구조화 데이터다. API·DB·네이티브·운영 설정은 변경하지 않는다.
+- 코드 변경은 최신 main에서 분기한 `fix/sitemap-seo-v2-20261111`에서 검증하고 PR #127로 main에 병합했다.
+- 변경 범위는 Web의 sitemap, 공개 페이지 메타데이터와 가이드 구조화 데이터다. API·DB·네이티브 코드는 유지하고, Web 운영 이미지와 `APP_VERSION`만 배포 워크플로우로 갱신했다.
 - 점검 시 운영 Web은 `916be7a`였고 Pod 내부 `/sitemap.xml`은 200 및 공개 URL 19개를 반환했다. 외부 직접 요청은 Cloudflare 403으로 차단됐다.
 
 ## 확인한 문제와 결정
@@ -23,6 +23,17 @@
 - runtime 검사를 기존 Web CI의 컨테이너 검증 단계에도 추가했다. API가 없는 환경에서도 공개 목록의 기존 fallback과 sitemap의 수정일 생략 동작을 유지한다.
 - 수정 파일 9개의 Biome 검사와 `git diff --check` 통과.
 - 임시 서버에 `--hostname 127.0.0.1`을 지정했을 때만 한국어 내부 rewrite가 자기 자신으로 redirect되는 차이가 있었다. 운영 Pod의 `/`, `/about`, `/en`, `/en/about`은 모두 200이었고, 임시 서버도 운영과 같은 `next start --port 3220`으로 실행하면 통과했다. 이번 작업에서 운영 routing 코드는 변경하지 않는다.
+
+## 운영 배포 완료
+
+- 애플리케이션 SHA: `aa991545f5fb3a914561f7fcd3e12c817275144c` (PR #127).
+- PR Web CI `43013917419`, main Web CI `43014481807` 모두 성공했다.
+- [Web production run 43014772986](https://github.com/chawon/ott/actions/runs/43014772986)에 위 SHA를 명시해 배포했고, 운영 manifest commit은 `c8a39db5e10aa644bc68cfb073e419441a003158`이다.
+- ArgoCD `ott-app`은 해당 manifest revision에서 `Synced Healthy`, Web 이미지 태그는 위 애플리케이션 SHA, `APP_VERSION=aa99154`, Web Pod `1/1` ready·restart 0이었다. 실제 버전 경로도 200 및 `aa99154`를 반환했다.
+- 운영 Web Pod에서 동일한 SEO runtime 검사를 실행해 공개 URL 19개, 개인 화면 14개, 가이드 구조화 데이터 6세트, 이미지 7개를 확인했다. 홈·소개·FAQ는 11월 8일, 가이드·가이드 목록은 11월 11일을 수정일로 제공한다.
+- 배포 워크플로우의 공개 버전 확인이 성공했고, IndexNow는 19개 URL을 HTTP 200으로 접수했다. 로컬 환경의 공개 도메인 직접 접근은 기존 Cloudflare 403 제한이 있어 운영 Pod의 HTML·XML과 워크플로우의 외부 버전 확인 결과를 함께 사용했다.
+- API는 기존 `916be7abe9a8712d3f5a0a5e460a7bf820e23b0c` 이미지를 유지했으며 API Pod도 `1/1` ready·restart 0이었다. 사용자 기록을 생성·수정하거나 네이티브 바이너리를 배포하지 않았다.
+- 임시 QA 서버·소스 복사본·PR 본문 파일은 정리했으며 기존 의존성 폴더, Netflix 작업 stash와 기존 로컬 도구 파일은 보존했다.
 
 ## 후속 SEO 점검
 

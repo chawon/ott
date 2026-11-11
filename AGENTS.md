@@ -20,7 +20,7 @@ If present, read `./.omd/preferences.md` — pending corrections not yet folded 
 
 ---
 
-## 2) 프로젝트 스냅샷 (기준일: 2026-11-09)
+## 2) 프로젝트 스냅샷 (기준일: 2026-11-11)
 
 ### 아키텍처
 1. 모노레포
@@ -62,7 +62,7 @@ If present, read `./.omd/preferences.md` — pending corrections not yet folded 
 27. iOS 네이티브 앱 App Store 출시: Expo React Native 기반 iOS 네이티브 앱이 App Store 심사를 통과해 `2026-06-29` App Store에 공개됐다. 공개 링크는 `https://apps.apple.com/app/ottline/id6780318110`이며, 앱은 WebView/PWA 래퍼가 아니라 사용자 앱 화면을 네이티브 화면으로 구현한다.
 28. 2026년 상반기 리캡: 개인 이용 리포트에 `2026-H1` 리캡 데이터를 추가하고, 웹/네이티브 리포트에서 포스터 중심의 상반기 돌아보기와 SNS 공유용 카드 생성을 지원한다. 웹은 KST 기준 `2026-07-01`부터 `2026-07-31`까지 상단 바 아래에 `2026년 상반기를 돌아볼까요?` 노티를 노출해 리포트로 진입시켰다(`2026-07-01` production 반영, web/api SHA `9df9cb0`). 캠페인 종료에 맞춰 KST `2026-08-01 00:00`부터 API `seasonalRecap`과 웹 리포트·로컬 fallback의 리캡 노출을 종료했다(`2026-08-03` production 반영, web/api SHA `5eb5115`).
 29. 현실적인 관리자 통계 집계: 웹 `app_open`을 브라우저 탭 세션당 한 번으로 제한하고, 계정·클라이언트·세션을 안전하게 연결한 resolved actor 기준의 행동 사용자와 세션 기준 실행량을 추가했다. 관리자 화면과 데일리 리포트는 기존 DAU/WAU/MAU 및 순차 전환율 대신 행동 사용자·활성 클라이언트·앱 실행 세션·원본 실행 이벤트와 독립 행동 도달을 사용한다(`2026-07-14` production 반영, web/api SHA `b06bf4c`). Cloudflare 데일리 통계는 UTC 날짜 버킷 대신 KST 전일을 UTC 시간 범위로 변환해 HTTP·RUM을 같은 `[start, end)` 구간으로 집계한다(`2026-08-03` production 반영, api SHA `12ed846`). 후속 배포에서는 RUM `visits`를 고유 방문자가 아닌 `방문`으로 바로잡고, GA4 전일 값은 잠정치, Kubernetes는 조회 시점 스냅샷, iOS `app_store_testflight`는 설치 출처 미구분으로 표시했다(`2026-08-03` production 반영, web/api SHA `5c70b2b`).
-30. SEO·검색 유입 기반과 관리자 접근 경계: 한국어·영어 공개 페이지의 canonical/hreflang/OG, 검색 가이드 6개, 공개 URL 전용 sitemap/robots/llms.txt, 배포 후 IndexNow, 유입 세션 집계와 180일 보존 정책을 반영했다. `/admin/**`는 Cloudflare Access와 origin JWT 재검증으로 보호하고 PWA 캐시에서 제외했다(`2026-07-19` production 반영, web/api SHA `8303f4f`). `2026-07-25`에는 네이버 검색어 후속 점검을 바탕으로 `/about`과 영화·시리즈 가이드의 검색 문구, 가이드 직접 링크, 한국어 스토어 링크, `SoftwareApplication`의 공식 스토어 연결을 보강했다(web SHA `524b001`). iOS 바이너리는 새로 빌드하거나 배포하지 않았다.
+30. SEO·검색 유입 기반과 관리자 접근 경계: 한국어·영어 공개 페이지의 canonical/hreflang/OG, 검색 가이드 6개, 공개 URL 19개의 sitemap/robots/llms.txt, 배포 후 IndexNow, 유입 세션 집계와 180일 보존 정책을 운영한다. `/admin/**`는 Cloudflare Access와 origin JWT 재검증으로 보호하고 PWA 캐시에서 제외한다. `2026-11-11` PR `#127`, Web SHA `aa99154`로 v2 실제 수정일 기반 sitemap, 페이지별 OG·Twitter 정보, 가이드 `Article`·`BreadcrumbList`를 배포했다. 운영 공개 URL 19개·개인 화면 14개의 색인 경계와 IndexNow 19개 접수를 확인했다. 상세는 `docs/seo-v2-refresh-2026-11-11.md`, 기존 유입·관리자 경계는 `docs/seo-acquisition-foundation-2026-07-19.md`를 따른다.
 31. KDC 기반 로컬 우선 내 서가 v1: 한국어 화면에서 사용자가 남긴 책을 ISBN 판본 기준으로 중복 제거하고 한국십진분류법 0~9 대분류 서가에 자동 정리한다. QuickLog 저장은 분류 장애와 관계없이 유지하고, 분류 결과는 PostgreSQL 공용 캐시와 IndexedDB 로컬 캐시에 저장한다. 타임라인 책 필터의 작은 진입점, `/me/bookshelf`, 분류 대기 영역, 기록 카드 KDC 배지를 제공한다(`2026-07-29` production 반영, web/api SHA `35b6263`).
 32. Android Play 유입 활성화 1차: Android 브라우저와 설치형 PWA에는 기존 PWA 설치 대신 Google Play 전환 팝업을 노출하고, ottline Google Play TWA 세션은 제외한다. TWA에서 첫 기록이 생긴 사용자에게는 시청 기록 알림 설정 카드를 노출하며, 두 UI는 닫기 또는 이동 뒤 14일간 다시 노출하지 않는다. TWA 판정은 정확한 `android-app://app.ottline` referrer, 현재 launch URL의 앱 버전·install token, 그 신호로 기록한 현재 세션 플래그만 사용한다(`2026-08-18` production 반영, web SHA `57f98e6`).
 33. Android 활성화 2차 및 Play 권장 조치 대응: 네이티브 시청 기록 알림 설정을 현재 필요한 한 단계 중심으로 정리하고 Android 15 edge-to-edge/inset 처리, Android Browser Helper `2.7.2`, AGP `9.3.1`, R8 코드·리소스 축소를 반영했다. 최소 지원 버전은 Play 자동 보호 요건에 맞춘 Android 7.0(API 24)이다(`2026-10-25` 사용자 승인 및 `1.0.19` 적용, `docs/android-watch-reminder-reliability.md`). 시작 크래시 안정화 과정에서 R8 코드 최적화만 임시로 껐으며 축소·난독화와 리소스 축소는 유지한다.
