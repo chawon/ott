@@ -5,6 +5,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { trackEvent } from "@/lib/analytics";
 import {
+  buildGooglePlayStoreUrl,
   isAndroidUserAgent,
   shouldShowAndroidPlayPrompt,
 } from "@/lib/android-acquisition.mjs";
@@ -25,9 +26,6 @@ type AndroidSurface = "browser" | "pwa";
 
 const PWA_BANNER_HIDDEN_KEY = "pwa-banner-hidden";
 const PLAY_CTA_DISMISSED_AT_KEY = "ottline.androidPlayCta.dismissedAt";
-const PLAY_REFERRER = encodeURIComponent(
-  "utm_source=ottline_web&utm_medium=owned&utm_campaign=android_play_cta",
-);
 
 function readLocalStorage(key: string) {
   try {
@@ -52,6 +50,7 @@ export default function PwaInstallBanner() {
   const [mode, setMode] = useState<BannerMode | null>(null);
   const [androidSurface, setAndroidSurface] =
     useState<AndroidSurface>("browser");
+  const [hasExistingRecords, setHasExistingRecords] = useState(false);
   const [deferredPrompt, setDeferredPrompt] =
     useState<BeforeInstallPromptEvent | null>(null);
 
@@ -74,6 +73,7 @@ export default function PwaInstallBanner() {
 
       const twaSignal = getGooglePlayTwaSignal();
       const surface: AndroidSurface = isStandalone ? "pwa" : "browser";
+      const webHandoff = Boolean(readLocalStorage("watchlog.userId")?.trim());
       if (
         shouldShowAndroidPlayPrompt({
           userAgent: ua,
@@ -83,11 +83,13 @@ export default function PwaInstallBanner() {
         })
       ) {
         setAndroidSurface(surface);
+        setHasExistingRecords(webHandoff);
         setMode("android-play");
         setIsVisible(true);
         void trackEvent("android_play_cta_impression", {
           placement: "global_install_banner",
           surface,
+          webHandoff,
         });
       }
 
@@ -127,6 +129,7 @@ export default function PwaInstallBanner() {
     void trackEvent("android_play_cta_click", {
       placement: "global_install_banner",
       surface: androidSurface,
+      webHandoff: hasExistingRecords,
     });
     window.setTimeout(() => setIsVisible(false), 0);
   };
@@ -146,7 +149,13 @@ export default function PwaInstallBanner() {
 
   if (!isVisible || !mode) return null;
 
-  const playStoreUrl = `${localizedStoreUrls(locale).googlePlay}&referrer=${PLAY_REFERRER}`;
+  const playStoreUrl = buildGooglePlayStoreUrl({
+    baseUrl: localizedStoreUrls(locale).googlePlay,
+    campaign: "android_play_cta",
+    content:
+      androidSurface === "pwa" ? "global_banner_pwa" : "global_banner_browser",
+    webHandoff: hasExistingRecords,
+  });
   const isPlayMode = mode === "android-play";
 
   return (

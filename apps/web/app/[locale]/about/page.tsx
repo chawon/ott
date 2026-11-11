@@ -18,6 +18,7 @@ import { getTranslations } from "next-intl/server";
 import BrowserExtensionJsonLd from "@/components/BrowserExtensionJsonLd";
 import SoftwareApplicationJsonLd from "@/components/SoftwareApplicationJsonLd";
 import { Link as IntlLink } from "@/i18n/routing";
+import { buildGooglePlayStoreUrl } from "@/lib/android-acquisition.mjs";
 import {
   localizedAlternates,
   localizedBrowserExtensionUrls,
@@ -100,7 +101,11 @@ export default function AboutPage() {
       icon: Smartphone,
       links: [
         {
-          href: storeUrls.googlePlay,
+          href: buildGooglePlayStoreUrl({
+            baseUrl: storeUrls.googlePlay,
+            campaign: "about_page",
+            content: "platform_card",
+          }),
           label: tAbout("platformAndroidLink"),
           external: true,
           icon: Store,

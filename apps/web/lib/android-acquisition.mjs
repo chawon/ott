@@ -80,6 +80,55 @@ export function shouldShowAndroidPlayPrompt({
   );
 }
 
+export function shouldShowAndroidSavedStagePlayCta({
+  userAgent,
+  displayMode = "browser",
+  twaSignal,
+}) {
+  const isSupportedSurface =
+    displayMode === "browser" || displayMode === "standalone";
+  return Boolean(
+    isAndroidUserAgent(userAgent) && isSupportedSurface && !twaSignal,
+  );
+}
+
+/**
+ * Builds a Google Play Store listing URL with standardized UTM attribution
+ * inside `referrer`. Never embeds pairing codes or user IDs in external URLs;
+ * `web_handoff=1` signals the newly installed Android app to connect local
+ * browser storage on first open.
+ */
+export function buildGooglePlayStoreUrl({
+  baseUrl,
+  source = "ottline_web",
+  medium = "owned",
+  campaign,
+  content,
+  term,
+  webHandoff = false,
+}) {
+  const safeBase = typeof baseUrl === "string" ? baseUrl.trim() : "";
+  if (!safeBase) return "";
+
+  const referrerParams = new URLSearchParams();
+  const safeSource = clean(source);
+  const safeMedium = clean(medium);
+  const safeCampaign = clean(campaign);
+  const safeContent = clean(content);
+  const safeTerm = clean(term);
+
+  if (safeSource) referrerParams.set("utm_source", safeSource);
+  if (safeMedium) referrerParams.set("utm_medium", safeMedium);
+  if (safeCampaign) referrerParams.set("utm_campaign", safeCampaign);
+  if (safeContent) referrerParams.set("utm_content", safeContent);
+  if (safeTerm) referrerParams.set("utm_term", safeTerm);
+  if (webHandoff) referrerParams.set("web_handoff", "1");
+
+  const encodedReferrer = encodeURIComponent(referrerParams.toString());
+  const separator = safeBase.includes("?") ? "&" : "?";
+  return `${safeBase}${separator}referrer=${encodedReferrer}`;
+}
+
 export function shouldShowAndroidReminderCard({
   twaSignal,
   dismissalValue,

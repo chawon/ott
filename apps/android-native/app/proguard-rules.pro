@@ -31,5 +31,6 @@
 -dontwarn okhttp3.**
 -dontwarn okio.**
 
-# Google Play In-App Review
+# Google Play In-App Review & Install Referrer
 -dontwarn com.google.android.play.core.**
+-dontwarn com.android.installreferrer.**

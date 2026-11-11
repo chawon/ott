@@ -175,7 +175,10 @@
     "optionalDetailsTitle": "More to Keep",
     "detailGenre": "Genre",
     "detailDirector": "Director",
-    "detailCast": "Cast"
+    "detailCast": "Cast",
+    "savedPlayCtaTitle": "Keep this record going in the Android app.",
+    "savedPlayCtaAction": "Continue with the Google Play app",
+    "savedPlayCtaHint": "Your browser records connect automatically on first open, with post-watch reminders and a home widget."
   },
   "Common": {
     "placeLabels": {
