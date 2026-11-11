@@ -16,7 +16,7 @@ import PwaInstallBanner from "@/components/PwaInstallBanner";
 import SwipeNav from "@/components/SwipeNav";
 import SyncWorker from "@/components/SyncWorker";
 import { ThemeProvider } from "@/context/ThemeContext";
-import { localizedAlternates, localizedUrl } from "@/lib/seo";
+import { localizedAlternates, localizedOpenGraph } from "@/lib/seo";
 
 export function generateStaticParams() {
   return [{ locale: "ko" }, { locale: "en" }];
@@ -59,26 +59,14 @@ export async function generateMetadata({
       title: "ottline",
       statusBarStyle: "black-translucent",
     },
-    openGraph: {
-      title: "ottline",
-      description: t("description"),
-      url: localizedUrl(locale),
-      siteName: "ottline",
-      locale: locale === "ko" ? "ko_KR" : "en_US",
-      type: "website",
-      images: [
-        {
-          url: "https://ottline.app/brand/v2/og-image.png",
-          width: 1200,
-          height: 630,
-        },
-      ],
-    },
+    openGraph: localizedOpenGraph(
+      locale,
+      "/",
+      t("titleDefault"),
+      t("description"),
+    ),
     twitter: {
       card: "summary_large_image",
-      title: "ottline",
-      description: t("description"),
-      images: ["https://ottline.app/brand/v2/og-image.png"],
     },
   };
 }

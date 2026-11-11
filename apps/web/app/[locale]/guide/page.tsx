@@ -11,7 +11,7 @@ import {
   getGuideHub,
   isGuideLocale,
 } from "@/lib/guides";
-import { absoluteUrl, localizedAlternates, localizedUrl } from "@/lib/seo";
+import { localizedAlternates, localizedOpenGraph } from "@/lib/seo";
 
 const guideIcons = {
   "ott-watch-log": Film,
@@ -37,28 +37,12 @@ export async function generateMetadata({
     title: hub.metaTitle,
     description: hub.metaDescription,
     alternates: localizedAlternates(locale, "/guide"),
-    openGraph: {
-      title: `${hub.metaTitle} | ottline`,
-      description: hub.metaDescription,
-      url: localizedUrl(locale, "/guide"),
-      locale: locale === "ko" ? "ko_KR" : "en_US",
-      alternateLocale: locale === "ko" ? ["en_US"] : ["ko_KR"],
-      type: "website",
-      images: [
-        {
-          url: absoluteUrl("/og-image-20260418.png"),
-          width: 1200,
-          height: 630,
-          alt: "ottline",
-        },
-      ],
-    },
-    twitter: {
-      card: "summary_large_image",
-      title: `${hub.metaTitle} | ottline`,
-      description: hub.metaDescription,
-      images: [absoluteUrl("/og-image-20260418.png")],
-    },
+    openGraph: localizedOpenGraph(
+      locale,
+      "/guide",
+      `${hub.metaTitle} | ottline`,
+      hub.metaDescription,
+    ),
   };
 }
 

@@ -104,8 +104,8 @@ const koGuides: Record<GuideSlug, GuideDocument> = {
     title: "보고 난 순간을, 한곳에 가볍게 남겨요",
     summary:
       "어느 OTT에서 봤는지 흩어져 있어도 괜찮아요. 작품을 찾고 지금의 상태를 고른 뒤, 본 날짜나 플랫폼처럼 기억하고 싶은 것만 더해보세요. 여러 OTT의 기록이 한 타임라인에 모여요.",
-    updatedAt: "2026-11-04",
-    updatedLabel: "2026년 11월 4일 업데이트",
+    updatedAt: "2026-11-11",
+    updatedLabel: "2026년 11월 11일 업데이트",
     image: {
       src: "/guides/v2-brand-ko-home.png",
       width: 2560,
@@ -180,8 +180,8 @@ const koGuides: Record<GuideSlug, GuideDocument> = {
     title: "영화와 시리즈 시청 기록을 한곳에 남겨요",
     summary:
       "같은 작품을 봐도 남는 기억은 저마다 달라요. 어디까지 봤는지, 누구와 있었는지, 어떤 마음이었는지 기억하고 싶은 만큼 적어두면 다시 만날 때 그 순간이 떠올라요.",
-    updatedAt: "2026-11-04",
-    updatedLabel: "2026년 11월 4일 업데이트",
+    updatedAt: "2026-11-11",
+    updatedLabel: "2026년 11월 11일 업데이트",
     image: {
       src: "/guides/v2-brand-ko-recording.png",
       width: 2560,
@@ -254,8 +254,8 @@ const koGuides: Record<GuideSlug, GuideDocument> = {
     title: "책과 함께한 시간을 천천히 이어 적어요",
     summary:
       "읽기 시작한 날의 기대도, 덮고 난 뒤 남은 한 문장도 좋은 기록이 돼요. 완성된 서평을 쓰지 않아도 책과 함께한 시간이 타임라인에 자연스럽게 이어져요.",
-    updatedAt: "2026-11-04",
-    updatedLabel: "2026년 11월 4일 업데이트",
+    updatedAt: "2026-11-11",
+    updatedLabel: "2026년 11월 11일 업데이트",
     image: {
       src: "/guides/v2-brand-ko-space.png",
       width: 2560,
@@ -334,8 +334,8 @@ const enGuides: Record<GuideSlug, GuideDocument> = {
     title: "Keep the moment, wherever you watched it",
     summary:
       "Bring titles from different streaming services into one personal timeline. Find a title, choose its current status, and add a date, platform, or any other details you want to remember.",
-    updatedAt: "2026-11-04",
-    updatedLabel: "Updated November 4, 2026",
+    updatedAt: "2026-11-11",
+    updatedLabel: "Updated November 11, 2026",
     image: {
       src: "/guides/v2-brand-en-home.png",
       width: 2560,
@@ -411,8 +411,8 @@ const enGuides: Record<GuideSlug, GuideDocument> = {
     title: "Keep movie and series watch history in one place",
     summary:
       "The part that stays with you may be an episode, a room, or the person beside you. A few small details make it easier to return to a series and to remember how a film met you at the time.",
-    updatedAt: "2026-11-04",
-    updatedLabel: "Updated November 4, 2026",
+    updatedAt: "2026-11-11",
+    updatedLabel: "Updated November 11, 2026",
     image: {
       src: "/guides/v2-brand-en-recording.png",
       width: 2560,
@@ -486,8 +486,8 @@ const enGuides: Record<GuideSlug, GuideDocument> = {
     title: "Keep the time you spent with a book",
     summary:
       "The anticipation at the first page and the thought that remains after the last are both worth keeping. Your reading records can grow along the way, with as much or as little detail as you like.",
-    updatedAt: "2026-11-04",
-    updatedLabel: "Updated November 4, 2026",
+    updatedAt: "2026-11-11",
+    updatedLabel: "Updated November 11, 2026",
     image: {
       src: "/guides/v2-brand-en-space.png",
       width: 2560,
