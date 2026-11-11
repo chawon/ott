@@ -928,9 +928,18 @@ class OttlineRepository(
         resetLocalDataInternal()
     }
 
-    fun trackAppOpenOnce(entrySource: String = "launcher") {
+    fun trackAppOpenOnce(
+        entrySource: String = "launcher",
+        extraAttribution: Map<String, Any?> = emptyMap()
+    ) {
         if (appOpenedThisSession.compareAndSet(false, true)) {
-            trackEvent("app_open", mapOf("source" to entrySource))
+            val props = buildMap<String, Any?> {
+                put("source", entrySource)
+                put("entrySource", entrySource)
+                put("locale", prefs.current.locale)
+                putAll(extraAttribution)
+            }
+            trackEvent("app_open", props)
         }
     }
 

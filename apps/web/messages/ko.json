@@ -175,7 +175,10 @@
     "optionalDetailsTitle": "더 남겨둘 것",
     "detailGenre": "장르",
     "detailDirector": "감독",
-    "detailCast": "주연"
+    "detailCast": "주연",
+    "savedPlayCtaTitle": "방금 남긴 기록, 앱에서도 그대로 이어져요.",
+    "savedPlayCtaAction": "Google Play 앱으로 이어가기",
+    "savedPlayCtaHint": "앱을 처음 열면 이 브라우저의 기록이 자동으로 연결되고, OTT 시청 후 알림과 홈 위젯도 쓸 수 있어요."
   },
   "Common": {
     "placeLabels": {
