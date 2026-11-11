@@ -96,6 +96,7 @@ jobs:
             ott-web:verify
           trap 'docker logs ott-web-verify; docker rm --force ott-web-verify' EXIT
           docker exec --interactive ott-web-verify node --input-type=module < apps/web/scripts/verify-web-runtime.mjs
+          docker exec --interactive ott-web-verify node --input-type=module < apps/web/scripts/test-seo-runtime.mjs
           docker exec --interactive ott-web-verify node --input-type=module < apps/web/scripts/test-chatgpt-mcp.mjs
           npm run test:locale-navigation --workspace ott
           TIMELINE_TEST_URL=http://127.0.0.1:3000 npm run test:timeline-scroll --workspace ott

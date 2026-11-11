@@ -50,6 +50,7 @@ test("builds complete localized Open Graph metadata for child pages", () => {
       url: "https://ottline.app/en/faq",
       siteName: "ottline",
       locale: "en_US",
+      alternateLocale: ["ko_KR"],
       type: "website",
       images: [
         {

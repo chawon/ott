@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import type { GuideDocument } from "./guides";
 
 export const PUBLIC_ORIGIN = "https://ottline.app";
 export const PUBLIC_LOCALES = ["ko", "en"] as const;
@@ -188,6 +189,7 @@ export function localizedOpenGraph(
     url: localizedUrl(normalizedLocale, pathname),
     siteName: "ottline",
     locale: normalizedLocale === "ko" ? "ko_KR" : "en_US",
+    alternateLocale: normalizedLocale === "ko" ? ["en_US"] : ["ko_KR"],
     type: "website",
     images: [
       {
@@ -195,6 +197,63 @@ export function localizedOpenGraph(
         width: 1200,
         height: 630,
         alt: "ottline",
+      },
+    ],
+  };
+}
+
+export function buildGuideStructuredData({
+  locale,
+  guide,
+  hubTitle,
+}: {
+  locale: string;
+  guide: Pick<
+    GuideDocument,
+    "slug" | "title" | "summary" | "image" | "updatedAt"
+  >;
+  hubTitle: string;
+}) {
+  const url = localizedUrl(locale, `/guide/${guide.slug}`);
+  const organization = {
+    "@type": "Organization",
+    name: "ottline",
+    url: localizedUrl(locale, "/about"),
+  };
+
+  return {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Article",
+        "@id": `${url}#article`,
+        url,
+        mainEntityOfPage: { "@type": "WebPage", "@id": url },
+        headline: guide.title,
+        description: guide.summary,
+        inLanguage: normalizePublicLocale(locale) === "en" ? "en-US" : "ko-KR",
+        image: [absoluteUrl(guide.image.src)],
+        dateModified: `${guide.updatedAt}T00:00:00+09:00`,
+        author: organization,
+        publisher: organization,
+      },
+      {
+        "@type": "BreadcrumbList",
+        "@id": `${url}#breadcrumb`,
+        itemListElement: [
+          {
+            "@type": "ListItem",
+            position: 1,
+            name: hubTitle,
+            item: localizedUrl(locale, "/guide"),
+          },
+          {
+            "@type": "ListItem",
+            position: 2,
+            name: guide.title,
+            item: url,
+          },
+        ],
       },
     ],
   };

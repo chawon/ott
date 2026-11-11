@@ -4,7 +4,7 @@ import { localizedUrl, PUBLIC_ORIGIN } from "@/lib/seo";
 import { loadLatestPublicLogDate } from "@/lib/sitemap-public.mjs";
 
 const CONTENT_DATE = new Date("2026-07-19T00:00:00+09:00");
-const APP_ENTITY_DATE = new Date("2026-07-25T00:00:00+09:00");
+const V2_CONTENT_DATE = new Date("2026-11-08T00:00:00+09:00");
 const PRIVACY_DATE = new Date("2026-11-08T00:00:00+09:00");
 const LOCALIZED_PATHS = [
   "/",
@@ -35,17 +35,28 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ko: koPublicLastModified,
     en: enPublicLastModified,
   };
+  const guideLastModified = (locale: "ko" | "en") =>
+    new Date(
+      Math.max(
+        V2_CONTENT_DATE.getTime(),
+        ...GUIDE_SLUGS.map((slug) =>
+          new Date(
+            `${getGuideDocument(locale, slug).updatedAt}T00:00:00+09:00`,
+          ).getTime(),
+        ),
+      ),
+    );
   const localizedEntries = LOCALIZED_PATHS.flatMap((pathname) =>
     (["ko", "en"] as const).map((locale) => ({
       url: localizedUrl(locale, pathname),
       lastModified:
         pathname === "/public"
           ? publicLastModified[locale]
-          : pathname === "/" || pathname === "/about"
-            ? APP_ENTITY_DATE
+          : pathname === "/guide"
+            ? guideLastModified(locale)
             : pathname === "/privacy"
               ? PRIVACY_DATE
-              : CONTENT_DATE,
+              : V2_CONTENT_DATE,
       alternates: languageAlternates(pathname),
     })),
   );
