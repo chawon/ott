@@ -116,6 +116,19 @@ fun OttlineAppRoot(
 
     var pendingFeedbackReportBody by rememberSaveable { mutableStateOf<String?>(null) }
     var showIntroSplash by rememberSaveable { mutableStateOf(pendingCommand == null) }
+    var pendingReviewCheckAfterSave by rememberSaveable { mutableStateOf(false) }
+
+    LaunchedEffect(pendingReviewCheckAfterSave, quickRecordDraft == null, showIntroSplash) {
+        if (pendingReviewCheckAfterSave && quickRecordDraft == null && !showIntroSplash) {
+            pendingReviewCheckAfterSave = false
+            kotlinx.coroutines.delay(700L)
+            InAppReviewHelper.maybeRequestInAppReview(
+                context = context,
+                prefs = repository.prefs,
+                activeLogsCount = allLogs.size
+            )
+        }
+    }
 
     fun navigateTopTab(tab: MainTab) {
         val target = when (tab) {
@@ -560,12 +573,21 @@ fun OttlineAppRoot(
                     personaKey = prefsSnapshot.personaKey,
                     customVideoPlatforms = prefsSnapshot.customVideoPlatforms,
                     customBookPlatforms = prefsSnapshot.customBookPlatforms,
-                    onDismiss = { mainViewModel.dismissQuickRecord() },
+                    onDismiss = {
+                        if (draft.savedLog != null) {
+                            pendingReviewCheckAfterSave = true
+                        }
+                        mainViewModel.dismissQuickRecord()
+                    },
                     onOpenTimeline = {
+                        if (draft.savedLog != null) {
+                            pendingReviewCheckAfterSave = true
+                        }
                         mainViewModel.dismissQuickRecord()
                         navigateTopTab(MainTab.TIMELINE)
                     },
                     onSavedAndOpenTitle = { savedTitleId ->
+                        pendingReviewCheckAfterSave = true
                         mainViewModel.dismissQuickRecord()
                         navController.navigate("title/${Uri.encode(savedTitleId)}") {
                             launchSingleTop = true
