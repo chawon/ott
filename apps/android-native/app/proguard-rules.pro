@@ -30,3 +30,6 @@
 # OkHttp / Okio
 -dontwarn okhttp3.**
 -dontwarn okio.**
+
+# Google Play In-App Review
+-dontwarn com.google.android.play.core.**

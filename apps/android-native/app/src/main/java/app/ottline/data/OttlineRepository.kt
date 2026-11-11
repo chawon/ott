@@ -355,6 +355,7 @@ class OttlineRepository(
         }
 
         refreshWidgetsSafe()
+        prefs.incrementNativeLogSavesCount()
 
         if (outcome.isNewLog) {
             val eventProps = mapOf(

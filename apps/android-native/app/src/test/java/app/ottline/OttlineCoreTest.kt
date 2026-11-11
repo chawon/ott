@@ -681,4 +681,63 @@ class OttlineCoreTest {
         assertNull(prefs.current.nickname)
         assertNull(prefs.current.personaKey)
     }
+
+    @Test
+    fun inAppReviewPolicy_gatesMilestonesAndSixtyDayCooldown() {
+        val now = 1_794_000_000_000L
+        // Too few active logs
+        assertFalse(
+            app.ottline.ui.InAppReviewHelper.shouldPromptForReview(
+                activeLogsCount = 2,
+                nativeLogSavesCount = 3,
+                lastPromptAtMillis = 0L,
+                nowMillis = now
+            )
+        )
+        // Synced many logs from web, but only 1 native save so far -> hold off
+        assertFalse(
+            app.ottline.ui.InAppReviewHelper.shouldPromptForReview(
+                activeLogsCount = 10,
+                nativeLogSavesCount = 1,
+                lastPromptAtMillis = 0L,
+                nowMillis = now
+            )
+        )
+        // Milestone reached (3+ active logs and 2+ native saves), never prompted -> eligible!
+        assertTrue(
+            app.ottline.ui.InAppReviewHelper.shouldPromptForReview(
+                activeLogsCount = 3,
+                nativeLogSavesCount = 2,
+                lastPromptAtMillis = 0L,
+                nowMillis = now
+            )
+        )
+        // Prompted 30 days ago -> blocked by 60-day cooldown
+        val thirtyDaysAgo = now - 30L * 24L * 60L * 60L * 1000L
+        assertFalse(
+            app.ottline.ui.InAppReviewHelper.shouldPromptForReview(
+                activeLogsCount = 8,
+                nativeLogSavesCount = 5,
+                lastPromptAtMillis = thirtyDaysAgo,
+                nowMillis = now
+            )
+        )
+        // Prompted 61 days ago -> eligible again
+        val sixtyOneDaysAgo = now - 61L * 24L * 60L * 60L * 1000L
+        assertTrue(
+            app.ottline.ui.InAppReviewHelper.shouldPromptForReview(
+                activeLogsCount = 8,
+                nativeLogSavesCount = 5,
+                lastPromptAtMillis = sixtyOneDaysAgo,
+                nowMillis = now
+            )
+        )
+
+        val prefs = AppPreferences(ApplicationProvider.getApplicationContext())
+        assertEquals(0, prefs.current.nativeLogSavesCount)
+        assertEquals(1, prefs.incrementNativeLogSavesCount())
+        assertEquals(2, prefs.incrementNativeLogSavesCount())
+        prefs.markInAppReviewPrompted(now)
+        assertEquals(now, prefs.current.lastInAppReviewPromptAtMillis)
+    }
 }

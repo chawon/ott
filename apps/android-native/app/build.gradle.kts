@@ -16,8 +16,8 @@ if (hasKeystore) {
     FileInputStream(keystorePropertiesFile).use { keystoreProperties.load(it) }
 }
 
-val releaseVersionCode = (project.findProperty("releaseVersionCode") as String?)?.toIntOrNull() ?: 25
-val releaseVersionName = (project.findProperty("releaseVersionName") as String?) ?: "2.0.1"
+val releaseVersionCode = (project.findProperty("releaseVersionCode") as String?)?.toIntOrNull() ?: 26
+val releaseVersionName = (project.findProperty("releaseVersionName") as String?) ?: "2.0.2"
 val debugApiBaseUrl = (project.findProperty("debugApiBaseUrl") as String?)
     ?: "https://unmellow-dimple-untouchably.ngrok-free.dev"
 val debugAppIdSuffix = (project.findProperty("debugAppIdSuffix") as String?) ?: ".dev"
@@ -138,6 +138,7 @@ dependencies {
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.coil.compose)
     implementation(libs.coil.network.okhttp)
+    implementation(libs.play.review.ktx)
 
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
