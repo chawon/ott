@@ -80,10 +80,17 @@ export function shouldShowAndroidPlayPrompt({
   );
 }
 
+/**
+ * @param {{
+ *   userAgent?: string | null;
+ *   displayMode?: string;
+ *   twaSignal?: string | null;
+ * }} options
+ */
 export function shouldShowAndroidSavedStagePlayCta({
   userAgent,
   displayMode = "browser",
-  twaSignal = null,
+  twaSignal,
 }) {
   const isSupportedSurface =
     displayMode === "browser" || displayMode === "standalone";
@@ -97,6 +104,17 @@ export function shouldShowAndroidSavedStagePlayCta({
  * inside `referrer`. Never embeds pairing codes or user IDs in external URLs;
  * `web_handoff=1` signals the newly installed Android app to connect local
  * browser storage on first open.
+ */
+/**
+ * @param {{
+ *   baseUrl: string;
+ *   source?: string;
+ *   medium?: string;
+ *   campaign?: string;
+ *   content?: string;
+ *   term?: string;
+ *   webHandoff?: boolean;
+ * }} options
  */
 export function buildGooglePlayStoreUrl({
   baseUrl,
