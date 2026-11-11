@@ -83,7 +83,7 @@ export function shouldShowAndroidPlayPrompt({
 export function shouldShowAndroidSavedStagePlayCta({
   userAgent,
   displayMode = "browser",
-  twaSignal,
+  twaSignal = null,
 }) {
   const isSupportedSurface =
     displayMode === "browser" || displayMode === "standalone";
@@ -102,9 +102,9 @@ export function buildGooglePlayStoreUrl({
   baseUrl,
   source = "ottline_web",
   medium = "owned",
-  campaign,
-  content,
-  term,
+  campaign = "",
+  content = "",
+  term = "",
   webHandoff = false,
 }) {
   const safeBase = typeof baseUrl === "string" ? baseUrl.trim() : "";
