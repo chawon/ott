@@ -340,6 +340,7 @@
     "searchLoading": "Searching...",
     "searchEmpty": "No results found",
     "resultsCount": "{count, plural, one {# title found.} other {# titles found.}}",
+    "googleBooksResultLabel": "{title} · Google Books, result {rank}",
     "commentCount": "Comments {count}",
     "typeMovie": "Movie",
     "typeSeries": "Series",

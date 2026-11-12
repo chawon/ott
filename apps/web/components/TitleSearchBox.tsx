@@ -833,12 +833,16 @@ export default function TitleSearchBox({
 
           {listboxVisible && items.some((item) => googleBooksUrl(item)) ? (
             <ul className="border-t border-border px-4 py-2">
-              {items.map((item) => {
+              {items.map((item, index) => {
                 const href = googleBooksUrl(item);
                 return href ? (
                   <li key={`${item.provider}:${item.providerId}`}>
                     <a
                       href={href}
+                      aria-label={tTitleSearch("googleBooksResultLabel", {
+                        title: item.name,
+                        rank: index + 1,
+                      })}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-flex min-h-12 items-center gap-2 text-sm text-[#1E4D8C] underline underline-offset-4 dark:text-foreground"

@@ -340,6 +340,7 @@
     "searchLoading": "검색 중...",
     "searchEmpty": "결과가 없어요",
     "resultsCount": "작품 {count}개를 찾았어요.",
+    "googleBooksResultLabel": "{title} · Google Books, 검색 결과 {rank}번",
     "commentCount": "댓글 {count}",
     "typeMovie": "영화",
     "typeSeries": "시리즈",

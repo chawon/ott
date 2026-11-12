@@ -28,6 +28,17 @@ const titles = [
     genres: [],
   },
 ];
+const books = [1, 2].map((rank) => ({
+  id: `audit-book-${rank}`,
+  provider: "GOOGLE_BOOKS",
+  providerId: `audit-volume-${rank}`,
+  type: "book",
+  name: "Shared audit book",
+  author: "Audit author",
+  publisher: `Edition ${rank}`,
+  year: 2026,
+  sourceUrl: `https://books.google.com/books?id=audit-volume-${rank}`,
+}));
 const recordDate = "2026-11-10T12:00:00Z";
 const log = {
   id: "audit-record",
@@ -92,6 +103,12 @@ async function newContext(locale, width, serviceWorkers = "block") {
       url.searchParams.get("type") !== "book"
     )
       body = titles;
+    if (
+      url.pathname === "/api/titles/search" &&
+      url.searchParams.get("type") === "book" &&
+      url.searchParams.get("q") === books[0].name
+    )
+      body = books;
     if (/^\/api\/titles\/audit-title-[12]$/.test(url.pathname))
       body = titles.find((title) => url.pathname.endsWith(title.id));
     if (url.pathname === "/api/auth/profile")
@@ -290,6 +307,36 @@ try {
           .getByText(titles[0].name, { exact: true })
           .first()
           .waitFor();
+        await page.keyboard.press("Escape");
+        await dialog.waitFor({ state: "hidden" });
+
+        await opener.click();
+        await dialog
+          .getByRole("button", {
+            name: locale === "ko" ? "책" : "Book",
+            exact: true,
+          })
+          .click();
+        await search.fill(books[0].name);
+        await candidates.nth(1).waitFor();
+        const attributionNames = [];
+        for (const book of books) {
+          const link = dialog.locator(`a[href="${book.sourceUrl}"]`);
+          assert.equal(await link.count(), 1);
+          const name = await link.getAttribute("aria-label");
+          assert.ok(name?.includes(book.name) && name.includes("Google Books"));
+          attributionNames.push(name);
+        }
+        assert.equal(
+          new Set(attributionNames).size,
+          books.length,
+          "Same-title editions need distinct attribution names",
+        );
+        await dialog
+          .getByRole("status")
+          .filter({ hasText: locale === "ko" ? /작품 2개/ : /2 titles found/ })
+          .waitFor();
+        await search.press("Escape");
         await page.keyboard.press("Escape");
         await dialog.waitFor({ state: "hidden" });
 
