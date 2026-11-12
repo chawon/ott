@@ -1,9 +1,9 @@
 const CACHE_PREFIXES = ["ottline-cache-", "ott-pwa-"];
-const CACHE_NAME = "ottline-cache-v6";
+const CACHE_NAME = "ottline-cache-v7";
 const PRECACHE_URLS = [
-  "/",
-  "/timeline",
-  "/offline",
+  // Standalone documents bypass locale redirects and need no Next.js assets.
+  "/offline/ko.html",
+  "/offline/en.html",
   "/brand/v2/app-icon-192.png",
   "/brand/v2/app-icon-512.png",
   "/brand/v2/app-icon-180.png",
@@ -15,7 +15,16 @@ self.addEventListener("install", (event) => {
   event.waitUntil(
     caches
       .open(CACHE_NAME)
-      .then((cache) => cache.addAll(PRECACHE_URLS))
+      .then((cache) =>
+        cache.addAll(
+          PRECACHE_URLS.map(
+            (path) =>
+              new Request(new URL(path, self.location.origin), {
+                cache: "reload",
+              }),
+          ),
+        ),
+      )
       .then(() => self.skipWaiting()),
   );
 });
@@ -95,7 +104,12 @@ self.addEventListener("fetch", (event) => {
           }
           return response;
         })
-        .catch(() => caches.match("/offline")),
+        .catch(async () => {
+          // Prefixless routes use the application's default Korean locale.
+          const locale = /^\/en(?:\/|$)/.test(url.pathname) ? "en" : "ko";
+          const cache = await caches.open(CACHE_NAME);
+          return cache.match(`/offline/${locale}.html`);
+        }),
     );
     return;
   }

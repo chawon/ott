@@ -103,4 +103,5 @@ jobs:
           WEB_STORAGE_PROFILE_DIR=/tmp/ott-web-storage-ci npm run test:web-storage --workspace ott -- --seed
           WEB_STORAGE_PROFILE_DIR=/tmp/ott-web-storage-ci npm run test:web-storage --workspace ott
           npm run test:book-search --workspace ott
+          npm run test:web-accessibility --workspace ott
           WEB_RUNTIME_URL=http://127.0.0.1:3000 node apps/web/scripts/test-record-save-intent.mjs

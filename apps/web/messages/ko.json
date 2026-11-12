@@ -181,6 +181,7 @@
     "savedPlayCtaHint": "앱을 처음 열면 이 브라우저의 기록이 자동으로 연결되고, OTT 시청 후 알림과 홈 위젯도 쓸 수 있어요."
   },
   "Common": {
+    "skipToContent": "본문 바로가기",
     "placeLabels": {
       "HOME": "집",
       "THEATER": "극장",
@@ -338,6 +339,7 @@
     "empty": "아직 없어요",
     "searchLoading": "검색 중...",
     "searchEmpty": "결과가 없어요",
+    "resultsCount": "작품 {count}개를 찾았어요.",
     "commentCount": "댓글 {count}",
     "typeMovie": "영화",
     "typeSeries": "시리즈",
