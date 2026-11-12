@@ -42,7 +42,19 @@ Validated after rebasing onto `origin/main` at `434cdb0`, including the Android 
 
 Browser checks used Chromium 147 with synthetic local records and intercepted API responses. Safari, physical-device screen readers, and real-user Core Web Vitals were not measured. Font subsetting and full offline record access remain outside this change.
 
-Implementation and local verification are complete on `fix/web-offline-accessibility`, ready for PR review. Production deployment is a separate step.
+## Production deployment
+
+- PR [#130](https://github.com/chawon/ott/pull/130) merged as application SHA `4cabcd553a952bc27db9b39b02ad94498e225cec`. Its source tree matches the verified PR head `8b1cd7f`.
+- PR Web CI [43139662667](https://github.com/chawon/ott/actions/runs/43139662667), main Web CI [43158268458](https://github.com/chawon/ott/actions/runs/43158268458), and Web production [43158345911](https://github.com/chawon/ott/actions/runs/43158345911) succeeded.
+- Production manifest commit: `753ef492dd922c13089824c3b12b675bdf9f6bae`. After refreshing ArgoCD, `ott-app` reached `Synced Healthy`, the Web image used the application SHA, and `APP_VERSION=4cabcd5`. Web and API Pods were ready with zero restarts.
+- The public version endpoint returned HTTP 200 and `4cabcd5`. Public `/sw.js` and both offline documents returned HTTP 200 and matched the reviewed source hashes. Korean and English page HTML included the skip link and focusable main landmark.
+- A fresh Chromium 147 context on `https://ottline.app` installed worker v7, removed a seeded v6 cache, and retained an unrelated cache. Injecting network transport failure only in that isolated worker returned the real cached Korean and English notices for `/timeline` and `/en/timeline`, both HTTP 200 from the service worker, with no external scripts/styles/images required. Restoring transport returned to an online document successfully. API and write requests were blocked throughout the probe.
+- The browser probe used explicit worker transport failure because page-level offline emulation can leave the worker's network target available. The application handler, cached responses, and production server were not modified by this probe. Cloudflare's optional metrics request on online static-page navigation was blocked.
+- IndexNow accepted 19 URLs with HTTP 200. The API retained image `916be7abe9a8712d3f5a0a5e460a7bf820e23b0c`; native binaries and user records were unchanged by the rollout.
+
+## Verification follow-up
+
+The offline browser check now waits on the synchronous condition `navigator.serviceWorker.controller?.state === "activated"`. This prevents an asynchronous registration lookup from letting cache assertions run before activation finishes. The follow-up changes the verification script and documentation; the deployed application remains `4cabcd5`.
 
 ## Guidance
 

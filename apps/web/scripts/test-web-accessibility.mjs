@@ -395,13 +395,9 @@ try {
       });
       await openHome(page, locale);
       await seedRecord(page);
-      await page.waitForFunction(async () => {
-        const registration = await navigator.serviceWorker.getRegistration();
-        return (
-          registration?.active?.state === "activated" &&
-          Boolean(navigator.serviceWorker.controller)
-        );
-      });
+      await page.waitForFunction(
+        () => navigator.serviceWorker.controller?.state === "activated",
+      );
       const cacheNames = await page.evaluate(() => caches.keys());
       assert.ok(cacheNames.includes("ottline-cache-v7"));
       assert.ok(

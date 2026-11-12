@@ -1,5 +1,14 @@
 # Wiki Log
 
+## [2026-11-12] fix: Web/PWA 오프라인 재진입 안내·키보드 접근성 운영 배포
+
+- PR `#130`, Web SHA `4cabcd553a952bc27db9b39b02ad94498e225cec`, production run `43158345911`, manifest commit `753ef492dd922c13089824c3b12b675bdf9f6bae`.
+- 서비스워커 v7, 외부 자원 없는 한·영 안내, 검색 선택 상태와 동일 제목 판본 출처 이름, 모션 감소·포커스 대비·본문 바로가기를 반영했다.
+- PR/main CI와 운영 배포 성공, 공개 버전·서비스워커·안내 파일 일치, 한·영 통신 실패 시 HTTP 200 fallback, 이전 캐시 정리·관련 없는 캐시 유지와 재연결을 확인했다. 브라우저 probe는 격리된 서비스워커 전송에만 실패를 주입했고 서버 API·쓰기를 차단했다.
+- ArgoCD `Synced Healthy`, Web `APP_VERSION=4cabcd5`, Web/API Pod Ready·restart 0, IndexNow 19개 URL HTTP 200을 확인했다. API 이미지 `916be7a`와 네이티브 바이너리는 유지했다.
+- 배포 검증에서 발견한 서비스워커 활성화 대기 조건도 동기 controller 상태 확인으로 보완했다.
+- 문서: AGENTS.md, docs/web-offline-accessibility-2026-11-12.md, features/ottline-v2.md, platforms/pwa.md, index.md, log.md.
+
 ## [2026-11-11] fix: v2 sitemap·공유 메타데이터·가이드 구조화 데이터 Web 운영 배포
 
 - PR `#127`, Web SHA `aa991545f5fb3a914561f7fcd3e12c817275144c`, production run `43014772986`, manifest commit `c8a39db5e10aa644bc68cfb073e419441a003158`.
