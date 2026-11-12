@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useLocale, useTranslations } from "next-intl";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import GoogleBooksAttribution from "@/components/GoogleBooksAttribution";
 import { api } from "@/lib/api";
 import { googleBooksUrl } from "@/lib/googleBooks";
@@ -92,6 +92,9 @@ export default function TitleSearchBox({
   >([]);
   const [recentLoading, setRecentLoading] = useState(false);
   const [recentErr, setRecentErr] = useState<string | null>(null);
+  const [announcement, setAnnouncement] = useState("");
+  const searchId = useId();
+  const listboxId = `${searchId}-results`;
   const rootRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const consumedInitialRef = useRef<string | null>(null);
@@ -104,6 +107,7 @@ export default function TitleSearchBox({
     if (consumedInitialRef.current === next) return;
     consumedInitialRef.current = next;
     setQ(next);
+    setLoading(true);
     setOpen(true);
   }, [initialQuery]);
 
@@ -329,6 +333,42 @@ export default function TitleSearchBox({
       items.length > 0 ||
       showRecentPanel ||
       Boolean(query));
+  const listboxVisible = Boolean(
+    showPanel && query && !loading && !err && items.length > 0,
+  );
+
+  useEffect(() => {
+    setAnnouncement("");
+    if (!open || !query || loading || composing) return;
+
+    const timer = setTimeout(() => {
+      const message = err
+        ? err
+        : items.length
+          ? tTitleSearch("resultsCount", { count: items.length })
+          : tTitleSearch("searchEmpty");
+      setAnnouncement(message);
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [open, query, loading, composing, err, items.length, tTitleSearch]);
+
+  function moveActiveResult(direction: 1 | -1) {
+    const next = open
+      ? (activeIndex + direction + items.length) % items.length
+      : direction === 1
+        ? 0
+        : items.length - 1;
+    setOpen(true);
+    setActiveIndex(next);
+    requestAnimationFrame(() => {
+      if (document.activeElement !== inputRef.current) return;
+      document.getElementById(`${listboxId}-${next}`)?.scrollIntoView({
+        block: "nearest",
+        inline: "nearest",
+        behavior: "instant",
+      });
+    });
+  }
 
   useEffect(() => {
     if (!autoFocus && focusSignal === 0) return;
@@ -344,7 +384,14 @@ export default function TitleSearchBox({
         ref={inputRef}
         type="search"
         data-testid="title-search"
+        role="combobox"
         aria-label={modernPlaceholder}
+        aria-autocomplete="list"
+        aria-expanded={listboxVisible}
+        aria-controls={listboxVisible ? listboxId : undefined}
+        aria-activedescendant={
+          listboxVisible ? `${listboxId}-${activeIndex}` : undefined
+        }
         maxLength={200}
         autoComplete="off"
         onCompositionStart={() => setComposing(true)}
@@ -352,6 +399,11 @@ export default function TitleSearchBox({
         value={q}
         onChange={(e) => {
           setQ(e.target.value);
+          setItems([]);
+          setActiveIndex(0);
+          setErr(null);
+          setPartialSearch(false);
+          setLoading(Boolean(e.target.value.trim()));
           setOpen(true);
         }}
         onFocus={() => {
@@ -360,19 +412,21 @@ export default function TitleSearchBox({
         onKeyDown={(e) => {
           if (e.nativeEvent.isComposing || composing || e.keyCode === 229)
             return;
-          if (e.key === "Escape") {
+          if (e.key === "Escape" && showPanel) {
+            e.preventDefault();
+            e.stopPropagation();
             setOpen(false);
             return;
           }
-          if (e.key === "ArrowDown" && items.length > 0) {
+          if (e.key === "ArrowDown" && !loading && !err && items.length > 0) {
             e.preventDefault();
-            setActiveIndex((i) => (i + 1) % items.length);
+            moveActiveResult(1);
           }
-          if (e.key === "ArrowUp" && items.length > 0) {
+          if (e.key === "ArrowUp" && !loading && !err && items.length > 0) {
             e.preventDefault();
-            setActiveIndex((i) => (i - 1 + items.length) % items.length);
+            moveActiveResult(-1);
           }
-          if (e.key === "Enter" && items.length > 0) {
+          if (e.key === "Enter" && listboxVisible) {
             e.preventDefault();
             pick(
               items[Math.max(0, Math.min(activeIndex, items.length - 1))],
@@ -391,6 +445,9 @@ export default function TitleSearchBox({
               )
         }
       />
+      <p className="sr-only" role="status" aria-atomic="true">
+        {announcement}
+      </p>
 
       {dialogLayout || onContentTypeChange ? (
         <fieldset className={styles.typeChoices}>
@@ -408,6 +465,7 @@ export default function TitleSearchBox({
                 setItems([]);
                 setPartialSearch(false);
                 setErr(null);
+                setLoading(Boolean(query));
                 setOpen(true);
               }}
             >
@@ -673,36 +731,37 @@ export default function TitleSearchBox({
             </div>
           )}
 
-          {!loading &&
-            !err &&
-            items.map((t, idx) => {
-              const key = `${t.provider}:${t.providerId}`;
-              const typeLabel =
-                t.type === "movie"
-                  ? tTitleSearch("typeMovie")
-                  : t.type === "series"
-                    ? tTitleSearch("typeSeries")
-                    : tTitleSearch("typeBook");
-              const meta =
-                t.type === "book"
-                  ? [t.author, t.publisher, t.year ? String(t.year) : null]
-                      .filter(Boolean)
-                      .join(" · ")
-                  : `${typeLabel}${t.year ? ` · ${t.year}` : ""}`;
-              const detailLine =
-                t.type === "book"
-                  ? t.isbn13 || t.isbn10
-                    ? `ISBN ${t.isbn13 ?? t.isbn10}`
-                    : t.overview
-                  : t.overview;
+          {listboxVisible ? (
+            <div id={listboxId} role="listbox" aria-label={modernPlaceholder}>
+              {items.map((t, idx) => {
+                const key = `${t.provider}:${t.providerId}`;
+                const typeLabel =
+                  t.type === "movie"
+                    ? tTitleSearch("typeMovie")
+                    : t.type === "series"
+                      ? tTitleSearch("typeSeries")
+                      : tTitleSearch("typeBook");
+                const meta =
+                  t.type === "book"
+                    ? [t.author, t.publisher, t.year ? String(t.year) : null]
+                        .filter(Boolean)
+                        .join(" · ")
+                    : `${typeLabel}${t.year ? ` · ${t.year}` : ""}`;
+                const detailLine =
+                  t.type === "book"
+                    ? t.isbn13 || t.isbn10
+                      ? `ISBN ${t.isbn13 ?? t.isbn10}`
+                      : t.overview
+                    : t.overview;
 
-              return (
-                <div
-                  key={key}
-                  className="flex flex-col items-stretch sm:flex-row sm:items-center"
-                >
+                return (
                   <button
+                    key={key}
                     type="button"
+                    id={`${listboxId}-${idx}`}
+                    role="option"
+                    aria-selected={idx === activeIndex}
+                    tabIndex={-1}
                     data-testid="title-search-result"
                     data-title-provider={t.provider}
                     data-title-type={t.type}
@@ -711,7 +770,7 @@ export default function TitleSearchBox({
                     onClick={() => pick(t, "search_result", idx + 1)}
                     onMouseEnter={() => setActiveIndex(idx)}
                     className={cn(
-                      "flex min-w-0 flex-1 items-center gap-4 px-4 py-3 text-left transition-colors",
+                      "flex w-full min-w-0 items-center gap-4 px-4 py-3 text-left transition-colors",
                       idx === activeIndex
                         ? "bg-ott-paper-strong"
                         : "hover:bg-ott-paper-strong",
@@ -767,17 +826,35 @@ export default function TitleSearchBox({
                       ) : null}
                     </div>
                   </button>
-                  {googleBooksUrl(t) ? (
-                    <div className="flex justify-end">
-                      <GoogleBooksAttribution
-                        href={googleBooksUrl(t)!}
-                        logo={false}
-                      />
-                    </div>
-                  ) : null}
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
+          ) : null}
+
+          {listboxVisible && items.some((item) => googleBooksUrl(item)) ? (
+            <ul className="border-t border-border px-4 py-2">
+              {items.map((item, index) => {
+                const href = googleBooksUrl(item);
+                return href ? (
+                  <li key={`${item.provider}:${item.providerId}`}>
+                    <a
+                      href={href}
+                      aria-label={tTitleSearch("googleBooksResultLabel", {
+                        title: item.name,
+                        rank: index + 1,
+                      })}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex min-h-12 items-center gap-2 text-sm text-[#1E4D8C] underline underline-offset-4 dark:text-foreground"
+                    >
+                      <span>{item.name}</span>
+                      <span>· Google Books</span>
+                    </a>
+                  </li>
+                ) : null;
+              })}
+            </ul>
+          ) : null}
 
           {query && !loading && !err && items.length === 0 && (
             <div className="px-4 py-3 text-sm font-bold text-muted-foreground">

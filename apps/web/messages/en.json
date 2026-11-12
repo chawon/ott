@@ -181,6 +181,7 @@
     "savedPlayCtaHint": "Your browser records connect automatically on first open, with post-watch reminders and a home widget."
   },
   "Common": {
+    "skipToContent": "Skip to main content",
     "placeLabels": {
       "HOME": "Home",
       "THEATER": "Theater",
@@ -338,6 +339,8 @@
     "empty": "Nothing here yet",
     "searchLoading": "Searching...",
     "searchEmpty": "No results found",
+    "resultsCount": "{count, plural, one {# title found.} other {# titles found.}}",
+    "googleBooksResultLabel": "{title} · Google Books, result {rank}",
     "commentCount": "Comments {count}",
     "typeMovie": "Movie",
     "typeSeries": "Series",

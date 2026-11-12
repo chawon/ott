@@ -222,3 +222,40 @@
     box-shadow: inset 0 0 0 1px var(--border);
   }
 }
+
+/* The orange inner ring keeps the brand cue; the foreground outline provides
+   contrast against both the light paper and dark surfaces. */
+:is(a[href], button, input, select, textarea):focus-visible {
+  outline: 2px solid var(--foreground);
+  outline-offset: 4px;
+  box-shadow: 0 0 0 2px var(--primary);
+}
+
+.ottline-skip-link {
+  position: fixed;
+  top: 16px;
+  left: 16px;
+  z-index: 100;
+  min-height: 48px;
+  align-items: center;
+  padding: 12px 24px;
+  border: 1px solid var(--foreground);
+  border-radius: 8px;
+  background: var(--card);
+  color: var(--foreground);
+  font-weight: 600;
+}
+
+.ottline-skip-link:not(:focus) {
+  clip-path: inset(50%);
+  width: 1px;
+  height: 1px;
+  min-height: 0;
+  padding: 0;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.ottline-skip-link:focus {
+  display: inline-flex;
+}

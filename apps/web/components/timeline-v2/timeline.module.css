@@ -764,8 +764,9 @@
 .recordRow button:focus-visible,
 .filterBar input:focus-visible,
 .filterBar select:focus-visible {
-  outline: 2px solid #ff9933;
+  outline: 2px solid var(--foreground);
   outline-offset: 4px;
+  box-shadow: 0 0 0 2px var(--primary);
   border-radius: 8px;
 }
 :global(.dark) .quietLink,

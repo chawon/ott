@@ -93,6 +93,7 @@ export default async function RootLayout({
   setRequestLocale(locale);
   const messages = await getMessages();
   const metadataT = await getTranslations({ locale, namespace: "Metadata" });
+  const commonT = await getTranslations({ locale, namespace: "Common" });
 
   const themeInitScript = `
 (() => {
@@ -222,6 +223,9 @@ export default async function RootLayout({
       <body className="min-h-screen bg-background text-foreground font-sans antialiased">
         <NextIntlClientProvider messages={messages}>
           <ThemeProvider>
+            <a href="#main-content" className="ottline-skip-link">
+              {commonT("skipToContent")}
+            </a>
             {process.env.APP_ENV === "staging" && (
               <div className="fixed top-0 left-0 right-0 z-50 bg-amber-400 text-amber-900 text-center text-xs font-bold py-1 tracking-widest">
                 STAGING
@@ -233,7 +237,7 @@ export default async function RootLayout({
             <SwipeNav />
             <PwaInstallBanner />
             <SyncWorker />
-            <main id="main-content" className="ottline-app-main">
+            <main id="main-content" tabIndex={-1} className="ottline-app-main">
               {children}
             </main>
             <AppFooter />
