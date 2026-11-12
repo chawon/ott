@@ -14,6 +14,8 @@ API 169개와 Web CI, 운영 검색·기록·수정·동기화·연결·추천, 
 
 `2026-11-09`에는 순수 Android 네이티브 앱([[android-native]], `apps/android-native`)을 모노레포에 통합해 Google Play `production` 트랙에 `2.0.0`(`versionCode=24`, SHA `45ccac3`) 및 기존 TWA 세션·기록 2단계 자동 복구를 포함한 `2.0.1`(`versionCode=25`, SHA `916be7a`)을 배포하고 v2 스토어 아이콘·피처 그래픽·스크린샷 5장을 반영했다. iOS·Windows·확장·토스 패키지는 플랫폼별 작업과 제출을 별도로 진행한다.
 
+`2026-11-12`에는 PR `#130`, Web SHA `4cabcd5`로 한·영 오프라인 재진입 안내, 검색 키보드·보조기술 지원, 모션 감소, 포커스 대비와 본문 바로가기를 운영 반영했다. 공개 자산 일치와 별도 브라우저 컨텍스트의 통신 실패 시 한·영 HTTP 200 fallback을 확인했다. [접근성·오프라인 배포 기록](../../../docs/web-offline-accessibility-2026-11-12.md)을 따른다.
+
 - [운영 배포와 검증](../../../docs/ottline-v2-production-rollout.md)
 - [플랫폼별 출시 준비](../../../docs/ottline-v2-release-readiness.md)
 - [웹 구현 기록](../../../docs/ottline-ux-v2-web.md)
