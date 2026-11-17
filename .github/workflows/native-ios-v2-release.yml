@@ -31,6 +31,7 @@ jobs:
       IOS_DIST_CERT_PASSWORD: ${{ secrets.IOS_DIST_CERT_PASSWORD }}
       IOS_PROVISION_PROFILE_BASE64: ${{ secrets.IOS_PROVISION_PROFILE_BASE64 }}
       IOS_WIDGET_PROVISION_PROFILE_BASE64: ${{ secrets.IOS_WIDGET_PROVISION_PROFILE_BASE64 }}
+      IOS_SHARE_PROVISION_PROFILE_BASE64: ${{ secrets.IOS_SHARE_PROVISION_PROFILE_BASE64 }}
       ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
       ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
       ASC_PRIVATE_KEY_BASE64: ${{ secrets.ASC_PRIVATE_KEY_BASE64 }}
@@ -116,6 +117,16 @@ jobs:
             WIDGET_PROFILE_SPEC="<key>app.ottline.QuickLogWidget</key><string>$W_PROFILE_NAME</string>"
           fi
 
+          SHARE_PROFILE_SPEC=""
+          if [[ -n "$IOS_SHARE_PROVISION_PROFILE_BASE64" ]]; then
+            S_PROFILE="$RUNNER_TEMP/share.mobileprovision"
+            echo "$IOS_SHARE_PROVISION_PROFILE_BASE64" | base64 --decode > "$S_PROFILE"
+            S_UUID="$(/usr/libexec/PlistBuddy -c 'Print UUID' /dev/stdin <<< $(security cms -D -i "$S_PROFILE"))"
+            S_PROFILE_NAME="$(/usr/libexec/PlistBuddy -c 'Print Name' /dev/stdin <<< $(security cms -D -i "$S_PROFILE"))"
+            cp "$S_PROFILE" "$PROFILES_DIR/$S_UUID.mobileprovision"
+            SHARE_PROFILE_SPEC="<key>app.ottline.ShareExtension</key><string>$S_PROFILE_NAME</string>"
+          fi
+
           xcodebuild archive \
             -project Ottline.xcodeproj \
             -scheme OttlineApp \
@@ -142,6 +153,7 @@ jobs:
               <key>app.ottline</key>
               <string>$APP_PROFILE_NAME</string>
               $WIDGET_PROFILE_SPEC
+              $SHARE_PROFILE_SPEC
             </dict>
           </dict>
           </plist>

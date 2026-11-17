@@ -31,3 +31,12 @@ apps/api/bootrun.log
 
 # GCP service account credentials
 gen-lang-client-*.json
+
+# Apple SwiftPM / XcodeGen local build & generated project artifacts
+apps/apple-core/.build/
+apps/apple-core/.swiftpm/
+apps/ios-native/Ottline.xcodeproj/
+apps/macos-native/OttlineMac.xcodeproj/
+*.xcresult
+xcuserdata/
+.DS_Store

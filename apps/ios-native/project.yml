@@ -4,6 +4,9 @@ options:
   deploymentTarget:
     iOS: "17.0"
   generateEmptyDirectories: true
+packages:
+  OttlineCore:
+    path: ../apple-core
 settings:
   base:
     MARKETING_VERSION: "2.0.0"
@@ -33,7 +36,10 @@ targets:
         INFOPLIST_FILE: Sources/OttlineApp/Info.plist
         CODE_SIGN_ENTITLEMENTS: Sources/OttlineApp/OttlineApp.entitlements
     dependencies:
+      - package: OttlineCore
       - target: OttlineWidgetExtension
+        embed: true
+      - target: OttlineShareExtension
         embed: true
       - sdk: libsqlite3.tbd
 
@@ -55,6 +61,28 @@ targets:
         CODE_SIGN_ENTITLEMENTS: Sources/OttlineWidget/OttlineWidget.entitlements
         SKIP_INSTALL: YES
 
+  OttlineShareExtension:
+    type: app-extension
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources:
+      - path: Sources/OttlineShare
+        excludes:
+          - "Info.plist"
+          - "OttlineShare.entitlements"
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: app.ottline.ShareExtension
+        PRODUCT_NAME: OttlineShareExtension
+        PRODUCT_BUNDLE_PACKAGE_TYPE: "XPC!"
+        APPLICATION_EXTENSION_API_ONLY: YES
+        INFOPLIST_FILE: Sources/OttlineShare/Info.plist
+        CODE_SIGN_ENTITLEMENTS: Sources/OttlineShare/OttlineShare.entitlements
+        SKIP_INSTALL: YES
+    dependencies:
+      - package: OttlineCore
+      - sdk: libsqlite3.tbd
+
   OttlineTests:
     type: bundle.unit-test
     platform: iOS
@@ -62,6 +90,7 @@ targets:
     sources:
       - path: Tests/OttlineTests
     dependencies:
+      - package: OttlineCore
       - target: OttlineApp
     settings:
       base:
@@ -76,6 +105,7 @@ schemes:
       targets:
         OttlineApp: all
         OttlineWidgetExtension: all
+        OttlineShareExtension: all
         OttlineTests: [test]
     test:
       targets:

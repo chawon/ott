@@ -1,4 +1,5 @@
 import SwiftUI
+import OttlineCore
 
 public struct HomeScreen: View {
     public let repository: OttlineRepository
@@ -10,9 +11,11 @@ public struct HomeScreen: View {
     public var onOpenBookshelf: () -> Void
     public var onOpenTimelineWithMoment: (Place?, Occasion?) -> Void
     public var onOpenMySpacePairing: () -> Void
+    public var onOpenPublicDiscussion: (String) -> Void
 
     @Environment(\.ottlinePalette) private var palette
     @Environment(\.appLocale) private var locale
+    @Environment(\.openOttlineTab) private var openOttlineTab
 
     @State private var discussions: [DiscussionListItem] = []
     @State private var trendingTitles: [TitleSearchItem] = []
@@ -20,26 +23,62 @@ public struct HomeScreen: View {
     @State private var discussionsLoading: Bool = true
     @State private var activationTab: String = "video"
     @State private var activationDismissed: Bool = false
+    @State private var activationTrackedView: Bool = false
     @State private var shareCardLog: WatchLog?
 
     private let homeDiscussionLimit = 6
 
+    public init(
+        repository: OttlineRepository,
+        onOpenQuickRecord: @escaping (QuickRecordRequest) -> Void,
+        onOpenTitleDetail: @escaping (String) -> Void,
+        onOpenTimeline: @escaping () -> Void,
+        onOpenTogether: @escaping () -> Void,
+        onOpenReport: @escaping () -> Void,
+        onOpenBookshelf: @escaping () -> Void,
+        onOpenTimelineWithMoment: @escaping (Place?, Occasion?) -> Void,
+        onOpenMySpacePairing: @escaping () -> Void,
+        onOpenPublicDiscussion: @escaping (String) -> Void = { _ in }
+    ) {
+        self.repository = repository
+        self.onOpenQuickRecord = onOpenQuickRecord
+        self.onOpenTitleDetail = onOpenTitleDetail
+        self.onOpenTimeline = onOpenTimeline
+        self.onOpenTogether = onOpenTogether
+        self.onOpenReport = onOpenReport
+        self.onOpenBookshelf = onOpenBookshelf
+        self.onOpenTimelineWithMoment = onOpenTimelineWithMoment
+        self.onOpenMySpacePairing = onOpenMySpacePairing
+        self.onOpenPublicDiscussion = onOpenPublicDiscussion
+    }
+
     public var body: some View {
         let logs = repository.logs
         let prefsSnapshot = repository.prefs.snapshot
-        let availableMonths = TimelineMoments.availableMonths(logs)
+        let completedGroups = TimelineMoments.groupCompletedLogsByWatchedMonth(logs)
+        let availableMonths = completedGroups.map(\.monthKey)
         let selectedMonth = availableMonths.contains(prefsSnapshot.homeSelectedMonth)
             ? prefsSnapshot.homeSelectedMonth
             : (availableMonths.first ?? RecordDate.monthKey(nil))
-        let monthLogs = logs.filter {
-            RecordDate.monthKey($0.watchedAt.isEmpty ? $0.createdAt : $0.watchedAt) == selectedMonth
-        }
-        let featuredMemory = monthLogs.first(where: { $0.status == .done })
-        let monthEntryLogs = monthLogs.filter { $0.id != featuredMemory?.id }
-        let inProgressLogs = Array(logs.filter { $0.status == .inProgress }.prefix(4))
-        let frequentPlaces = TimelineMoments.frequentPlaces(logs, limit: 3)
-        let frequentOccasions = TimelineMoments.frequentOccasions(logs, limit: 3)
+        let monthDoneLogs = completedGroups.first(where: { $0.monthKey == selectedMonth })?.logs ?? []
+        let featuredMemory = monthDoneLogs.first
+        let monthEntryLogs = Array(monthDoneLogs.dropFirst().prefix(6))
+        let inProgressLogs = Array(
+            logs.filter { $0.status == .inProgress }
+                .sorted {
+                    RecordDate.parseInstantMillis(TimelineMoments.timelineSortKey($0)) >
+                        RecordDate.parseInstantMillis(TimelineMoments.timelineSortKey($1))
+                }
+                .prefix(4)
+        )
+        let revisitPool = TimelineMoments.revisitCandidateLogs(logs)
+        let frequentPlaces = TimelineMoments.frequentPlaces(revisitPool, limit: 3)
+        let frequentOccasions = TimelineMoments.frequentOccasions(revisitPool, limit: 3)
         let hasBookLogs = logs.contains { $0.title.type == .book }
+        let hasPendingSync = repository.outboxCount > 0
+            || repository.syncState.status != .idle
+            || repository.logSyncStatuses.values.contains { $0 == "PENDING" || $0 == "FAILED" }
+        let isInitialSyncLoading = logs.isEmpty && repository.syncState.status == .syncing
 
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 24) {
@@ -54,7 +93,7 @@ public struct HomeScreen: View {
                         ? OttlineStrings.tr("나의 타임라인에 첫 순간을 남겨요.", "Your timeline. Your first moment.", locale: locale)
                         : OttlineStrings.tr("내 시간 위에 쌓인 이야기", "Stories on your timeline", locale: locale)
                     )
-                    .font(OttlineFont.semiBold(25))
+                    .font(OttlineFont.semiBold(27))
                     .kerning(-0.7)
                     .foregroundStyle(palette.ink)
 
@@ -73,16 +112,19 @@ public struct HomeScreen: View {
                                 onOpenQuickRecord(QuickRecordRequest(autoFocusSearch: true))
                             } label: {
                                 HStack(spacing: 6) {
-                                    Image(systemName: "plus")
-                                        .font(.system(size: 13, weight: .bold))
+                                    OttlineLucideIcon(kind: .plus, size: 15, color: palette.primaryAccent, strokeWidth: 2.0)
                                     Text(OttlineStrings.tr("기록 남기기", "Keep a story", locale: locale))
                                         .font(OttlineFont.semiBold(14))
                                 }
-                                .foregroundStyle(palette.onBrandOrange)
+                                .foregroundStyle(palette.primaryAccent)
                                 .padding(.horizontal, 14)
-                                .frame(minHeight: 40)
-                                .background(palette.brandOrange)
+                                .frame(minHeight: 48)
+                                .background(palette.card)
                                 .clipShape(RoundedRectangle(cornerRadius: 8))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 8)
+                                        .stroke(palette.border, lineWidth: 1)
+                                )
                             }
                             .buttonStyle(.plain)
                         }
@@ -91,22 +133,29 @@ public struct HomeScreen: View {
                 }
 
                 // 2. Sync Notice Banner (`HomeTimelineView.tsx` `.syncNotice` parity)
-                if repository.outboxCount > 0 || repository.syncState.status != .idle {
+                if hasPendingSync {
                     SyncNoticeBanner(
                         syncState: repository.syncState,
-                        outboxCount: repository.outboxCount,
+                        outboxCount: max(
+                            repository.outboxCount,
+                            repository.logSyncStatuses.values.filter { $0 == "PENDING" || $0 == "FAILED" }.count
+                        ),
                         onRetryTap: { repository.triggerSyncAsync() }
                     )
                 }
 
-                // 3. Empty State vs Logged State
-                if logs.isEmpty {
+                // 3. Initial Loading Skeleton / Empty State / Logged State
+                if isInitialSyncLoading {
+                    homeLoadingSkeleton
+                } else if logs.isEmpty {
                     emptyWelcomeSection
-                    if (prefsSnapshot.pairingCode ?? "").isEmpty && !activationDismissed {
+                    if (prefsSnapshot.pairingCode ?? "").isEmpty
+                        && !activationDismissed
+                        && !repository.prefs.activationDismissedInSession {
                         firstLogActivationPanel
                     }
                 } else {
-                    // Month Selector (`HomeTimelineView.tsx` `.months`)
+                    // Month Selector (`HomeTimelineView.tsx` `.months` — only DONE months)
                     if !availableMonths.isEmpty {
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack(spacing: 8) {
@@ -124,7 +173,7 @@ public struct HomeScreen: View {
                                                 .foregroundStyle(selected ? palette.primaryAccent : palette.ink)
                                         }
                                         .padding(.horizontal, 12)
-                                        .frame(minHeight: 38)
+                                        .frame(minHeight: 40)
                                         .background(selected ? palette.card : Color.clear)
                                         .clipShape(RoundedRectangle(cornerRadius: 8))
                                         .overlay(
@@ -145,8 +194,8 @@ public struct HomeScreen: View {
                         emptyCompletedMonthCard
                     }
 
-                    // Order 1 (Mobile CSS): `.homeSide` (`아직 못다 한 이야기` + Side Links)
-                    VStack(alignment: .leading, spacing: 14) {
+                    // Order 1 (Mobile CSS): `.homeSide` (`아직 못다 한 이야기` + Flat Side Links)
+                    VStack(alignment: .leading, spacing: 12) {
                         if !inProgressLogs.isEmpty {
                             VStack(alignment: .leading, spacing: 12) {
                                 Text(OttlineStrings.tr("아직 못다 한 이야기", "Stories still unfolding", locale: locale))
@@ -157,7 +206,7 @@ public struct HomeScreen: View {
                                     HStack(spacing: 16) {
                                         ForEach(inProgressLogs) { item in
                                             Button {
-                                                onOpenQuickRecord(QuickRecordRequest(existingLog: item, autoFocusSearch: false))
+                                                onOpenTitleDetail(item.title.id)
                                             } label: {
                                                 HStack(alignment: .top, spacing: 12) {
                                                     PosterImage(
@@ -176,7 +225,7 @@ public struct HomeScreen: View {
                                                             .foregroundStyle(palette.ink)
                                                             .lineLimit(2)
                                                             .multilineTextAlignment(.leading)
-                                                        Text(OttlineStrings.tr("이어 적기 →", "Keep going →", locale: locale))
+                                                        Text(OttlineStrings.tr("이어 보기 →", "Open story →", locale: locale))
                                                             .font(OttlineFont.semiBold(12.5))
                                                             .foregroundStyle(palette.primaryAccent)
                                                             .padding(.top, 2)
@@ -189,18 +238,16 @@ public struct HomeScreen: View {
                                     }
                                 }
                             }
-                            .padding(.bottom, 6)
+                            .padding(.bottom, 10)
                             .overlay(alignment: .bottom) {
                                 Rectangle().fill(palette.border).frame(height: 1)
                             }
                         }
 
-                        // Side link 1: `쌓아온 시간 돌아보기`
+                        // Flat Side Link 1: `쌓아온 시간 돌아보기`
                         Button(action: onOpenReport) {
                             HStack(spacing: 10) {
-                                Image(systemName: "clock")
-                                    .font(.system(size: 15, weight: .medium))
-                                    .foregroundStyle(palette.primaryAccent)
+                                OttlineLucideIcon(kind: .clock3, size: 16, color: palette.primaryAccent)
                                 Text(OttlineStrings.tr("쌓아온 시간 돌아보기", "Look back on your time", locale: locale))
                                     .font(OttlineFont.semiBold(14.5))
                                     .foregroundStyle(palette.ink)
@@ -209,24 +256,19 @@ public struct HomeScreen: View {
                                     .font(OttlineFont.semiBold(14))
                                     .foregroundStyle(palette.primaryAccent)
                             }
-                            .padding(.horizontal, 14)
-                            .frame(minHeight: 46)
-                            .background(palette.paperStrong)
-                            .clipShape(RoundedRectangle(cornerRadius: 8))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 8)
-                                    .stroke(palette.border, lineWidth: 1)
-                            )
+                            .frame(minHeight: 48)
+                            .contentShape(Rectangle())
+                            .overlay(alignment: .bottom) {
+                                Rectangle().fill(palette.border).frame(height: 1)
+                            }
                         }
                         .buttonStyle(.plain)
 
-                        // Side link 2: `내 서가 펼치기` (KO + has book logs)
+                        // Flat Side Link 2: `내 서가 펼치기` (KO + has book logs)
                         if hasBookLogs && locale == "ko" {
                             Button(action: onOpenBookshelf) {
                                 HStack(spacing: 10) {
-                                    Image(systemName: "book")
-                                        .font(.system(size: 15, weight: .medium))
-                                        .foregroundStyle(palette.primaryAccent)
+                                    OttlineLucideIcon(kind: .bookOpen, size: 16, color: palette.primaryAccent)
                                     Text("내 서가 펼치기")
                                         .font(OttlineFont.semiBold(14.5))
                                         .foregroundStyle(palette.ink)
@@ -235,14 +277,11 @@ public struct HomeScreen: View {
                                         .font(OttlineFont.semiBold(14))
                                         .foregroundStyle(palette.primaryAccent)
                                 }
-                                .padding(.horizontal, 14)
-                                .frame(minHeight: 46)
-                                .background(palette.paperStrong)
-                                .clipShape(RoundedRectangle(cornerRadius: 8))
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 8)
-                                        .stroke(palette.border, lineWidth: 1)
-                                )
+                                .frame(minHeight: 48)
+                                .contentShape(Rectangle())
+                                .overlay(alignment: .bottom) {
+                                    Rectangle().fill(palette.border).frame(height: 1)
+                                }
                             }
                             .buttonStyle(.plain)
                         }
@@ -265,6 +304,7 @@ public struct HomeScreen: View {
                                 Text(OttlineStrings.tr("타임라인 →", "Timeline →", locale: locale))
                                     .font(OttlineFont.semiBold(13.5))
                                     .foregroundStyle(palette.primaryAccent)
+                                    .frame(minHeight: 44)
                             }
                             .buttonStyle(.plain)
                         }
@@ -317,9 +357,7 @@ public struct HomeScreen: View {
                                         onOpenTimelineWithMoment(place, nil)
                                     } label: {
                                         HStack(spacing: 8) {
-                                            Image(systemName: "mappin.and.ellipse")
-                                                .font(.system(size: 14))
-                                                .foregroundStyle(palette.primaryAccent)
+                                            OttlineLucideIcon(kind: .mapPin, size: 15, color: palette.primaryAccent)
                                             Text(OttlineStrings.placeLabel(place, locale: locale))
                                                 .font(OttlineFont.semiBold(14.5))
                                                 .foregroundStyle(palette.ink)
@@ -332,7 +370,7 @@ public struct HomeScreen: View {
                                                 .foregroundStyle(palette.primaryAccent)
                                         }
                                         .padding(.horizontal, 14)
-                                        .frame(minHeight: 46)
+                                        .frame(minHeight: 48)
                                         .background(palette.paperStrong)
                                         .clipShape(RoundedRectangle(cornerRadius: 8))
                                         .overlay(
@@ -348,9 +386,7 @@ public struct HomeScreen: View {
                                         onOpenTimelineWithMoment(nil, occ)
                                     } label: {
                                         HStack(spacing: 8) {
-                                            Image(systemName: "person.2")
-                                                .font(.system(size: 14))
-                                                .foregroundStyle(palette.primaryAccent)
+                                            OttlineLucideIcon(kind: .users, size: 15, color: palette.primaryAccent)
                                             Text(OttlineStrings.occasionLabel(occ, locale: locale))
                                                 .font(OttlineFont.semiBold(14.5))
                                                 .foregroundStyle(palette.ink)
@@ -363,7 +399,7 @@ public struct HomeScreen: View {
                                                 .foregroundStyle(palette.primaryAccent)
                                         }
                                         .padding(.horizontal, 14)
-                                        .frame(minHeight: 46)
+                                        .frame(minHeight: 48)
                                         .background(palette.paperStrong)
                                         .clipShape(RoundedRectangle(cornerRadius: 8))
                                         .overlay(
@@ -380,27 +416,84 @@ public struct HomeScreen: View {
                             Rectangle().fill(palette.border).frame(height: 1)
                         }
                     }
+
+                    // Order 4: Profile completeness prompt (`!isProfileComplete`)
+                    if !prefsSnapshot.isProfileComplete {
+                        profilePromptCard
+                    }
                 }
 
-                // 4. Together Feed + Popular Title Fillers (`app/[locale]/page.tsx` `.publicSection` parity)
+                // 4. Together Feed + Popular Title Fillers (`app/[locale]/page.tsx` + `DiscussionList.tsx` parity)
                 togetherSection
+
+                // 5. Footer
+                OttlineAppFooter()
             }
             .padding(.horizontal, 18)
             .padding(.top, 20)
-            .padding(.bottom, 36)
+            .padding(.bottom, 16)
         }
         .background(palette.background)
         .sheet(item: $shareCardLog) { log in
-            ShareCardDialog(
-                log: log,
-                nickname: repository.prefs.snapshot.nickname,
-                personaKey: repository.prefs.snapshot.personaKey,
-                onDismiss: { shareCardLog = nil }
-            )
+            ShareCardDialog(log: log, repository: repository)
         }
         .task(id: repository.logs.count) {
             await loadHomeFeeds()
         }
+    }
+
+    private var homeLoadingSkeleton: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            RoundedRectangle(cornerRadius: 8)
+                .fill(palette.card)
+                .frame(height: 180)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(palette.border, lineWidth: 1)
+                )
+            RoundedRectangle(cornerRadius: 8)
+                .fill(palette.card)
+                .frame(height: 84)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(palette.border, lineWidth: 1)
+                )
+        }
+        .redacted(reason: .placeholder)
+    }
+
+    private var profilePromptCard: some View {
+        Button {
+            openOttlineTab(.mySpace)
+        } label: {
+            HStack(spacing: 12) {
+                PersonaAvatar(
+                    personaKey: repository.prefs.snapshot.personaKey,
+                    size: 40
+                )
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(OttlineStrings.tr("나만의 기록 프로필을 정해보세요", "Set up your personal profile", locale: locale))
+                        .font(OttlineFont.semiBold(14.5))
+                        .foregroundStyle(palette.ink)
+                    Text(OttlineStrings.tr("닉네임과 아이콘을 정하면 나만의 기록장이 더 또렷해져요.", "Pick a nickname and icon to make this space yours.", locale: locale))
+                        .font(OttlineFont.regular(12.5))
+                        .foregroundStyle(palette.mutedInk)
+                        .multilineTextAlignment(.leading)
+                }
+                Spacer()
+                Text("→")
+                    .font(OttlineFont.semiBold(14))
+                    .foregroundStyle(palette.primaryAccent)
+            }
+            .padding(14)
+            .background(palette.paperStrong)
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+            .overlay(
+                RoundedRectangle(cornerRadius: 8)
+                    .stroke(palette.border, lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
     }
 
     // MARK: - Subviews
@@ -420,8 +513,7 @@ public struct HomeScreen: View {
                     onOpenQuickRecord(QuickRecordRequest(autoFocusSearch: true))
                 } label: {
                     HStack(spacing: 8) {
-                        Image(systemName: "plus")
-                            .font(.system(size: 14, weight: .bold))
+                        OttlineLucideIcon(kind: .plus, size: 15, color: palette.onBrandOrange, strokeWidth: 2.2)
                         Text(OttlineStrings.tr("첫 기록 남기기", "Leave your first record", locale: locale))
                             .font(OttlineFont.semiBold(15))
                     }
@@ -468,13 +560,12 @@ public struct HomeScreen: View {
                 Spacer()
                 Button {
                     activationDismissed = true
+                    repository.prefs.dismissActivationForSession()
                     repository.trackEvent("activation_panel_dismiss", properties: ["contentType": activationTab])
                 } label: {
-                    Image(systemName: "xmark")
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundStyle(palette.mutedInk)
-                        .frame(width: 36, height: 36)
-                        .background(palette.card)
+                    OttlineLucideIcon(kind: .x, size: 16, color: palette.mutedInk, strokeWidth: 2.0)
+                        .frame(width: 40, height: 40)
+                        .background(palette.paperStrong)
                         .clipShape(RoundedRectangle(cornerRadius: 8))
                         .overlay(
                             RoundedRectangle(cornerRadius: 8)
@@ -487,23 +578,26 @@ public struct HomeScreen: View {
             // 2-Column Content Type Switcher (`영상` / `책`)
             HStack(spacing: 8) {
                 ForEach([
-                    ("video", "film", OttlineStrings.tr("영상", "Video", locale: locale)),
-                    ("book", "book", OttlineStrings.tr("책", "Book", locale: locale))
-                ], id: \.0) { tab, icon, label in
+                    ("video", OttlineLucideIconKind.tv, OttlineStrings.tr("영상", "Video", locale: locale)),
+                    ("book", OttlineLucideIconKind.bookOpen, OttlineStrings.tr("책", "Book", locale: locale))
+                ], id: \.0) { tab, iconKind, label in
                     let selected = activationTab == tab
                     Button {
                         activationTab = tab
                         repository.trackEvent("activation_content_type_select", properties: ["contentType": tab])
                     } label: {
                         HStack(spacing: 7) {
-                            Image(systemName: icon)
-                                .font(.system(size: 15, weight: .medium))
+                            OttlineLucideIcon(
+                                kind: iconKind,
+                                size: 16,
+                                color: selected ? palette.primaryAccent : palette.ink
+                            )
                             Text(label)
                                 .font(OttlineFont.semiBold(15))
                         }
                         .foregroundStyle(selected ? palette.primaryAccent : palette.ink)
                         .frame(maxWidth: .infinity, minHeight: 52)
-                        .background(palette.card)
+                        .background(selected ? palette.paperStrong : palette.card)
                         .clipShape(RoundedRectangle(cornerRadius: 8))
                         .overlay(
                             RoundedRectangle(cornerRadius: 8)
@@ -542,13 +636,22 @@ public struct HomeScreen: View {
 
                             ScrollView(.horizontal, showsIndicators: false) {
                                 HStack(spacing: 12) {
-                                    ForEach(videoDiscussions.prefix(6)) { disc in
+                                    ForEach(Array(videoDiscussions.prefix(6))) { disc in
                                         Button {
                                             activationDismissed = true
+                                            repository.prefs.dismissActivationForSession()
+                                            repository.trackEvent(
+                                                "activation_poster_select",
+                                                properties: [
+                                                    "contentType": "video",
+                                                    "source": "recent",
+                                                    "titleType": disc.titleType.rawValue
+                                                ]
+                                            )
                                             let candidate = Title(
                                                 id: disc.titleId,
-                                                provider: disc.provider ?? .tmdb,
-                                                providerId: disc.providerId,
+                                                provider: disc.titleProvider ?? .tmdb,
+                                                providerId: disc.titleProviderId,
                                                 type: disc.titleType,
                                                 name: disc.titleName,
                                                 posterUrl: disc.posterUrl
@@ -586,6 +689,15 @@ public struct HomeScreen: View {
                                     ForEach(activationPopularTitles.prefix(6)) { item in
                                         Button {
                                             activationDismissed = true
+                                            repository.prefs.dismissActivationForSession()
+                                            repository.trackEvent(
+                                                "activation_poster_select",
+                                                properties: [
+                                                    "contentType": "video",
+                                                    "source": "popular",
+                                                    "titleType": item.type.rawValue
+                                                ]
+                                            )
                                             onOpenQuickRecord(
                                                 QuickRecordRequest(
                                                     initialQuery: item.name,
@@ -612,18 +724,18 @@ public struct HomeScreen: View {
 
                     Button {
                         activationDismissed = true
+                        repository.prefs.dismissActivationForSession()
                         onOpenQuickRecord(QuickRecordRequest(initialTypeTab: "all", autoFocusSearch: true))
                     } label: {
                         HStack(spacing: 6) {
-                            Image(systemName: "magnifyingglass")
-                                .font(.system(size: 13.5, weight: .semibold))
+                            OttlineLucideIcon(kind: .search, size: 15, color: palette.primaryAccent, strokeWidth: 2.0)
                             Text(OttlineStrings.tr("다른 작품 찾기", "Find another title", locale: locale))
                                 .font(OttlineFont.semiBold(14))
                         }
                         .foregroundStyle(palette.primaryAccent)
                         .padding(.horizontal, 14)
-                        .frame(minHeight: 42)
-                        .background(palette.card)
+                        .frame(minHeight: 44)
+                        .background(palette.paperStrong)
                         .clipShape(RoundedRectangle(cornerRadius: 8))
                         .overlay(
                             RoundedRectangle(cornerRadius: 8)
@@ -656,6 +768,7 @@ public struct HomeScreen: View {
                         ForEach([LogStatus.inProgress, LogStatus.done, LogStatus.wishlist], id: \.self) { st in
                             Button {
                                 activationDismissed = true
+                                repository.prefs.dismissActivationForSession()
                                 repository.trackEvent(
                                     "activation_status_select",
                                     properties: ["contentType": "book", "status": st.rawValue]
@@ -672,7 +785,7 @@ public struct HomeScreen: View {
                                     .font(OttlineFont.semiBold(13.5))
                                     .foregroundStyle(palette.ink)
                                     .frame(maxWidth: .infinity, minHeight: 44)
-                                    .background(palette.card)
+                                    .background(palette.paperStrong)
                                     .clipShape(RoundedRectangle(cornerRadius: 8))
                                     .overlay(
                                         RoundedRectangle(cornerRadius: 8)
@@ -685,6 +798,7 @@ public struct HomeScreen: View {
 
                     Button {
                         activationDismissed = true
+                        repository.prefs.dismissActivationForSession()
                         onOpenQuickRecord(
                             QuickRecordRequest(
                                 initialTypeTab: "book",
@@ -694,14 +808,13 @@ public struct HomeScreen: View {
                         )
                     } label: {
                         HStack(spacing: 6) {
-                            Image(systemName: "magnifyingglass")
-                                .font(.system(size: 13.5, weight: .semibold))
+                            OttlineLucideIcon(kind: .search, size: 15, color: palette.onBrandOrange, strokeWidth: 2.0)
                             Text(OttlineStrings.tr("책 제목이나 저자 찾기", "Search title or author", locale: locale))
                                 .font(OttlineFont.semiBold(14))
                         }
                         .foregroundStyle(palette.onBrandOrange)
                         .padding(.horizontal, 16)
-                        .frame(minHeight: 44)
+                        .frame(minHeight: 48)
                         .background(palette.brandOrange)
                         .clipShape(RoundedRectangle(cornerRadius: 8))
                     }
@@ -710,12 +823,18 @@ public struct HomeScreen: View {
             }
         }
         .padding(18)
-        .background(palette.paperStrong)
+        .background(palette.card)
         .clipShape(RoundedRectangle(cornerRadius: 8))
         .overlay(
             RoundedRectangle(cornerRadius: 8)
                 .stroke(palette.border, lineWidth: 1)
         )
+        .onAppear {
+            if !activationTrackedView {
+                activationTrackedView = true
+                repository.trackEvent("activation_panel_view", properties: ["contentType": activationTab])
+            }
+        }
     }
 
     private func activationPosterTile(name: String, posterUrl: String?, type: TitleType, year: Int?) -> some View {
@@ -835,30 +954,19 @@ public struct HomeScreen: View {
                             .foregroundStyle(palette.mutedInk)
                     }
 
-                    let momentParts = [
-                        log.ott,
-                        log.place.map { OttlineStrings.placeLabel($0, locale: locale) },
-                        log.occasion.map { OttlineStrings.occasionLabel($0, locale: locale) }
-                    ].compactMap { $0 }.filter { !$0.isEmpty }
-
-                    if !momentParts.isEmpty {
-                        Text(momentParts.joined(separator: " · "))
-                            .font(OttlineFont.regular(12.5))
-                            .foregroundStyle(palette.mutedInk)
-                    }
+                    RecordMomentList(
+                        ott: log.ott,
+                        place: log.place,
+                        occasion: log.occasion,
+                        compact: true
+                    )
 
                     if !log.spoiler, let note = log.note?.trimmingCharacters(in: .whitespacesAndNewlines), !note.isEmpty {
-                        HStack(spacing: 10) {
-                            Rectangle()
-                                .fill(palette.border)
-                                .frame(width: 2)
-                            Text(note)
-                                .font(OttlineFont.regular(14))
-                                .foregroundStyle(palette.ink)
-                                .lineLimit(4)
-                                .multilineTextAlignment(.leading)
-                        }
-                        .padding(.vertical, 2)
+                        Rectangle()
+                            .fill(palette.border)
+                            .frame(height: 1)
+                            .padding(.vertical, 2)
+                        InlineNoteText(text: note, fontSize: 15.5, lineLimit: 4)
                     }
 
                     HStack(spacing: 12) {
@@ -868,6 +976,7 @@ public struct HomeScreen: View {
                             Text(OttlineStrings.tr("이 기록 펼치기 →", "Open this memory →", locale: locale))
                                 .font(OttlineFont.semiBold(13.5))
                                 .foregroundStyle(palette.primaryAccent)
+                                .frame(minHeight: 40)
                         }
                         .buttonStyle(.plain)
 
@@ -876,10 +985,8 @@ public struct HomeScreen: View {
                         Button {
                             shareCardLog = log
                         } label: {
-                            Image(systemName: "square.and.arrow.up")
-                                .font(.system(size: 14, weight: .medium))
-                                .foregroundStyle(palette.mutedInk)
-                                .frame(width: 36, height: 36)
+                            OttlineLucideIcon(kind: .share2, size: 15, color: palette.mutedInk, strokeWidth: 2.0)
+                                .frame(width: 40, height: 40)
                                 .background(palette.paperStrong)
                                 .clipShape(RoundedRectangle(cornerRadius: 8))
                                 .overlay(
@@ -1003,9 +1110,7 @@ public struct HomeScreen: View {
                         .kerning(0.7)
                         .foregroundStyle(palette.mutedInk)
                     HStack(spacing: 6) {
-                        Image(systemName: "bubble.left")
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundStyle(palette.ink)
+                        OttlineLucideIcon(kind: .messageCircle, size: 17, color: palette.ink, strokeWidth: 2.0)
                         Text(OttlineStrings.tr("함께 만나는 이야기", "Stories to share", locale: locale))
                             .font(OttlineFont.semiBold(18))
                             .foregroundStyle(palette.ink)
@@ -1016,6 +1121,7 @@ public struct HomeScreen: View {
                     Text(OttlineStrings.tr("전체 보기 →", "View all →", locale: locale))
                         .font(OttlineFont.semiBold(13.5))
                         .foregroundStyle(palette.primaryAccent)
+                        .frame(minHeight: 44)
                 }
                 .buttonStyle(.plain)
             }
@@ -1024,108 +1130,113 @@ public struct HomeScreen: View {
                 ProgressView()
                     .padding(.vertical, 16)
             } else {
-                VStack(spacing: 8) {
-                    ForEach(discussions.prefix(homeDiscussionLimit)) { disc in
-                        Button {
-                            onOpenTitleDetail(disc.titleId)
-                        } label: {
-                            HStack(spacing: 12) {
-                                PosterImage(
-                                    posterUrl: disc.posterUrl,
-                                    titleName: disc.titleName,
-                                    titleType: disc.titleType,
-                                    width: 48,
-                                    height: 64
+                let shownDiscussions = Array(discussions.prefix(homeDiscussionLimit))
+                if !shownDiscussions.isEmpty || !trendingTitles.isEmpty {
+                    VStack(spacing: 0) {
+                        ForEach(Array(shownDiscussions.enumerated()), id: \.element.id) { idx, disc in
+                            if idx > 0 {
+                                Rectangle().fill(palette.border).frame(height: 1)
+                            }
+                            Button {
+                                onOpenPublicDiscussion(disc.id)
+                            } label: {
+                                HStack(spacing: 12) {
+                                    PosterImage(
+                                        posterUrl: disc.posterUrl,
+                                        titleName: disc.titleName,
+                                        titleType: disc.titleType,
+                                        width: 48,
+                                        height: 64
+                                    )
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text(disc.titleName)
+                                            .font(OttlineFont.semiBold(15))
+                                            .foregroundStyle(palette.ink)
+                                            .lineLimit(1)
+                                        Text(OttlineStrings.titleTypeLabel(disc.titleType, locale: locale))
+                                            .font(OttlineFont.regular(12))
+                                            .foregroundStyle(palette.mutedInk)
+                                    }
+                                    Spacer()
+                                    VStack(alignment: .trailing, spacing: 4) {
+                                        Text(RecordDate.formatShortMonthDay(disc.createdAt, locale: locale))
+                                            .font(OttlineFont.regular(11.5))
+                                            .foregroundStyle(palette.mutedInk)
+                                        Text(locale == "en" ? "\(disc.commentCount) comments" : "\(disc.commentCount)개의 이야기들")
+                                            .font(OttlineFont.semiBold(12))
+                                            .foregroundStyle(palette.primaryAccent)
+                                    }
+                                }
+                                .padding(14)
+                                .contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
+                        }
+
+                        ForEach(Array(trendingTitles.enumerated()), id: \.element.id) { idx, trend in
+                            if !shownDiscussions.isEmpty || idx > 0 {
+                                Rectangle().fill(palette.border).frame(height: 1)
+                            }
+                            Button {
+                                onOpenQuickRecord(
+                                    QuickRecordRequest(
+                                        initialQuery: trend.name,
+                                        initialTypeTab: "all",
+                                        preselectedSearchItem: trend,
+                                        selectSource: "home_popular_filler",
+                                        autoFocusSearch: false
+                                    )
                                 )
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text(disc.titleName)
-                                        .font(OttlineFont.semiBold(15))
-                                        .foregroundStyle(palette.ink)
-                                        .lineLimit(1)
-                                    Text(OttlineStrings.titleTypeLabel(disc.titleType, locale: locale))
+                            } label: {
+                                HStack(spacing: 12) {
+                                    PosterImage(
+                                        posterUrl: trend.posterUrl,
+                                        titleName: trend.name,
+                                        titleType: trend.type,
+                                        width: 48,
+                                        height: 64
+                                    )
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text(trend.name)
+                                            .font(OttlineFont.semiBold(15))
+                                            .foregroundStyle(palette.ink)
+                                            .lineLimit(1)
+                                        Text([
+                                            OttlineStrings.titleTypeLabel(trend.type, locale: locale),
+                                            trend.year.map(String.init)
+                                        ].compactMap { $0 }.joined(separator: " · "))
                                         .font(OttlineFont.regular(12))
                                         .foregroundStyle(palette.mutedInk)
+                                    }
+                                    Spacer()
+                                    VStack(alignment: .trailing, spacing: 4) {
+                                        Text(OttlineStrings.tr("인기 작품", "Popular pick", locale: locale))
+                                            .font(OttlineFont.semiBold(11))
+                                            .foregroundStyle(palette.ink)
+                                            .padding(.horizontal, 8)
+                                            .padding(.vertical, 2)
+                                            .background(palette.paperStrong)
+                                            .clipShape(Capsule())
+                                            .overlay(
+                                                Capsule().stroke(palette.border, lineWidth: 1)
+                                            )
+                                        Text(OttlineStrings.tr("기록하기", "Record it", locale: locale))
+                                            .font(OttlineFont.semiBold(12))
+                                            .foregroundStyle(palette.primaryAccent)
+                                    }
                                 }
-                                Spacer()
-                                VStack(alignment: .trailing, spacing: 4) {
-                                    Text(RecordDate.formatShortMonthDay(disc.latestCommentAt, locale: locale))
-                                        .font(OttlineFont.regular(11.5))
-                                        .foregroundStyle(palette.mutedInk)
-                                    Text(locale == "en" ? "\(disc.commentCount) comments" : "\(disc.commentCount)개의 이야기들")
-                                        .font(OttlineFont.semiBold(12))
-                                        .foregroundStyle(palette.primaryAccent)
-                                }
+                                .padding(14)
+                                .contentShape(Rectangle())
                             }
-                            .padding(14)
-                            .background(palette.card)
-                            .clipShape(RoundedRectangle(cornerRadius: 8))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 8)
-                                    .stroke(palette.border, lineWidth: 1)
-                            )
+                            .buttonStyle(.plain)
                         }
-                        .buttonStyle(.plain)
                     }
-
-                    ForEach(trendingTitles) { trend in
-                        Button {
-                            onOpenQuickRecord(
-                                QuickRecordRequest(
-                                    initialQuery: trend.name,
-                                    initialTypeTab: "all",
-                                    preselectedSearchItem: trend,
-                                    selectSource: "home_popular_filler",
-                                    autoFocusSearch: false
-                                )
-                            )
-                        } label: {
-                            HStack(spacing: 12) {
-                                PosterImage(
-                                    posterUrl: trend.posterUrl,
-                                    titleName: trend.name,
-                                    titleType: trend.type,
-                                    width: 48,
-                                    height: 64
-                                )
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text(trend.name)
-                                        .font(OttlineFont.semiBold(15))
-                                        .foregroundStyle(palette.ink)
-                                        .lineLimit(1)
-                                    Text([
-                                        OttlineStrings.titleTypeLabel(trend.type, locale: locale),
-                                        trend.year.map(String.init)
-                                    ].compactMap { $0 }.joined(separator: " · "))
-                                    .font(OttlineFont.regular(12))
-                                    .foregroundStyle(palette.mutedInk)
-                                }
-                                Spacer()
-                                VStack(alignment: .trailing, spacing: 4) {
-                                    Text(OttlineStrings.tr("인기 작품", "Popular pick", locale: locale))
-                                        .font(OttlineFont.semiBold(11))
-                                        .foregroundStyle(palette.ink)
-                                        .padding(.horizontal, 8)
-                                        .padding(.vertical, 2)
-                                        .background(palette.paperStrong)
-                                        .clipShape(Capsule())
-                                        .overlay(
-                                            Capsule().stroke(palette.border, lineWidth: 1)
-                                        )
-                                    Text(OttlineStrings.tr("기록하기", "Record it", locale: locale))
-                                        .font(OttlineFont.semiBold(12))
-                                        .foregroundStyle(palette.primaryAccent)
-                                }
-                            }
-                            .padding(14)
-                            .background(palette.card)
-                            .clipShape(RoundedRectangle(cornerRadius: 8))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 8)
-                                    .stroke(palette.border, lineWidth: 1)
-                            )
-                        }
-                        .buttonStyle(.plain)
-                    }
+                    .background(palette.card)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8)
+                            .stroke(palette.border, lineWidth: 1)
+                    )
                 }
             }
         }

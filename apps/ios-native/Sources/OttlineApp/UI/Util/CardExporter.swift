@@ -1,6 +1,8 @@
 import Foundation
+import OttlineCore
 #if canImport(UIKit)
 import UIKit
+import LinkPresentation
 #endif
 
 public enum ShareCardRatio: String, CaseIterable, Sendable {
@@ -29,7 +31,7 @@ public enum CardExporter {
     public static func renderShareCardImage(
         log: WatchLog,
         ratio: ShareCardRatio,
-        includeMoment: Bool = true,
+        showRatingLabel: Bool = true,
         includeNote: Bool = true,
         includeSignature: Bool = false,
         nickname: String? = nil,
@@ -100,7 +102,7 @@ public enum CardExporter {
             let maxWidth = w - s(176)
             var cursorY = topHeight + s(64)
 
-            let titleFont = pretendardFont(name: "Pretendard-Bold", size: s(isBook ? 64 : 80), weight: .bold)
+            let titleFont = pretendardFont(name: "Pretendard-Bold", size: s(isBook ? 64 : 84), weight: .bold)
             let titleText = String(log.title.name.prefix(60))
             let titleRect = drawWrappedText(
                 titleText,
@@ -114,11 +116,11 @@ public enum CardExporter {
             cursorY += titleRect.height + s(18)
 
             if includeNote, let note = log.note?.trimmingCharacters(in: .whitespacesAndNewlines), !note.isEmpty {
-                let clamped = String(note.replacingOccurrences(of: "\n", with: " ").prefix(isBook ? 110 : 80))
-                let noteFont = pretendardFont(name: "Pretendard-SemiBold", size: s(38), weight: .semibold)
+                let clamped = "“\(String(note.replacingOccurrences(of: "\n", with: " ").prefix(isBook ? 120 : 80)))”"
+                let noteFont = pretendardFont(name: "Pretendard-Medium", size: s(isBook ? 40 : 38), weight: .medium)
                 let noteColor = UIColor(red: 0.859, green: 0.894, blue: 1.0, alpha: 1.0) // #DBE4FF
                 let noteRect = drawWrappedText(
-                    "“\(clamped)”",
+                    clamped,
                     font: noteFont,
                     color: noteColor,
                     x: contentLeft,
@@ -129,16 +131,16 @@ public enum CardExporter {
                 cursorY += noteRect.height + s(18)
             }
 
-            // Capsule pills
+            // Capsule pills (`ShareBottomSheet` parity)
             let statusLabel = OttlineStrings.statusLabel(log.status, type: log.title.type, locale: locale)
-            let feelingLabel = includeMoment ? RecordFeelings.resolveFeeling(rating: log.rating, isBook: isBook, locale: locale)?.label : nil
-            let dateStr = RecordDate.recordDateInput(log.watchedAt.isEmpty ? log.createdAt : log.watchedAt).replacingOccurrences(of: "-", with: ".")
+            let feelingLabel = showRatingLabel ? RecordFeelings.resolveFeeling(rating: log.rating, isBook: isBook, locale: locale)?.label : nil
+            let dateStr = RecordDate.formatDotDate(log.watchedAt.isEmpty ? log.createdAt : log.watchedAt)
 
-            var pills = ["👀 \(statusLabel)"]
-            if let feelingLabel { pills.append("✨ \(feelingLabel)") }
-            pills.append("🗓 \(dateStr)")
+            var pills = [statusLabel]
+            if let feelingLabel { pills.append(feelingLabel) }
+            pills.append(dateStr)
 
-            let pillFont = pretendardFont(name: "Pretendard-SemiBold", size: s(26), weight: .semibold)
+            let pillFont = pretendardFont(name: "Pretendard-SemiBold", size: s(isBook ? 26 : 28), weight: .semibold)
             let pillTextColor = UIColor(red: 0.796, green: 0.835, blue: 0.961, alpha: 1.0)
             var pillX = contentLeft
             let pillH = s(48)
@@ -157,18 +159,33 @@ public enum CardExporter {
                 pillX += pillW + s(12)
             }
 
-            // Footer signature
+            // Footer signature with real persona avatar asset when available
             let footerY = h - s(92)
-            let wmFont = pretendardFont(name: "Pretendard-SemiBold", size: s(26), weight: .semibold)
+            let wmFont = pretendardFont(name: "Pretendard-Medium", size: s(26), weight: .medium)
+            var textX = contentLeft
+            let trimmedNick = nickname?.trimmingCharacters(in: .whitespacesAndNewlines)
+            let showSig = includeSignature && (trimmedNick?.isEmpty == false)
+            if showSig,
+               let pKey = personaKey,
+               let preset = OttlineStrings.personaPresets.first(where: { $0.key == pKey }),
+               let avatarImg = UIImage(named: preset.assetName) {
+                let avatarSize = s(40)
+                let avatarRect = CGRect(x: contentLeft, y: footerY - s(6), width: avatarSize, height: avatarSize)
+                cg.saveGState()
+                UIBezierPath(roundedRect: avatarRect, cornerRadius: s(12)).addClip()
+                avatarImg.draw(in: avatarRect)
+                cg.restoreGState()
+                textX += avatarSize + s(16)
+            }
             let footerText: String = {
-                if includeSignature, let nick = nickname?.trimmingCharacters(in: .whitespacesAndNewlines), !nick.isEmpty {
+                if showSig, let nick = trimmedNick {
                     return "\(nick) · by ottline.app"
                 }
                 return "ottline.app"
             }()
             (footerText as NSString).draw(
-                at: CGPoint(x: contentLeft, y: footerY),
-                withAttributes: [.font: wmFont, .foregroundColor: UIColor.white.withAlphaComponent(0.78)]
+                at: CGPoint(x: textX, y: footerY),
+                withAttributes: [.font: wmFont, .foregroundColor: UIColor.white.withAlphaComponent(0.75)]
             )
         }
     }
@@ -186,7 +203,8 @@ public enum CardExporter {
         let h: CGFloat = 1920
         let heroHeight: CGFloat = 1040
         let isEn = locale == "en"
-        let topGenre = report.monthlyTopGenre.isEmpty ? "-" : report.monthlyTopGenre
+        let rawTopGenre = (report.monthlyTopGenre ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        let topGenre = rawTopGenre.isEmpty ? "-" : rawTopGenre
 
         let (badge, headline, subtitle, metrics, posters): (String, String, String, [(String, String)], [SeasonalRecapPoster]) = {
             switch kind {
@@ -232,8 +250,8 @@ public enum CardExporter {
                         : "상반기에 남긴 \(h1Count)개의 기록을 포스터 카드로 모았어요.",
                     [
                         (isEn ? "H1 records" : "상반기 기록", "\(h1Count)"),
-                        (isEn ? "Top type" : "최다 종류", report.seasonalRecap?.topType ?? report.topType),
-                        (isEn ? "With note" : "메모 비율", "\(report.seasonalRecap?.noteFillPct ?? report.noteFillPct)%")
+                        (isEn ? "Top type" : "최다 종류", (report.seasonalRecap?.topType ?? report.topType) ?? "-"),
+                        (isEn ? "With note" : "메모 비율", "\(Int((report.seasonalRecap?.noteFillPct ?? report.noteFillPct).rounded()))%")
                     ],
                     Array((report.seasonalRecap?.posters ?? monthPosters).prefix(6))
                 )
@@ -435,6 +453,35 @@ public enum CardExporter {
         return url
     }
 
+    @MainActor
+    public static func presentImageShareSheet(_ image: UIImage, title: String) {
+        guard let scene = UIApplication.shared.connectedScenes
+            .compactMap({ $0 as? UIWindowScene })
+            .first(where: { $0.activationState == .foregroundActive })
+                ?? UIApplication.shared.connectedScenes.compactMap({ $0 as? UIWindowScene }).first,
+              let rootVC = scene.windows.first(where: { $0.isKeyWindow })?.rootViewController
+                ?? scene.windows.first?.rootViewController else {
+            return
+        }
+        var topVC = rootVC
+        while let presented = topVC.presentedViewController {
+            topVC = presented
+        }
+        let itemSource = ShareCardActivityItemSource(image: image, title: title)
+        let activityVC = UIActivityViewController(activityItems: [itemSource], applicationActivities: nil)
+        if let popover = activityVC.popoverPresentationController {
+            popover.sourceView = topVC.view
+            popover.sourceRect = CGRect(
+                x: topVC.view.bounds.midX,
+                y: topVC.view.bounds.maxY - 40,
+                width: 1,
+                height: 1
+            )
+            popover.permittedArrowDirections = []
+        }
+        topVC.present(activityVC, animated: true)
+    }
+
     // MARK: - Internal Drawing Helpers
 
     private static func fetchRemoteImage(_ urlString: String?) async -> UIImage? {
@@ -527,6 +574,43 @@ public enum CardExporter {
                 CGRect(x: 720, y: heroHeight * 0.5, width: 360, height: heroHeight * 0.5)
             ]
         }
+    }
+}
+
+private final class ShareCardActivityItemSource: NSObject, UIActivityItemSource {
+    private let image: UIImage
+    private let title: String
+
+    init(image: UIImage, title: String) {
+        self.image = image
+        self.title = title
+        super.init()
+    }
+
+    func activityViewControllerPlaceholderItem(_ activityViewController: UIActivityViewController) -> Any {
+        image
+    }
+
+    func activityViewController(
+        _ activityViewController: UIActivityViewController,
+        itemForActivityType activityType: UIActivity.ActivityType?
+    ) -> Any? {
+        image
+    }
+
+    func activityViewController(
+        _ activityViewController: UIActivityViewController,
+        subjectForActivityType activityType: UIActivity.ActivityType?
+    ) -> String {
+        title
+    }
+
+    func activityViewControllerLinkMetadata(_ activityViewController: UIActivityViewController) -> LPLinkMetadata? {
+        let metadata = LPLinkMetadata()
+        metadata.title = title
+        metadata.imageProvider = NSItemProvider(object: image)
+        metadata.iconProvider = NSItemProvider(object: image)
+        return metadata
     }
 }
 #endif

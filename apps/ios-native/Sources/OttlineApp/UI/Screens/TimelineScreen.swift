@@ -1,4 +1,5 @@
 import SwiftUI
+import OttlineCore
 
 public struct TimelineScreen: View {
     public let repository: OttlineRepository
@@ -8,12 +9,14 @@ public struct TimelineScreen: View {
     public var onOpenQuickRecord: (QuickRecordRequest) -> Void
     public var onOpenTitleDetail: (String) -> Void
     public var onOpenReport: () -> Void
-    public var onOpenBookshelf: () -> Void
+    public var onOpenBookshelf: (Int?) -> Void
+    public var onOpenShareCard: (WatchLog) -> Void
 
     @Environment(\.ottlinePalette) private var palette
     @Environment(\.appLocale) private var locale
 
-    @State private var typeFilter: String = "all" // "all" | "video" | "book"
+    // Filters
+    @State private var typeFilter: String = "all" // "all" | "movie" | "series" | "book"
     @State private var statusFilter: LogStatus?
     @State private var platformFilter: String = ""
     @State private var placeFilter: Place?
@@ -27,16 +30,44 @@ public struct TimelineScreen: View {
     @State private var hasMorePages: Bool = false
     @State private var loadingMore: Bool = false
 
-    // "내 미래는?" (`futureMode` matching `app/[locale]/timeline/page.tsx`)
+    // OpenAI v2 Future Timeline (`futureMode`)
     @State private var futureMode: Bool = false
-    @State private var nextWatchLoading: Bool = false
-    @State private var nextWatchError: String?
-    @State private var nextWatchResponse: NextWatchRecommendResponse?
-    @State private var dismissedNextWatch: Set<String> = []
+    @State private var recState: RecommendationState = RecommendationState()
+    @State private var recLoading: Bool = false
+    @State private var recGeneratingAction: Bool = false
+    @State private var recError: String?
+    @State private var lastExcludedItem: RecommendationExclusion?
+    @State private var showExcludedSheet: Bool = false
+    @State private var catalogResolvingKey: String?
+    @State private var editionPickerCandidates: [TitleSearchItem] = []
+    @State private var editionPickerSourceTitle: String = ""
+    @State private var showEditionPicker: Bool = false
 
-    @State private var shareCardLog: WatchLog?
+    // Share note to Together state
     @State private var sharedNoteLogIds: Set<String> = []
     @State private var sharingNoteLogId: String?
+
+    public init(
+        repository: OttlineRepository,
+        initialPlaceFilter: Place? = nil,
+        initialOccasionFilter: Occasion? = nil,
+        onClearInitialMomentFilter: @escaping () -> Void = {},
+        onOpenQuickRecord: @escaping (QuickRecordRequest) -> Void,
+        onOpenTitleDetail: @escaping (String) -> Void,
+        onOpenReport: @escaping () -> Void,
+        onOpenBookshelf: @escaping (Int?) -> Void = { _ in },
+        onOpenShareCard: @escaping (WatchLog) -> Void = { _ in }
+    ) {
+        self.repository = repository
+        self.initialPlaceFilter = initialPlaceFilter
+        self.initialOccasionFilter = initialOccasionFilter
+        self.onClearInitialMomentFilter = onClearInitialMomentFilter
+        self.onOpenQuickRecord = onOpenQuickRecord
+        self.onOpenTitleDetail = onOpenTitleDetail
+        self.onOpenReport = onOpenReport
+        self.onOpenBookshelf = onOpenBookshelf
+        self.onOpenShareCard = onOpenShareCard
+    }
 
     public var body: some View {
         let allLogs = repository.logs
@@ -45,33 +76,51 @@ public struct TimelineScreen: View {
         let personaTitle: String? = snap.personaKey.map { OttlineStrings.personaPreset($0).title(locale) }
 
         let filteredLogs = allLogs.filter { log in
-            if typeFilter == "video" && log.title.type == .book { return false }
+            if typeFilter == "movie" && log.title.type != .movie { return false }
+            if typeFilter == "series" && log.title.type != .series { return false }
             if typeFilter == "book" && log.title.type != .book { return false }
             if let sf = statusFilter, log.status != sf { return false }
-            if !platformFilter.isEmpty, (log.ott ?? "") != platformFilter { return false }
+            if !platformFilter.isEmpty {
+                let hayOtt = (log.ott ?? "").lowercased()
+                if !hayOtt.contains(platformFilter.lowercased()) { return false }
+            }
             if let pf = placeFilter, log.place != pf { return false }
             if let of = occasionFilter, log.occasion != of { return false }
             if let orf = originFilter, log.origin != orf { return false }
             let trimmed = searchQuery.trimmingCharacters(in: .whitespacesAndNewlines)
             if !trimmed.isEmpty {
-                let hay = "\(log.title.name) \(log.note ?? "") \(log.ott ?? "")".lowercased()
+                let hay = [
+                    log.title.name,
+                    log.title.author ?? "",
+                    log.title.publisher ?? "",
+                    log.note ?? "",
+                    log.ott ?? ""
+                ].joined(separator: " ").lowercased()
                 if !hay.contains(trimmed.lowercased()) { return false }
             }
             return true
         }
-        let monthGroups = TimelineMoments.groupLogsByMonth(filteredLogs)
+        let sortedLogs = filteredLogs.sorted {
+            RecordDate.parseInstantMillis(TimelineMoments.timelineSortKey($0)) >
+                RecordDate.parseInstantMillis(TimelineMoments.timelineSortKey($1))
+        }
+        let monthGroups = TimelineMoments.groupLogsByMonth(sortedLogs)
         let momentFilterCount = [
-            statusFilter != nil,
             !platformFilter.isEmpty,
             placeFilter != nil,
             occasionFilter != nil,
             originFilter != nil
         ].filter { $0 }.count
-        let hasActiveFilters = momentFilterCount > 0 || !searchQuery.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || typeFilter != "all"
+        let hasActiveFilters = momentFilterCount > 0
+            || statusFilter != nil
+            || !searchQuery.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            || typeFilter != "all"
+
+        let filterTriggerKey = "\(typeFilter)-\(statusFilter?.rawValue ?? "")-\(platformFilter)-\(placeFilter?.rawValue ?? "")-\(occasionFilter?.rawValue ?? "")-\(originFilter?.rawValue ?? "")-\(searchQuery)"
 
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 20) {
-                // 1. Page Heading (`app/[locale]/timeline/page.tsx` `.pageHeading` parity)
+                // 1. Page Heading
                 VStack(alignment: .leading, spacing: 14) {
                     VStack(alignment: .leading, spacing: 4) {
                         Text(OttlineStrings.tr("남겨둔 이야기", "THE STORIES YOU KEPT", locale: locale))
@@ -80,7 +129,7 @@ public struct TimelineScreen: View {
                             .foregroundStyle(palette.mutedInk)
 
                         Text(headerTitle(nickname: nickname))
-                            .font(OttlineFont.semiBold(25))
+                            .font(OttlineFont.semiBold(27))
                             .kerning(-0.7)
                             .foregroundStyle(palette.ink)
 
@@ -89,21 +138,20 @@ public struct TimelineScreen: View {
                             .foregroundStyle(palette.mutedInk)
                     }
 
-                    // Tools row (`.timelineTools`)
-                    HStack(spacing: 8) {
+                    // Tools row
+                    FlowLayout(horizontalSpacing: 8, verticalSpacing: 8) {
                         if !futureMode {
                             Button {
                                 onOpenQuickRecord(QuickRecordRequest(autoFocusSearch: true))
                             } label: {
                                 HStack(spacing: 6) {
-                                    Image(systemName: "plus")
-                                        .font(.system(size: 13, weight: .bold))
+                                    OttlineLucideIcon(kind: .plus, size: 15, color: palette.onBrandOrange, strokeWidth: 2.2)
                                     Text(OttlineStrings.tr("기록 남기기", "Keep a story", locale: locale))
                                         .font(OttlineFont.semiBold(14))
                                 }
                                 .foregroundStyle(palette.onBrandOrange)
                                 .padding(.horizontal, 14)
-                                .frame(minHeight: 42)
+                                .frame(minHeight: 44)
                                 .background(palette.brandOrange)
                                 .clipShape(RoundedRectangle(cornerRadius: 8))
                             }
@@ -112,22 +160,19 @@ public struct TimelineScreen: View {
                             if !(snap.userId ?? "").isEmpty {
                                 Button {
                                     futureMode = true
-                                    if nextWatchResponse == nil {
-                                        Task { await fetchNextWatch(forceRefresh: false) }
-                                    }
+                                    Task { await loadRecommendationState() }
                                 } label: {
                                     HStack(spacing: 6) {
-                                        Image(systemName: "sparkles")
-                                            .font(.system(size: 13, weight: .semibold))
+                                        OttlineLucideIcon(kind: .sparkles, size: 14, color: palette.primaryAccent, strokeWidth: 2.0)
                                         Text(!nickname.isEmpty
                                             ? OttlineStrings.tr("\(nickname)의 미래는?", "\(nickname)'s future?", locale: locale)
-                                            : OttlineStrings.tr("내 미래는?", "What's my future?", locale: locale)
+                                            : OttlineStrings.tr("미래의 타임라인", "Future timeline", locale: locale)
                                         )
                                         .font(OttlineFont.semiBold(13.5))
                                     }
                                     .foregroundStyle(palette.primaryAccent)
                                     .padding(.horizontal, 13)
-                                    .frame(minHeight: 42)
+                                    .frame(minHeight: 44)
                                     .background(palette.card)
                                     .clipShape(RoundedRectangle(cornerRadius: 8))
                                     .overlay(
@@ -138,17 +183,11 @@ public struct TimelineScreen: View {
                                 .buttonStyle(.plain)
                             }
 
-                            if !allLogs.isEmpty {
-                                let csvString = CsvExporter.buildCsv(filteredLogs)
-                                ShareLink(
-                                    item: csvString,
-                                    subject: Text("ottline timeline export"),
-                                    message: Text("ottline CSV")
-                                ) {
-                                    Image(systemName: "arrow.down.to.line")
-                                        .font(.system(size: 15, weight: .semibold))
-                                        .foregroundStyle(palette.ink)
-                                        .frame(width: 42, height: 42)
+                            if !filteredLogs.isEmpty,
+                               let csvUrl = CsvExporter.writeTemporaryCsvFile(logs: filteredLogs, locale: locale) {
+                                ShareLink(item: csvUrl) {
+                                    OttlineLucideIcon(kind: .download, size: 16, color: palette.ink, strokeWidth: 2.0)
+                                        .frame(width: 44, height: 44)
                                         .background(palette.card)
                                         .clipShape(RoundedRectangle(cornerRadius: 8))
                                         .overlay(
@@ -157,17 +196,17 @@ public struct TimelineScreen: View {
                                         )
                                 }
                                 .buttonStyle(.plain)
-                                .accessibilityLabel(OttlineStrings.tr("CSV 다운로드", "Download CSV", locale: locale))
+                                .accessibilityLabel(OttlineStrings.tr("CSV 내보내기", "Export CSV", locale: locale))
                             }
                         } else {
                             Button {
                                 futureMode = false
                             } label: {
-                                Text(OttlineStrings.tr("← 현재로 돌아오기", "← Back to present", locale: locale))
+                                Text(OttlineStrings.tr("← 타임라인으로 돌아오기", "← Back to timeline", locale: locale))
                                     .font(OttlineFont.semiBold(13.5))
                                     .foregroundStyle(palette.ink)
                                     .padding(.horizontal, 14)
-                                    .frame(minHeight: 42)
+                                    .frame(minHeight: 44)
                                     .background(palette.card)
                                     .clipShape(RoundedRectangle(cornerRadius: 8))
                                     .overlay(
@@ -177,29 +216,26 @@ public struct TimelineScreen: View {
                             }
                             .buttonStyle(.plain)
 
-                            if allLogs.count >= 5 {
-                                Button {
-                                    Task { await fetchNextWatch(forceRefresh: true) }
-                                } label: {
-                                    HStack(spacing: 6) {
-                                        Image(systemName: "sparkles")
-                                            .font(.system(size: 13))
-                                        Text(OttlineStrings.tr("다른 작품 추천받기", "Explore other stories", locale: locale))
-                                            .font(OttlineFont.semiBold(13.5))
-                                    }
-                                    .foregroundStyle(palette.primaryAccent)
-                                    .padding(.horizontal, 14)
-                                    .frame(minHeight: 42)
-                                    .background(palette.card)
-                                    .clipShape(RoundedRectangle(cornerRadius: 8))
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 8)
-                                            .stroke(palette.primaryAccent.opacity(0.35), lineWidth: 1)
-                                    )
-                                }
-                                .buttonStyle(.plain)
-                                .disabled(nextWatchLoading)
+                            Button {
+                                showExcludedSheet = true
+                            } label: {
+                                Text(OttlineStrings.tr(
+                                    "제외한 작품 (\(recState.exclusions.count))",
+                                    "Excluded (\(recState.exclusions.count))",
+                                    locale: locale
+                                ))
+                                .font(OttlineFont.medium(13))
+                                .foregroundStyle(palette.mutedInk)
+                                .padding(.horizontal, 12)
+                                .frame(minHeight: 44)
+                                .background(palette.card)
+                                .clipShape(RoundedRectangle(cornerRadius: 8))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 8)
+                                        .stroke(palette.border, lineWidth: 1)
+                                )
                             }
+                            .buttonStyle(.plain)
                         }
                     }
                 }
@@ -208,46 +244,43 @@ public struct TimelineScreen: View {
                     Rectangle().fill(palette.border).frame(height: 1)
                 }
 
-                // 2. Shortcuts Row (`.timelineShortcuts`: `내 이용 리포트 →`, `서가 보기 →`)
+                // 2. Report Entry Row
                 if !futureMode {
-                    HStack(spacing: 18) {
-                        Button(action: onOpenReport) {
-                            HStack(spacing: 6) {
-                                Image(systemName: "chart.bar")
-                                    .font(.system(size: 13.5, weight: .semibold))
-                                Text(OttlineStrings.tr("내 이용 리포트", "My Usage Report", locale: locale))
-                                    .font(OttlineFont.semiBold(13.5))
-                                Text("→")
-                                    .font(OttlineFont.semiBold(13.5))
-                            }
-                            .foregroundStyle(palette.primaryAccent)
-                        }
-                        .buttonStyle(.plain)
-
-                        if locale == "ko" {
-                            Button(action: onOpenBookshelf) {
-                                HStack(spacing: 6) {
-                                    Image(systemName: "book")
-                                        .font(.system(size: 13.5, weight: .semibold))
-                                    Text("서가 보기")
-                                        .font(OttlineFont.semiBold(13.5))
-                                    Text("→")
-                                        .font(OttlineFont.semiBold(13.5))
-                                }
+                    Button(action: onOpenReport) {
+                        HStack(spacing: 8) {
+                            OttlineLucideIcon(kind: .clock3, size: 15, color: palette.primaryAccent, strokeWidth: 2.0)
+                            Text(OttlineStrings.tr("이용 리포트", "Usage Report", locale: locale))
+                                .font(OttlineFont.semiBold(13.5))
                                 .foregroundStyle(palette.primaryAccent)
-                            }
-                            .buttonStyle(.plain)
+                            Spacer()
+                            Text("→")
+                                .font(OttlineFont.semiBold(13.5))
+                                .foregroundStyle(palette.primaryAccent)
                         }
-
-                        Spacer()
+                        .padding(.horizontal, 14)
+                        .frame(minHeight: 44)
+                        .background(palette.card)
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8)
+                                .stroke(palette.border, lineWidth: 1)
+                        )
                     }
+                    .buttonStyle(.plain)
                 }
 
                 // 3. Sync Notice Banner
-                if !futureMode && (repository.outboxCount > 0 || repository.syncState.status != .idle) {
+                if !futureMode && (
+                    repository.outboxCount > 0
+                    || repository.syncState.status != .idle
+                    || repository.logSyncStatuses.values.contains { $0 == "PENDING" || $0 == "FAILED" }
+                ) {
                     SyncNoticeBanner(
                         syncState: repository.syncState,
-                        outboxCount: repository.outboxCount,
+                        outboxCount: max(
+                            repository.outboxCount,
+                            repository.logSyncStatuses.values.filter { $0 == "PENDING" || $0 == "FAILED" }.count
+                        ),
                         onRetryTap: { repository.triggerSyncAsync() }
                     )
                 }
@@ -256,14 +289,42 @@ public struct TimelineScreen: View {
                 if futureMode {
                     futureTimelineContent(allLogsCount: allLogs.count)
                 } else {
-                    // FiltersBar (`FiltersBar.tsx` 1:1 parity)
-                    filtersBarSection(momentFilterCount: momentFilterCount)
+                    filtersBarSection(momentFilterCount: momentFilterCount, hasActiveFilters: hasActiveFilters)
 
-                    // Timeline Month Groups (`LogCard.tsx` `.recordRow` parity)
-                    if filteredLogs.isEmpty {
+                    if typeFilter == "book" && locale == "ko" {
+                        Button {
+                            onOpenBookshelf(nil)
+                        } label: {
+                            HStack(spacing: 10) {
+                                OttlineLucideIcon(kind: .bookOpen, size: 16, color: palette.primaryAccent, strokeWidth: 2.0)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("내 서가 펼치기")
+                                        .font(OttlineFont.semiBold(14.5))
+                                        .foregroundStyle(palette.ink)
+                                    Text("남긴 책을 KDC 주제별 서가로 모아볼 수 있어요.")
+                                        .font(OttlineFont.regular(12))
+                                        .foregroundStyle(palette.mutedInk)
+                                }
+                                Spacer()
+                                Text("→")
+                                    .font(OttlineFont.semiBold(14))
+                                    .foregroundStyle(palette.primaryAccent)
+                            }
+                            .padding(14)
+                            .background(palette.paperStrong)
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 8)
+                                    .stroke(palette.border, lineWidth: 1)
+                            )
+                        }
+                        .buttonStyle(.plain)
+                    }
+
+                    if sortedLogs.isEmpty {
                         VStack(alignment: .leading, spacing: 14) {
                             Text(hasActiveFilters
-                                ? OttlineStrings.tr("검색 결과가 없어요.", "No search results.", locale: locale)
+                                ? OttlineStrings.tr("조건에 맞는 기록이 없어요.", "No records match these filters.", locale: locale)
                                 : OttlineStrings.tr("첫 기록을 남겨보세요. 타임라인이 시작됩니다.", "Leave your first record. Your timeline starts here.", locale: locale)
                             )
                             .font(OttlineFont.regular(15))
@@ -274,14 +335,13 @@ public struct TimelineScreen: View {
                                     onOpenQuickRecord(QuickRecordRequest(autoFocusSearch: true))
                                 } label: {
                                     HStack(spacing: 6) {
-                                        Image(systemName: "plus")
-                                            .font(.system(size: 13, weight: .bold))
+                                        OttlineLucideIcon(kind: .plus, size: 15, color: palette.onBrandOrange, strokeWidth: 2.2)
                                         Text(OttlineStrings.tr("기록 남기기", "Keep a story", locale: locale))
                                             .font(OttlineFont.semiBold(14.5))
                                     }
                                     .foregroundStyle(palette.onBrandOrange)
                                     .padding(.horizontal, 18)
-                                    .frame(minHeight: 46)
+                                    .frame(minHeight: 48)
                                     .background(palette.brandOrange)
                                     .clipShape(RoundedRectangle(cornerRadius: 8))
                                 }
@@ -317,7 +377,6 @@ public struct TimelineScreen: View {
                             }
                         }
 
-                        // Server cursor infinite scroll button
                         if hasMorePages {
                             Button {
                                 Task { await loadNextPage() }
@@ -327,13 +386,13 @@ public struct TimelineScreen: View {
                                     if loadingMore {
                                         ProgressView()
                                     } else {
-                                        Text(OttlineStrings.tr("이전 기록 더 보기", "Show earlier records", locale: locale))
+                                        Text(OttlineStrings.tr("더 불러오기", "Load more", locale: locale))
                                             .font(OttlineFont.semiBold(14))
                                             .foregroundStyle(palette.primaryAccent)
                                     }
                                     Spacer()
                                 }
-                                .frame(minHeight: 46)
+                                .frame(minHeight: 48)
                                 .background(palette.card)
                                 .clipShape(RoundedRectangle(cornerRadius: 8))
                                 .overlay(
@@ -342,25 +401,22 @@ public struct TimelineScreen: View {
                                 )
                             }
                             .buttonStyle(.plain)
-                            .task {
-                                await loadNextPage()
-                            }
                         }
                     }
                 }
+
+                OttlineAppFooter()
             }
             .padding(.horizontal, 18)
             .padding(.top, 18)
-            .padding(.bottom, 36)
+            .padding(.bottom, 16)
         }
         .background(palette.background)
-        .sheet(item: $shareCardLog) { log in
-            ShareCardDialog(
-                log: log,
-                nickname: repository.prefs.snapshot.nickname,
-                personaKey: repository.prefs.snapshot.personaKey,
-                onDismiss: { shareCardLog = nil }
-            )
+        .sheet(isPresented: $showExcludedSheet) {
+            excludedRecommendationsSheet
+        }
+        .sheet(isPresented: $showEditionPicker) {
+            catalogEditionPickerSheet
         }
         .onAppear {
             if initialPlaceFilter != nil || initialOccasionFilter != nil {
@@ -369,10 +425,14 @@ public struct TimelineScreen: View {
                 filterExpanded = true
                 onClearInitialMomentFilter()
             }
-            dismissedNextWatch = repository.prefs.dismissedNextWatchSignatures()
+        }
+        .task(id: filterTriggerKey) {
+            try? await Task.sleep(nanoseconds: 250_000_000)
+            if !Task.isCancelled {
+                await loadFirstServerPage()
+            }
         }
         .task {
-            await loadFirstServerPage()
             let books = repository.logs.map(\.title).filter { $0.type == .book }
             if !books.isEmpty {
                 await repository.ensureBookClassificationsCached(titles: books)
@@ -414,58 +474,87 @@ public struct TimelineScreen: View {
 
     // MARK: - FiltersBar (`FiltersBar.tsx` 1:1 Parity)
 
-    private func filtersBarSection(momentFilterCount: Int) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            // 3 equal-width segmented tabs: `전체` | `영상` | `책`
-            HStack(spacing: 8) {
+    private func filtersBarSection(momentFilterCount: Int, hasActiveFilters: Bool) -> some View {
+        let isBookTab = typeFilter == "book"
+        let groups = PlatformCatalog.groups(isBook: isBookTab, locale: locale)
+        let flatDefaults = groups.flatMap(\.items)
+        let customs = isBookTab
+            ? repository.prefs.snapshot.customBookPlatforms
+            : repository.prefs.snapshot.customVideoPlatforms
+        let extraCustoms = customs.filter { !flatDefaults.contains($0) }
+        let availablePlaces = isBookTab
+            ? Place.bookCases
+            : ((typeFilter == "movie" || typeFilter == "series") ? Place.videoCases : Place.allCases)
+
+        return VStack(alignment: .leading, spacing: 12) {
+            // Underline Content-Type Tabs (`전체` | `영화` | `시리즈` | `책`)
+            HStack(spacing: 0) {
                 ForEach([
                     ("all", OttlineStrings.tr("전체", "All", locale: locale)),
-                    ("video", OttlineStrings.tr("영상", "Video", locale: locale)),
+                    ("movie", OttlineStrings.tr("영화", "Movie", locale: locale)),
+                    ("series", OttlineStrings.tr("시리즈", "Series", locale: locale)),
                     ("book", OttlineStrings.tr("책", "Book", locale: locale))
                 ], id: \.0) { key, label in
                     let selected = typeFilter == key
                     Button {
                         typeFilter = key
                     } label: {
-                        Text(label)
-                            .font(selected ? OttlineFont.semiBold(14.5) : OttlineFont.medium(14.5))
-                            .foregroundStyle(selected ? palette.primaryAccent : palette.mutedInk)
-                            .frame(maxWidth: .infinity, minHeight: 42)
-                            .background(selected ? palette.card : Color.clear)
-                            .clipShape(RoundedRectangle(cornerRadius: 8))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 8)
-                                    .stroke(selected ? palette.primaryAccent : palette.border, lineWidth: selected ? 1.5 : 1)
-                            )
+                        VStack(spacing: 8) {
+                            Text(label)
+                                .font(selected ? OttlineFont.semiBold(14.5) : OttlineFont.medium(14.5))
+                                .foregroundStyle(selected ? palette.ink : palette.mutedInk)
+                            Rectangle()
+                                .fill(selected ? palette.ink : Color.clear)
+                                .frame(height: 2)
+                        }
+                        .frame(maxWidth: .infinity, minHeight: 42)
                     }
                     .buttonStyle(.plain)
                 }
             }
+            .overlay(alignment: .bottom) {
+                Rectangle().fill(palette.border).frame(height: 1)
+            }
 
-            // Search Input (`제목, 메모, 플랫폼`)
+            // Status filter row
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 6) {
+                    statusChip(label: OttlineStrings.tr("모든 상태", "All states", locale: locale), active: statusFilter == nil) {
+                        statusFilter = nil
+                    }
+                    ForEach(LogStatus.allCases, id: \.self) { st in
+                        statusChip(
+                            label: OttlineStrings.statusLabel(st, type: isBookTab ? .book : .movie, locale: locale),
+                            active: statusFilter == st
+                        ) {
+                            statusFilter = (statusFilter == st) ? nil : st
+                        }
+                    }
+                }
+            }
+
+            // 48pt Search Bar (matches title, author, publisher, note, ott)
             HStack(spacing: 8) {
-                Image(systemName: "magnifyingglass")
-                    .font(.system(size: 14))
-                    .foregroundStyle(palette.mutedInk)
+                OttlineLucideIcon(kind: .search, size: 16, color: palette.mutedInk, strokeWidth: 2.0)
                 TextField(
-                    OttlineStrings.tr("제목, 메모, 플랫폼", "Title, note, platform", locale: locale),
+                    OttlineStrings.tr("제목, 작가·출판사, 메모 검색", "Title, author, publisher, note", locale: locale),
                     text: $searchQuery
                 )
-                .font(OttlineFont.regular(14.5))
+                .font(OttlineFont.regular(15))
                 .foregroundStyle(palette.ink)
+                .autocorrectionDisabled()
 
                 if !searchQuery.isEmpty {
                     Button {
                         searchQuery = ""
                     } label: {
-                        Image(systemName: "xmark.circle.fill")
-                            .foregroundStyle(palette.mutedInk)
+                        OttlineLucideIcon(kind: .x, size: 15, color: palette.mutedInk, strokeWidth: 2.0)
                     }
                     .buttonStyle(.plain)
                 }
             }
-            .padding(.horizontal, 12)
-            .frame(minHeight: 42)
+            .padding(.horizontal, 14)
+            .frame(minHeight: 48)
             .background(palette.card)
             .clipShape(RoundedRectangle(cornerRadius: 8))
             .overlay(
@@ -473,148 +562,37 @@ public struct TimelineScreen: View {
                     .stroke(palette.border, lineWidth: 1)
             )
 
-            // Collapsible Toggle (`그날의 순간으로 찾기` / `Find a moment`)
+            // Full-width white `"그날의 순간으로 찾기"` toggle
             Button {
                 withAnimation(.easeInOut(duration: 0.18)) {
                     filterExpanded.toggle()
                 }
             } label: {
-                HStack(spacing: 6) {
+                HStack(spacing: 8) {
+                    OttlineLucideIcon(kind: .slidersHorizontal, size: 15, color: palette.ink, strokeWidth: 2.0)
                     Text(OttlineStrings.tr("그날의 순간으로 찾기", "Find a moment", locale: locale))
-                        .font(OttlineFont.semiBold(13.5))
-                        .foregroundStyle(palette.primaryAccent)
+                        .font(OttlineFont.semiBold(14))
+                        .foregroundStyle(palette.ink)
                     if momentFilterCount > 0 {
                         Text("\(momentFilterCount)")
                             .font(OttlineFont.semiBold(11.5))
                             .foregroundStyle(palette.primaryAccent)
-                            .frame(minWidth: 20, minHeight: 20)
+                            .padding(.horizontal, 7)
+                            .padding(.vertical, 2)
                             .background(palette.paperStrong)
                             .clipShape(Capsule())
-                            .overlay(
-                                Capsule().stroke(palette.border, lineWidth: 1)
-                            )
+                            .overlay(Capsule().stroke(palette.border, lineWidth: 1))
                     }
-                    Image(systemName: filterExpanded ? "chevron.up" : "chevron.down")
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundStyle(palette.primaryAccent)
-                }
-                .padding(.vertical, 4)
-            }
-            .buttonStyle(.plain)
-
-            if filterExpanded {
-                let availablePlaces = typeFilter == "book"
-                    ? Place.bookCases
-                    : (typeFilter == "video" ? Place.videoCases : Place.allCases)
-                let availablePlatforms = typeFilter == "book"
-                    ? OttlineStrings.bookPlatforms(locale)
-                    : OttlineStrings.videoPlatforms(locale)
-
-                LazyVGrid(columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)], spacing: 10) {
-                    // 1. Status
-                    filterMenuBox(
-                        title: OttlineStrings.tr("상태", "Status", locale: locale),
-                        valueLabel: statusFilter.map { OttlineStrings.statusLabel($0, type: typeFilter == "book" ? .book : .movie, locale: locale) }
-                            ?? OttlineStrings.tr("전체", "All", locale: locale)
-                    ) {
-                        Button(OttlineStrings.tr("전체", "All", locale: locale)) { statusFilter = nil }
-                        ForEach(LogStatus.allCases, id: \.self) { st in
-                            Button(OttlineStrings.statusLabel(st, type: typeFilter == "book" ? .book : .movie, locale: locale)) {
-                                statusFilter = st
-                            }
-                        }
-                    }
-
-                    // 2. Platform
-                    filterMenuBox(
-                        title: OttlineStrings.tr("플랫폼", "Platform", locale: locale),
-                        valueLabel: platformFilter.isEmpty
-                            ? OttlineStrings.tr("전체", "All", locale: locale)
-                            : platformFilter
-                    ) {
-                        Button(OttlineStrings.tr("전체", "All", locale: locale)) { platformFilter = "" }
-                        ForEach(availablePlatforms, id: \.self) { plat in
-                            Button(plat) { platformFilter = plat }
-                        }
-                    }
-
-                    // 3. Place (`어디서`)
-                    filterMenuBox(
-                        title: OttlineStrings.tr("어디서", "Where", locale: locale),
-                        valueLabel: placeFilter.map { OttlineStrings.placeLabel($0, locale: locale) }
-                            ?? OttlineStrings.tr("모든 장소", "All places", locale: locale)
-                    ) {
-                        Button(OttlineStrings.tr("모든 장소", "All places", locale: locale)) { placeFilter = nil }
-                        ForEach(availablePlaces, id: \.self) { p in
-                            Button(OttlineStrings.placeLabel(p, locale: locale)) { placeFilter = p }
-                        }
-                    }
-
-                    // 4. Occasion (`누구와·어떤 상황`)
-                    filterMenuBox(
-                        title: OttlineStrings.tr("누구와·어떤 상황", "Who or what moment", locale: locale),
-                        valueLabel: occasionFilter.map { OttlineStrings.occasionLabel($0, locale: locale) }
-                            ?? OttlineStrings.tr("모든 상황", "All moments", locale: locale)
-                    ) {
-                        Button(OttlineStrings.tr("모든 상황", "All moments", locale: locale)) { occasionFilter = nil }
-                        ForEach(Occasion.allCases, id: \.self) { occ in
-                            Button(OttlineStrings.occasionLabel(occ, locale: locale)) { occasionFilter = occ }
-                        }
-                    }
-
-                    // 5. Category (`구분`)
-                    filterMenuBox(
-                        title: OttlineStrings.tr("구분", "Category", locale: locale),
-                        valueLabel: originFilter == nil
-                            ? OttlineStrings.tr("전체", "All", locale: locale)
-                            : (originFilter == .comment
-                                ? OttlineStrings.tr("함께 남긴 기록", "From a conversation", locale: locale)
-                                : OttlineStrings.tr("내 기록", "My record", locale: locale))
-                    ) {
-                        Button(OttlineStrings.tr("전체", "All", locale: locale)) { originFilter = nil }
-                        Button(OttlineStrings.tr("내 기록", "My record", locale: locale)) { originFilter = .log }
-                        Button(OttlineStrings.tr("함께 남긴 기록", "From a conversation", locale: locale)) { originFilter = .comment }
-                    }
-                }
-                .padding(14)
-                .background(palette.paperStrong)
-                .clipShape(RoundedRectangle(cornerRadius: 8))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 8)
-                        .stroke(palette.border, lineWidth: 1)
-                )
-            }
-        }
-        .padding(.bottom, 12)
-        .overlay(alignment: .bottom) {
-            Rectangle().fill(palette.border).frame(height: 1)
-        }
-    }
-
-    private func filterMenuBox<MenuContent: View>(
-        title: String,
-        valueLabel: String,
-        @ViewBuilder content: () -> MenuContent
-    ) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(title)
-                .font(OttlineFont.regular(11.5))
-                .foregroundStyle(palette.mutedInk)
-            Menu {
-                content()
-            } label: {
-                HStack {
-                    Text(valueLabel)
-                        .font(OttlineFont.medium(13.5))
-                        .foregroundStyle(palette.ink)
-                        .lineLimit(1)
                     Spacer()
-                    Image(systemName: "chevron.up.chevron.down")
-                        .font(.system(size: 11))
-                        .foregroundStyle(palette.mutedInk)
+                    OttlineLucideIcon(
+                        kind: filterExpanded ? .chevronUp : .chevronDown,
+                        size: 15,
+                        color: palette.mutedInk,
+                        strokeWidth: 2.0
+                    )
                 }
-                .padding(.horizontal, 10)
-                .frame(minHeight: 38)
+                .padding(.horizontal, 14)
+                .frame(maxWidth: .infinity, minHeight: 48)
                 .background(palette.card)
                 .clipShape(RoundedRectangle(cornerRadius: 8))
                 .overlay(
@@ -623,7 +601,160 @@ public struct TimelineScreen: View {
                 )
             }
             .buttonStyle(.plain)
+
+            if filterExpanded {
+                VStack(alignment: .leading, spacing: 14) {
+                    // Grouped & custom platforms
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text(isBookTab
+                            ? OttlineStrings.tr("읽은 곳·플랫폼", "Where you read", locale: locale)
+                            : OttlineStrings.tr("플랫폼", "Platform", locale: locale)
+                        )
+                        .font(OttlineFont.semiBold(12.5))
+                        .foregroundStyle(palette.mutedInk)
+
+                        ForEach(groups, id: \.id) { grp in
+                            VStack(alignment: .leading, spacing: 5) {
+                                if !grp.label.isEmpty {
+                                    Text(grp.label)
+                                        .font(OttlineFont.medium(11))
+                                        .foregroundStyle(palette.subtleInk)
+                                }
+                                FlowLayout(horizontalSpacing: 6, verticalSpacing: 6) {
+                                    ForEach(grp.items, id: \.self) { plat in
+                                        filterChip(label: plat, active: platformFilter == plat) {
+                                            platformFilter = (platformFilter == plat) ? "" : plat
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        if !extraCustoms.isEmpty {
+                            FlowLayout(horizontalSpacing: 6, verticalSpacing: 6) {
+                                ForEach(extraCustoms, id: \.self) { plat in
+                                    filterChip(label: plat, active: platformFilter == plat) {
+                                        platformFilter = (platformFilter == plat) ? "" : plat
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // Place
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text(OttlineStrings.tr("장소", "Place", locale: locale))
+                            .font(OttlineFont.semiBold(12.5))
+                            .foregroundStyle(palette.mutedInk)
+                        FlowLayout(horizontalSpacing: 6, verticalSpacing: 6) {
+                            ForEach(availablePlaces, id: \.self) { p in
+                                filterChip(
+                                    label: OttlineStrings.placeLabel(p, locale: locale),
+                                    active: placeFilter == p
+                                ) {
+                                    placeFilter = (placeFilter == p) ? nil : p
+                                }
+                            }
+                        }
+                    }
+
+                    // Occasion
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text(OttlineStrings.tr("누구와·어떤 상황", "With whom / occasion", locale: locale))
+                            .font(OttlineFont.semiBold(12.5))
+                            .foregroundStyle(palette.mutedInk)
+                        FlowLayout(horizontalSpacing: 6, verticalSpacing: 6) {
+                            ForEach(Occasion.allCases, id: \.self) { occ in
+                                filterChip(
+                                    label: OttlineStrings.occasionLabel(occ, locale: locale),
+                                    active: occasionFilter == occ
+                                ) {
+                                    occasionFilter = (occasionFilter == occ) ? nil : occ
+                                }
+                            }
+                        }
+                    }
+
+                    // Origin
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text(OttlineStrings.tr("구분", "Origin", locale: locale))
+                            .font(OttlineFont.semiBold(12.5))
+                            .foregroundStyle(palette.mutedInk)
+                        FlowLayout(horizontalSpacing: 6, verticalSpacing: 6) {
+                            filterChip(
+                                label: OttlineStrings.tr("내 기록", "My record", locale: locale),
+                                active: originFilter == .log
+                            ) {
+                                originFilter = (originFilter == .log) ? nil : .log
+                            }
+                            filterChip(
+                                label: OttlineStrings.tr("함께 남긴 기록", "From Together", locale: locale),
+                                active: originFilter == .comment
+                            ) {
+                                originFilter = (originFilter == .comment) ? nil : .comment
+                            }
+                        }
+                    }
+
+                    if hasActiveFilters {
+                        Button {
+                            typeFilter = "all"
+                            statusFilter = nil
+                            platformFilter = ""
+                            placeFilter = nil
+                            occasionFilter = nil
+                            originFilter = nil
+                            searchQuery = ""
+                        } label: {
+                            Text(OttlineStrings.tr("조건 지우기", "Clear filters", locale: locale))
+                                .font(OttlineFont.semiBold(13))
+                                .foregroundStyle(palette.primaryAccent)
+                                .frame(minHeight: 38)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(16)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(palette.card)
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(palette.border, lineWidth: 1)
+                )
+            }
         }
+    }
+
+    private func statusChip(label: String, active: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(label)
+                .font(active ? OttlineFont.semiBold(12.5) : OttlineFont.medium(12.5))
+                .foregroundStyle(active ? palette.ink : palette.mutedInk)
+                .padding(.horizontal, 12)
+                .frame(minHeight: 34)
+                .background(active ? palette.paperStrong : palette.card)
+                .clipShape(Capsule())
+                .overlay(Capsule().stroke(active ? palette.ink : palette.border, lineWidth: 1))
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func filterChip(label: String, active: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(label)
+                .font(active ? OttlineFont.semiBold(12.5) : OttlineFont.regular(12.5))
+                .foregroundStyle(active ? palette.onBrandNavy : palette.ink)
+                .padding(.horizontal, 10)
+                .frame(minHeight: 34)
+                .background(active ? palette.brandNavy : palette.paperStrong)
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(active ? palette.brandNavy : palette.border, lineWidth: 1)
+                )
+        }
+        .buttonStyle(.plain)
     }
 
     // MARK: - Timeline Record Row (`LogCard.tsx` `.recordRow` 1:1 Parity)
@@ -632,7 +763,9 @@ public struct TimelineScreen: View {
         let isBook = log.title.type == .book
         let isbn13 = isBook ? BookshelfBuilder.normalizeBookIsbn13(log.title) : nil
         let cls = isbn13.flatMap { repository.bookClassifications[$0] }
-        let kdcMajor = (cls?.status == "CLASSIFIED") ? cls?.kdcMajor : nil
+        let kdcMajor = (cls?.isResolved == true) ? cls?.kdcMajor : nil
+        let syncStatus = repository.logSyncStatuses[log.id]
+        let isStoredLocally = (syncStatus == "PENDING" || syncStatus == "FAILED")
         let dateIso = log.watchedAt.isEmpty ? log.createdAt : log.watchedAt
         let displayYear = log.seasonYear ?? log.title.year
 
@@ -650,13 +783,13 @@ public struct TimelineScreen: View {
         }()
 
         return HStack(alignment: .top, spacing: 14) {
-            // Left Date Column (`recordDate`: Month on top + large Day below)
+            // Left Date Column (`34pt` day number)
             VStack(alignment: .leading, spacing: 1) {
                 Text(RecordDate.formatTimelineMonth(dateIso, locale: locale))
                     .font(OttlineFont.regular(11.5))
                     .foregroundStyle(palette.mutedInk)
                 Text(RecordDate.formatTimelineDay(dateIso))
-                    .font(OttlineFont.semiBold(22))
+                    .font(OttlineFont.semiBold(34))
                     .foregroundStyle(palette.ink)
                 if log.watchedAt.isEmpty {
                     Text(OttlineStrings.tr("기록한 날", "Recorded", locale: locale))
@@ -664,9 +797,9 @@ public struct TimelineScreen: View {
                         .foregroundStyle(palette.mutedInk)
                 }
             }
-            .frame(width: 48, alignment: .leading)
+            .frame(width: 50, alignment: .leading)
 
-            // Middle Poster (`58x87`)
+            // Middle Poster (`58x87` borderless)
             Button {
                 onOpenTitleDetail(log.title.id)
             } label: {
@@ -680,9 +813,8 @@ public struct TimelineScreen: View {
             }
             .buttonStyle(.plain)
 
-            // Right Content (`recordContent`)
+            // Right Content
             VStack(alignment: .leading, spacing: 6) {
-                // Meta line (`영화 · 2026`, edition, origin)
                 HStack(spacing: 6) {
                     Text([
                         OttlineStrings.titleTypeLabel(log.title.type, locale: locale),
@@ -697,15 +829,28 @@ public struct TimelineScreen: View {
                             .foregroundStyle(palette.mutedInk)
                             .lineLimit(1)
                     }
+                }
 
-                    if log.origin == .comment {
-                        Text(OttlineStrings.tr("함께 남긴 기록", "Shared note", locale: locale))
-                            .font(OttlineFont.regular(11.5))
-                            .foregroundStyle(palette.mutedInk)
+                if isStoredLocally || log.origin == .comment {
+                    FlowLayout(horizontalSpacing: 6, verticalSpacing: 4) {
+                        if isStoredLocally {
+                            Text(OttlineStrings.tr("이 기기에 보관 중", "Kept on this device", locale: locale))
+                                .font(OttlineFont.medium(11))
+                                .foregroundStyle(palette.mutedInk)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 2)
+                                .background(palette.paperStrong)
+                                .clipShape(RoundedRectangle(cornerRadius: 4))
+                                .overlay(RoundedRectangle(cornerRadius: 4).stroke(palette.border, lineWidth: 1))
+                        }
+                        if log.origin == .comment {
+                            Text(OttlineStrings.tr("함께 남긴 기록", "From Together", locale: locale))
+                                .font(OttlineFont.medium(11))
+                                .foregroundStyle(palette.primaryAccent)
+                        }
                     }
                 }
 
-                // Title
                 Button {
                     onOpenTitleDetail(log.title.id)
                 } label: {
@@ -717,7 +862,6 @@ public struct TimelineScreen: View {
                 }
                 .buttonStyle(.plain)
 
-                // Status + Feeling
                 HStack(spacing: 8) {
                     Text(OttlineStrings.statusLabel(log.status, type: log.title.type, locale: locale))
                         .font(OttlineFont.semiBold(12.5))
@@ -725,49 +869,54 @@ public struct TimelineScreen: View {
                     RecordFeelingBadge(rating: log.rating, isBook: isBook, compact: true)
                 }
 
-                // Moment (`ott`, `place`, `occasion`)
-                let momentParts = [
-                    log.ott,
-                    log.place.map { OttlineStrings.placeLabel($0, locale: locale) },
-                    log.occasion.map { OttlineStrings.occasionLabel($0, locale: locale) }
-                ].compactMap { $0 }.filter { !$0.isEmpty }
+                RecordMomentList(ott: log.ott, place: log.place, occasion: log.occasion, compact: true)
 
-                if !momentParts.isEmpty {
-                    Text(momentParts.joined(separator: " · "))
-                        .font(OttlineFont.regular(12.5))
-                        .foregroundStyle(palette.mutedInk)
-                }
-
-                // Note with left vertical border
-                if let note = log.note?.trimmingCharacters(in: .whitespacesAndNewlines), !note.isEmpty {
-                    HStack(spacing: 10) {
-                        Rectangle()
-                            .fill(palette.border)
-                            .frame(width: 2)
-                        Text(note)
-                            .font(OttlineFont.regular(14))
-                            .foregroundStyle(palette.ink)
-                            .lineLimit(4)
-                            .multilineTextAlignment(.leading)
+                if isBook, locale == "ko", let kdcMajor {
+                    Button {
+                        onOpenBookshelf(kdcMajor)
+                    } label: {
+                        Text("\(BookshelfBuilder.kdcSectionName(major: kdcMajor, locale: locale)) 서가에도 함께 꽂혔어요.")
+                            .font(OttlineFont.medium(12))
+                            .foregroundStyle(palette.primaryAccent)
+                            .underline()
                     }
-                    .padding(.vertical, 2)
+                    .buttonStyle(.plain)
                 }
 
-                // Actions row (`기록 펼치기 →`, `공유 카드 만들기`, `함께 나누기`, KDC shelf badge)
-                FlowLayoutRow(spacing: 12) {
+                if let note = log.note?.trimmingCharacters(in: .whitespacesAndNewlines), !note.isEmpty {
+                    InlineNoteText(text: note, fontSize: 15.5, lineLimit: 4)
+                        .padding(.top, 2)
+                }
+
+                FlowLayout(horizontalSpacing: 12, verticalSpacing: 6) {
                     Button {
                         onOpenTitleDetail(log.title.id)
                     } label: {
-                        Text(OttlineStrings.tr("기록 펼치기 →", "Open record →", locale: locale))
+                        Text(OttlineStrings.tr("상세 보기", "Details", locale: locale))
                             .font(OttlineFont.semiBold(12.5))
                             .foregroundStyle(palette.primaryAccent)
                     }
                     .buttonStyle(.plain)
 
                     Button {
-                        shareCardLog = log
+                        onOpenQuickRecord(
+                            QuickRecordRequest(
+                                existingLog: log,
+                                autoFocusSearch: false,
+                                openNoteStage: true
+                            )
+                        )
                     } label: {
-                        Text(OttlineStrings.tr("공유 카드 만들기", "Create a share card", locale: locale))
+                        Text(OttlineStrings.tr("수정", "Edit", locale: locale))
+                            .font(OttlineFont.regular(12.5))
+                            .foregroundStyle(palette.mutedInk)
+                    }
+                    .buttonStyle(.plain)
+
+                    Button {
+                        onOpenShareCard(log)
+                    } label: {
+                        Text(OttlineStrings.tr("공유 카드", "Share card", locale: locale))
                             .font(OttlineFont.regular(12.5))
                             .foregroundStyle(palette.mutedInk)
                     }
@@ -776,36 +925,19 @@ public struct TimelineScreen: View {
                     if let note = log.note?.trimmingCharacters(in: .whitespacesAndNewlines), !note.isEmpty {
                         let alreadyShared = sharedNoteLogIds.contains(log.id)
                         Button {
-                            Task { await shareNoteToTogether(log: log, note: note) }
+                            Task { await shareNote(log: log, note: note) }
                         } label: {
                             Text(alreadyShared
                                 ? OttlineStrings.tr("함께에 나눴어요", "Shared", locale: locale)
                                 : (sharingNoteLogId == log.id
                                     ? OttlineStrings.tr("나누는 중…", "Sharing…", locale: locale)
-                                    : OttlineStrings.tr("함께 나누기", "Keep it with others", locale: locale))
+                                    : OttlineStrings.tr("함께 나누기", "Share in Together", locale: locale))
                             )
                             .font(OttlineFont.regular(12.5))
                             .foregroundStyle(palette.mutedInk)
                         }
                         .buttonStyle(.plain)
                         .disabled(alreadyShared || sharingNoteLogId == log.id)
-                    }
-
-                    if isBook, locale == "ko", let kdcMajor {
-                        Button(action: onOpenBookshelf) {
-                            Text("\(BookshelfBuilder.kdcSectionName(major: kdcMajor, locale: locale)) 서가")
-                                .font(OttlineFont.medium(11.5))
-                                .foregroundStyle(palette.mutedInk)
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 3)
-                                .background(palette.paperStrong)
-                                .clipShape(RoundedRectangle(cornerRadius: 6))
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 6)
-                                        .stroke(palette.border, lineWidth: 1)
-                                )
-                        }
-                        .buttonStyle(.plain)
                     }
                 }
                 .padding(.top, 2)
@@ -815,131 +947,131 @@ public struct TimelineScreen: View {
         .padding(.vertical, 16)
     }
 
-    // MARK: - Future Timeline Mode (`app/[locale]/timeline/page.tsx` `futureMode` parity)
+    // MARK: - OpenAI v2 Future Timeline (`RecommendationDeck.tsx` 1:1 Parity)
 
     @ViewBuilder
     private func futureTimelineContent(allLogsCount: Int) -> some View {
         VStack(alignment: .leading, spacing: 16) {
-            if allLogsCount < 5 {
+            if let excluded = lastExcludedItem {
+                HStack(spacing: 10) {
+                    Text(OttlineStrings.tr("‘\(excluded.name)’을(를) 제외했어요.", "Excluded ‘\(excluded.name)’.", locale: locale))
+                        .font(OttlineFont.regular(13))
+                        .foregroundStyle(palette.ink)
+                    Spacer()
+                    Button {
+                        Task { await restoreExclusion(key: excluded.key) }
+                    } label: {
+                        HStack(spacing: 4) {
+                            OttlineLucideIcon(kind: .rotateCcw, size: 13, color: palette.primaryAccent, strokeWidth: 2.0)
+                            Text(OttlineStrings.tr("되돌리기", "Undo", locale: locale))
+                                .font(OttlineFont.semiBold(13))
+                        }
+                        .foregroundStyle(palette.primaryAccent)
+                    }
+                    .buttonStyle(.plain)
+                }
+                .padding(12)
+                .background(palette.paperStrong)
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+                .overlay(RoundedRectangle(cornerRadius: 8).stroke(palette.border, lineWidth: 1))
+            }
+
+            if allLogsCount < 5 || !recState.eligible {
                 Text(OttlineStrings.tr(
-                    "기록이 다섯 개 쌓이면, 다음에 만날 이야기를 함께 찾아볼 수 있어요.",
-                    "With five records, you can explore a few stories to meet next.",
+                    "기록이 다섯 개 이상 쌓이면, 지금까지 남긴 작품의 결을 따라 다음에 만날 이야기를 찾아볼 수 있어요.",
+                    "With five or more records, we can suggest a few stories to meet next.",
                     locale: locale
                 ))
                 .font(OttlineFont.regular(15))
                 .foregroundStyle(palette.mutedInk)
                 .padding(.vertical, 16)
-            } else if nextWatchLoading {
-                HStack(spacing: 10) {
-                    ProgressView()
-                    Text(OttlineStrings.tr(
-                        "남겨둔 기록의 결을 따라 다음 이야기를 찾고 있어요.",
-                        "Finding a few stories through the records you kept.",
-                        locale: locale
-                    ))
-                    .font(OttlineFont.regular(14))
-                    .foregroundStyle(palette.mutedInk)
+            } else {
+                // Quota + Generate Header Bar
+                HStack(spacing: 12) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(OttlineStrings.tr(
+                            "오늘 남은 생성 \(recState.quota.remaining)/\(recState.quota.limit)",
+                            "Generations left today: \(recState.quota.remaining)/\(recState.quota.limit)",
+                            locale: locale
+                        ))
+                        .font(OttlineFont.semiBold(13.5))
+                        .foregroundStyle(palette.ink)
+                        if let genAt = recState.generatedAt, !genAt.isEmpty {
+                            Text(OttlineStrings.tr(
+                                "마지막 생성: \(RecordDate.formatDisplayDate(genAt, locale: locale))",
+                                "Last generated: \(RecordDate.formatDisplayDate(genAt, locale: locale))",
+                                locale: locale
+                            ))
+                            .font(OttlineFont.regular(11.5))
+                            .foregroundStyle(palette.mutedInk)
+                        }
+                    }
+                    Spacer()
+                    Button {
+                        Task { await requestNewRecommendations() }
+                    } label: {
+                        HStack(spacing: 6) {
+                            if recGeneratingAction || recState.generating {
+                                ProgressView()
+                                    .controlSize(.small)
+                                    .tint(palette.onBrandOrange)
+                            } else {
+                                OttlineLucideIcon(kind: .sparkles, size: 15, color: palette.onBrandOrange, strokeWidth: 2.0)
+                            }
+                            Text(recState.hasBatch
+                                ? OttlineStrings.tr("새로 추천받기", "Generate new", locale: locale)
+                                : OttlineStrings.tr("다음 작품 추천받기", "Find next stories", locale: locale)
+                            )
+                            .font(OttlineFont.semiBold(13.5))
+                        }
+                        .foregroundStyle((recState.quota.remaining <= 0 || recGeneratingAction || recState.generating) ? palette.mutedInk : palette.onBrandOrange)
+                        .padding(.horizontal, 14)
+                        .frame(minHeight: 44)
+                        .background((recState.quota.remaining <= 0 || recGeneratingAction || recState.generating) ? palette.mutedBg : palette.brandOrange)
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(recState.quota.remaining <= 0 || recGeneratingAction || recState.generating)
                 }
-                .padding(.vertical, 20)
-            } else if let nextWatchError {
-                Text(nextWatchError)
-                    .font(OttlineFont.regular(14))
-                    .foregroundStyle(palette.danger)
+                .padding(14)
+                .background(palette.card)
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+                .overlay(RoundedRectangle(cornerRadius: 8).stroke(palette.border, lineWidth: 1))
+
+                if let recError, !recError.isEmpty {
+                    Text(recError)
+                        .font(OttlineFont.regular(13.5))
+                        .foregroundStyle(palette.danger)
+                }
+
+                if recLoading || recState.generating {
+                    HStack(spacing: 10) {
+                        ProgressView()
+                        Text(OttlineStrings.tr(
+                            "남겨둔 기록의 결을 따라 다음 이야기를 고르고 있어요...",
+                            "Choosing next stories from your timeline...",
+                            locale: locale
+                        ))
+                        .font(OttlineFont.regular(14))
+                        .foregroundStyle(palette.mutedInk)
+                    }
                     .padding(.vertical, 16)
-            } else if let resp = nextWatchResponse {
-                let visibleItems = resp.items.filter { !dismissedNextWatch.contains("\($0.provider.rawValue):\($0.providerId)") }
-                if visibleItems.isEmpty {
-                    Text(OttlineStrings.tr(
-                        "아직 펼쳐볼 이야기가 없어요. 잠시 후 다시 들러주세요.",
-                        "No stories to open just yet. Come back another time.",
-                        locale: locale
-                    ))
+                } else if recState.items.isEmpty {
+                    Text(recState.hasBatch
+                        ? OttlineStrings.tr("표시할 추천 작품이 남아 있지 않아요. 새로 생성해 보세요.", "No recommendations left in this batch.", locale: locale)
+                        : OttlineStrings.tr("위의 버튼을 눌러 다음에 만날 작품을 받아보세요.", "Tap the button above to generate recommendations.", locale: locale)
+                    )
                     .font(OttlineFont.regular(14))
                     .foregroundStyle(palette.mutedInk)
                     .padding(.vertical, 16)
                 } else {
-                    ForEach(visibleItems) { item in
-                        VStack(alignment: .leading, spacing: 12) {
-                            HStack(alignment: .top, spacing: 14) {
-                                PosterImage(
-                                    posterUrl: item.posterUrl,
-                                    titleName: item.name,
-                                    titleType: item.type,
-                                    width: 64,
-                                    height: 96
-                                )
-                                VStack(alignment: .leading, spacing: 6) {
-                                    Text([
-                                        OttlineStrings.titleTypeLabel(item.type, locale: locale),
-                                        item.year.map(String.init)
-                                    ].compactMap { $0 }.joined(separator: " · "))
-                                    .font(OttlineFont.regular(12))
-                                    .foregroundStyle(palette.mutedInk)
-
-                                    Text(item.name)
-                                        .font(OttlineFont.semiBold(17))
-                                        .foregroundStyle(palette.ink)
-
-                                    Text(item.reason)
-                                        .font(OttlineFont.regular(13.5))
-                                        .foregroundStyle(palette.ink)
-                                        .lineSpacing(2)
-
-                                    HStack(spacing: 14) {
-                                        Button {
-                                            let candidate = Title(
-                                                id: item.titleId ?? UUID().uuidString.lowercased(),
-                                                provider: item.provider,
-                                                providerId: item.providerId,
-                                                type: item.type,
-                                                name: item.name,
-                                                year: item.year,
-                                                posterUrl: item.posterUrl,
-                                                overview: item.overview
-                                            )
-                                            onOpenQuickRecord(
-                                                QuickRecordRequest(
-                                                    preselectedTitle: candidate,
-                                                    preferredStatus: .wishlist,
-                                                    selectSource: "next_watch_recommend",
-                                                    prefilledPlatform: item.recommendedOtt,
-                                                    autoFocusSearch: false
-                                                )
-                                            )
-                                        } label: {
-                                            Text(item.type == .book
-                                                ? OttlineStrings.tr("읽고 싶어요", "Want to read", locale: locale)
-                                                : OttlineStrings.tr("보고 싶어요", "Want to watch", locale: locale)
-                                            )
-                                            .font(OttlineFont.semiBold(13))
-                                            .foregroundStyle(palette.primaryAccent)
-                                        }
-                                        .buttonStyle(.plain)
-
-                                        Button {
-                                            let sig = "\(item.provider.rawValue):\(item.providerId)"
-                                            repository.prefs.dismissNextWatchRecommendation(signature: sig)
-                                            dismissedNextWatch.insert(sig)
-                                        } label: {
-                                            Text(OttlineStrings.tr("이미 본 작품이에요", "Already seen or read", locale: locale))
-                                                .font(OttlineFont.regular(12.5))
-                                                .foregroundStyle(palette.mutedInk)
-                                        }
-                                        .buttonStyle(.plain)
-                                    }
-                                    .padding(.top, 2)
-                                }
-                                Spacer()
-                            }
-                            Rectangle()
-                                .fill(palette.border)
-                                .frame(height: 1)
-                        }
+                    ForEach(recState.items) { item in
+                        recommendationCard(item)
                     }
                 }
             }
 
-            // OpenAI data usage disclosure (`futureDataNotice` in `timeline/page.tsx`)
+            // OpenAI data usage disclosure
             VStack(alignment: .leading, spacing: 6) {
                 Text(OttlineStrings.tr(
                     "추천을 요청하면 최근 기록한 작품 제목·유형·장르·느낌, 남긴 경우 메모와 장소·상황, 제외 작품 목록을 OpenAI에 전송해 다음 작품을 추천받아요.",
@@ -948,15 +1080,176 @@ public struct TimelineScreen: View {
                 ))
                 .font(OttlineFont.regular(12))
                 .foregroundStyle(palette.mutedInk)
-                .lineSpacing(2)
+                .lineSpacing(3)
             }
             .padding(14)
             .background(palette.paperStrong)
             .clipShape(RoundedRectangle(cornerRadius: 8))
-            .overlay(
-                RoundedRectangle(cornerRadius: 8)
-                    .stroke(palette.border, lineWidth: 1)
-            )
+            .overlay(RoundedRectangle(cornerRadius: 8).stroke(palette.border, lineWidth: 1))
+        }
+    }
+
+    private func recommendationCard(_ item: RecommendationItem) -> some View {
+        let itemType = item.type ?? .movie
+        return VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .top, spacing: 14) {
+                PosterImage(
+                    posterUrl: item.posterUrl,
+                    titleName: item.name,
+                    titleType: itemType,
+                    width: 64,
+                    height: 96
+                )
+                VStack(alignment: .leading, spacing: 6) {
+                    Text([
+                        OttlineStrings.titleTypeLabel(itemType, locale: locale),
+                        item.year.map(String.init),
+                        item.author
+                    ].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: " · "))
+                    .font(OttlineFont.regular(12))
+                    .foregroundStyle(palette.mutedInk)
+
+                    Text(item.name)
+                        .font(OttlineFont.semiBold(17))
+                        .foregroundStyle(palette.ink)
+
+                    let reason = item.reason.trimmingCharacters(in: .whitespacesAndNewlines)
+                    if !reason.isEmpty {
+                        Text(reason)
+                            .font(OttlineFont.regular(13.5))
+                            .foregroundStyle(palette.ink)
+                            .lineSpacing(3)
+                    }
+
+                    FlowLayout(horizontalSpacing: 12, verticalSpacing: 8) {
+                        Button {
+                            Task { await connectRecommendationToRecord(item) }
+                        } label: {
+                            HStack(spacing: 5) {
+                                if catalogResolvingKey == item.id {
+                                    ProgressView().controlSize(.mini)
+                                }
+                                Text(OttlineStrings.tr("기록 남기기", "Keep a record", locale: locale))
+                                    .font(OttlineFont.semiBold(13.5))
+                                    .foregroundStyle(palette.primaryAccent)
+                            }
+                        }
+                        .buttonStyle(.plain)
+                        .disabled(catalogResolvingKey == item.id)
+
+                        Button {
+                            Task { await excludeItem(item) }
+                        } label: {
+                            Text(OttlineStrings.tr("제외", "Exclude", locale: locale))
+                                .font(OttlineFont.regular(13))
+                                .foregroundStyle(palette.mutedInk)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    .padding(.top, 2)
+                }
+                Spacer(minLength: 0)
+            }
+        }
+        .padding(14)
+        .background(palette.card)
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .overlay(RoundedRectangle(cornerRadius: 8).stroke(palette.border, lineWidth: 1))
+    }
+
+    private var excludedRecommendationsSheet: some View {
+        NavigationStack {
+            List {
+                if recState.exclusions.isEmpty {
+                    Text(OttlineStrings.tr("제외한 작품이 없어요.", "No excluded titles.", locale: locale))
+                        .font(OttlineFont.regular(14))
+                        .foregroundStyle(palette.mutedInk)
+                } else {
+                    ForEach(recState.exclusions) { ex in
+                        HStack {
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text(ex.name)
+                                    .font(OttlineFont.semiBold(15))
+                                    .foregroundStyle(palette.ink)
+                                if let t = ex.type {
+                                    Text(OttlineStrings.titleTypeLabel(t, locale: locale))
+                                        .font(OttlineFont.regular(12))
+                                        .foregroundStyle(palette.mutedInk)
+                                }
+                            }
+                            Spacer()
+                            Button {
+                                Task { await restoreExclusion(key: ex.key) }
+                            } label: {
+                                Text(OttlineStrings.tr("되돌리기", "Restore", locale: locale))
+                                    .font(OttlineFont.semiBold(13))
+                                    .foregroundStyle(palette.primaryAccent)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                }
+            }
+            .navigationTitle(OttlineStrings.tr("제외한 작품", "Excluded titles", locale: locale))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button(OttlineStrings.tr("닫기", "Close", locale: locale)) {
+                        showExcludedSheet = false
+                    }
+                }
+            }
+        }
+    }
+
+    private var catalogEditionPickerSheet: some View {
+        NavigationStack {
+            List(editionPickerCandidates) { item in
+                Button {
+                    showEditionPicker = false
+                    onOpenQuickRecord(
+                        QuickRecordRequest(
+                            preselectedSearchItem: item,
+                            preferredStatus: .wishlist,
+                            selectSource: "future_timeline",
+                            autoFocusSearch: false
+                        )
+                    )
+                } label: {
+                    HStack(spacing: 12) {
+                        PosterImage(
+                            posterUrl: item.posterUrl,
+                            titleName: item.name,
+                            titleType: item.type,
+                            width: 44,
+                            height: 64
+                        )
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text(item.name)
+                                .font(OttlineFont.semiBold(15))
+                                .foregroundStyle(palette.ink)
+                            Text([
+                                OttlineStrings.titleTypeLabel(item.type, locale: locale),
+                                item.author,
+                                item.publisher,
+                                item.year.map(String.init)
+                            ].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: " · "))
+                            .font(OttlineFont.regular(12))
+                            .foregroundStyle(palette.mutedInk)
+                        }
+                    }
+                }
+                .buttonStyle(.plain)
+            }
+            .navigationTitle(editionPickerSourceTitle)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button(OttlineStrings.tr("닫기", "Close", locale: locale)) {
+                        showEditionPicker = false
+                    }
+                }
+            }
         }
     }
 
@@ -964,7 +1257,19 @@ public struct TimelineScreen: View {
 
     private func loadFirstServerPage() async {
         guard !(repository.prefs.snapshot.userId ?? "").isEmpty else { return }
-        if let page = try? await repository.api.getLogsPage(limit: 50, cursor: nil) {
+        let ct = typeFilter == "all" ? nil : typeFilter
+        let qTrimmed = searchQuery.trimmingCharacters(in: .whitespacesAndNewlines)
+        if let page = try? await repository.api.getLogsPage(
+            limit: 50,
+            cursor: nil,
+            contentType: ct,
+            status: statusFilter,
+            origin: originFilter,
+            ott: platformFilter.isEmpty ? nil : platformFilter,
+            place: placeFilter,
+            occasion: occasionFilter,
+            query: qTrimmed.isEmpty ? nil : qTrimmed
+        ) {
             repository.upsertLogsFromServerPage(page.items)
             nextCursor = page.nextCursor
             hasMorePages = page.hasMore
@@ -974,7 +1279,19 @@ public struct TimelineScreen: View {
     private func loadNextPage() async {
         guard hasMorePages, !loadingMore, let cursor = nextCursor else { return }
         loadingMore = true
-        if let page = try? await repository.api.getLogsPage(limit: 50, cursor: cursor) {
+        let ct = typeFilter == "all" ? nil : typeFilter
+        let qTrimmed = searchQuery.trimmingCharacters(in: .whitespacesAndNewlines)
+        if let page = try? await repository.api.getLogsPage(
+            limit: 50,
+            cursor: cursor,
+            contentType: ct,
+            status: statusFilter,
+            origin: originFilter,
+            ott: platformFilter.isEmpty ? nil : platformFilter,
+            place: placeFilter,
+            occasion: occasionFilter,
+            query: qTrimmed.isEmpty ? nil : qTrimmed
+        ) {
             repository.upsertLogsFromServerPage(page.items)
             nextCursor = page.nextCursor
             hasMorePages = page.hasMore
@@ -982,47 +1299,160 @@ public struct TimelineScreen: View {
         loadingMore = false
     }
 
-    private func fetchNextWatch(forceRefresh: Bool) async {
-        nextWatchLoading = true
-        nextWatchError = nil
-        _ = try? await repository.ensureAuthenticated()
+    private func loadRecommendationState() async {
+        recLoading = true
+        recError = nil
         do {
-            nextWatchResponse = try await repository.api.getNextWatchRecommendations(forceRefresh: forceRefresh)
+            _ = try await repository.ensureAuthenticated()
+            let state = try await repository.api.getRecommendationState()
+            recState = state
+            recLoading = false
+            if state.generating {
+                await pollRecommendationsWhileGenerating()
+            }
         } catch {
-            nextWatchError = OttlineStrings.tr(
-                "다음 이야기를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.",
-                "Could not bring in the next stories. Please try again in a little while.",
+            recLoading = false
+            recError = OttlineStrings.tr(
+                "추천 상태를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.",
+                "Couldn't load recommendations.",
                 locale: locale
             )
         }
-        nextWatchLoading = false
     }
 
-    private func shareNoteToTogether(log: WatchLog, note: String) async {
-        sharingNoteLogId = log.id
-        _ = try? await repository.ensureAuthenticated()
-        if (try? await repository.api.createComment(
-            titleId: log.title.id,
-            payload: CreateCommentRequest(
-                body: note,
-                authorName: repository.prefs.snapshot.nickname,
-                userId: repository.prefs.snapshot.userId,
-                syncToLog: false
+    private func requestNewRecommendations() async {
+        recGeneratingAction = true
+        recError = nil
+        do {
+            _ = try await repository.ensureAuthenticated()
+            let (statusCode, state) = try await repository.api.generateRecommendations(
+                requestId: UUID().uuidString.lowercased()
             )
-        )) != nil {
+            recState = state
+            recGeneratingAction = false
+            if statusCode == 429 {
+                recError = OttlineStrings.tr(
+                    "오늘 사용할 수 있는 생성 횟수를 모두 썼어요.",
+                    "You've reached today's generation limit.",
+                    locale: locale
+                )
+            } else if state.generating {
+                await pollRecommendationsWhileGenerating()
+            }
+        } catch let apiErr as ApiError where apiErr.statusCode == 429 {
+            recGeneratingAction = false
+            recError = OttlineStrings.tr(
+                "오늘 사용할 수 있는 생성 횟수를 모두 썼어요.",
+                "You've reached today's generation limit.",
+                locale: locale
+            )
+        } catch {
+            recGeneratingAction = false
+            recError = OttlineStrings.tr(
+                "다음 작품을 찾지 못했어요. 잠시 후 다시 시도해 주세요.",
+                "Could not generate new recommendations right now.",
+                locale: locale
+            )
+        }
+    }
+
+    private func pollRecommendationsWhileGenerating() async {
+        for _ in 0..<24 {
+            try? await Task.sleep(nanoseconds: 2_500_000_000)
+            if Task.isCancelled || !futureMode { return }
+            if let polled = try? await repository.api.getRecommendationState() {
+                recState = polled
+                if !polled.generating { return }
+            }
+        }
+    }
+
+    private func excludeItem(_ item: RecommendationItem) async {
+        do {
+            let exclusion = try await repository.api.excludeRecommendation(item)
+            lastExcludedItem = exclusion
+            if let refreshed = try? await repository.api.getRecommendationState() {
+                recState = refreshed
+            } else {
+                var nextState = recState
+                nextState.items.removeAll { $0.id == item.id }
+                nextState.exclusions.insert(exclusion, at: 0)
+                recState = nextState
+            }
+        } catch {
+            recError = OttlineStrings.tr("제외하지 못했어요.", "Couldn't exclude.", locale: locale)
+        }
+    }
+
+    private func restoreExclusion(key: String) async {
+        do {
+            try await repository.api.restoreRecommendationExclusion(key: key)
+            if lastExcludedItem?.key == key {
+                lastExcludedItem = nil
+            }
+            if let refreshed = try? await repository.api.getRecommendationState() {
+                recState = refreshed
+            } else {
+                var nextState = recState
+                nextState.exclusions.removeAll { $0.key == key }
+                recState = nextState
+            }
+        } catch {
+            recError = OttlineStrings.tr("되돌리지 못했어요.", "Couldn't restore.", locale: locale)
+        }
+    }
+
+    private func connectRecommendationToRecord(_ item: RecommendationItem) async {
+        if let cat = item.catalogTitle {
+            onOpenQuickRecord(
+                QuickRecordRequest(
+                    preselectedSearchItem: cat,
+                    preferredStatus: .wishlist,
+                    selectSource: "future_timeline",
+                    autoFocusSearch: false
+                )
+            )
+            return
+        }
+        catalogResolvingKey = item.id
+        defer { catalogResolvingKey = nil }
+        let query = item.name
+        let results = (try? await repository.api.searchRecommendationCatalog(
+            name: item.name,
+            type: item.type,
+            year: item.year,
+            author: item.author
+        )) ?? []
+        if results.isEmpty {
+            onOpenQuickRecord(
+                QuickRecordRequest(
+                    initialQuery: query,
+                    initialTypeTab: item.type.rawValue,
+                    preferredStatus: .wishlist,
+                    autoFocusSearch: false
+                )
+            )
+        } else if results.count == 1 && item.type != .book {
+            onOpenQuickRecord(
+                QuickRecordRequest(
+                    preselectedSearchItem: results[0],
+                    preferredStatus: .wishlist,
+                    selectSource: "future_timeline",
+                    autoFocusSearch: false
+                )
+            )
+        } else {
+            editionPickerSourceTitle = item.name
+            editionPickerCandidates = results
+            showEditionPicker = true
+        }
+    }
+
+    private func shareNote(log: WatchLog, note: String) async {
+        sharingNoteLogId = log.id
+        if (try? await repository.shareNoteToTogether(log: log, noteBody: note)) != nil {
             sharedNoteLogIds.insert(log.id)
         }
         sharingNoteLogId = nil
-    }
-}
-
-private struct FlowLayoutRow<Content: View>: View {
-    var spacing: CGFloat = 12
-    @ViewBuilder var content: () -> Content
-
-    var body: some View {
-        HStack(spacing: spacing) {
-            content()
-        }
     }
 }

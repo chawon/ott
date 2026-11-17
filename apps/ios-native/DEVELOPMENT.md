@@ -52,11 +52,12 @@ npx eas-cli credentials -p ios
 | `IOS_DIST_CERT_PASSWORD` | Distribution `.p12` 비밀번호 |
 | `IOS_PROVISION_PROFILE_BASE64` | `app.ottline` App Store Provisioning Profile `.mobileprovision`의 `base64` 문자열 |
 | `IOS_WIDGET_PROVISION_PROFILE_BASE64` | `app.ottline.QuickLogWidget` App Store Provisioning Profile `.mobileprovision`의 `base64` 문자열 |
+| `IOS_SHARE_PROVISION_PROFILE_BASE64` | `app.ottline.ShareExtension` App Store Provisioning Profile `.mobileprovision`의 `base64` 문자열 |
 | `ASC_KEY_ID` | App Store Connect API Key ID (예: `2X9R4H...`) |
 | `ASC_ISSUER_ID` | App Store Connect API Issuer ID (UUID 형식) |
 | `ASC_PRIVATE_KEY_BASE64` | `AuthKey_<KEY_ID>.p8` 파일의 `base64` 인코딩 문자열 |
 
-> **참고**: App Group(`group.app.ottline`) 및 WidgetKit 확장(`app.ottline.QuickLogWidget`)을 활성화하려면 [Apple Developer Identifiers](https://developer.apple.com/account/resources/identifiers/list)에서:
+> **참고**: App Group(`group.app.ottline`), WidgetKit 확장(`app.ottline.QuickLogWidget`), Share 확장(`app.ottline.ShareExtension`)을 활성화하려면 [Apple Developer Identifiers](https://developer.apple.com/account/resources/identifiers/list)에서:
 > 1. **App Groups**에 `group.app.ottline`을 등록합니다.
 > 2. `app.ottline` App ID에 `App Groups` (`group.app.ottline`) 및 `Associated Domains`를 체크합니다.
-> 3. `app.ottline.QuickLogWidget` App ID를 생성하고 `App Groups` (`group.app.ottline`)를 체크한 뒤, 각각의 App Store Provisioning Profile을 발급합니다.
+> 3. `app.ottline.QuickLogWidget` App ID와 `app.ottline.ShareExtension` App ID를 생성하고 각각 `App Groups` (`group.app.ottline`)를 체크한 뒤, App Store Provisioning Profile을 발급합니다.
