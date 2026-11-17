@@ -12,7 +12,10 @@
       "!**/node_modules",
       "!**/.next",
       "!dist",
-      "!build"
+      "!build",
+      "!**/bin",
+      "!**/obj",
+      "!**/output"
     ]
   },
   "formatter": {

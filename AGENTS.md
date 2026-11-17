@@ -29,6 +29,7 @@ If present, read `./.omd/preferences.md` — pending corrections not yet folded 
    3. Android 네이티브: `apps/android-native` (Kotlin + Jetpack Compose + Room + WorkManager, Google Play `app.ottline` v2.0+)
    4. iOS 네이티브: `apps/native` (Expo React Native, App Store 출시)
    5. 브라우저 확장: `apps/browser-extension` (Chrome / Edge / Whale)
+   6. Windows 네이티브: `apps/windows-native` (.NET 8 WPF + SQLite + Windows App SDK Widgets, Microsoft Store `ChawonLee.ottline` / `9NSVNZGDMGF5` v2.0+)
 2. 프론트는 `/api/*`를 백엔드로 프록시(rewrite)한다.
 3. 외부 메타데이터 검색은 TMDB를 백엔드에서만 호출한다(키 노출 방지).
 
@@ -577,6 +578,14 @@ feature/* ──PR/CI──→ main ──→ GitHub Actions workflow_dispatch
 6. Android 설치 토큰 및 업그레이드 감지: `apps/android-native/app/src/main/java/app/ottline/data/local/AndroidInstallToken.kt`
 7. 시청 기록 알림·회고 알림·홈 위젯: `WatchReminderFeature.kt`, `RevisitReminderFeature.kt`, `QuickLogWidgetProvider.kt`
 8. CI/CD 및 AAB 계약 검증: `.github/workflows/native-android-ci.yml`, `.github/workflows/native-android-release.yml`, `apps/android-native/scripts/verify-release-aab.sh`
+
+### Windows 네이티브 (`apps/windows-native`)
+1. 엔트리포인트 및 패키징 프로토콜/위젯 COM 서버 라우팅: `apps/windows-native/src/Ottline.App/Program.cs`, `apps/windows-native/src/Ottline.App/App.xaml.cs`
+2. 메인 창·테마·트레이 및 바인딩 뷰모델: `apps/windows-native/src/Ottline.App/MainWindow.xaml`, `apps/windows-native/src/Ottline.App/MainWindow.xaml.cs`, `apps/windows-native/src/Ottline.App/ViewModels/MainViewModel.cs`
+3. 로컬 SQLite 저장소·동기화·브라우저/PWA 핸드오프 병합: `apps/windows-native/src/Ottline.Core/Data/OttlineRepository.cs`, `apps/windows-native/src/Ottline.Core/Local/OttlineDatabase.cs`
+4. Windows 11 공식 위젯 공급자(`IWidgetProvider`): `apps/windows-native/src/Ottline.App/Widgets/OttlineWidgetProvider.cs`
+5. 데스크톱 트레이·OTT 시청 감지·전역 단축키·Store PWA 업그레이드 감지: `apps/windows-native/src/Ottline.App/Services/DesktopIntegrationService.cs`
+6. CI/CD 및 MSIXBundle/Store CLI 배포: `.github/workflows/native-windows-ci.yml`, `.github/workflows/native-windows-release.yml`, `apps/windows-native/scripts/build-msix.ps1`, `apps/windows-native/scripts/verify-msix.ps1`, `apps/windows-native/scripts/publish-msstore.ps1`
 
 ---
 
