@@ -133,8 +133,18 @@ If present, read `./.omd/preferences.md` — pending corrections not yet folded 
 29. **이용 리포트 주간 공유 카드 포스터 복구**: `GET /api/nalytic/me/report`에 `previousWeekPosters`를 추가하고, KST 직전 주의 작품을 중복 제거해 포스터 유무·평점·기록 수·최근 기록 순으로 최대 6개 선정한다. 시즌 포스터를 우선하며 웹 로컬 리포트도 같은 규칙을 사용한다. 주간 공유 payload와 `/og/share-card` 렌더러는 후보 수별 1~6칸 모자이크를 만들고 이미지가 없는 후보는 제목으로 채운다. `2026-09-21` PR `#108`, main SHA `01ef6b9b5b018970006ab6f42118b46824fb3430`, API/Web production run `35569268524`/`35569520338`, manifest commit `4cb3d731616df253ee5d60b9199e64e8bf506e94`/`ef40081a1a188315f3b8a15027a5a5f4f1e4531f`로 배포했다. ArgoCD `ott-app` `Synced Healthy`, production API/Web 이미지와 `APP_VERSION=01ef6b9`, Pod `1/1` ready·restart 0을 확인했다. 운영 내부 스모크 테스트에서 리포트 계약 200, TMDB 포스터가 포함된 1080×1920 PNG 200과 실제 이미지 렌더를 확인했고 임시 검증 계정은 즉시 삭제했다. iOS 네이티브 소스와 App Store 바이너리는 변경하거나 배포하지 않았다.
 
 30. **iOS 1.0.4 정식 배포**: PR `#119`~`#121`, build SHA `fc074ceef188161940a9aec6facaef2034f2119f`의 `1.0.4 (24)`를 App Store에 배포 완료했다(`2026-10-16` 사용자 확인). 카카오 책 공급자와 작품 ID를 검색·최근 함께 작품·공개 글 반응·동기화에서 보존하며 기존 Naver 책 호환을 유지한다. 빌드·심사 이력은 `docs/native-kakao-books.md`, `docs/ios-testflight-review-notes.md`, 출시 후 확인 항목은 `docs/ios-app-store-launch-checklist.md`를 따른다.
+31. **Windows Native v2 모노레포 통합 및 Microsoft Store `2.0.0.0` 심사 제출**: 기존 Microsoft Store `ottline`(`9NSVNZGDMGF5`, `ChawonLee.ottline`, PWABuilder Edge PWA `1.0.1.0`)을 대체하는 순수 Windows Native(`.NET 8 WPF + SQLite + Windows App SDK 1.8 Widgets`) 앱을 `apps/windows-native`로 모노레포에 통합하고 Store 심사를 접수했다(`2026-11-17`).
+   1. PR `#132` main SHA `7bc5a46`(커밋 `bfdca7b`), `Native Windows CI`(`verify-windows`, Run `44030185194`) 통과, `Ottline.Tests` 단위 테스트 14/14 및 위젯 COM 스모크 테스트 ExitCode 0을 확인했다.
+   2. 로컬 우선 SQLite(`OttlineDatabase`), Windows 11 공식 위젯(`Win + W`, 소·중·대), 커스텀 트레이 팝업, OTT 시청 종료 알림·전역 단축키(`Ctrl+Shift+O`), 고해상도 Story/Feed 공유 카드·KDC 서가·CSV 백업, 그리고 기존 Edge Store PWA 사용자의 `?native_handoff=1` → `ottline://open?handoff=1`(`<uap3:Protocol Parameters="%1">`) 자동 세션·기록 이어받기를 포함한다.
+   3. Partner Center(`9NSVNZGDMGF5`)에 `Desktop` 전용 장치 패밀리(`Holographic: false`), KO 제목 `ottline - 영화·드라마·책·독서 기록` / EN 제목 `ottline: Movie, TV & Book Log`, `ottline-2.0.0.0.msixbundle`(`x64` + `arm64`, `158.90 MB`, SHA-256 `99D780F9...`), 신규 아트워크·스크린샷 12종을 업로드해 Submission `1152921505702424456`의 `Certification` 진입을 확인했다. 상세는 `docs/windows-native-v2-transition.md`를 따른다.
 
    21. `2026-10-25` 시청 기록 알림 수정 PR `#122`를 병합하고, Play 자동 보호가 API 24 이상을 요구해 업로드를 거부한 첫 release run `40168623901`을 확인했다. 사용자 승인 후 PR `#123`으로 최소 지원 버전을 Android 7.0(API 24)으로 올렸다. source SHA `2bbff18256dffd7078e61fbfe44c2a23433d3031`, release run `40169071221`의 서명 AAB·단위 테스트·R8 분석·시작 생성자/브랜드 자산 검증과 Play 등록이 성공했다. 새 Play edit `09339353177853118628`에서 production `1.0.19`/`23`/`completed`와 CI AAB SHA-256 일치를 확인했다. 다음 업로드는 `versionCode=24` 이상을 사용한다. 실기기 알림 수신 확인은 후속 항목으로 남긴다.
+
+### P1
+1. Windows 배포 경로 정리 및 `2.0.0.0` 심사 결과 확인
+2. 현재 기준
+   1. `2026-11-17`부터 Microsoft Store `9NSVNZGDMGF5`(`ChawonLee.ottline`) 정식 배포 경로는 기존 PWABuilder Edge PWA(`1.0.1.0`)에서 순수 Windows Native `apps/windows-native`로 전환됐으며 `.github/workflows/native-windows-ci.yml` / `native-windows-release.yml`을 사용한다.
+   2. 남은 작업: Partner Center Submission `1152921505702424456`(`v2.0.0.0`)의 `Certification` 승인·Store 게시 완료 확인 및 기존 `1.0.1.0` 사용자의 Store 업데이트 실행·PWA 핸드오프 현장 확인.
 
 ### P1
 1. 문의함 운영 후속 작업

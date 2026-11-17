@@ -1,5 +1,13 @@
 # Wiki Log
 
+## [2026-11-17] ingest: Windows Native v2 모노레포 통합 및 Microsoft Store 2.0.0.0 심사 제출
+- 대상: `apps/windows-native/`, `.github/workflows/native-windows-ci.yml`, `.github/workflows/native-windows-release.yml`, `docs/windows-native-v2-transition.md`, `AGENTS.md`, `README.md`
+- 생성/수정: `wiki/pages/platforms/windows-native.md` (신규), `wiki/pages/platforms/ms-store.md`, `wiki/pages/features/ottline-v2.md`, `wiki/index.md`
+- 노트:
+  - PR `#132`(main SHA `7bc5a46`, 커밋 `bfdca7b`)로 순수 Windows Native(`.NET 8 WPF + SQLite + Windows 11 공식 위젯`) `apps/windows-native` 모노레포 통합 및 `Native Windows CI`(`verify-windows`, Run `44030185194`) 통과 확인
+  - Partner Center `9NSVNZGDMGF5`(`ChawonLee.ottline`)에 `Desktop` 전용 장치 패밀리(`Holographic: false`), KO/EN 부제 포함 제목(`ottline - 영화·드라마·책·독서 기록` / `ottline: Movie, TV & Book Log`), `ottline-2.0.0.0.msixbundle`(`x64`+`arm64`, `158.90 MB`), 신규 아트워크·스크린샷 12종 업로드 후 Submission `1152921505702424456` `Certification` 진입 확인
+  - 기존 Store Edge PWA(`1.0.x`) 사용자 `?native_handoff=1` → `ottline://open?handoff=1`(`<uap3:Protocol Parameters="%1">`) 자동 세션·기록 이어받기 및 병합, 단위 테스트 14/14·위젯 COM 스모크 테스트 검증 완료
+
 ## [2026-11-12] fix: Web/PWA 오프라인 재진입 안내·키보드 접근성 운영 배포
 
 - PR `#130`, Web SHA `4cabcd553a952bc27db9b39b02ad94498e225cec`, production run `43158345911`, manifest commit `753ef492dd922c13089824c3b12b675bdf9f6bae`.

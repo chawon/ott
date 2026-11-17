@@ -39,7 +39,8 @@
 | 페이지 | 요약 |
 |---|---|
 | [[browser-extension]] | PC OTT 페이지에서 ottline 기록 화면으로 연결하는 Chrome/Edge 확장 |
-| [[ms-store]] | PWABuilder 기반 Windows PWA 패키지 생성 및 Microsoft Store 제출 |
+| [[ms-store]] | Microsoft Store(`9NSVNZGDMGF5`) 채널 — `2026-11-17` PWA(`1.0.1.0`)에서 [[windows-native]] v2.0.0.0 심사 제출로 전환 |
+| [[windows-native]] | 순수 Windows Native(`.NET 8 WPF + SQLite + Windows 11 위젯`), `v2.0.0.0` Store 심사 제출·PWA 자동 이어받기 |
 | [[pwa]] | 설치형 웹앱, 로컬 기록·Outbox와 서비스워커 v7의 한·영 오프라인 재진입 안내 |
 | [[native]] | App Store 출시된 Expo iOS 앱, 카카오 호환 `1.0.4 (24)` TestFlight 배포·App Store 심사 접수 완료 |
 | [[toss-inapp]] | 앱인토스 WebView 미니앱 — 2026-05-18 승인 및 출시 완료, 표시명 `내 OTT 타임라인`, 공유는 텍스트 |

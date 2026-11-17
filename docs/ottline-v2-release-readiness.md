@@ -75,10 +75,10 @@ iOS에 해당 기능을 제공할 경우 Apple의 제3자 AI 개인정보 공유
 
 ### Windows / Microsoft Store
 
-- [ ] 운영 v2 manifest와 아이콘이 공개된 뒤 `ottline.app`을 대상으로 PWABuilder 패키지를 다시 만든다. 오래된 문서의 이전 도메인을 패키징 기준으로 쓰지 않는다.
-- [ ] 기존 Product/Package/Publisher 식별자를 유지해 업데이트 제출을 준비한다. 설치 목록·작업표시줄 아이콘·앱 이름과 manifest 정합성을 확인한다.
-- [ ] 실제 설치 앱에서 PC 레이아웃, 언어·테마, 파일 저장·공유, 업데이트 후 기록 유지, 오프라인 복귀를 확인한다.
-- [ ] 새 PC 스크린샷·스토어 이미지·KO/EN 설명과 패키지를 Partner Center에 준비한다.
+- [x] 순수 Windows Native v2(`apps/windows-native`, `.NET 8 WPF + SQLite + Windows App SDK 1.8 공식 위젯`) 구현 및 기존 Store Identity(`9NSVNZGDMGF5`, `ChawonLee.ottline`) 인플레이스 업그레이드 패키징(`ottline-2.0.0.0.msixbundle`, `x64` + `arm64`) 검증 완료 (PR `#132`, main SHA `7bc5a46`, `Native Windows CI` Run `44030185194` 통과).
+- [x] 기존 Store Edge PWA(`1.0.x`) / 웹 사용자 `?native_handoff=1` → `ottline://open?handoff=1`(`<uap3:Protocol Parameters="%1">`) 자동 세션·기록 이어받기 및 병합, 단위 테스트 14/14·위젯 COM 스모크 테스트 검증 완료.
+- [x] 신규 v2 아이콘·정방형 로고·2:3 포스터·KO/EN 데스크톱 스크린샷 12종(`apps/windows-native/packaging/StoreListing/`), KO/EN 부제 포함 제목(`ottline - 영화·드라마·책·독서 기록` / `ottline: Movie, TV & Book Log`), `Desktop` 전용 장치 패밀리(`Holographic: false`) 및 설명·릴리스 노트로 Partner Center 심사 제출 완료 (`Submission Id = 1152921505702424456`, `Status = Certification`). 상세는 [`docs/windows-native-v2-transition.md`](windows-native-v2-transition.md) 참조.
+- [ ] Microsoft Store `2.0.0.0` 심사 승인·게시 완료 및 실제 스토어 업데이트 설치 동작 확인.
 
 ### Chrome / Edge / Whale 확장
 

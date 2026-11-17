@@ -1,23 +1,37 @@
-# Microsoft Store (Windows PWA)
+# Microsoft Store (Windows Native v2 전환 & 초기 PWA 이력)
 
-> PWABuilder 기반 Windows PWA 패키지 생성 및 Microsoft Store 배포 완료
+> `2026-11-17`(`v2.0.0.0`)부터 기존 PWABuilder Edge PWA를 대체해 [[windows-native]] 순수 Windows Native(`.NET 8 WPF + SQLite + Windows 11 위젯`)로 전환 제출한 Microsoft Store `ottline` 채널 정리
 
 ## 관련 페이지
+- [[windows-native]]
+- [[ottline-v2]]
 - [[pwa]]
 - [[twa]]
 
 ---
 
-## 현재 상태
+## 현재 상태 (`2026-11-17`)
 
-**Microsoft Store 배포 완료.** 인증 심사 통과 후 게시됨.
-- 브랜드: `On the Timeline` (Microsoft Store 기준)
-- Store URL: https://apps.microsoft.com/detail/9nsvnzgdmgf5?hl=ko-KR&gl=KR
-- App ID: `9nsvnzgdmgf5`
+- **제품 전환**: PWABuilder Edge PWA(`1.0.1.0`) → **[[windows-native]] v2.0.0.0 (`apps/windows-native`) 인플레이스 업그레이드 심사 중 (`Status = Certification`)**
+- **브랜드 / 제목**:
+  - KO: `ottline - 영화·드라마·책·독서 기록` (`ShortTitle`: `ottline`)
+  - EN: `ottline: Movie, TV & Book Log` (`ShortTitle`: `ottline`)
+- **식별자 유지**:
+  - Store URL: https://apps.microsoft.com/detail/9nsvnzgdmgf5?hl=ko-KR&gl=KR
+  - App ID (`ProductId`): `9NSVNZGDMGF5`
+  - Package Identity / Family Name: `ChawonLee.ottline` / `ChawonLee.ottline_ry7416pek43sa`
+- **최신 제출 (`2026-11-17`)**:
+  - `Submission Id`: `1152921505702424456` (`Errors = 0`, `Status = Certification`)
+  - 패키지: `ottline-2.0.0.0.msixbundle` (`x64` + `arm64`, `158.90 MB`, `Uploaded`) — 구 1.0.x 패키지 제거 및 `Desktop` 전용 장치 패밀리(`Holographic: false`) 적용
+  - 스토어 이미지 12종: `apps/windows-native/packaging/StoreListing/` (`store-icon-300x300.png`, `store-logo-square-1080x1080.png`, `store-poster-{ko|en}-720x1080.png`, `screenshot-{ko|en}-1..4-*.png`) 모두 `Uploaded`
+  - 자동화 스크립트: `apps/windows-native/scripts/publish-msstore.ps1` (`msstore-cli`) 및 `.github/workflows/native-windows-release.yml`
+- 상세 전환·마이그레이션 아키텍처는 [[windows-native]] 및 `docs/windows-native-v2-transition.md`를 따른다.
 
 ---
 
-## 이미 준비된 것
+## 초기 PWABuilder PWA (`v1.0.x`) 참고 기록
+
+> 아래 표와 문구·절차는 `2026-03` 초기 `On the Timeline` Edge PWA(`1.0.x`) 출시 당시의 역사적 기록이며, 현재 `v2.0.0.0` 이후 운영 기준은 위 **현재 상태** 및 [[windows-native]]에 따른다.
 
 | 항목 | 상태 |
 |---|---|
