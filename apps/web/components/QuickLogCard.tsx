@@ -16,8 +16,8 @@ import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import GoogleBooksAttribution from "@/components/GoogleBooksAttribution";
-import SavedAndroidPlayCta from "@/components/SavedAndroidPlayCta";
 import SavedDiscussionLink from "@/components/SavedDiscussionLink";
+import SavedNativeStoreCta from "@/components/SavedNativeStoreCta";
 import TitleSearchBox from "@/components/TitleSearchBox";
 import { Link as IntlLink } from "@/i18n/routing";
 import {
@@ -1495,7 +1495,7 @@ export default function QuickLogCard({
                     </button>
                   ) : null}
                 </div>
-                <SavedAndroidPlayCta recordId={localLogId} />
+                <SavedNativeStoreCta recordId={localLogId} />
               </div>
             ) : (
               <>

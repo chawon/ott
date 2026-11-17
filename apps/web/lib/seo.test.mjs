@@ -68,10 +68,12 @@ test("links the software entity to localized official install pages", () => {
   assert.deepEqual(localizedStoreUrls("ko"), {
     googlePlay: `${GOOGLE_PLAY_URL}&hl=ko&gl=KR`,
     appStore: "https://apps.apple.com/kr/app/ottline/id6780318110",
+    microsoftStore: `${MICROSOFT_STORE_URL}?hl=ko-kr&gl=KR`,
   });
   assert.deepEqual(localizedStoreUrls("en"), {
     googlePlay: `${GOOGLE_PLAY_URL}&hl=en`,
     appStore: APP_STORE_URL,
+    microsoftStore: `${MICROSOFT_STORE_URL}?hl=en-us&gl=US`,
   });
 
   const schema = buildSoftwareApplicationSchema({
@@ -94,7 +96,7 @@ test("links the software entity to localized official install pages", () => {
   assert.deepEqual(schema.installUrl, [
     `${GOOGLE_PLAY_URL}&hl=ko&gl=KR`,
     "https://apps.apple.com/kr/app/ottline/id6780318110",
-    MICROSOFT_STORE_URL,
+    `${MICROSOFT_STORE_URL}?hl=ko-kr&gl=KR`,
   ]);
 });
 

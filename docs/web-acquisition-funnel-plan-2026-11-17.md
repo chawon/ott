@@ -125,6 +125,40 @@ Microsoft Partner Center 획득 리포트(최근 12개월, `2026-03-18` 출시 �
 
 ## 4. Web 담당자 검증 체크리스트
 
+### 이번 PR: Windows 전환 구현
+
+- **이번 PR 범위 정정**: 후속 사용자 확인에 따라 Windows 전환만 구현한다. 아래 원래 Phase 1 명세의 iOS Smart App Banner·App Store `ct` 및 Android `/about` 캠페인 변경은 이번 PR에 포함하지 않는다.
+- 작업 브랜치: `feature/web-store-acquisition-phase1`, 기반 `origin/main` = `77d7c9c`.
+- 변경 범위는 웹 UI·URL 빌더·이벤트 및 관련 검사다. API/DB/동기화 계약과 네이티브 바이너리는 변경하지 않는다.
+- Microsoft Store는 `https://apps.microsoft.com/detail/...` 링크를 사용한다. Store 프로토콜 처리기가 없는 브라우저에서도 웹 상세 페이지를 열 수 있고, 같은 링크로 `cid`를 전달한다([Microsoft 공식 캠페인 링크 규격](https://learn.microsoft.com/en-us/windows/apps/publish/create-a-custom-app-promotion-campaign)).
+- 공통 플랫폼 판별은 iPadOS의 데스크톱 UA, standalone, TWA, TossApp·WebView·iframe 예외를 처리한다. Windows 전역 배너가 14일 쿨다운 중일 때 PWA 배너로 바뀌지 않게 한다.
+- Android 저장 후 CTA의 기존 노출 정책은 유지한다. Windows 저장 후 CTA는 전역 배너와 쿨다운을 공유하고 클릭 후 14일간 숨긴다. 기록 저장·완료를 막지 않는다. iOS는 기존 PWA 안내를 유지한다.
+- 외부 링크는 고정 스토어 주소·공개 캠페인 이름만 사용한다. 계정·페어링·기기·기록 식별자는 전달하지 않는다.
+- `/about`의 Windows 링크는 실제 화면 노출·클릭을 동일 이벤트로 계측한다. 기존 관리자 이벤트 집계에서 Windows 이벤트 수를 볼 수 있으며, 웹 클릭을 설치 완료로 간주하지 않는다.
+- 검증 시나리오: Windows 배너·저장 CTA 및 standalone/임베드 제외, Android·iOS·macOS 기존 설치 동선, 14일 경계와 스토어 URL의 개인정보 배제, 한국어·영어 `/about`, 공개 URL 19개·개인 경로 14개의 SEO 경계.
+
+### 실행 결과 (2026-11-17)
+
+| 검사 | 결과 |
+|---|---|
+| `npm run test:android-acquisition --workspace ott` | 17개 통과: Windows·Android·iOS·macOS/Linux, standalone/TWA/임베드, 14일 경계, 3개 `cid`, 개인정보 배제 |
+| `npm run test:analytics --workspace ott` | 10개 통과 |
+| `npm run test:seo --workspace ott` | 20개 통과 |
+| `npm run typecheck --workspace ott` | 통과 |
+| `BACKEND_URL=http://127.0.0.1:18081 npm run build --workspace ott -- --webpack` | Next.js 16.3.8 프로덕션 빌드·타입 검사 통과 |
+| `WEB_RUNTIME_URL=http://127.0.0.1:3220 npm run test:seo-runtime --workspace ott` | 공개 URL 19개·개인 경로 14개·Article 6개·이미지 7개 통과. KO/EN Windows 링크·문구·수정일 확인 |
+| `WEB_RUNTIME_URL=http://127.0.0.1:3220 npm run test:store-acquisition-runtime --workspace ott` | Chromium 21개 시나리오 통과. 3개 노출 위치의 링크·impression/click/dismiss, 재진입 쿨다운, 작성 중 배너 숨김, 실제 QuickLog 저장, 좁은 화면 확인 |
+| `npm run lint --workspace ott` | **실패: 기존 오류 23개**. 동일 Biome 2.5.15로 `origin/main` 아카이브와 비교해 오류 종류·파일 목록이 같음을 확인. FAQ/privacy의 기존 `dangerouslySetInnerHTML`, import 정렬·포맷 오류이며 이번 PR의 새 오류는 없음 |
+| 변경 파일의 `biome check` | 통과. 기존 QuickLog 경고 2개 유지 |
+| `git diff --check` | 통과 |
+
+- 브라우저 검사는 테스트 계정·API mock을 사용한다. 외부 링크의 목적지와 클릭 이벤트를 확인하며 실제 Store 설치·Windows OS 위젯 실행은 수행하지 않는다. 공개 사이트·운영 계정 데이터 쓰기는 없다.
+- 스크린샷: `/tmp/ottline-windows-acquisition/`의 `windows-banner-{ko,en}.png`, `saved-windows-{ko,en}.png`, `about-{ko,en}.png`.
+- 로컬 SWC가 샌드박스의 상위 폴더 권한 검사를 거부하여 타입·빌드·서버는 승인된 샌드박스 밖에서 `SWC_NATIVE_BINDING_CACHE=/tmp/ottline-acquisition-swc-cache`로 실행했다. 기존 SEO 검증 문서에 기록된 localhost rewrite 차이를 피하도록 `next start --port 3220`을 사용했다.
+- CI `Verify Web`에도 스토어 전환 단위 테스트와 브라우저 검사를 연결했다.
+
+### 실행할 검사
+
 Phase 1 PR 완료 후 아래 검사를 순서대로 통과해야 한다 (`apps/web/package.json` 기준).
 
 1. **유입·스토어 전환 단위 테스트 확장 및 실행**
