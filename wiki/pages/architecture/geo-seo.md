@@ -22,6 +22,7 @@
 - 검색 노출·클릭은 Search Console, landing 이후 세션·첫 기록은 자체 acquisition analytics로 분리해 본다.
 - 기반 배포는 PR `#81`, main SHA `8303f4f51ccc12c1eda4a41efe58c79afd28f378`이며, 검색어 후속 최적화는 PR `#83`, main SHA `524b00139e8495024dca67177c58956855ce56ed` 기준 production 배포와 ArgoCD `Synced Healthy`를 확인했다.
 - v2 후속 보완은 PR `#127`, Web SHA `aa991545f5fb3a914561f7fcd3e12c817275144c`, production run `43014772986`으로 배포했다. 운영 HTML·XML의 공개 URL 19개·개인 화면 14개·구조화 데이터 6세트·이미지 7개 검사와 IndexNow 19개 접수가 성공했다. [배포·검증 기록](../../../docs/seo-v2-refresh-2026-11-11.md)을 따른다.
+- `2026-11-17` Microsoft Partner Center 유입 진단 기반의 iOS Smart App Banner·Windows/iOS 웹→스토어 배너 및 CTA(`?cid=`/`?ct=` 계측), `/public/[id]` SSR·사이트맵 확장 후속 명세는 [웹→스토어 전환 퍼널 및 검색 유입 확장 계획 (2026-11-17)](../../../docs/web-acquisition-funnel-plan-2026-11-17.md)을 따른다.
 
 아래 `29/100` 평가는 2026-03-29 당시의 과거 기준이다. 현재 운영 상태를 다시 점수화한 값은 아니며, 외부 브랜드 엔티티와 독립 출처 확보 과제는 여전히 유효하다.
 

@@ -1,5 +1,11 @@
 # Wiki Log
 
+## [2026-11-17] plan: Partner Center 유입 지표 진단 및 Web 스토어 전환·SEO 개선 인계 문서 작성
+- 대상: `docs/web-acquisition-funnel-plan-2026-11-17.md` (신규), `wiki/pages/architecture/geo-seo.md`, `wiki/pages/platforms/ms-store.md`
+- 노트:
+  - Microsoft Partner Center 최근 12개월 획득 리포트(`488` 조회 → `24` 설치 [`4.92%`], 첫 실행 `16`, 한국 설치 `2`건 [`8.33%`], 자사 `?cid=` 유입 `0`건)와 `apps/web` 퍼널 대조 분석 정리
+  - `PwaInstallBanner.tsx`의 Windows/iOS 브라우저 PWA 우선 유도, `layout.tsx` iOS Smart App Banner 누락, `SavedAndroidPlayCta.tsx`의 QuickLog 저장 직후 Android 단독 노출, `/about` Windows 구버전 문구 및 `?cid=`/`?ct=` 누락, `/public/[id]` `noindex` 롱테일 SEO 병목을 Phase 1~3으로 정리해 Web 담당자 인계 문서로 확정
+
 ## [2026-11-17] ingest: Windows Native v2 모노레포 통합 및 Microsoft Store 2.0.0.0 심사 제출
 - 대상: `apps/windows-native/`, `.github/workflows/native-windows-ci.yml`, `.github/workflows/native-windows-release.yml`, `docs/windows-native-v2-transition.md`, `AGENTS.md`, `README.md`
 - 생성/수정: `wiki/pages/platforms/windows-native.md` (신규), `wiki/pages/platforms/ms-store.md`, `wiki/pages/features/ottline-v2.md`, `wiki/index.md`
