@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Package
+  xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
+  xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
+  xmlns:uap3="http://schemas.microsoft.com/appx/manifest/uap/windows10/3"
+  xmlns:uap5="http://schemas.microsoft.com/appx/manifest/uap/windows10/5"
+  xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
+  xmlns:desktop="http://schemas.microsoft.com/appx/manifest/desktop/windows10"
+  xmlns:com="http://schemas.microsoft.com/appx/manifest/com/windows10"
+  IgnorableNamespaces="uap uap3 uap5 rescap desktop com">
+
+  <Identity
+    Name="ChawonLee.ottline"
+    Publisher="{{PUBLISHER}}"
+    Version="{{VERSION}}"
+    ProcessorArchitecture="{{ARCH}}" />
+
+  <Properties>
+    <DisplayName>ottline</DisplayName>
+    <PublisherDisplayName>Chawon Lee</PublisherDisplayName>
+    <Logo>Images\StoreLogo.png</Logo>
+  </Properties>
+
+  <Dependencies>
+    <TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.19041.0" MaxVersionTested="10.0.26100.0" />
+  </Dependencies>
+
+  <Resources>
+    <Resource Language="KO-KR" />
+    <Resource Language="EN-US" />
+  </Resources>
+
+  <Applications>
+    <Application
+      Id="App"
+      Executable="Ottline.App.exe"
+      EntryPoint="Windows.FullTrustApplication">
+      <uap:VisualElements
+        DisplayName="ottline"
+        Description="보고 읽은 순간을 그날의 온기로 남기는 타임라인"
+        BackgroundColor="#F8F6F2"
+        Square150x150Logo="Images\Square150x150Logo.png"
+        Square44x44Logo="Images\Square44x44Logo.png">
+        <uap:DefaultTile
+          Square71x71Logo="Images\SmallTile.png"
+          Wide310x150Logo="Images\Wide310x150Logo.png"
+          Square310x310Logo="Images\LargeTile.png">
+          <uap:ShowNameOnTiles>
+            <uap:ShowOn Tile="square150x150Logo" />
+            <uap:ShowOn Tile="wide310x150Logo" />
+            <uap:ShowOn Tile="square310x310Logo" />
+          </uap:ShowNameOnTiles>
+        </uap:DefaultTile>
+        <uap:SplashScreen Image="Images\SplashScreen.png" BackgroundColor="#F8F6F2" />
+      </uap:VisualElements>
+
+      <Extensions>
+        <uap:Extension Category="windows.protocol">
+          <uap3:Protocol Name="ottline" Parameters="&quot;%1&quot;">
+            <uap:DisplayName>ottline Session &amp; Quick Record Protocol</uap:DisplayName>
+          </uap3:Protocol>
+        </uap:Extension>
+
+        <com:Extension Category="windows.comServer">
+          <com:ComServer>
+            <com:ExeServer Executable="Ottline.App.exe" Arguments="-RegisterProcessAsComServer" DisplayName="ottline Widget Provider">
+              <com:Class Id="7E642A91-3C4D-4F18-9B52-84E2C6D1039A" DisplayName="OttlineWidgetProvider" />
+            </com:ExeServer>
+          </com:ComServer>
+        </com:Extension>
+
+        <uap3:Extension Category="windows.appExtension">
+          <uap3:AppExtension Name="com.microsoft.windows.widgets"
+                             DisplayName="ottline"
+                             Id="OttlineTimelineWidget"
+                             PublicFolder="Public">
+            <uap3:Properties>
+              <WidgetProvider>
+                <ProviderIcons>
+                  <Icon Path="Images\StoreLogo.png" />
+                </ProviderIcons>
+                <Activation>
+                  <CreateInstance ClassId="7E642A91-3C4D-4F18-9B52-84E2C6D1039A" />
+                </Activation>
+                <Definitions>
+                  <Definition Id="Ottline_Timeline_Widget"
+                              DisplayName="나의 타임라인"
+                              Description="이어보는 작품과 이번 달 기록을 확인하고 바로 기록을 남겨요."
+                              AllowMultiple="false">
+                    <Capabilities>
+                      <Capability>
+                        <Size Name="small" />
+                      </Capability>
+                      <Capability>
+                        <Size Name="medium" />
+                      </Capability>
+                      <Capability>
+                        <Size Name="large" />
+                      </Capability>
+                    </Capabilities>
+                    <ThemeResources>
+                      <Icons>
+                        <Icon Path="WidgetAssets\WidgetIcon.png" />
+                      </Icons>
+                      <Screenshots>
+                        <Screenshot Path="WidgetAssets\WidgetScreenshot.png" DisplayAltText="ottline timeline widget preview" />
+                      </Screenshots>
+                      <LightMode>
+                        <Icons>
+                          <Icon Path="WidgetAssets\WidgetIcon.png" />
+                        </Icons>
+                        <Screenshots>
+                          <Screenshot Path="WidgetAssets\WidgetScreenshot.png" DisplayAltText="ottline timeline widget light preview" />
+                        </Screenshots>
+                      </LightMode>
+                      <DarkMode>
+                        <Icons>
+                          <Icon Path="WidgetAssets\WidgetIcon.png" />
+                        </Icons>
+                        <Screenshots>
+                          <Screenshot Path="WidgetAssets\WidgetScreenshotDark.png" DisplayAltText="ottline timeline widget dark preview" />
+                        </Screenshots>
+                      </DarkMode>
+                    </ThemeResources>
+                  </Definition>
+                </Definitions>
+              </WidgetProvider>
+            </uap3:Properties>
+          </uap3:AppExtension>
+        </uap3:Extension>
+      </Extensions>
+    </Application>
+  </Applications>
+
+  <Extensions>
+    <Extension Category="windows.activatableClass.proxyStub">
+      <ProxyStub ClassId="93022121-B6C9-4A22-90DB-763E24FD99E1">
+        <Path>Microsoft.Windows.Widgets.dll</Path>
+        <Interface Name="Microsoft.Windows.Widgets.Providers.IWidgetProvider2" InterfaceId="38C3A963-DD93-479D-9276-04BF84EE1816" />
+        <Interface Name="Microsoft.Windows.Widgets.Providers.IWidgetProviderAnalytics" InterfaceId="661985A5-D187-482D-9EEF-6FDA05D21845" />
+        <Interface Name="Microsoft.Windows.Widgets.Providers.IWidgetProviderErrors" InterfaceId="90C1B5F0-0D3A-4AC6-ABB7-C97B367B8FCC" />
+        <Interface Name="Microsoft.Windows.Widgets.Providers.IWidgetResourceProvider" InterfaceId="DCF328C0-012C-40F5-BB28-3A1C714D027D" />
+        <Interface Name="Microsoft.Windows.Widgets.Providers.IWidgetAnnouncementInvokedTarget" InterfaceId="2B62C81E-5947-439E-B213-7C59C13659A7" />
+        <Interface Name="Microsoft.Windows.Widgets.Providers.IWidgetProviderMessage" InterfaceId="EA4DC186-9E24-4B35-A5EF-A9F5DF72D6AC" />
+        <Interface Name="Microsoft.Windows.Widgets.Feeds.Providers.IFeedProvider" InterfaceId="7293A12B-0329-458D-AC25-5332BE478FDE" />
+        <Interface Name="Microsoft.Windows.Widgets.Feeds.Providers.IFeedResourceProvider" InterfaceId="e1b6266d-88a0-416c-9440-e341cb047cd3" />
+        <Interface Name="Microsoft.Windows.Widgets.Feeds.Providers.IFeedProviderMessage" InterfaceId="60c2442a-4c9d-4880-ba26-caca9e567dd4" />
+        <Interface Name="Microsoft.Windows.Widgets.Feeds.Providers.IFeedProviderAnalytics" InterfaceId="f6885791-3085-4bd7-9cb1-4f1354c3a687" />
+        <Interface Name="Microsoft.Windows.Widgets.Feeds.Providers.IFeedProviderErrors" InterfaceId="6611e00a-d86c-49a3-9381-b7da67ee62dc" />
+        <Interface Name="Microsoft.Windows.Widgets.Feeds.Providers.IFeedAnnouncementInvokedTarget" InterfaceId="5d44ae2a-072c-4df9-9fe5-34d5d2e9ff63" />
+      </ProxyStub>
+    </Extension>
+    <Extension Category="windows.activatableClass.inProcessServer">
+      <InProcessServer>
+        <Path>Microsoft.Windows.Widgets.dll</Path>
+        <ActivatableClass ActivatableClassId="Microsoft.Windows.Widgets.Providers.WidgetUpdateRequestOptions" ThreadingModel="both" />
+        <ActivatableClass ActivatableClassId="Microsoft.Windows.Widgets.Providers.WidgetManager" ThreadingModel="both" />
+        <ActivatableClass ActivatableClassId="Microsoft.Windows.Widgets.Providers.WidgetResourceResponse" ThreadingModel="both" />
+        <ActivatableClass ActivatableClassId="Microsoft.Windows.Widgets.Notifications.WidgetAnnouncement" ThreadingModel="both" />
+        <ActivatableClass ActivatableClassId="Microsoft.Windows.Widgets.Feeds.Providers.FeedManager" ThreadingModel="both" />
+        <ActivatableClass ActivatableClassId="Microsoft.Windows.Widgets.Feeds.Providers.CustomQueryParametersUpdateOptions" ThreadingModel="both" />
+        <ActivatableClass ActivatableClassId="Microsoft.Windows.Widgets.Feeds.Providers.FeedResourceResponse" ThreadingModel="both" />
+        <ActivatableClass ActivatableClassId="Microsoft.Windows.Widgets.Notifications.FeedAnnouncement" ThreadingModel="both" />
+      </InProcessServer>
+    </Extension>
+  </Extensions>
+
+  <Capabilities>
+    <Capability Name="internetClient" />
+    <rescap:Capability Name="runFullTrust" />
+  </Capabilities>
+</Package>

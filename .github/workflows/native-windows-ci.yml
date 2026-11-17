@@ -1,0 +1,57 @@
+name: Native Windows CI
+
+on:
+  pull_request:
+    paths:
+      - "apps/windows-native/**"
+      - ".github/workflows/native-windows-ci.yml"
+      - ".github/workflows/native-windows-release.yml"
+  push:
+    branches: ["main"]
+    paths:
+      - "apps/windows-native/**"
+      - ".github/workflows/native-windows-ci.yml"
+      - ".github/workflows/native-windows-release.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-windows:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: pwsh
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 8 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Build & Verify x64/arm64 MSIX and MSIXBundle
+        working-directory: apps/windows-native
+        run: |
+          ./scripts/build-msix.ps1 -Version "2.0.0.0"
+          ./scripts/verify-msix.ps1 -Version "2.0.0.0"
+
+          $summary = @("### Native Windows CI (2.0.0.0)", "", "| Package | Size (MB) | SHA-256 |", "| :--- | :---: | :--- |")
+          foreach ($item in Get-ChildItem "output/msix" -File | Sort-Object Name) {
+            $sizeMb = [math]::Round($item.Length / 1MB, 2)
+            $sha = (Get-FileHash -Path $item.FullName -Algorithm SHA256).Hash
+            $summary += "| ``$($item.Name)`` | $sizeMb | ``$sha`` |"
+          }
+          $summary | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+
+      - name: Upload verified CI build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ottline-windows-ci-msixbundle
+          path: |
+            apps/windows-native/output/store-upload/*.msixbundle
+            apps/windows-native/output/msix/*.msix
+          if-no-files-found: error
