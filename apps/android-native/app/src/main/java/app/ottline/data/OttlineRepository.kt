@@ -21,6 +21,7 @@ import app.ottline.domain.RecordDate
 import app.ottline.model.BookClassification
 import app.ottline.model.LogDraft
 import app.ottline.model.PersonaKey
+import app.ottline.model.Provider
 import app.ottline.model.SyncChangesPayload
 import app.ottline.model.SyncLogChange
 import app.ottline.model.SyncLogUpsertPayload
@@ -93,6 +94,7 @@ class OttlineRepository(
     private var syncRequestedAgain = false
     private val sessionId: String = UUID.randomUUID().toString()
     private val appOpenedThisSession = AtomicBoolean(false)
+    private val initialDedupChecked = AtomicBoolean(false)
     private val inFlightAnalyticsJobs = ConcurrentHashMap.newKeySet<Job>()
 
     private val _syncState = MutableStateFlow(SyncState())
@@ -164,26 +166,47 @@ class OttlineRepository(
         return registered.userId to registered.deviceId
     }
 
+    private suspend fun findAllMatchingLocalTitlesLocked(
+        candidate: Title,
+        extraTitleId: String? = null
+    ): List<Title> {
+        val all = db.titleDao().getAll().map { it.toModel() }
+        val targetIsbn = if (candidate.type == TitleType.BOOK) {
+            BookshelfBuilder.normalizeBookIsbn13(candidate)
+        } else {
+            null
+        }
+        return all.filter { t ->
+            t.id == candidate.id ||
+                (extraTitleId != null && t.id == extraTitleId) ||
+                (candidate.provider != null &&
+                    candidate.provider != Provider.LOCAL &&
+                    !candidate.providerId.isNullOrBlank() &&
+                    t.provider == candidate.provider &&
+                    t.providerId == candidate.providerId) ||
+                (candidate.type == TitleType.BOOK &&
+                    t.type == TitleType.BOOK &&
+                    !targetIsbn.isNullOrBlank() &&
+                    BookshelfBuilder.normalizeBookIsbn13(t) == targetIsbn)
+        }
+    }
+
     /**
-     * Resolves an existing local title by ID, `provider+providerId`, or normalized `isbn13` for books.
+     * Resolves an existing local title by ID, `provider+providerId`, or normalized `isbn13` for books,
+     * preferring the canonical row that already holds an active synced watch log.
      */
     suspend fun findMatchingLocalTitle(candidate: Title): Title? {
-        db.titleDao().getById(candidate.id)?.let { return it.toModel() }
-        val all = db.titleDao().getAll().map { it.toModel() }
-        if (candidate.provider != null && !candidate.providerId.isNullOrBlank()) {
-            all.firstOrNull {
-                it.provider == candidate.provider && it.providerId == candidate.providerId
-            }?.let { return it }
+        val matches = findAllMatchingLocalTitlesLocked(candidate)
+        if (matches.isEmpty()) return null
+        if (matches.size == 1) return matches.first()
+        for (m in matches) {
+            val active = db.watchLogDao().getActiveByTitleId(m.id)
+            if (active.any { it.syncStatus == "synced" }) return m
         }
-        if (candidate.type == TitleType.BOOK) {
-            val targetIsbn = BookshelfBuilder.normalizeBookIsbn13(candidate)
-            if (!targetIsbn.isNullOrBlank()) {
-                all.firstOrNull {
-                    it.type == TitleType.BOOK && BookshelfBuilder.normalizeBookIsbn13(it) == targetIsbn
-                }?.let { return it }
-            }
+        for (m in matches) {
+            if (db.watchLogDao().getActiveByTitleId(m.id).isNotEmpty()) return m
         }
-        return null
+        return matches.firstOrNull { it.id == candidate.id } ?: matches.firstOrNull()
     }
 
     private data class LocalSaveOutcome(
@@ -201,12 +224,40 @@ class OttlineRepository(
     suspend fun saveLogForTitle(
         rawTitle: Title,
         draft: LogDraft,
-        awaitSync: Boolean = false
+        awaitSync: Boolean = false,
+        existingLogId: String? = null
     ): WatchLog {
         val outcome = saveMutex.withLock {
             val now = RecordDate.nowIso()
             val hadActiveLogsBefore = db.watchLogDao().getActiveLogs().isNotEmpty()
-            val matchedTitle = findMatchingLocalTitle(rawTitle)
+            val explicitLog = existingLogId?.takeIf { it.isNotBlank() }
+                ?.let { db.watchLogDao().getById(it) }
+                ?.takeIf { it.deletedAt == null }
+            val matchingTitles = findAllMatchingLocalTitlesLocked(rawTitle, explicitLog?.titleId)
+            val matchedTitle = explicitLog?.let { l ->
+                matchingTitles.firstOrNull { it.id == l.titleId }
+                    ?: db.titleDao().getById(l.titleId)?.toModel()
+            } ?: matchingTitles.firstOrNull { m ->
+                db.watchLogDao().getActiveByTitleId(m.id).any { it.syncStatus == "synced" }
+            } ?: matchingTitles.firstOrNull { m ->
+                db.watchLogDao().getActiveByTitleId(m.id).isNotEmpty()
+            } ?: matchingTitles.firstOrNull { it.id == rawTitle.id }
+                ?: matchingTitles.firstOrNull()
+
+            val keepMatchedExternalProvider = matchedTitle?.provider != null &&
+                matchedTitle.provider != Provider.LOCAL &&
+                (rawTitle.provider == null || rawTitle.provider == Provider.LOCAL)
+            val effectiveProvider = if (keepMatchedExternalProvider) {
+                matchedTitle?.provider
+            } else {
+                rawTitle.provider ?: matchedTitle?.provider
+            }
+            val effectiveProviderId = if (keepMatchedExternalProvider) {
+                matchedTitle?.providerId
+            } else {
+                rawTitle.providerId ?: matchedTitle?.providerId
+            }
+
             val effectiveTitle = (matchedTitle ?: rawTitle).copy(
                 name = rawTitle.name.ifBlank { matchedTitle?.name.orEmpty() },
                 posterUrl = rawTitle.posterUrl ?: matchedTitle?.posterUrl,
@@ -220,14 +271,33 @@ class OttlineRepository(
                 isbn10 = rawTitle.isbn10 ?: matchedTitle?.isbn10,
                 isbn13 = rawTitle.isbn13 ?: matchedTitle?.isbn13,
                 pubdate = rawTitle.pubdate ?: matchedTitle?.pubdate,
-                provider = rawTitle.provider ?: matchedTitle?.provider,
-                providerId = rawTitle.providerId ?: matchedTitle?.providerId,
+                provider = effectiveProvider,
+                providerId = effectiveProviderId,
                 updatedAt = now
             )
             db.titleDao().upsert(TitleEntity.fromModel(effectiveTitle))
 
-            val existingLog = db.watchLogDao().getActiveByTitleId(effectiveTitle.id).firstOrNull()
+            for (dupTitle in matchingTitles) {
+                if (dupTitle.id != effectiveTitle.id) {
+                    db.watchLogDao().remapTitleId(oldTitleId = dupTitle.id, newTitleId = effectiveTitle.id)
+                    remapOutboxTitleIdLocked(oldTitleId = dupTitle.id, newTitleId = effectiveTitle.id)
+                    db.titleDao().deleteById(dupTitle.id)
+                }
+            }
+
+            val activeForEffective = db.watchLogDao().getActiveByTitleId(effectiveTitle.id)
+            val existingLog = explicitLog?.let { exp ->
+                activeForEffective.firstOrNull { it.id == exp.id } ?: exp.copy(titleId = effectiveTitle.id)
+            } ?: activeForEffective.firstOrNull { it.syncStatus == "synced" }
+                ?: activeForEffective.firstOrNull()
             val logId = existingLog?.id ?: UUID.randomUUID().toString()
+            for (dupLog in activeForEffective) {
+                if (dupLog.id != logId) {
+                    db.watchLogHistoryDao().remapLogId(oldLogId = dupLog.id, newLogId = logId)
+                    db.outboxDao().deleteByTargetLogId(dupLog.id)
+                    db.watchLogDao().deleteById(dupLog.id)
+                }
+            }
             val createdAt = existingLog?.createdAt ?: now
             val watchedAt = RecordDate.resolveWatchedAt(
                 selectedDate = RecordDate.recordDateInput(draft.watchedAt),
@@ -422,6 +492,9 @@ class OttlineRepository(
     }
 
     private suspend fun runSingleSyncCycle(): SyncState {
+        if (initialDedupChecked.compareAndSet(false, true)) {
+            deduplicateLocalRecordsIfNeeded()
+        }
         val items = saveMutex.withLock { db.outboxDao().getAll() }
         val hasStoredUser = !prefs.current.userId.isNullOrBlank()
         if (items.isEmpty() && !hasStoredUser) {
@@ -589,21 +662,52 @@ class OttlineRepository(
         val since = prefs.current.lastSyncAt
         val pull = api.pullSync(since)
 
+        val pulledTitleIds = pull.changes.titles.mapTo(HashSet()) { it.id }
+        val missingTitleIds = pull.changes.logs
+            .filter { it.deletedAt.isNullOrBlank() && it.titleId.isNotBlank() && it.titleId !in pulledTitleIds }
+            .map { it.titleId }
+            .distinct()
+            .filter { db.titleDao().getById(it) == null }
+        val fetchedMissingTitles = mutableMapOf<String, Title>()
+        for (tid in missingTitleIds) {
+            runCatching { api.getTitle(tid) }.getOrNull()?.let { fetchedMissingTitles[tid] = it }
+        }
+
         saveMutex.withLock {
             val pulledTitles = mutableMapOf<String, Title>()
 
-            for (serverTitle in pull.changes.titles) {
+            for (serverTitle in pull.changes.titles + fetchedMissingTitles.values) {
+                if (pulledTitles.containsKey(serverTitle.id)) continue
                 pulledTitles[serverTitle.id] = serverTitle
-                val existingLocal = findMatchingLocalTitle(serverTitle)
-                if (existingLocal != null && existingLocal.id != serverTitle.id) {
-                    db.watchLogDao().remapTitleId(oldTitleId = existingLocal.id, newTitleId = serverTitle.id)
-                    remapOutboxTitleIdLocked(oldTitleId = existingLocal.id, newTitleId = serverTitle.id)
-                    db.titleDao().deleteById(existingLocal.id)
+                val localMatches = findAllMatchingLocalTitlesLocked(serverTitle)
+                for (existingLocal in localMatches) {
+                    if (existingLocal.id != serverTitle.id) {
+                        db.watchLogDao().remapTitleId(oldTitleId = existingLocal.id, newTitleId = serverTitle.id)
+                        remapOutboxTitleIdLocked(oldTitleId = existingLocal.id, newTitleId = serverTitle.id)
+                        db.titleDao().deleteById(existingLocal.id)
+                    }
                 }
                 db.titleDao().upsert(TitleEntity.fromModel(serverTitle))
             }
 
             for (serverLog in pull.changes.logs) {
+                val preRemapById = db.watchLogDao().getById(serverLog.id)
+                if (preRemapById != null && preRemapById.titleId != serverLog.titleId) {
+                    val oldTitleId = preRemapById.titleId
+                    val oldTitleEntity = db.titleDao().getById(oldTitleId)
+                    if (pulledTitles[serverLog.titleId] == null &&
+                        db.titleDao().getById(serverLog.titleId) == null &&
+                        oldTitleEntity != null
+                    ) {
+                        val copied = oldTitleEntity.copy(id = serverLog.titleId)
+                        db.titleDao().upsert(copied)
+                        pulledTitles[serverLog.titleId] = copied.toModel()
+                    }
+                    db.watchLogDao().remapTitleId(oldTitleId = oldTitleId, newTitleId = serverLog.titleId)
+                    remapOutboxTitleIdLocked(oldTitleId = oldTitleId, newTitleId = serverLog.titleId)
+                    db.titleDao().deleteById(oldTitleId)
+                }
+
                 val localById = db.watchLogDao().getById(serverLog.id)
                 val previousLocalForTitle = db.watchLogDao().getActiveByTitleId(serverLog.titleId)
                 val primaryLocal = localById ?: previousLocalForTitle.firstOrNull()
@@ -684,55 +788,234 @@ class OttlineRepository(
 
     /**
      * Safely caches paginated or remote logs into Room WITHOUT overwriting local pending/failed
-     * edits or newer local timestamps (F02).
+     * edits or newer local timestamps (F02), while consolidating duplicate local title/log IDs.
      */
     suspend fun upsertLogsFromServerPage(logs: List<WatchLog>) {
         if (logs.isEmpty()) return
         saveMutex.withLock {
             for (incoming in logs) {
-                val matchedTitle = findMatchingLocalTitle(incoming.title)
-                val effectiveTitle = if (matchedTitle != null && matchedTitle.id != incoming.title.id) {
-                    val hasPendingForMatched = db.watchLogDao().getActiveByTitleId(matchedTitle.id).any { local ->
-                        local.syncStatus == "pending" ||
-                            local.syncStatus == "failed" ||
-                            db.outboxDao().getByTargetLogId(local.id) != null
+                val existingById = db.watchLogDao().getById(incoming.id)
+                val localMatches = findAllMatchingLocalTitlesLocked(incoming.title, existingById?.titleId)
+                val candidateLogs = buildList {
+                    if (existingById != null) add(existingById)
+                    for (m in localMatches) {
+                        addAll(db.watchLogDao().getActiveByTitleId(m.id))
                     }
-                    if (hasPendingForMatched) matchedTitle else incoming.title
-                } else {
-                    incoming.title
+                }.distinctBy { it.id }
+
+                val hasUnsyncedLocal = candidateLogs.any { local ->
+                    local.syncStatus == "pending" ||
+                        local.syncStatus == "failed" ||
+                        db.outboxDao().getByTargetLogId(local.id) != null ||
+                        local.deletedAt != null
                 }
-                db.titleDao().upsert(TitleEntity.fromModel(effectiveTitle))
+                if (hasUnsyncedLocal) {
+                    continue
+                }
 
-                val existingLocal = db.watchLogDao().getById(incoming.id)
-                    ?: db.watchLogDao().getActiveByTitleId(effectiveTitle.id).firstOrNull()
-                    ?: matchedTitle?.let { db.watchLogDao().getActiveByTitleId(it.id).firstOrNull() }
+                db.titleDao().upsert(TitleEntity.fromModel(incoming.title))
+                for (dupTitle in localMatches) {
+                    if (dupTitle.id != incoming.title.id) {
+                        db.watchLogDao().remapTitleId(oldTitleId = dupTitle.id, newTitleId = incoming.title.id)
+                        remapOutboxTitleIdLocked(oldTitleId = dupTitle.id, newTitleId = incoming.title.id)
+                        db.titleDao().deleteById(dupTitle.id)
+                    }
+                }
 
-                if (existingLocal != null) {
-                    val pendingOutbox = db.outboxDao().getByTargetLogId(existingLocal.id)
-                    val isUnsynced = existingLocal.syncStatus == "pending" ||
-                        existingLocal.syncStatus == "failed" ||
-                        pendingOutbox != null ||
-                        existingLocal.deletedAt != null
-                    val localUpdatedMs = RecordDate.parseInstantMillis(existingLocal.updatedAt)
+                val activeForTitle = db.watchLogDao().getActiveByTitleId(incoming.title.id)
+                val primaryExisting = db.watchLogDao().getById(incoming.id) ?: activeForTitle.firstOrNull()
+                if (primaryExisting != null) {
+                    val localUpdatedMs = RecordDate.parseInstantMillis(primaryExisting.updatedAt)
                     val incomingUpdatedMs = RecordDate.parseInstantMillis(incoming.updatedAt ?: incoming.createdAt)
                     val isLocalNewer = localUpdatedMs > 0L && incomingUpdatedMs > 0L && localUpdatedMs > incomingUpdatedMs
-
-                    if (isUnsynced || isLocalNewer) {
+                    if (isLocalNewer) {
+                        if (activeForTitle.size > 1) {
+                            db.watchLogDao().deleteByTitleExcept(incoming.title.id, primaryExisting.id)
+                        }
                         continue
                     }
                 }
 
+                for (prev in activeForTitle) {
+                    if (prev.id != incoming.id) {
+                        db.watchLogHistoryDao().remapLogId(oldLogId = prev.id, newLogId = incoming.id)
+                        db.outboxDao().deleteByTargetLogId(prev.id)
+                    }
+                }
+                db.watchLogDao().deleteByTitleExcept(titleId = incoming.title.id, keepLogId = incoming.id)
+
                 db.watchLogDao().upsert(
                     WatchLogEntity.fromModel(
-                        incoming.copy(
-                            title = effectiveTitle,
-                            syncStatus = "synced"
-                        )
+                        incoming.copy(syncStatus = "synced")
                     )
                 )
             }
         }
         refreshWidgetsSafe()
+    }
+
+    /**
+     * One-time / startup self-healing pass for devices that accumulated duplicate local Title or WatchLog
+     * rows during earlier 2-step QuickRecord flows. Returns true if any duplicates were consolidated.
+     */
+    suspend fun deduplicateLocalRecordsIfNeeded(): Boolean {
+        initialDedupChecked.set(true)
+        val cleaned = saveMutex.withLock {
+            var modified = false
+
+            // 1. Consolidate duplicate Title rows sharing external identity (provider+providerId or book ISBN-13)
+            val allTitles = db.titleDao().getAll()
+            if (allTitles.size > 1) {
+                val parent = IntArray(allTitles.size) { it }
+                fun find(x: Int): Int {
+                    var r = x
+                    while (parent[r] != r) r = parent[r]
+                    var curr = x
+                    while (curr != r) {
+                        val next = parent[curr]
+                        parent[curr] = r
+                        curr = next
+                    }
+                    return r
+                }
+                fun union(a: Int, b: Int) {
+                    val ra = find(a)
+                    val rb = find(b)
+                    if (ra != rb) parent[rb] = ra
+                }
+
+                val byProvider = LinkedHashMap<String, MutableList<Int>>()
+                val byBookIsbn = LinkedHashMap<String, MutableList<Int>>()
+                for (i in allTitles.indices) {
+                    val t = allTitles[i]
+                    val prov = t.provider?.trim()
+                    val provId = t.providerId?.trim()
+                    if (!prov.isNullOrEmpty() && !prov.equals("LOCAL", ignoreCase = true) && !provId.isNullOrEmpty()) {
+                        byProvider.getOrPut("${prov.uppercase()}:$provId") { mutableListOf() }.add(i)
+                    }
+                    if (t.type.equals("book", ignoreCase = true)) {
+                        val isbn = BookshelfBuilder.normalizeBookIsbn13(t.toModel())
+                        if (!isbn.isNullOrBlank()) {
+                            byBookIsbn.getOrPut(isbn) { mutableListOf() }.add(i)
+                        }
+                    }
+                }
+                for (indices in byProvider.values) {
+                    for (k in 1 until indices.size) union(indices[0], indices[k])
+                }
+                for (indices in byBookIsbn.values) {
+                    for (k in 1 until indices.size) union(indices[0], indices[k])
+                }
+
+                val components = LinkedHashMap<Int, MutableList<TitleEntity>>()
+                for (i in allTitles.indices) {
+                    components.getOrPut(find(i)) { mutableListOf() }.add(allTitles[i])
+                }
+
+                val activeLogsByTitle = db.watchLogDao().getActiveLogs().groupBy { it.titleId }
+                for (group in components.values) {
+                    if (group.size <= 1) continue
+                    val winner = group.sortedWith(
+                        compareBy<TitleEntity>(
+                            { t ->
+                                val logs = activeLogsByTitle[t.id].orEmpty()
+                                if (logs.any { it.syncStatus == "synced" }) 0 else if (logs.isNotEmpty()) 1 else 2
+                            },
+                            { t ->
+                                activeLogsByTitle[t.id].orEmpty()
+                                    .minOfOrNull { RecordDate.parseInstantMillis(it.createdAt) }
+                                    ?: Long.MAX_VALUE
+                            }
+                        )
+                    ).first()
+
+                    var mergedWinner = winner
+                    for (other in group) {
+                        if (other.id == winner.id) continue
+                        mergedWinner = mergedWinner.copy(
+                            year = mergedWinner.year ?: other.year,
+                            genresJson = mergedWinner.genresJson ?: other.genresJson,
+                            directorsJson = mergedWinner.directorsJson ?: other.directorsJson,
+                            castJson = mergedWinner.castJson ?: other.castJson,
+                            overview = mergedWinner.overview?.takeIf { it.isNotBlank() } ?: other.overview,
+                            posterUrl = mergedWinner.posterUrl?.takeIf { it.isNotBlank() } ?: other.posterUrl,
+                            author = mergedWinner.author?.takeIf { it.isNotBlank() } ?: other.author,
+                            publisher = mergedWinner.publisher?.takeIf { it.isNotBlank() } ?: other.publisher,
+                            isbn10 = mergedWinner.isbn10?.takeIf { it.isNotBlank() } ?: other.isbn10,
+                            isbn13 = mergedWinner.isbn13?.takeIf { it.isNotBlank() } ?: other.isbn13,
+                            pubdate = mergedWinner.pubdate?.takeIf { it.isNotBlank() } ?: other.pubdate
+                        )
+                    }
+                    db.titleDao().upsert(mergedWinner)
+                    for (loser in group) {
+                        if (loser.id != mergedWinner.id) {
+                            db.watchLogDao().remapTitleId(oldTitleId = loser.id, newTitleId = mergedWinner.id)
+                            remapOutboxTitleIdLocked(oldTitleId = loser.id, newTitleId = mergedWinner.id)
+                            db.titleDao().deleteById(loser.id)
+                        }
+                    }
+                    modified = true
+                }
+            }
+
+            // 2. Consolidate duplicate active WatchLog rows pointing to the same titleId
+            val logsByTitle = db.watchLogDao().getActiveLogs().groupBy { it.titleId }
+            for ((titleId, logsForTitle) in logsByTitle) {
+                if (logsForTitle.size <= 1) continue
+
+                val latestContent = logsForTitle.maxWithOrNull(
+                    compareBy<WatchLogEntity> { RecordDate.parseInstantMillis(it.updatedAt) }
+                        .thenBy { RecordDate.parseInstantMillis(it.createdAt) }
+                ) ?: logsForTitle.first()
+
+                val winnerIdentity = logsForTitle.firstOrNull { db.outboxDao().getByTargetLogId(it.id) != null }
+                    ?: logsForTitle.minWithOrNull(
+                        compareBy<WatchLogEntity> { RecordDate.parseInstantMillis(it.createdAt) }
+                            .thenBy { it.id }
+                    )
+                    ?: latestContent
+
+                val hasAnyOutbox = logsForTitle.any { db.outboxDao().getByTargetLogId(it.id) != null }
+                val mergedSyncStatus = if (hasAnyOutbox || logsForTitle.any { it.syncStatus == "pending" }) {
+                    "pending"
+                } else {
+                    winnerIdentity.syncStatus
+                }
+                val merged = latestContent.copy(
+                    id = winnerIdentity.id,
+                    titleId = titleId,
+                    createdAt = winnerIdentity.createdAt,
+                    syncStatus = mergedSyncStatus
+                )
+                db.watchLogDao().upsert(merged)
+
+                for (loser in logsForTitle) {
+                    if (loser.id == winnerIdentity.id) continue
+                    db.watchLogHistoryDao().remapLogId(oldLogId = loser.id, newLogId = winnerIdentity.id)
+                    if (db.outboxDao().getByTargetLogId(winnerIdentity.id) == null &&
+                        db.outboxDao().getByTargetLogId(loser.id) != null
+                    ) {
+                        remapOutboxLogAndTitleIdLocked(
+                            oldLogId = loser.id,
+                            newLogId = winnerIdentity.id,
+                            newTitleId = titleId
+                        )
+                    } else {
+                        db.outboxDao().deleteByTargetLogId(loser.id)
+                    }
+                    db.watchLogDao().deleteById(loser.id)
+                }
+                modified = true
+            }
+
+            modified
+        }
+
+        if (cleaned) {
+            prefs.setLastSyncAt(null)
+            refreshWidgetsSafe()
+        }
+        return cleaned
     }
 
     suspend fun pairWithCode(code: String): AuthPairResult {

@@ -149,6 +149,7 @@ fun OttlineAppRoot(
 
     // Track session-deduplicated `app_open` once per app session (F08) + Install Referrer + automatic TWA/Web handoff
     LaunchedEffect(Unit) {
+        repository.deduplicateLocalRecordsIfNeeded()
         val firstInstallReferrer = if (!repository.prefs.current.installReferrerChecked) {
             PlayInstallReferrerManager.checkAndProcessOnce(context, repository)
         } else {
