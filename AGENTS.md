@@ -386,6 +386,7 @@ feature/* ──PR/CI──→ main ──→ GitHub Actions workflow_dispatch
 1. `POST /api/auth/register`
 2. `POST /api/auth/pair`
 3. `GET /api/auth/devices`
+   1. 연결 기기 메타데이터는 `X-Client-Platform`의 `ios_native`·`windows_native`·`macos_native`를 각각 `iOS App`·`Windows App`·`macOS App`으로 분류한다. 등록·코드 연결과 해당 기기의 목록 조회 시 갱신하며, 기존 기기 ID·계정 연결을 보존한다. analytics 플랫폼 허용값과는 별도 계약이다. 상세는 `docs/native-desktop-device-info.md`를 따른다.
 4. `DELETE /api/auth/devices/{id}`
 5. `DELETE /api/auth/devices/all`
 6. `DELETE /api/auth/account`
