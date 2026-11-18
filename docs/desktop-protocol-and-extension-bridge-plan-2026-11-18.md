@@ -120,10 +120,10 @@ ottline://quick?quick=1&title={encodedTitle}&q={encodedTitle}&platform={encodedP
 
 ## 5. 트랙별 검증 체크리스트
 
-### Apple (`feature/ios-native-v2`) 담당
-- [ ] `ottline://quick?quick=1&title=...&q=...&platform=Netflix&type=video` 수신 시 `OttlineMacApp` / `OttlineApp` 빠른 기록 시트에 제목·플랫폼·타입이 프리필되는지 단위 테스트 및 수동 실행 확인.
-- [ ] `https://ottline.app/ko?native_handoff=1` 호출 후 브라우저에서 `ottline://open?handoff=1&status=ok&...` 복귀 시 기존 웹 기록과 연결 코드가 병합·복원되고 `status=empty` 안내가 정상 동작하는지 확인.
-- [ ] macOS 연결 기기 목록에서 `macOS App · macOS`로 표시되는지 확인.
+### Apple (`feature/ios-native-v2` — Phase B 구현 반영됨) 담당
+- [x] `ottline://quick?quick=1&title=...&q=...&platform=Netflix&type=video` 수신 시 `OttlineMacApp` / `OttlineApp` 빠른 기록 시트에 제목·플랫폼·타입이 프리필되는지 단위 테스트 및 수동 실행 확인 (`OttlineDeepLinkParser`, `OttlineMacTests.testUniversalQuickLinkAliasesAndBrowserHandoffMerge`, `OttlineCoreTests.testShareIntentParserAndCsvExporter`).
+- [x] `https://ottline.app/ko?native_handoff=1` 호출 후 브라우저에서 `ottline://open?handoff=1&status=ok&...` 복귀 시 기존 웹 기록과 연결 코드가 병합·복원되고 `status=empty` 안내가 정상 동작하는지 확인 (`OttlineRepository.importBrowserHandoff` 단위 테스트 검증; Safari/Chrome 실브라우저 전환 수동 확인은 실기기/macOS 앱에서 추가 점검 가능).
+- [x] macOS 연결 기기 목록에서 `macOS App · macOS`로 표시되는지 확인 (백엔드 PR `#135` + `OttlineApiClient.defaultClientPlatform = "macos_native"` + `DeviceItem.displayName` 정렬 완료).
 
 ### Web (`apps/web`) 담당
 - [ ] `capture_title` 브릿지 노출 시 기존 웹 QuickLog 입력·저장 흐름을 막지 않으며, `ottline://quick` URI에 계정/기기 식별자 및 불필요한 원문 URL 파라미터가 포함되지 않는지 테스트.

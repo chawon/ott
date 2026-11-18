@@ -177,6 +177,18 @@ public final class OttlineApiClient: @unchecked Sendable {
         return try await send(req, as: UserProfileDto.self)
     }
 
+    public func getProfile(overrideUserId: String, overrideDeviceId: String) async throws -> UserProfileDto {
+        let req = try makeRequest(
+            path: "/auth/profile",
+            requireAuth: false,
+            extraHeaders: [
+                "X-User-Id": overrideUserId,
+                "X-Device-Id": overrideDeviceId
+            ]
+        )
+        return try await send(req, as: UserProfileDto.self, checkAuthRevocation: false)
+    }
+
     public func updateProfile(nickname: String, personaKey: PersonaKey) async throws -> UserProfileDto {
         let body = try JSONEncoder().encode(UpdateProfileRequest(nickname: nickname, personaKey: personaKey))
         let req = try makeRequest(path: "/auth/profile", method: "PATCH", bodyData: body, requireAuth: true)

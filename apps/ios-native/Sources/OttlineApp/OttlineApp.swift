@@ -43,6 +43,7 @@ public struct OttlineRootContainerView: View {
     @State private var autoExpandPairing: Bool = false
     @State private var pendingPlaceFilter: Place?
     @State private var pendingOccasionFilter: Occasion?
+    @State private var handoffNoticeMessage: String?
 
     public init(repository: OttlineRepository) {
         self.repository = repository
@@ -174,6 +175,19 @@ public struct OttlineRootContainerView: View {
         }
         .onOpenURL { url in
             handleIncomingUrl(url)
+        }
+        .alert(
+            OttlineStrings.tr("브라우저 기록 연결", "Browser record connection", locale: snap.locale),
+            isPresented: Binding(
+                get: { handoffNoticeMessage != nil },
+                set: { if !$0 { handoffNoticeMessage = nil } }
+            )
+        ) {
+            Button(OttlineStrings.tr("확인", "OK", locale: snap.locale), role: .cancel) {
+                handoffNoticeMessage = nil
+            }
+        } message: {
+            Text(handoffNoticeMessage ?? "")
         }
         #if canImport(CoreSpotlight)
         .onContinueUserActivity(CSSearchableItemActionType) { activity in
@@ -364,73 +378,39 @@ public struct OttlineRootContainerView: View {
 
     private func handleIncomingUrl(_ url: URL) {
         showSplash = false
-        let components = URLComponents(url: url, resolvingAgainstBaseURL: false)
-        let queryItems = components?.queryItems ?? []
-        func qVal(_ name: String) -> String? {
-            queryItems.first(where: { $0.name == name })?.value
-        }
-
-        let rawPath = url.path
-        let path = rawPath.lowercased()
-        let host = (url.host ?? "").lowercased()
-
-        if host == "quick-record" || qVal("quick") == "1" {
-            let typeTab = qVal("type") ?? "all"
-            let rawPlatform = qVal("platform")?.trimmingCharacters(in: .whitespacesAndNewlines)
-            let prefilledPlatform = (rawPlatform?.isEmpty == false) ? rawPlatform : nil
-            if let titleId = qVal("title_id"), let existing = repository.logs.first(where: { $0.title.id == titleId }) {
+        switch OttlineDeepLinkParser.parse(url) {
+        case .browserHandoff(let handoff):
+            Task { @MainActor in
+                let outcome = await repository.importBrowserHandoff(handoff)
+                self.handoffNoticeMessage = outcome.message
+            }
+        case .quickRecord(let quick):
+            if let titleId = quick.titleId,
+               let existing = repository.logs.first(where: { $0.title.id == titleId }) {
                 quickRecordRequest = QuickRecordRequest(
                     existingLog: existing,
-                    prefilledPlatform: prefilledPlatform,
+                    prefilledPlatform: quick.platform,
                     autoFocusSearch: false
                 )
             } else {
-                let sharedQuery = qVal("q") ?? ""
                 quickRecordRequest = QuickRecordRequest(
-                    initialQuery: sharedQuery,
-                    initialTypeTab: typeTab,
-                    prefilledPlatform: prefilledPlatform,
+                    initialQuery: quick.query,
+                    initialTypeTab: quick.typeTab,
+                    prefilledPlatform: quick.platform,
                     autoFocusSearch: true
                 )
             }
-            return
-        }
-
-        if host == "timeline" || path.contains("/timeline") {
+        case .tab(let tab):
             overlayStack.removeAll()
-            activeTab = .timeline
-        } else if host == "together" || path == "/public" || path.hasSuffix("/public") {
-            overlayStack.removeAll()
-            activeTab = .together
-        } else if path.contains("/public/") {
-            if let did = rawPath.split(separator: "/").last.map(String.init), !did.isEmpty {
-                overlayStack = [.publicDiscussion(did)]
+            activeTab = tab
+        case .overlay(let screen):
+            if case .titleDetail = screen {
+                overlayStack.append(screen)
+            } else {
+                overlayStack = [screen]
             }
-        } else if host == "account" || path.contains("/account") || path.contains("/myspace") {
-            overlayStack.removeAll()
-            activeTab = .mySpace
-        } else if host == "report" || path.contains("/report") {
-            overlayStack = [.report]
-        } else if host == "bookshelf" || path.contains("/bookshelf") {
-            let kdc = qVal("kdc").flatMap(Int.init)
-            overlayStack = [.bookshelf(kdc)]
-        } else if path.contains("/titles/") || path.contains("/title/") {
-            if let tid = rawPath.split(separator: "/").last.map(String.init), !tid.isEmpty {
-                overlayStack.append(.titleDetail(tid))
-            }
-        } else if path.contains("/guide/") {
-            let slug = rawPath.split(separator: "/").last.map(String.init)
-            overlayStack = [.guides(slug)]
-        } else if path.hasSuffix("/guide") {
-            overlayStack = [.guides(nil)]
-        } else if path.contains("/about") {
-            overlayStack = [.about]
-        } else if path.contains("/faq") {
-            overlayStack = [.faq]
-        } else if path.contains("/privacy") {
-            overlayStack = [.privacy]
-        } else if path.contains("/feedback") {
-            overlayStack = [.feedback(nil)]
+        case .unknown:
+            break
         }
     }
 }

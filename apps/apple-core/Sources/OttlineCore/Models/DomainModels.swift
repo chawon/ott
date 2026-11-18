@@ -921,7 +921,7 @@ public struct DeviceItem: Codable, Equatable, Identifiable, Sendable {
     }
 
     public var displayName: String {
-        let parts = [os, browser]
+        let parts = [browser, os]
             .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
             .filter {
                 !$0.isEmpty

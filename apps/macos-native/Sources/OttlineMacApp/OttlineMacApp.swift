@@ -15,83 +15,68 @@ public final class OttlineMacAppState {
     public var pendingPlaceFilter: Place?
     public var pendingOccasionFilter: Occasion?
     public var autoExpandPairing: Bool = false
+    public var handoffBannerMessage: String?
+    public var handoffBannerIsSuccess: Bool = true
+    public var isImportingBrowserHandoff: Bool = false
 
     public init() {}
 
+    public func startBrowserHandoff(repository: OttlineRepository) {
+        guard let url = repository.buildBrowserHandoffStartUrl() else { return }
+        NSWorkspace.shared.open(url)
+    }
+
     public func handleIncomingUrl(_ url: URL, repository: OttlineRepository) {
-        let components = URLComponents(url: url, resolvingAgainstBaseURL: false)
-        let queryItems = components?.queryItems ?? []
-        func qVal(_ name: String) -> String? {
-            queryItems.first(where: { $0.name == name })?.value
-        }
-
-        let rawPath = url.path
-        let path = rawPath.lowercased()
-        let host = (url.host ?? "").lowercased()
-
-        if host == "quick-record" || qVal("quick") == "1" {
-            let typeTab = qVal("type") ?? "all"
-            let rawPlat = qVal("platform")?.trimmingCharacters(in: .whitespacesAndNewlines)
-            let plat = (rawPlat?.isEmpty == false) ? rawPlat : nil
-            if let titleId = qVal("title_id"),
+        switch OttlineDeepLinkParser.parse(url) {
+        case .browserHandoff(let handoff):
+            if !OttlineMacApp.isRunningUnitTests {
+                NSApplication.shared.activate(ignoringOtherApps: true)
+            }
+            isImportingBrowserHandoff = true
+            handoffBannerMessage = nil
+            Task { @MainActor in
+                let outcome = await repository.importBrowserHandoff(handoff)
+                self.isImportingBrowserHandoff = false
+                self.handoffBannerIsSuccess = outcome.success
+                self.handoffBannerMessage = outcome.message
+            }
+        case .quickRecord(let quick):
+            if !OttlineMacApp.isRunningUnitTests {
+                NSApplication.shared.activate(ignoringOtherApps: true)
+            }
+            if let titleId = quick.titleId,
                let existing = repository.logs.first(where: { $0.title.id == titleId }) {
                 quickRecordRequest = QuickRecordRequest(
                     existingLog: existing,
-                    prefilledPlatform: plat,
+                    prefilledPlatform: quick.platform,
                     autoFocusSearch: false
                 )
             } else {
                 quickRecordRequest = QuickRecordRequest(
-                    initialQuery: qVal("q") ?? "",
-                    initialTypeTab: typeTab,
-                    prefilledPlatform: plat,
+                    initialQuery: quick.query,
+                    initialTypeTab: quick.typeTab,
+                    prefilledPlatform: quick.platform,
                     autoFocusSearch: true
                 )
             }
-            return
-        }
-
-        if host == "timeline" || path.contains("/timeline") {
+        case .tab(let tab):
             overlayStack.removeAll()
-            activeTab = .timeline
-        } else if host == "together" || path == "/public" || path.hasSuffix("/public") {
-            overlayStack.removeAll()
-            activeTab = .together
-        } else if path.contains("/public/") {
-            if let did = rawPath.split(separator: "/").last.map(String.init), !did.isEmpty {
-                overlayStack = [.publicDiscussion(did)]
+            activeTab = tab
+        case .overlay(let screen):
+            if case .titleDetail = screen {
+                overlayStack.append(screen)
+            } else {
+                overlayStack = [screen]
             }
-        } else if host == "account" || path.contains("/account") || path.contains("/myspace") {
-            overlayStack.removeAll()
-            activeTab = .mySpace
-        } else if host == "report" || path.contains("/report") {
-            overlayStack = [.report]
-        } else if host == "bookshelf" || path.contains("/bookshelf") {
-            let kdc = qVal("kdc").flatMap(Int.init)
-            overlayStack = [.bookshelf(kdc)]
-        } else if path.contains("/titles/") || path.contains("/title/") {
-            if let tid = rawPath.split(separator: "/").last.map(String.init), !tid.isEmpty {
-                overlayStack.append(.titleDetail(tid))
-            }
-        } else if path.contains("/guide/") {
-            overlayStack = [.guides(rawPath.split(separator: "/").last.map(String.init))]
-        } else if path.hasSuffix("/guide") {
-            overlayStack = [.guides(nil)]
-        } else if path.contains("/about") {
-            overlayStack = [.about]
-        } else if path.contains("/faq") {
-            overlayStack = [.faq]
-        } else if path.contains("/privacy") {
-            overlayStack = [.privacy]
-        } else if path.contains("/feedback") {
-            overlayStack = [.feedback(nil)]
+        case .unknown:
+            break
         }
     }
 }
 
 @main
 public struct OttlineMacApp: App {
-    private static let isRunningUnitTests =
+    static let isRunningUnitTests =
         ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
 
     @State private var repository: OttlineRepository? = {

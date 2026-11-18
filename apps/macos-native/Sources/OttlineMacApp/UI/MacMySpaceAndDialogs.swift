@@ -125,6 +125,15 @@ public struct MacMySpaceSpreadView: View {
         .task {
             await loadProfileAndDevices()
         }
+        .onChange(of: repository.prefs.snapshot.userId) { _, _ in
+            editNickname = repository.prefs.snapshot.nickname ?? ""
+            editPersonaKey = repository.prefs.snapshot.personaKey ?? .cinemaKeeper
+            Task { await loadProfileAndDevices() }
+        }
+        .onChange(of: repository.prefs.snapshot.pairingCode) { _, _ in
+            editNickname = repository.prefs.snapshot.nickname ?? ""
+            editPersonaKey = repository.prefs.snapshot.personaKey ?? .cinemaKeeper
+        }
     }
 
     private func profileDesktopCard(snap: PreferencesSnapshot) -> some View {
@@ -264,6 +273,28 @@ public struct MacMySpaceSpreadView: View {
             }
 
             Rectangle().fill(palette.border).frame(height: 1)
+
+            Button {
+                appState.startBrowserHandoff(repository: repository)
+            } label: {
+                HStack(spacing: 8) {
+                    OttlineLucideIcon(kind: .externalLink, size: 15, color: palette.primaryAccent)
+                    Text(OttlineStrings.tr(
+                        "웹(Safari/Chrome)에서 쓰던 기록 가져오기 →",
+                        "Bring records from web browser (Safari/Chrome) →",
+                        locale: locale
+                    ))
+                    .font(OttlineFont.medium(13))
+                    .foregroundStyle(palette.primaryAccent)
+                }
+                .padding(.horizontal, 12)
+                .frame(maxWidth: .infinity, minHeight: 40, alignment: .leading)
+                .background(palette.paperStrong)
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+                .overlay(RoundedRectangle(cornerRadius: 8).stroke(palette.border, lineWidth: 1))
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
 
             HStack(spacing: 8) {
                 TextField(

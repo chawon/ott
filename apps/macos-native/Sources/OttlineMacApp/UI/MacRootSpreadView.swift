@@ -63,6 +63,47 @@ public struct MacRootSpreadView: View {
                 }
             )
 
+            if appState.isImportingBrowserHandoff || appState.handoffBannerMessage != nil {
+                HStack(spacing: 12) {
+                    OttlineLucideIcon(
+                        kind: .externalLink,
+                        size: 16,
+                        color: appState.handoffBannerIsSuccess ? palette.primaryAccent : palette.mutedInk
+                    )
+                    Text(
+                        appState.isImportingBrowserHandoff
+                            ? OttlineStrings.tr(
+                                "웹 브라우저에서 기록을 확인하고 있어요…",
+                                "Checking records from your browser…",
+                                locale: snap.locale
+                            )
+                            : (appState.handoffBannerMessage ?? "")
+                    )
+                    .font(OttlineFont.medium(13.5))
+                    .foregroundStyle(palette.ink)
+                    Spacer()
+                    if !appState.isImportingBrowserHandoff {
+                        Button {
+                            appState.handoffBannerMessage = nil
+                        } label: {
+                            OttlineLucideIcon(kind: .x, size: 15, color: palette.mutedInk)
+                                .frame(width: 28, height: 28)
+                                .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel(OttlineStrings.tr("안내 닫기", "Dismiss notice", locale: snap.locale))
+                    }
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 10)
+                .frame(maxWidth: 1280)
+                .background(palette.paperStrong)
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+                .overlay(RoundedRectangle(cornerRadius: 8).stroke(palette.border, lineWidth: 1))
+                .padding(.horizontal, 32)
+                .padding(.top, 12)
+            }
+
             ZStack {
                 if let overlay = appState.overlayStack.last {
                     desktopOverlayView(for: overlay, palette: palette, locale: snap.locale)
@@ -522,7 +563,7 @@ public struct MacHomeSpreadView: View {
             .foregroundStyle(palette.mutedInk)
             .lineSpacing(7)
 
-            HStack(spacing: 24) {
+            HStack(spacing: 14) {
                 Button {
                     appState.quickRecordRequest = QuickRecordRequest(autoFocusSearch: true)
                 } label: {
@@ -540,10 +581,28 @@ public struct MacHomeSpreadView: View {
                 .buttonStyle(.plain)
 
                 Button {
+                    appState.startBrowserHandoff(repository: repository)
+                } label: {
+                    HStack(spacing: 8) {
+                        OttlineLucideIcon(kind: .externalLink, size: 16, color: palette.primaryAccent)
+                        Text(OttlineStrings.tr("웹(Safari·Chrome) 기록 가져오기", "Bring records from browser", locale: locale))
+                            .font(OttlineFont.medium(14.5))
+                            .foregroundStyle(palette.primaryAccent)
+                    }
+                    .padding(.horizontal, 16)
+                    .frame(height: 48)
+                    .background(palette.card)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(palette.primaryAccent.opacity(0.45), lineWidth: 1))
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+
+                Button {
                     appState.autoExpandPairing = true
                     appState.activeTab = .mySpace
                 } label: {
-                    Text(OttlineStrings.tr("이미 남긴 기록 이어보기 →", "Bring my existing records →", locale: locale))
+                    Text(OttlineStrings.tr("연결 코드 직접 입력 →", "Enter connection code →", locale: locale))
                         .font(OttlineFont.medium(14.5))
                         .foregroundStyle(palette.primaryAccent)
                         .frame(height: 48)

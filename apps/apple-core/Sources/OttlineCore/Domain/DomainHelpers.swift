@@ -997,3 +997,158 @@ public enum CsvExporter {
         return value
     }
 }
+
+// MARK: - 7. Shared `ottline://` Quick Record & Browser Handoff Deep Link Parser
+
+public struct ParsedQuickRecordLink: Equatable, Sendable {
+    public var query: String
+    public var typeTab: String // "all" | "video" | "movie" | "series" | "book"
+    public var platform: String?
+    public var titleId: String?
+
+    public init(query: String = "", typeTab: String = "all", platform: String? = nil, titleId: String? = nil) {
+        self.query = query
+        self.typeTab = typeTab
+        self.platform = platform
+        self.titleId = titleId
+    }
+}
+
+public struct ParsedBrowserHandoff: Equatable, Sendable {
+    public var status: String?
+    public var userId: String?
+    public var deviceId: String?
+    public var pairingCode: String?
+    public var nickname: String?
+    public var personaKey: PersonaKey?
+
+    public init(
+        status: String? = nil,
+        userId: String? = nil,
+        deviceId: String? = nil,
+        pairingCode: String? = nil,
+        nickname: String? = nil,
+        personaKey: PersonaKey? = nil
+    ) {
+        self.status = status
+        self.userId = userId
+        self.deviceId = deviceId
+        self.pairingCode = pairingCode
+        self.nickname = nickname
+        self.personaKey = personaKey
+    }
+}
+
+public enum OttlineIncomingLink: Equatable, Sendable {
+    case browserHandoff(ParsedBrowserHandoff)
+    case quickRecord(ParsedQuickRecordLink)
+    case tab(TopLevelTab)
+    case overlay(ActiveOverlayScreen)
+    case unknown
+}
+
+public enum OttlineDeepLinkParser {
+    public static func parse(_ url: URL) -> OttlineIncomingLink {
+        let components = URLComponents(url: url, resolvingAgainstBaseURL: false)
+        let queryItems = components?.queryItems ?? []
+
+        func firstNonEmpty(_ names: String...) -> String? {
+            for name in names {
+                if let raw = queryItems.first(where: { $0.name.caseInsensitiveCompare(name) == .orderedSame })?.value {
+                    let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+                    if !trimmed.isEmpty {
+                        return trimmed
+                    }
+                }
+            }
+            return nil
+        }
+
+        let rawPath = url.path
+        let path = rawPath.lowercased()
+        let host = (url.host ?? "").lowercased()
+
+        let handoffVal = firstNonEmpty("handoff")?.lowercased()
+        let status = firstNonEmpty("status")?.lowercased()
+        let uid = firstNonEmpty("user_id", "userId")
+        let did = firstNonEmpty("device_id", "deviceId")
+        let code = firstNonEmpty("pairing_code", "code")?.uppercased()
+
+        if host == "handoff"
+            || handoffVal == "1"
+            || handoffVal == "true"
+            || (host == "open" && (status != nil || code != nil || (uid != nil && did != nil))) {
+            return .browserHandoff(ParsedBrowserHandoff(
+                status: status,
+                userId: uid,
+                deviceId: did,
+                pairingCode: code,
+                nickname: firstNonEmpty("nickname"),
+                personaKey: PersonaKey.fromWire(firstNonEmpty("persona_key", "personaKey"))
+            ))
+        }
+
+        let quickVal = firstNonEmpty("quick")?.lowercased()
+        if host == "quick" || host == "quick-record" || quickVal == "1" || quickVal == "true" {
+            let query = firstNonEmpty("q", "title", "query", "capture_title") ?? ""
+            let platform = firstNonEmpty("platform", "capture_platform")
+            let rawType = firstNonEmpty("type", "capture_type")?.lowercased() ?? "all"
+            let allowedTypes: Set<String> = ["all", "video", "movie", "series", "book"]
+            let typeTab = allowedTypes.contains(rawType) ? rawType : "all"
+            let titleId = firstNonEmpty("title_id", "id")
+            return .quickRecord(ParsedQuickRecordLink(
+                query: query,
+                typeTab: typeTab,
+                platform: platform,
+                titleId: titleId
+            ))
+        }
+
+        if host == "timeline" || path.contains("/timeline") {
+            return .tab(.timeline)
+        }
+        if host == "together" || path == "/public" || path.hasSuffix("/public") {
+            return .tab(.together)
+        }
+        if path.contains("/public/") {
+            if let discussionId = rawPath.split(separator: "/").last.map(String.init), !discussionId.isEmpty {
+                return .overlay(.publicDiscussion(discussionId))
+            }
+        }
+        if host == "account" || path.contains("/account") || path.contains("/myspace") {
+            return .tab(.mySpace)
+        }
+        if host == "report" || path.contains("/report") {
+            return .overlay(.report)
+        }
+        if host == "bookshelf" || path.contains("/bookshelf") {
+            return .overlay(.bookshelf(firstNonEmpty("kdc").flatMap(Int.init)))
+        }
+        if path.contains("/titles/") || path.contains("/title/") {
+            if let titleId = rawPath.split(separator: "/").last.map(String.init), !titleId.isEmpty {
+                return .overlay(.titleDetail(titleId))
+            }
+        }
+        if path.contains("/guide/") {
+            let slug = rawPath.split(separator: "/").last.map(String.init)
+            return .overlay(.guides(slug))
+        }
+        if path.hasSuffix("/guide") {
+            return .overlay(.guides(nil))
+        }
+        if path.contains("/about") {
+            return .overlay(.about)
+        }
+        if path.contains("/faq") {
+            return .overlay(.faq)
+        }
+        if path.contains("/privacy") {
+            return .overlay(.privacy)
+        }
+        if path.contains("/feedback") {
+            return .overlay(.feedback(nil))
+        }
+
+        return .unknown
+    }
+}

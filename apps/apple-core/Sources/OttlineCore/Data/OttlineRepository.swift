@@ -135,7 +135,20 @@ public final class OttlineRepository: @unchecked Sendable {
         return prefs.snapshot
     }
 
+    public struct BrowserHandoffOutcome: Equatable, Sendable {
+        public let success: Bool
+        public let message: String
+
+        public init(success: Bool, message: String) {
+            self.success = success
+            self.message = message
+        }
+    }
+
     public func pairWithCode(_ code: String) async throws -> PairDeviceResponse {
+        if (prefs.snapshot.userId ?? "").isEmpty && (!db.getActiveLogs().isEmpty || db.outboxCount() > 0) {
+            _ = try? await ensureAuthenticated()
+        }
         let oldUserId = prefs.snapshot.userId
         // Push any pending local outbox changes first so server can merge them safely
         if !(oldUserId ?? "").isEmpty && db.outboxCount() > 0 {
@@ -164,6 +177,166 @@ public final class OttlineRepository: @unchecked Sendable {
 
         trackEvent("device_pair", properties: ["mergedLogsCount": String(resp.mergedLogsCount ?? 0)])
         return resp
+    }
+
+    public func buildBrowserHandoffStartUrl() -> URL? {
+        var root = prefs.snapshot.apiBaseUrl
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+        if root.hasSuffix("/api") {
+            root = String(root.dropLast(4))
+        }
+        let lang = prefs.snapshot.locale == "en" ? "en" : "ko"
+        let ts = Int64(Date().timeIntervalSince1970 * 1000)
+        return URL(string: "\(root)/\(lang)?native_handoff=1&ts=\(ts)")
+    }
+
+    @discardableResult
+    public func importBrowserHandoff(_ handoff: ParsedBrowserHandoff) async -> BrowserHandoffOutcome {
+        let locale = prefs.snapshot.locale
+
+        if handoff.status?.lowercased() == "empty" {
+            return BrowserHandoffOutcome(
+                success: false,
+                message: OttlineStrings.tr(
+                    "열린 브라우저에 이전 기록이 없어요. 다른 브라우저로 시도하거나 8자리 연결 코드를 입력해 보세요.",
+                    "No previous records were found in that browser. Try your other browser or enter your 8-character connection code.",
+                    locale: locale
+                )
+            )
+        }
+
+        func restoreProfileIfEmpty(remote: UserProfileDto? = nil) {
+            let currentNick = prefs.snapshot.nickname?.trimmingCharacters(in: .whitespacesAndNewlines)
+            let remoteNick = remote?.nickname?.trimmingCharacters(in: .whitespacesAndNewlines)
+            let handoffNick = handoff.nickname?.trimmingCharacters(in: .whitespacesAndNewlines)
+            let resolvedNick: String? = {
+                if let currentNick, !currentNick.isEmpty { return currentNick }
+                if let remoteNick, !remoteNick.isEmpty { return remoteNick }
+                if let handoffNick, !handoffNick.isEmpty { return handoffNick }
+                return nil
+            }()
+            let resolvedPersona = prefs.snapshot.personaKey ?? remote?.personaKey ?? handoff.personaKey
+            if resolvedNick != prefs.snapshot.nickname || resolvedPersona != prefs.snapshot.personaKey {
+                prefs.saveProfile(nickname: resolvedNick, personaKey: resolvedPersona)
+            }
+        }
+
+        if let curUid = prefs.snapshot.userId, !curUid.isEmpty,
+           let handoffUid = handoff.userId,
+           curUid.caseInsensitiveCompare(handoffUid) == .orderedSame,
+           let curDid = prefs.snapshot.deviceId, !curDid.isEmpty {
+            if (prefs.snapshot.pairingCode ?? "").isEmpty,
+               let code = handoff.pairingCode, !code.isEmpty {
+                prefs.saveAuth(
+                    userId: curUid,
+                    deviceId: curDid,
+                    pairingCode: code,
+                    nickname: prefs.snapshot.nickname ?? handoff.nickname,
+                    personaKey: prefs.snapshot.personaKey ?? handoff.personaKey
+                )
+            }
+            restoreProfileIfEmpty()
+            _ = await syncOutbox()
+            try? await pullChangesInternal(forceFullPull: true)
+            reloadFromLocalDb()
+            return BrowserHandoffOutcome(
+                success: true,
+                message: OttlineStrings.tr(
+                    "웹 브라우저 기록과 이미 연결되어 있어 최신 상태로 동기화했어요.",
+                    "Your browser records are already linked and synced.",
+                    locale: locale
+                )
+            )
+        }
+
+        var resolvedCode = handoff.pairingCode?.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
+        var fetchedProfile: UserProfileDto?
+        if (resolvedCode == nil || resolvedCode?.isEmpty == true),
+           let uid = handoff.userId, let did = handoff.deviceId {
+            fetchedProfile = try? await api.getProfile(overrideUserId: uid, overrideDeviceId: did)
+            if let codeFromProfile = fetchedProfile?.pairingCode?.trimmingCharacters(in: .whitespacesAndNewlines).uppercased(),
+               !codeFromProfile.isEmpty {
+                resolvedCode = codeFromProfile
+            }
+        }
+
+        if let code = resolvedCode, !code.isEmpty {
+            let hadLocalLogs = !db.getActiveLogs().isEmpty
+            do {
+                _ = try await pairWithCode(code)
+                restoreProfileIfEmpty(remote: fetchedProfile)
+                trackEvent("login_success", properties: ["source": "native_handoff"])
+                return BrowserHandoffOutcome(
+                    success: true,
+                    message: hadLocalLogs
+                        ? OttlineStrings.tr(
+                            "기존 기록과 현재 기기 기록을 연결했어요.",
+                            "Connected and merged your previous records.",
+                            locale: locale
+                        )
+                        : OttlineStrings.tr(
+                            "웹 브라우저에서 쓰던 기록을 이어받았어요.",
+                            "Connected your previous browser records.",
+                            locale: locale
+                        )
+                )
+            } catch {
+                if handoff.userId == nil || handoff.deviceId == nil || !db.getActiveLogs().isEmpty {
+                    return BrowserHandoffOutcome(
+                        success: false,
+                        message: OttlineStrings.tr(
+                            "브라우저 기록 연결을 마치지 못했어요. 잠시 후 다시 시도하거나 8자리 연결 코드를 입력해 주세요.",
+                            "Could not finish linking your browser records. Please try again or enter your 8-character connection code.",
+                            locale: locale
+                        )
+                    )
+                }
+            }
+        }
+
+        if let uid = handoff.userId, let did = handoff.deviceId {
+            if !db.getActiveLogs().isEmpty || db.outboxCount() > 0 {
+                return BrowserHandoffOutcome(
+                    success: false,
+                    message: OttlineStrings.tr(
+                        "이 기기에 이미 남겨둔 기록이 있어 바로 덮어쓰지 않았어요. 인터넷 연결을 확인하거나 브라우저의 8자리 연결 코드로 이어받아 주세요.",
+                        "This device already has local records, so they were kept safe. Check your connection or enter your 8-character code from the browser to merge.",
+                        locale: locale
+                    )
+                )
+            }
+            prefs.setLastSyncSince(nil, userId: nil)
+            db.clearAllTables()
+            prefs.saveAuth(
+                userId: uid,
+                deviceId: did,
+                pairingCode: nil,
+                nickname: handoff.nickname,
+                personaKey: handoff.personaKey
+            )
+            restoreProfileIfEmpty(remote: fetchedProfile)
+            try? await pullChangesInternal(forceFullPull: true)
+            reloadFromLocalDb()
+            trackEvent("login_success", properties: ["source": "native_handoff_direct"])
+            return BrowserHandoffOutcome(
+                success: true,
+                message: OttlineStrings.tr(
+                    "웹 브라우저에서 쓰던 기록을 이어받았어요.",
+                    "Connected your previous browser records.",
+                    locale: locale
+                )
+            )
+        }
+
+        return BrowserHandoffOutcome(
+            success: false,
+            message: OttlineStrings.tr(
+                "열린 브라우저에 이전 기록이 없어요. 다른 브라우저로 시도하거나 8자리 연결 코드를 입력해 보세요.",
+                "No previous records were found in that browser. Try your other browser or enter your 8-character connection code.",
+                locale: locale
+            )
+        )
     }
 
     public func unlinkAllDevices() async throws {

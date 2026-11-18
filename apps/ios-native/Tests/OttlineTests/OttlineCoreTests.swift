@@ -702,5 +702,20 @@ final class OttlineCoreTests: XCTestCase {
         XCTAssertEqual(drainRepo.logs[0].id, "share-ext-fixed-id-1")
         XCTAssertEqual(drainRepo.logs[0].ott, "넷플릭스")
         XCTAssertEqual(prefs.consumeSharedExtensionLogs().count, 0)
+
+        let deepQuick = OttlineDeepLinkParser.parse(
+            URL(string: "ottline://quick?quick=1&title=Inception&platform=Netflix&type=video")!
+        )
+        XCTAssertEqual(
+            deepQuick,
+            .quickRecord(ParsedQuickRecordLink(query: "Inception", typeTab: "video", platform: "Netflix", titleId: nil))
+        )
+        let deepHandoff = OttlineDeepLinkParser.parse(
+            URL(string: "ottline://open?handoff=1&status=ok&user_id=u1&device_id=d1&pairing_code=abcd2345")!
+        )
+        XCTAssertEqual(
+            deepHandoff,
+            .browserHandoff(ParsedBrowserHandoff(status: "ok", userId: "u1", deviceId: "d1", pairingCode: "ABCD2345"))
+        )
     }
 }

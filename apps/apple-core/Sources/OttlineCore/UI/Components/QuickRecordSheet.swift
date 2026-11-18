@@ -63,6 +63,7 @@ public struct QuickRecordSheet: View {
     @State private var initializedRequestId: String?
     @State private var query: String = ""
     @State private var searchTab: String = "all"
+    @State private var videoOnlyInitialFilter: Bool = false
     @State private var selectedTitle: Title?
     @State private var googleBooksInfoUrl: String?
     @State private var savedLog: WatchLog?
@@ -150,7 +151,7 @@ public struct QuickRecordSheet: View {
                 await loadInitialSuggestions()
             }
         }
-        .task(id: "\(query)-\(searchTab)-\(stage.rawValue)") {
+        .task(id: "\(query)-\(searchTab)-\(videoOnlyInitialFilter)-\(stage.rawValue)") {
             await performDebouncedSearch()
         }
         .task(id: selectedTitle?.id) {
@@ -301,9 +302,10 @@ public struct QuickRecordSheet: View {
             ]
             HStack(spacing: 6) {
                 ForEach(typeTabs) { tab in
-                    let selected = searchTab == tab.key
+                    let selected = (searchTab == tab.key) && !(tab.key == "all" && videoOnlyInitialFilter)
                     Button {
-                        guard searchTab != tab.key else { return }
+                        guard searchTab != tab.key || videoOnlyInitialFilter else { return }
+                        videoOnlyInitialFilter = false
                         searchTab = tab.key
                         searchResults = []
                         partialSearch = false
@@ -1587,8 +1589,10 @@ public struct QuickRecordSheet: View {
 
     private func initializeFromRequest() {
         query = request.initialQuery
+        let normalizedTab = request.initialTypeTab.lowercased()
+        videoOnlyInitialFilter = (normalizedTab == "video")
         let allowedTabs: Set<String> = ["all", "movie", "series", "book"]
-        searchTab = allowedTabs.contains(request.initialTypeTab) ? request.initialTypeTab : "all"
+        searchTab = allowedTabs.contains(normalizedTab) ? normalizedTab : "all"
         if let plat = request.prefilledPlatform {
             selectedPlatform = plat
         }
@@ -1687,7 +1691,7 @@ public struct QuickRecordSheet: View {
         try? await Task.sleep(nanoseconds: 250_000_000)
         if Task.isCancelled { return }
 
-        if searchTab == "all" {
+        if searchTab == "all" && !videoOnlyInitialFilter {
             async let vOutcome: Result<[TitleSearchItem], Error> = {
                 do { return .success(try await repository.api.searchTitles(query: trimmed, typeFilter: nil)) }
                 catch { return .failure(error) }
@@ -1724,12 +1728,14 @@ public struct QuickRecordSheet: View {
             }
             searching = false
         } else {
+            let apiFilter: String? = (searchTab == "all" && videoOnlyInitialFilter) ? nil : searchTab
+            let trackCategory: String = (searchTab == "all" && videoOnlyInitialFilter) ? "video" : searchTab
             do {
-                let items = try await repository.api.searchTitles(query: trimmed, typeFilter: searchTab)
+                let items = try await repository.api.searchTitles(query: trimmed, typeFilter: apiFilter)
                 if Task.isCancelled { return }
                 searchResults = items
                 searching = false
-                repository.trackTitleSearch(queryLength: trimmed.count, resultCount: items.count, category: searchTab)
+                repository.trackTitleSearch(queryLength: trimmed.count, resultCount: items.count, category: trackCategory)
             } catch {
                 if Task.isCancelled { return }
                 searchResults = []
