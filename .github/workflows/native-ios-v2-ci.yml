@@ -11,19 +11,22 @@ on:
   push:
     branches:
       - main
-      - "feature/ios-native-v2"
     paths:
       - "apps/apple-core/**"
       - "apps/ios-native/**"
       - ".github/workflows/native-ios-v2-ci.yml"
       - ".github/workflows/native-ios-v2-release.yml"
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
 jobs:
   build-and-test:
-    runs-on: macos-15
+    runs-on: macos-15-intel
     steps:
       - name: Checkout
         uses: actions/checkout@v4
