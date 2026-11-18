@@ -24,6 +24,13 @@
 
 ---
 
+## Web/API 연계 배포 (2026-11-18)
+
+- PR #133·#135, 공통 API/Web SHA `2f262ec`로 Windows 웹 Store 배너·QuickLog 저장 CTA·소개 카드의 `cid` 계측과 네이티브 기기 표시를 운영에 반영했다.
+- 기존 `X-Client-Platform: windows_native` 요청은 `Windows App · Windows`로 표시한다. 앱에서 연결 기기 목록을 조회하면 기존 ID·계정·등록 시각을 유지하며 갱신되므로 Windows 재빌드·재페어링은 필요 없다.
+- `macos_native`도 `macOS App · macOS`로 처리하며 해당 헤더를 보내는 Mac 빌드가 필요하다. Store 바이너리·심사 상태는 이번 Web/API 배포에서 변경하지 않았다.
+- [운영 배포·검증 기록](../../../docs/desktop-acquisition-rollout-2026-11-18.md)
+
 ## 핵심 아키텍처 및 UX v2 구성
 
 1. **데스크톱 에디토리얼 UX v2 & 테마**

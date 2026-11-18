@@ -85,6 +85,8 @@ If present, read `./.omd/preferences.md` — pending corrections not yet folded 
 
 43. Web/PWA 오프라인 안내·접근성 보완: 서비스워커 v7과 외부 자원 없는 한·영 정적 안내로 오프라인 재진입 오류를 복구하고, 검색 combobox/listbox·선택 상태·판본별 출처 이름, 공유창 모션 감소, 포커스 대비와 본문 바로가기를 적용했다. `2026-11-12` PR `#130`, Web SHA `4cabcd5`, production run `43158345911`로 배포했다. 공개 버전·정적 자산 일치, 한·영 오프라인 fallback, ArgoCD `Synced Healthy`, Web/API Pod Ready·restart 0을 확인했다. 전체 오프라인 기록 사용과 폰트 분리는 별도 범위이며 상세는 `docs/web-offline-accessibility-2026-11-12.md`를 따른다.
 
+44. Windows 웹 전환 퍼널·데스크톱 기기 표시: Windows 전역 Store 배너·QuickLog 저장 CTA·한영 `/about` v2 설명과 고정 `cid` 계측, API의 `windows_native`·`macos_native` 기기 분류를 PR `#133`·`#135`로 반영했다. `2026-11-18` 공통 SHA `2f262ec`로 API production `44217423318` → 실제 API 확인 → Web production `44218009292`를 완료했다. API 185건·운영 브라우저 21개 시나리오·SEO 경계 검사, 공개 버전·IndexNow 19개 접수, ArgoCD `Synced Healthy`와 두 Pod Ready·restart 0을 확인했다. 기존 기록·이력 건수를 보존하고 검증 계정을 정리했다. iOS Smart App Banner·`ct`와 네이티브 바이너리는 이번 배포에 포함하지 않았으며, 상세는 `docs/desktop-acquisition-rollout-2026-11-18.md`를 따른다.
+
 ### 제품 방향
 1. 추천 기능은 기본 제품 범위에서 제외한다. 단, `2026-11-08` 사용자 요청으로 기존 **미래의 타임라인**의 OpenAI 전환·계정별 제외·하루 3회 정책·기록 연결은 이번 v2 작업에 포함한다. 현재 계약은 `docs/future-timeline-account-policy.md`, 최초 검토는 `docs/future-timeline-openai-review.md`를 따른다.
 2. 기록 가치(회상, 공유, 재방문)를 높이는 기능에 집중한다.

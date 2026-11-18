@@ -26,7 +26,8 @@
   - 스토어 이미지 12종: `apps/windows-native/packaging/StoreListing/` (`store-icon-300x300.png`, `store-logo-square-1080x1080.png`, `store-poster-{ko|en}-720x1080.png`, `screenshot-{ko|en}-1..4-*.png`) 모두 `Uploaded`
   - 자동화 스크립트: `apps/windows-native/scripts/publish-msstore.ps1` (`msstore-cli`) 및 `.github/workflows/native-windows-release.yml`
 - 상세 전환·마이그레이션 아키텍처는 [[windows-native]] 및 `docs/windows-native-v2-transition.md`를 따른다.
-- Partner Center 획득 지표(`488` 조회 / `24` 설치 / `?cid=` 캠페인 유입 `0건`) 분석 및 `ottline.app`의 Windows Store CTA·`?cid=` 캠페인 추적 후속 작업은 [웹→스토어 전환 퍼널 정비 및 검색 유입 확장 계획 (2026-11-17)](../../../docs/web-acquisition-funnel-plan-2026-11-17.md)을 따른다.
+- Partner Center 획득 지표(`488` 조회 / `24` 설치 / `?cid=` 캠페인 유입 `0건`)의 2026-11-17 진단과 후속 계획은 [웹→스토어 전환 퍼널 정비 및 검색 유입 확장 계획](../../../docs/web-acquisition-funnel-plan-2026-11-17.md)을 따른다.
+- `2026-11-18` PR #133·#135, API/Web SHA `2f262ec`로 Windows 웹 전역 배너·QuickLog 저장 CTA·한영 소개 카드와 `cid=web_global_banner|web_quicklog_saved|about_platform_card`를 배포했다. 웹 클릭 이벤트는 설치 완료와 구분한다. 전환 퍼널 21개 운영 브라우저 시나리오와 SEO 경계 검사가 통과했다. [운영 배포·검증 기록](../../../docs/desktop-acquisition-rollout-2026-11-18.md)을 따른다.
 
 ---
 

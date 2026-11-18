@@ -125,7 +125,7 @@ Microsoft Partner Center 획득 리포트(최근 12개월, `2026-03-18` 출시 �
 
 ## 4. Web 담당자 검증 체크리스트
 
-### 이번 PR: Windows 전환 구현
+### PR #133: Windows 전환 구현
 
 - **이번 PR 범위 정정**: 후속 사용자 확인에 따라 Windows 전환만 구현한다. 아래 원래 Phase 1 명세의 iOS Smart App Banner·App Store `ct` 및 Android `/about` 캠페인 변경은 이번 PR에 포함하지 않는다.
 - 작업 브랜치: `feature/web-store-acquisition-phase1`, 기반 `origin/main` = `77d7c9c`.
@@ -157,7 +157,13 @@ Microsoft Partner Center 획득 리포트(최근 12개월, `2026-03-18` 출시 �
 - 로컬 SWC가 샌드박스의 상위 폴더 권한 검사를 거부하여 타입·빌드·서버는 승인된 샌드박스 밖에서 `SWC_NATIVE_BINDING_CACHE=/tmp/ottline-acquisition-swc-cache`로 실행했다. 기존 SEO 검증 문서에 기록된 localhost rewrite 차이를 피하도록 `next start --port 3220`을 사용했다.
 - CI `Verify Web`에도 스토어 전환 단위 테스트와 브라우저 검사를 연결했다.
 
-### 실행할 검사
+### 운영 배포 (2026-11-18)
+
+- PR #133과 네이티브 기기 표시 PR #135를 병합하고 공통 SHA `2f262ec1f854df70d7a48674b9ca612b590b2248`로 API → 실제 API 확인 → Web 순서로 배포했다.
+- 운영 Web Pod 기준 전환 퍼널 21개 브라우저 시나리오와 SEO 공개 19개·개인 14개 경로 검사가 통과했다. 공개 버전 HTTP 200, ArgoCD `Synced Healthy`, API/Web `Ready 1/1`·restart 0, IndexNow 19개 접수를 확인했다.
+- 배포 범위는 위 Windows 정정 사항을 따른다. iOS Smart App Banner·`ct`, Android 소개 카드 캠페인 변경은 별도다. 실행 번호·실제 기기 표시·데이터 보존 결과는 [운영 배포 기록](desktop-acquisition-rollout-2026-11-18.md)을 따른다.
+
+### 후속 Phase 1 작업 시 실행할 검사
 
 Phase 1 PR 완료 후 아래 검사를 순서대로 통과해야 한다 (`apps/web/package.json` 기준).
 

@@ -24,6 +24,8 @@
 - v2 후속 보완은 PR `#127`, Web SHA `aa991545f5fb3a914561f7fcd3e12c817275144c`, production run `43014772986`으로 배포했다. 운영 HTML·XML의 공개 URL 19개·개인 화면 14개·구조화 데이터 6세트·이미지 7개 검사와 IndexNow 19개 접수가 성공했다. [배포·검증 기록](../../../docs/seo-v2-refresh-2026-11-11.md)을 따른다.
 - `2026-11-17` Microsoft Partner Center 유입 진단 기반의 iOS Smart App Banner·Windows/iOS 웹→스토어 배너 및 CTA(`?cid=`/`?ct=` 계측), `/public/[id]` SSR·사이트맵 확장 후속 명세는 [웹→스토어 전환 퍼널 및 검색 유입 확장 계획 (2026-11-17)](../../../docs/web-acquisition-funnel-plan-2026-11-17.md)을 따른다.
 
+- `2026-11-18` 계획 중 Windows 전환만 PR #133으로 구현하고 API 기기 표시 PR #135와 공통 SHA `2f262ec`로 배포했다. Windows CTA·`cid`와 한영 소개 페이지를 반영했고 공개 19개·개인 14개 경계, Article 6개·이미지 7개 및 IndexNow 19개 접수를 재확인했다. iOS 배너·`ct`와 공개 글 상세의 색인 확장은 별도다. [운영 배포·검증 기록](../../../docs/desktop-acquisition-rollout-2026-11-18.md)을 따른다.
+
 아래 `29/100` 평가는 2026-03-29 당시의 과거 기준이다. 현재 운영 상태를 다시 점수화한 값은 아니며, 외부 브랜드 엔티티와 독립 출처 확보 과제는 여전히 유효하다.
 
 ---

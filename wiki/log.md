@@ -1,5 +1,13 @@
 # Wiki Log
 
+## [2026-11-18] deploy: Windows 웹 전환 퍼널과 Windows·macOS 연결 기기 표시
+
+- PR #133·#135 병합, 공통 API/Web SHA `2f262ec1f854df70d7a48674b9ca612b590b2248`. API production `44217423318` → 실제 API 검사 → Web production `44218009292` 순서로 배포했다.
+- Windows 전역 배너·QuickLog 저장 CTA·소개 카드의 `cid` 계측과 v2 설명을 반영했다. 네이티브 기기는 `windows_native`·`macos_native` 헤더로 표시를 갱신하며 기존 ID·계정·등록 시각을 보존한다.
+- API CI 185건·운영 전환 퍼널 21개 시나리오·SEO 공개 19개/개인 14개 경로·한영 내 공간 기기 라벨을 확인했다. 공개 버전 HTTP 200, IndexNow 19개 접수, ArgoCD `Synced Healthy`, 두 Pod Ready·restart 0이다.
+- 기존 기록 623개·이력 1,063개를 보존했고 검증 계정 3개와 임시 DB Pod를 정리했다. iOS Smart App Banner·`ct`와 네이티브 바이너리는 이번 배포 범위에서 제외했다.
+- 문서: AGENTS.md, docs/desktop-acquisition-rollout-2026-11-18.md, docs/native-desktop-device-info.md, docs/web-acquisition-funnel-plan-2026-11-17.md, platforms/windows-native.md, platforms/ms-store.md, architecture/geo-seo.md, index.md.
+
 ## [2026-11-17] plan: Partner Center 유입 지표 진단 및 Web 스토어 전환·SEO 개선 인계 문서 작성
 - 대상: `docs/web-acquisition-funnel-plan-2026-11-17.md` (신규), `wiki/pages/architecture/geo-seo.md`, `wiki/pages/platforms/ms-store.md`
 - 노트:

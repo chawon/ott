@@ -7,7 +7,7 @@
 - macOS 가이드: [`macos-native-device-api-guide.md`](https://github.com/chawon/ott/blob/7038ce0/docs/macos-native-device-api-guide.md), 개발 브랜치 `feature/ios-native-v2`의 확인 커밋 `7038ce0`.
 - Windows `OttlineApiClient.CreateRequest`는 이미 `X-Client-Platform: windows_native`와 `User-Agent: OttlineWindowsNative/2.0.0.0`를 전송한다.
 - Apple 공유 클라이언트의 수정된 macOS 빌드는 `X-Client-Platform: macos_native`와 `User-Agent: ottline-mac/<version> (Macintosh; Mac OS X)`를 전송한다. iOS 빌드는 `ios_native`를 유지한다.
-- `AuthService.applyAgentInfo`가 iOS만 별도 처리하여 Windows는 `Unknown Browser · Windows`, 수정된 macOS 클라이언트는 `Unknown Browser · macOS`로 저장되는 상태다. 수정 전 Mac 클라이언트의 행은 `iOS App · iOS`일 수 있다.
+- 수정 전 `AuthService.applyAgentInfo`는 iOS만 별도 처리하여 Windows를 `Unknown Browser · Windows`, 수정된 macOS 클라이언트를 `Unknown Browser · macOS`로 저장했다. 수정 전 Mac 클라이언트의 행은 `iOS App · iOS`일 수 있다.
 
 ## 구현 결정
 
@@ -36,10 +36,12 @@
 
 - `AuthServiceProfileTest`: 22건 통과, 실패·건너뜀 없음.
 - `./gradlew test bootJar --no-daemon --max-workers=2`: 테스트 129건 통과, 56건 건너뜀, 실패·오류 없음. AOT 처리와 배포용 JAR 빌드 성공.
-- 건너뛴 56건은 DB 통합 테스트이며 로컬 통과로 간주하지 않는다. PR의 `Verify API` 워크플로우에서 PostgreSQL 테스트 실행 확인, 컨테이너 빌드와 기존 DB 업그레이드·재시작 검증을 수행한다.
+- 건너뛴 56건은 DB 통합 테스트이며 로컬 통과로 간주하지 않는다. PR/main `Verify API`에서는 PostgreSQL을 포함한 185건이 모두 실행·통과했고 컨테이너 빌드와 기존 DB 업그레이드·재시작 검증도 성공했다.
 - 최초 샌드박스 실행은 Mockito의 JVM self-attach 제한으로 초기화가 실패했다. 같은 테스트를 샌드박스 밖에서 재실행해 위 결과를 확인했다.
 - 실행 위치는 `apps/api`, `GRADLE_USER_HOME=/home/ergate23/workspace/ott/.gradle`을 사용했다. `git diff --check` 통과.
 
-## 반영 순서
+## 운영 반영 (2026-11-18)
 
-PR 검증 후 API를 배포해야 운영 화면에 적용된다. API 반영 뒤 Windows 앱과 수정된 macOS 앱 각각에서 연결된 기기 목록을 열고, 웹 내 공간에서 같은 기기 ID의 표시가 바뀌었는지 확인한다. 이번 PR 작성·테스트는 운영 기기 데이터를 변경하지 않는다.
+PR #135 병합 SHA `2f262ec1f854df70d7a48674b9ca612b590b2248`로 API를 배포하고, PR #133을 포함한 Web도 같은 SHA로 배포했다. 실제 운영 API의 기존 기기 갱신·신규 등록·페어링과 한·영 내 공간의 Windows·macOS 표시를 확인했다. 검증 계정 3개는 정리했고 기존 기록·이력 건수를 보존했다. [배포 실행·검증 근거](desktop-acquisition-rollout-2026-11-18.md)를 따른다.
+
+기존 사용자는 Windows 앱과 수정된 macOS 앱 각각에서 연결된 기기 목록을 열면 된다. 재페어링이나 Windows 재빌드는 필요 없다.
