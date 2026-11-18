@@ -165,7 +165,7 @@ Microsoft Partner Center 획득 리포트(최근 12개월, `2026-03-18` 출시 �
 
 ### 후속 Phase 1 작업 시 실행할 검사
 
-> **단축키 표기 정정 메모 (`2026-11-18`)**: PR `#133`에서는 Windows 전역 빠른 기록 단축키가 `Ctrl+Alt+O`로 배포되었으나(`apps/web/messages/ko.json`, `en.json`, `apps/web/scripts/test-seo-runtime.mjs`), 실제 Windows Native v2(`DesktopIntegrationService.cs`)에 등록된 전역 단축키는 **`Ctrl+Shift+O`**이다. 다음 Web PR(iOS Smart App Banner / App Store `ct` 등) 진행 시 해당 문구와 런타임 검사를 **`Ctrl+Shift+O`**로 함께 정정한다.
+> **단축키 표기 정정 (`2026-11-18`)**: PR `#133`의 `Ctrl+Alt+O` 표기를 [데스크톱 브릿지 Phase A](desktop-protocol-and-extension-bridge-plan-2026-11-18.md)에서 Windows Native v2의 실제 전역 단축키인 **`Ctrl+Shift+O`**로 고쳤다. 한·영 전역 배너·저장 후 CTA·소개 카드와 런타임 검사를 함께 맞췄다.
 
 Phase 1 PR 완료 후 아래 검사를 순서대로 통과해야 한다 (`apps/web/package.json` 기준).
 

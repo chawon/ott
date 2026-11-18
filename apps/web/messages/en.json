@@ -181,7 +181,7 @@
     "savedPlayCtaHint": "Your browser records connect automatically on first open, with post-watch reminders and a home widget.",
     "savedWindowsCtaTitle": "Keep this record going in the Windows app.",
     "savedWindowsCtaAction": "Get it from Microsoft Store",
-    "savedWindowsCtaHint": "Open the same timeline with your record connection code. Use Windows 11 widgets or Ctrl+Alt+O for your next record."
+    "savedWindowsCtaHint": "Open the same timeline with your record connection code. Use Windows 11 widgets or Ctrl+Shift+O for your next record."
   },
   "Common": {
     "skipToContent": "Skip to main content",
@@ -556,7 +556,7 @@
   "About": {
     "title": "Movie, Series, and Book Log App & How to Use",
     "subtitle": "Movie, series, and book timelines without sign-up",
-    "description": "ottline helps you keep OTT watch history from services like Netflix, TVING, and Disney+, along with films, series, and books, on your own timeline. Start on the web without signing up, then continue on the installable PWA, Android app, iOS app, Windows app, browser extension, or Toss in-app mini app. The ChatGPT connection is still in preparation.",
+    "description": "ottline helps you keep OTT watch history from services like Netflix, TVING, and Disney+, along with films, series, and books, on your own timeline. Start on the web without signing up, then continue on the installable PWA, Android app, iOS app, Windows app, or Toss in-app mini app. The ChatGPT connection is still in preparation.",
     "pairingHighlightTitle": "Once you start recording, your timeline keeps going.",
     "pairingHighlightDesc": "Use your record connection code on the web, in Toss, or in an installed app to open the same timeline and keep recording.",
     "platformsTitle": "Started on the web, opened in more places",
@@ -567,13 +567,14 @@
     "platformTossTitle": "Toss in-app",
     "platformTossDesc": "Open your OTT timeline directly inside Toss without installing another app.",
     "platformTossLink": "Open in Toss",
+    "companionToolsTitle": "Companion tools",
     "platformExtensionTitle": "Desktop browser extension",
-    "platformExtensionDesc": "A helper that reads the title from supported OTT pages and opens ottline’s record window on the web. It is available on the Chrome Web Store, Edge Add-ons, and Whale Store.",
+    "platformExtensionDesc": "Bring a title from a supported streaming page into the record window. If you have the Windows app, you can send the title straight there to record it. The macOS app connection will be available after its Mac App Store release.",
     "platformExtensionChromeLink": "Chrome Web Store",
     "platformExtensionEdgeLink": "Edge Add-ons",
     "platformExtensionWhaleLink": "Whale Store",
     "platformWindowsTitle": "Windows app",
-    "platformWindowsDesc": "The native Windows app keeps your records on your device for offline viewing. Use Windows 11 widgets or Ctrl+Alt+O to start a record, and connect your existing OTT watch history with your record connection code.",
+    "platformWindowsDesc": "The native Windows app keeps your records on your device for offline viewing. Use Windows 11 widgets or Ctrl+Shift+O to start a record, and connect your existing OTT watch history with your record connection code.",
     "platformWindowsLink": "Microsoft Store",
     "platformAndroidTitle": "Android app",
     "platformAndroidDesc": "Install from Google Play to reach the record window from your home screen, widget, or watch reminder settings.",
@@ -776,7 +777,7 @@
     "title": "Add to Home Screen",
     "iosDesc": "Tap the Safari share button and select \"Add to Home Screen\" to use it like an app.",
     "windowsTitle": "Keep your records close on Windows",
-    "windowsDesc": "Keep records offline, open Windows 11 widgets, and start a new record with Ctrl+Alt+O.",
+    "windowsDesc": "Keep records offline, open Windows 11 widgets, and start a new record with Ctrl+Shift+O.",
     "windowsAction": "Get it from Microsoft Store",
     "androidDesc": "Install to open quickly from your home screen.",
     "playTitle": "Get a reminder when it is time to log",
@@ -784,6 +785,11 @@
     "playAction": "Get it on Google Play",
     "installAction": "Install",
     "closeAction": "Close"
+  },
+  "WindowsQuickRecordBridge": {
+    "openApp": "Record in the Windows app",
+    "installApp": "Install from Microsoft Store",
+    "preferApp": "Always open in the Windows app"
   },
   "Privacy": {
     "title": "Privacy Policy",

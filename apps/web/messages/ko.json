@@ -181,7 +181,7 @@
     "savedPlayCtaHint": "앱을 처음 열면 이 브라우저의 기록이 자동으로 연결되고, OTT 시청 후 알림과 홈 위젯도 쓸 수 있어요.",
     "savedWindowsCtaTitle": "방금 남긴 기록, Windows 앱에서도 이어져요.",
     "savedWindowsCtaAction": "Microsoft Store에서 받기",
-    "savedWindowsCtaHint": "기록 연결 코드로 같은 타임라인을 열고, Windows 11 위젯과 Ctrl+Alt+O로 다음 기록을 남겨요."
+    "savedWindowsCtaHint": "기록 연결 코드로 같은 타임라인을 열고, Windows 11 위젯과 Ctrl+Shift+O로 다음 기록을 남겨요."
   },
   "Common": {
     "skipToContent": "본문 바로가기",
@@ -556,7 +556,7 @@
   "About": {
     "title": "영화·시리즈·책 기록 앱 소개 및 사용법",
     "subtitle": "가입 없이 남기는 영화·시리즈·책 기록 타임라인",
-    "description": "ottline은 넷플릭스, 티빙, 디즈니+ 같은 OTT의 시청 기록과 영화·시리즈·책 감상 기록을 빠르게 남겨 내 타임라인에 모으는 서비스예요. 번거로운 가입 없이 웹에서 바로 시작하고, 설치형 PWA·Android 앱·iOS 앱·Windows 앱·브라우저 확장·토스 인앱에서도 같은 기록을 이어볼 수 있어요. ChatGPT 연결은 준비 중이에요.",
+    "description": "ottline은 넷플릭스, 티빙, 디즈니+ 같은 OTT의 시청 기록과 영화·시리즈·책 감상 기록을 빠르게 남겨 내 타임라인에 모으는 서비스예요. 번거로운 가입 없이 웹에서 바로 시작하고, 설치형 PWA·Android 앱·iOS 앱·Windows 앱·토스 인앱에서도 같은 기록을 이어볼 수 있어요. ChatGPT 연결은 준비 중이에요.",
     "pairingHighlightTitle": "기록은 한 번 시작하면 계속 이어져요.",
     "pairingHighlightDesc": "웹, 토스, 설치형 앱 어디에서 열어도 기록 연결 코드를 입력하면 같은 타임라인을 이어서 기록하고 살펴볼 수 있어요.",
     "platformsTitle": "웹에서 시작해, 더 다양한 곳으로",
@@ -567,13 +567,14 @@
     "platformTossTitle": "토스 인앱",
     "platformTossDesc": "내 OTT 타임라인을 앱 설치 없이 토스에서 바로 열 수 있어요.",
     "platformTossLink": "토스에서 열기",
-    "platformExtensionTitle": "PC 브라우저 확장",
-    "platformExtensionDesc": "지원하는 OTT 작품 페이지의 제목을 읽어 ottline의 기록 창으로 이어주는 도우미예요. Chrome Web Store, Edge Add-ons, Whale Store에서 사용할 수 있어요.",
+    "companionToolsTitle": "보조 도구",
+    "platformExtensionTitle": "데스크톱 브라우저 확장",
+    "platformExtensionDesc": "지원하는 OTT 페이지에서 작품 제목을 가져와 기록 창을 열어요. Windows 앱이 있으면 작품을 앱으로 넘겨 바로 기록할 수 있어요. macOS 앱 연결은 Mac App Store 출시 후 지원해요.",
     "platformExtensionChromeLink": "Chrome Web Store",
     "platformExtensionEdgeLink": "Edge Add-ons",
     "platformExtensionWhaleLink": "Whale Store",
     "platformWindowsTitle": "Windows 앱",
-    "platformWindowsDesc": "기기에 기록을 보관해 오프라인에서도 꺼내 볼 수 있는 Windows 네이티브 앱이에요. Windows 11 위젯과 Ctrl+Alt+O로 빠르게 기록하고, 기록 연결 코드로 기존 OTT 시청 기록도 이어가요.",
+    "platformWindowsDesc": "기기에 기록을 보관해 오프라인에서도 꺼내 볼 수 있는 Windows 네이티브 앱이에요. Windows 11 위젯과 Ctrl+Shift+O로 빠르게 기록하고, 기록 연결 코드로 기존 OTT 시청 기록도 이어가요.",
     "platformWindowsLink": "Microsoft Store",
     "platformAndroidTitle": "Android 앱",
     "platformAndroidDesc": "Google Play에서 설치해 홈 화면, 위젯, 시청 기록 알림 설정으로 더 빠르게 기록 화면에 들어갈 수 있어요.",
@@ -776,7 +777,7 @@
     "title": "홈 화면에 추가",
     "iosDesc": "Safari 공유 버튼에서 “홈 화면에 추가”를 선택하면 앱처럼 사용할 수 있어요.",
     "windowsTitle": "Windows에서도 가까이 두는 기록",
-    "windowsDesc": "Windows 11 위젯과 Ctrl+Alt+O로 빠르게 기록하고, 오프라인에서도 기록을 꺼내 봐요.",
+    "windowsDesc": "Windows 11 위젯과 Ctrl+Shift+O로 빠르게 기록하고, 오프라인에서도 기록을 꺼내 봐요.",
     "windowsAction": "Microsoft Store에서 받기",
     "androidDesc": "설치하면 홈 화면에서 바로 열 수 있어요.",
     "playTitle": "OTT를 보고 나면 기록할 타이밍을 알려드려요",
@@ -784,6 +785,11 @@
     "playAction": "Google Play에서 받기",
     "installAction": "설치",
     "closeAction": "닫기"
+  },
+  "WindowsQuickRecordBridge": {
+    "openApp": "Windows 앱에서 바로 기록하기",
+    "installApp": "Microsoft Store에서 설치",
+    "preferApp": "항상 Windows 앱으로 열기"
   },
   "Privacy": {
     "title": "개인정보처리방침",

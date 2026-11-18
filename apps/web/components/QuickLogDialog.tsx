@@ -3,18 +3,26 @@
 import * as Dialog from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
 import { useLocale } from "next-intl";
-import { type ComponentProps, useEffect, useRef, useState } from "react";
+import {
+  type ComponentProps,
+  type ReactNode,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import QuickLogCard from "./QuickLogCard";
 import styles from "./recording.module.css";
 
 export type QuickLogDialogProps = ComponentProps<typeof QuickLogCard> & {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  searchAccessory?: ReactNode;
 };
 
 export default function QuickLogDialog({
   open,
   onOpenChange,
+  searchAccessory,
   ...props
 }: QuickLogDialogProps) {
   const locale = useLocale();
@@ -106,9 +114,14 @@ export default function QuickLogDialog({
             if (props.activationTitleSelection || props.initialCatalogTitle)
               return;
             event.preventDefault();
-            content.current
-              ?.querySelector<HTMLInputElement>('input[type="search"]')
-              ?.focus({ preventScroll: true });
+            const initialFocus =
+              content.current?.querySelector<HTMLElement>(
+                "[data-record-initial-focus]",
+              ) ??
+              content.current?.querySelector<HTMLInputElement>(
+                'input[type="search"]',
+              );
+            initialFocus?.focus({ preventScroll: true });
           }}
         >
           <header className={styles.dialogHeader}>
@@ -141,6 +154,7 @@ export default function QuickLogDialog({
             </Dialog.Close>
           </header>
           <div className={styles.dialogBody}>
+            {stage === "search" ? searchAccessory : null}
             <QuickLogCard
               {...props}
               dialogLayout

@@ -4,7 +4,7 @@ import {
 } from "./android-acquisition.mjs";
 
 /** @typedef {"android-play" | "windows-store"} StorePlatform */
-/** @typedef {"web_global_banner" | "web_quicklog_saved" | "about_platform_card"} StoreCampaign */
+/** @typedef {"web_global_banner" | "web_quicklog_saved" | "about_platform_card" | "extension_handoff"} StoreCampaign */
 /**
  * @typedef {{
  *   userAgent?: string | null;
@@ -126,12 +126,15 @@ export function buildNativeStoreUrl({
     web_global_banner: "android_play_cta",
     web_quicklog_saved: "quicklog_saved",
     about_platform_card: "about_platform_card",
+    extension_handoff: null,
   };
   if (!Object.hasOwn(androidCampaigns, campaign)) {
     throw new TypeError("Unknown store campaign");
   }
   const urls = localizedStoreUrls(locale);
   if (platform === "android-play") {
+    const androidCampaign = androidCampaigns[campaign];
+    if (!androidCampaign) throw new TypeError("Unsupported Android campaign");
     const allowedContent = [
       "global_banner_browser",
       "global_banner_pwa",
@@ -140,7 +143,7 @@ export function buildNativeStoreUrl({
     ];
     return buildGooglePlayStoreUrl({
       baseUrl: urls.googlePlay,
-      campaign: androidCampaigns[campaign],
+      campaign: androidCampaign,
       content: allowedContent.includes(content) ? content : "",
       webHandoff: webHandoff === true,
     });

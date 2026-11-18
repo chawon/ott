@@ -6,7 +6,7 @@ import { loadLatestPublicLogDate } from "@/lib/sitemap-public.mjs";
 const CONTENT_DATE = new Date("2026-07-19T00:00:00+09:00");
 const V2_CONTENT_DATE = new Date("2026-11-08T00:00:00+09:00");
 const PRIVACY_DATE = new Date("2026-11-08T00:00:00+09:00");
-const ABOUT_CONTENT_DATE = new Date("2026-11-17T00:00:00+09:00");
+const ABOUT_CONTENT_DATE = new Date("2026-11-18T00:00:00+09:00");
 const LOCALIZED_PATHS = [
   "/",
   "/about",

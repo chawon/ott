@@ -79,6 +79,7 @@
 }
 .dialog[data-record-stage="search"] .dialogBody {
   display: flex;
+  flex-direction: column;
   overflow: hidden;
 }
 .dialog[data-record-stage="status"] .dialogBody,

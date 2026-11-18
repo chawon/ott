@@ -73,6 +73,20 @@ export default function AboutPage() {
   const tAbout = useTranslations("About");
   const storeUrls = localizedStoreUrls(locale);
   const browserExtensionUrls = localizedBrowserExtensionUrls(locale);
+  const extensionLinks = [
+    {
+      href: browserExtensionUrls.chrome,
+      label: tAbout("platformExtensionChromeLink"),
+    },
+    {
+      href: browserExtensionUrls.edge,
+      label: tAbout("platformExtensionEdgeLink"),
+    },
+    {
+      href: browserExtensionUrls.whale,
+      label: tAbout("platformExtensionWhaleLink"),
+    },
+  ];
   const guideLinks = [
     {
       href: "/guide/ott-watch-log",
@@ -144,31 +158,6 @@ export default function AboutPage() {
           }),
           storePlatform: "windows-store",
           label: tAbout("platformWindowsLink"),
-          external: true,
-          icon: Store,
-        },
-      ],
-    },
-    {
-      title: tAbout("platformExtensionTitle"),
-      description: tAbout("platformExtensionDesc"),
-      icon: Puzzle,
-      links: [
-        {
-          href: browserExtensionUrls.chrome,
-          label: tAbout("platformExtensionChromeLink"),
-          external: true,
-          icon: Store,
-        },
-        {
-          href: browserExtensionUrls.edge,
-          label: tAbout("platformExtensionEdgeLink"),
-          external: true,
-          icon: Store,
-        },
-        {
-          href: browserExtensionUrls.whale,
-          label: tAbout("platformExtensionWhaleLink"),
           external: true,
           icon: Store,
         },
@@ -307,6 +296,35 @@ export default function AboutPage() {
               );
             })}
           </div>
+        </section>
+
+        <section className="space-y-4">
+          <h2 className="border-b border-border pb-2 text-lg font-semibold">
+            {tAbout("companionToolsTitle")}
+          </h2>
+          <article className="rounded-lg border border-border bg-card p-4 sm:p-5">
+            <h3 className="flex items-center gap-2 font-medium">
+              <Puzzle className="size-4 shrink-0" aria-hidden="true" />
+              {tAbout("platformExtensionTitle")}
+            </h3>
+            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+              {tAbout("platformExtensionDesc")}
+            </p>
+            <div className="mt-2 flex flex-wrap gap-x-4">
+              {extensionLinks.map(({ href, label }) => (
+                <a
+                  key={href}
+                  href={href}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex min-h-10 items-center gap-1.5 rounded-lg text-sm text-brand-navy underline underline-offset-2 dark:text-foreground"
+                >
+                  {label}
+                  <ExternalLink className="size-3" aria-hidden="true" />
+                </a>
+              ))}
+            </div>
+          </article>
         </section>
 
         <section className="space-y-6">
