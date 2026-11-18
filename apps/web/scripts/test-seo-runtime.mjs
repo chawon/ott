@@ -161,6 +161,46 @@ for (const entry of entries) {
       `${pathname}: reflects the v2 release`,
     );
   }
+  if (localPath === "/about") {
+    const storeLink = tags(html, "a").find(
+      (tag) => tag["data-testid"] === "about-windows-store-link",
+    );
+    assert.ok(storeLink, `${pathname}: server-rendered Windows store link`);
+    const storeUrl = new URL(storeLink.href);
+    assert.equal(storeUrl.origin, "https://apps.microsoft.com");
+    assert.equal(storeUrl.pathname, "/detail/9nsvnzgdmgf5");
+    assert.equal(storeUrl.searchParams.get("cid"), "about_platform_card");
+    assert.equal(storeUrl.searchParams.get("hl"), english ? "en-us" : "ko-kr");
+    assert.equal(storeUrl.searchParams.get("gl"), english ? "US" : "KR");
+    assert.deepEqual([...storeUrl.searchParams.keys()].sort(), [
+      "cid",
+      "gl",
+      "hl",
+    ]);
+    assert.match(html, /Windows 11/);
+    assert.match(html, /Ctrl\+Alt\+O/);
+    assert.doesNotMatch(
+      html,
+      /same web app is also available through Microsoft Store packaging|같은 웹 앱을 Microsoft Store 배포 형태/,
+    );
+    assert.equal(
+      Date.parse(entry.lastmod),
+      Date.parse("2026-11-17T00:00:00+09:00"),
+    );
+    const appStore = tags(html, "a").find((tag) =>
+      tag.href?.startsWith("https://apps.apple.com/"),
+    );
+    assert.equal(
+      new URL(appStore.href).search,
+      "",
+      "Windows-only change retains iOS link",
+    );
+    assert.equal(
+      meta("apple-itunes-app"),
+      undefined,
+      "Smart App Banner is outside this PR",
+    );
+  }
   if (localPath.startsWith("/guide/")) {
     const script = [
       ...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/g),

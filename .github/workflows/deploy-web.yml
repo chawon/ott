@@ -47,6 +47,9 @@ jobs:
       - name: Test analytics collection
         run: npm run test:analytics --workspace ott
 
+      - name: Test store acquisition policies and campaign URLs
+        run: npm run test:android-acquisition --workspace ott
+
       - name: Test book edition identity and source links
         run: npm run test:bookshelf --workspace ott
 
@@ -105,3 +108,4 @@ jobs:
           npm run test:book-search --workspace ott
           npm run test:web-accessibility --workspace ott
           WEB_RUNTIME_URL=http://127.0.0.1:3000 node apps/web/scripts/test-record-save-intent.mjs
+          WEB_RUNTIME_URL=http://127.0.0.1:3000 npm run test:store-acquisition-runtime --workspace ott

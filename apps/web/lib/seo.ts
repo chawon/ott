@@ -1,13 +1,21 @@
 import type { Metadata } from "next";
 import type { GuideDocument } from "./guides";
+import {
+  APP_STORE_URL,
+  GOOGLE_PLAY_URL,
+  localizedStoreUrls,
+  MICROSOFT_STORE_URL,
+} from "./store-acquisition.mjs";
+
+export {
+  APP_STORE_URL,
+  GOOGLE_PLAY_URL,
+  localizedStoreUrls,
+  MICROSOFT_STORE_URL,
+} from "./store-acquisition.mjs";
 
 export const PUBLIC_ORIGIN = "https://ottline.app";
 export const PUBLIC_LOCALES = ["ko", "en"] as const;
-export const GOOGLE_PLAY_URL =
-  "https://play.google.com/store/apps/details?id=app.ottline";
-export const APP_STORE_URL = "https://apps.apple.com/app/ottline/id6780318110";
-export const MICROSOFT_STORE_URL =
-  "https://apps.microsoft.com/detail/9nsvnzgdmgf5";
 export const CHROME_WEB_STORE_URL =
   "https://chromewebstore.google.com/detail/achangjgnpbideilpolbohbkmmkmojpo";
 export const EDGE_ADDONS_URL =
@@ -39,20 +47,6 @@ export function absoluteUrl(pathname: string) {
 
 export function localizedUrl(locale: string, pathname = "/") {
   return absoluteUrl(localizedPath(locale, pathname));
-}
-
-export function localizedStoreUrls(locale: string) {
-  if (locale === "en") {
-    return {
-      googlePlay: `${GOOGLE_PLAY_URL}&hl=en`,
-      appStore: APP_STORE_URL,
-    };
-  }
-
-  return {
-    googlePlay: `${GOOGLE_PLAY_URL}&hl=ko&gl=KR`,
-    appStore: "https://apps.apple.com/kr/app/ottline/id6780318110",
-  };
 }
 
 export function localizedBrowserExtensionUrls(locale: string) {
@@ -87,7 +81,11 @@ export function buildSoftwareApplicationSchema({
     applicationSubCategory: "Entertainment",
     operatingSystem: ["Web", "Android", "iOS", "Windows"],
     sameAs: [GOOGLE_PLAY_URL, APP_STORE_URL, MICROSOFT_STORE_URL],
-    installUrl: [storeUrls.googlePlay, storeUrls.appStore, MICROSOFT_STORE_URL],
+    installUrl: [
+      storeUrls.googlePlay,
+      storeUrls.appStore,
+      storeUrls.microsoftStore,
+    ],
     image: absoluteUrl("/brand/v2/app-icon-512.png"),
     screenshot: [
       absoluteUrl(`/pwa/v2-${isEnglish ? "en" : "ko"}-desktop.png`),
