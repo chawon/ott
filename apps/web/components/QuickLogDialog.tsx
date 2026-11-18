@@ -68,6 +68,17 @@ export default function QuickLogDialog({
           ref={content}
           className={styles.dialog}
           data-record-stage={stage}
+          onEscapeKeyDown={(event) => {
+            // Radix handles Escape in document capture, before the combobox can
+            // dismiss its popup. Keep this first Escape inside the search.
+            if (
+              event.target instanceof HTMLInputElement &&
+              event.target.getAttribute("role") === "combobox" &&
+              event.target.getAttribute("aria-expanded") === "true"
+            ) {
+              event.preventDefault();
+            }
+          }}
           onCloseAutoFocus={(event) => {
             event.preventDefault();
             const target = opener.current?.isConnected

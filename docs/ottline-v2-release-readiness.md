@@ -20,14 +20,12 @@
 | 웹 / 설치형 PWA | 운영 웹 배포와 서비스워커 갱신 | 기존 설치 앱의 업데이트·기록 보존, 모바일 실기기 확인 | 운영 반영·브라우저 저장 검증 완료, 설치 앱 실기기 확인은 별도 |
 | Android / Google Play | `apps/android-native` 순수 네이티브 앱으로 전환 출시 | v2 UI·기능 연결, 기존 TWA 세션·기록 2단계 자동 복원(`install_token` + 브라우저 핸드오프), 서명 AAB(`vc24`·`vc25`), v2 스토어 그래픽·문구 | **Google Play production `2.0.1 (25)` 배포 및 스토어 에셋 반영 완료 (`2026-11-09`)** |
 | iOS / App Store | Expo React Native 앱을 별도로 개편해야 함 | 모바일 v2 UI·문구·아바타·기능 동등성, 아이콘/스플래시, 새 빌드, TestFlight, 스토어 자료 | 추가 구현 단계가 필요 |
-| Windows / Microsoft Store | 웹 본문은 공통이며 manifest 정보는 패키지에 복사됨 | v2 manifest로 PWABuilder 재패키징, 기존 제품 식별자 유지, 새 아이콘·PC 스크린샷, 업데이트 제출 | 패키지 갱신 필요 |
+| Windows / Microsoft Store | `apps/windows-native` 순수 네이티브 앱으로 전환 출시 | `.NET 8 WPF + SQLite + Windows 11 위젯` v2.0.0.0 MSIXBundle(`x64`+`arm64`), 12종 에셋·부제, 기존 Edge PWA 자동 핸드오프 | **Microsoft Store `2.0.0.0` 정식 게시(`Published`) 및 기존 PWA 자동 핸드오프 실기기 확인 완료 (`2026-11-18`)** |
 | Chrome / Edge / Whale 확장 | 기록 창으로 여는 웹은 공통, 확장 팝업·아이콘은 별도 | 새 CI·팝업 정렬, manifest 버전 증가, ZIP, 브라우저별 실동작, 세 스토어 자료·제출 | 기존 연결 계약 검증, 패키지 작업 필요 |
 | 토스 인앱 | 별도 브랜치의 정적 웹 빌드·SDK·`.ait` 번들 | v2 통합, 정적 빌드/절대 API 주소 대응, 기존 공유·저장 브리지 보존, 새 아이콘·썸네일, 번들 검토·출시 | 별도 통합 단계가 필요 |
 | ChatGPT 연결 | 현재 운영 대상에서 제외 | 이번 v2 출시 대상에 포함하지 않음 | 현행 AGENTS.md의 미운영 상태를 기준으로 함 |
 
-현재 배포된 Android TWA는 웹 배포의 영향을 받으므로 네이티브 전환 전까지 호환 검증에 포함한다. 준비 중인 네이티브 앱은 별도 구현·빌드·검증 대상이다. [Chrome TWA 설명](https://developer.chrome.com/docs/android/trusted-web-activity)
-
-Windows는 HTML/CSS/JS 변경만으로는 보통 새 패키지가 필요 없지만, 이번처럼 manifest의 아이콘이 바뀌면 새 패키지를 제출해야 한다. [Microsoft PWA 업데이트 안내](https://learn.microsoft.com/en-us/microsoft-edge/progressive-web-apps/how-to/microsoft-store#make-updates-to-your-app)
+Android TWA(`apps/twa`)는 `2026-11-09`, Microsoft Store PWABuilder PWA는 `2026-11-18`을 기점으로 각각 순수 네이티브 앱(`apps/android-native`, `apps/windows-native`)으로 전환 출시가 완료되었다. 이제 설치형 웹 PWA(`ottline.app`)는 macOS·Linux 등 비-스토어 데스크톱 브라우저 및 기존 웹 홈 화면 사용자를 위한 채널로 운영된다.
 
 ## 3. 모든 채널보다 먼저 준비할 공통 항목
 
@@ -73,12 +71,12 @@ iOS에 해당 기능을 제공할 경우 Apple의 제3자 AI 개인정보 공유
 - [ ] `native-ios-ci.yml` 및 `native-ios-testflight.yml` 경로로 검사·빌드하고 TestFlight에서 실제 iPhone 업데이트·검색·저장·수정·동기화·공유를 확인한다.
 - [ ] 새 네이티브 화면을 촬영한 스크린샷, KO/EN 설명·변경사항, 심사용 기록 연결 방법과 샘플 데이터, 실제 기능에 맞는 App Privacy를 준비한다. 웹 화면을 미구현 네이티브 기능의 스크린샷으로 제출하지 않는다.
 
-### Windows / Microsoft Store
+### Windows / Microsoft Store (`2026-11-18` 완료)
 
-- [ ] 운영 v2 manifest와 아이콘이 공개된 뒤 `ottline.app`을 대상으로 PWABuilder 패키지를 다시 만든다. 오래된 문서의 이전 도메인을 패키징 기준으로 쓰지 않는다.
-- [ ] 기존 Product/Package/Publisher 식별자를 유지해 업데이트 제출을 준비한다. 설치 목록·작업표시줄 아이콘·앱 이름과 manifest 정합성을 확인한다.
-- [ ] 실제 설치 앱에서 PC 레이아웃, 언어·테마, 파일 저장·공유, 업데이트 후 기록 유지, 오프라인 복귀를 확인한다.
-- [ ] 새 PC 스크린샷·스토어 이미지·KO/EN 설명과 패키지를 Partner Center에 준비한다.
+- [x] 순수 Windows Native v2(`apps/windows-native`, `.NET 8 WPF + SQLite + Windows App SDK 1.8 공식 위젯`) 구현 및 기존 Store Identity(`9NSVNZGDMGF5`, `ChawonLee.ottline`) 인플레이스 업그레이드 패키징(`ottline-2.0.0.0.msixbundle`, `x64` + `arm64`) 검증 완료 (PR `#132`, main SHA `7bc5a46`, `Native Windows CI` Run `44030185194` 통과).
+- [x] 기존 Store Edge PWA(`1.0.x`) / 웹 사용자 `?native_handoff=1` → `ottline://open?handoff=1`(`<uap3:Protocol Parameters="%1">`) 자동 세션·기록 이어받기 및 병합, 단위 테스트 14/14·위젯 COM 스모크 테스트 검증 완료.
+- [x] 신규 v2 아이콘·정방형 로고·2:3 포스터·KO/EN 데스크톱 스크린샷 12종(`apps/windows-native/packaging/StoreListing/`), KO/EN 부제 포함 제목(`ottline - 영화·드라마·책·독서 기록` / `ottline: Movie, TV & Book Log`), `Desktop` 전용 장치 패밀리(`Holographic: false`) 및 설명·릴리스 노트로 Partner Center 심사 제출 및 **정식 게시(`Submission Id = 1152921505702424456`, `Status = Published`, `2026-11-18`)** 완료. 상세는 [`docs/windows-native-v2-transition.md`](windows-native-v2-transition.md) 참조.
+- [x] `winget install --id 9NSVNZGDMGF5 --source msstore`(`SignatureKind: Store`) 정식 설치 실행 및 별도 PC `1.0.x` Edge PWA → `2.0.0.0` 업데이트 후 웹 브라우저 연결(`?native_handoff=1` → `ottline://open?handoff=1`) 핸드오프 실동작 확인 완료.
 
 ### Chrome / Edge / Whale 확장
 

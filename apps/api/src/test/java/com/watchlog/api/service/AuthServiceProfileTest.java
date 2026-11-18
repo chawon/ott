@@ -2,6 +2,7 @@ package com.watchlog.api.service;
 
 import com.watchlog.api.domain.UserDeviceEntity;
 import com.watchlog.api.domain.UserEntity;
+import com.watchlog.api.dto.DeviceDto;
 import com.watchlog.api.dto.UpdateUserProfileRequest;
 import com.watchlog.api.repo.CommentRepository;
 import com.watchlog.api.repo.DiscussionReactionRepository;
@@ -10,6 +11,10 @@ import com.watchlog.api.repo.UserRepository;
 import com.watchlog.api.repo.WatchLogRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -21,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -127,6 +133,186 @@ class AuthServiceProfileTest {
         assertThat(device.getUserAgent()).isEqualTo("ios_native");
         assertThat(device.getOs()).isEqualTo("iOS");
         assertThat(device.getBrowser()).isEqualTo("iOS App");
+    }
+
+    static Stream<Arguments> desktopNativeClients() {
+        return Stream.of(
+                Arguments.of("windows_native", "Windows", "OttlineWindowsNative/2.0.0.0"),
+                Arguments.of("macos_native", "macOS", "ottline-mac/2.0.0 (Macintosh; Mac OS X)"),
+                Arguments.of(" Windows_NATIVE ", "Windows", "OttlineWindowsNative/2.0.0.0"),
+                Arguments.of(" MacOS_NATIVE ", "macOS", "ottline-mac/2.0.0 (Macintosh; Mac OS X)")
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("desktopNativeClients")
+    void registerStoresDesktopNativeDeviceInfo(String platform, String os, String userAgent) {
+        var registration = authService.register(userAgent, platform);
+
+        assertThat(lastSavedDevice.getId()).isEqualTo(registration.deviceId());
+        assertThat(lastSavedDevice.getUserAgent()).isEqualTo(userAgent);
+        assertThat(lastSavedDevice.getOs()).isEqualTo(os);
+        assertThat(DeviceDto.from(lastSavedDevice).browser()).isEqualTo(os + " App");
+    }
+
+    @ParameterizedTest
+    @MethodSource("desktopNativeClients")
+    void pairStoresDesktopNativeDeviceInfo(String platform, String os, String userAgent) {
+        var user = new UserEntity(UUID.randomUUID(), "ABCDEFGH");
+        users.put(user.getId(), user);
+
+        var pairing = authService.pair("ABCDEFGH", null, userAgent, platform);
+
+        assertThat(pairing.userId()).isEqualTo(user.getId());
+        assertThat(lastSavedDevice.getId()).isEqualTo(pairing.deviceId());
+        assertThat(lastSavedDevice.getUser()).isSameAs(user);
+        assertThat(lastSavedDevice.getUserAgent()).isEqualTo(userAgent);
+        assertThat(lastSavedDevice.getOs()).isEqualTo(os);
+        assertThat(lastSavedDevice.getBrowser()).isEqualTo(os + " App");
+    }
+
+    @ParameterizedTest
+    @MethodSource("desktopNativeClients")
+    void touchDeviceCorrectsLegacyDesktopInfoWithoutRelinking(String platform, String os, String userAgent) {
+        var user = new UserEntity(UUID.randomUUID(), "ABCDEFGH");
+        var device = new UserDeviceEntity(UUID.randomUUID(), user);
+        device.setOs(os.equals("macOS") ? "iOS" : "Windows");
+        device.setBrowser(os.equals("macOS") ? "iOS App" : "Unknown Browser");
+        devices.put(device.getId(), device);
+        var createdAt = device.getCreatedAt();
+        var previousLastSeenAt = device.getLastSeenAt();
+
+        authService.touchDevice(user.getId(), device.getId(), userAgent, platform);
+        // Normal authenticated operations without metadata must retain the correction.
+        authService.touchDevice(user.getId(), device.getId());
+        var listed = authService.listDevices(user.getId()).stream().map(DeviceDto::from).toList();
+
+        assertThat(devices).hasSize(1);
+        assertThat(listed).hasSize(1);
+        assertThat(listed.getFirst().id()).isEqualTo(device.getId());
+        assertThat(listed.getFirst().createdAt()).isEqualTo(createdAt);
+        assertThat(listed.getFirst().lastSeenAt()).isAfterOrEqualTo(previousLastSeenAt);
+        assertThat(listed.getFirst().os()).isEqualTo(os);
+        assertThat(listed.getFirst().browser()).isEqualTo(os + " App");
+        assertThat(device.getUser()).isSameAs(user);
+        assertThat(device.getUserAgent()).isEqualTo(userAgent);
+    }
+
+    @ParameterizedTest
+    @CsvSource({"windows_native,Windows", "macos_native,macOS"})
+    void desktopPlatformDoesNotRequireUserAgent(String platform, String os) {
+        for (String userAgent : new String[] {null, "", " "}) {
+            authService.register(userAgent, platform);
+
+            assertThat(lastSavedDevice.getUserAgent()).isEqualTo(platform);
+            assertThat(lastSavedDevice.getOs()).isEqualTo(os);
+            assertThat(lastSavedDevice.getBrowser()).isEqualTo(os + " App");
+        }
+    }
+
+    @Test
+    void unknownOrMissingPlatformKeepsWebBrowserClassification() {
+        for (String platform : new String[] {null, "", "web", "windows_native_extra", "macos_native_extra"}) {
+            authService.register("Mozilla/5.0 (Windows NT 10.0) Chrome/143.0 Safari/537.36", platform);
+            assertThat(lastSavedDevice.getOs()).isEqualTo("Windows");
+            assertThat(lastSavedDevice.getBrowser()).isEqualTo("Chrome");
+
+            authService.register("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Version/18.2 Safari/605.1.15", platform);
+            assertThat(lastSavedDevice.getOs()).isEqualTo("macOS");
+            assertThat(lastSavedDevice.getBrowser()).isEqualTo("Safari");
+        }
+    }
+
+    @Test
+    void desktopMetadataCannotTouchAnotherAccountsDeviceOrCreateMissingDevice() {
+        var owner = new UserEntity(UUID.randomUUID(), "ABCDEFGH");
+        var device = new UserDeviceEntity(UUID.randomUUID(), owner);
+        device.setOs("Windows");
+        device.setBrowser("Chrome");
+        devices.put(device.getId(), device);
+        var lastSeenAt = device.getLastSeenAt();
+
+        authService.touchDevice(UUID.randomUUID(), device.getId(), "ottline-mac/2.0", "macos_native");
+        authService.touchDevice(owner.getId(), UUID.randomUUID(), "OttlineWindowsNative/2.0", "windows_native");
+
+        assertThat(devices).hasSize(1);
+        assertThat(device.getOs()).isEqualTo("Windows");
+        assertThat(device.getBrowser()).isEqualTo("Chrome");
+        assertThat(device.getLastSeenAt()).isEqualTo(lastSeenAt);
+    }
+
+    @ParameterizedTest
+    @CsvSource({
+            "android_native, Mozilla/5.0 (Linux; Android 15; Pixel 9) Chrome/134.0.0.0 Mobile Safari/537.36 ottline-android/2.0.5",
+            " Android_NATIVE , Mozilla/5.0 (Linux; Android 15; SM-S928N) Chrome/134.0.0.0 Mobile Safari/537.36 ottline-android/2.0.5"
+    })
+    void registerAndPairStoreAndroidNativeFromHeader(String platform, String userAgent) {
+        var registered = authService.register(userAgent, platform);
+        assertThat(lastSavedDevice.getId()).isEqualTo(registered.deviceId());
+        assertThat(lastSavedDevice.getOs()).isEqualTo("Android");
+        assertThat(DeviceDto.from(lastSavedDevice).browser()).isEqualTo("Android App");
+
+        var user = new UserEntity(UUID.randomUUID(), "ABCDEFGH");
+        users.put(user.getId(), user);
+        var paired = authService.pair("ABCDEFGH", null, userAgent, platform);
+        assertThat(paired.userId()).isEqualTo(user.getId());
+        assertThat(lastSavedDevice.getOs()).isEqualTo("Android");
+        assertThat(lastSavedDevice.getBrowser()).isEqualTo("Android App");
+    }
+
+    @Test
+    void androidNativePlatformDoesNotRequireUserAgent() {
+        for (String userAgent : new String[] {null, "", " "}) {
+            authService.register(userAgent, "android_native");
+
+            assertThat(lastSavedDevice.getUserAgent()).isEqualTo("android_native");
+            assertThat(lastSavedDevice.getOs()).isEqualTo("Android");
+            assertThat(lastSavedDevice.getBrowser()).isEqualTo("Android App");
+        }
+    }
+
+    @Test
+    void legacyAndroidNative204WithoutPlatformHeaderUsesOttlineAndroidUserAgent() {
+        String ua204 = "Mozilla/5.0 (Linux; Android 15; Pixel 9) Chrome/134.0.0.0 Mobile Safari/537.36 ottline-android/2.0.4";
+
+        for (String platform : new String[] {null, "", " "}) {
+            authService.register(ua204, platform);
+            assertThat(lastSavedDevice.getOs()).isEqualTo("Android");
+            assertThat(lastSavedDevice.getBrowser()).isEqualTo("Android App");
+        }
+
+        var user = new UserEntity(UUID.randomUUID(), "ABCDEFGH");
+        users.put(user.getId(), user);
+        var paired = authService.pair("ABCDEFGH", null, ua204, null);
+        assertThat(lastSavedDevice.getId()).isEqualTo(paired.deviceId());
+        assertThat(lastSavedDevice.getOs()).isEqualTo("Android");
+        assertThat(lastSavedDevice.getBrowser()).isEqualTo("Android App");
+
+        // Existing TWA handoff device transitioning onto v2.0.4 native app updates in place
+        var twaDevice = new UserDeviceEntity(UUID.randomUUID(), user);
+        twaDevice.setOs("Android");
+        twaDevice.setBrowser("Chrome");
+        devices.put(twaDevice.getId(), twaDevice);
+        var createdAt = twaDevice.getCreatedAt();
+
+        authService.touchDevice(user.getId(), twaDevice.getId(), ua204, null);
+        authService.touchDevice(user.getId(), twaDevice.getId());
+
+        assertThat(twaDevice.getId()).isEqualTo(twaDevice.getId());
+        assertThat(twaDevice.getCreatedAt()).isEqualTo(createdAt);
+        assertThat(twaDevice.getOs()).isEqualTo("Android");
+        assertThat(twaDevice.getBrowser()).isEqualTo("Android App");
+        assertThat(twaDevice.getUserAgent()).isEqualTo(ua204);
+    }
+
+    @Test
+    void androidChromePwaRemainsChromeAcrossWebAndMissingPlatform() {
+        String chromeUa = "Mozilla/5.0 (Linux; Android 15; Pixel 9) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Mobile Safari/537.36";
+        for (String platform : new String[] {null, "", "web", "android_native_extra"}) {
+            authService.register(chromeUa, platform);
+            assertThat(lastSavedDevice.getOs()).isEqualTo("Android");
+            assertThat(lastSavedDevice.getBrowser()).isEqualTo("Chrome");
+        }
     }
 
     private Object handleUserRepository(Object proxy, Method method, Object[] args) {

@@ -1,0 +1,48 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows10.0.19041.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ApplicationIcon>Resources\Icons\ottline.ico</ApplicationIcon>
+    <AssemblyName>Ottline.App</AssemblyName>
+    <RootNamespace>Ottline.App</RootNamespace>
+    <StartupObject>Ottline.App.Program</StartupObject>
+    <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
+    <EnableDefaultWindowsAppSdkContentItems>false</EnableDefaultWindowsAppSdkContentItems>
+    <EnableDefaultWindowsAppSdkPRIResourceItems>false</EnableDefaultWindowsAppSdkPRIResourceItems>
+    <Version>2.0.0.0</Version>
+    <AssemblyVersion>2.0.0.0</AssemblyVersion>
+    <FileVersion>2.0.0.0</FileVersion>
+    <Company>Chawon Lee</Company>
+    <Product>ottline</Product>
+    <Description>ottline - 영화, 시리즈, 책을 그날의 기억으로 남기는 타임라인</Description>
+    <ServerGarbageCollection>false</ServerGarbageCollection>
+    <ConcurrentGarbageCollection>true</ConcurrentGarbageCollection>
+    <RetainVMGarbageCollection>false</RetainVMGarbageCollection>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Ottline.Core\Ottline.Core.csproj" />
+    <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.26100.4654" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.WindowsAppSDK.Widgets" Version="1.8.251231004" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ApplicationDefinition Remove="App.xaml" />
+    <Page Include="App.xaml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="Resources\Fonts\pretendard_regular.otf" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="Resources\Fonts\pretendard_semibold.otf" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="Resources\Fonts\pretendard_bold.otf" CopyToOutputDirectory="PreserveNewest" />
+    <Resource Include="Resources\Avatars\*.png" />
+    <Resource Include="Resources\Icons\*.png" />
+    <Resource Include="Resources\Icons\*.ico" />
+  </ItemGroup>
+
+</Project>

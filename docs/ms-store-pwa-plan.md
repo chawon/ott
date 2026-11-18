@@ -1,3 +1,6 @@
+> **[업데이트 안내 — 2026-11-18]**
+> `2026-11-17` 제출 및 **`2026-11-18` 정식 출시(`Status = Published`)**로 Microsoft Store `ottline`(`9NSVNZGDMGF5`, `ChawonLee.ottline`)이 기존 PWABuilder Edge PWA(`1.0.1.0`)에서 **순수 Windows Native v2(`apps/windows-native`, `.NET 8 WPF + SQLite + Windows 11 공식 위젯`, `v2.0.0.0`)**로 전환 완료되었으며, 타 PC `1.0.x → 2.0.0.0` 업데이트 시 웹 브라우저 자동 핸드오프(`?native_handoff=1` → `ottline://open?handoff=1`)도 실기기에서 확인되었습니다. Microsoft Store PWA 패키징 배포는 종료되었고, 아래 문서는 초기 도입 당시의 참고 계획이며 최신 아키텍처·핸드오프·출시 기록은 [`docs/windows-native-v2-transition.md`](windows-native-v2-transition.md)를 따릅니다.
+
 # Microsoft Store PWA 출시 계획
 
 ## 1. 목적

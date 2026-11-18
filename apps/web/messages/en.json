@@ -175,9 +175,16 @@
     "optionalDetailsTitle": "More to Keep",
     "detailGenre": "Genre",
     "detailDirector": "Director",
-    "detailCast": "Cast"
+    "detailCast": "Cast",
+    "savedPlayCtaTitle": "Keep this record going in the Android app.",
+    "savedPlayCtaAction": "Continue with the Google Play app",
+    "savedPlayCtaHint": "Your browser records connect automatically on first open, with post-watch reminders and a home widget.",
+    "savedWindowsCtaTitle": "Keep this record going in the Windows app.",
+    "savedWindowsCtaAction": "Get it from Microsoft Store",
+    "savedWindowsCtaHint": "Open the same timeline with your record connection code. Use Windows 11 widgets or Ctrl+Alt+O for your next record."
   },
   "Common": {
+    "skipToContent": "Skip to main content",
     "placeLabels": {
       "HOME": "Home",
       "THEATER": "Theater",
@@ -335,6 +342,8 @@
     "empty": "Nothing here yet",
     "searchLoading": "Searching...",
     "searchEmpty": "No results found",
+    "resultsCount": "{count, plural, one {# title found.} other {# titles found.}}",
+    "googleBooksResultLabel": "{title} · Google Books, result {rank}",
     "commentCount": "Comments {count}",
     "typeMovie": "Movie",
     "typeSeries": "Series",
@@ -564,7 +573,7 @@
     "platformExtensionEdgeLink": "Edge Add-ons",
     "platformExtensionWhaleLink": "Whale Store",
     "platformWindowsTitle": "Windows app",
-    "platformWindowsDesc": "The same web app is also available through Microsoft Store packaging, so the desktop flow stays familiar.",
+    "platformWindowsDesc": "The native Windows app keeps your records on your device for offline viewing. Use Windows 11 widgets or Ctrl+Alt+O to start a record, and connect your existing OTT watch history with your record connection code.",
     "platformWindowsLink": "Microsoft Store",
     "platformAndroidTitle": "Android app",
     "platformAndroidDesc": "Install from Google Play to reach the record window from your home screen, widget, or watch reminder settings.",
@@ -766,6 +775,9 @@
   "PwaInstall": {
     "title": "Add to Home Screen",
     "iosDesc": "Tap the Safari share button and select \"Add to Home Screen\" to use it like an app.",
+    "windowsTitle": "Keep your records close on Windows",
+    "windowsDesc": "Keep records offline, open Windows 11 widgets, and start a new record with Ctrl+Alt+O.",
+    "windowsAction": "Get it from Microsoft Store",
     "androidDesc": "Install to open quickly from your home screen.",
     "playTitle": "Get a reminder when it is time to log",
     "playDesc": "The Google Play app adds reminders after you leave an OTT app, plus a home-screen widget.",

@@ -32,6 +32,12 @@ apps/api/bootrun.log
 # GCP service account credentials
 gen-lang-client-*.json
 
+# Windows Native (.NET / MSIX) build outputs
+apps/windows-native/**/bin/
+apps/windows-native/**/obj/
+apps/windows-native/output/
+apps/windows-native/.vs/
+
 # Apple SwiftPM / XcodeGen local build & generated project artifacts
 apps/apple-core/.build/
 apps/apple-core/.swiftpm/

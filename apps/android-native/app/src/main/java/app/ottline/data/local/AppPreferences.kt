@@ -38,6 +38,10 @@ data class PreferencesSnapshot(
     val twaMigrationBannerDismissed: Boolean,
     val twaBrowserHandoffCompleted: Boolean,
     val dismissedRecommendations: Set<String>,
+    val nativeLogSavesCount: Int = 0,
+    val lastInAppReviewPromptAtMillis: Long = 0L,
+    val installReferrerChecked: Boolean = false,
+    val installReferrerRaw: String? = null,
     val apiBaseUrl: String
 ) {
     val userProfile: UserProfile?
@@ -110,6 +114,10 @@ class AppPreferences(context: Context) {
             twaMigrationBannerDismissed = prefs.getBoolean(KEY_TWA_MIGRATION_DISMISSED, false),
             twaBrowserHandoffCompleted = prefs.getBoolean(KEY_TWA_BROWSER_HANDOFF_COMPLETED, false),
             dismissedRecommendations = dismissedRecs,
+            nativeLogSavesCount = prefs.getInt(KEY_NATIVE_LOG_SAVES_COUNT, 0),
+            lastInAppReviewPromptAtMillis = prefs.getLong(KEY_LAST_IN_APP_REVIEW_PROMPT_AT, 0L),
+            installReferrerChecked = prefs.getBoolean(KEY_INSTALL_REFERRER_CHECKED, false),
+            installReferrerRaw = prefs.getString(KEY_INSTALL_REFERRER_RAW, null)?.takeIf { it.isNotBlank() },
             apiBaseUrl = baseUrl
         )
     }
@@ -206,6 +214,29 @@ class AppPreferences(context: Context) {
         refresh()
     }
 
+    fun incrementNativeLogSavesCount(): Int {
+        val next = current.nativeLogSavesCount + 1
+        prefs.edit().putInt(KEY_NATIVE_LOG_SAVES_COUNT, next).apply()
+        refresh()
+        return next
+    }
+
+    fun markInAppReviewPrompted(nowMillis: Long = System.currentTimeMillis()) {
+        prefs.edit().putLong(KEY_LAST_IN_APP_REVIEW_PROMPT_AT, nowMillis).apply()
+        refresh()
+    }
+
+    fun markInstallReferrerChecked(rawReferrer: String?) {
+        prefs.edit().apply {
+            putBoolean(KEY_INSTALL_REFERRER_CHECKED, true)
+            val cleaned = rawReferrer?.trim()?.takeIf { it.isNotEmpty() }
+            if (cleaned != null) {
+                putString(KEY_INSTALL_REFERRER_RAW, cleaned)
+            }
+        }.apply()
+        refresh()
+    }
+
     fun setDebugApiBaseUrl(url: String) {
         if (!BuildConfig.ALLOW_SERVER_SWITCHER) return
         val sanitized = url.trim().trimEnd('/')
@@ -231,6 +262,10 @@ class AppPreferences(context: Context) {
         private const val KEY_TWA_MIGRATION_DISMISSED = "watchlog.twaMigrationDismissed"
         private const val KEY_TWA_BROWSER_HANDOFF_COMPLETED = "watchlog.twaBrowserHandoffCompleted"
         private const val KEY_DISMISSED_RECOMMENDATIONS = "watchlog.dismissedRecommendations"
+        private const val KEY_NATIVE_LOG_SAVES_COUNT = "watchlog.nativeLogSavesCount"
+        private const val KEY_LAST_IN_APP_REVIEW_PROMPT_AT = "watchlog.lastInAppReviewPromptAt"
+        private const val KEY_INSTALL_REFERRER_CHECKED = "watchlog.installReferrerChecked"
+        private const val KEY_INSTALL_REFERRER_RAW = "watchlog.installReferrerRaw"
         private const val KEY_DEBUG_API_BASE_URL = "watchlog.debugApiBaseUrl"
 
         val DEBUG_SERVER_PRESETS = listOf(

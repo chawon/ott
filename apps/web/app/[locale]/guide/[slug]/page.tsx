@@ -14,7 +14,12 @@ import {
   isGuideLocale,
   isGuideSlug,
 } from "@/lib/guides";
-import { absoluteUrl, localizedAlternates, localizedUrl } from "@/lib/seo";
+import {
+  absoluteUrl,
+  buildGuideStructuredData,
+  localizedAlternates,
+  localizedUrl,
+} from "@/lib/seo";
 
 export const dynamicParams = false;
 
@@ -82,6 +87,20 @@ export default async function GuideArticlePage({
 
   return (
     <div className="v2-secondary-page py-4 sm:py-8">
+      <script
+        id="guide-json-ld"
+        type="application/ld+json"
+        // biome-ignore lint/security/noDangerouslySetInnerHtml: JSON-LD uses local guide documents and escapes HTML delimiters.
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(
+            buildGuideStructuredData({
+              locale,
+              guide,
+              hubTitle: hub.metaTitle,
+            }),
+          ).replace(/</g, "\\u003c"),
+        }}
+      />
       <nav aria-label={locale === "ko" ? "가이드 경로" : "Guide breadcrumb"}>
         <Link
           href="/guide"

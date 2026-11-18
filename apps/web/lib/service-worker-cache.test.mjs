@@ -18,13 +18,16 @@ const layoutSource = readFileSync(
   "utf8",
 );
 
-function createWorkerHarness({ cacheKeys = [] } = {}) {
+function createWorkerHarness({ cacheKeys = [], offline = false } = {}) {
   const listeners = new Map();
   const deletedCacheKeys = [];
+  const precacheRequests = [];
+  const matchedPaths = [];
 
   const context = {
     URL,
     Promise,
+    Request,
     self: {
       location: { origin: "https://ottline.app" },
       addEventListener(type, listener) {
@@ -39,7 +42,13 @@ function createWorkerHarness({ cacheKeys = [] } = {}) {
       },
       async open() {
         return {
-          async addAll() {},
+          async addAll(requests) {
+            precacheRequests.push(...requests);
+          },
+          async match(pathname) {
+            matchedPaths.push(pathname);
+            return new Response(`offline notice: ${pathname}`);
+          },
           async put() {},
         };
       },
@@ -52,13 +61,84 @@ function createWorkerHarness({ cacheKeys = [] } = {}) {
       },
     },
     async fetch() {
+      if (offline) throw new TypeError("Network unavailable");
       return new Response("current-network-entry");
     },
   };
 
   vm.runInNewContext(workerSource, context, { filename: "sw.js" });
-  return { listeners, deletedCacheKeys };
+  return { listeners, deletedCacheKeys, precacheRequests, matchedPaths };
 }
+
+test("precaches self-contained notices without locale redirects or stale HTTP assets", async () => {
+  const { listeners, precacheRequests } = createWorkerHarness();
+  let installation;
+  listeners.get("install")({
+    waitUntil: (promise) => {
+      installation = promise;
+    },
+  });
+  await installation;
+
+  const paths = precacheRequests.map(
+    (request) => new URL(request.url).pathname,
+  );
+  assert.ok(paths.includes("/offline/ko.html"));
+  assert.ok(paths.includes("/offline/en.html"));
+  for (const pathname of ["/", "/timeline", "/offline"]) {
+    assert.ok(!paths.includes(pathname), `${pathname} can redirect by locale`);
+  }
+  assert.ok(precacheRequests.every((request) => request.cache === "reload"));
+});
+
+test("offline navigations receive the notice matching the route locale", async () => {
+  const { listeners, matchedPaths } = createWorkerHarness({ offline: true });
+  for (const [pathname, locale] of [
+    ["/", "ko"],
+    ["/timeline?sort=history", "ko"],
+    ["/ko/timeline", "ko"],
+    ["/en", "en"],
+    ["/en/timeline", "en"],
+    ["/enough", "ko"],
+  ]) {
+    let responsePromise;
+    listeners.get("fetch")({
+      request: {
+        url: `https://ottline.app${pathname}`,
+        method: "GET",
+        mode: "navigate",
+        headers: new Headers(),
+      },
+      respondWith: (promise) => {
+        responsePromise = promise;
+      },
+    });
+    const response = await responsePromise;
+    assert.equal(
+      await response.text(),
+      `offline notice: /offline/${locale}.html`,
+    );
+    assert.equal(matchedPaths.at(-1), `/offline/${locale}.html`);
+  }
+});
+
+test("successful HTML navigation still returns the network response", async () => {
+  const { listeners, matchedPaths } = createWorkerHarness();
+  let responsePromise;
+  listeners.get("fetch")({
+    request: {
+      url: "https://ottline.app/en/timeline",
+      method: "GET",
+      mode: "navigate",
+      headers: new Headers(),
+    },
+    respondWith: (promise) => {
+      responsePromise = promise;
+    },
+  });
+  assert.equal(await (await responsePromise).text(), "current-network-entry");
+  assert.deepEqual(matchedPaths, []);
+});
 
 test("bypasses persistent Cache Storage for Next RSC navigation data", () => {
   const { listeners } = createWorkerHarness();
@@ -119,6 +199,8 @@ test("removes the previous ottline cache when the worker activates", async () =>
     cacheKeys: [
       "ottline-cache-v1",
       "ottline-cache-v2",
+      "ottline-cache-v6",
+      "ottline-cache-v7",
       "ott-pwa-v1",
       "unrelated-origin-cache",
     ],
@@ -135,6 +217,7 @@ test("removes the previous ottline cache when the worker activates", async () =>
   assert.deepEqual(deletedCacheKeys, [
     "ottline-cache-v1",
     "ottline-cache-v2",
+    "ottline-cache-v6",
     "ott-pwa-v1",
   ]);
 });

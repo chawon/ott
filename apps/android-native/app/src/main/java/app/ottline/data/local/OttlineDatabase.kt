@@ -335,6 +335,9 @@ interface WatchLogDao {
     @Query("DELETE FROM watch_logs WHERE titleId = :titleId AND id != :keepLogId")
     suspend fun deleteByTitleExcept(titleId: String, keepLogId: String)
 
+    @Query("DELETE FROM watch_logs WHERE id = :id")
+    suspend fun deleteById(id: String)
+
     @Query("DELETE FROM watch_logs")
     suspend fun clearAll()
 }

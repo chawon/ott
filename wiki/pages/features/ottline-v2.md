@@ -10,11 +10,18 @@
 
 API 169개와 Web CI, 운영 검색·기록·수정·동기화·연결·추천, 모바일/PC 기록창을 확인했다. Flyway V32는 테이블 4개만 추가하며 기존 기록·이력 수를 보존했다. 테스트 계정과 임시 검증 리소스는 정리했다.
 
+`2026-11-11`에는 PR `#127`, Web SHA `aa99154`로 sitemap 수정일·v2 OG 이미지·페이지별 Twitter 메타데이터와 가이드 `Article`·`BreadcrumbList`를 운영 반영했다. 공개 URL 19개와 개인 화면 14개의 색인 경계를 확인했으며 API·네이티브 바이너리는 유지했다. [SEO 후속 배포 기록](../../../docs/seo-v2-refresh-2026-11-11.md)을 따른다.
+
 `2026-11-09`에는 순수 Android 네이티브 앱([[android-native]], `apps/android-native`)을 모노레포에 통합해 Google Play `production` 트랙에 `2.0.0`(`versionCode=24`, SHA `45ccac3`) 및 기존 TWA 세션·기록 2단계 자동 복구를 포함한 `2.0.1`(`versionCode=25`, SHA `916be7a`)을 배포하고 v2 스토어 아이콘·피처 그래픽·스크린샷 5장을 반영했다. iOS·Windows·확장·토스 패키지는 플랫폼별 작업과 제출을 별도로 진행한다.
+
+`2026-11-12`에는 PR `#130`, Web SHA `4cabcd5`로 한·영 오프라인 재진입 안내, 검색 키보드·보조기술 지원, 모션 감소, 포커스 대비와 본문 바로가기를 운영 반영했다. 공개 자산 일치와 별도 브라우저 컨텍스트의 통신 실패 시 한·영 HTTP 200 fallback을 확인했다. [접근성·오프라인 배포 기록](../../../docs/web-offline-accessibility-2026-11-12.md)을 따른다.
+
+`2026-11-17`에는 순수 Windows 네이티브 앱([[windows-native]], `apps/windows-native`)을 PR `#132`(main SHA `7bc5a46`, `Native Windows CI` Run `44030185194` 통과)로 모노레포에 통합하고, Microsoft Store `9NSVNZGDMGF5`에 `2.0.0.0`(`ottline-2.0.0.0.msixbundle`, `Desktop` 전용, KO/EN 부제 포함 제목 및 신규 아트워크·스크린샷 12종, 기존 Edge Store PWA `?native_handoff=1` 자동 이어받기 포함)을 Submission `1152921505702424456`으로 제출해 `Certification` 진입을 확인했다. [Windows Native v2 전환 및 Store 제출 기록](../../../docs/windows-native-v2-transition.md)을 따른다.
 
 - [운영 배포와 검증](../../../docs/ottline-v2-production-rollout.md)
 - [플랫폼별 출시 준비](../../../docs/ottline-v2-release-readiness.md)
 - [웹 구현 기록](../../../docs/ottline-ux-v2-web.md)
 - [Android Native v2 전환 및 TWA 자동 복구 기록](../../../docs/android-native-v2-transition.md)
+- [Windows Native v2 전환 및 Store 제출 기록](../../../docs/windows-native-v2-transition.md)
 
-관련: [[android-native]], [[timeline]], [[future-timeline]], [[personal-profile]], [[share-card]], [[pwa]].
+관련: [[android-native]], [[windows-native]], [[ms-store]], [[timeline]], [[future-timeline]], [[personal-profile]], [[share-card]], [[pwa]].

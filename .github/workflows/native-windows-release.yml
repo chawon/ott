@@ -1,0 +1,136 @@
+name: Build & Deploy Native Windows MSIXBundle
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "4-part MSIX Version (e.g. 2.0.0.0)"
+        required: true
+        default: "2.0.0.0"
+        type: string
+      publish_mode:
+        description: "Release target (build artifact only, Partner Center Draft, or Commit for certification)"
+        required: true
+        default: "store_draft"
+        type: choice
+        options:
+          - artifact_only
+          - store_draft
+          - store_commit
+      apply_default_notes:
+        description: "Apply default KO/EN release notes & certification notes"
+        required: true
+        default: true
+        type: boolean
+      rollout_percentage:
+        description: "Package rollout percentage (1-100, used when publish_mode is store_commit)"
+        required: false
+        default: "100"
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-publish:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: pwsh
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Validate release inputs
+        run: |
+          if ("${{ inputs.version }}" -notmatch '^\d+\.\d+\.\d+\.\d+$') {
+            throw "Invalid 4-part version: '${{ inputs.version }}' (expected format like 2.0.0.0)"
+          }
+          $rollout = 0
+          if (-not [int]::TryParse("${{ inputs.rollout_percentage }}", [ref]$rollout) -or $rollout -lt 1 -or $rollout -gt 100) {
+            throw "Invalid rollout_percentage: '${{ inputs.rollout_percentage }}' (expected integer 1..100)"
+          }
+
+      - name: Setup .NET 8 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Build & Verify MSIXBundle
+        working-directory: apps/windows-native
+        run: |
+          ./scripts/build-msix.ps1 -Version "${{ inputs.version }}"
+          ./scripts/verify-msix.ps1 -Version "${{ inputs.version }}"
+
+      - name: Setup Microsoft Store CLI
+        if: ${{ inputs.publish_mode != 'artifact_only' }}
+        uses: microsoft/microsoft-store-apppublisher@v1.4
+
+      - name: Configure Partner Center credentials
+        if: ${{ inputs.publish_mode != 'artifact_only' }}
+        env:
+          MSSTORE_TENANT_ID: ${{ secrets.MSSTORE_TENANT_ID }}
+          MSSTORE_SELLER_ID: ${{ secrets.MSSTORE_SELLER_ID }}
+          MSSTORE_CLIENT_ID: ${{ secrets.MSSTORE_CLIENT_ID }}
+          MSSTORE_CLIENT_SECRET: ${{ secrets.MSSTORE_CLIENT_SECRET }}
+        run: |
+          foreach ($varName in @("MSSTORE_TENANT_ID", "MSSTORE_SELLER_ID", "MSSTORE_CLIENT_ID", "MSSTORE_CLIENT_SECRET")) {
+            $val = [Environment]::GetEnvironmentVariable($varName)
+            if ([string]::IsNullOrWhiteSpace($val)) {
+              throw "Missing required GitHub Actions secret: $varName"
+            }
+          }
+          msstore reconfigure `
+            --tenantId $env:MSSTORE_TENANT_ID `
+            --sellerId $env:MSSTORE_SELLER_ID `
+            --clientId $env:MSSTORE_CLIENT_ID `
+            --clientSecret $env:MSSTORE_CLIENT_SECRET
+          if ($LASTEXITCODE -ne 0) {
+            throw "msstore reconfigure failed"
+          }
+
+      - name: Publish MSIXBundle to Microsoft Store
+        if: ${{ inputs.publish_mode != 'artifact_only' }}
+        working-directory: apps/windows-native
+        run: |
+          $mode = if ("${{ inputs.publish_mode }}" -eq "store_commit") { "Commit" } else { "Draft" }
+          $publishParams = @{
+            Version           = "${{ inputs.version }}"
+            Mode              = $mode
+            RolloutPercentage = [int]"${{ inputs.rollout_percentage }}"
+            SkipBuild         = $true
+          }
+          if ("${{ inputs.apply_default_notes }}" -eq "true") {
+            $publishParams["ApplyDefaultNotes"] = $true
+          }
+          ./scripts/publish-msstore.ps1 @publishParams
+
+      - name: Upload Store MSIXBundle & Arch Packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: ottline-windows-release-${{ inputs.version }}
+          path: |
+            apps/windows-native/output/store-upload/*.msixbundle
+            apps/windows-native/output/msix/*.msix
+          if-no-files-found: error
+
+      - name: Release Summary
+        if: always()
+        working-directory: apps/windows-native
+        run: |
+          $lines = @(
+            "### Native Windows Release (${{ inputs.version }})",
+            "- **publish_mode**: ``${{ inputs.publish_mode }}``",
+            "- **apply_default_notes**: ``${{ inputs.apply_default_notes }}``",
+            "- **rollout_percentage**: ``${{ inputs.rollout_percentage }}%``"
+          )
+          if (Test-Path "output/msix") {
+            $lines += @("", "| Package | Size (MB) | SHA-256 |", "| :--- | :---: | :--- |")
+            foreach ($item in Get-ChildItem "output/msix" -File | Sort-Object Name) {
+              $sizeMb = [math]::Round($item.Length / 1MB, 2)
+              $sha = (Get-FileHash -Path $item.FullName -Algorithm SHA256).Hash
+              $lines += "| ``$($item.Name)`` | $sizeMb | ``$sha`` |"
+            }
+          }
+          $lines | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append

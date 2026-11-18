@@ -13,6 +13,8 @@ import app.ottline.data.OttlineRepository
 import app.ottline.data.SyncStatus
 import app.ottline.data.local.AppPreferences
 import app.ottline.data.local.OttlineDatabase
+import app.ottline.data.local.TitleEntity
+import app.ottline.data.local.WatchLogEntity
 import app.ottline.data.remote.OttlineApiClient
 import app.ottline.domain.RecordDate
 import app.ottline.model.LogDraft
@@ -647,6 +649,265 @@ class OttlineSyncAndApiTest {
         assertEquals(1, parsed.count { it == "first_log_create" })
         assertEquals(2, parsed.count { it == "log_create" })
         assertEquals(1, parsed.count { it == "login_success" })
+    }
+
+    @Test
+    fun twoStepQuickSaveThenMomentEdit_neverCreatesDuplicateLogAcrossStalePullOrServerPageRemap() = runBlocking {
+        prefs.saveAuth("u-2step", "d-2step", "PAIR-2STP")
+
+        val localTempTitle = Title(
+            id = "local-title-1",
+            type = TitleType.MOVIE,
+            name = "글래디에이터 II",
+            year = 2024,
+            provider = Provider.TMDB,
+            providerId = "558449"
+        )
+        val canonServerTitle = localTempTitle.copy(
+            id = "canon-title-558449",
+            overview = "콜로세움의 새로운 검투사",
+            posterUrl = "https://image.tmdb.org/t/p/w500/gladiator2.jpg"
+        )
+
+        val savedLogId = java.util.concurrent.atomic.AtomicReference("missing")
+        val pushedStage4 = java.util.concurrent.atomic.AtomicBoolean(false)
+        server.dispatcher = object : Dispatcher() {
+            override fun dispatch(request: RecordedRequest): MockResponse {
+                val path = request.path.orEmpty()
+                return when {
+                    path == "/api/sync/push" -> {
+                        val body = request.body.readUtf8()
+                        if (body.contains("2차 순간 메모")) {
+                            pushedStage4.set(true)
+                        }
+                        MockResponse()
+                            .setResponseCode(200)
+                            .setBody("""{"accepted":["ok"],"rejected":[]}""")
+                    }
+
+                    path.startsWith("/api/sync/pull") -> {
+                        val stage4Extras = if (pushedStage4.get()) {
+                            """
+                                    "rating": 5.0,
+                                    "place": "THEATER",
+                                    "note": "2차 순간 메모",
+                            """.trimIndent() + "\n"
+                        } else {
+                            ""
+                        }
+                        MockResponse()
+                            .setResponseCode(200)
+                            .setBody(
+                                """
+                                {
+                                  "serverTime": "${if (pushedStage4.get()) "2026-11-17T10:02:00Z" else "2026-11-17T10:01:00Z"}",
+                                  "changes": {
+                                    "titles": [],
+                                    "logs": [
+                                      {
+                                        "id": "${savedLogId.get()}",
+                                        "titleId": "canon-title-558449",
+                                        "status": "DONE",
+                                        $stage4Extras"watchedAt": "2026-11-17T10:00:00+09:00",
+                                        "createdAt": "2026-11-17T10:00:00+09:00",
+                                        "updatedAt": "${if (pushedStage4.get()) "2026-11-17T10:01:30+09:00" else "2026-11-17T10:00:10+09:00"}"
+                                      }
+                                    ]
+                                  }
+                                }
+                                """.trimIndent()
+                            )
+                    }
+
+                    path == "/api/titles/canon-title-558449" -> MockResponse()
+                        .setResponseCode(200)
+                        .setBody(
+                            """
+                            {
+                              "id": "canon-title-558449",
+                              "type": "movie",
+                              "name": "글래디에이터 II",
+                              "year": 2024,
+                              "overview": "콜로세움의 새로운 검투사",
+                              "posterUrl": "https://image.tmdb.org/t/p/w500/gladiator2.jpg",
+                              "provider": "TMDB",
+                              "providerId": "558449"
+                            }
+                            """.trimIndent()
+                        )
+
+                    path == "/api/nalytic/events" -> MockResponse().setResponseCode(202)
+                    path.startsWith("/api/android/") -> MockResponse().setResponseCode(200).setBody("{}")
+                    else -> MockResponse().setResponseCode(404)
+                }
+            }
+        }
+
+        // Stage 2: initial quick save creates LOG_1 under local-title-1
+        val initialSaved = repository.saveLogForTitle(
+            rawTitle = localTempTitle,
+            draft = LogDraft(
+                status = LogStatus.DONE,
+                watchedAt = "2026-11-17T10:00:00+09:00"
+            ),
+            awaitSync = false
+        )
+        savedLogId.set(initialSaved.id)
+
+        // Background sync runs with stale-title pull (titles: []) + timeline page cache update
+        val syncResult = repository.syncOutbox()
+        assertEquals(SyncStatus.IDLE, syncResult.status)
+
+        repository.upsertLogsFromServerPage(
+            listOf(
+                WatchLog(
+                    id = initialSaved.id,
+                    title = canonServerTitle,
+                    status = LogStatus.DONE,
+                    watchedAt = "2026-11-17T10:00:00+09:00",
+                    createdAt = initialSaved.createdAt,
+                    updatedAt = "2026-11-17T10:00:10+09:00"
+                )
+            )
+        )
+
+        // Stage 4: user still holds stale `rawTitle` (id = "local-title-1") and passes `existingLogId`
+        val finalSaved = repository.saveLogForTitle(
+            rawTitle = localTempTitle,
+            draft = LogDraft(
+                status = LogStatus.DONE,
+                rating = 5.0,
+                place = Place.THEATER,
+                note = "2차 순간 메모",
+                watchedAt = "2026-11-17T10:00:00+09:00"
+            ),
+            awaitSync = true,
+            existingLogId = initialSaved.id
+        )
+
+        val activeLogs = repository.activeLogsFlow.first()
+        assertEquals(1, activeLogs.size)
+        assertEquals(1, db.watchLogDao().getActiveLogs().size)
+        assertEquals(1, db.titleDao().getAll().size)
+        assertEquals("canon-title-558449", finalSaved.title.id)
+        assertEquals("canon-title-558449", activeLogs.first().title.id)
+        assertEquals("글래디에이터 II", activeLogs.first().title.name)
+        assertEquals(initialSaved.id, activeLogs.first().id)
+        assertEquals(5.0, activeLogs.first().rating!!, 0.01)
+        assertEquals(Place.THEATER, activeLogs.first().place)
+        assertEquals("2차 순간 메모", activeLogs.first().note)
+    }
+
+    @Test
+    fun deduplicateLocalRecords_healsExistingDuplicateTitleAndLogPairsPreservingLatestMoment() = runBlocking {
+        prefs.setLastSyncAt("2026-11-17T09:00:00Z")
+
+        db.titleDao().upsert(
+            TitleEntity(
+                id = "canon-t1",
+                type = "movie",
+                name = "듀플 테스트 영화",
+                year = 2025,
+                provider = "TMDB",
+                providerId = "999",
+                updatedAt = "2026-11-17T10:00:00Z"
+            )
+        )
+        db.titleDao().upsert(
+            TitleEntity(
+                id = "local-t2",
+                type = "movie",
+                name = "듀플 테스트 영화",
+                year = 2025,
+                posterUrl = "https://img.example/999.jpg",
+                provider = "TMDB",
+                providerId = "999",
+                updatedAt = "2026-11-17T10:01:00Z"
+            )
+        )
+        db.watchLogDao().upsert(
+            WatchLogEntity(
+                id = "log-canon-1",
+                titleId = "canon-t1",
+                status = "DONE",
+                rating = null,
+                note = null,
+                syncStatus = "synced",
+                watchedAt = "2026-11-17T10:00:00+09:00",
+                createdAt = "2026-11-17T10:00:00+09:00",
+                updatedAt = "2026-11-17T10:00:05+09:00"
+            )
+        )
+        db.watchLogDao().upsert(
+            WatchLogEntity(
+                id = "log-dup-2",
+                titleId = "local-t2",
+                status = "DONE",
+                rating = 5.0,
+                note = "극장에서 본 순간",
+                place = "THEATER",
+                syncStatus = "synced",
+                watchedAt = "2026-11-17T10:00:00+09:00",
+                createdAt = "2026-11-17T10:01:00+09:00",
+                updatedAt = "2026-11-17T10:01:05+09:00"
+            )
+        )
+
+        assertTrue(repository.deduplicateLocalRecordsIfNeeded())
+
+        val activeLogs = repository.activeLogsFlow.first()
+        assertEquals(1, activeLogs.size)
+        assertEquals(1, db.titleDao().getAll().size)
+        assertEquals("log-canon-1", activeLogs.first().id)
+        assertEquals("canon-t1", activeLogs.first().title.id)
+        assertEquals("https://img.example/999.jpg", activeLogs.first().title.posterUrl)
+        assertEquals("극장에서 본 순간", activeLogs.first().note)
+        assertEquals(5.0, activeLogs.first().rating!!, 0.01)
+        assertEquals(Place.THEATER, activeLogs.first().place)
+        assertNull(prefs.current.lastSyncAt)
+    }
+
+    @Test
+    fun apiRequestsSendAndroidNativePlatformHeaderButExternalShareFetchDoesNot() = runBlocking {
+        val capturedPaths = CopyOnWriteArrayList<RecordedRequest>()
+        server.dispatcher = object : Dispatcher() {
+            override fun dispatch(request: RecordedRequest): MockResponse {
+                capturedPaths.add(request)
+                return when (request.path) {
+                    "/api/auth/register" -> MockResponse()
+                        .setResponseCode(200)
+                        .setBody("""{"userId":"user-1","deviceId":"dev-1","pairingCode":"PAIRCODE"}""")
+                    "/api/auth/devices" -> MockResponse()
+                        .setResponseCode(200)
+                        .setBody("""[{"id":"dev-1","createdAt":"2026-11-18T00:00:00Z","lastSeenAt":"2026-11-18T00:00:00Z","os":"Android","browser":"Android App"}]""")
+                    "/external-share" -> MockResponse()
+                        .setResponseCode(200)
+                        .setBody("""<html><head><meta property="og:title" content="테스트 작품" /></head></html>""")
+                    else -> MockResponse().setResponseCode(404)
+                }
+            }
+        }
+
+        val registered = api.register()
+        prefs.saveAuth(registered.userId, registered.deviceId, registered.pairingCode)
+        val devices = api.getDevices()
+        val resolvedTitle = api.resolveSharedUrlTitle(server.url("/external-share").toString())
+
+        assertEquals(1, devices.size)
+        assertEquals("Android", devices.first().os)
+        assertEquals("Android App", devices.first().browser)
+        assertEquals("테스트 작품", resolvedTitle)
+
+        val registerReq = capturedPaths.first { it.path == "/api/auth/register" }
+        assertEquals("android_native", registerReq.getHeader("X-Client-Platform"))
+        assertTrue(registerReq.getHeader("User-Agent").orEmpty().contains("ottline-android/"))
+
+        val devicesReq = capturedPaths.first { it.path == "/api/auth/devices" }
+        assertEquals("android_native", devicesReq.getHeader("X-Client-Platform"))
+        assertTrue(devicesReq.getHeader("User-Agent").orEmpty().contains("ottline-android/"))
+
+        val externalReq = capturedPaths.first { it.path == "/external-share" }
+        assertNull(externalReq.getHeader("X-Client-Platform"))
     }
 }
 

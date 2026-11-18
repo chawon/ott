@@ -1,5 +1,64 @@
 # Wiki Log
 
+## [2026-11-18] plan: 데스크톱(Windows·macOS) 공통 ottline:// 프로토콜·핸드오프 및 브라우저 확장 전환 명세 작성
+- 대상: `docs/desktop-protocol-and-extension-bridge-plan-2026-11-18.md` (신규), `wiki/pages/platforms/browser-extension.md`, `wiki/pages/platforms/windows-native.md`, `wiki/index.md`
+- 노트:
+  - `apps/browser-extension`(`ottline helper`)을 기능 동결하되 Chrome·Edge·Whale 스토어는 무료 검색 입구로 유지하고, `?quick=1&capture_title=...` 진입 시 Windows·macOS 데스크톱 네이티브 앱으로 연결하는 브릿지 전략 정리
+  - Windows `main`(`DomainHelpers.cs`, `OttlineRepository.cs`)과 `origin/feature/ios-native-v2`(`OttlineMacApp.swift`, `OttlineApp.swift`) 코드 대조를 통해 `ottline://quick?quick=1&title=...&q=...` 공통 규격 및 macOS/iOS 측 `title`/`capture_title` 수용·`?native_handoff=1` → `ottline://open?handoff=1` 세션 이어받기 보강 명세 확정
+
+## [2026-11-18] release: Microsoft Store Windows Native v2.0.0.0 정식 출시(Published) 및 실기기 PWA 핸드오프 검증 완료
+- 대상: `AGENTS.md`, `docs/windows-native-v2-transition.md`, `docs/ottline-v2-release-readiness.md`, `docs/ms-store-pwa-plan.md`, `docs/web-acquisition-funnel-plan-2026-11-17.md`, `wiki/pages/platforms/ms-store.md`, `wiki/pages/platforms/windows-native.md`, `wiki/pages/platforms/pwa.md`, `wiki/index.md`
+- 노트:
+  - Partner Center Submission `1152921505702424456`(`v2.0.0.0`)이 `Status = Published`로 승인·게시되어 DisplayCatalog(`ChawonLee.ottline_2.0.0.0_neutral_~_ry7416pek43sa`, KO/EN 부제·포스터·스크린샷 4종)와 `winget`(`9NSVNZGDMGF5`)에 정식 반영됨을 확인
+  - 개발 모드 패키지 제거 후 `winget install --id 9NSVNZGDMGF5 --source msstore`(`SignatureKind: Store`) 정식 설치 실행 및 별도 PC `1.0.x` Edge PWA → `2.0.0.0` 업데이트 후 웹 브라우저 연결(`?native_handoff=1` → `ottline://open?handoff=1`) 자동 핸드오프 동작 실기기 검증 완료
+  - Android TWA(`2026-11-09`)에 이어 Microsoft Store PWABuilder PWA 배포도 순수 네이티브로 전환 종료되어 스토어 래퍼 앱은 더 이상 운영하지 않으며, 웹 `ottline.app` 설치형 PWA는 macOS/Linux 등 비-스토어 환경과 기존 홈 화면 사용자 전용으로 유지함을 명시
+  - PR `#133` 웹 문구(`Ctrl+Alt+O`)는 실제 앱 단축키(`Ctrl+Shift+O`)와 다르므로 후속 웹 PR에서 정정 대상으로 기록
+
+## [2026-11-18] fix(api,android): Android 네이티브 연결 기기 표시 (Android App · Android)
+
+- `AuthService`에 `X-Client-Platform: android_native` 및 헤더 없는 `2.0.4` 앱의 `ottline-android/` User-Agent 하위호환 분기를 추가해 연결 기기 목록에서 `Android App · Android`로 구분 표시하도록 수정(일반 Chrome PWA는 `Chrome · Android` 유지).
+- Android `OttlineApiClient`에 `X-Client-Platform: android_native` 헤더(외부 공유 링크 조회 제외)를 추가하고 `MySpaceScreen` 기기 라벨 순서를 `browser · os`로 통일(Play 스토어 재배포 없음).
+- 문서: AGENTS.md, wiki/pages/platforms/android-native.md.
+
+## [2026-11-18] deploy: Windows 웹 전환 퍼널과 Windows·macOS 연결 기기 표시
+
+- PR #133·#135 병합, 공통 API/Web SHA `2f262ec1f854df70d7a48674b9ca612b590b2248`. API production `44217423318` → 실제 API 검사 → Web production `44218009292` 순서로 배포했다.
+- Windows 전역 배너·QuickLog 저장 CTA·소개 카드의 `cid` 계측과 v2 설명을 반영했다. 네이티브 기기는 `windows_native`·`macos_native` 헤더로 표시를 갱신하며 기존 ID·계정·등록 시각을 보존한다.
+- API CI 185건·운영 전환 퍼널 21개 시나리오·SEO 공개 19개/개인 14개 경로·한영 내 공간 기기 라벨을 확인했다. 공개 버전 HTTP 200, IndexNow 19개 접수, ArgoCD `Synced Healthy`, 두 Pod Ready·restart 0이다.
+- 기존 기록 623개·이력 1,063개를 보존했고 검증 계정 3개와 임시 DB Pod를 정리했다. iOS Smart App Banner·`ct`와 네이티브 바이너리는 이번 배포 범위에서 제외했다.
+- 문서: AGENTS.md, docs/desktop-acquisition-rollout-2026-11-18.md, docs/native-desktop-device-info.md, docs/web-acquisition-funnel-plan-2026-11-17.md, platforms/windows-native.md, platforms/ms-store.md, architecture/geo-seo.md, index.md.
+
+## [2026-11-17] plan: Partner Center 유입 지표 진단 및 Web 스토어 전환·SEO 개선 인계 문서 작성
+- 대상: `docs/web-acquisition-funnel-plan-2026-11-17.md` (신규), `wiki/pages/architecture/geo-seo.md`, `wiki/pages/platforms/ms-store.md`
+- 노트:
+  - Microsoft Partner Center 최근 12개월 획득 리포트(`488` 조회 → `24` 설치 [`4.92%`], 첫 실행 `16`, 한국 설치 `2`건 [`8.33%`], 자사 `?cid=` 유입 `0`건)와 `apps/web` 퍼널 대조 분석 정리
+  - `PwaInstallBanner.tsx`의 Windows/iOS 브라우저 PWA 우선 유도, `layout.tsx` iOS Smart App Banner 누락, `SavedAndroidPlayCta.tsx`의 QuickLog 저장 직후 Android 단독 노출, `/about` Windows 구버전 문구 및 `?cid=`/`?ct=` 누락, `/public/[id]` `noindex` 롱테일 SEO 병목을 Phase 1~3으로 정리해 Web 담당자 인계 문서로 확정
+
+## [2026-11-17] ingest: Windows Native v2 모노레포 통합 및 Microsoft Store 2.0.0.0 심사 제출
+- 대상: `apps/windows-native/`, `.github/workflows/native-windows-ci.yml`, `.github/workflows/native-windows-release.yml`, `docs/windows-native-v2-transition.md`, `AGENTS.md`, `README.md`
+- 생성/수정: `wiki/pages/platforms/windows-native.md` (신규), `wiki/pages/platforms/ms-store.md`, `wiki/pages/features/ottline-v2.md`, `wiki/index.md`
+- 노트:
+  - PR `#132`(main SHA `7bc5a46`, 커밋 `bfdca7b`)로 순수 Windows Native(`.NET 8 WPF + SQLite + Windows 11 공식 위젯`) `apps/windows-native` 모노레포 통합 및 `Native Windows CI`(`verify-windows`, Run `44030185194`) 통과 확인
+  - Partner Center `9NSVNZGDMGF5`(`ChawonLee.ottline`)에 `Desktop` 전용 장치 패밀리(`Holographic: false`), KO/EN 부제 포함 제목(`ottline - 영화·드라마·책·독서 기록` / `ottline: Movie, TV & Book Log`), `ottline-2.0.0.0.msixbundle`(`x64`+`arm64`, `158.90 MB`), 신규 아트워크·스크린샷 12종 업로드 후 Submission `1152921505702424456` `Certification` 진입 확인
+  - 기존 Store Edge PWA(`1.0.x`) 사용자 `?native_handoff=1` → `ottline://open?handoff=1`(`<uap3:Protocol Parameters="%1">`) 자동 세션·기록 이어받기 및 병합, 단위 테스트 14/14·위젯 COM 스모크 테스트 검증 완료
+
+## [2026-11-12] fix: Web/PWA 오프라인 재진입 안내·키보드 접근성 운영 배포
+
+- PR `#130`, Web SHA `4cabcd553a952bc27db9b39b02ad94498e225cec`, production run `43158345911`, manifest commit `753ef492dd922c13089824c3b12b675bdf9f6bae`.
+- 서비스워커 v7, 외부 자원 없는 한·영 안내, 검색 선택 상태와 동일 제목 판본 출처 이름, 모션 감소·포커스 대비·본문 바로가기를 반영했다.
+- PR/main CI와 운영 배포 성공, 공개 버전·서비스워커·안내 파일 일치, 한·영 통신 실패 시 HTTP 200 fallback, 이전 캐시 정리·관련 없는 캐시 유지와 재연결을 확인했다. 브라우저 probe는 격리된 서비스워커 전송에만 실패를 주입했고 서버 API·쓰기를 차단했다.
+- ArgoCD `Synced Healthy`, Web `APP_VERSION=4cabcd5`, Web/API Pod Ready·restart 0, IndexNow 19개 URL HTTP 200을 확인했다. API 이미지 `916be7a`와 네이티브 바이너리는 유지했다.
+- 배포 검증에서 발견한 서비스워커 활성화 대기 조건도 동기 controller 상태 확인으로 보완했다.
+- 문서: AGENTS.md, docs/web-offline-accessibility-2026-11-12.md, features/ottline-v2.md, platforms/pwa.md, index.md, log.md.
+
+## [2026-11-11] fix: v2 sitemap·공유 메타데이터·가이드 구조화 데이터 Web 운영 배포
+
+- PR `#127`, Web SHA `aa991545f5fb3a914561f7fcd3e12c817275144c`, production run `43014772986`, manifest commit `c8a39db5e10aa644bc68cfb073e419441a003158`.
+- 홈·소개·FAQ 수정일과 가이드 목록의 문서 수정일 연동, v2 OG 이미지·페이지별 Twitter 정보, 한·영 가이드 `Article`·`BreadcrumbList`를 반영했다.
+- PR/main Web CI, 운영 공개 URL 19개·개인 화면 14개·구조화 데이터 6세트·이미지 7개 검사가 통과했다. ArgoCD `Synced Healthy`, Web `APP_VERSION=aa99154`와 Pod `1/1` ready·restart 0, IndexNow 19개 URL HTTP 200 접수를 확인했다.
+- API는 기존 `916be7a` 이미지·Pod `1/1` ready·restart 0을 유지하며 사용자 기록을 생성·수정하거나 네이티브 바이너리를 배포하지 않았다.
+- 문서: AGENTS.md, docs/seo-v2-refresh-2026-11-11.md, architecture/geo-seo.md, features/ottline-v2.md, index.md, log.md.
+
 ## [2026-11-09] ingest: Android Native v2 전환 및 TWA 자동 세션·기록 복구 프로덕션 출시
 - 대상: `apps/android-native/`, `docs/android-native-v2-transition.md`, `docs/ottline-v2-release-readiness.md`, `docs/ottline-v2-production-rollout.md`, `AGENTS.md`
 - 생성/수정: `pages/platforms/android-native.md` (신규), `pages/platforms/twa.md`, `pages/features/ottline-v2.md`, `index.md`

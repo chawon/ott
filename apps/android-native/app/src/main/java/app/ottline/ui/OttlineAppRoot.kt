@@ -33,6 +33,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import app.ottline.data.OttlineRepository
+import app.ottline.data.local.PlayInstallReferrerManager
 import app.ottline.data.local.ThemeMode
 import app.ottline.data.local.TwaBrowserBridge
 import app.ottline.domain.ShareIntentParser
@@ -116,6 +117,19 @@ fun OttlineAppRoot(
 
     var pendingFeedbackReportBody by rememberSaveable { mutableStateOf<String?>(null) }
     var showIntroSplash by rememberSaveable { mutableStateOf(pendingCommand == null) }
+    var pendingReviewCheckAfterSave by rememberSaveable { mutableStateOf(false) }
+
+    LaunchedEffect(pendingReviewCheckAfterSave, quickRecordDraft == null, showIntroSplash) {
+        if (pendingReviewCheckAfterSave && quickRecordDraft == null && !showIntroSplash) {
+            pendingReviewCheckAfterSave = false
+            kotlinx.coroutines.delay(700L)
+            InAppReviewHelper.maybeRequestInAppReview(
+                context = context,
+                prefs = repository.prefs,
+                activeLogsCount = allLogs.size
+            )
+        }
+    }
 
     fun navigateTopTab(tab: MainTab) {
         val target = when (tab) {
@@ -133,9 +147,18 @@ fun OttlineAppRoot(
         }
     }
 
-    // Track session-deduplicated `app_open` once per app session (F08) + automatic TWA upgrade migration
+    // Track session-deduplicated `app_open` once per app session (F08) + Install Referrer + automatic TWA/Web handoff
     LaunchedEffect(Unit) {
-        repository.trackAppOpenOnce(entrySource = if (pendingCommand != null) "deeplink" else "launcher")
+        repository.deduplicateLocalRecordsIfNeeded()
+        val firstInstallReferrer = if (!repository.prefs.current.installReferrerChecked) {
+            PlayInstallReferrerManager.checkAndProcessOnce(context, repository)
+        } else {
+            null
+        }
+        repository.trackAppOpenOnce(
+            entrySource = if (pendingCommand != null) "deeplink" else "launcher",
+            extraAttribution = firstInstallReferrer?.toAppOpenAttributionProps().orEmpty()
+        )
 
         if (pendingCommand !is LaunchCommand.CompleteTwaHandoff &&
             !repository.prefs.current.twaBrowserHandoffCompleted &&
@@ -162,6 +185,22 @@ fun OttlineAppRoot(
                     apiBaseUrl = snap.apiBaseUrl
                 )
             }
+        } else if (pendingCommand !is LaunchCommand.CompleteTwaHandoff &&
+            firstInstallReferrer?.webHandoff == true &&
+            repository.prefs.current.userId.isNullOrBlank() &&
+            !repository.prefs.current.twaBrowserHandoffCompleted
+        ) {
+            repository.prefs.markTwaBrowserHandoffCompleted()
+            repository.trackEvent(
+                "web_to_app_handoff_start",
+                mapOf("campaign" to (firstInstallReferrer.utmCampaign ?: "unknown"))
+            )
+            val snap = repository.prefs.current
+            TwaBrowserBridge.launchTwaHandoff(
+                context = context,
+                locale = snap.locale,
+                apiBaseUrl = snap.apiBaseUrl
+            )
         }
     }
 
@@ -560,12 +599,21 @@ fun OttlineAppRoot(
                     personaKey = prefsSnapshot.personaKey,
                     customVideoPlatforms = prefsSnapshot.customVideoPlatforms,
                     customBookPlatforms = prefsSnapshot.customBookPlatforms,
-                    onDismiss = { mainViewModel.dismissQuickRecord() },
+                    onDismiss = {
+                        if (draft.savedLog != null) {
+                            pendingReviewCheckAfterSave = true
+                        }
+                        mainViewModel.dismissQuickRecord()
+                    },
                     onOpenTimeline = {
+                        if (draft.savedLog != null) {
+                            pendingReviewCheckAfterSave = true
+                        }
                         mainViewModel.dismissQuickRecord()
                         navigateTopTab(MainTab.TIMELINE)
                     },
                     onSavedAndOpenTitle = { savedTitleId ->
+                        pendingReviewCheckAfterSave = true
                         mainViewModel.dismissQuickRecord()
                         navController.navigate("title/${Uri.encode(savedTitleId)}") {
                             launchSingleTop = true

@@ -47,6 +47,9 @@ jobs:
       - name: Test analytics collection
         run: npm run test:analytics --workspace ott
 
+      - name: Test store acquisition policies and campaign URLs
+        run: npm run test:android-acquisition --workspace ott
+
       - name: Test book edition identity and source links
         run: npm run test:bookshelf --workspace ott
 
@@ -96,10 +99,13 @@ jobs:
             ott-web:verify
           trap 'docker logs ott-web-verify; docker rm --force ott-web-verify' EXIT
           docker exec --interactive ott-web-verify node --input-type=module < apps/web/scripts/verify-web-runtime.mjs
+          docker exec --interactive ott-web-verify node --input-type=module < apps/web/scripts/test-seo-runtime.mjs
           docker exec --interactive ott-web-verify node --input-type=module < apps/web/scripts/test-chatgpt-mcp.mjs
           npm run test:locale-navigation --workspace ott
           TIMELINE_TEST_URL=http://127.0.0.1:3000 npm run test:timeline-scroll --workspace ott
           WEB_STORAGE_PROFILE_DIR=/tmp/ott-web-storage-ci npm run test:web-storage --workspace ott -- --seed
           WEB_STORAGE_PROFILE_DIR=/tmp/ott-web-storage-ci npm run test:web-storage --workspace ott
           npm run test:book-search --workspace ott
+          npm run test:web-accessibility --workspace ott
           WEB_RUNTIME_URL=http://127.0.0.1:3000 node apps/web/scripts/test-record-save-intent.mjs
+          WEB_RUNTIME_URL=http://127.0.0.1:3000 npm run test:store-acquisition-runtime --workspace ott

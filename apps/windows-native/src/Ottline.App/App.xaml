@@ -1,0 +1,201 @@
+<Application x:Class="Ottline.App.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:theme="clr-namespace:Ottline.App.Theme">
+    <Application.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis" />
+        <theme:UrlToImageSourceConverter x:Key="PosterConverter" />
+
+        <!-- Pretendard Font (Loaded from disk via OttlineThemeManager with system Korean fallback) -->
+        <FontFamily x:Key="PretendardFont">Pretendard, Malgun Gothic, Segoe UI</FontFamily>
+        <FontFamily x:Key="OttlineFontFamily">Pretendard, Malgun Gothic, Segoe UI</FontFamily>
+
+        <!-- Default Light Theme Brushes (Dynamically updated by OttlineThemeManager) -->
+        <SolidColorBrush x:Key="BgPrimaryBrush" Color="#F8F6F2" />
+        <SolidColorBrush x:Key="BackgroundBrush" Color="#F8F6F2" />
+        <SolidColorBrush x:Key="BgCardBrush" Color="#FFFFFF" />
+        <SolidColorBrush x:Key="CardBrush" Color="#FFFFFF" />
+        <SolidColorBrush x:Key="BgElevatedBrush" Color="#FEF9EE" />
+        <SolidColorBrush x:Key="CardElevatedBrush" Color="#FEF9EE" />
+        <SolidColorBrush x:Key="BgSecondaryBrush" Color="#ECEBE9" />
+        <SolidColorBrush x:Key="BgHoverBrush" Color="#F2EFE9" />
+
+        <SolidColorBrush x:Key="TextPrimaryBrush" Color="#191919" />
+        <SolidColorBrush x:Key="ForegroundBrush" Color="#191919" />
+        <SolidColorBrush x:Key="TextSecondaryBrush" Color="#4A4845" />
+        <SolidColorBrush x:Key="ForegroundSecondaryBrush" Color="#4A4845" />
+        <SolidColorBrush x:Key="TextMutedBrush" Color="#76736E" />
+        <SolidColorBrush x:Key="ForegroundMutedBrush" Color="#76736E" />
+        <SolidColorBrush x:Key="TextCaptionBrush" Color="#636363" />
+
+        <SolidColorBrush x:Key="BrandMarkBrush" Color="#1E4D8C" />
+        <SolidColorBrush x:Key="BrandNavyBrush" Color="#1E4D8C" />
+        <SolidColorBrush x:Key="PrimaryBrush" Color="#1E4D8C" />
+        <SolidColorBrush x:Key="BrandNavySoftBrush" Color="#EBF1F8" />
+        <SolidColorBrush x:Key="AccentOrangeBrush" Color="#FF9933" />
+        <SolidColorBrush x:Key="AccentBrush" Color="#FF9933" />
+        <SolidColorBrush x:Key="AccentOrangeTextBrush" Color="#0F0F0F" />
+        <SolidColorBrush x:Key="AccentOrangeSoftBrush" Color="#FFF3E0" />
+
+        <SolidColorBrush x:Key="BorderHairlineBrush" Color="#E4E1DC" />
+        <SolidColorBrush x:Key="BorderBrush" Color="#E4E1DC" />
+        <SolidColorBrush x:Key="BorderStrongBrush" Color="#CFCBC4" />
+
+        <SolidColorBrush x:Key="SemanticSuccessBrush" Color="#2E7D32" />
+        <SolidColorBrush x:Key="SemanticSuccessBgBrush" Color="#EBF5EC" />
+        <SolidColorBrush x:Key="SemanticWarningBrush" Color="#E65100" />
+        <SolidColorBrush x:Key="SemanticWarningBgBrush" Color="#FFF3E0" />
+        <SolidColorBrush x:Key="SemanticDangerBrush" Color="#C62828" />
+        <SolidColorBrush x:Key="ErrorBrush" Color="#C62828" />
+        <SolidColorBrush x:Key="SemanticDangerBgBrush" Color="#FDECEA" />
+        <SolidColorBrush x:Key="OverlayScrimBrush" Color="#9914110E" />
+
+        <!-- Primary Action Orange Button Style (DESIGN.md: #FF9933 bg, #0F0F0F text, 8px radius) -->
+        <Style x:Key="PrimaryOrangeButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="{DynamicResource AccentOrangeBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource AccentOrangeTextBrush}" />
+            <Setter Property="FontFamily" Value="{StaticResource PretendardFont}" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="FontSize" Value="13.5" />
+            <Setter Property="Padding" Value="16,9" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="border"
+                                Background="{TemplateBinding Background}"
+                                CornerRadius="8"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Opacity" Value="0.9" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="border" Property="Opacity" Value="0.8" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="PrimaryActionButtonStyle" TargetType="Button" BasedOn="{StaticResource PrimaryOrangeButtonStyle}" />
+
+        <!-- Secondary Warm Card Button Style (8px radius) -->
+        <Style x:Key="SecondaryWarmButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="{DynamicResource BgCardBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderHairlineBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="FontFamily" Value="{StaticResource PretendardFont}" />
+            <Setter Property="FontWeight" Value="Medium" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="Padding" Value="14,8" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="border"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="8"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="{DynamicResource BgHoverBrush}" />
+                                <Setter TargetName="border" Property="BorderBrush" Value="{DynamicResource BorderStrongBrush}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="SecondaryButtonStyle" TargetType="Button" BasedOn="{StaticResource SecondaryWarmButtonStyle}" />
+
+        <!-- Chip / Ghost Button Style -->
+        <Style x:Key="WarmChipButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="{DynamicResource BgElevatedBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderHairlineBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="FontFamily" Value="{StaticResource PretendardFont}" />
+            <Setter Property="FontWeight" Value="Medium" />
+            <Setter Property="FontSize" Value="12.5" />
+            <Setter Property="Padding" Value="12,6" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="border"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="8"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="BorderBrush" Value="{DynamicResource AccentOrangeBrush}" />
+                                <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="GhostButtonStyle" TargetType="Button" BasedOn="{StaticResource WarmChipButtonStyle}" />
+
+        <!-- Editorial Card Border Style (8px radius, 1px hairline border) -->
+        <Style x:Key="EditorialCardStyle" TargetType="Border">
+            <Setter Property="Background" Value="{DynamicResource BgCardBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderHairlineBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Padding" Value="20" />
+        </Style>
+
+        <Style x:Key="CardBorderStyle" TargetType="Border" BasedOn="{StaticResource EditorialCardStyle}" />
+
+        <!-- Warm Input TextBox Style -->
+        <Style x:Key="WarmTextBoxStyle" TargetType="TextBox">
+            <Setter Property="Background" Value="{DynamicResource BgCardBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+            <Setter Property="CaretBrush" Value="{DynamicResource BrandNavyBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderStrongBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="FontFamily" Value="{StaticResource PretendardFont}" />
+            <Setter Property="FontSize" Value="13.5" />
+            <Setter Property="Padding" Value="12,9" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TextBox">
+                        <Border x:Name="border"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="8">
+                            <ScrollViewer x:Name="PART_ContentHost" Margin="2" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsKeyboardFocused" Value="True">
+                                <Setter TargetName="border" Property="BorderBrush" Value="{DynamicResource BrandNavyBrush}" />
+                                <Setter TargetName="border" Property="BorderThickness" Value="1.5" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="OttlineTextBoxStyle" TargetType="TextBox" BasedOn="{StaticResource WarmTextBoxStyle}" />
+    </Application.Resources>
+</Application>

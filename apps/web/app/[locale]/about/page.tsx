@@ -17,19 +17,26 @@ import { useLocale, useTranslations } from "next-intl";
 import { getTranslations } from "next-intl/server";
 import BrowserExtensionJsonLd from "@/components/BrowserExtensionJsonLd";
 import SoftwareApplicationJsonLd from "@/components/SoftwareApplicationJsonLd";
+import StoreCampaignLink from "@/components/StoreCampaignLink";
 import { Link as IntlLink } from "@/i18n/routing";
+import { buildGooglePlayStoreUrl } from "@/lib/android-acquisition.mjs";
 import {
   localizedAlternates,
   localizedBrowserExtensionUrls,
   localizedOpenGraph,
   localizedStoreUrls,
 } from "@/lib/seo";
+import {
+  buildNativeStoreUrl,
+  type StorePlatform,
+} from "@/lib/store-acquisition.mjs";
 
 type PlatformLink = {
   href: string;
   label: string;
   external: boolean;
   icon: LucideIcon;
+  storePlatform?: StorePlatform;
 };
 
 type PlatformItem = {
@@ -100,7 +107,11 @@ export default function AboutPage() {
       icon: Smartphone,
       links: [
         {
-          href: storeUrls.googlePlay,
+          href: buildGooglePlayStoreUrl({
+            baseUrl: storeUrls.googlePlay,
+            campaign: "about_page",
+            content: "platform_card",
+          }),
           label: tAbout("platformAndroidLink"),
           external: true,
           icon: Store,
@@ -126,7 +137,12 @@ export default function AboutPage() {
       icon: MonitorDown,
       links: [
         {
-          href: "https://apps.microsoft.com/detail/9nsvnzgdmgf5",
+          href: buildNativeStoreUrl({
+            platform: "windows-store",
+            locale,
+            campaign: "about_platform_card",
+          }),
+          storePlatform: "windows-store",
           label: tAbout("platformWindowsLink"),
           external: true,
           icon: Store,
@@ -251,7 +267,16 @@ export default function AboutPage() {
                         );
                         const className =
                           "inline-flex min-h-9 items-center gap-1.5 rounded-full border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-card";
-                        return link.external ? (
+                        return link.storePlatform ? (
+                          <StoreCampaignLink
+                            key={link.href}
+                            platform={link.storePlatform}
+                            href={link.href}
+                            className={className}
+                          >
+                            {content}
+                          </StoreCampaignLink>
+                        ) : link.external ? (
                           <a
                             key={link.href}
                             href={link.href}

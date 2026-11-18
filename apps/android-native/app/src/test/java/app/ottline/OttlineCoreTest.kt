@@ -681,4 +681,107 @@ class OttlineCoreTest {
         assertNull(prefs.current.nickname)
         assertNull(prefs.current.personaKey)
     }
+
+    @Test
+    fun inAppReviewPolicy_gatesMilestonesAndSixtyDayCooldown() {
+        val now = 1_794_000_000_000L
+        // Too few active logs
+        assertFalse(
+            app.ottline.ui.InAppReviewHelper.shouldPromptForReview(
+                activeLogsCount = 2,
+                nativeLogSavesCount = 3,
+                lastPromptAtMillis = 0L,
+                nowMillis = now
+            )
+        )
+        // Synced many logs from web, but only 1 native save so far -> hold off
+        assertFalse(
+            app.ottline.ui.InAppReviewHelper.shouldPromptForReview(
+                activeLogsCount = 10,
+                nativeLogSavesCount = 1,
+                lastPromptAtMillis = 0L,
+                nowMillis = now
+            )
+        )
+        // Milestone reached (3+ active logs and 2+ native saves), never prompted -> eligible!
+        assertTrue(
+            app.ottline.ui.InAppReviewHelper.shouldPromptForReview(
+                activeLogsCount = 3,
+                nativeLogSavesCount = 2,
+                lastPromptAtMillis = 0L,
+                nowMillis = now
+            )
+        )
+        // Prompted 30 days ago -> blocked by 60-day cooldown
+        val thirtyDaysAgo = now - 30L * 24L * 60L * 60L * 1000L
+        assertFalse(
+            app.ottline.ui.InAppReviewHelper.shouldPromptForReview(
+                activeLogsCount = 8,
+                nativeLogSavesCount = 5,
+                lastPromptAtMillis = thirtyDaysAgo,
+                nowMillis = now
+            )
+        )
+        // Prompted 61 days ago -> eligible again
+        val sixtyOneDaysAgo = now - 61L * 24L * 60L * 60L * 1000L
+        assertTrue(
+            app.ottline.ui.InAppReviewHelper.shouldPromptForReview(
+                activeLogsCount = 8,
+                nativeLogSavesCount = 5,
+                lastPromptAtMillis = sixtyOneDaysAgo,
+                nowMillis = now
+            )
+        )
+
+        val prefs = AppPreferences(ApplicationProvider.getApplicationContext())
+        assertEquals(0, prefs.current.nativeLogSavesCount)
+        assertEquals(1, prefs.incrementNativeLogSavesCount())
+        assertEquals(2, prefs.incrementNativeLogSavesCount())
+        prefs.markInAppReviewPrompted(now)
+        assertEquals(now, prefs.current.lastInAppReviewPromptAtMillis)
+    }
+
+    @Test
+    fun playInstallReferrerParser_handlesWebHandoffPercentEncodingAndOrganicPlayStore() {
+        val webFunnel = app.ottline.data.local.PlayInstallReferrerManager.parseInstallReferrer(
+            "utm_source=ottline_web&utm_medium=owned&utm_campaign=quicklog_saved&utm_content=saved_stage_cta&web_handoff=1"
+        )
+        assertNotNull(webFunnel)
+        assertEquals("ottline_web", webFunnel!!.utmSource)
+        assertEquals("owned", webFunnel.utmMedium)
+        assertEquals("quicklog_saved", webFunnel.utmCampaign)
+        assertEquals("saved_stage_cta", webFunnel.utmContent)
+        assertTrue(webFunnel.webHandoff)
+        val appOpenProps = webFunnel.toAppOpenAttributionProps()
+        assertEquals("https://play.google.com", appOpenProps["referrer"])
+        assertEquals("ottline_web", appOpenProps["utmSource"])
+        assertEquals("quicklog_saved", appOpenProps["utmCampaign"])
+        assertEquals(true, appOpenProps["webHandoff"])
+
+        // Percent-encoded referrer string passed from Play Store URL
+        val encoded = app.ottline.data.local.PlayInstallReferrerManager.parseInstallReferrer(
+            "utm_source%3Dottline_web%26utm_medium%3Downed%26utm_campaign%3Dandroid_play_cta%26web_handoff%3Dtrue"
+        )
+        assertNotNull(encoded)
+        assertEquals("ottline_web", encoded!!.utmSource)
+        assertEquals("android_play_cta", encoded.utmCampaign)
+        assertTrue(encoded.webHandoff)
+
+        // Organic Google Play Search install
+        val organic = app.ottline.data.local.PlayInstallReferrerManager.parseInstallReferrer(
+            "utm_source=google-play&utm_medium=organic"
+        )
+        assertNotNull(organic)
+        assertEquals("google-play", organic!!.utmSource)
+        assertEquals("organic", organic.utmMedium)
+        assertFalse(organic.webHandoff)
+
+        assertNull(app.ottline.data.local.PlayInstallReferrerManager.parseInstallReferrer("   "))
+
+        val prefs = AppPreferences(ApplicationProvider.getApplicationContext())
+        assertFalse(prefs.current.installReferrerChecked)
+        prefs.markInstallReferrerChecked("utm_source=google-play&utm_medium=organic")
+        assertTrue(prefs.current.installReferrerChecked)
+        assertEquals("utm_source=google-play&utm_medium=organic", prefs.current.installReferrerRaw)
+    }
 }

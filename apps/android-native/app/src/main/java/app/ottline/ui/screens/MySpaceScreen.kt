@@ -41,6 +41,7 @@ import androidx.compose.material.icons.outlined.Key
 import androidx.compose.material.icons.outlined.MailOutline
 import androidx.compose.material.icons.outlined.NotificationsActive
 import androidx.compose.material.icons.outlined.Refresh
+import androidx.compose.material.icons.outlined.StarOutline
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -652,7 +653,10 @@ fun MySpaceScreen(
                                                     .padding(vertical = 4.dp)
                                             ) {
                                                 Column(modifier = Modifier.weight(1f)) {
-                                                    val label = listOfNotNull(dev.os, dev.browser)
+                                                    val label = listOfNotNull(
+                                                        dev.browser?.takeIf { it.isNotBlank() },
+                                                        dev.os?.takeIf { it.isNotBlank() }
+                                                    )
                                                         .joinToString(" · ")
                                                         .ifBlank { "Android" }
                                                     Text(
@@ -727,6 +731,12 @@ fun MySpaceScreen(
                         title = tr("기록 가이드 · 서비스 안내", "Guides & Privacy"),
                         subtitle = tr("오프라인 보관 원리와 개인정보 처리 안내", "How local-first sync & privacy work"),
                         onClick = onOpenGuides
+                    )
+                    NavRowItem(
+                        icon = Icons.Outlined.StarOutline,
+                        title = tr("Google Play에 응원 남기기", "Rate ottline on Google Play"),
+                        subtitle = tr("별점과 짧은 리뷰는 ottline이 자라는 데 큰 힘이 돼요", "A quick rating helps more readers & viewers find ottline"),
+                        onClick = { app.ottline.ui.InAppReviewHelper.openPlayStoreListing(context) }
                     )
                 }
             }

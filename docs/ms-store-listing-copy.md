@@ -1,3 +1,6 @@
+> **[업데이트 안내 — 2026-11-17]**
+> `2026-11-17` Microsoft Store `9NSVNZGDMGF5` v2.0.0.0(Windows Native, `apps/windows-native`) 심사 제출(`1152921505702424456`) 시 KO/EN 스토어 문구·제목/부제(`ottline - 영화·드라마·책·독서 기록` / `ottline: Movie, TV & Book Log`)·아트워크·스크린샷 12종이 [`apps/windows-native/scripts/publish-msstore.ps1`](../apps/windows-native/scripts/publish-msstore.ps1) 및 [`apps/windows-native/packaging/StoreListing/`](../apps/windows-native/packaging/StoreListing) 기준으로 전환되었습니다. 아래 문서는 초기 `On the Timeline` PWA 초안 보존용입니다.
+
 # Microsoft Store Listing Copy Draft
 
 ## 1. 기준

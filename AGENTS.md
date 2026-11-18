@@ -20,7 +20,7 @@ If present, read `./.omd/preferences.md` — pending corrections not yet folded 
 
 ---
 
-## 2) 프로젝트 스냅샷 (기준일: 2026-11-09)
+## 2) 프로젝트 스냅샷 (기준일: 2026-11-18)
 
 ### 아키텍처
 1. 모노레포
@@ -29,6 +29,7 @@ If present, read `./.omd/preferences.md` — pending corrections not yet folded 
    3. Android 네이티브: `apps/android-native` (Kotlin + Jetpack Compose + Room + WorkManager, Google Play `app.ottline` v2.0+)
    4. iOS 네이티브: `apps/native` (Expo React Native, App Store 출시)
    5. 브라우저 확장: `apps/browser-extension` (Chrome / Edge / Whale)
+   6. Windows 네이티브: `apps/windows-native` (.NET 8 WPF + SQLite + Windows App SDK Widgets, Microsoft Store `ChawonLee.ottline` / `9NSVNZGDMGF5` v2.0+)
 2. 프론트는 `/api/*`를 백엔드로 프록시(rewrite)한다.
 3. 외부 메타데이터 검색은 TMDB를 백엔드에서만 호출한다(키 노출 방지).
 
@@ -62,7 +63,7 @@ If present, read `./.omd/preferences.md` — pending corrections not yet folded 
 27. iOS 네이티브 앱 App Store 출시: Expo React Native 기반 iOS 네이티브 앱이 App Store 심사를 통과해 `2026-06-29` App Store에 공개됐다. 공개 링크는 `https://apps.apple.com/app/ottline/id6780318110`이며, 앱은 WebView/PWA 래퍼가 아니라 사용자 앱 화면을 네이티브 화면으로 구현한다.
 28. 2026년 상반기 리캡: 개인 이용 리포트에 `2026-H1` 리캡 데이터를 추가하고, 웹/네이티브 리포트에서 포스터 중심의 상반기 돌아보기와 SNS 공유용 카드 생성을 지원한다. 웹은 KST 기준 `2026-07-01`부터 `2026-07-31`까지 상단 바 아래에 `2026년 상반기를 돌아볼까요?` 노티를 노출해 리포트로 진입시켰다(`2026-07-01` production 반영, web/api SHA `9df9cb0`). 캠페인 종료에 맞춰 KST `2026-08-01 00:00`부터 API `seasonalRecap`과 웹 리포트·로컬 fallback의 리캡 노출을 종료했다(`2026-08-03` production 반영, web/api SHA `5eb5115`).
 29. 현실적인 관리자 통계 집계: 웹 `app_open`을 브라우저 탭 세션당 한 번으로 제한하고, 계정·클라이언트·세션을 안전하게 연결한 resolved actor 기준의 행동 사용자와 세션 기준 실행량을 추가했다. 관리자 화면과 데일리 리포트는 기존 DAU/WAU/MAU 및 순차 전환율 대신 행동 사용자·활성 클라이언트·앱 실행 세션·원본 실행 이벤트와 독립 행동 도달을 사용한다(`2026-07-14` production 반영, web/api SHA `b06bf4c`). Cloudflare 데일리 통계는 UTC 날짜 버킷 대신 KST 전일을 UTC 시간 범위로 변환해 HTTP·RUM을 같은 `[start, end)` 구간으로 집계한다(`2026-08-03` production 반영, api SHA `12ed846`). 후속 배포에서는 RUM `visits`를 고유 방문자가 아닌 `방문`으로 바로잡고, GA4 전일 값은 잠정치, Kubernetes는 조회 시점 스냅샷, iOS `app_store_testflight`는 설치 출처 미구분으로 표시했다(`2026-08-03` production 반영, web/api SHA `5c70b2b`).
-30. SEO·검색 유입 기반과 관리자 접근 경계: 한국어·영어 공개 페이지의 canonical/hreflang/OG, 검색 가이드 6개, 공개 URL 전용 sitemap/robots/llms.txt, 배포 후 IndexNow, 유입 세션 집계와 180일 보존 정책을 반영했다. `/admin/**`는 Cloudflare Access와 origin JWT 재검증으로 보호하고 PWA 캐시에서 제외했다(`2026-07-19` production 반영, web/api SHA `8303f4f`). `2026-07-25`에는 네이버 검색어 후속 점검을 바탕으로 `/about`과 영화·시리즈 가이드의 검색 문구, 가이드 직접 링크, 한국어 스토어 링크, `SoftwareApplication`의 공식 스토어 연결을 보강했다(web SHA `524b001`). iOS 바이너리는 새로 빌드하거나 배포하지 않았다.
+30. SEO·검색 유입 기반과 관리자 접근 경계: 한국어·영어 공개 페이지의 canonical/hreflang/OG, 검색 가이드 6개, 공개 URL 19개의 sitemap/robots/llms.txt, 배포 후 IndexNow, 유입 세션 집계와 180일 보존 정책을 운영한다. `/admin/**`는 Cloudflare Access와 origin JWT 재검증으로 보호하고 PWA 캐시에서 제외한다. `2026-11-11` PR `#127`, Web SHA `aa99154`로 v2 실제 수정일 기반 sitemap, 페이지별 OG·Twitter 정보, 가이드 `Article`·`BreadcrumbList`를 배포했다. 운영 공개 URL 19개·개인 화면 14개의 색인 경계와 IndexNow 19개 접수를 확인했다. 상세는 `docs/seo-v2-refresh-2026-11-11.md`, 기존 유입·관리자 경계는 `docs/seo-acquisition-foundation-2026-07-19.md`를 따른다.
 31. KDC 기반 로컬 우선 내 서가 v1: 한국어 화면에서 사용자가 남긴 책을 ISBN 판본 기준으로 중복 제거하고 한국십진분류법 0~9 대분류 서가에 자동 정리한다. QuickLog 저장은 분류 장애와 관계없이 유지하고, 분류 결과는 PostgreSQL 공용 캐시와 IndexedDB 로컬 캐시에 저장한다. 타임라인 책 필터의 작은 진입점, `/me/bookshelf`, 분류 대기 영역, 기록 카드 KDC 배지를 제공한다(`2026-07-29` production 반영, web/api SHA `35b6263`).
 32. Android Play 유입 활성화 1차: Android 브라우저와 설치형 PWA에는 기존 PWA 설치 대신 Google Play 전환 팝업을 노출하고, ottline Google Play TWA 세션은 제외한다. TWA에서 첫 기록이 생긴 사용자에게는 시청 기록 알림 설정 카드를 노출하며, 두 UI는 닫기 또는 이동 뒤 14일간 다시 노출하지 않는다. TWA 판정은 정확한 `android-app://app.ottline` referrer, 현재 launch URL의 앱 버전·install token, 그 신호로 기록한 현재 세션 플래그만 사용한다(`2026-08-18` production 반영, web SHA `57f98e6`).
 33. Android 활성화 2차 및 Play 권장 조치 대응: 네이티브 시청 기록 알림 설정을 현재 필요한 한 단계 중심으로 정리하고 Android 15 edge-to-edge/inset 처리, Android Browser Helper `2.7.2`, AGP `9.3.1`, R8 코드·리소스 축소를 반영했다. 최소 지원 버전은 Play 자동 보호 요건에 맞춘 Android 7.0(API 24)이다(`2026-10-25` 사용자 승인 및 `1.0.19` 적용, `docs/android-watch-reminder-reliability.md`). 시작 크래시 안정화 과정에서 R8 코드 최적화만 임시로 껐으며 축소·난독화와 리소스 축소는 유지한다.
@@ -82,6 +83,10 @@ If present, read `./.omd/preferences.md` — pending corrections not yet folded 
 
 42. ottline v2 Web/PWA·API 운영 개편: PC는 펼쳐보는 기록장, 모바일은 한 손 수첩으로 홈·타임라인·기록·상세·내 공간을 개편하고 상태 선택 뒤 하단 기록 버튼으로 저장한다. 실제 카탈로그·TPO·느낌 3단계·기기 연결·동기화·공유 카드를 유지하며 홈 월별 목록은 감상한 작품만 모은다. 미래의 타임라인은 OpenAI `gpt-6-luna`와 계정별 제외·되돌리기·하루 3회 생성, 실제 카탈로그 기록 연결을 제공한다. PR `#125` 기능 코드와 `#126` 운영 설정·전송 안내를 합친 SHA `b9f88a6d5f329ffa1bfaea4dacc3b7be8bfb3022`로 `2026-11-08` API production `42481109076` → 실제 API 검증 → Web production `42482058132`를 완료했다. DB 백업·Flyway V32, OpenAI SecretSynced, 두 이미지·APP_VERSION `b9f88a6`·Pod Ready/restart 0, ArgoCD Synced/Healthy와 실제 브라우저 저장·정식 ID·대기 0개를 확인했다. 테스트 계정·추천 데이터는 정리했고 기존 기록·이력 수를 보존했다. Android 네이티브·iOS·스토어 바이너리는 배포하지 않았다. 상세는 `docs/ottline-v2-production-rollout.md`를 따른다.
 
+43. Web/PWA 오프라인 안내·접근성 보완: 서비스워커 v7과 외부 자원 없는 한·영 정적 안내로 오프라인 재진입 오류를 복구하고, 검색 combobox/listbox·선택 상태·판본별 출처 이름, 공유창 모션 감소, 포커스 대비와 본문 바로가기를 적용했다. `2026-11-12` PR `#130`, Web SHA `4cabcd5`, production run `43158345911`로 배포했다. 공개 버전·정적 자산 일치, 한·영 오프라인 fallback, ArgoCD `Synced Healthy`, Web/API Pod Ready·restart 0을 확인했다. 전체 오프라인 기록 사용과 폰트 분리는 별도 범위이며 상세는 `docs/web-offline-accessibility-2026-11-12.md`를 따른다.
+
+44. Windows 웹 전환 퍼널·데스크톱 기기 표시: Windows 전역 Store 배너·QuickLog 저장 CTA·한영 `/about` v2 설명과 고정 `cid` 계측, API의 `windows_native`·`macos_native` 기기 분류를 PR `#133`·`#135`로 반영했다. `2026-11-18` 공통 SHA `2f262ec`로 API production `44217423318` → 실제 API 확인 → Web production `44218009292`를 완료했다. API 185건·운영 브라우저 21개 시나리오·SEO 경계 검사, 공개 버전·IndexNow 19개 접수, ArgoCD `Synced Healthy`와 두 Pod Ready·restart 0을 확인했다. 기존 기록·이력 건수를 보존하고 검증 계정을 정리했다. iOS Smart App Banner·`ct`와 네이티브 바이너리는 이번 배포에 포함하지 않았으며, 상세는 `docs/desktop-acquisition-rollout-2026-11-18.md`를 따른다.
+
 ### 제품 방향
 1. 추천 기능은 기본 제품 범위에서 제외한다. 단, `2026-11-08` 사용자 요청으로 기존 **미래의 타임라인**의 OpenAI 전환·계정별 제외·하루 3회 정책·기록 연결은 이번 v2 작업에 포함한다. 현재 계약은 `docs/future-timeline-account-policy.md`, 최초 검토는 `docs/future-timeline-openai-review.md`를 따른다.
 2. 기록 가치(회상, 공유, 재방문)를 높이는 기능에 집중한다.
@@ -89,7 +94,7 @@ If present, read `./.omd/preferences.md` — pending corrections not yet folded 
 4. 사용자용 개별 기록 삭제는 제공하지 않는다. 기록 정정은 수정과 히스토리로 관리한다.
 5. ChatGPT 앱은 ottline 기록을 대화에 연결하는 읽기 전용 커넥터로 유지하고, 해석과 추천은 ChatGPT에 맡긴다.
 6. 개인 프로필은 로그인 기능이 아니라 기존 페어링 계정의 개인화 메타데이터다. v1에서는 공개 댓글/함께 화면에 닉네임·아바타를 노출하지 않는다.
-7. `2026-11-08` 사용자 확인 기준 Android의 다음 출시 대상은 준비 중인 네이티브 앱이다. 현재 운영 TWA(`apps/twa`)는 웹 v2 호환 확인 대상으로 유지하며, 네이티브 작업 위치·스택·기존 설치/기록의 전환 계획은 별도로 확인한다. 플랫폼별 준비는 `docs/ottline-v2-release-readiness.md`를 따른다.
+7. `2026-11-18` 기준 Google Play(`apps/android-native` v2.0+), App Store(`apps/native`), Microsoft Store(`apps/windows-native` v2.0+) 3대 스토어는 모두 순수 네이티브 앱으로 운영하며 스토어 래퍼(Android TWA `apps/twa`, Microsoft Store PWABuilder PWA) 배포는 종료됐다. 웹(`apps/web`)의 설치형 PWA(`manifest.webmanifest` + `sw.js`)는 macOS/Linux 등 비-스토어 데스크톱 브라우저 설치(`browser-pwa`)와 기존 홈 화면 설치 사용자를 위해 유지한다. 플랫폼별 준비·출시 현황은 `docs/ottline-v2-release-readiness.md`를 따른다.
 
 ---
 
@@ -130,6 +135,11 @@ If present, read `./.omd/preferences.md` — pending corrections not yet folded 
 29. **이용 리포트 주간 공유 카드 포스터 복구**: `GET /api/nalytic/me/report`에 `previousWeekPosters`를 추가하고, KST 직전 주의 작품을 중복 제거해 포스터 유무·평점·기록 수·최근 기록 순으로 최대 6개 선정한다. 시즌 포스터를 우선하며 웹 로컬 리포트도 같은 규칙을 사용한다. 주간 공유 payload와 `/og/share-card` 렌더러는 후보 수별 1~6칸 모자이크를 만들고 이미지가 없는 후보는 제목으로 채운다. `2026-09-21` PR `#108`, main SHA `01ef6b9b5b018970006ab6f42118b46824fb3430`, API/Web production run `35569268524`/`35569520338`, manifest commit `4cb3d731616df253ee5d60b9199e64e8bf506e94`/`ef40081a1a188315f3b8a15027a5a5f4f1e4531f`로 배포했다. ArgoCD `ott-app` `Synced Healthy`, production API/Web 이미지와 `APP_VERSION=01ef6b9`, Pod `1/1` ready·restart 0을 확인했다. 운영 내부 스모크 테스트에서 리포트 계약 200, TMDB 포스터가 포함된 1080×1920 PNG 200과 실제 이미지 렌더를 확인했고 임시 검증 계정은 즉시 삭제했다. iOS 네이티브 소스와 App Store 바이너리는 변경하거나 배포하지 않았다.
 
 30. **iOS 1.0.4 정식 배포**: PR `#119`~`#121`, build SHA `fc074ceef188161940a9aec6facaef2034f2119f`의 `1.0.4 (24)`를 App Store에 배포 완료했다(`2026-10-16` 사용자 확인). 카카오 책 공급자와 작품 ID를 검색·최근 함께 작품·공개 글 반응·동기화에서 보존하며 기존 Naver 책 호환을 유지한다. 빌드·심사 이력은 `docs/native-kakao-books.md`, `docs/ios-testflight-review-notes.md`, 출시 후 확인 항목은 `docs/ios-app-store-launch-checklist.md`를 따른다.
+31. **Windows Native v2 모노레포 통합 및 Microsoft Store `2.0.0.0` 정식 출시 완료**: 기존 Microsoft Store `ottline`(`9NSVNZGDMGF5`, `ChawonLee.ottline`, PWABuilder Edge PWA `1.0.1.0`)을 대체하는 순수 Windows Native(`.NET 8 WPF + SQLite + Windows App SDK 1.8 Widgets`) 앱을 `apps/windows-native`로 모노레포에 통합하고 **`2026-11-18` 정식 출시(`Status = Published`)**까지 완료했다.
+   1. PR `#132` main SHA `7bc5a46`(커밋 `bfdca7b`), `Native Windows CI`(`verify-windows`, Run `44030185194`) 통과, `Ottline.Tests` 단위 테스트 14/14 및 위젯 COM 스모크 테스트 ExitCode 0을 확인했다.
+   2. 로컬 우선 SQLite(`OttlineDatabase`), Windows 11 공식 위젯(`Win + W`, 소·중·대), 커스텀 트레이 팝업, OTT 시청 종료 알림·전역 단축키(`Ctrl+Shift+O`), 고해상도 Story/Feed 공유 카드·KDC 서가·CSV 백업, 그리고 기존 Edge Store PWA 사용자의 `?native_handoff=1` → `ottline://open?handoff=1`(`<uap3:Protocol Parameters="%1">`) 자동 세션·기록 이어받기를 포함한다.
+   3. Partner Center(`9NSVNZGDMGF5`)에 `Desktop` 전용 장치 패밀리(`Holographic: false`), KO 제목 `ottline - 영화·드라마·책·독서 기록` / EN 제목 `ottline: Movie, TV & Book Log`, `ottline-2.0.0.0.msixbundle`(`x64` + `arm64`, `158.90 MB`, SHA-256 `99D780F9...`), 신규 아트워크·스크린샷 12종을 업로드해 Submission `1152921505702424456`의 `Certification` → **`2026-11-18` `Status = Published`**(DisplayCatalog `ChawonLee.ottline_2.0.0.0_neutral_~_ry7416pek43sa` 및 `winget` 반영) 전환을 확인했다.
+   4. `2026-11-18` 실기기 검증에서 `winget install --id 9NSVNZGDMGF5 --source msstore`(`SignatureKind: Store`) 정식 설치 실행과 별도 PC의 기존 `1.0.x` Store Edge PWA → `2.0.0.0` 업데이트 후 웹 브라우저 자동 연결(`?native_handoff=1` → `ottline://open?handoff=1`) 핸드오프 동작을 최종 확인했다. 이로써 Microsoft Store PWA 패키징 배포는 종료되었다. 상세는 `docs/windows-native-v2-transition.md`를 따른다.
 
    21. `2026-10-25` 시청 기록 알림 수정 PR `#122`를 병합하고, Play 자동 보호가 API 24 이상을 요구해 업로드를 거부한 첫 release run `40168623901`을 확인했다. 사용자 승인 후 PR `#123`으로 최소 지원 버전을 Android 7.0(API 24)으로 올렸다. source SHA `2bbff18256dffd7078e61fbfe44c2a23433d3031`, release run `40169071221`의 서명 AAB·단위 테스트·R8 분석·시작 생성자/브랜드 자산 검증과 Play 등록이 성공했다. 새 Play edit `09339353177853118628`에서 production `1.0.19`/`23`/`completed`와 CI AAB SHA-256 일치를 확인했다. 다음 업로드는 `versionCode=24` 이상을 사용한다. 실기기 알림 수신 확인은 후속 항목으로 남긴다.
 
@@ -373,6 +383,7 @@ feature/* ──PR/CI──→ main ──→ GitHub Actions workflow_dispatch
 1. `POST /api/auth/register`
 2. `POST /api/auth/pair`
 3. `GET /api/auth/devices`
+   1. 연결 기기 메타데이터는 `X-Client-Platform`의 `ios_native`·`android_native`·`windows_native`·`macos_native`(및 헤더 없는 Android 네이티브 `ottline-android/` User-Agent)를 각각 `iOS App`·`Android App`·`Windows App`·`macOS App`으로 분류한다. 등록·코드 연결과 해당 기기의 목록 조회 시 갱신하며, 기존 기기 ID·계정 연결을 보존한다. analytics 플랫폼 허용값과는 별도 계약이다. 상세는 `docs/native-desktop-device-info.md`를 따른다.
 4. `DELETE /api/auth/devices/{id}`
 5. `DELETE /api/auth/devices/all`
 6. `DELETE /api/auth/account`
@@ -575,6 +586,14 @@ feature/* ──PR/CI──→ main ──→ GitHub Actions workflow_dispatch
 6. Android 설치 토큰 및 업그레이드 감지: `apps/android-native/app/src/main/java/app/ottline/data/local/AndroidInstallToken.kt`
 7. 시청 기록 알림·회고 알림·홈 위젯: `WatchReminderFeature.kt`, `RevisitReminderFeature.kt`, `QuickLogWidgetProvider.kt`
 8. CI/CD 및 AAB 계약 검증: `.github/workflows/native-android-ci.yml`, `.github/workflows/native-android-release.yml`, `apps/android-native/scripts/verify-release-aab.sh`
+
+### Windows 네이티브 (`apps/windows-native`)
+1. 엔트리포인트 및 패키징 프로토콜/위젯 COM 서버 라우팅: `apps/windows-native/src/Ottline.App/Program.cs`, `apps/windows-native/src/Ottline.App/App.xaml.cs`
+2. 메인 창·테마·트레이 및 바인딩 뷰모델: `apps/windows-native/src/Ottline.App/MainWindow.xaml`, `apps/windows-native/src/Ottline.App/MainWindow.xaml.cs`, `apps/windows-native/src/Ottline.App/ViewModels/MainViewModel.cs`
+3. 로컬 SQLite 저장소·동기화·브라우저/PWA 핸드오프 병합: `apps/windows-native/src/Ottline.Core/Data/OttlineRepository.cs`, `apps/windows-native/src/Ottline.Core/Local/OttlineDatabase.cs`
+4. Windows 11 공식 위젯 공급자(`IWidgetProvider`): `apps/windows-native/src/Ottline.App/Widgets/OttlineWidgetProvider.cs`
+5. 데스크톱 트레이·OTT 시청 감지·전역 단축키·Store PWA 업그레이드 감지: `apps/windows-native/src/Ottline.App/Services/DesktopIntegrationService.cs`
+6. CI/CD 및 MSIXBundle/Store CLI 배포: `.github/workflows/native-windows-ci.yml`, `.github/workflows/native-windows-release.yml`, `apps/windows-native/scripts/build-msix.ps1`, `apps/windows-native/scripts/verify-msix.ps1`, `apps/windows-native/scripts/publish-msstore.ps1`
 
 ---
 

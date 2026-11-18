@@ -209,17 +209,17 @@ export default function ShareBottomSheet({
                       aria-live="polite"
                     >
                       <div className="flex items-start">
-                        <div className="h-24 w-16 rounded-lg bg-background/70 shadow-sm animate-pulse" />
+                        <div className="h-24 w-16 rounded-lg bg-background/70 shadow-sm motion-safe:animate-pulse" />
                       </div>
                       <div className="space-y-3">
                         <div className="space-y-2" aria-hidden="true">
-                          <div className="h-4 w-3/4 rounded-full bg-background/80 animate-pulse" />
-                          <div className="h-3 w-1/2 rounded-full bg-background/70 animate-pulse" />
-                          <div className="h-3 w-5/6 rounded-full bg-background/60 animate-pulse" />
+                          <div className="h-4 w-3/4 rounded-full bg-background/80 motion-safe:animate-pulse" />
+                          <div className="h-3 w-1/2 rounded-full bg-background/70 motion-safe:animate-pulse" />
+                          <div className="h-3 w-5/6 rounded-full bg-background/60 motion-safe:animate-pulse" />
                         </div>
                         <div className="rounded-lg bg-background/85 px-4 py-3 shadow-sm">
                           <div className="flex items-center gap-2 text-xs font-semibold text-foreground">
-                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            <Loader2 className="h-3.5 w-3.5 motion-safe:animate-spin" />
                             <span>{tShare("previewGenerating")}</span>
                           </div>
                           <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
@@ -314,7 +314,7 @@ export default function ShareBottomSheet({
               {shareCardBlob ? (
                 <Share2 className="h-4 w-4" />
               ) : (
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Loader2 className="h-4 w-4 motion-safe:animate-spin" />
               )}
               {shareCardBlob ? tShare("shareAction") : tShare("preparing")}
             </button>

@@ -1157,23 +1157,28 @@ fun QuickRecordDialog(
 
                                             Button(
                                                 onClick = {
+                                                    if (savingInitial) return@Button
                                                     val st = pendingStatus ?: return@Button
+                                                    savingInitial = true
                                                     scope.launch {
-                                                        savingInitial = true
-                                                        val saved = repository.saveLogForTitle(
-                                                            rawTitle = activeTitle,
-                                                            draft = buildCurrentDraft(st),
-                                                            awaitSync = false
-                                                        )
-                                                        savingInitial = false
-                                                        haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                                                        onUpdateDraft {
-                                                            it.copy(
-                                                                chosenStatus = st,
-                                                                savedLog = saved,
-                                                                selectedTitle = saved.title,
-                                                                stage = QuickRecordStage.SAVED
+                                                        try {
+                                                            val saved = repository.saveLogForTitle(
+                                                                rawTitle = activeTitle,
+                                                                draft = buildCurrentDraft(st),
+                                                                awaitSync = false,
+                                                                existingLogId = draft.savedLog?.id
                                                             )
+                                                            haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                            onUpdateDraft {
+                                                                it.copy(
+                                                                    chosenStatus = st,
+                                                                    savedLog = saved,
+                                                                    selectedTitle = saved.title,
+                                                                    stage = QuickRecordStage.SAVED
+                                                                )
+                                                            }
+                                                        } finally {
+                                                            savingInitial = false
                                                         }
                                                     }
                                                 },
@@ -1810,55 +1815,59 @@ fun QuickRecordDialog(
 
                                             Button(
                                                 onClick = {
+                                                    if (savingDetails) return@Button
+                                                    savingDetails = true
+                                                    togetherError = null
                                                     scope.launch {
-                                                        savingDetails = true
-                                                        togetherError = null
-                                                        val needCanonicalSync = draft.shareInTogether
-                                                        val finalLog = repository.saveLogForTitle(
-                                                            rawTitle = active,
-                                                            draft = buildCurrentDraft(effectiveStatus),
-                                                            awaitSync = needCanonicalSync
-                                                        )
-                                                        onUpdateDraft {
-                                                            it.copy(savedLog = finalLog, selectedTitle = finalLog.title)
-                                                        }
-
-                                                        if (needCanonicalSync) {
-                                                            val defaultBody = OttlineStrings.statusLabel(
-                                                                effectiveStatus,
-                                                                active.type,
-                                                                locale
+                                                        try {
+                                                            val needCanonicalSync = draft.shareInTogether
+                                                            val finalLog = repository.saveLogForTitle(
+                                                                rawTitle = active,
+                                                                draft = buildCurrentDraft(effectiveStatus),
+                                                                awaitSync = needCanonicalSync,
+                                                                existingLogId = draft.savedLog?.id
                                                             )
-                                                            val commentBody = draft.noteText.trim().ifEmpty { defaultBody }
-                                                            val posted = runCatching {
-                                                                repository.ensureAuthenticated()
-                                                                val canonicalTitleId = finalLog.title.id
-                                                                val disc = repository.api.getDiscussionByTitle(canonicalTitleId)
-                                                                    ?: repository.api.createDiscussion(canonicalTitleId)
-                                                                repository.api.createComment(
-                                                                    discussionId = disc.id,
-                                                                    req = CreateCommentRequest(
-                                                                        body = commentBody,
-                                                                        mentions = emptyList(),
-                                                                        syncLog = false
-                                                                    )
+                                                            onUpdateDraft {
+                                                                it.copy(savedLog = finalLog, selectedTitle = finalLog.title)
+                                                            }
+
+                                                            if (needCanonicalSync) {
+                                                                val defaultBody = OttlineStrings.statusLabel(
+                                                                    effectiveStatus,
+                                                                    active.type,
+                                                                    locale
                                                                 )
+                                                                val commentBody = draft.noteText.trim().ifEmpty { defaultBody }
+                                                                val posted = runCatching {
+                                                                    repository.ensureAuthenticated()
+                                                                    val canonicalTitleId = finalLog.title.id
+                                                                    val disc = repository.api.getDiscussionByTitle(canonicalTitleId)
+                                                                        ?: repository.api.createDiscussion(canonicalTitleId)
+                                                                    repository.api.createComment(
+                                                                        discussionId = disc.id,
+                                                                        req = CreateCommentRequest(
+                                                                            body = commentBody,
+                                                                            mentions = emptyList(),
+                                                                            syncLog = false
+                                                                        )
+                                                                    )
+                                                                }
+                                                                if (posted.isFailure) {
+                                                                    togetherError = togetherFailMsg
+                                                                    return@launch
+                                                                }
                                                             }
-                                                            if (posted.isFailure) {
-                                                                savingDetails = false
-                                                                togetherError = togetherFailMsg
-                                                                return@launch
+                                                            haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                            if (draft.createShareCard) {
+                                                                dismissAfterShareCard = true
+                                                                shareCardTargetLog = finalLog
+                                                            } else if (onSavedAndOpenTitle != null && draft.isEditingExisting) {
+                                                                onSavedAndOpenTitle(finalLog.title.id)
+                                                            } else {
+                                                                onDismiss()
                                                             }
-                                                        }
-                                                        haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                                                        savingDetails = false
-                                                        if (draft.createShareCard) {
-                                                            dismissAfterShareCard = true
-                                                            shareCardTargetLog = finalLog
-                                                        } else if (onSavedAndOpenTitle != null && draft.isEditingExisting) {
-                                                            onSavedAndOpenTitle(finalLog.title.id)
-                                                        } else {
-                                                            onDismiss()
+                                                        } finally {
+                                                            savingDetails = false
                                                         }
                                                     }
                                                 },
