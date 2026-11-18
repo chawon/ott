@@ -11,6 +11,8 @@
 
 ## 현재 상태
 
+> **채널 역할 (`2026-11-18` 기준)**: Google Play(구 [[twa]])와 Microsoft Store(구 PWABuilder Edge PWA)는 각각 [[android-native]](`2026-11-09`)·[[windows-native]](`2026-11-18`) 순수 네이티브 앱으로 전환 종료되어 스토어 래퍼형 배포는 더 이상 운영하지 않는다. 현재 PWA(`ottline.app` manifest + `sw.js` v7)는 **macOS·Linux 등 비-스토어 데스크톱 브라우저 설치(`browser-pwa`) 및 iOS/웹 기존 홈 화면 설치 사용자**를 위한 웹 설치 채널로만 유지한다.
+
 PWA 기본 요건(manifest, icons, screenshots, 설치 배너, service worker)을 갖추고 있다.
 
 `2026-11-12` PR `#130`, Web SHA `4cabcd5`에서 서비스워커 v7과 외부 자원이 필요 없는 한·영 오프라인 안내를 운영 반영했다. 실행 중인 화면의 로컬 기록 처리와, 오프라인에서 새로 진입했을 때의 안내를 구분한다. 전체 기록 화면을 네트워크 없이 처음 여는 기능은 별도 범위다. [배포·검증 기록](../../../docs/web-offline-accessibility-2026-11-12.md)을 따른다.

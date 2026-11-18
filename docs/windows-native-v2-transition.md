@@ -1,6 +1,6 @@
-# Windows Native v2 전환 및 Store PWA 자동 핸드오프·심사 제출 기록
+# Windows Native v2 전환, Store PWA 자동 핸드오프 및 정식 출시 기록
 
-기준일: `2026-11-17`
+기준일: `2026-11-18`
 대상 경로: `apps/windows-native`, `.github/workflows/native-windows-ci.yml`, `.github/workflows/native-windows-release.yml`
 
 ---
@@ -62,13 +62,22 @@
   - **PR/main CI**: `.github/workflows/native-windows-ci.yml` (`build-msix.ps1`, `verify-msix.ps1`로 `x64` + `arm64` MSIX 및 `.msixbundle` 생성·검증; PR [#132](https://github.com/chawon/ott/pull/132) `verify-windows` Run [`44030185194`](https://github.com/chawon/ott/actions/runs/44030185194) 통과 `2m31s`, main SHA `7bc5a46`).
   - **수동 릴리스**: `.github/workflows/native-windows-release.yml` (`msstore-cli` 기반 `artifact_only` / `store_draft` / `store_commit` 지원).
 
-### 4.2 Partner Center 제출 및 패키지 검증 수치 (`2026-11-17`)
-- **제출 대상**: `ProductId = 9NSVNZGDMGF5`, `Submission Id = 1152921505702424456`, **`Status = Certification`** (`Errors = 0`)
+### 4.2 Partner Center 제출, 게시 및 패키지 검증 수치 (`2026-11-17 ~ 2026-11-18`)
+- **제출 및 정식 게시**: `ProductId = 9NSVNZGDMGF5`, `Submission Id = 1152921505702424456`, **`Status = Published`** (`2026-11-17` 제출 `Certification` → **`2026-11-18 14:53 KST` Store DisplayCatalog 정식 반영**, `Errors = 0`)
 - **업로드 아티팩트 SHA-256**:
   - `ottline-2.0.0.0-x64.msix`: `81.42 MB`, `89EC12A49C8D38500173C507BE37D96A16AF0DD13D560C951DDA7E07ED409747`
   - `ottline-2.0.0.0-arm64.msix`: `77.48 MB`, `90EB11C3D74AC3341073BD4A355A67650E89308CD326DC38A0559E98CAC54841`
   - `ottline-2.0.0.0.msixbundle`: `158.90 MB`, `99D780F9906A6C544CB07903C91EDB5DCFAE548B5213D6FF35549BA87A467E53` (`FileStatus = Uploaded`, 기존 `1.0.1.0`/`1.0.0.0` 패키지 제거 완료)
 - **장치 패밀리 및 스토어 목록**:
-  - 이전 `1.0.1.0` PWA(`Windows.Universal`)에서 상속되던 `Holographic: true` 때문에 첫 커밋(`1152921505702424152`)이 `CommitFailed`(`Device families: Holographic`)로 거부된 점을 `publish-msstore.ps1`에서 **`Desktop: true`, 나머지(`Holographic`/`Mobile`/`Xbox`/`Team`) `false` 고정**으로 해결한 뒤 새 제출(`1152921505702424456`)로 `CommitStarted` → `PreProcessing` → `Certification` 전환을 확인했다.
+  - 이전 `1.0.1.0` PWA(`Windows.Universal`)에서 상속되던 `Holographic: true` 때문에 첫 커밋(`1152921505702424152`)이 `CommitFailed`(`Device families: Holographic`)로 거부된 점을 `publish-msstore.ps1`에서 **`Desktop: true`, 나머지(`Holographic`/`Mobile`/`Xbox`/`Team`) `false` 고정**으로 해결한 뒤 새 제출(`1152921505702424456`)로 `CommitStarted` → `PreProcessing` → `Certification` → **`Published`** 전환을 확인했다.
   - 한국어 제목 `ottline - 영화·드라마·책·독서 기록` / 영어 제목 `ottline: Movie, TV & Book Log`, KO/EN `ShortDescription`, `Description`, `Features`(7개), `Keywords`(7개), `ReleaseNotes`, `NotesForCertification`, 신규 아트워크·스크린샷 12종(`Uploaded`)을 반영했다.
-- **검증 결과**: `Ottline.Tests` 단위 테스트 **14/14 통과**, `verify-msix.ps1` 통과, Windows 개발 환경 `Add-AppxPackage` 위젯 COM 스모크 테스트(`-RegisterProcessAsComServer --smoke-test`) **ExitCode 0** 확인.
+- **빌드·패키징 검증 결과**: `Ottline.Tests` 단위 테스트 **14/14 통과**, `verify-msix.ps1` 통과, Windows 개발 환경 `Add-AppxPackage` 위젯 COM 스모크 테스트(`-RegisterProcessAsComServer --smoke-test`) **ExitCode 0** 확인.
+
+### 4.3 Microsoft Store 정식 게시 및 실기기 핸드오프 확인 (`2026-11-18`)
+- **스토어·카탈로그·`winget` 공개 검증 (`2026-11-18 15:37 KST`)**:
+  - `msstore submission status 9NSVNZGDMGF5` 조회 결과 대기 중인 제출 없이 `Last Published Submission: Status = Published`를 확인했다.
+  - Microsoft DisplayCatalog API(`market=KR/US`)에서 `Packages = x64+arm64:ChawonLee.ottline_2.0.0.0_neutral_~_ry7416pek43sa`, KO/EN 제목·짧은 설명·포스터(`Poster: 1`)·스크린샷 4종(`Screenshot: 4`), `apps.microsoft.com` 상세 페이지 `HTTP 200`, `winget show --id 9NSVNZGDMGF5 --source msstore` 정상 노출을 확인했다.
+- **실기기 스토어 설치 및 타 PC `1.0.x → 2.0.0.0` 자동 핸드오프 검증**:
+  - 개발 모드 패키지 제거 후 `winget install --id 9NSVNZGDMGF5 --source msstore`로 정식 서명 버전(`SignatureKind: Store`, `IsDevelopmentMode: False`, `C:\Program Files\WindowsApps\ChawonLee.ottline_2.0.0.0_arm64__ry7416pek43sa`) 설치·실행 및 기존 `%LOCALAPPDATA%\Ottline\ottline_v2.db` 연속 사용을 확인했다.
+  - 별도 PC에서 기존 Microsoft Store `1.0.x`(Edge PWA)를 `2.0.0.0`으로 업데이트한 뒤 첫 실행 시 웹 브라우저 연결(`?native_handoff=1` → `ottline://open?handoff=1`)이 열리고 기존 기록·세션이 자동 핸드오프됨을 실기기에서 최종 확인했다.
+  - 이로써 Microsoft Store에서의 PWABuilder PWA 패키징 배포는 종료되었으며, 웹(`ottline.app`)의 설치형 PWA만 macOS/Linux 등 비-스토어 데스크톱·기존 홈 화면 사용자를 위해 유지한다.

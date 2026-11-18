@@ -1,6 +1,6 @@
 # Windows Native (`apps/windows-native`)
 
-> `2026-11-17`(`v2.0.0.0`)부터 기존 PWABuilder Edge PWA(`1.0.1.0`)를 대체해 Microsoft Store `9NSVNZGDMGF5`(`ChawonLee.ottline`)에 인플레이스 전환 제출된 순수 Windows Native(`.NET 8 WPF + SQLite + Windows 11 공식 위젯`) 앱
+> `2026-11-17` 제출 및 **`2026-11-18` 정식 출시(`v2.0.0.0`, `Published`)**로 기존 PWABuilder Edge PWA(`1.0.1.0`)를 대체해 Microsoft Store `9NSVNZGDMGF5`(`ChawonLee.ottline`)에 인플레이스 전환된 순수 Windows Native(`.NET 8 WPF + SQLite + Windows 11 공식 위젯`) 앱
 
 ## 관련 페이지
 - [[ottline-v2]]
@@ -11,12 +11,13 @@
 
 ---
 
-## 현재 상태 (`2026-11-17`)
+## 현재 상태 (`2026-11-18`)
 
 - **Store Product ID / Identity**: `9NSVNZGDMGF5` / `ChawonLee.ottline` (`PackageFamilyName`: `ChawonLee.ottline_ry7416pek43sa`, `Publisher`: `CN=A486532B-583B-4088-AFDE-FC4377E51968`)
-- **최신 제출 버전**: `2.0.0.0` (`ottline-2.0.0.0.msixbundle`, `x64` + `arm64`, `158.90 MB`, `Submission Id = 1152921505702424456`, **`Status = Certification`**)
+- **현재 게시 버전**: `2.0.0.0` (`ottline-2.0.0.0.msixbundle`, `x64` + `arm64`, `158.90 MB`, `Submission Id = 1152921505702424456`, **`Status = Published`**, `2026-11-18` Microsoft Store 카탈로그 및 `winget` 반영 완료)
 - **스토어 등록 제목**: KO `ottline - 영화·드라마·책·독서 기록` / EN `ottline: Movie, TV & Book Log`
 - **지원 장치 패밀리**: `Desktop` 전용 (`Holographic: false`)
+- **실기기 검증 (`2026-11-18`)**: `winget install --id 9NSVNZGDMGF5 --source msstore`(`SignatureKind: Store`) 정식 설치 및 별도 PC `1.0.x` Edge PWA → `2.0.0.0` 업데이트 후 첫 실행 웹 브라우저 연결(`?native_handoff=1` → `ottline://open?handoff=1`) 자동 핸드오프 확인 완료
 - **소스 경로**: `apps/windows-native/` (`OttlineWindows.sln`, `Ottline.App`, `Ottline.Core`, `Ottline.Tests`)
 - **GitHub Actions**:
   - `.github/workflows/native-windows-ci.yml` (PR/main `x64` + `arm64` MSIX/MSIXBundle 빌드 및 계약 검증 — PR `#132` Run `44030185194` 통과, main SHA `7bc5a46`)

@@ -23,8 +23,8 @@ Microsoft Partner Center 획득 리포트(최근 12개월, `2026-03-18` 출시 �
 
 ### 선조치 완료 (네이티브/스토어 트랙)
 
-- 9~11월 전환율 급락(`2~4%`)의 주원인이던 구 `v1.0.1.0`(PWABuilder Edge PWA, 키워드 `0개`, 부제 없음, 2:3 포스터 없음, 브라우저 스크린샷 1장) 목록은 **`2026-11-17` `v2.0.0.0`(`Submission 1152921505702424456`, `Status = Certification`)**으로 대체 제출 완료했다.
-- KO/EN 부제(`ottline - 영화·드라마·책·독서 기록`, `ottline: Movie, TV & Book Log`), 검색 키워드 7개, 2:3 포스터, 네이티브 캡션 스크린샷 4종, Windows 11 공식 위젯이 반영되었으므로 이제 **`ottline.app` 웹 방문자와 검색 유입을 3대 스토어와 웹으로 연결하는 퍼널**을 고쳐야 한다.
+- 9~11월 전환율 급락(`2~4%`)의 주원인이던 구 `v1.0.1.0`(PWABuilder Edge PWA, 키워드 `0개`, 부제 없음, 2:3 포스터 없음, 브라우저 스크린샷 1장) 목록은 `2026-11-17` 제출(`Submission 1152921505702424456`) 후 **`2026-11-18` Microsoft Store 정식 게시(`Status = Published`)**로 대체 완료했다.
+- KO/EN 부제(`ottline - 영화·드라마·책·독서 기록`, `ottline: Movie, TV & Book Log`), 검색 키워드 7개, 2:3 포스터, 네이티브 캡션 스크린샷 4종, Windows 11 공식 위젯이 스토어와 `winget`에 라이브 반영되었고 타 PC `1.0.x → 2.0.0.0` 자동 핸드오프까지 확인되었으므로 이제 **`ottline.app` 웹 방문자와 검색 유입을 3대 스토어와 웹으로 연결하는 퍼널**을 고쳐야 한다.
 
 ---
 
@@ -76,7 +76,7 @@ Microsoft Partner Center 획득 리포트(최근 12개월, `2026-03-18` 출시 �
 - **대상 파일**: [`apps/web/components/PwaInstallBanner.tsx`](../apps/web/components/PwaInstallBanner.tsx), [`apps/web/messages/ko.json`](../apps/web/messages/ko.json#L772-L781), [`apps/web/messages/en.json`](../apps/web/messages/en.json)
 - 플랫폼 분기 규칙:
   1. **Android (`android-play`)**: 기존 동작 유지 (`twaSignal`이 있으면 미노출, 닫기/클릭 시 `PLAY_CTA_DISMISSED_AT_KEY` 14일 쿨다운).
-  2. **Windows 데스크톱 (`windows-store`)**: `Windows NT` UA이면서 `standalone` 모드가 아닐 때 `beforeinstallprompt` 브라우저 PWA 안내를 띄우지 않고 **Microsoft Store 앱 설치 배너**를 노출한다. (핵심 소구: *"Windows 11 위젯, `Ctrl+Alt+O` 빠른 기록, 오프라인 보관함"*) 닫기/클릭 시 별도 `localStorage` 키로 14일 쿨다운 적용.
+  2. **Windows 데스크톱 (`windows-store`)**: `Windows NT` UA이면서 `standalone` 모드가 아닐 때 `beforeinstallprompt` 브라우저 PWA 안내를 띄우지 않고 **Microsoft Store 앱 설치 배너**를 노출한다. (핵심 소구: *"Windows 11 위젯, `Ctrl+Shift+O` 빠른 기록, 오프라인 보관함"*) 닫기/클릭 시 별도 `localStorage` 키로 14일 쿨다운 적용.
   3. **iOS (`ios-appstore`)**: 기존 `"Safari > 홈 화면에 추가"`(`ios-pwa`) 대신 **App Store에서 `ottline` 받기**로 전환하고, 닫기/클릭 시 14일 쿨다운을 적용한다.
   4. **기타 데스크톱(`macOS`, `Linux` 등, `browser-pwa`)**: 네이티브 스토어 앱이 없는 OS에서만 기존 `beforeinstallprompt` 기반 PWA 설치 배너를 유지한다.
 - 인앱 WebView(`TossApp` 등 설치 전환이 부적절한 임베드 환경) 감지 시 배너를 과도하게 띄우지 않도록 예외 규칙을 unit test로 고정한다.
@@ -90,7 +90,7 @@ Microsoft Partner Center 획득 리포트(최근 12개월, `2026-03-18` 출시 �
 
 #### 1-5. `/about` Windows v2 설명 갱신 & 애널리틱스 이벤트 추가
 - **대상 파일**: [`apps/web/messages/ko.json`](../apps/web/messages/ko.json#L572-L574), [`apps/web/messages/en.json`](../apps/web/messages/en.json#L572-L574), [`apps/web/app/[locale]/about/page.tsx`](../apps/web/app/[locale]/about/page.tsx#L128-L140), [`apps/web/lib/seo.ts`](../apps/web/lib/seo.ts#L68-L114), [`apps/web/lib/analytics.ts`](../apps/web/lib/analytics.ts#L374-L382)
-- `About.platformWindowsDesc`를 PWABuilder 웹 래퍼 설명에서 **Windows 11 네이티브 앱(SQLite 로컬 보관, 바탕화면 위젯, 전역 단축키 `Ctrl+Alt+O`, OTT 시청 기록 이어받기)** 설명으로 교체한다.
+- `About.platformWindowsDesc`를 PWABuilder 웹 래퍼 설명에서 **Windows 11 네이티브 앱(SQLite 로컬 보관, 바탕화면 위젯, 전역 단축키 `Ctrl+Shift+O`, OTT 시청 기록 이어받기)** 설명으로 교체한다.
 - `/about`의 Android·iOS·Windows 링크 모두 표준 캠페인 파라미터(`about_platform_card`)를 전달한다.
 - `apps/web/lib/analytics.ts` 이벤트 타입에 아래 이벤트를 추가해 `/admin/analytics`에서 플랫폼별 클릭률을 비교할 수 있게 한다:
   - `windows_store_cta_impression` / `windows_store_cta_click` / `windows_store_cta_dismiss`
@@ -117,7 +117,7 @@ Microsoft Partner Center 획득 리포트(최근 12개월, `2026-03-18` 출시 �
 - **월간/기간 결산 공유 카드 (Web 추가 검토)**: 현재 [`ShareBottomSheet.tsx`](../apps/web/components/ShareBottomSheet.tsx)는 개별 기록 1건 이미지(`1080×1920`, `1080×1350`) 중심이다. 한 달 동안 본 영화·드라마·책 포스터 4~9편을 한 장에 모은 *월간 결산 포스터(워드마크 + `ottline.app` QR/링크 포함)*를 추가하면 SNS 자발 공유를 유도할 수 있다.
 - **네이티브 인앱 리뷰 요청 (Web 담당 범위 외)**:
   - Android: [`apps/android-native/app/src/main/java/app/ottline/ui/InAppReviewHelper.kt`](../apps/android-native/app/src/main/java/app/ottline/ui/InAppReviewHelper.kt)로 **구현 완료** 상태.
-  - Windows: 현재 `2.0.0.0` Microsoft Store 심사 중(`Certification`)이므로 심사 통과 후 다음 마이너 업데이트(`2.0.1.0`)에서 `StoreContext.RequestRateAndReviewAppAsync()` 추가 예정.
+  - Windows: `2.0.0.0` Microsoft Store 정식 출시(`2026-11-18`, `Published`)가 완료되었으므로 다음 마이너 업데이트(`2.0.1.0`)에서 `StoreContext.RequestRateAndReviewAppAsync()` 추가 예정.
   - iOS: `apps/native` 트랙에서 `SKStoreReviewController` / `StoreKit` 점검 후 별도 반영.
 - **외부 배포·GEO 엔티티**: `v2.0.0.0` Microsoft Store 승인 시점에 맞춰 한국(GeekNews Show GN·디스콰이엇·독서/영화 커뮤니티) 및 글로벌(`r/windowsapps`, `r/Windows11`, AlternativeTo, Product Hunt, Wikidata/나무위키) 채널 동시 배포.
 
@@ -164,6 +164,8 @@ Microsoft Partner Center 획득 리포트(최근 12개월, `2026-03-18` 출시 �
 - 배포 범위는 위 Windows 정정 사항을 따른다. iOS Smart App Banner·`ct`, Android 소개 카드 캠페인 변경은 별도다. 실행 번호·실제 기기 표시·데이터 보존 결과는 [운영 배포 기록](desktop-acquisition-rollout-2026-11-18.md)을 따른다.
 
 ### 후속 Phase 1 작업 시 실행할 검사
+
+> **단축키 표기 정정 메모 (`2026-11-18`)**: PR `#133`에서는 Windows 전역 빠른 기록 단축키가 `Ctrl+Alt+O`로 배포되었으나(`apps/web/messages/ko.json`, `en.json`, `apps/web/scripts/test-seo-runtime.mjs`), 실제 Windows Native v2(`DesktopIntegrationService.cs`)에 등록된 전역 단축키는 **`Ctrl+Shift+O`**이다. 다음 Web PR(iOS Smart App Banner / App Store `ct` 등) 진행 시 해당 문구와 런타임 검사를 **`Ctrl+Shift+O`**로 함께 정정한다.
 
 Phase 1 PR 완료 후 아래 검사를 순서대로 통과해야 한다 (`apps/web/package.json` 기준).
 

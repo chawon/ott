@@ -1,5 +1,13 @@
 # Wiki Log
 
+## [2026-11-18] release: Microsoft Store Windows Native v2.0.0.0 정식 출시(Published) 및 실기기 PWA 핸드오프 검증 완료
+- 대상: `AGENTS.md`, `docs/windows-native-v2-transition.md`, `docs/ottline-v2-release-readiness.md`, `docs/ms-store-pwa-plan.md`, `docs/web-acquisition-funnel-plan-2026-11-17.md`, `wiki/pages/platforms/ms-store.md`, `wiki/pages/platforms/windows-native.md`, `wiki/pages/platforms/pwa.md`, `wiki/index.md`
+- 노트:
+  - Partner Center Submission `1152921505702424456`(`v2.0.0.0`)이 `Status = Published`로 승인·게시되어 DisplayCatalog(`ChawonLee.ottline_2.0.0.0_neutral_~_ry7416pek43sa`, KO/EN 부제·포스터·스크린샷 4종)와 `winget`(`9NSVNZGDMGF5`)에 정식 반영됨을 확인
+  - 개발 모드 패키지 제거 후 `winget install --id 9NSVNZGDMGF5 --source msstore`(`SignatureKind: Store`) 정식 설치 실행 및 별도 PC `1.0.x` Edge PWA → `2.0.0.0` 업데이트 후 웹 브라우저 연결(`?native_handoff=1` → `ottline://open?handoff=1`) 자동 핸드오프 동작 실기기 검증 완료
+  - Android TWA(`2026-11-09`)에 이어 Microsoft Store PWABuilder PWA 배포도 순수 네이티브로 전환 종료되어 스토어 래퍼 앱은 더 이상 운영하지 않으며, 웹 `ottline.app` 설치형 PWA는 macOS/Linux 등 비-스토어 환경과 기존 홈 화면 사용자 전용으로 유지함을 명시
+  - PR `#133` 웹 문구(`Ctrl+Alt+O`)는 실제 앱 단축키(`Ctrl+Shift+O`)와 다르므로 후속 웹 PR에서 정정 대상으로 기록
+
 ## [2026-11-18] fix(api,android): Android 네이티브 연결 기기 표시 (Android App · Android)
 
 - `AuthService`에 `X-Client-Platform: android_native` 및 헤더 없는 `2.0.4` 앱의 `ottline-android/` User-Agent 하위호환 분기를 추가해 연결 기기 목록에서 `Android App · Android`로 구분 표시하도록 수정(일반 Chrome PWA는 `Chrome · Android` 유지).
