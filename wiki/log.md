@@ -1,5 +1,11 @@
 # Wiki Log
 
+## [2026-11-18] plan: 데스크톱(Windows·macOS) 공통 ottline:// 프로토콜·핸드오프 및 브라우저 확장 전환 명세 작성
+- 대상: `docs/desktop-protocol-and-extension-bridge-plan-2026-11-18.md` (신규), `wiki/pages/platforms/browser-extension.md`, `wiki/pages/platforms/windows-native.md`, `wiki/index.md`
+- 노트:
+  - `apps/browser-extension`(`ottline helper`)을 기능 동결하되 Chrome·Edge·Whale 스토어는 무료 검색 입구로 유지하고, `?quick=1&capture_title=...` 진입 시 Windows·macOS 데스크톱 네이티브 앱으로 연결하는 브릿지 전략 정리
+  - Windows `main`(`DomainHelpers.cs`, `OttlineRepository.cs`)과 `origin/feature/ios-native-v2`(`OttlineMacApp.swift`, `OttlineApp.swift`) 코드 대조를 통해 `ottline://quick?quick=1&title=...&q=...` 공통 규격 및 macOS/iOS 측 `title`/`capture_title` 수용·`?native_handoff=1` → `ottline://open?handoff=1` 세션 이어받기 보강 명세 확정
+
 ## [2026-11-18] release: Microsoft Store Windows Native v2.0.0.0 정식 출시(Published) 및 실기기 PWA 핸드오프 검증 완료
 - 대상: `AGENTS.md`, `docs/windows-native-v2-transition.md`, `docs/ottline-v2-release-readiness.md`, `docs/ms-store-pwa-plan.md`, `docs/web-acquisition-funnel-plan-2026-11-17.md`, `wiki/pages/platforms/ms-store.md`, `wiki/pages/platforms/windows-native.md`, `wiki/pages/platforms/pwa.md`, `wiki/index.md`
 - 노트:

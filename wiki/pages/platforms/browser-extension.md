@@ -4,6 +4,15 @@
 
 ## 관련 페이지
 - [[pwa]]
+- [[windows-native]]
+
+---
+
+## 현재 포지셔닝 및 데스크톱 네이티브 브릿지 계획 (2026-11-18)
+
+- [[windows-native]] (`2.0.0.0` 출시)가 OTT 시청 종료 알림 및 전역 단축키(`Ctrl+Shift+O`)를 자체 내장하고 `feature/ios-native-v2`에서 `apps/macos-native` 출시를 준비함에 따라, 확장 프로그램은 주력 클라이언트에서 **데스크톱 네이티브 앱으로 연결해 주는 경량 브릿지·무료 검색 노출 채널(기능 동결)**로 포지션을 전환한다.
+- Chrome·Edge·Whale 스토어 재심사 없이도 `ottline.app/?quick=1&capture_title=...` 웹 브릿지에서 Windows·macOS 공통 딥링크(`ottline://quick?quick=1&title=...&q=...&platform=...&type=video`)로 넘기도록 단계별 계획을 수립했다. macOS 출시 전 Apple 측 `title`/`capture_title` 수용 및 `?native_handoff=1` → `ottline://open?handoff=1` 세션 이어받기 정렬을 포함한다.
+- 상세 규격 및 트랙별 체크리스트: [데스크톱 공통 프로토콜·핸드오프 및 확장 브릿지 계획 (2026-11-18)](../../../docs/desktop-protocol-and-extension-bridge-plan-2026-11-18.md)
 
 ---
 
