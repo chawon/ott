@@ -19,12 +19,12 @@ spec:
         - name: ocir-pull-secret
       containers:
         - name: api
-          image: yny.ocir.io/axvqyylkrvmi/ott-api:2f262ec1f854df70d7a48674b9ca612b590b2248
+          image: yny.ocir.io/axvqyylkrvmi/ott-api:38112ca97f2a7c1318cf8b9164c5db996a65b295
           ports:
             - containerPort: 8080
           env:
             - name: APP_VERSION
-              value: "2f262ec"
+              value: "38112ca"
             - name: OPENAI_API_KEY
               valueFrom:
                 secretKeyRef:
