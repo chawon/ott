@@ -14,7 +14,7 @@
 ## 현재 상태 (`2026-11-09`)
 
 - **패키지명**: `app.ottline` (Debug 빌드는 기존 앱과 동시 설치 가능하도록 `app.ottline.dev`)
-- **최신 프로덕션 버전**: `2.0.1` (`versionCode = 25`, `status = completed`, 100%)
+- **최신 프로덕션 버전**: `2.0.4` (`versionCode = 28`, `status = completed`, 100%)
 - **최소/타겟 SDK**: `minSdk = 24` (Android 7.0), `targetSdk = 36`, `compileSdk = 36`
 - **소스 경로**: `apps/android-native/`
 - **GitHub Actions**:
@@ -56,3 +56,9 @@
 
 - **`2.0.0` (`versionCode = 24`)**: main SHA `45ccac3b797a29bf78691e52972748b1a9cf3a47`, Android Release Run `42550886641` (`production` 트랙 `completed`), Play edit `12908968039807814595`로 v2 신규 아이콘(`512x512`)·피처 그래픽(`1024x500`)·스크린샷 5장(`1080x1920`) 및 스토어 문구 반영.
 - **`2.0.1` (`versionCode = 25`)**: main SHA `916be7abe9a8712d3f5a0a5e460a7bf820e23b0c`, API Run `42564733989`, Web Run `42564731554`, Android Release Run `42564729159` (`production` 트랙 `completed`), Play edit `18276584036455797705`로 `ko-KR`/`en-US` 출시 노트 반영.
+---
+
+## 연결된 기기 표시 (`Android App · Android`)
+
+- `OttlineApiClient.buildRequest`는 공통 API 요청에 `X-Client-Platform: android_native` 헤더와 `ottline-android/<version>` User-Agent를 전송한다(외부 공유 링크 메타 추출 `resolveSharedUrlTitle` 제외).
+- API `AuthService`는 `X-Client-Platform: android_native`뿐 아니라 헤더 없는 기존 `2.0.4` 앱의 `ottline-android/` User-Agent도 `os = "Android"`, `browser = "Android App"`으로 분류하며, 앱 내 `MySpaceScreen`도 웹(`/account`)과 동일한 `browser · os` 순서로 표시한다.

@@ -215,7 +215,7 @@ public class AuthService {
     }
 
     private void applyAgentInfo(UserDeviceEntity device, String userAgent, String clientPlatform) {
-        String nativeOs = nativeClientOs(clientPlatform);
+        String nativeOs = nativeClientOs(clientPlatform, userAgent);
         if (nativeOs != null) {
             device.setUserAgent(normalizeMetadata(userAgent, clientPlatform));
             device.setOs(nativeOs);
@@ -228,14 +228,20 @@ public class AuthService {
         device.setBrowser(parseBrowser(userAgent));
     }
 
-    private String nativeClientOs(String clientPlatform) {
-        if (clientPlatform == null) return null;
-        return switch (clientPlatform.trim().toLowerCase(Locale.ROOT)) {
-            case "ios_native" -> "iOS";
-            case "windows_native" -> "Windows";
-            case "macos_native" -> "macOS";
-            default -> null;
-        };
+    private String nativeClientOs(String clientPlatform, String userAgent) {
+        if (clientPlatform != null && !clientPlatform.isBlank()) {
+            return switch (clientPlatform.trim().toLowerCase(Locale.ROOT)) {
+                case "ios_native" -> "iOS";
+                case "android_native" -> "Android";
+                case "windows_native" -> "Windows";
+                case "macos_native" -> "macOS";
+                default -> null;
+            };
+        }
+        if (userAgent != null && userAgent.toLowerCase(Locale.ROOT).contains("ottline-android/")) {
+            return "Android";
+        }
+        return null;
     }
 
     private String normalizeMetadata(String userAgent, String fallback) {

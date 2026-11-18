@@ -653,7 +653,10 @@ fun MySpaceScreen(
                                                     .padding(vertical = 4.dp)
                                             ) {
                                                 Column(modifier = Modifier.weight(1f)) {
-                                                    val label = listOfNotNull(dev.os, dev.browser)
+                                                    val label = listOfNotNull(
+                                                        dev.browser?.takeIf { it.isNotBlank() },
+                                                        dev.os?.takeIf { it.isNotBlank() }
+                                                    )
                                                         .joinToString(" · ")
                                                         .ifBlank { "Android" }
                                                     Text(
