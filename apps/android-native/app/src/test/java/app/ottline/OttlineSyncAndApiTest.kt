@@ -866,6 +866,49 @@ class OttlineSyncAndApiTest {
         assertEquals(Place.THEATER, activeLogs.first().place)
         assertNull(prefs.current.lastSyncAt)
     }
+
+    @Test
+    fun apiRequestsSendAndroidNativePlatformHeaderButExternalShareFetchDoesNot() = runBlocking {
+        val capturedPaths = CopyOnWriteArrayList<RecordedRequest>()
+        server.dispatcher = object : Dispatcher() {
+            override fun dispatch(request: RecordedRequest): MockResponse {
+                capturedPaths.add(request)
+                return when (request.path) {
+                    "/api/auth/register" -> MockResponse()
+                        .setResponseCode(200)
+                        .setBody("""{"userId":"user-1","deviceId":"dev-1","pairingCode":"PAIRCODE"}""")
+                    "/api/auth/devices" -> MockResponse()
+                        .setResponseCode(200)
+                        .setBody("""[{"id":"dev-1","createdAt":"2026-11-18T00:00:00Z","lastSeenAt":"2026-11-18T00:00:00Z","os":"Android","browser":"Android App"}]""")
+                    "/external-share" -> MockResponse()
+                        .setResponseCode(200)
+                        .setBody("""<html><head><meta property="og:title" content="테스트 작품" /></head></html>""")
+                    else -> MockResponse().setResponseCode(404)
+                }
+            }
+        }
+
+        val registered = api.register()
+        prefs.saveAuth(registered.userId, registered.deviceId, registered.pairingCode)
+        val devices = api.getDevices()
+        val resolvedTitle = api.resolveSharedUrlTitle(server.url("/external-share").toString())
+
+        assertEquals(1, devices.size)
+        assertEquals("Android", devices.first().os)
+        assertEquals("Android App", devices.first().browser)
+        assertEquals("테스트 작품", resolvedTitle)
+
+        val registerReq = capturedPaths.first { it.path == "/api/auth/register" }
+        assertEquals("android_native", registerReq.getHeader("X-Client-Platform"))
+        assertTrue(registerReq.getHeader("User-Agent").orEmpty().contains("ottline-android/"))
+
+        val devicesReq = capturedPaths.first { it.path == "/api/auth/devices" }
+        assertEquals("android_native", devicesReq.getHeader("X-Client-Platform"))
+        assertTrue(devicesReq.getHeader("User-Agent").orEmpty().contains("ottline-android/"))
+
+        val externalReq = capturedPaths.first { it.path == "/external-share" }
+        assertNull(externalReq.getHeader("X-Client-Platform"))
+    }
 }
 
 /**

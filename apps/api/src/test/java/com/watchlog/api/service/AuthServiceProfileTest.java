@@ -241,6 +241,80 @@ class AuthServiceProfileTest {
         assertThat(device.getLastSeenAt()).isEqualTo(lastSeenAt);
     }
 
+    @ParameterizedTest
+    @CsvSource({
+            "android_native, Mozilla/5.0 (Linux; Android 15; Pixel 9) Chrome/134.0.0.0 Mobile Safari/537.36 ottline-android/2.0.5",
+            " Android_NATIVE , Mozilla/5.0 (Linux; Android 15; SM-S928N) Chrome/134.0.0.0 Mobile Safari/537.36 ottline-android/2.0.5"
+    })
+    void registerAndPairStoreAndroidNativeFromHeader(String platform, String userAgent) {
+        var registered = authService.register(userAgent, platform);
+        assertThat(lastSavedDevice.getId()).isEqualTo(registered.deviceId());
+        assertThat(lastSavedDevice.getOs()).isEqualTo("Android");
+        assertThat(DeviceDto.from(lastSavedDevice).browser()).isEqualTo("Android App");
+
+        var user = new UserEntity(UUID.randomUUID(), "ABCDEFGH");
+        users.put(user.getId(), user);
+        var paired = authService.pair("ABCDEFGH", null, userAgent, platform);
+        assertThat(paired.userId()).isEqualTo(user.getId());
+        assertThat(lastSavedDevice.getOs()).isEqualTo("Android");
+        assertThat(lastSavedDevice.getBrowser()).isEqualTo("Android App");
+    }
+
+    @Test
+    void androidNativePlatformDoesNotRequireUserAgent() {
+        for (String userAgent : new String[] {null, "", " "}) {
+            authService.register(userAgent, "android_native");
+
+            assertThat(lastSavedDevice.getUserAgent()).isEqualTo("android_native");
+            assertThat(lastSavedDevice.getOs()).isEqualTo("Android");
+            assertThat(lastSavedDevice.getBrowser()).isEqualTo("Android App");
+        }
+    }
+
+    @Test
+    void legacyAndroidNative204WithoutPlatformHeaderUsesOttlineAndroidUserAgent() {
+        String ua204 = "Mozilla/5.0 (Linux; Android 15; Pixel 9) Chrome/134.0.0.0 Mobile Safari/537.36 ottline-android/2.0.4";
+
+        for (String platform : new String[] {null, "", " "}) {
+            authService.register(ua204, platform);
+            assertThat(lastSavedDevice.getOs()).isEqualTo("Android");
+            assertThat(lastSavedDevice.getBrowser()).isEqualTo("Android App");
+        }
+
+        var user = new UserEntity(UUID.randomUUID(), "ABCDEFGH");
+        users.put(user.getId(), user);
+        var paired = authService.pair("ABCDEFGH", null, ua204, null);
+        assertThat(lastSavedDevice.getId()).isEqualTo(paired.deviceId());
+        assertThat(lastSavedDevice.getOs()).isEqualTo("Android");
+        assertThat(lastSavedDevice.getBrowser()).isEqualTo("Android App");
+
+        // Existing TWA handoff device transitioning onto v2.0.4 native app updates in place
+        var twaDevice = new UserDeviceEntity(UUID.randomUUID(), user);
+        twaDevice.setOs("Android");
+        twaDevice.setBrowser("Chrome");
+        devices.put(twaDevice.getId(), twaDevice);
+        var createdAt = twaDevice.getCreatedAt();
+
+        authService.touchDevice(user.getId(), twaDevice.getId(), ua204, null);
+        authService.touchDevice(user.getId(), twaDevice.getId());
+
+        assertThat(twaDevice.getId()).isEqualTo(twaDevice.getId());
+        assertThat(twaDevice.getCreatedAt()).isEqualTo(createdAt);
+        assertThat(twaDevice.getOs()).isEqualTo("Android");
+        assertThat(twaDevice.getBrowser()).isEqualTo("Android App");
+        assertThat(twaDevice.getUserAgent()).isEqualTo(ua204);
+    }
+
+    @Test
+    void androidChromePwaRemainsChromeAcrossWebAndMissingPlatform() {
+        String chromeUa = "Mozilla/5.0 (Linux; Android 15; Pixel 9) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Mobile Safari/537.36";
+        for (String platform : new String[] {null, "", "web", "android_native_extra"}) {
+            authService.register(chromeUa, platform);
+            assertThat(lastSavedDevice.getOs()).isEqualTo("Android");
+            assertThat(lastSavedDevice.getBrowser()).isEqualTo("Chrome");
+        }
+    }
+
     private Object handleUserRepository(Object proxy, Method method, Object[] args) {
         return switch (method.getName()) {
             case "findById" -> Optional.ofNullable(users.get((UUID) args[0]));

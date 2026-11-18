@@ -98,6 +98,7 @@ class OttlineApiClient(
             .url(fullUrl)
             .header("Accept", "application/json")
             .header("Accept-Language", snap.locale)
+            .header("X-Client-Platform", "android_native")
             .header("X-Book-Search-Capability", "google_books_v1")
             .header("User-Agent", userAgent())
 

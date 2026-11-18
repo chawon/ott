@@ -1,5 +1,11 @@
 # Wiki Log
 
+## [2026-11-18] fix(api,android): Android 네이티브 연결 기기 표시 (Android App · Android)
+
+- `AuthService`에 `X-Client-Platform: android_native` 및 헤더 없는 `2.0.4` 앱의 `ottline-android/` User-Agent 하위호환 분기를 추가해 연결 기기 목록에서 `Android App · Android`로 구분 표시하도록 수정(일반 Chrome PWA는 `Chrome · Android` 유지).
+- Android `OttlineApiClient`에 `X-Client-Platform: android_native` 헤더(외부 공유 링크 조회 제외)를 추가하고 `MySpaceScreen` 기기 라벨 순서를 `browser · os`로 통일(Play 스토어 재배포 없음).
+- 문서: AGENTS.md, wiki/pages/platforms/android-native.md.
+
 ## [2026-11-18] deploy: Windows 웹 전환 퍼널과 Windows·macOS 연결 기기 표시
 
 - PR #133·#135 병합, 공통 API/Web SHA `2f262ec1f854df70d7a48674b9ca612b590b2248`. API production `44217423318` → 실제 API 검사 → Web production `44218009292` 순서로 배포했다.
