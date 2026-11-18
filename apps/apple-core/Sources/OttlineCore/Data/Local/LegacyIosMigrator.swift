@@ -35,6 +35,13 @@ public enum LegacyIosMigrator {
             return summary
         }
 
+        #if os(macOS)
+        if legacySqlitePathOverride == nil && legacyKeychainReaderOverride == nil {
+            prefs.markLegacyMigrationCompleted()
+            return summary
+        }
+        #endif
+
         let readKey = legacyKeychainReaderOverride ?? readExpoSecureStoreKey
 
         // 1. Migrate Auth & Preferences from ExpoSecureStore Keychain
@@ -87,6 +94,9 @@ public enum LegacyIosMigrator {
     /// Expo encodes `key` as `Data(key.utf8)` in both `kSecAttrGeneric` and `kSecAttrAccount`
     /// under `kSecAttrService = "app:no-auth"` (or `"app:auth"` / `"app"`).
     public static func readExpoSecureStoreKey(_ key: String) -> String? {
+        #if os(macOS)
+        return nil
+        #else
         guard let encodedKey = key.data(using: .utf8) else { return nil }
         for service in expoServices {
             let query: [String: Any] = [
@@ -106,6 +116,7 @@ public enum LegacyIosMigrator {
             }
         }
         return nil
+        #endif
     }
 
     private struct LegacyOutboxEnvelope: Codable {

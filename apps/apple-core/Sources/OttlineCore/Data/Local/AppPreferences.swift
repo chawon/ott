@@ -196,9 +196,17 @@ public final class AppPreferences {
     public private(set) var snapshot: PreferencesSnapshot
     public private(set) var activationDismissedInSession: Bool = false
 
+    public static var defaultGroupDefaults: UserDefaults? {
+        #if os(macOS)
+        return nil
+        #else
+        return UserDefaults(suiteName: AppPreferences.appGroupId)
+        #endif
+    }
+
     public init(
         defaults: UserDefaults = .standard,
-        groupDefaults: UserDefaults? = UserDefaults(suiteName: AppPreferences.appGroupId),
+        groupDefaults: UserDefaults? = AppPreferences.defaultGroupDefaults,
         keychainService: String = "app.ottline.v2.auth"
     ) {
         self.defaults = defaults
@@ -609,6 +617,9 @@ public final class AppPreferences {
     // MARK: - Keychain Helpers
 
     private static func readKeychain(service: String, key: String) -> String? {
+        #if os(macOS)
+        return nil
+        #else
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
@@ -620,9 +631,13 @@ public final class AppPreferences {
         let status = SecItemCopyMatching(query as CFDictionary, &result)
         guard status == errSecSuccess, let data = result as? Data else { return nil }
         return String(data: data, encoding: .utf8)
+        #endif
     }
 
     private static func writeKeychain(service: String, key: String, value: String) {
+        #if os(macOS)
+        return
+        #else
         guard let data = value.data(using: .utf8) else { return }
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
@@ -634,14 +649,19 @@ public final class AppPreferences {
         addQuery[kSecValueData as String] = data
         addQuery[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
         SecItemAdd(addQuery as CFDictionary, nil)
+        #endif
     }
 
     private static func deleteKeychain(service: String, key: String) {
+        #if os(macOS)
+        return
+        #else
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
             kSecAttrAccount as String: key
         ]
         SecItemDelete(query as CFDictionary)
+        #endif
     }
 }

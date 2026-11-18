@@ -637,6 +637,7 @@ final class OttlineCoreTests: XCTestCase {
             groupDefaults: groupDefaults,
             keychainService: "app.ottline.test.nf.\(UUID().uuidString)"
         )
+        prefs.setLocale("ko")
         prefs.setEveningReminder(enabled: true, hour: 21, minute: 45)
         XCTAssertTrue(prefs.snapshot.eveningReminderEnabled)
         XCTAssertEqual(prefs.snapshot.eveningReminderHour, 21)
@@ -657,6 +658,12 @@ final class OttlineCoreTests: XCTestCase {
         XCTAssertEqual(decodedSnap.totalLogCount, 2)
         XCTAssertEqual(decodedSnap.continueItem?.titleId, "title-ev-1")
         XCTAssertEqual(decodedSnap.continueItem?.statusBadge, "보는 중")
+
+        prefs.setLocale("en")
+        prefs.updateWidgetSnapshot(from: [inProgSeries, thisMonthDone])
+        let enData = try XCTUnwrap(groupDefaults.data(forKey: AppPreferences.widgetSnapshotKey))
+        let enSnap = try JSONDecoder().decode(SharedWidgetSnapshot.self, from: enData)
+        XCTAssertEqual(enSnap.continueItem?.statusBadge, "Watching")
 
         // 5. ShareIntentParser site suffix cleanup & YouTube/Apple Books detection + Share Extension queue drain
         let ytParsed = ShareIntentParser.parse(sharedText: "올드보이 예고편 - YouTube\nhttps://youtu.be/abc123")

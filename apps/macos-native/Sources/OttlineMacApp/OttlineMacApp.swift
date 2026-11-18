@@ -91,7 +91,11 @@ public final class OttlineMacAppState {
 
 @main
 public struct OttlineMacApp: App {
-    @State private var repository: OttlineRepository = {
+    private static let isRunningUnitTests =
+        ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
+
+    @State private var repository: OttlineRepository? = {
+        guard !OttlineMacApp.isRunningUnitTests else { return nil }
         let prefs = AppPreferences()
         let db = OttlineDatabase()
         let api = OttlineApiClient(prefs: prefs)
@@ -101,53 +105,61 @@ public struct OttlineMacApp: App {
 
     public init() {
         Self.registerBundledFonts()
-        RecapNotificationManager.shared.configureDelegate()
+        if !Self.isRunningUnitTests {
+            RecapNotificationManager.shared.configureDelegate()
+        }
     }
 
     public var body: some Scene {
+        let locale = repository?.prefs.snapshot.locale ?? "ko"
+
         WindowGroup("ottline", id: "main") {
-            MacRootSpreadView(repository: repository, appState: appState)
-                .frame(minWidth: 920, minHeight: 640)
-                .onOpenURL { url in
-                    appState.handleIncomingUrl(url, repository: repository)
-                }
-                #if canImport(CoreSpotlight)
-                .onContinueUserActivity(CSSearchableItemActionType) { activity in
-                    let identifier = activity.userInfo?[CSSearchableItemActivityIdentifier] as? String
-                    if let titleId = SpotlightIndexManager.parseTitleId(from: identifier) {
-                        appState.overlayStack = [.titleDetail(titleId)]
+            if let repository {
+                MacRootSpreadView(repository: repository, appState: appState)
+                    .frame(minWidth: 920, minHeight: 640)
+                    .onOpenURL { url in
+                        appState.handleIncomingUrl(url, repository: repository)
                     }
-                }
-                #endif
+                    #if canImport(CoreSpotlight)
+                    .onContinueUserActivity(CSSearchableItemActionType) { activity in
+                        let identifier = activity.userInfo?[CSSearchableItemActivityIdentifier] as? String
+                        if let titleId = SpotlightIndexManager.parseTitleId(from: identifier) {
+                            appState.overlayStack = [.titleDetail(titleId)]
+                        }
+                    }
+                    #endif
+            } else {
+                EmptyView()
+            }
         }
         .defaultSize(width: 1220, height: 820)
         .commands {
             CommandGroup(after: .newItem) {
-                Button(OttlineStrings.tr("새 기록 남기기", "New Record", locale: repository.prefs.snapshot.locale)) {
+                Button(OttlineStrings.tr("새 기록 남기기", "New Record", locale: locale)) {
                     appState.quickRecordRequest = QuickRecordRequest(autoFocusSearch: true)
                 }
                 .keyboardShortcut("n", modifiers: .command)
             }
-            CommandMenu(OttlineStrings.tr("이동", "Navigate", locale: repository.prefs.snapshot.locale)) {
-                Button(OttlineStrings.tr("홈", "Home", locale: repository.prefs.snapshot.locale)) {
+            CommandMenu(OttlineStrings.tr("이동", "Navigate", locale: locale)) {
+                Button(OttlineStrings.tr("홈", "Home", locale: locale)) {
                     appState.overlayStack.removeAll()
                     appState.activeTab = .home
                 }
                 .keyboardShortcut("1", modifiers: .command)
 
-                Button(OttlineStrings.tr("타임라인", "Timeline", locale: repository.prefs.snapshot.locale)) {
+                Button(OttlineStrings.tr("타임라인", "Timeline", locale: locale)) {
                     appState.overlayStack.removeAll()
                     appState.activeTab = .timeline
                 }
                 .keyboardShortcut("2", modifiers: .command)
 
-                Button(OttlineStrings.tr("함께", "Together", locale: repository.prefs.snapshot.locale)) {
+                Button(OttlineStrings.tr("함께", "Together", locale: locale)) {
                     appState.overlayStack.removeAll()
                     appState.activeTab = .together
                 }
                 .keyboardShortcut("3", modifiers: .command)
 
-                Button(OttlineStrings.tr("내 공간", "My Space", locale: repository.prefs.snapshot.locale)) {
+                Button(OttlineStrings.tr("내 공간", "My Space", locale: locale)) {
                     appState.overlayStack.removeAll()
                     appState.activeTab = .mySpace
                 }
@@ -155,8 +167,8 @@ public struct OttlineMacApp: App {
 
                 Divider()
 
-                Button(OttlineStrings.tr("지금 동기화", "Sync Now", locale: repository.prefs.snapshot.locale)) {
-                    repository.triggerSyncAsync()
+                Button(OttlineStrings.tr("지금 동기화", "Sync Now", locale: locale)) {
+                    repository?.triggerSyncAsync()
                 }
                 .keyboardShortcut("r", modifiers: .command)
             }
@@ -164,11 +176,15 @@ public struct OttlineMacApp: App {
 
         MenuBarExtra(
             isInserted: Binding(
-                get: { repository.prefs.snapshot.macosMenuBarEnabled },
-                set: { repository.prefs.setMacosMenuBarEnabled($0) }
+                get: { repository?.prefs.snapshot.macosMenuBarEnabled ?? false },
+                set: { repository?.prefs.setMacosMenuBarEnabled($0) }
             )
         ) {
-            MacMenuBarQuickLogView(repository: repository, appState: appState)
+            if let repository {
+                MacMenuBarQuickLogView(repository: repository, appState: appState)
+            } else {
+                EmptyView()
+            }
         } label: {
             Image("menubar_icon")
                 .renderingMode(.template)
