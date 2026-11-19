@@ -95,6 +95,14 @@ ottline://quick?quick=1&title={encodedTitle}&q={encodedTitle}&platform={encodedP
   2. `/about`의 앱 목록 아래에 브라우저 확장 **‘보조 도구’** 섹션을 둔다. Windows 앱으로 작품을 넘겨 기록하는 방법과 Mac App Store 출시 후 macOS 앱 연결을 지원한다는 점을 안내한다.
   3. **후속 정리 포함**: [PR `#133` 후속 메모](./web-acquisition-funnel-plan-2026-11-17.md#후속-phase-1-작업-시-실행할-검사)에 기록된 `Ctrl+Alt+O` → **`Ctrl+Shift+O`** 문구 정정도 이 Web PR에서 함께 처리한다.
 
+#### Phase A 운영 배포 (2026-11-19)
+
+- [PR #138](https://github.com/chawon/ott/pull/138)을 병합하고 `4472ad39a88395959187897a51f891cd13bf3e23`을 [웹 운영 배포](https://github.com/chawon/ott/actions/runs/44441612541)에 입력했다. [PR CI](https://github.com/chawon/ott/actions/runs/44321330160)와 [main CI](https://github.com/chawon/ott/actions/runs/44441545662)가 통과했다.
+- 운영 manifest는 `7e6735e8de00d1a9ffcd4b99a59731576464caa4`다. ArgoCD `Synced Healthy`, Web 이미지와 `APP_VERSION=4472ad3`, Web/API Pod `1/1` Ready와 재시작 0을 확인했다.
+- 공개 버전 응답과 한·영 `/about`의 보조 도구 섹션·`Ctrl+Shift+O`·Windows Store 링크를 확인했다. 운영 SEO 검사는 공개 URL 19개·개인 경로 14개에서 통과했고 IndexNow는 19개 URL을 접수했다.
+- 운영 Web Pod의 자산을 사용한 Chromium 검사 29개가 통과했다. 한·영 확장 진입, 앱 링크 활성화, 앱 우선 설정의 유지·해제, `cid=extension_handoff`와 웹 저장을 확인했다. 저장과 이벤트는 브라우저에서 모의 처리했으며 Windows 앱 실행과 프리필은 실기기 확인 항목이다.
+- macOS 앱 연결은 Mac App Store 출시 후 Phase C에서 활성화한다.
+
 ### Phase B — Apple (`origin/feature/ios-native-v2`) macOS 출시 전 규격 정렬
 
 - **대상 파일**: `apps/macos-native/Sources/OttlineMacApp/OttlineMacApp.swift`, `apps/ios-native/Sources/OttlineApp/OttlineApp.swift`, `apps/apple-core/Sources/OttlineCore/`

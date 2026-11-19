@@ -38,7 +38,7 @@
 
 | 페이지 | 요약 |
 |---|---|
-| [[browser-extension]] | PC OTT 페이지 캡처 도우미 및 Windows·macOS 네이티브 연결 브릿지용 Chrome/Edge/Whale 확장 (기능 동결) |
+| [[browser-extension]] | Chrome·Edge·Whale에서 작품을 웹 QuickLog와 Windows 앱으로 연결하는 보조 도구. macOS 앱 연결은 출시 후 적용 |
 | [[ms-store]] | Microsoft Store(`9NSVNZGDMGF5`) `v2.0.0.0` 정식 출시(`Published`) 완료, 웹 배너·저장 CTA·소개 카드의 `cid` 계측 |
 | [[windows-native]] | 순수 Windows Native(`.NET 8 WPF + SQLite + Windows 11 위젯`), `v2.0.0.0` Store 정식 출시·PWA 핸드오프 실기기 확인 |
 | [[pwa]] | 웹 브라우저 전용 설치형 웹앱(macOS·Linux·홈 화면 추가 유지, Store 래퍼형 PWA/TWA는 종료)과 서비스워커 v7 |

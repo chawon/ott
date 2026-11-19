@@ -8,10 +8,11 @@
 
 ---
 
-## 현재 포지셔닝 및 데스크톱 네이티브 브릿지 계획 (2026-11-18)
+## 데스크톱 앱 연결 (2026-11-19)
 
 - [[windows-native]] (`2.0.0.0` 출시)가 OTT 시청 종료 알림 및 전역 단축키(`Ctrl+Shift+O`)를 자체 내장하고 `feature/ios-native-v2`에서 `apps/macos-native` 출시를 준비함에 따라, 확장 프로그램은 주력 클라이언트에서 **데스크톱 네이티브 앱으로 연결해 주는 경량 브릿지·무료 검색 노출 채널(기능 동결)**로 포지션을 전환한다.
-- Chrome·Edge·Whale 스토어 재심사 없이도 `ottline.app/?quick=1&capture_title=...` 웹 브릿지에서 Windows·macOS 공통 딥링크(`ottline://quick?quick=1&title=...&q=...&platform=...&type=video`)로 넘기도록 단계별 계획을 수립했다. macOS 출시 전 Apple 측 `title`/`capture_title` 수용 및 `?native_handoff=1` → `ottline://open?handoff=1` 세션 이어받기 정렬을 포함한다.
+- 기존 Chrome·Edge·Whale 확장이 여는 `?quick=1&capture_title=...` 경로에 Windows 앱 연결을 배포했다. 웹 QuickLog에서 `ottline://quick`으로 작품 정보를 넘기거나 `cid=extension_handoff` 링크로 Microsoft Store를 열 수 있다. PR #138, Web SHA `4472ad3`.
+- macOS 앱 연결은 Mac App Store 출시 후 Phase C에서 활성화한다. 출시 준비에는 빠른 기록 파라미터와 `?native_handoff=1` → `ottline://open?handoff=1` 세션 이어받기 정렬이 포함된다.
 - 상세 규격 및 트랙별 체크리스트: [데스크톱 공통 프로토콜·핸드오프 및 확장 브릿지 계획 (2026-11-18)](../../../docs/desktop-protocol-and-extension-bridge-plan-2026-11-18.md)
 
 ---
@@ -50,7 +51,7 @@ apps/browser-extension/
 3. 팝업에서 `ottline에 기록하기` 버튼 클릭
 4. `https://ottline.app/ko`로 이동하며 QuickLog 초기값을 query param으로 전달
    - `capture_title`, `capture_type`, `capture_platform`, `capture_source_url`, `capture_source_site`
-5. 웹앱에서 사용자가 최종 저장
+5. 웹 QuickLog에서 사용자가 저장한다. Windows 브라우저에서는 앱으로 열 수도 있다. 앱 우선 설정을 켜면 다음 확장 진입에서 열기 링크가 먼저 선택되며 클릭 또는 Enter로 앱을 요청한다.
 
 ---
 

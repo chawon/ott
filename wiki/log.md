@@ -1,5 +1,11 @@
 # Wiki Log
 
+## [2026-11-19] deploy: 브라우저 확장→Windows 빠른 기록 Phase A
+
+- PR #138을 병합하고 Web SHA `4472ad3`을 production run `44441612541`로 배포했다. Windows 확장 진입의 QuickLog에 앱 링크와 설치 캠페인 `cid=extension_handoff`를 추가했다.
+- 운영 브라우저 29개 시나리오, 한·영 공개 `/about`의 보조 도구·`Ctrl+Shift+O`, SEO 공개 19개·개인 14개 경로와 IndexNow 19개 접수를 확인했다. ArgoCD `Synced Healthy`, Web과 API Pod Ready·재시작 0을 확인했다.
+- [배포·검증 기록](../docs/desktop-protocol-and-extension-bridge-plan-2026-11-18.md)
+
 ## [2026-11-18] plan: 데스크톱(Windows·macOS) 공통 ottline:// 프로토콜·핸드오프 및 브라우저 확장 전환 명세 작성
 - 대상: `docs/desktop-protocol-and-extension-bridge-plan-2026-11-18.md` (신규), `wiki/pages/platforms/browser-extension.md`, `wiki/pages/platforms/windows-native.md`, `wiki/index.md`
 - 노트:
