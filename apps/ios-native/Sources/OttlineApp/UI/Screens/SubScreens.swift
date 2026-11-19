@@ -53,8 +53,15 @@ public struct ReportScreen: View {
         VStack(spacing: 0) {
             subScreenHeader(title: headerTitle, onBack: onBack, metrics: metrics)
 
-            ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
+            GeometryReader { scrollGeo in
+                ScrollView {
+                    OttlineStickyFooterLayout(
+                        minHeight: scrollGeo.size.height,
+                        topPadding: 16,
+                        bottomPadding: metrics.isSpread ? 24 : 110,
+                        minSpacing: 20
+                    ) {
+                        VStack(alignment: .leading, spacing: 20) {
                     // Summary Metrics Grid (6 cards)
                     let summaryColumns = Array(
                         repeating: GridItem(.flexible(), spacing: 10),
@@ -259,12 +266,12 @@ public struct ReportScreen: View {
                             )
                         }
                     }
+                        }
 
-                    OttlineAppFooter()
+                        OttlineAppFooter(bottomPadding: 0)
+                    }
+                    .ottlineContentContainer(metrics)
                 }
-                .ottlineContentContainer(metrics)
-                .padding(.top, 16)
-                .padding(.bottom, 16)
             }
         }
         .background(palette.background)
@@ -610,8 +617,15 @@ public struct BookshelfScreen: View {
                 metrics: metrics
             )
 
-            ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
+            GeometryReader { scrollGeo in
+                ScrollView {
+                    OttlineStickyFooterLayout(
+                        minHeight: scrollGeo.size.height,
+                        topPadding: 16,
+                        bottomPadding: metrics.isSpread ? 24 : 110,
+                        minSpacing: 20
+                    ) {
+                        VStack(alignment: .leading, spacing: 20) {
                     Text(OttlineStrings.tr(
                         "한국십진분류법(KDC) 대분류 기준으로 정리한 \(totalBooks)권의 책이에요.",
                         "\(totalBooks) books organized by Korean Decimal Classification (000–900).",
@@ -762,12 +776,12 @@ public struct BookshelfScreen: View {
                             )
                         }
                     }
+                        }
 
-                    OttlineAppFooter()
+                        OttlineAppFooter(bottomPadding: 0)
+                    }
+                    .ottlineContentContainer(metrics)
                 }
-                .ottlineContentContainer(metrics)
-                .padding(.top, 16)
-                .padding(.bottom, 16)
             }
         }
         .background(palette.background)
@@ -920,9 +934,16 @@ public struct FeedbackScreen: View {
                 metrics: metrics
             )
 
-            ScrollView {
-                VStack(alignment: .leading, spacing: 14) {
-                    if let detail = activeDetail {
+            GeometryReader { scrollGeo in
+                ScrollView {
+                    OttlineStickyFooterLayout(
+                        minHeight: scrollGeo.size.height,
+                        topPadding: 16,
+                        bottomPadding: metrics.isSpread ? 24 : 110,
+                        minSpacing: 20
+                    ) {
+                        VStack(alignment: .leading, spacing: 14) {
+                            if let detail = activeDetail {
                         HStack {
                             Text(OttlineStrings.feedbackCategoryLabel(detail.category, locale: locale))
                                 .font(OttlineFont.medium(12))
@@ -1000,12 +1021,12 @@ public struct FeedbackScreen: View {
                             feedbackThreadListSection
                         }
                     }
+                        }
 
-                    OttlineAppFooter()
+                        OttlineAppFooter(bottomPadding: 0)
+                    }
+                    .ottlineContentContainer(metrics)
                 }
-                .ottlineContentContainer(metrics)
-                .padding(.top, 16)
-                .padding(.bottom, 16)
             }
         }
         .background(palette.background)
@@ -1286,24 +1307,31 @@ public struct GuideInfoScreen: View {
         VStack(spacing: 0) {
             subScreenHeader(title: headerTitle, onBack: onBack, metrics: metrics)
 
-            ScrollView {
-                VStack(alignment: .leading, spacing: 14) {
-                    switch mode {
-                    case .guides:
-                        guidesBody
-                    case .about:
-                        aboutBody
-                    case .faq:
-                        faqBody
-                    case .privacy:
-                        privacyBody
-                    }
+            GeometryReader { scrollGeo in
+                ScrollView {
+                    OttlineStickyFooterLayout(
+                        minHeight: scrollGeo.size.height,
+                        topPadding: 16,
+                        bottomPadding: metrics.isSpread ? 24 : 110,
+                        minSpacing: 20
+                    ) {
+                        VStack(alignment: .leading, spacing: 14) {
+                            switch mode {
+                            case .guides:
+                                guidesBody
+                            case .about:
+                                aboutBody
+                            case .faq:
+                                faqBody
+                            case .privacy:
+                                privacyBody
+                            }
+                        }
 
-                    OttlineAppFooter()
+                        OttlineAppFooter(bottomPadding: 0)
+                    }
+                    .ottlineContentContainer(metrics)
                 }
-                .ottlineContentContainer(metrics)
-                .padding(.top, 16)
-                .padding(.bottom, 16)
             }
         }
         .background(palette.background)

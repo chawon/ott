@@ -55,9 +55,16 @@ public struct MacTimelineSpreadView: View {
         }
         let monthGroups = TimelineMoments.groupLogsByMonth(sortedLogs)
 
-        ScrollView {
-            VStack(alignment: .leading, spacing: 22) {
-                // Header
+        GeometryReader { scrollGeo in
+            ScrollView {
+                OttlineStickyFooterLayout(
+                    minHeight: scrollGeo.size.height,
+                    topPadding: 24,
+                    bottomPadding: 28,
+                    minSpacing: 24
+                ) {
+                    VStack(alignment: .leading, spacing: 22) {
+                        // Header
                 HStack(alignment: .bottom) {
                     VStack(alignment: .leading, spacing: 4) {
                         Text(OttlineStrings.tr("남겨둔 이야기", "THE STORIES YOU KEPT", locale: locale))
@@ -308,13 +315,14 @@ public struct MacTimelineSpreadView: View {
                         }
                     }
                 }
+                    }
 
-                OttlineAppFooter()
+                    OttlineAppFooter(bottomPadding: 0)
+                }
+                .frame(maxWidth: 1120, alignment: .leading)
+                .padding(.horizontal, 28)
+                .frame(maxWidth: .infinity)
             }
-            .frame(maxWidth: 1120)
-            .padding(.horizontal, 28)
-            .padding(.top, 24)
-            .frame(maxWidth: .infinity)
         }
         .onAppear {
             if let pf = appState.pendingPlaceFilter {

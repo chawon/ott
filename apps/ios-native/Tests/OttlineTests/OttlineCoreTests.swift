@@ -765,6 +765,28 @@ final class OttlineCoreTests: XCTestCase {
         XCTAssertEqual(featuredMetrics.posterHeight, round(featuredMetrics.posterWidth * 1.5))
         XCTAssertEqual(featuredMetrics.posterWidth + featuredMetrics.spacing + featuredMetrics.storyWidth, 620)
 
+        let shortSticky = OttlineStickyFooterLayout.computeMetrics(
+            minHeight: 1200,
+            topPadding: 24,
+            contentHeight: 320,
+            minSpacing: 20,
+            footerHeight: 110,
+            bottomPadding: 24
+        )
+        XCTAssertEqual(shortSticky.totalHeight, 1200)
+        XCTAssertEqual(shortSticky.footerY, 1066)
+
+        let tallSticky = OttlineStickyFooterLayout.computeMetrics(
+            minHeight: 1200,
+            topPadding: 24,
+            contentHeight: 1800,
+            minSpacing: 20,
+            footerHeight: 110,
+            bottomPadding: 24
+        )
+        XCTAssertEqual(tallSticky.totalHeight, 1978)
+        XCTAssertEqual(tallSticky.footerY, 1844)
+
         XCTAssertEqual(PadLayoutMetrics.deviceLabel(isPadIdiom: true, locale: "ko"), "아이패드")
         XCTAssertEqual(PadLayoutMetrics.deviceLabel(isPadIdiom: false, locale: "ko"), "아이폰")
         XCTAssertEqual(PadLayoutMetrics.deviceLabel(isPadIdiom: true, locale: "en"), "iPad")

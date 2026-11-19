@@ -64,8 +64,15 @@ public struct MySpaceScreen: View {
             return true
         }
 
-        ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
+        GeometryReader { scrollGeo in
+            ScrollView {
+                OttlineStickyFooterLayout(
+                    minHeight: scrollGeo.size.height,
+                    topPadding: metrics.isSpread ? 24 : 20,
+                    bottomPadding: metrics.isSpread ? 24 : 110,
+                    minSpacing: 20
+                ) {
+                    VStack(alignment: .leading, spacing: 20) {
                 // 1. Header (`app/[locale]/account/page.tsx` `.header` 1:1 parity)
                 VStack(alignment: .leading, spacing: 6) {
                     Text(OttlineStrings.tr("나의 공간", "MY SPACE", locale: locale))
@@ -134,12 +141,12 @@ public struct MySpaceScreen: View {
                     debugServerSection(snap: snap)
                     dataManagementCard
                 }
+                    }
 
-                OttlineAppFooter()
+                    OttlineAppFooter(bottomPadding: 0)
+                }
+                .ottlineContentContainer(metrics)
             }
-            .ottlineContentContainer(metrics)
-            .padding(.top, metrics.isSpread ? 24 : 20)
-            .padding(.bottom, 16)
         }
         .background(palette.background)
         .alert(

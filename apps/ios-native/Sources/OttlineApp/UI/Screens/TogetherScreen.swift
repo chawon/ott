@@ -269,143 +269,153 @@ public struct TogetherScreen: View {
             .frame(maxHeight: .infinity, alignment: .topLeading)
 
             // Right Pane: Inline Title Hero + Reactions + Comments Reader
-            ScrollView {
-                if let disc = selectedDiscussion {
-                    let discTitle = Title(
-                        id: disc.titleId,
-                        provider: disc.titleProvider ?? .tmdb,
-                        providerId: disc.titleProviderId,
-                        type: disc.titleType,
-                        name: disc.titleName,
-                        year: disc.titleYear,
-                        posterUrl: disc.posterUrl
-                    )
-                    let state = reactionStates[disc.id] ?? DiscussionReactionState(summary: disc.reactionSummary ?? .empty)
-
-                    VStack(alignment: .leading, spacing: 18) {
-                        HStack(alignment: .top, spacing: 18) {
-                            PosterImage(
-                                posterUrl: disc.posterUrl,
-                                titleName: disc.titleName,
-                                titleType: disc.titleType,
-                                width: 96,
-                                height: 144,
-                                cornerRadius: 5
-                            )
-
-                            VStack(alignment: .leading, spacing: 8) {
-                                Text([
-                                    OttlineStrings.titleTypeLabel(disc.titleType, locale: locale),
-                                    disc.titleYear.map(String.init)
-                                ].compactMap { $0 }.joined(separator: " · "))
-                                .font(OttlineFont.medium(12))
-                                .foregroundStyle(palette.mutedInk)
-
-                                Text(disc.titleName)
-                                    .font(OttlineFont.bold(24))
-                                    .foregroundStyle(palette.ink)
-                                    .fixedSize(horizontal: false, vertical: true)
-
-                                DiscussionReactionChipsView(
-                                    titleType: disc.titleType,
-                                    state: state,
-                                    isBusy: busyReactionIds.contains(disc.id),
-                                    onToggle: { reactionType in
-                                        Task { await toggleReaction(disc: disc, type: reactionType) }
-                                    }
+            GeometryReader { rightGeo in
+                ScrollView {
+                    OttlineStickyFooterLayout(
+                        minHeight: rightGeo.size.height,
+                        topPadding: 0,
+                        bottomPadding: 24,
+                        minSpacing: 20
+                    ) {
+                        VStack(alignment: .leading, spacing: 0) {
+                            if let disc = selectedDiscussion {
+                                let discTitle = Title(
+                                    id: disc.titleId,
+                                    provider: disc.titleProvider ?? .tmdb,
+                                    providerId: disc.titleProviderId,
+                                    type: disc.titleType,
+                                    name: disc.titleName,
+                                    year: disc.titleYear,
+                                    posterUrl: disc.posterUrl
                                 )
+                                let state = reactionStates[disc.id] ?? DiscussionReactionState(summary: disc.reactionSummary ?? .empty)
 
-                                FlowLayout(horizontalSpacing: 8, verticalSpacing: 8) {
-                                    Button {
-                                        onOpenQuickRecord(
-                                            QuickRecordRequest(
-                                                preselectedTitle: discTitle,
-                                                selectSource: "together",
-                                                autoFocusSearch: false
+                                VStack(alignment: .leading, spacing: 18) {
+                                    HStack(alignment: .top, spacing: 18) {
+                                        PosterImage(
+                                            posterUrl: disc.posterUrl,
+                                            titleName: disc.titleName,
+                                            titleType: disc.titleType,
+                                            width: 96,
+                                            height: 144,
+                                            cornerRadius: 5
+                                        )
+
+                                        VStack(alignment: .leading, spacing: 8) {
+                                            Text([
+                                                OttlineStrings.titleTypeLabel(disc.titleType, locale: locale),
+                                                disc.titleYear.map(String.init)
+                                            ].compactMap { $0 }.joined(separator: " · "))
+                                            .font(OttlineFont.medium(12))
+                                            .foregroundStyle(palette.mutedInk)
+
+                                            Text(disc.titleName)
+                                                .font(OttlineFont.bold(24))
+                                                .foregroundStyle(palette.ink)
+                                                .fixedSize(horizontal: false, vertical: true)
+
+                                            DiscussionReactionChipsView(
+                                                titleType: disc.titleType,
+                                                state: state,
+                                                isBusy: busyReactionIds.contains(disc.id),
+                                                onToggle: { reactionType in
+                                                    Task { await toggleReaction(disc: disc, type: reactionType) }
+                                                }
                                             )
-                                        )
-                                    } label: {
-                                        Text(OttlineStrings.tr("이 작품 기록하기", "Log this title", locale: locale))
-                                            .font(OttlineFont.semiBold(13))
-                                            .foregroundStyle(palette.onBrandOrange)
-                                            .padding(.horizontal, 14)
-                                            .frame(height: 38)
-                                            .background(palette.brandOrange)
-                                            .clipShape(RoundedRectangle(cornerRadius: 8))
-                                    }
-                                    .buttonStyle(.plain)
 
-                                    Button {
-                                        onOpenTitleDetail(disc.titleId)
-                                    } label: {
-                                        Text(OttlineStrings.tr("상세 보기", "Open detail", locale: locale))
-                                            .font(OttlineFont.medium(13))
-                                            .foregroundStyle(palette.primaryAccent)
-                                            .padding(.horizontal, 12)
-                                            .frame(height: 38)
-                                            .background(palette.card)
-                                            .clipShape(RoundedRectangle(cornerRadius: 8))
-                                            .overlay(RoundedRectangle(cornerRadius: 8).stroke(palette.border, lineWidth: 1))
-                                    }
-                                    .buttonStyle(.plain)
+                                            FlowLayout(horizontalSpacing: 8, verticalSpacing: 8) {
+                                                Button {
+                                                    onOpenQuickRecord(
+                                                        QuickRecordRequest(
+                                                            preselectedTitle: discTitle,
+                                                            selectSource: "together",
+                                                            autoFocusSearch: false
+                                                        )
+                                                    )
+                                                } label: {
+                                                    Text(OttlineStrings.tr("이 작품 기록하기", "Log this title", locale: locale))
+                                                        .font(OttlineFont.semiBold(13))
+                                                        .foregroundStyle(palette.onBrandOrange)
+                                                        .padding(.horizontal, 14)
+                                                        .frame(height: 38)
+                                                        .background(palette.brandOrange)
+                                                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                                                }
+                                                .buttonStyle(.plain)
 
-                                    Button {
-                                        let prefix = OttlineStrings.tr(
-                                            "[신고/문의] 작품: \(disc.titleName) (\(disc.titleId))\n사유: ",
-                                            "[Report] Title: \(disc.titleName) (\(disc.titleId))\nReason: ",
-                                            locale: locale
-                                        )
-                                        onReportUgc(prefix)
-                                    } label: {
-                                        Text(OttlineStrings.tr("신고", "Report", locale: locale))
-                                            .font(OttlineFont.regular(12.5))
-                                            .foregroundStyle(palette.subtleInk)
-                                            .padding(.horizontal, 8)
-                                            .frame(height: 38)
+                                                Button {
+                                                    onOpenTitleDetail(disc.titleId)
+                                                } label: {
+                                                    Text(OttlineStrings.tr("상세 보기", "Open detail", locale: locale))
+                                                        .font(OttlineFont.medium(13))
+                                                        .foregroundStyle(palette.primaryAccent)
+                                                        .padding(.horizontal, 12)
+                                                        .frame(height: 38)
+                                                        .background(palette.card)
+                                                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                                                        .overlay(RoundedRectangle(cornerRadius: 8).stroke(palette.border, lineWidth: 1))
+                                                }
+                                                .buttonStyle(.plain)
+
+                                                Button {
+                                                    let prefix = OttlineStrings.tr(
+                                                        "[신고/문의] 작품: \(disc.titleName) (\(disc.titleId))\n사유: ",
+                                                        "[Report] Title: \(disc.titleName) (\(disc.titleId))\nReason: ",
+                                                        locale: locale
+                                                    )
+                                                    onReportUgc(prefix)
+                                                } label: {
+                                                    Text(OttlineStrings.tr("신고", "Report", locale: locale))
+                                                        .font(OttlineFont.regular(12.5))
+                                                        .foregroundStyle(palette.subtleInk)
+                                                        .padding(.horizontal, 8)
+                                                        .frame(height: 38)
+                                                }
+                                                .buttonStyle(.plain)
+                                            }
+                                            .padding(.top, 2)
+                                        }
+                                        .frame(maxWidth: .infinity, alignment: .leading)
                                     }
-                                    .buttonStyle(.plain)
+                                    .padding(18)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .background(palette.card)
+                                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(palette.border, lineWidth: 1))
+
+                                    CommentsPanelView(
+                                        title: discTitle,
+                                        initialDiscussionId: disc.id,
+                                        repository: repository,
+                                        showSyncLogCheckbox: true,
+                                        onSelectTitle: onOpenTitleDetail
+                                    )
+                                    .id(disc.id)
                                 }
-                                .padding(.top, 2)
+                            } else if loading {
+                                VStack(spacing: 12) {
+                                    ProgressView()
+                                    Text(OttlineStrings.tr("이야기를 불러오고 있어요.", "Loading discussions.", locale: locale))
+                                        .font(OttlineFont.regular(13.5))
+                                        .foregroundStyle(palette.mutedInk)
+                                }
+                                .frame(maxWidth: .infinity, minHeight: 260)
+                                .background(palette.card)
+                                .clipShape(RoundedRectangle(cornerRadius: 8))
+                                .overlay(RoundedRectangle(cornerRadius: 8).stroke(palette.border, lineWidth: 1))
+                            } else {
+                                Text(OttlineStrings.tr("왼쪽에서 이야기를 선택해 읽어보세요.", "Select a conversation from the left list.", locale: locale))
+                                    .font(OttlineFont.regular(15))
+                                    .foregroundStyle(palette.mutedInk)
+                                    .frame(maxWidth: .infinity, minHeight: 260)
+                                    .background(palette.card)
+                                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(palette.border, lineWidth: 1))
                             }
-                            .frame(maxWidth: .infinity, alignment: .leading)
                         }
-                        .padding(18)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(palette.card)
-                        .clipShape(RoundedRectangle(cornerRadius: 8))
-                        .overlay(RoundedRectangle(cornerRadius: 8).stroke(palette.border, lineWidth: 1))
 
-                        CommentsPanelView(
-                            title: discTitle,
-                            initialDiscussionId: disc.id,
-                            repository: repository,
-                            showSyncLogCheckbox: true,
-                            onSelectTitle: onOpenTitleDetail
-                        )
-                        .id(disc.id)
-
-                        OttlineAppFooter()
+                        OttlineAppFooter(bottomPadding: 0)
                     }
-                    .padding(.bottom, 16)
-                } else if loading {
-                    VStack(spacing: 12) {
-                        ProgressView()
-                        Text(OttlineStrings.tr("이야기를 불러오고 있어요.", "Loading discussions.", locale: locale))
-                            .font(OttlineFont.regular(13.5))
-                            .foregroundStyle(palette.mutedInk)
-                    }
-                    .frame(maxWidth: .infinity, minHeight: 260)
-                    .background(palette.card)
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
-                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(palette.border, lineWidth: 1))
-                } else {
-                    Text(OttlineStrings.tr("왼쪽에서 이야기를 선택해 읽어보세요.", "Select a conversation from the left list.", locale: locale))
-                        .font(OttlineFont.regular(15))
-                        .foregroundStyle(palette.mutedInk)
-                        .frame(maxWidth: .infinity, minHeight: 260)
-                        .background(palette.card)
-                        .clipShape(RoundedRectangle(cornerRadius: 8))
-                        .overlay(RoundedRectangle(cornerRadius: 8).stroke(palette.border, lineWidth: 1))
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
@@ -459,9 +469,16 @@ public struct TogetherScreen: View {
     }
 
     private var compactBody: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                // Header
+        GeometryReader { scrollGeo in
+            ScrollView {
+                OttlineStickyFooterLayout(
+                    minHeight: scrollGeo.size.height,
+                    topPadding: 20,
+                    bottomPadding: metrics.isSpread ? 24 : 110,
+                    minSpacing: 20
+                ) {
+                    VStack(alignment: .leading, spacing: 20) {
+                        // Header
                 VStack(alignment: .leading, spacing: 6) {
                     Text(OttlineStrings.tr("함께", "TOGETHER", locale: locale))
                         .font(OttlineFont.medium(11))
@@ -639,15 +656,15 @@ public struct TogetherScreen: View {
                             .stroke(palette.border, lineWidth: 1)
                     )
                 }
+                    }
 
-                OttlineAppFooter()
+                    OttlineAppFooter(bottomPadding: 0)
+                }
+                .ottlineContentContainer(metrics)
             }
-            .ottlineContentContainer(metrics)
-            .padding(.top, 20)
-            .padding(.bottom, 16)
-        }
-        .refreshable {
-            await loadTogetherData()
+            .refreshable {
+                await loadTogetherData()
+            }
         }
     }
 
@@ -954,8 +971,15 @@ public struct PublicDiscussionDetailScreen: View {
     }
 
     public var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 18) {
+        GeometryReader { scrollGeo in
+            ScrollView {
+                OttlineStickyFooterLayout(
+                    minHeight: scrollGeo.size.height,
+                    topPadding: metrics.isSpread ? 20 : 12,
+                    bottomPadding: metrics.isSpread ? 24 : 110,
+                    minSpacing: 18
+                ) {
+                    VStack(alignment: .leading, spacing: 18) {
                 // Inline back bar
                 Button(action: onBack) {
                     HStack(spacing: 4) {
@@ -1017,12 +1041,12 @@ public struct PublicDiscussionDetailScreen: View {
                                 .stroke(palette.border, lineWidth: 1)
                         )
                 }
+                    }
 
-                OttlineAppFooter()
+                    OttlineAppFooter(bottomPadding: 0)
+                }
+                .ottlineContentContainer(metrics)
             }
-            .ottlineContentContainer(metrics)
-            .padding(.top, metrics.isSpread ? 20 : 12)
-            .padding(.bottom, 16)
         }
         .background(palette.background)
         .task(id: discussionId) {

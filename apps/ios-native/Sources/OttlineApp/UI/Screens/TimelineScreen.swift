@@ -124,8 +124,15 @@ public struct TimelineScreen: View {
 
         let filterTriggerKey = "\(typeFilter)-\(statusFilter?.rawValue ?? "")-\(platformFilter)-\(placeFilter?.rawValue ?? "")-\(occasionFilter?.rawValue ?? "")-\(originFilter?.rawValue ?? "")-\(searchQuery)"
 
-        ScrollView {
-            LazyVStack(alignment: .leading, spacing: 20) {
+        GeometryReader { scrollGeo in
+            ScrollView {
+                OttlineStickyFooterLayout(
+                    minHeight: scrollGeo.size.height,
+                    topPadding: metrics.isSpread ? 24 : 18,
+                    bottomPadding: metrics.isSpread ? 24 : 110,
+                    minSpacing: 20
+                ) {
+                    LazyVStack(alignment: .leading, spacing: 20) {
                 // 1. Page Heading
                 VStack(alignment: .leading, spacing: 14) {
                     if metrics.isSpread {
@@ -364,12 +371,12 @@ public struct TimelineScreen: View {
                         }
                     }
                 }
+                    }
 
-                OttlineAppFooter()
+                    OttlineAppFooter(bottomPadding: 0)
+                }
+                .ottlineContentContainer(metrics)
             }
-            .ottlineContentContainer(metrics)
-            .padding(.top, metrics.isSpread ? 24 : 18)
-            .padding(.bottom, 16)
         }
         .background(palette.background)
         .sheet(isPresented: $showExcludedSheet) {

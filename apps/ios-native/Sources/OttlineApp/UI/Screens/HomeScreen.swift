@@ -89,8 +89,15 @@ public struct HomeScreen: View {
             || repository.logSyncStatuses.values.contains { $0 == "PENDING" || $0 == "FAILED" }
         let isInitialSyncLoading = logs.isEmpty && repository.syncState.status == .syncing
 
-        ScrollView {
-            LazyVStack(alignment: .leading, spacing: metrics.isSpread ? 28 : 24) {
+        GeometryReader { scrollGeo in
+            ScrollView {
+                OttlineStickyFooterLayout(
+                    minHeight: scrollGeo.size.height,
+                    topPadding: metrics.isSpread ? 24 : 20,
+                    bottomPadding: metrics.isSpread ? 24 : 110,
+                    minSpacing: 24
+                ) {
+                    LazyVStack(alignment: .leading, spacing: metrics.isSpread ? 28 : 24) {
                 // 1. Editorial Header (`HomeTimelineView.tsx` compact vs spread parity)
                 if metrics.isSpread {
                     padEditorialHeader(isEmpty: logs.isEmpty)
@@ -250,13 +257,13 @@ public struct HomeScreen: View {
 
                 // 4. Together Feed + Popular Title Fillers (`app/[locale]/page.tsx` + `DiscussionList.tsx` parity)
                 togetherSection
+                    }
 
-                // 5. Footer
-                OttlineAppFooter()
+                    // 5. Footer
+                    OttlineAppFooter(bottomPadding: 0)
+                }
+                .ottlineContentContainer(metrics)
             }
-            .ottlineContentContainer(metrics)
-            .padding(.top, metrics.isSpread ? 24 : 20)
-            .padding(.bottom, 16)
         }
         .background(palette.background)
         .sheet(item: $shareCardLog) { log in

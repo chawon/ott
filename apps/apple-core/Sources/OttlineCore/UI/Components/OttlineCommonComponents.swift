@@ -1758,12 +1758,25 @@ public struct GoogleBooksAttributionView: View {
 }
 
 public struct OttlineAppFooter: View {
+    public var bottomPadding: CGFloat?
+
     @Environment(\.ottlinePalette) private var palette
     @Environment(\.appLocale) private var locale
     @Environment(\.openOttlineOverlay) private var openOverlay
     @Environment(\.openURL) private var openURL
 
-    public init() {}
+    public init(bottomPadding: CGFloat? = nil) {
+        self.bottomPadding = bottomPadding
+    }
+
+    private var resolvedBottomPadding: CGFloat {
+        if let bottomPadding { return max(0, bottomPadding) }
+        #if os(macOS)
+        return 28
+        #else
+        return 110
+        #endif
+    }
 
     private var currentYearString: String {
         String(Calendar(identifier: .gregorian).component(.year, from: Date()))
@@ -1833,7 +1846,7 @@ public struct OttlineAppFooter: View {
             }
         }
         .padding(.top, 20)
-        .padding(.bottom, 110)
+        .padding(.bottom, resolvedBottomPadding)
     }
 
     private func footerLink(_ title: String, action: @escaping () -> Void) -> some View {
@@ -1844,6 +1857,96 @@ public struct OttlineAppFooter: View {
                 .frame(minHeight: 32)
         }
         .buttonStyle(.plain)
+    }
+}
+
+/// Keeps a 2-subview scroll body (`[mainContent, footer]`) pinned to the bottom of the
+/// viewport when content is shorter than `minHeight`, while letting it flow below tall content.
+public struct OttlineStickyFooterLayout: Layout {
+    public struct PlacementMetrics: Equatable, Sendable {
+        public let totalHeight: CGFloat
+        public let footerY: CGFloat
+    }
+
+    public var minHeight: CGFloat
+    public var topPadding: CGFloat
+    public var bottomPadding: CGFloat
+    public var minSpacing: CGFloat
+
+    public init(
+        minHeight: CGFloat,
+        topPadding: CGFloat = 20,
+        bottomPadding: CGFloat = 24,
+        minSpacing: CGFloat = 24
+    ) {
+        self.minHeight = max(0, minHeight)
+        self.topPadding = max(0, topPadding)
+        self.bottomPadding = max(0, bottomPadding)
+        self.minSpacing = max(0, minSpacing)
+    }
+
+    public static func computeMetrics(
+        minHeight: CGFloat,
+        topPadding: CGFloat,
+        contentHeight: CGFloat,
+        minSpacing: CGFloat,
+        footerHeight: CGFloat,
+        bottomPadding: CGFloat
+    ) -> PlacementMetrics {
+        let safeMin = max(0, minHeight)
+        let safeContent = max(0, contentHeight)
+        let safeFooter = max(0, footerHeight)
+        let natural = topPadding + safeContent + minSpacing + safeFooter + bottomPadding
+        let totalHeight = max(safeMin, natural)
+        let footerY = max(topPadding + safeContent + minSpacing, totalHeight - bottomPadding - safeFooter)
+        return PlacementMetrics(totalHeight: totalHeight, footerY: footerY)
+    }
+
+    public func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let width = (proposal.width != nil && proposal.width!.isFinite) ? max(0, proposal.width!) : 390
+        guard !subviews.isEmpty else {
+            return CGSize(width: width, height: minHeight)
+        }
+        let childProposal = ProposedViewSize(width: width, height: nil)
+        let contentHeight = subviews[0].sizeThatFits(childProposal).height
+        let footerHeight = subviews.count > 1 ? subviews[1].sizeThatFits(childProposal).height : 0
+        let placement = Self.computeMetrics(
+            minHeight: minHeight,
+            topPadding: topPadding,
+            contentHeight: contentHeight,
+            minSpacing: subviews.count > 1 ? minSpacing : 0,
+            footerHeight: footerHeight,
+            bottomPadding: bottomPadding
+        )
+        return CGSize(width: width, height: placement.totalHeight)
+    }
+
+    public func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        guard !subviews.isEmpty else { return }
+        let width = bounds.width
+        let childProposal = ProposedViewSize(width: width, height: nil)
+        let contentSize = subviews[0].sizeThatFits(childProposal)
+        subviews[0].place(
+            at: CGPoint(x: bounds.minX, y: bounds.minY + topPadding),
+            anchor: .topLeading,
+            proposal: ProposedViewSize(width: width, height: contentSize.height)
+        )
+        if subviews.count > 1 {
+            let footerSize = subviews[1].sizeThatFits(childProposal)
+            let placement = Self.computeMetrics(
+                minHeight: minHeight,
+                topPadding: topPadding,
+                contentHeight: contentSize.height,
+                minSpacing: minSpacing,
+                footerHeight: footerSize.height,
+                bottomPadding: bottomPadding
+            )
+            subviews[1].place(
+                at: CGPoint(x: bounds.minX, y: bounds.minY + placement.footerY),
+                anchor: .topLeading,
+                proposal: ProposedViewSize(width: width, height: footerSize.height)
+            )
+        }
     }
 }
 

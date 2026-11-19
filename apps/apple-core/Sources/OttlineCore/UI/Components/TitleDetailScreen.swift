@@ -60,32 +60,37 @@ public struct TitleDetailScreen: View {
             let useTwoColumnSpread = horizontalSizeClass == .regular && liveWidth >= 820
 
             ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
-                    topBar
+                OttlineStickyFooterLayout(
+                    minHeight: detailGeo.size.height,
+                    topPadding: isRegularLayout ? 20 : 8,
+                    bottomPadding: isRegularLayout ? 24 : 110,
+                    minSpacing: 20
+                ) {
+                    VStack(alignment: .leading, spacing: 20) {
+                        topBar
 
-                    if let title = resolvedTitle {
-                        if useTwoColumnSpread {
-                            HStack(alignment: .top, spacing: 28) {
+                        if let title = resolvedTitle {
+                            if useTwoColumnSpread {
+                                HStack(alignment: .top, spacing: 28) {
+                                    primaryDetailColumn(title: title)
+                                        .frame(width: 360, alignment: .topLeading)
+
+                                    secondaryDetailColumn(title: title)
+                                        .frame(maxWidth: .infinity, alignment: .topLeading)
+                                }
+                            } else {
                                 primaryDetailColumn(title: title)
-                                    .frame(width: 360, alignment: .topLeading)
-
                                 secondaryDetailColumn(title: title)
-                                    .frame(maxWidth: .infinity, alignment: .topLeading)
                             }
                         } else {
-                            primaryDetailColumn(title: title)
-                            secondaryDetailColumn(title: title)
+                            loadingTitleView
                         }
-                    } else {
-                        loadingTitleView
                     }
 
-                    OttlineAppFooter()
+                    OttlineAppFooter(bottomPadding: 0)
                 }
                 .frame(maxWidth: isRegularLayout ? 1120 : .infinity, alignment: .leading)
                 .padding(.horizontal, isRegularLayout ? 28 : 16)
-                .padding(.top, isRegularLayout ? 20 : 8)
-                .padding(.bottom, 16)
                 .frame(maxWidth: .infinity)
             }
         }
@@ -96,21 +101,29 @@ public struct TitleDetailScreen: View {
             await loadTitleAndHistory()
         }
         #else
-        ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                topBar
+        GeometryReader { detailGeo in
+            ScrollView {
+                OttlineStickyFooterLayout(
+                    minHeight: detailGeo.size.height,
+                    topPadding: 8,
+                    bottomPadding: 28,
+                    minSpacing: 20
+                ) {
+                    VStack(alignment: .leading, spacing: 20) {
+                        topBar
 
-                if let title = resolvedTitle {
-                    primaryDetailColumn(title: title)
-                    secondaryDetailColumn(title: title)
-                } else {
-                    loadingTitleView
+                        if let title = resolvedTitle {
+                            primaryDetailColumn(title: title)
+                            secondaryDetailColumn(title: title)
+                        } else {
+                            loadingTitleView
+                        }
+                    }
+
+                    OttlineAppFooter(bottomPadding: 0)
                 }
-
-                OttlineAppFooter()
+                .padding(.horizontal, 16)
             }
-            .padding(.horizontal, 16)
-            .padding(.top, 8)
         }
         .background(palette.background)
         .task(id: titleId) {
