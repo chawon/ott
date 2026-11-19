@@ -189,7 +189,11 @@ public struct TimelineScreen: View {
                 if futureMode {
                     futureTimelineContent(allLogsCount: allLogs.count)
                 } else {
-                    filtersBarSection(momentFilterCount: momentFilterCount, hasActiveFilters: hasActiveFilters)
+                    if metrics.isSpread {
+                        spreadFiltersBarSection(momentFilterCount: momentFilterCount, hasActiveFilters: hasActiveFilters)
+                    } else {
+                        filtersBarSection(momentFilterCount: momentFilterCount, hasActiveFilters: hasActiveFilters)
+                    }
 
                     if typeFilter == "book" && locale == "ko" {
                         Button {
@@ -248,7 +252,63 @@ public struct TimelineScreen: View {
                                 .buttonStyle(.plain)
                             }
                         }
-                        .padding(.vertical, 24)
+                        .padding(metrics.isSpread ? 24 : 0)
+                        .padding(.vertical, metrics.isSpread ? 0 : 24)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(metrics.isSpread ? palette.paperStrong : Color.clear)
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                        .overlay {
+                            if metrics.isSpread {
+                                RoundedRectangle(cornerRadius: 8).stroke(palette.border, lineWidth: 1)
+                            }
+                        }
+                    } else if metrics.isSpread {
+                        VStack(alignment: .leading, spacing: 26) {
+                            ForEach(monthGroups) { group in
+                                VStack(alignment: .leading, spacing: 12) {
+                                    HStack(alignment: .firstTextBaseline) {
+                                        Text(RecordDate.formatMonthLabel(group.monthKey, locale: locale))
+                                            .font(OttlineFont.bold(18))
+                                            .foregroundStyle(palette.ink)
+                                        Spacer()
+                                        Text(OttlineStrings.tr("최근 기록·수정한 날 기준", "By last recorded or updated", locale: locale))
+                                            .font(OttlineFont.regular(12))
+                                            .foregroundStyle(palette.mutedInk)
+                                    }
+
+                                    LazyVGrid(
+                                        columns: [GridItem(.flexible(), spacing: 16), GridItem(.flexible(), spacing: 16)],
+                                        spacing: 16
+                                    ) {
+                                        ForEach(group.logs) { log in
+                                            timelineSpreadCard(log)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        if hasMorePages {
+                            Button {
+                                Task { await loadNextPage() }
+                            } label: {
+                                HStack(spacing: 6) {
+                                    if loadingMore { ProgressView() }
+                                    Text(OttlineStrings.tr("이전 기록 더 보기", "Load earlier records", locale: locale))
+                                        .font(OttlineFont.semiBold(14))
+                                        .foregroundStyle(palette.primaryAccent)
+                                }
+                                .frame(maxWidth: .infinity, minHeight: 44)
+                                .background(palette.card)
+                                .clipShape(RoundedRectangle(cornerRadius: 8))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 8)
+                                        .stroke(palette.border, lineWidth: 1)
+                                )
+                            }
+                            .buttonStyle(.plain)
+                            .disabled(loadingMore)
+                        }
                     } else {
                         VStack(alignment: .leading, spacing: 26) {
                             ForEach(monthGroups) { group in
@@ -360,7 +420,7 @@ public struct TimelineScreen: View {
 
     @ViewBuilder
     private func timelineToolsRow(snap: PreferencesSnapshot, nickname: String, filteredLogs: [WatchLog]) -> some View {
-        let controlMinHeight: CGFloat = metrics.isSpread ? 48 : 44
+        let controlMinHeight: CGFloat = metrics.isSpread ? 40 : 44
         FlowLayout(horizontalSpacing: 8, verticalSpacing: 8) {
             if !futureMode {
                 // Header `OttlinePadHeader` already exposes `기록 남기기` in spread mode (`pref_mw6ez7ie_51c36197`).
@@ -378,24 +438,6 @@ public struct TimelineScreen: View {
                         .frame(minHeight: controlMinHeight)
                         .background(palette.brandOrange)
                         .clipShape(RoundedRectangle(cornerRadius: 8))
-                    }
-                    .buttonStyle(.plain)
-                } else {
-                    Button(action: onOpenReport) {
-                        HStack(spacing: 6) {
-                            OttlineLucideIcon(kind: .clock3, size: 15, color: palette.primaryAccent, strokeWidth: 2.0)
-                            Text(OttlineStrings.tr("이용 리포트", "Usage Report", locale: locale))
-                                .font(OttlineFont.semiBold(13.5))
-                        }
-                        .foregroundStyle(palette.primaryAccent)
-                        .padding(.horizontal, 14)
-                        .frame(minHeight: controlMinHeight)
-                        .background(palette.card)
-                        .clipShape(RoundedRectangle(cornerRadius: 8))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 8)
-                                .stroke(palette.border, lineWidth: 1)
-                        )
                     }
                     .buttonStyle(.plain)
                 }
@@ -426,17 +468,73 @@ public struct TimelineScreen: View {
                     .buttonStyle(.plain)
                 }
 
-                if !filteredLogs.isEmpty,
-                   let csvUrl = CsvExporter.writeTemporaryCsvFile(logs: filteredLogs, locale: locale) {
-                    ShareLink(item: csvUrl) {
-                        OttlineLucideIcon(kind: .download, size: 16, color: palette.ink, strokeWidth: 2.0)
-                            .frame(width: controlMinHeight, height: controlMinHeight)
+                if metrics.isSpread {
+                    Button(action: onOpenReport) {
+                        Text(OttlineStrings.tr("이용 리포트", "Usage Report", locale: locale))
+                            .font(OttlineFont.medium(13.5))
+                            .foregroundStyle(palette.ink)
+                            .padding(.horizontal, 12)
+                            .frame(minHeight: controlMinHeight)
                             .background(palette.card)
                             .clipShape(RoundedRectangle(cornerRadius: 8))
                             .overlay(
                                 RoundedRectangle(cornerRadius: 8)
                                     .stroke(palette.border, lineWidth: 1)
                             )
+                    }
+                    .buttonStyle(.plain)
+
+                    if locale == "ko" {
+                        Button {
+                            onOpenBookshelf(nil)
+                        } label: {
+                            HStack(spacing: 5) {
+                                OttlineLucideIcon(kind: .bookOpen, size: 14, color: palette.ink)
+                                Text("내 서가")
+                                    .font(OttlineFont.medium(13.5))
+                                    .foregroundStyle(palette.ink)
+                            }
+                            .padding(.horizontal, 12)
+                            .frame(minHeight: controlMinHeight)
+                            .background(palette.card)
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 8)
+                                    .stroke(palette.border, lineWidth: 1)
+                            )
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+
+                if !filteredLogs.isEmpty,
+                   let csvUrl = CsvExporter.writeTemporaryCsvFile(logs: filteredLogs, locale: locale) {
+                    ShareLink(item: csvUrl) {
+                        if metrics.isSpread {
+                            HStack(spacing: 5) {
+                                OttlineLucideIcon(kind: .download, size: 14, color: palette.ink, strokeWidth: 2.0)
+                                Text(OttlineStrings.tr("CSV 저장", "Export CSV", locale: locale))
+                                    .font(OttlineFont.medium(13.5))
+                                    .foregroundStyle(palette.ink)
+                            }
+                            .padding(.horizontal, 12)
+                            .frame(minHeight: controlMinHeight)
+                            .background(palette.card)
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 8)
+                                    .stroke(palette.border, lineWidth: 1)
+                            )
+                        } else {
+                            OttlineLucideIcon(kind: .download, size: 16, color: palette.ink, strokeWidth: 2.0)
+                                .frame(width: controlMinHeight, height: controlMinHeight)
+                                .background(palette.card)
+                                .clipShape(RoundedRectangle(cornerRadius: 8))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 8)
+                                        .stroke(palette.border, lineWidth: 1)
+                                )
+                        }
                     }
                     .buttonStyle(.plain)
                     .accessibilityLabel(OttlineStrings.tr("CSV 내보내기", "Export CSV", locale: locale))
@@ -517,7 +615,188 @@ public struct TimelineScreen: View {
 
     // MARK: - FiltersBar (`FiltersBar.tsx` 1:1 Parity)
 
-    private func filtersBarSection(momentFilterCount: Int, hasActiveFilters: Bool) -> some View {
+    private func spreadFiltersBarSection(momentFilterCount: Int, hasActiveFilters: Bool) -> some View {
+        let isBookTab = typeFilter == "book"
+        return VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 12) {
+                HStack(spacing: 8) {
+                    OttlineLucideIcon(kind: .search, size: 15, color: palette.mutedInk, strokeWidth: 2.0)
+                    TextField(
+                        OttlineStrings.tr("제목, 저자, 출판사, 메모 검색", "Search title, author, publisher, or note", locale: locale),
+                        text: $searchQuery
+                    )
+                    .font(OttlineFont.regular(14.5))
+                    .foregroundStyle(palette.ink)
+                    .autocorrectionDisabled()
+
+                    if !searchQuery.isEmpty {
+                        Button {
+                            searchQuery = ""
+                        } label: {
+                            OttlineLucideIcon(kind: .x, size: 14, color: palette.mutedInk, strokeWidth: 2.0)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(.horizontal, 12)
+                .frame(maxWidth: .infinity, minHeight: 40)
+                .background(palette.card)
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+                .overlay(RoundedRectangle(cornerRadius: 8).stroke(palette.border, lineWidth: 1))
+
+                HStack(spacing: 6) {
+                    ForEach([
+                        ("all", OttlineStrings.tr("전체", "All", locale: locale)),
+                        ("movie", OttlineStrings.tr("영화", "Movie", locale: locale)),
+                        ("series", OttlineStrings.tr("시리즈", "Series", locale: locale)),
+                        ("book", OttlineStrings.tr("책", "Book", locale: locale))
+                    ], id: \.0) { key, label in
+                        let selected = typeFilter == key
+                        Button {
+                            typeFilter = key
+                        } label: {
+                            Text(label)
+                                .font(selected ? OttlineFont.semiBold(13) : OttlineFont.regular(13))
+                                .foregroundStyle(selected ? palette.primaryAccent : palette.ink)
+                                .padding(.horizontal, 12)
+                                .frame(height: 38)
+                                .background(selected ? palette.paperStrong : palette.card)
+                                .clipShape(RoundedRectangle(cornerRadius: 8))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 8)
+                                        .stroke(selected ? palette.primaryAccent : palette.border, lineWidth: selected ? 1.5 : 1)
+                                )
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+
+            FlowLayout(horizontalSpacing: 6, verticalSpacing: 6) {
+                spreadStatusChip(nil, OttlineStrings.tr("전체 상태", "All states", locale: locale))
+                ForEach(LogStatus.allCases, id: \.self) { st in
+                    spreadStatusChip(
+                        st,
+                        OttlineStrings.statusLabel(st, type: isBookTab ? .book : .movie, locale: locale)
+                    )
+                }
+
+                Button {
+                    withAnimation(.easeInOut(duration: 0.18)) {
+                        filterExpanded.toggle()
+                    }
+                } label: {
+                    HStack(spacing: 5) {
+                        OttlineLucideIcon(kind: .slidersHorizontal, size: 13, color: momentFilterCount > 0 ? palette.primaryAccent : palette.mutedInk, strokeWidth: 2.0)
+                        Text(OttlineStrings.tr("그날의 순간으로 찾기", "Find a moment", locale: locale))
+                            .font(momentFilterCount > 0 ? OttlineFont.semiBold(12) : OttlineFont.medium(12))
+                            .foregroundStyle(momentFilterCount > 0 ? palette.primaryAccent : palette.mutedInk)
+                        if momentFilterCount > 0 {
+                            Text("\(momentFilterCount)")
+                                .font(OttlineFont.semiBold(11))
+                                .foregroundStyle(palette.primaryAccent)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 1)
+                                .background(palette.background)
+                                .clipShape(Capsule())
+                        }
+                        OttlineLucideIcon(kind: filterExpanded ? .chevronUp : .chevronDown, size: 13, color: palette.mutedInk, strokeWidth: 2.0)
+                    }
+                    .padding(.horizontal, 10)
+                    .frame(height: 32)
+                    .background((filterExpanded || momentFilterCount > 0) ? palette.paperStrong : palette.card)
+                    .clipShape(Capsule())
+                    .overlay(
+                        Capsule()
+                            .stroke((filterExpanded || momentFilterCount > 0) ? palette.primaryAccent : palette.border, lineWidth: (filterExpanded || momentFilterCount > 0) ? 1.4 : 1)
+                    )
+                }
+                .buttonStyle(.plain)
+
+                if !platformFilter.isEmpty {
+                    activeMomentRemovableChip("\(platformFilter) ×") {
+                        platformFilter = ""
+                    }
+                }
+                if let pf = placeFilter {
+                    activeMomentRemovableChip("\(OttlineStrings.placeLabel(pf, locale: locale)) ×") {
+                        placeFilter = nil
+                    }
+                }
+                if let of = occasionFilter {
+                    activeMomentRemovableChip("\(OttlineStrings.occasionLabel(of, locale: locale)) ×") {
+                        occasionFilter = nil
+                    }
+                }
+                if let orf = originFilter {
+                    let originText = orf == .log
+                        ? OttlineStrings.tr("내 기록", "My record", locale: locale)
+                        : OttlineStrings.tr("함께 남긴 기록", "From Together", locale: locale)
+                    activeMomentRemovableChip("\(originText) ×") {
+                        originFilter = nil
+                    }
+                }
+                if hasActiveFilters {
+                    Button {
+                        clearAllFilters()
+                    } label: {
+                        Text(OttlineStrings.tr("필터 초기화", "Reset filters", locale: locale))
+                            .font(OttlineFont.semiBold(12))
+                            .foregroundStyle(palette.primaryAccent)
+                            .padding(.horizontal, 10)
+                            .frame(height: 32)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+
+            if filterExpanded {
+                momentFilterExpandedCard(hasActiveFilters: hasActiveFilters)
+            }
+        }
+    }
+
+    private func spreadStatusChip(_ value: LogStatus?, _ label: String) -> some View {
+        let active = statusFilter == value
+        return Button {
+            statusFilter = value
+        } label: {
+            Text(label)
+                .font(active ? OttlineFont.semiBold(12) : OttlineFont.regular(12))
+                .foregroundStyle(active ? palette.primaryAccent : palette.mutedInk)
+                .padding(.horizontal, 10)
+                .frame(height: 32)
+                .background(active ? palette.paperStrong : palette.card)
+                .clipShape(Capsule())
+                .overlay(Capsule().stroke(active ? palette.primaryAccent : palette.border, lineWidth: active ? 1.4 : 1))
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func activeMomentRemovableChip(_ label: String, onRemove: @escaping () -> Void) -> some View {
+        Button(action: onRemove) {
+            Text(label)
+                .font(OttlineFont.semiBold(12))
+                .foregroundStyle(palette.primaryAccent)
+                .padding(.horizontal, 10)
+                .frame(height: 32)
+                .background(palette.paperStrong)
+                .clipShape(Capsule())
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func clearAllFilters() {
+        typeFilter = "all"
+        statusFilter = nil
+        platformFilter = ""
+        placeFilter = nil
+        occasionFilter = nil
+        originFilter = nil
+        searchQuery = ""
+    }
+
+    private func momentFilterExpandedCard(hasActiveFilters: Bool) -> some View {
         let isBookTab = typeFilter == "book"
         let groups = PlatformCatalog.groups(isBook: isBookTab, locale: locale)
         let flatDefaults = groups.flatMap(\.items)
@@ -528,6 +807,120 @@ public struct TimelineScreen: View {
         let availablePlaces = isBookTab
             ? Place.bookCases
             : ((typeFilter == "movie" || typeFilter == "series") ? Place.videoCases : Place.allCases)
+
+        return VStack(alignment: .leading, spacing: 14) {
+            VStack(alignment: .leading, spacing: 8) {
+                Text(isBookTab
+                    ? OttlineStrings.tr("읽은 곳·플랫폼", "Where you read", locale: locale)
+                    : OttlineStrings.tr("플랫폼", "Platform", locale: locale)
+                )
+                .font(OttlineFont.semiBold(12.5))
+                .foregroundStyle(palette.mutedInk)
+
+                ForEach(groups, id: \.id) { grp in
+                    VStack(alignment: .leading, spacing: 5) {
+                        if !grp.label.isEmpty {
+                            Text(grp.label)
+                                .font(OttlineFont.medium(11))
+                                .foregroundStyle(palette.subtleInk)
+                        }
+                        FlowLayout(horizontalSpacing: 6, verticalSpacing: 6) {
+                            ForEach(grp.items, id: \.self) { plat in
+                                filterChip(label: plat, active: platformFilter == plat) {
+                                    platformFilter = (platformFilter == plat) ? "" : plat
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if !extraCustoms.isEmpty {
+                    FlowLayout(horizontalSpacing: 6, verticalSpacing: 6) {
+                        ForEach(extraCustoms, id: \.self) { plat in
+                            filterChip(label: plat, active: platformFilter == plat) {
+                                platformFilter = (platformFilter == plat) ? "" : plat
+                            }
+                        }
+                    }
+                }
+            }
+
+            VStack(alignment: .leading, spacing: 8) {
+                Text(OttlineStrings.tr("장소", "Place", locale: locale))
+                    .font(OttlineFont.semiBold(12.5))
+                    .foregroundStyle(palette.mutedInk)
+                FlowLayout(horizontalSpacing: 6, verticalSpacing: 6) {
+                    ForEach(availablePlaces, id: \.self) { p in
+                        filterChip(
+                            label: OttlineStrings.placeLabel(p, locale: locale),
+                            active: placeFilter == p
+                        ) {
+                            placeFilter = (placeFilter == p) ? nil : p
+                        }
+                    }
+                }
+            }
+
+            VStack(alignment: .leading, spacing: 8) {
+                Text(OttlineStrings.tr("누구와·어떤 상황", "With whom / occasion", locale: locale))
+                    .font(OttlineFont.semiBold(12.5))
+                    .foregroundStyle(palette.mutedInk)
+                FlowLayout(horizontalSpacing: 6, verticalSpacing: 6) {
+                    ForEach(Occasion.allCases, id: \.self) { occ in
+                        filterChip(
+                            label: OttlineStrings.occasionLabel(occ, locale: locale),
+                            active: occasionFilter == occ
+                        ) {
+                            occasionFilter = (occasionFilter == occ) ? nil : occ
+                        }
+                    }
+                }
+            }
+
+            VStack(alignment: .leading, spacing: 8) {
+                Text(OttlineStrings.tr("구분", "Origin", locale: locale))
+                    .font(OttlineFont.semiBold(12.5))
+                    .foregroundStyle(palette.mutedInk)
+                FlowLayout(horizontalSpacing: 6, verticalSpacing: 6) {
+                    filterChip(
+                        label: OttlineStrings.tr("내 기록", "My record", locale: locale),
+                        active: originFilter == .log
+                    ) {
+                        originFilter = (originFilter == .log) ? nil : .log
+                    }
+                    filterChip(
+                        label: OttlineStrings.tr("함께 남긴 기록", "From Together", locale: locale),
+                        active: originFilter == .comment
+                    ) {
+                        originFilter = (originFilter == .comment) ? nil : .comment
+                    }
+                }
+            }
+
+            if hasActiveFilters {
+                Button {
+                    clearAllFilters()
+                } label: {
+                    Text(OttlineStrings.tr("조건 지우기", "Clear filters", locale: locale))
+                        .font(OttlineFont.semiBold(13))
+                        .foregroundStyle(palette.primaryAccent)
+                        .frame(minHeight: 38)
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(palette.card)
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(palette.border, lineWidth: 1)
+        )
+    }
+
+    private func filtersBarSection(momentFilterCount: Int, hasActiveFilters: Bool) -> some View {
+        let isBookTab = typeFilter == "book"
 
         return VStack(alignment: .leading, spacing: 12) {
             // Underline Content-Type Tabs (`전체` | `영화` | `시리즈` | `책`)
@@ -646,125 +1039,7 @@ public struct TimelineScreen: View {
             .buttonStyle(.plain)
 
             if filterExpanded {
-                VStack(alignment: .leading, spacing: 14) {
-                    // Grouped & custom platforms
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text(isBookTab
-                            ? OttlineStrings.tr("읽은 곳·플랫폼", "Where you read", locale: locale)
-                            : OttlineStrings.tr("플랫폼", "Platform", locale: locale)
-                        )
-                        .font(OttlineFont.semiBold(12.5))
-                        .foregroundStyle(palette.mutedInk)
-
-                        ForEach(groups, id: \.id) { grp in
-                            VStack(alignment: .leading, spacing: 5) {
-                                if !grp.label.isEmpty {
-                                    Text(grp.label)
-                                        .font(OttlineFont.medium(11))
-                                        .foregroundStyle(palette.subtleInk)
-                                }
-                                FlowLayout(horizontalSpacing: 6, verticalSpacing: 6) {
-                                    ForEach(grp.items, id: \.self) { plat in
-                                        filterChip(label: plat, active: platformFilter == plat) {
-                                            platformFilter = (platformFilter == plat) ? "" : plat
-                                        }
-                                    }
-                                }
-                            }
-                        }
-
-                        if !extraCustoms.isEmpty {
-                            FlowLayout(horizontalSpacing: 6, verticalSpacing: 6) {
-                                ForEach(extraCustoms, id: \.self) { plat in
-                                    filterChip(label: plat, active: platformFilter == plat) {
-                                        platformFilter = (platformFilter == plat) ? "" : plat
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    // Place
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text(OttlineStrings.tr("장소", "Place", locale: locale))
-                            .font(OttlineFont.semiBold(12.5))
-                            .foregroundStyle(palette.mutedInk)
-                        FlowLayout(horizontalSpacing: 6, verticalSpacing: 6) {
-                            ForEach(availablePlaces, id: \.self) { p in
-                                filterChip(
-                                    label: OttlineStrings.placeLabel(p, locale: locale),
-                                    active: placeFilter == p
-                                ) {
-                                    placeFilter = (placeFilter == p) ? nil : p
-                                }
-                            }
-                        }
-                    }
-
-                    // Occasion
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text(OttlineStrings.tr("누구와·어떤 상황", "With whom / occasion", locale: locale))
-                            .font(OttlineFont.semiBold(12.5))
-                            .foregroundStyle(palette.mutedInk)
-                        FlowLayout(horizontalSpacing: 6, verticalSpacing: 6) {
-                            ForEach(Occasion.allCases, id: \.self) { occ in
-                                filterChip(
-                                    label: OttlineStrings.occasionLabel(occ, locale: locale),
-                                    active: occasionFilter == occ
-                                ) {
-                                    occasionFilter = (occasionFilter == occ) ? nil : occ
-                                }
-                            }
-                        }
-                    }
-
-                    // Origin
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text(OttlineStrings.tr("구분", "Origin", locale: locale))
-                            .font(OttlineFont.semiBold(12.5))
-                            .foregroundStyle(palette.mutedInk)
-                        FlowLayout(horizontalSpacing: 6, verticalSpacing: 6) {
-                            filterChip(
-                                label: OttlineStrings.tr("내 기록", "My record", locale: locale),
-                                active: originFilter == .log
-                            ) {
-                                originFilter = (originFilter == .log) ? nil : .log
-                            }
-                            filterChip(
-                                label: OttlineStrings.tr("함께 남긴 기록", "From Together", locale: locale),
-                                active: originFilter == .comment
-                            ) {
-                                originFilter = (originFilter == .comment) ? nil : .comment
-                            }
-                        }
-                    }
-
-                    if hasActiveFilters {
-                        Button {
-                            typeFilter = "all"
-                            statusFilter = nil
-                            platformFilter = ""
-                            placeFilter = nil
-                            occasionFilter = nil
-                            originFilter = nil
-                            searchQuery = ""
-                        } label: {
-                            Text(OttlineStrings.tr("조건 지우기", "Clear filters", locale: locale))
-                                .font(OttlineFont.semiBold(13))
-                                .foregroundStyle(palette.primaryAccent)
-                                .frame(minHeight: 38)
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-                .padding(16)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(palette.card)
-                .clipShape(RoundedRectangle(cornerRadius: 8))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 8)
-                        .stroke(palette.border, lineWidth: 1)
-                )
+                momentFilterExpandedCard(hasActiveFilters: hasActiveFilters)
             }
         }
     }
@@ -800,7 +1075,206 @@ public struct TimelineScreen: View {
         .buttonStyle(.plain)
     }
 
-    // MARK: - Timeline Record Row (`LogCard.tsx` `.recordRow` 1:1 Parity)
+    // MARK: - Timeline Spread 2-Column Card & Compact Record Row
+
+    private func timelineSpreadCard(_ log: WatchLog) -> some View {
+        let isBook = log.title.type == .book
+        let isbn13 = isBook ? BookshelfBuilder.normalizeBookIsbn13(log.title) : nil
+        let cls = isbn13.flatMap { repository.bookClassifications[$0] }
+        let kdcMajor = (cls?.isResolved == true) ? cls?.kdcMajor : nil
+        let syncStatus = repository.logSyncStatuses[log.id]
+        let isStoredLocally = (syncStatus == "PENDING" || syncStatus == "FAILED")
+        let dateIso = log.watchedAt.isEmpty ? log.createdAt : log.watchedAt
+        let dateStr = RecordDate.formatDisplayDate(dateIso, locale: locale)
+        let displayYear = log.seasonYear ?? log.title.year
+        let note = log.note?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+
+        let editionText: String? = {
+            if isBook {
+                let parts = [log.title.author, log.title.publisher].compactMap { $0 }.filter { !$0.isEmpty }
+                return parts.isEmpty ? nil : parts.joined(separator: " · ")
+            } else {
+                let parts = [
+                    log.seasonNumber.map { locale == "en" ? "Season \($0)" : "시즌 \($0)" },
+                    log.episodeNumber.map { locale == "en" ? "Ep \($0)" : "\($0)화" }
+                ].compactMap { $0 }
+                return parts.isEmpty ? nil : parts.joined(separator: " · ")
+            }
+        }()
+
+        return VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .top, spacing: 14) {
+                Button {
+                    onOpenTitleDetail(log.title.id)
+                } label: {
+                    PosterImage(
+                        posterUrl: log.seasonPosterUrl ?? log.title.posterUrl,
+                        titleName: log.title.name,
+                        titleType: log.title.type,
+                        width: 72,
+                        height: 108,
+                        cornerRadius: 4
+                    )
+                }
+                .buttonStyle(.plain)
+
+                VStack(alignment: .leading, spacing: 5) {
+                    HStack(spacing: 6) {
+                        Text([
+                            OttlineStrings.titleTypeLabel(log.title.type, locale: locale),
+                            displayYear.map(String.init)
+                        ].compactMap { $0 }.joined(separator: " · "))
+                        .font(OttlineFont.medium(11.5))
+                        .foregroundStyle(palette.mutedInk)
+
+                        Spacer(minLength: 4)
+
+                        Text(dateStr)
+                            .font(OttlineFont.regular(11.5))
+                            .foregroundStyle(palette.subtleInk)
+                            .lineLimit(1)
+                    }
+
+                    if let editionText {
+                        Text(editionText)
+                            .font(OttlineFont.regular(11.5))
+                            .foregroundStyle(palette.mutedInk)
+                            .lineLimit(1)
+                    }
+
+                    if isStoredLocally || log.origin == .comment {
+                        FlowLayout(horizontalSpacing: 6, verticalSpacing: 4) {
+                            if isStoredLocally {
+                                Text(OttlineStrings.tr("이 기기에 보관 중", "Kept on this device", locale: locale))
+                                    .font(OttlineFont.medium(11))
+                                    .foregroundStyle(palette.mutedInk)
+                                    .padding(.horizontal, 7)
+                                    .padding(.vertical, 2)
+                                    .background(palette.paperStrong)
+                                    .clipShape(RoundedRectangle(cornerRadius: 4))
+                                    .overlay(RoundedRectangle(cornerRadius: 4).stroke(palette.border, lineWidth: 1))
+                            }
+                            if log.origin == .comment {
+                                Text(OttlineStrings.tr("함께 남긴 기록", "From Together", locale: locale))
+                                    .font(OttlineFont.medium(11))
+                                    .foregroundStyle(palette.primaryAccent)
+                            }
+                        }
+                    }
+
+                    Button {
+                        onOpenTitleDetail(log.title.id)
+                    } label: {
+                        Text(log.title.name)
+                            .font(OttlineFont.bold(16))
+                            .foregroundStyle(palette.ink)
+                            .lineLimit(2)
+                            .multilineTextAlignment(.leading)
+                    }
+                    .buttonStyle(.plain)
+
+                    HStack(spacing: 6) {
+                        Text(OttlineStrings.statusLabel(log.status, type: log.title.type, locale: locale))
+                            .font(OttlineFont.semiBold(11.5))
+                            .foregroundStyle(palette.ink)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 3)
+                            .background(palette.paperStrong)
+                            .clipShape(Capsule())
+                        RecordFeelingBadge(rating: log.rating, isBook: isBook, compact: true)
+                    }
+
+                    RecordMomentList(ott: log.ott, place: log.place, occasion: log.occasion, compact: true)
+
+                    if isBook, locale == "ko", let kdcMajor {
+                        Button {
+                            onOpenBookshelf(kdcMajor)
+                        } label: {
+                            Text("\(BookshelfBuilder.kdcSectionName(major: kdcMajor, locale: locale)) 서가에도 함께 꽂혔어요.")
+                                .font(OttlineFont.medium(11.5))
+                                .foregroundStyle(palette.primaryAccent)
+                                .underline()
+                                .lineLimit(1)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+
+            if log.spoiler {
+                Text(OttlineStrings.tr("스포일러가 포함된 메모는 상세 보기에서 볼 수 있어요.", "Spoiler note hidden here — open details to read.", locale: locale))
+                    .font(OttlineFont.regular(12))
+                    .foregroundStyle(palette.subtleInk)
+            } else if !note.isEmpty {
+                InlineNoteText(text: note, fontSize: 15, lineLimit: 3, preserveNewlines: true)
+            }
+
+            Spacer(minLength: 0)
+
+            HStack(spacing: 12) {
+                Button {
+                    onOpenTitleDetail(log.title.id)
+                } label: {
+                    Text(OttlineStrings.tr("상세 보기 →", "Open detail →", locale: locale))
+                        .font(OttlineFont.semiBold(12.5))
+                        .foregroundStyle(palette.primaryAccent)
+                }
+                .buttonStyle(.plain)
+
+                Button {
+                    onOpenQuickRecord(
+                        QuickRecordRequest(
+                            existingLog: log,
+                            autoFocusSearch: false,
+                            openNoteStage: true
+                        )
+                    )
+                } label: {
+                    Text(OttlineStrings.tr("수정", "Edit", locale: locale))
+                        .font(OttlineFont.medium(12))
+                        .foregroundStyle(palette.mutedInk)
+                }
+                .buttonStyle(.plain)
+
+                if !note.isEmpty {
+                    let alreadyShared = sharedNoteLogIds.contains(log.id)
+                    Button {
+                        Task { await shareNote(log: log, note: note) }
+                    } label: {
+                        Text(alreadyShared
+                            ? OttlineStrings.tr("나눔 완료", "Shared", locale: locale)
+                            : (sharingNoteLogId == log.id
+                                ? OttlineStrings.tr("나누는 중…", "Sharing…", locale: locale)
+                                : OttlineStrings.tr("함께 나누기", "Share in Together", locale: locale))
+                        )
+                        .font(OttlineFont.medium(12))
+                        .foregroundStyle(palette.mutedInk)
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(alreadyShared || sharingNoteLogId == log.id)
+                }
+
+                Spacer(minLength: 4)
+
+                Button {
+                    onOpenShareCard(log)
+                } label: {
+                    HStack(spacing: 4) {
+                        OttlineLucideIcon(kind: .share2, size: 13, color: palette.mutedInk)
+                        Text(OttlineStrings.tr("공유 카드", "Share card", locale: locale))
+                            .font(OttlineFont.medium(12))
+                            .foregroundStyle(palette.mutedInk)
+                    }
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .background(palette.card)
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .overlay(RoundedRectangle(cornerRadius: 8).stroke(palette.border, lineWidth: 1))
+    }
 
     private func timelineRecordRow(_ log: WatchLog) -> some View {
         let isBook = log.title.type == .book
@@ -1143,7 +1617,7 @@ public struct TimelineScreen: View {
     }
 
     private func recommendationCard(_ item: RecommendationItem) -> some View {
-        let itemType = item.type ?? .movie
+        let itemType = item.type
         return VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .top, spacing: 14) {
                 PosterImage(

@@ -139,7 +139,6 @@ public struct HomeScreen: View {
                             if let featured = featuredMemory {
                                 padFeaturedMemoryCard(
                                     featured,
-                                    posterWidth: metrics.isWideThreeColumnHome ? 240 : 185,
                                     noteLineLimit: metrics.isWideThreeColumnHome ? 10 : 8
                                 )
                             } else {
@@ -499,7 +498,7 @@ public struct HomeScreen: View {
                                 .font(OttlineFont.semiBold(15))
                         }
                         .foregroundStyle(selected ? palette.primaryAccent : palette.ink)
-                        .frame(maxWidth: .infinity, minHeight: 52)
+                        .frame(maxWidth: .infinity, minHeight: metrics.isSpread ? 44 : 52)
                         .background(selected ? palette.paperStrong : palette.card)
                         .clipShape(RoundedRectangle(cornerRadius: 8))
                         .overlay(
@@ -510,6 +509,7 @@ public struct HomeScreen: View {
                     .buttonStyle(.plain)
                 }
             }
+            .frame(maxWidth: metrics.isSpread ? 360 : .infinity, alignment: .leading)
 
             if activationTab == "video" {
                 VStack(alignment: .leading, spacing: 14) {
@@ -666,6 +666,7 @@ public struct HomeScreen: View {
                             .buttonStyle(.plain)
                         }
                     }
+                    .frame(maxWidth: metrics.isSpread ? 520 : .infinity, alignment: .leading)
 
                     Button {
                         activationDismissed = true
@@ -1004,7 +1005,7 @@ public struct HomeScreen: View {
         }
     }
 
-    private func padFeaturedMemoryCard(_ log: WatchLog, posterWidth: CGFloat, noteLineLimit: Int) -> some View {
+    private func padFeaturedMemoryCard(_ log: WatchLog, noteLineLimit: Int) -> some View {
         let displayYear = log.seasonYear ?? log.title.year
         let creator: String? = log.title.type == .book
             ? log.title.author
@@ -1028,7 +1029,7 @@ public struct HomeScreen: View {
                     .frame(maxWidth: .infinity)
             }
 
-            HStack(alignment: .top, spacing: 24) {
+            PadFeaturedBodyLayout(spacing: metrics.isWideThreeColumnHome ? 24 : 20) {
                 Button {
                     onOpenTitleDetail(log.title.id)
                 } label: {
@@ -1037,7 +1038,7 @@ public struct HomeScreen: View {
                         titleName: log.title.name,
                         titleType: log.title.type
                     )
-                    .frame(width: posterWidth)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
@@ -1128,7 +1129,7 @@ public struct HomeScreen: View {
                         .accessibilityLabel(OttlineStrings.tr("공유 카드 만들기", "Create a share card", locale: locale))
                     }
                 }
-                .frame(maxWidth: .infinity, minHeight: posterWidth * 1.5, alignment: .topLeading)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             }
         }
         .padding(22)

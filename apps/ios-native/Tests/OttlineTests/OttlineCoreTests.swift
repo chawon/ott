@@ -732,12 +732,18 @@ final class OttlineCoreTests: XCTestCase {
         let splitViewCompact = PadLayoutMetrics.resolve(isRegularHorizontalClass: true, viewportWidth: 500)
         XCTAssertEqual(splitViewCompact.mode, .compact)
         XCTAssertFalse(splitViewCompact.isSpread)
+        XCTAssertFalse(splitViewCompact.isWideThreeColumnHome)
         XCTAssertEqual(splitViewCompact.togetherColumns, 1)
+
+        let splitViewNarrowSpread = PadLayoutMetrics.resolve(isRegularHorizontalClass: true, viewportWidth: 740)
+        XCTAssertEqual(splitViewNarrowSpread.mode, .tabletPortrait)
+        XCTAssertTrue(splitViewNarrowSpread.isSpread)
+        XCTAssertFalse(splitViewNarrowSpread.isWideThreeColumnHome)
 
         let tabletPortrait = PadLayoutMetrics.resolve(isRegularHorizontalClass: true, viewportWidth: 834)
         XCTAssertEqual(tabletPortrait.mode, .tabletPortrait)
         XCTAssertTrue(tabletPortrait.isSpread)
-        XCTAssertFalse(tabletPortrait.isWideThreeColumnHome)
+        XCTAssertTrue(tabletPortrait.isWideThreeColumnHome)
         XCTAssertEqual(tabletPortrait.togetherColumns, 2)
         XCTAssertEqual(tabletPortrait.activationPosterColumns, 4)
         XCTAssertEqual(tabletPortrait.reportMetricColumns, 3)
@@ -753,6 +759,11 @@ final class OttlineCoreTests: XCTestCase {
         XCTAssertEqual(tabletWide.kdcOverviewColumns, 5)
         XCTAssertTrue(tabletWide.detailTwoColumns)
         XCTAssertTrue(tabletWide.mySpaceTwoColumns)
+
+        let featuredMetrics = PadFeaturedBodyLayout.metrics(forTotalWidth: 620, spacing: 26)
+        XCTAssertGreaterThanOrEqual(featuredMetrics.posterWidth, 135)
+        XCTAssertEqual(featuredMetrics.posterHeight, round(featuredMetrics.posterWidth * 1.5))
+        XCTAssertEqual(featuredMetrics.posterWidth + featuredMetrics.spacing + featuredMetrics.storyWidth, 620)
 
         XCTAssertEqual(PadLayoutMetrics.deviceLabel(isPadIdiom: true, locale: "ko"), "아이패드")
         XCTAssertEqual(PadLayoutMetrics.deviceLabel(isPadIdiom: false, locale: "ko"), "아이폰")

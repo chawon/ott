@@ -218,510 +218,562 @@ public struct MySpaceScreen: View {
 
     @ViewBuilder
     private func myProfileCard(snap: PreferencesSnapshot, nickname: String, personaTitle: String?) -> some View {
-                VStack(alignment: .leading, spacing: 14) {
-                    HStack(alignment: .center, spacing: 16) {
-                        PersonaAvatar(
-                            personaKey: profileExpanded ? editPersonaKey : snap.personaKey,
-                            size: 76,
-                            circular: false
-                        )
+        let isOpen = metrics.isSpread || profileExpanded
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(alignment: .center, spacing: 16) {
+                PersonaAvatar(
+                    personaKey: isOpen ? editPersonaKey : snap.personaKey,
+                    size: metrics.isSpread ? 68 : 76,
+                    circular: false
+                )
 
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(OttlineStrings.tr("나의 프로필", "MY PROFILE", locale: locale))
-                                .font(OttlineFont.medium(11))
-                                .kerning(0.7)
-                                .foregroundStyle(palette.mutedInk)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(OttlineStrings.tr("나의 프로필", "MY PROFILE", locale: locale))
+                        .font(OttlineFont.medium(11))
+                        .kerning(0.7)
+                        .foregroundStyle(palette.mutedInk)
 
-                            Text(snap.isProfileComplete
-                                ? nickname
-                                : OttlineStrings.tr("나의 타임라인에, 나다운 모습", "A familiar face for your timeline", locale: locale)
-                            )
-                            .font(OttlineFont.semiBold(18))
-                            .foregroundStyle(palette.ink)
+                    Text(snap.isProfileComplete
+                        ? nickname
+                        : OttlineStrings.tr("나의 타임라인에, 나다운 모습", "A familiar face for your timeline", locale: locale)
+                    )
+                    .font(OttlineFont.semiBold(18))
+                    .foregroundStyle(palette.ink)
 
-                            Text(snap.isProfileComplete
-                                ? (personaTitle ?? OttlineStrings.tr("닉네임과 아바타로 내 공간을 꾸며보세요.", "Make this space yours with a nickname and avatar.", locale: locale))
-                                : OttlineStrings.tr("닉네임과 아바타로 내 공간을 꾸며보세요.", "Make this space yours with a nickname and avatar.", locale: locale)
-                            )
-                            .font(OttlineFont.regular(13.5))
-                            .foregroundStyle(palette.mutedInk)
+                    Text(snap.isProfileComplete
+                        ? (personaTitle ?? OttlineStrings.tr("닉네임과 아바타로 내 공간을 꾸며보세요.", "Make this space yours with a nickname and avatar.", locale: locale))
+                        : OttlineStrings.tr("닉네임과 아바타로 내 공간을 꾸며보세요.", "Make this space yours with a nickname and avatar.", locale: locale)
+                    )
+                    .font(OttlineFont.regular(13.5))
+                    .foregroundStyle(palette.mutedInk)
 
-                            Text(OttlineStrings.tr(
-                                "닉네임과 아바타는 내 화면에서만 보여요.",
-                                "Your nickname and avatar only appear on your screens.",
-                                locale: locale
-                            ))
-                            .font(OttlineFont.regular(12))
-                            .foregroundStyle(palette.mutedInk)
-                        }
-                        Spacer(minLength: 0)
+                    Text(OttlineStrings.tr(
+                        "닉네임과 아바타는 내 화면에서만 보여요.",
+                        "Your nickname and avatar only appear on your screens.",
+                        locale: locale
+                    ))
+                    .font(OttlineFont.regular(12))
+                    .foregroundStyle(palette.mutedInk)
+                }
+                Spacer(minLength: 0)
+            }
+
+            if !metrics.isSpread {
+                Button {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        profileExpanded.toggle()
                     }
+                } label: {
+                    Text(OttlineStrings.tr("내 모습 고르기", "Choose my look", locale: locale))
+                        .font(OttlineFont.semiBold(14))
+                        .foregroundStyle(palette.ink)
+                        .padding(.horizontal, 16)
+                        .frame(minHeight: 44)
+                        .background(palette.card)
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8)
+                                .stroke(palette.border, lineWidth: 1)
+                        )
+                }
+                .buttonStyle(.plain)
+            }
 
-                    Button {
-                        withAnimation(.easeInOut(duration: 0.2)) {
-                            profileExpanded.toggle()
+            if isOpen {
+                Rectangle().fill(palette.border).frame(height: 1)
+
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(OttlineStrings.tr("닉네임", "Nickname", locale: locale))
+                        .font(OttlineFont.medium(12.5))
+                        .foregroundStyle(palette.mutedInk)
+
+                    TextField(
+                        OttlineStrings.tr("예: 기록하는 밤", "Example: Night logger", locale: locale),
+                        text: $editNickname
+                    )
+                    .font(OttlineFont.regular(14.5))
+                    .padding(.horizontal, 12)
+                    .frame(minHeight: metrics.isSpread ? 42 : 48)
+                    .background(palette.background)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8)
+                            .stroke(palette.border, lineWidth: 1)
+                    )
+                }
+
+                Text(OttlineStrings.tr("나와 닮은 아바타", "An avatar that feels like you", locale: locale))
+                    .font(OttlineFont.medium(12.5))
+                    .foregroundStyle(palette.mutedInk)
+
+                let avatarColumns = Array(
+                    repeating: GridItem(.flexible(), spacing: 8),
+                    count: metrics.isSpread ? 3 : 2
+                )
+                LazyVGrid(columns: avatarColumns, spacing: 8) {
+                    ForEach(OttlineStrings.personaPresets, id: \.key) { preset in
+                        let selected = editPersonaKey == preset.key
+                        Button {
+                            editPersonaKey = preset.key
+                        } label: {
+                            VStack(alignment: .leading, spacing: 8) {
+                                PersonaAvatar(personaKey: preset.key, size: 40, circular: false)
+                                Text(preset.title(locale))
+                                    .font(selected ? OttlineFont.semiBold(13) : OttlineFont.medium(13))
+                                    .foregroundStyle(selected ? palette.primaryAccent : palette.ink)
+                                    .lineLimit(1)
+                                Text(preset.desc(locale))
+                                    .font(OttlineFont.regular(11.5))
+                                    .foregroundStyle(palette.mutedInk)
+                                    .lineLimit(3)
+                                    .multilineTextAlignment(.leading)
+                                Spacer(minLength: 0)
+                            }
+                            .padding(10)
+                            .frame(maxWidth: .infinity, minHeight: metrics.isSpread ? 118 : 136, alignment: .topLeading)
+                            .background(selected ? palette.paperStrong : palette.background)
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 8)
+                                    .stroke(selected ? palette.primaryAccent : palette.border, lineWidth: selected ? 1.5 : 1)
+                            )
                         }
+                        .buttonStyle(.plain)
+                    }
+                }
+
+                HStack(spacing: 8) {
+                    Button {
+                        Task { await saveProfile() }
                     } label: {
-                        Text(OttlineStrings.tr("내 모습 고르기", "Choose my look", locale: locale))
+                        HStack(spacing: 6) {
+                            OttlineLucideIcon(kind: .check, size: 16, color: palette.onBrandOrange)
+                            Text(savingProfile
+                                ? OttlineStrings.tr("저장 중…", "Saving…", locale: locale)
+                                : OttlineStrings.tr("이 모습으로 저장", "Keep this profile", locale: locale)
+                            )
                             .font(OttlineFont.semiBold(14))
+                        }
+                        .foregroundStyle(palette.onBrandOrange)
+                        .padding(.horizontal, 16)
+                        .frame(minHeight: metrics.isSpread ? 42 : 48)
+                        .background(palette.brandOrange)
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(savingProfile)
+
+                    if !metrics.isSpread {
+                        Button {
+                            profileExpanded = false
+                        } label: {
+                            HStack(spacing: 6) {
+                                OttlineLucideIcon(kind: .clock3, size: 16, color: palette.ink)
+                                Text(OttlineStrings.tr("나중에 정하기", "Decide later", locale: locale))
+                                    .font(OttlineFont.semiBold(14))
+                            }
                             .foregroundStyle(palette.ink)
-                            .padding(.horizontal, 16)
-                            .frame(minHeight: 44)
+                            .padding(.horizontal, 14)
+                            .frame(minHeight: 48)
                             .background(palette.card)
                             .clipShape(RoundedRectangle(cornerRadius: 8))
                             .overlay(
                                 RoundedRectangle(cornerRadius: 8)
                                     .stroke(palette.border, lineWidth: 1)
                             )
-                    }
-                    .buttonStyle(.plain)
-
-                    if profileExpanded {
-                        Rectangle().fill(palette.border).frame(height: 1)
-
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text(OttlineStrings.tr("닉네임", "Nickname", locale: locale))
-                                .font(OttlineFont.medium(12.5))
-                                .foregroundStyle(palette.mutedInk)
-
-                            TextField(
-                                OttlineStrings.tr("예: 기록하는 밤", "Example: Night logger", locale: locale),
-                                text: $editNickname
-                            )
-                            .font(OttlineFont.regular(14.5))
-                            .padding(.horizontal, 12)
-                            .frame(minHeight: 48)
-                            .background(palette.background)
-                            .clipShape(RoundedRectangle(cornerRadius: 8))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 8)
-                                    .stroke(palette.border, lineWidth: 1)
-                            )
                         }
-
-                        Text(OttlineStrings.tr("나와 닮은 아바타", "An avatar that feels like you", locale: locale))
-                            .font(OttlineFont.medium(12.5))
-                            .foregroundStyle(palette.mutedInk)
-
-                        let avatarColumns = Array(
-                            repeating: GridItem(.flexible(), spacing: 8),
-                            count: metrics.isSpread ? 3 : 2
-                        )
-                        LazyVGrid(columns: avatarColumns, spacing: 8) {
-                            ForEach(OttlineStrings.personaPresets, id: \.key) { preset in
-                                let selected = editPersonaKey == preset.key
-                                Button {
-                                    editPersonaKey = preset.key
-                                } label: {
-                                    VStack(alignment: .leading, spacing: 8) {
-                                        PersonaAvatar(personaKey: preset.key, size: 44, circular: false)
-                                        Text(preset.title(locale))
-                                            .font(selected ? OttlineFont.semiBold(13.5) : OttlineFont.medium(13.5))
-                                            .foregroundStyle(selected ? palette.primaryAccent : palette.ink)
-                                            .lineLimit(1)
-                                        Text(preset.desc(locale))
-                                            .font(OttlineFont.regular(11.5))
-                                            .foregroundStyle(palette.mutedInk)
-                                            .lineLimit(3)
-                                            .multilineTextAlignment(.leading)
-                                        Spacer(minLength: 0)
-                                    }
-                                    .padding(12)
-                                    .frame(maxWidth: .infinity, minHeight: 136, alignment: .topLeading)
-                                    .background(selected ? palette.paperStrong : palette.background)
-                                    .clipShape(RoundedRectangle(cornerRadius: 8))
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 8)
-                                            .stroke(selected ? palette.primaryAccent : palette.border, lineWidth: selected ? 1.5 : 1)
-                                    )
-                                }
-                                .buttonStyle(.plain)
-                            }
-                        }
-
-                        HStack(spacing: 8) {
-                            Button {
-                                Task { await saveProfile() }
-                            } label: {
-                                HStack(spacing: 6) {
-                                    OttlineLucideIcon(kind: .check, size: 16, color: palette.onBrandOrange)
-                                    Text(savingProfile
-                                        ? OttlineStrings.tr("저장 중…", "Saving…", locale: locale)
-                                        : OttlineStrings.tr("이 모습으로 저장", "Keep this profile", locale: locale)
-                                    )
-                                    .font(OttlineFont.semiBold(14.5))
-                                }
-                                .foregroundStyle(palette.onBrandOrange)
-                                .padding(.horizontal, 16)
-                                .frame(minHeight: 48)
-                                .background(palette.brandOrange)
-                                .clipShape(RoundedRectangle(cornerRadius: 8))
-                            }
-                            .buttonStyle(.plain)
-                            .disabled(savingProfile)
-
-                            Button {
-                                profileExpanded = false
-                            } label: {
-                                HStack(spacing: 6) {
-                                    OttlineLucideIcon(kind: .clock3, size: 16, color: palette.ink)
-                                    Text(OttlineStrings.tr("나중에 정하기", "Decide later", locale: locale))
-                                        .font(OttlineFont.semiBold(14))
-                                }
-                                .foregroundStyle(palette.ink)
-                                .padding(.horizontal, 14)
-                                .frame(minHeight: 48)
-                                .background(palette.card)
-                                .clipShape(RoundedRectangle(cornerRadius: 8))
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 8)
-                                        .stroke(palette.border, lineWidth: 1)
-                                )
-                            }
-                            .buttonStyle(.plain)
-                        }
+                        .buttonStyle(.plain)
                     }
                 }
-                .padding(18)
-                .background(palette.card)
-                .clipShape(RoundedRectangle(cornerRadius: 8))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 8)
-                        .stroke(palette.border, lineWidth: 1)
-                )
+            }
+        }
+        .padding(18)
+        .background(palette.card)
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(palette.border, lineWidth: 1)
+        )
     }
 
     @ViewBuilder
     private func pairingAndDevicesCard(snap: PreferencesSnapshot) -> some View {
-                // 3. Collapsible Pairing & Connected Devices (`기기 연결 · 복구 코드`)
-                DisclosureGroup(isExpanded: $pairingSectionExpanded) {
-                    VStack(alignment: .leading, spacing: 14) {
-                        if let code = snap.pairingCode, !code.isEmpty {
-                            Text(OttlineStrings.tr(
-                                "다른 기기의 내 공간에서 이 코드를 입력하면 같은 기록을 열 수 있어요.",
-                                "Enter this code in My Space on another device to open the same records.",
-                                locale: locale
-                            ))
-                            .font(OttlineFont.regular(13.5))
-                            .foregroundStyle(palette.mutedInk)
-                            .padding(.top, 10)
-
-                            Text(code)
-                                .font(.system(size: 22, weight: .semibold, design: .monospaced))
-                                .kerning(1.5)
-                                .foregroundStyle(palette.ink)
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 14)
-                                .background(palette.paperStrong)
-                                .clipShape(RoundedRectangle(cornerRadius: 8))
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 8)
-                                        .stroke(palette.border, lineWidth: 1)
-                                )
-
-                            Text(OttlineStrings.tr(
-                                "이 코드를 아는 사람은 내 기록을 열 수 있어요. 나만 볼 수 있는 곳에 보관해 주세요.",
-                                "Anyone with this code can open your records. Keep it somewhere private.",
-                                locale: locale
-                            ))
-                            .font(OttlineFont.regular(12.5))
-                            .foregroundStyle(palette.mutedInk)
-
-                            HStack(spacing: 8) {
-                                Button {
-                                    #if canImport(UIKit)
-                                    UIPasteboard.general.string = code
-                                    #endif
-                                    copiedCode = true
-                                    toastMessage = OttlineStrings.tr("연결 코드를 복사했어요.", "Copied connection code.", locale: locale)
-                                } label: {
-                                    HStack(spacing: 6) {
-                                        OttlineLucideIcon(kind: copiedCode ? .check : .copy, size: 15, color: palette.ink)
-                                        Text(copiedCode
-                                            ? OttlineStrings.tr("복사됨", "Copied", locale: locale)
-                                            : OttlineStrings.tr("코드 복사", "Copy code", locale: locale)
-                                        )
-                                        .font(OttlineFont.semiBold(13.5))
-                                    }
-                                    .foregroundStyle(palette.ink)
-                                    .padding(.horizontal, 14)
-                                    .frame(minHeight: 44)
-                                    .background(palette.card)
-                                    .clipShape(RoundedRectangle(cornerRadius: 8))
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 8)
-                                            .stroke(palette.border, lineWidth: 1)
-                                    )
-                                }
-                                .buttonStyle(.plain)
-
-                                Button {
-                                    #if canImport(UIKit)
-                                    let img = CardExporter.renderRecoveryCardImage(
-                                        pairingCode: code,
-                                        nickname: snap.nickname,
-                                        locale: locale
-                                    )
-                                    CardExporter.saveImageToPhotos(img)
-                                    toastMessage = OttlineStrings.tr("보관 카드를 저장했어요.", "Recovery card saved.", locale: locale)
-                                    #endif
-                                } label: {
-                                    HStack(spacing: 6) {
-                                        OttlineLucideIcon(kind: .download, size: 15, color: palette.ink)
-                                        Text(OttlineStrings.tr("보관 카드 저장", "Save recovery card", locale: locale))
-                                            .font(OttlineFont.semiBold(13.5))
-                                    }
-                                    .foregroundStyle(palette.ink)
-                                    .padding(.horizontal, 14)
-                                    .frame(minHeight: 44)
-                                    .background(palette.card)
-                                    .clipShape(RoundedRectangle(cornerRadius: 8))
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 8)
-                                            .stroke(palette.border, lineWidth: 1)
-                                    )
-                                }
-                                .buttonStyle(.plain)
-                            }
-
-                            if devices.count <= 1 {
-                                Text(OttlineStrings.tr(
-                                    "아직 다른 기기가 연결되어 있지 않아요. 기기를 바꾸기 전에 연결 코드를 보관해 두세요.",
-                                    "No other devices are connected yet. Save your code before switching devices.",
-                                    locale: locale
-                                ))
-                                .font(OttlineFont.regular(12.5))
-                                .foregroundStyle(palette.mutedInk)
-                            }
-                        } else {
-                            Text(OttlineStrings.tr(
-                                "첫 기록이 동기화되면 기록 연결 코드가 표시돼요.",
-                                "Your record connection code appears after your first record syncs.",
-                                locale: locale
-                            ))
-                            .font(OttlineFont.regular(13.5))
-                            .foregroundStyle(palette.mutedInk)
-                            .padding(.top, 10)
-                        }
-
-                        Rectangle()
-                            .fill(palette.border)
-                            .frame(height: 1)
-                            .padding(.vertical, 2)
-
-                        // Stacked Connect Form (`다른 기기에 기록이 있나요?`)
-                        VStack(alignment: .leading, spacing: 10) {
-                            Text(OttlineStrings.tr("다른 기기에 기록이 있나요?", "Have records on another device?", locale: locale))
-                                .font(OttlineFont.semiBold(16))
-                                .foregroundStyle(palette.ink)
-
-                            Text(OttlineStrings.tr(
-                                "그 기기의 내 공간에서 코드를 확인해 여기서 이어보세요.",
-                                "Find the code in My Space on that device and enter it here.",
-                                locale: locale
-                            ))
-                            .font(OttlineFont.regular(13.5))
-                            .foregroundStyle(palette.mutedInk)
-
-                            Text(OttlineStrings.tr("기록 연결 코드", "Record connection code", locale: locale))
-                                .font(OttlineFont.medium(12.5))
-                                .foregroundStyle(palette.mutedInk)
-
-                            TextField(
-                                OttlineStrings.tr("기록 연결 코드 입력", "Enter record connection code", locale: locale),
-                                text: $inputPairingCode
-                            )
-                            .textInputAutocapitalization(.characters)
-                            .font(.system(size: 14.5, weight: .medium, design: .monospaced))
-                            .padding(.horizontal, 12)
-                            .frame(minHeight: 48)
-                            .background(palette.background)
-                            .clipShape(RoundedRectangle(cornerRadius: 8))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 8)
-                                    .stroke(palette.border, lineWidth: 1)
-                            )
-
-                            Button {
-                                showPairConfirmAlert = true
-                            } label: {
-                                Text(pairingBusy
-                                    ? OttlineStrings.tr("연결 중…", "Connecting…", locale: locale)
-                                    : OttlineStrings.tr("연결하기", "Connect", locale: locale)
-                                )
-                                .font(OttlineFont.semiBold(14.5))
-                                .foregroundStyle(palette.onBrandOrange)
-                                .frame(maxWidth: .infinity, minHeight: 48)
-                                .background(palette.brandOrange)
-                                .clipShape(RoundedRectangle(cornerRadius: 8))
-                            }
-                            .buttonStyle(.plain)
-                            .disabled(inputPairingCode.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || pairingBusy)
-
-                            Button(action: onStartBrowserHandoff) {
-                                HStack(spacing: 6) {
-                                    OttlineLucideIcon(kind: .externalLink, size: 15, color: palette.primaryAccent)
-                                    Text(OttlineStrings.tr("웹(Safari·Chrome) 기록 가져오기", "Bring records from browser", locale: locale))
-                                        .font(OttlineFont.semiBold(13.5))
-                                }
-                                .foregroundStyle(palette.primaryAccent)
-                                .frame(maxWidth: .infinity, minHeight: 46)
-                                .background(palette.card)
-                                .clipShape(RoundedRectangle(cornerRadius: 8))
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 8)
-                                        .stroke(palette.primaryAccent.opacity(0.45), lineWidth: 1)
-                                )
-                            }
-                            .buttonStyle(.plain)
-
-                            DisclosureGroup(isExpanded: $lostCodeExpanded) {
-                                VStack(alignment: .leading, spacing: 6) {
-                                    Text(OttlineStrings.tr(
-                                        "• 아직 열려 있는 기기가 있다면 그 기기의 내 공간에서 코드를 다시 확인할 수 있어요.",
-                                        "• If you still have another device open, check My Space there.",
-                                        locale: locale
-                                    ))
-                                    Text(OttlineStrings.tr(
-                                        "• 저장해 둔 보관 카드 이미지나 복사해 둔 메모가 있는지도 확인해 보세요.",
-                                        "• Look for a saved recovery card image or note.",
-                                        locale: locale
-                                    ))
-                                    Text(OttlineStrings.tr(
-                                        "• 모든 기기에서 접근할 수 없다면 아래의 내 문의함으로 알려 주세요.",
-                                        "• If you cannot access any device, contact us through your inbox below.",
-                                        locale: locale
-                                    ))
-                                }
-                                .font(OttlineFont.regular(12.5))
-                                .foregroundStyle(palette.mutedInk)
-                                .padding(.top, 8)
-                            } label: {
-                                Text(OttlineStrings.tr("코드를 잃어버렸어요", "I lost my code", locale: locale))
-                                    .font(OttlineFont.semiBold(13))
-                                    .foregroundStyle(palette.primaryAccent)
-                            }
-                            .tint(palette.primaryAccent)
-                        }
-
-                        Rectangle().fill(palette.border).frame(height: 1)
-
-                        // Connected Devices
-                        VStack(alignment: .leading, spacing: 10) {
-                            HStack(alignment: .firstTextBaseline) {
-                                Text(OttlineStrings.tr("연결된 기기", "Connected devices", locale: locale))
-                                    .font(OttlineFont.semiBold(16))
-                                    .foregroundStyle(palette.ink)
-                                Spacer()
-                                Text(locale == "en" ? "\(devices.count) linked" : "\(devices.count)개")
-                                    .font(OttlineFont.regular(12.5))
-                                    .foregroundStyle(palette.mutedInk)
-                            }
-
-                            if devices.isEmpty {
-                                Text(OttlineStrings.tr("연결된 기기가 없습니다.", "No connected devices.", locale: locale))
-                                    .font(OttlineFont.regular(13.5))
-                                    .foregroundStyle(palette.mutedInk)
-                            } else {
-                                VStack(spacing: 0) {
-                                    ForEach(Array(devices.enumerated()), id: \.element.id) { idx, dev in
-                                        if idx > 0 {
-                                            Rectangle().fill(palette.border).frame(height: 1)
-                                        }
-                                        HStack(alignment: .top, spacing: 12) {
-                                            OttlineLucideIcon(kind: .smartphone, size: 17, color: palette.mutedInk)
-                                                .padding(.top, 2)
-
-                                            VStack(alignment: .leading, spacing: 3) {
-                                                Text(dev.id == snap.deviceId
-                                                    ? OttlineStrings.tr("현재 기기", "Current device", locale: locale)
-                                                    : OttlineStrings.tr("연결된 기기", "Linked device", locale: locale)
-                                                )
-                                                .font(OttlineFont.semiBold(14.5))
-                                                .foregroundStyle(palette.ink)
-
-                                                Text(dev.displayName.isEmpty ? "ottline" : dev.displayName)
-                                                    .font(OttlineFont.regular(12.5))
-                                                    .foregroundStyle(palette.mutedInk)
-
-                                                Text("\(OttlineStrings.tr("생성", "Created", locale: locale)) \(RecordDate.formatDisplayDate(dev.createdAt, locale: locale)) · \(OttlineStrings.tr("최근", "Last active", locale: locale)) \(RecordDate.formatDisplayDate(dev.lastSeenAt, locale: locale))")
-                                                    .font(OttlineFont.regular(11.5))
-                                                    .foregroundStyle(palette.mutedInk)
-                                            }
-
-                                            Spacer()
-
-                                            if dev.id == snap.deviceId {
-                                                Text(OttlineStrings.tr("현재", "Current", locale: locale))
-                                                    .font(OttlineFont.semiBold(11.5))
-                                                    .foregroundStyle(palette.primaryAccent)
-                                                    .padding(.horizontal, 8)
-                                                    .padding(.vertical, 4)
-                                                    .background(palette.paperStrong)
-                                                    .clipShape(Capsule())
-                                            } else {
-                                                Button {
-                                                    Task {
-                                                        try? await repository.api.unlinkDevice(targetDeviceId: dev.id)
-                                                        await loadProfileAndDevices()
-                                                    }
-                                                } label: {
-                                                    Text(OttlineStrings.tr("연결 해제", "Unlink", locale: locale))
-                                                        .font(OttlineFont.semiBold(12.5))
-                                                        .foregroundStyle(palette.primaryAccent)
-                                                }
-                                                .buttonStyle(.plain)
-                                            }
-                                        }
-                                        .padding(.vertical, 12)
-                                    }
-                                }
-
-                                Button {
-                                    showUnlinkAllAlert = true
-                                } label: {
-                                    Text(unlinkingAll
-                                        ? OttlineStrings.tr("연결 해제 중…", "Unlinking…", locale: locale)
-                                        : OttlineStrings.tr("모든 기기 연결 해제", "Unlink all devices", locale: locale)
-                                    )
-                                    .font(OttlineFont.semiBold(13.5))
-                                    .foregroundStyle(palette.danger)
-                                    .padding(.horizontal, 14)
-                                    .frame(minHeight: 42)
-                                    .background(palette.card)
-                                    .clipShape(RoundedRectangle(cornerRadius: 8))
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 8)
-                                            .stroke(palette.danger.opacity(0.45), lineWidth: 1)
-                                    )
-                                }
-                                .buttonStyle(.plain)
-                                .disabled(unlinkingAll)
-                            }
-                        }
-                    }
-                } label: {
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text(OttlineStrings.tr("기기 연결 · 복구 코드", "Device connection & recovery", locale: locale))
-                            .font(OttlineFont.semiBold(16))
-                            .foregroundStyle(palette.ink)
-                        Text(OttlineStrings.tr(
-                            "다른 기기에서 같은 타임라인을 이어서 볼 수 있어요.",
-                            "Keep the same timeline across your devices.",
-                            locale: locale
-                        ))
-                        .font(OttlineFont.regular(12.5))
-                        .foregroundStyle(palette.mutedInk)
-                    }
+        if metrics.isSpread {
+            VStack(alignment: .leading, spacing: 14) {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(OttlineStrings.tr("기기 연결 · 복구 코드", "Device connection & recovery", locale: locale))
+                        .font(OttlineFont.bold(17))
+                        .foregroundStyle(palette.ink)
+                    Text(OttlineStrings.tr(
+                        "다른 기기에서 같은 타임라인을 이어서 볼 수 있어요.",
+                        "Keep the same timeline across your devices.",
+                        locale: locale
+                    ))
+                    .font(OttlineFont.regular(12.5))
+                    .foregroundStyle(palette.mutedInk)
                 }
-                .tint(palette.ink)
-                .padding(18)
-                .background(palette.card)
+
+                Rectangle().fill(palette.border).frame(height: 1)
+
+                pairingAndDevicesBody(snap: snap)
+            }
+            .padding(18)
+            .background(palette.card)
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+            .overlay(
+                RoundedRectangle(cornerRadius: 8)
+                    .stroke(palette.border, lineWidth: 1)
+            )
+        } else {
+            DisclosureGroup(isExpanded: $pairingSectionExpanded) {
+                pairingAndDevicesBody(snap: snap)
+                    .padding(.top, 10)
+            } label: {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(OttlineStrings.tr("기기 연결 · 복구 코드", "Device connection & recovery", locale: locale))
+                        .font(OttlineFont.semiBold(16))
+                        .foregroundStyle(palette.ink)
+                    Text(OttlineStrings.tr(
+                        "다른 기기에서 같은 타임라인을 이어서 볼 수 있어요.",
+                        "Keep the same timeline across your devices.",
+                        locale: locale
+                    ))
+                    .font(OttlineFont.regular(12.5))
+                    .foregroundStyle(palette.mutedInk)
+                }
+            }
+            .tint(palette.ink)
+            .padding(18)
+            .background(palette.card)
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+            .overlay(
+                RoundedRectangle(cornerRadius: 8)
+                    .stroke(palette.border, lineWidth: 1)
+            )
+        }
+    }
+
+    @ViewBuilder
+    private func pairingAndDevicesBody(snap: PreferencesSnapshot) -> some View {
+        VStack(alignment: .leading, spacing: 14) {
+            if let code = snap.pairingCode, !code.isEmpty {
+                Text(OttlineStrings.tr(
+                    "다른 기기의 내 공간에서 이 코드를 입력하면 같은 기록을 열 수 있어요.",
+                    "Enter this code in My Space on another device to open the same records.",
+                    locale: locale
+                ))
+                .font(OttlineFont.regular(13.5))
+                .foregroundStyle(palette.mutedInk)
+
+                Text(code)
+                    .font(.system(size: 22, weight: .semibold, design: .monospaced))
+                    .kerning(1.5)
+                    .foregroundStyle(palette.ink)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
+                    .background(palette.paperStrong)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8)
+                            .stroke(palette.border, lineWidth: 1)
+                    )
+
+                Text(OttlineStrings.tr(
+                    "이 코드를 아는 사람은 내 기록을 열 수 있어요. 나만 볼 수 있는 곳에 보관해 주세요.",
+                    "Anyone with this code can open your records. Keep it somewhere private.",
+                    locale: locale
+                ))
+                .font(OttlineFont.regular(12.5))
+                .foregroundStyle(palette.mutedInk)
+
+                FlowLayout(horizontalSpacing: 8, verticalSpacing: 8) {
+                    Button {
+                        #if canImport(UIKit)
+                        UIPasteboard.general.string = code
+                        #endif
+                        copiedCode = true
+                        toastMessage = OttlineStrings.tr("연결 코드를 복사했어요.", "Copied connection code.", locale: locale)
+                    } label: {
+                        HStack(spacing: 6) {
+                            OttlineLucideIcon(kind: copiedCode ? .check : .copy, size: 15, color: palette.ink)
+                            Text(copiedCode
+                                ? OttlineStrings.tr("복사됨", "Copied", locale: locale)
+                                : OttlineStrings.tr("코드 복사", "Copy code", locale: locale)
+                            )
+                            .font(OttlineFont.semiBold(13.5))
+                        }
+                        .foregroundStyle(palette.ink)
+                        .padding(.horizontal, 14)
+                        .frame(minHeight: 42)
+                        .background(palette.card)
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8)
+                                .stroke(palette.border, lineWidth: 1)
+                        )
+                    }
+                    .buttonStyle(.plain)
+
+                    Button {
+                        #if canImport(UIKit)
+                        let img = CardExporter.renderRecoveryCardImage(
+                            pairingCode: code,
+                            nickname: snap.nickname,
+                            locale: locale
+                        )
+                        CardExporter.saveImageToPhotos(img)
+                        toastMessage = OttlineStrings.tr("보관 카드를 저장했어요.", "Recovery card saved.", locale: locale)
+                        #endif
+                    } label: {
+                        HStack(spacing: 6) {
+                            OttlineLucideIcon(kind: .download, size: 15, color: palette.ink)
+                            Text(OttlineStrings.tr("보관 카드 저장", "Save recovery card", locale: locale))
+                                .font(OttlineFont.semiBold(13.5))
+                        }
+                        .foregroundStyle(palette.ink)
+                        .padding(.horizontal, 14)
+                        .frame(minHeight: 42)
+                        .background(palette.card)
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8)
+                                .stroke(palette.border, lineWidth: 1)
+                        )
+                    }
+                    .buttonStyle(.plain)
+                }
+
+                if devices.count <= 1 {
+                    Text(OttlineStrings.tr(
+                        "아직 다른 기기가 연결되어 있지 않아요. 기기를 바꾸기 전에 연결 코드를 보관해 두세요.",
+                        "No other devices are connected yet. Save your code before switching devices.",
+                        locale: locale
+                    ))
+                    .font(OttlineFont.regular(12.5))
+                    .foregroundStyle(palette.mutedInk)
+                }
+            } else {
+                Text(OttlineStrings.tr(
+                    "첫 기록이 동기화되면 기록 연결 코드가 표시돼요.",
+                    "Your record connection code appears after your first record syncs.",
+                    locale: locale
+                ))
+                .font(OttlineFont.regular(13.5))
+                .foregroundStyle(palette.mutedInk)
+            }
+
+            Rectangle()
+                .fill(palette.border)
+                .frame(height: 1)
+                .padding(.vertical, 2)
+
+            // Connect Form (`다른 기기에 기록이 있나요?`)
+            VStack(alignment: .leading, spacing: 10) {
+                Text(OttlineStrings.tr("다른 기기에 기록이 있나요?", "Have records on another device?", locale: locale))
+                    .font(OttlineFont.semiBold(16))
+                    .foregroundStyle(palette.ink)
+
+                Text(OttlineStrings.tr(
+                    "그 기기의 내 공간에서 코드를 확인해 여기서 이어보세요.",
+                    "Find the code in My Space on that device and enter it here.",
+                    locale: locale
+                ))
+                .font(OttlineFont.regular(13.5))
+                .foregroundStyle(palette.mutedInk)
+
+                Text(OttlineStrings.tr("기록 연결 코드", "Record connection code", locale: locale))
+                    .font(OttlineFont.medium(12.5))
+                    .foregroundStyle(palette.mutedInk)
+
+                TextField(
+                    OttlineStrings.tr("기록 연결 코드 입력", "Enter record connection code", locale: locale),
+                    text: $inputPairingCode
+                )
+                .textInputAutocapitalization(.characters)
+                .font(.system(size: 14.5, weight: .medium, design: .monospaced))
+                .padding(.horizontal, 12)
+                .frame(minHeight: metrics.isSpread ? 42 : 48)
+                .background(palette.background)
                 .clipShape(RoundedRectangle(cornerRadius: 8))
                 .overlay(
                     RoundedRectangle(cornerRadius: 8)
                         .stroke(palette.border, lineWidth: 1)
                 )
+
+                if metrics.isSpread {
+                    FlowLayout(horizontalSpacing: 8, verticalSpacing: 8) {
+                        connectCodeButton(fullWidth: false)
+                        browserHandoffButton(fullWidth: false)
+                    }
+                } else {
+                    connectCodeButton(fullWidth: true)
+                    browserHandoffButton(fullWidth: true)
+                }
+
+                DisclosureGroup(isExpanded: $lostCodeExpanded) {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text(OttlineStrings.tr(
+                            "• 아직 열려 있는 기기가 있다면 그 기기의 내 공간에서 코드를 다시 확인할 수 있어요.",
+                            "• If you still have another device open, check My Space there.",
+                            locale: locale
+                        ))
+                        Text(OttlineStrings.tr(
+                            "• 저장해 둔 보관 카드 이미지나 복사해 둔 메모가 있는지도 확인해 보세요.",
+                            "• Look for a saved recovery card image or note.",
+                            locale: locale
+                        ))
+                        Text(OttlineStrings.tr(
+                            "• 모든 기기에서 접근할 수 없다면 아래의 내 문의함으로 알려 주세요.",
+                            "• If you cannot access any device, contact us through your inbox below.",
+                            locale: locale
+                        ))
+                    }
+                    .font(OttlineFont.regular(12.5))
+                    .foregroundStyle(palette.mutedInk)
+                    .padding(.top, 8)
+                } label: {
+                    Text(OttlineStrings.tr("코드를 잃어버렸어요", "I lost my code", locale: locale))
+                        .font(OttlineFont.semiBold(13))
+                        .foregroundStyle(palette.primaryAccent)
+                }
+                .tint(palette.primaryAccent)
+            }
+
+            Rectangle().fill(palette.border).frame(height: 1)
+
+            // Connected Devices
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(alignment: .firstTextBaseline) {
+                    Text(OttlineStrings.tr("연결된 기기", "Connected devices", locale: locale))
+                        .font(OttlineFont.semiBold(16))
+                        .foregroundStyle(palette.ink)
+                    Spacer()
+                    Text(locale == "en" ? "\(devices.count) linked" : "\(devices.count)개")
+                        .font(OttlineFont.regular(12.5))
+                        .foregroundStyle(palette.mutedInk)
+                }
+
+                if devices.isEmpty {
+                    Text(OttlineStrings.tr("연결된 기기가 없습니다.", "No connected devices.", locale: locale))
+                        .font(OttlineFont.regular(13.5))
+                        .foregroundStyle(palette.mutedInk)
+                } else {
+                    VStack(spacing: 0) {
+                        ForEach(Array(devices.enumerated()), id: \.element.id) { idx, dev in
+                            if idx > 0 {
+                                Rectangle().fill(palette.border).frame(height: 1)
+                            }
+                            HStack(alignment: .top, spacing: 12) {
+                                OttlineLucideIcon(kind: .smartphone, size: 17, color: palette.mutedInk)
+                                    .padding(.top, 2)
+
+                                VStack(alignment: .leading, spacing: 3) {
+                                    Text(dev.id == snap.deviceId
+                                        ? OttlineStrings.tr("현재 기기", "Current device", locale: locale)
+                                        : OttlineStrings.tr("연결된 기기", "Linked device", locale: locale)
+                                    )
+                                    .font(OttlineFont.semiBold(14.5))
+                                    .foregroundStyle(palette.ink)
+
+                                    Text(dev.displayName.isEmpty ? "ottline" : dev.displayName)
+                                        .font(OttlineFont.regular(12.5))
+                                        .foregroundStyle(palette.mutedInk)
+
+                                    Text("\(OttlineStrings.tr("생성", "Created", locale: locale)) \(RecordDate.formatDisplayDate(dev.createdAt, locale: locale)) · \(OttlineStrings.tr("최근", "Last active", locale: locale)) \(RecordDate.formatDisplayDate(dev.lastSeenAt, locale: locale))")
+                                        .font(OttlineFont.regular(11.5))
+                                        .foregroundStyle(palette.mutedInk)
+                                }
+
+                                Spacer()
+
+                                if dev.id == snap.deviceId {
+                                    Text(OttlineStrings.tr("현재", "Current", locale: locale))
+                                        .font(OttlineFont.semiBold(11.5))
+                                        .foregroundStyle(palette.primaryAccent)
+                                        .padding(.horizontal, 8)
+                                        .padding(.vertical, 4)
+                                        .background(palette.paperStrong)
+                                        .clipShape(Capsule())
+                                } else {
+                                    Button {
+                                        Task {
+                                            try? await repository.api.unlinkDevice(targetDeviceId: dev.id)
+                                            await loadProfileAndDevices()
+                                        }
+                                    } label: {
+                                        Text(OttlineStrings.tr("연결 해제", "Unlink", locale: locale))
+                                            .font(OttlineFont.semiBold(12.5))
+                                            .foregroundStyle(palette.primaryAccent)
+                                    }
+                                    .buttonStyle(.plain)
+                                }
+                            }
+                            .padding(.vertical, 12)
+                        }
+                    }
+
+                    Button {
+                        showUnlinkAllAlert = true
+                    } label: {
+                        Text(unlinkingAll
+                            ? OttlineStrings.tr("연결 해제 중…", "Unlinking…", locale: locale)
+                            : OttlineStrings.tr("모든 기기 연결 해제", "Unlink all devices", locale: locale)
+                        )
+                        .font(OttlineFont.semiBold(13.5))
+                        .foregroundStyle(palette.danger)
+                        .padding(.horizontal, 14)
+                        .frame(minHeight: 42)
+                        .background(palette.card)
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8)
+                                .stroke(palette.danger.opacity(0.45), lineWidth: 1)
+                        )
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(unlinkingAll)
+                }
+            }
+        }
+    }
+
+    private func connectCodeButton(fullWidth: Bool) -> some View {
+        Button {
+            showPairConfirmAlert = true
+        } label: {
+            Text(pairingBusy
+                ? OttlineStrings.tr("연결 중…", "Connecting…", locale: locale)
+                : OttlineStrings.tr("연결하기", "Connect", locale: locale)
+            )
+            .font(OttlineFont.semiBold(14.5))
+            .foregroundStyle(palette.onBrandOrange)
+            .padding(.horizontal, fullWidth ? 0 : 18)
+            .frame(maxWidth: fullWidth ? .infinity : nil, minHeight: metrics.isSpread ? 44 : 48)
+            .background(palette.brandOrange)
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+        }
+        .buttonStyle(.plain)
+        .disabled(inputPairingCode.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || pairingBusy)
+    }
+
+    private func browserHandoffButton(fullWidth: Bool) -> some View {
+        Button(action: onStartBrowserHandoff) {
+            HStack(spacing: 6) {
+                OttlineLucideIcon(kind: .externalLink, size: 15, color: palette.primaryAccent)
+                Text(OttlineStrings.tr("웹(Safari·Chrome) 기록 가져오기", "Bring records from browser", locale: locale))
+                    .font(OttlineFont.semiBold(13.5))
+            }
+            .foregroundStyle(palette.primaryAccent)
+            .padding(.horizontal, fullWidth ? 0 : 16)
+            .frame(maxWidth: fullWidth ? .infinity : nil, minHeight: metrics.isSpread ? 44 : 46)
+            .background(palette.card)
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+            .overlay(
+                RoundedRectangle(cornerRadius: 8)
+                    .stroke(palette.primaryAccent.opacity(0.45), lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
     }
 
     @ViewBuilder

@@ -48,7 +48,7 @@ public struct PadLayoutMetrics: Equatable, Sendable {
     }
 
     public var isSpread: Bool { mode != .compact }
-    public var isWideThreeColumnHome: Bool { mode == .tabletWide }
+    public var isWideThreeColumnHome: Bool { isSpread && viewportWidth >= 800 }
     public var maxContentWidth: CGFloat { isSpread ? 1180 : .infinity }
     public var horizontalPadding: CGFloat { isSpread ? 28 : 18 }
     public var togetherColumns: Int { isSpread ? 2 : 1 }
@@ -478,5 +478,64 @@ public struct PadFeaturedPosterView: View {
                 .lineLimit(3)
         }
         .padding(12)
+    }
+}
+
+// MARK: - 4. Proportional Featured Card Body Layout (`MacFeaturedBodyLayout` 1:1 Parity)
+
+public struct PadFeaturedBodyLayout: Layout {
+    public struct Metrics: Equatable, Sendable {
+        public let posterWidth: CGFloat
+        public let posterHeight: CGFloat
+        public let storyWidth: CGFloat
+        public let spacing: CGFloat
+    }
+
+    public var spacing: CGFloat = 26
+
+    public init(spacing: CGFloat = 26) {
+        self.spacing = spacing
+    }
+
+    public static func metrics(forTotalWidth totalWidth: CGFloat, spacing: CGFloat = 26) -> Metrics {
+        let safeTotal = max(0, totalWidth)
+        let available = max(0, safeTotal - spacing)
+        let posterWidth = min(max(135, floor(available * (0.85 / 1.85))), max(135, available))
+        let posterHeight = round(posterWidth * 1.5)
+        let storyWidth = max(0, safeTotal - posterWidth - spacing)
+        return Metrics(
+            posterWidth: posterWidth,
+            posterHeight: posterHeight,
+            storyWidth: storyWidth,
+            spacing: spacing
+        )
+    }
+
+    public func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let proposed = proposal.width
+        let totalWidth = (proposed != nil && proposed!.isFinite) ? proposed! : 680
+        let m = Self.metrics(forTotalWidth: totalWidth, spacing: spacing)
+        let storyHeight = subviews.count > 1
+            ? subviews[1].sizeThatFits(ProposedViewSize(width: m.storyWidth, height: nil)).height
+            : 0
+        return CGSize(width: totalWidth, height: max(m.posterHeight, storyHeight))
+    }
+
+    public func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        let m = Self.metrics(forTotalWidth: bounds.width, spacing: spacing)
+        if !subviews.isEmpty {
+            subviews[0].place(
+                at: CGPoint(x: bounds.minX, y: bounds.minY),
+                anchor: .topLeading,
+                proposal: ProposedViewSize(width: m.posterWidth, height: m.posterHeight)
+            )
+        }
+        if subviews.count > 1 {
+            subviews[1].place(
+                at: CGPoint(x: bounds.minX + m.posterWidth + m.spacing, y: bounds.minY),
+                anchor: .topLeading,
+                proposal: ProposedViewSize(width: m.storyWidth, height: bounds.height)
+            )
+        }
     }
 }

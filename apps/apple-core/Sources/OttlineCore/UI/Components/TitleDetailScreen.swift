@@ -1,15 +1,5 @@
 import SwiftUI
 
-#if os(iOS)
-private struct TitleDetailWidthPreferenceKey: PreferenceKey {
-    static var defaultValue: CGFloat = 390
-    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
-        let next = nextValue()
-        if next > 0 { value = next }
-    }
-}
-#endif
-
 public struct TitleDetailScreen: View {
     public let titleId: String
     public let repository: OttlineRepository
@@ -23,7 +13,6 @@ public struct TitleDetailScreen: View {
     @Environment(\.appLocale) private var locale
     #if os(iOS)
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
-    @State private var containerWidth: CGFloat = 390
     #endif
 
     @State private var loadedTitle: Title?
@@ -62,81 +51,82 @@ public struct TitleDetailScreen: View {
         self.onReportUgc = onReportUgc
     }
 
-    #if os(iOS)
-    private var isRegularLayout: Bool {
-        horizontalSizeClass == .regular && containerWidth >= 700
-    }
-
-    private var useTwoColumnSpread: Bool {
-        horizontalSizeClass == .regular && containerWidth >= 900
-    }
-    #endif
-
     public var body: some View {
+        #if os(iOS)
+        GeometryReader { detailGeo in
+            let fallbackWidth: CGFloat = horizontalSizeClass == .regular ? 1024 : 390
+            let liveWidth: CGFloat = detailGeo.size.width > 0 ? detailGeo.size.width : fallbackWidth
+            let isRegularLayout = horizontalSizeClass == .regular && liveWidth >= 700
+            let useTwoColumnSpread = horizontalSizeClass == .regular && liveWidth >= 820
+
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    topBar
+
+                    if let title = resolvedTitle {
+                        if useTwoColumnSpread {
+                            HStack(alignment: .top, spacing: 28) {
+                                primaryDetailColumn(title: title)
+                                    .frame(width: 360, alignment: .topLeading)
+
+                                secondaryDetailColumn(title: title)
+                                    .frame(maxWidth: .infinity, alignment: .topLeading)
+                            }
+                        } else {
+                            primaryDetailColumn(title: title)
+                            secondaryDetailColumn(title: title)
+                        }
+                    } else {
+                        loadingTitleView
+                    }
+
+                    OttlineAppFooter()
+                }
+                .frame(maxWidth: isRegularLayout ? 1120 : .infinity, alignment: .leading)
+                .padding(.horizontal, isRegularLayout ? 28 : 16)
+                .padding(.top, isRegularLayout ? 20 : 8)
+                .padding(.bottom, 16)
+                .frame(maxWidth: .infinity)
+            }
+        }
+        .ignoresSafeArea(.keyboard)
+        .navigationBarBackButtonHidden(true)
+        .background(palette.background)
+        .task(id: titleId) {
+            await loadTitleAndHistory()
+        }
+        #else
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 topBar
 
                 if let title = resolvedTitle {
-                    #if os(iOS)
-                    if useTwoColumnSpread {
-                        HStack(alignment: .top, spacing: 28) {
-                            primaryDetailColumn(title: title)
-                                .frame(width: 380, alignment: .topLeading)
-
-                            secondaryDetailColumn(title: title)
-                                .frame(maxWidth: .infinity, alignment: .topLeading)
-                        }
-                    } else {
-                        primaryDetailColumn(title: title)
-                        secondaryDetailColumn(title: title)
-                    }
-                    #else
                     primaryDetailColumn(title: title)
                     secondaryDetailColumn(title: title)
-                    #endif
                 } else {
-                    VStack(spacing: 12) {
-                        ProgressView()
-                        Text(OttlineStrings.tr("작품 정보를 불러오는 중이에요...", "Loading title...", locale: locale))
-                            .font(OttlineFont.regular(14))
-                            .foregroundStyle(palette.mutedInk)
-                    }
-                    .frame(maxWidth: .infinity, minHeight: 220)
+                    loadingTitleView
                 }
 
                 OttlineAppFooter()
             }
-            #if os(iOS)
-            .frame(maxWidth: isRegularLayout ? 1120 : .infinity, alignment: .leading)
-            .padding(.horizontal, isRegularLayout ? 28 : 16)
-            .padding(.top, isRegularLayout ? 20 : 8)
-            .padding(.bottom, 16)
-            .frame(maxWidth: .infinity)
-            #else
             .padding(.horizontal, 16)
             .padding(.top, 8)
-            #endif
         }
-        #if os(iOS)
-        .background {
-            GeometryReader { proxy in
-                Color.clear
-                    .preference(key: TitleDetailWidthPreferenceKey.self, value: proxy.size.width)
-            }
-            .ignoresSafeArea()
-        }
-        .onPreferenceChange(TitleDetailWidthPreferenceKey.self) { nextWidth in
-            if abs(nextWidth - containerWidth) > 0.5 {
-                containerWidth = nextWidth
-            }
-        }
-        .navigationBarBackButtonHidden(true)
-        #endif
         .background(palette.background)
         .task(id: titleId) {
             await loadTitleAndHistory()
         }
+        #endif
+    }
+
+    private var loadingTitleView: some View {
+        VStack(spacing: 12) {
+            ProgressView()
+            Text(OttlineStrings.tr("작품 정보를 불러오는 중이에요...", "Loading title...", locale: locale))
+                .font(OttlineFont.regular(14))
+                .foregroundStyle(palette.mutedInk)
+        }
+        .frame(maxWidth: .infinity, minHeight: 220)
     }
 
     @ViewBuilder
