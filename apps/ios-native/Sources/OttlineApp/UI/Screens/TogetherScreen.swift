@@ -12,6 +12,12 @@ public struct TogetherScreen: View {
 
     @Environment(\.ottlinePalette) private var palette
     @Environment(\.appLocale) private var locale
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @Environment(\.ottlineViewportWidth) private var viewportWidth
+
+    private var metrics: PadLayoutMetrics {
+        PadLayoutMetrics.resolve(horizontalSizeClass: horizontalSizeClass, viewportWidth: viewportWidth)
+    }
 
     @State private var curated: [CuratedContentItem] = []
     @State private var discussions: [DiscussionListItem] = []
@@ -82,67 +88,20 @@ public struct TogetherScreen: View {
                                 .foregroundStyle(palette.ink)
                         }
 
-                        ForEach(curated) { item in
-                            Button {
-                                Task { await openCuratedDiscussion(item) }
-                            } label: {
-                                HStack(alignment: .top, spacing: 12) {
-                                    PosterImage(
-                                        posterUrl: item.posterUrl,
-                                        titleName: item.titleName,
-                                        titleType: item.titleType,
-                                        width: 44,
-                                        height: 66,
-                                        cornerRadius: 6
-                                    )
-
-                                    VStack(alignment: .leading, spacing: 5) {
-                                        HStack(spacing: 6) {
-                                            OttlineLucideIcon(kind: .sparkles, size: 13, color: palette.primaryAccent)
-                                            Text(item.titleName)
-                                                .font(OttlineFont.semiBold(13.5))
-                                                .foregroundStyle(palette.primaryAccent)
-                                                .lineLimit(1)
-                                            if let y = item.titleYear {
-                                                Text("(\(String(y)))")
-                                                    .font(OttlineFont.regular(12))
-                                                    .foregroundStyle(palette.mutedInk)
-                                            }
-                                        }
-
-                                        Text(item.body)
-                                            .font(OttlineFont.medium(14))
-                                            .foregroundStyle(palette.ink)
-                                            .lineSpacing(3)
-                                            .multilineTextAlignment(.leading)
-
-                                        if !item.disclosure.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                                            Text(item.disclosure)
-                                                .font(OttlineFont.regular(11.5))
-                                                .foregroundStyle(palette.subtleInk)
-                                        }
-                                    }
-
-                                    Spacer(minLength: 0)
-
-                                    if resolvingCuratedId == item.id {
-                                        ProgressView()
-                                            .scaleEffect(0.8)
-                                    } else {
-                                        OttlineLucideIcon(kind: .chevronRight, size: 16, color: palette.subtleInk)
-                                    }
+                        if metrics.isSpread {
+                            LazyVGrid(
+                                columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)],
+                                spacing: 12
+                            ) {
+                                ForEach(curated) { item in
+                                    curatedQuestionCard(item)
+                                        .frame(maxHeight: .infinity, alignment: .topLeading)
                                 }
-                                .padding(14)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .background(palette.paperStrong)
-                                .clipShape(RoundedRectangle(cornerRadius: 8))
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 8)
-                                        .stroke(palette.border, lineWidth: 1)
-                                )
                             }
-                            .buttonStyle(.plain)
-                            .disabled(resolvingCuratedId == item.id)
+                        } else {
+                            ForEach(curated) { item in
+                                curatedQuestionCard(item)
+                            }
                         }
                     }
                 }
@@ -265,6 +224,22 @@ public struct TogetherScreen: View {
                         RoundedRectangle(cornerRadius: 8)
                             .stroke(palette.border, lineWidth: 1)
                     )
+                } else if metrics.isSpread {
+                    LazyVGrid(
+                        columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)],
+                        spacing: 12
+                    ) {
+                        ForEach(rows) { disc in
+                            discussionRow(disc)
+                                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                                .background(palette.card)
+                                .clipShape(RoundedRectangle(cornerRadius: 8))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 8)
+                                        .stroke(palette.border, lineWidth: 1)
+                                )
+                        }
+                    }
                 } else {
                     VStack(spacing: 0) {
                         ForEach(Array(rows.enumerated()), id: \.element.id) { idx, disc in
@@ -286,8 +261,9 @@ public struct TogetherScreen: View {
 
                 OttlineAppFooter()
             }
-            .padding(.horizontal, 18)
-            .padding(.top, 20)
+            .ottlineContentContainer(metrics)
+            .padding(.top, metrics.isSpread ? 24 : 20)
+            .padding(.bottom, 16)
         }
         .background(palette.background)
         .task {
@@ -296,6 +272,69 @@ public struct TogetherScreen: View {
         .refreshable {
             await loadTogetherData()
         }
+    }
+
+    private func curatedQuestionCard(_ item: CuratedContentItem) -> some View {
+        Button {
+            Task { await openCuratedDiscussion(item) }
+        } label: {
+            HStack(alignment: .top, spacing: 12) {
+                PosterImage(
+                    posterUrl: item.posterUrl,
+                    titleName: item.titleName,
+                    titleType: item.titleType,
+                    width: 44,
+                    height: 66,
+                    cornerRadius: 6
+                )
+
+                VStack(alignment: .leading, spacing: 5) {
+                    HStack(spacing: 6) {
+                        OttlineLucideIcon(kind: .sparkles, size: 13, color: palette.primaryAccent)
+                        Text(item.titleName)
+                            .font(OttlineFont.semiBold(13.5))
+                            .foregroundStyle(palette.primaryAccent)
+                            .lineLimit(1)
+                        if let y = item.titleYear {
+                            Text("(\(String(y)))")
+                                .font(OttlineFont.regular(12))
+                                .foregroundStyle(palette.mutedInk)
+                        }
+                    }
+
+                    Text(item.body)
+                        .font(OttlineFont.medium(14))
+                        .foregroundStyle(palette.ink)
+                        .lineSpacing(3)
+                        .multilineTextAlignment(.leading)
+
+                    if !item.disclosure.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                        Text(item.disclosure)
+                            .font(OttlineFont.regular(11.5))
+                            .foregroundStyle(palette.subtleInk)
+                    }
+                }
+
+                Spacer(minLength: 0)
+
+                if resolvingCuratedId == item.id {
+                    ProgressView()
+                        .scaleEffect(0.8)
+                } else {
+                    OttlineLucideIcon(kind: .chevronRight, size: 16, color: palette.subtleInk)
+                }
+            }
+            .padding(14)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            .background(palette.paperStrong)
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+            .overlay(
+                RoundedRectangle(cornerRadius: 8)
+                    .stroke(palette.border, lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
+        .disabled(resolvingCuratedId == item.id)
     }
 
     private func sortButton(key: String, label: String) -> some View {
@@ -451,6 +490,12 @@ public struct PublicDiscussionDetailScreen: View {
 
     @Environment(\.ottlinePalette) private var palette
     @Environment(\.appLocale) private var locale
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @Environment(\.ottlineViewportWidth) private var viewportWidth
+
+    private var metrics: PadLayoutMetrics {
+        PadLayoutMetrics.resolve(horizontalSizeClass: horizontalSizeClass, viewportWidth: viewportWidth)
+    }
 
     @State private var discussion: DiscussionListItem?
     @State private var fullTitle: Title?
@@ -498,94 +543,31 @@ public struct PublicDiscussionDetailScreen: View {
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 60)
                 } else if let disc = discussion, let titleObj = resolvedTitle {
-                    // Title Hero Card
-                    VStack(alignment: .leading, spacing: 14) {
-                        Button {
-                            onOpenTitleDetail(disc.titleId)
-                        } label: {
-                            HStack(alignment: .top, spacing: 14) {
-                                PosterImage(
-                                    posterUrl: titleObj.posterUrl ?? disc.posterUrl,
-                                    titleName: titleObj.name,
-                                    titleType: titleObj.type,
-                                    width: 72,
-                                    height: 108,
-                                    cornerRadius: 6
-                                )
+                    if metrics.detailTwoColumns {
+                        HStack(alignment: .top, spacing: 24) {
+                            titleHeroCard(disc: disc, titleObj: titleObj)
+                                .frame(width: 360)
 
-                                VStack(alignment: .leading, spacing: 6) {
-                                    Text(OttlineStrings.titleTypeLabel(titleObj.type, locale: locale))
-                                        .font(OttlineFont.medium(11.5))
-                                        .foregroundStyle(palette.mutedInk)
-
-                                    Text(titleObj.name)
-                                        .font(OttlineFont.semiBold(20))
-                                        .foregroundStyle(palette.ink)
-                                        .multilineTextAlignment(.leading)
-
-                                    if let year = titleObj.year {
-                                        Text(String(year))
-                                            .font(OttlineFont.regular(13))
-                                            .foregroundStyle(palette.mutedInk)
-                                    }
-
-                                    Text(OttlineStrings.tr("작품 상세 보기 →", "View title details →", locale: locale))
-                                        .font(OttlineFont.semiBold(13))
-                                        .foregroundStyle(palette.primaryAccent)
-                                        .padding(.top, 2)
-                                }
-                                Spacer(minLength: 0)
-                            }
-                            .contentShape(Rectangle())
-                        }
-                        .buttonStyle(.plain)
-
-                        DiscussionReactionChipsView(
-                            titleType: titleObj.type,
-                            state: reactionState,
-                            isBusy: busyReaction,
-                            indented: false,
-                            onToggle: { reactionType in
-                                Task { await toggleReaction(type: reactionType, title: titleObj) }
-                            }
-                        )
-
-                        Button {
-                            onOpenQuickRecord(
-                                QuickRecordRequest(
-                                    preselectedTitle: titleObj,
-                                    selectSource: "public_discussion_detail",
-                                    autoFocusSearch: false
-                                )
+                            CommentsPanelView(
+                                title: titleObj,
+                                initialDiscussionId: discussionId,
+                                repository: repository,
+                                showSyncLogCheckbox: true,
+                                onSelectTitle: onOpenTitleDetail
                             )
-                        } label: {
-                            HStack(spacing: 6) {
-                                OttlineLucideIcon(kind: .plus, size: 16, color: palette.onBrandOrange)
-                                Text(OttlineStrings.tr("내 타임라인에 남기기", "Save to my timeline", locale: locale))
-                                    .font(OttlineFont.semiBold(14.5))
-                            }
-                            .foregroundStyle(palette.onBrandOrange)
-                            .frame(maxWidth: .infinity, minHeight: 48)
-                            .background(palette.brandOrange)
-                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                            .frame(maxWidth: .infinity)
                         }
-                        .buttonStyle(.plain)
-                    }
-                    .padding(16)
-                    .background(palette.card)
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 8)
-                            .stroke(palette.border, lineWidth: 1)
-                    )
+                    } else {
+                        titleHeroCard(disc: disc, titleObj: titleObj)
 
-                    CommentsPanelView(
-                        title: titleObj,
-                        initialDiscussionId: discussionId,
-                        repository: repository,
-                        showSyncLogCheckbox: true,
-                        onSelectTitle: onOpenTitleDetail
-                    )
+                        CommentsPanelView(
+                            title: titleObj,
+                            initialDiscussionId: discussionId,
+                            repository: repository,
+                            showSyncLogCheckbox: true,
+                            onSelectTitle: onOpenTitleDetail
+                        )
+                    }
                 } else {
                     Text(OttlineStrings.tr("이 대화를 찾을 수 없어요.", "Couldn't find this discussion.", locale: locale))
                         .font(OttlineFont.regular(14.5))
@@ -602,13 +584,97 @@ public struct PublicDiscussionDetailScreen: View {
 
                 OttlineAppFooter()
             }
-            .padding(.horizontal, 18)
-            .padding(.top, 12)
+            .ottlineContentContainer(metrics)
+            .padding(.top, metrics.isSpread ? 20 : 12)
+            .padding(.bottom, 16)
         }
         .background(palette.background)
         .task(id: discussionId) {
             await loadDetail()
         }
+    }
+
+    @ViewBuilder
+    private func titleHeroCard(disc: DiscussionListItem, titleObj: Title) -> some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Button {
+                onOpenTitleDetail(disc.titleId)
+            } label: {
+                HStack(alignment: .top, spacing: 14) {
+                    PosterImage(
+                        posterUrl: titleObj.posterUrl ?? disc.posterUrl,
+                        titleName: titleObj.name,
+                        titleType: titleObj.type,
+                        width: 72,
+                        height: 108,
+                        cornerRadius: 6
+                    )
+
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text(OttlineStrings.titleTypeLabel(titleObj.type, locale: locale))
+                            .font(OttlineFont.medium(11.5))
+                            .foregroundStyle(palette.mutedInk)
+
+                        Text(titleObj.name)
+                            .font(OttlineFont.semiBold(20))
+                            .foregroundStyle(palette.ink)
+                            .multilineTextAlignment(.leading)
+
+                        if let year = titleObj.year {
+                            Text(String(year))
+                                .font(OttlineFont.regular(13))
+                                .foregroundStyle(palette.mutedInk)
+                        }
+
+                        Text(OttlineStrings.tr("작품 상세 보기 →", "View title details →", locale: locale))
+                            .font(OttlineFont.semiBold(13))
+                            .foregroundStyle(palette.primaryAccent)
+                            .padding(.top, 2)
+                    }
+                    Spacer(minLength: 0)
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+
+            DiscussionReactionChipsView(
+                titleType: titleObj.type,
+                state: reactionState,
+                isBusy: busyReaction,
+                indented: false,
+                onToggle: { reactionType in
+                    Task { await toggleReaction(type: reactionType, title: titleObj) }
+                }
+            )
+
+            Button {
+                onOpenQuickRecord(
+                    QuickRecordRequest(
+                        preselectedTitle: titleObj,
+                        selectSource: "public_discussion_detail",
+                        autoFocusSearch: false
+                    )
+                )
+            } label: {
+                HStack(spacing: 6) {
+                    OttlineLucideIcon(kind: .plus, size: 16, color: palette.onBrandOrange)
+                    Text(OttlineStrings.tr("내 타임라인에 남기기", "Save to my timeline", locale: locale))
+                        .font(OttlineFont.semiBold(14.5))
+                }
+                .foregroundStyle(palette.onBrandOrange)
+                .frame(maxWidth: .infinity, minHeight: 48)
+                .background(palette.brandOrange)
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(16)
+        .background(palette.card)
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(palette.border, lineWidth: 1)
+        )
     }
 
     private func loadDetail() async {

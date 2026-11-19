@@ -1,5 +1,15 @@
 import SwiftUI
 
+#if os(iOS)
+private struct TitleDetailWidthPreferenceKey: PreferenceKey {
+    static var defaultValue: CGFloat = 390
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        let next = nextValue()
+        if next > 0 { value = next }
+    }
+}
+#endif
+
 public struct TitleDetailScreen: View {
     public let titleId: String
     public let repository: OttlineRepository
@@ -11,6 +21,10 @@ public struct TitleDetailScreen: View {
 
     @Environment(\.ottlinePalette) private var palette
     @Environment(\.appLocale) private var locale
+    #if os(iOS)
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @State private var containerWidth: CGFloat = 390
+    #endif
 
     @State private var loadedTitle: Title?
     @State private var historyItems: [WatchLogHistoryItem] = []
@@ -48,34 +62,39 @@ public struct TitleDetailScreen: View {
         self.onReportUgc = onReportUgc
     }
 
+    #if os(iOS)
+    private var isRegularLayout: Bool {
+        horizontalSizeClass == .regular && containerWidth >= 700
+    }
+
+    private var useTwoColumnSpread: Bool {
+        horizontalSizeClass == .regular && containerWidth >= 900
+    }
+    #endif
+
     public var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 topBar
 
                 if let title = resolvedTitle {
-                    heroSection(title: title)
+                    #if os(iOS)
+                    if useTwoColumnSpread {
+                        HStack(alignment: .top, spacing: 28) {
+                            primaryDetailColumn(title: title)
+                                .frame(width: 380, alignment: .topLeading)
 
-                    if let log = currentLog {
-                        tpoDefinitionGrid(title: title, log: log)
-                        noteSection(log: log)
-                        actionSection(title: title, log: log)
+                            secondaryDetailColumn(title: title)
+                                .frame(maxWidth: .infinity, alignment: .topLeading)
+                        }
                     } else {
-                        unloggedCtaSection(title: title)
+                        primaryDetailColumn(title: title)
+                        secondaryDetailColumn(title: title)
                     }
-
-                    if title.provider == .google || (locale == "en" && title.type == .book) {
-                        GoogleBooksAttributionView()
-                    }
-
-                    historySection(title: title)
-
-                    CommentsPanelView(
-                        title: title,
-                        repository: repository,
-                        showSyncLogCheckbox: false,
-                        onSelectTitle: onOpenTitleDetail
-                    )
+                    #else
+                    primaryDetailColumn(title: title)
+                    secondaryDetailColumn(title: title)
+                    #endif
                 } else {
                     VStack(spacing: 12) {
                         ProgressView()
@@ -88,15 +107,68 @@ public struct TitleDetailScreen: View {
 
                 OttlineAppFooter()
             }
+            #if os(iOS)
+            .frame(maxWidth: isRegularLayout ? 1120 : .infinity, alignment: .leading)
+            .padding(.horizontal, isRegularLayout ? 28 : 16)
+            .padding(.top, isRegularLayout ? 20 : 8)
+            .padding(.bottom, 16)
+            .frame(maxWidth: .infinity)
+            #else
             .padding(.horizontal, 16)
             .padding(.top, 8)
+            #endif
         }
-        .background(palette.background)
         #if os(iOS)
+        .background {
+            GeometryReader { proxy in
+                Color.clear
+                    .preference(key: TitleDetailWidthPreferenceKey.self, value: proxy.size.width)
+            }
+            .ignoresSafeArea()
+        }
+        .onPreferenceChange(TitleDetailWidthPreferenceKey.self) { nextWidth in
+            if abs(nextWidth - containerWidth) > 0.5 {
+                containerWidth = nextWidth
+            }
+        }
         .navigationBarBackButtonHidden(true)
         #endif
+        .background(palette.background)
         .task(id: titleId) {
             await loadTitleAndHistory()
+        }
+    }
+
+    @ViewBuilder
+    private func primaryDetailColumn(title: Title) -> some View {
+        VStack(alignment: .leading, spacing: 20) {
+            heroSection(title: title)
+
+            if let log = currentLog {
+                tpoDefinitionGrid(title: title, log: log)
+                noteSection(log: log)
+                actionSection(title: title, log: log)
+            } else {
+                unloggedCtaSection(title: title)
+            }
+
+            if title.provider == .google || (locale == "en" && title.type == .book) {
+                GoogleBooksAttributionView()
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func secondaryDetailColumn(title: Title) -> some View {
+        VStack(alignment: .leading, spacing: 20) {
+            historySection(title: title)
+
+            CommentsPanelView(
+                title: title,
+                repository: repository,
+                showSyncLogCheckbox: false,
+                onSelectTitle: onOpenTitleDetail
+            )
         }
     }
 

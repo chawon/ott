@@ -718,4 +718,55 @@ final class OttlineCoreTests: XCTestCase {
             .browserHandoff(ParsedBrowserHandoff(status: "ok", userId: "u1", deviceId: "d1", pairingCode: "ABCD2345"))
         )
     }
+
+    // MARK: - 11. iPad Adaptive Spread Metrics & High-Res Poster Resolution
+
+    func testPadAdaptiveLayoutMetricsAndBookCoverResolution() {
+        let phoneCompact = PadLayoutMetrics.resolve(isRegularHorizontalClass: false, viewportWidth: 390)
+        XCTAssertEqual(phoneCompact.mode, .compact)
+        XCTAssertFalse(phoneCompact.isSpread)
+        XCTAssertFalse(phoneCompact.isWideThreeColumnHome)
+        XCTAssertEqual(phoneCompact.togetherColumns, 1)
+        XCTAssertEqual(phoneCompact.kdcOverviewColumns, 2)
+
+        let splitViewCompact = PadLayoutMetrics.resolve(isRegularHorizontalClass: true, viewportWidth: 500)
+        XCTAssertEqual(splitViewCompact.mode, .compact)
+        XCTAssertFalse(splitViewCompact.isSpread)
+        XCTAssertEqual(splitViewCompact.togetherColumns, 1)
+
+        let tabletPortrait = PadLayoutMetrics.resolve(isRegularHorizontalClass: true, viewportWidth: 834)
+        XCTAssertEqual(tabletPortrait.mode, .tabletPortrait)
+        XCTAssertTrue(tabletPortrait.isSpread)
+        XCTAssertFalse(tabletPortrait.isWideThreeColumnHome)
+        XCTAssertEqual(tabletPortrait.togetherColumns, 2)
+        XCTAssertEqual(tabletPortrait.activationPosterColumns, 4)
+        XCTAssertEqual(tabletPortrait.reportMetricColumns, 3)
+        XCTAssertEqual(tabletPortrait.kdcOverviewColumns, 3)
+
+        let tabletWide = PadLayoutMetrics.resolve(isRegularHorizontalClass: true, viewportWidth: 1366)
+        XCTAssertEqual(tabletWide.mode, .tabletWide)
+        XCTAssertTrue(tabletWide.isSpread)
+        XCTAssertTrue(tabletWide.isWideThreeColumnHome)
+        XCTAssertEqual(tabletWide.togetherColumns, 2)
+        XCTAssertEqual(tabletWide.activationPosterColumns, 6)
+        XCTAssertEqual(tabletWide.reportMetricColumns, 3)
+        XCTAssertEqual(tabletWide.kdcOverviewColumns, 5)
+        XCTAssertTrue(tabletWide.detailTwoColumns)
+        XCTAssertTrue(tabletWide.mySpaceTwoColumns)
+
+        XCTAssertEqual(PadLayoutMetrics.deviceLabel(isPadIdiom: true, locale: "ko"), "아이패드")
+        XCTAssertEqual(PadLayoutMetrics.deviceLabel(isPadIdiom: false, locale: "ko"), "아이폰")
+        XCTAssertEqual(PadLayoutMetrics.deviceLabel(isPadIdiom: true, locale: "en"), "iPad")
+        XCTAssertEqual(PadLayoutMetrics.deviceLabel(isPadIdiom: false, locale: "en"), "iPhone")
+
+        let kakaoThumb = "https://search1.kakaocdn.net/thumb/R120x174.q85/?fname=http%3A%2F%2Ft1.daumcdn.net%2Flbook%2Fimage%2F542617"
+        XCTAssertEqual(
+            PadLayoutMetrics.resolveFeaturedPosterUrl(kakaoThumb, isBook: true),
+            "https://t1.daumcdn.net/lbook/image/542617"
+        )
+        XCTAssertEqual(
+            PadLayoutMetrics.resolveFeaturedPosterUrl("https://image.tmdb.org/t/p/w342/abc.jpg", isBook: false),
+            "https://image.tmdb.org/t/p/w780/abc.jpg"
+        )
+    }
 }

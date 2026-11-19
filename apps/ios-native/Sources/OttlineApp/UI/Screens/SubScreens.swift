@@ -13,6 +13,12 @@ public struct ReportScreen: View {
 
     @Environment(\.ottlinePalette) private var palette
     @Environment(\.appLocale) private var locale
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @Environment(\.ottlineViewportWidth) private var viewportWidth
+
+    private var metrics: PadLayoutMetrics {
+        PadLayoutMetrics.resolve(horizontalSizeClass: horizontalSizeClass, viewportWidth: viewportWidth)
+    }
 
     @State private var report: PersonalReport = PersonalReport()
     @State private var loading: Bool = true
@@ -45,12 +51,16 @@ public struct ReportScreen: View {
         let showH1Tab = PersonalReportBuilder.isH1RecapVisible() && report.seasonalRecap != nil
 
         VStack(spacing: 0) {
-            subScreenHeader(title: headerTitle, onBack: onBack)
+            subScreenHeader(title: headerTitle, onBack: onBack, metrics: metrics)
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
                     // Summary Metrics Grid (6 cards)
-                    LazyVGrid(columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)], spacing: 10) {
+                    let summaryColumns = Array(
+                        repeating: GridItem(.flexible(), spacing: 10),
+                        count: metrics.reportMetricColumns
+                    )
+                    LazyVGrid(columns: summaryColumns, spacing: 10) {
                         metricCard(
                             label: OttlineStrings.tr("총 기록", "Total records", locale: locale),
                             value: "\(report.totalLogs)"
@@ -83,7 +93,11 @@ public struct ReportScreen: View {
                             .font(OttlineFont.semiBold(16))
                             .foregroundStyle(palette.ink)
 
-                        LazyVGrid(columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)], spacing: 10) {
+                        let highlightColumns = Array(
+                            repeating: GridItem(.flexible(), spacing: 10),
+                            count: metrics.isWideThreeColumnHome ? 4 : 2
+                        )
+                        LazyVGrid(columns: highlightColumns, spacing: 10) {
                             metricCard(
                                 label: OttlineStrings.tr("지난주 기록", "Last week", locale: locale),
                                 value: locale == "en" ? "\(report.previousWeekLogs) logs" : "\(report.previousWeekLogs)편"
@@ -142,81 +156,32 @@ public struct ReportScreen: View {
                         .font(OttlineFont.regular(12.5))
                         .foregroundStyle(palette.mutedInk)
 
-                        HStack(spacing: 8) {
-                            recapTabButton(.weekly, label: OttlineStrings.tr("지난주 기록 회고", "Weekly recap", locale: locale))
-                            recapTabButton(.monthly, label: OttlineStrings.tr("이번 달 장르 회고", "Monthly recap", locale: locale))
-                            if showH1Tab {
-                                recapTabButton(.halfYear, label: OttlineStrings.tr("2026 상반기", "2026 H1", locale: locale))
+                        if metrics.detailTwoColumns {
+                            HStack(alignment: .top, spacing: 20) {
+                                recapPreviewBox
+                                    .frame(width: 280)
+
+                                recapControlsColumn(showH1Tab: showH1Tab)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
                             }
-                        }
-
-                        ZStack {
-                            RoundedRectangle(cornerRadius: 8)
-                                .fill(palette.paperStrong)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 8)
-                                        .stroke(palette.border, lineWidth: 1)
-                                )
-                            if renderingRecap {
-                                ProgressView()
-                                    .padding(48)
-                            } else if let img = recapImage {
-                                Image(uiImage: img)
-                                    .resizable()
-                                    .scaledToFit()
-                                    .frame(maxHeight: 390)
-                                    .clipShape(RoundedRectangle(cornerRadius: 8))
-                                    .padding(12)
-                            }
-                        }
-
-                        if let savedToast {
-                            Text(savedToast)
-                                .font(OttlineFont.medium(13))
-                                .foregroundStyle(palette.success)
-                        }
-
-                        HStack(spacing: 10) {
-                            Button {
-                                guard let img = recapImage else { return }
-                                CardExporter.saveImageToPhotos(img)
-                                savedToast = OttlineStrings.tr("리캡 카드를 사진함에 저장했어요.", "Saved recap card to Photos.", locale: locale)
-                            } label: {
-                                HStack(spacing: 6) {
-                                    OttlineLucideIcon(kind: .download, size: 15, color: palette.ink)
-                                    Text(OttlineStrings.tr("카드 저장", "Save card", locale: locale))
-                                        .font(OttlineFont.semiBold(14))
+                        } else {
+                            HStack(spacing: 8) {
+                                recapTabButton(.weekly, label: OttlineStrings.tr("지난주 기록 회고", "Weekly recap", locale: locale))
+                                recapTabButton(.monthly, label: OttlineStrings.tr("이번 달 장르 회고", "Monthly recap", locale: locale))
+                                if showH1Tab {
+                                    recapTabButton(.halfYear, label: OttlineStrings.tr("2026 상반기", "2026 H1", locale: locale))
                                 }
-                                .foregroundStyle(palette.ink)
-                                .frame(maxWidth: .infinity, minHeight: 48)
-                                .background(palette.card)
-                                .clipShape(RoundedRectangle(cornerRadius: 8))
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 8)
-                                        .stroke(palette.border, lineWidth: 1)
-                                )
                             }
-                            .buttonStyle(.plain)
 
-                            Button {
-                                guard let img = recapImage else { return }
-                                CardExporter.presentImageShareSheet(
-                                    img,
-                                    title: OttlineStrings.tr("ottline 리캡 카드", "ottline recap card", locale: locale)
-                                )
-                            } label: {
-                                HStack(spacing: 6) {
-                                    OttlineLucideIcon(kind: .share2, size: 15, color: palette.onBrandOrange)
-                                    Text(OttlineStrings.tr("공유하기", "Share", locale: locale))
-                                        .font(OttlineFont.semiBold(14))
-                                }
-                                .foregroundStyle(palette.onBrandOrange)
-                                .frame(maxWidth: .infinity, minHeight: 48)
-                                .background(palette.brandOrange)
-                                .clipShape(RoundedRectangle(cornerRadius: 8))
+                            recapPreviewBox
+
+                            if let savedToast {
+                                Text(savedToast)
+                                    .font(OttlineFont.medium(13))
+                                    .foregroundStyle(palette.success)
                             }
-                            .buttonStyle(.plain)
-                            .disabled(recapImage == nil)
+
+                            recapShareButtonsRow
                         }
                     }
                     .padding(16)
@@ -228,38 +193,78 @@ public struct ReportScreen: View {
                     )
 
                     // Breakdown Sections (Status, Type, Top Platforms, Top Genres)
-                    if !report.byStatus.isEmpty {
-                        breakdownCard(
-                            title: OttlineStrings.tr("상태별 기록", "By status", locale: locale),
-                            rows: report.byStatus.map { (statusDisplay($0.status), $0.count) }
-                        )
-                    }
+                    if metrics.isSpread {
+                        LazyVGrid(
+                            columns: [GridItem(.flexible(), spacing: 16), GridItem(.flexible(), spacing: 16)],
+                            spacing: 16
+                        ) {
+                            if !report.byStatus.isEmpty {
+                                breakdownCard(
+                                    title: OttlineStrings.tr("상태별 기록", "By status", locale: locale),
+                                    rows: report.byStatus.map { (statusDisplay($0.status), $0.count) }
+                                )
+                                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                            }
 
-                    if !report.byType.isEmpty {
-                        breakdownCard(
-                            title: OttlineStrings.tr("유형별 기록", "By type", locale: locale),
-                            rows: report.byType.map { (formattedTopType($0.type), $0.count) }
-                        )
-                    }
+                            if !report.byType.isEmpty {
+                                breakdownCard(
+                                    title: OttlineStrings.tr("유형별 기록", "By type", locale: locale),
+                                    rows: report.byType.map { (formattedTopType($0.type), $0.count) }
+                                )
+                                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                            }
 
-                    if !report.topOtts.isEmpty {
-                        breakdownCard(
-                            title: OttlineStrings.tr("자주 찾은 플랫폼", "Top platforms", locale: locale),
-                            rows: report.topOtts.map { ($0.name, $0.count) }
-                        )
-                    }
+                            if !report.topOtts.isEmpty {
+                                breakdownCard(
+                                    title: OttlineStrings.tr("자주 찾은 플랫폼", "Top platforms", locale: locale),
+                                    rows: report.topOtts.map { ($0.name, $0.count) }
+                                )
+                                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                            }
 
-                    if !report.topGenres.isEmpty {
-                        breakdownCard(
-                            title: OttlineStrings.tr("자주 만난 장르", "Top genres", locale: locale),
-                            rows: report.topGenres.map { ($0.name, $0.count) }
-                        )
+                            if !report.topGenres.isEmpty {
+                                breakdownCard(
+                                    title: OttlineStrings.tr("자주 만난 장르", "Top genres", locale: locale),
+                                    rows: report.topGenres.map { ($0.name, $0.count) }
+                                )
+                                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                            }
+                        }
+                    } else {
+                        if !report.byStatus.isEmpty {
+                            breakdownCard(
+                                title: OttlineStrings.tr("상태별 기록", "By status", locale: locale),
+                                rows: report.byStatus.map { (statusDisplay($0.status), $0.count) }
+                            )
+                        }
+
+                        if !report.byType.isEmpty {
+                            breakdownCard(
+                                title: OttlineStrings.tr("유형별 기록", "By type", locale: locale),
+                                rows: report.byType.map { (formattedTopType($0.type), $0.count) }
+                            )
+                        }
+
+                        if !report.topOtts.isEmpty {
+                            breakdownCard(
+                                title: OttlineStrings.tr("자주 찾은 플랫폼", "Top platforms", locale: locale),
+                                rows: report.topOtts.map { ($0.name, $0.count) }
+                            )
+                        }
+
+                        if !report.topGenres.isEmpty {
+                            breakdownCard(
+                                title: OttlineStrings.tr("자주 만난 장르", "Top genres", locale: locale),
+                                rows: report.topGenres.map { ($0.name, $0.count) }
+                            )
+                        }
                     }
 
                     OttlineAppFooter()
                 }
-                .padding(.horizontal, 18)
+                .ottlineContentContainer(metrics)
                 .padding(.top, 16)
+                .padding(.bottom, 16)
             }
         }
         .background(palette.background)
@@ -279,6 +284,94 @@ public struct ReportScreen: View {
         }
         .onChange(of: selectedRecapKind) { _, _ in
             Task { await renderCurrentRecap(monthPosters: monthPosters) }
+        }
+    }
+
+    private var recapPreviewBox: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 8)
+                .fill(palette.paperStrong)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(palette.border, lineWidth: 1)
+                )
+            if renderingRecap {
+                ProgressView()
+                    .padding(48)
+            } else if let img = recapImage {
+                Image(uiImage: img)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(maxHeight: 390)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                    .padding(12)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func recapControlsColumn(showH1Tab: Bool) -> some View {
+        VStack(alignment: .leading, spacing: 14) {
+            VStack(spacing: 8) {
+                recapTabButton(.weekly, label: OttlineStrings.tr("지난주 기록 회고", "Weekly recap", locale: locale))
+                recapTabButton(.monthly, label: OttlineStrings.tr("이번 달 장르 회고", "Monthly recap", locale: locale))
+                if showH1Tab {
+                    recapTabButton(.halfYear, label: OttlineStrings.tr("2026 상반기", "2026 H1", locale: locale))
+                }
+            }
+
+            if let savedToast {
+                Text(savedToast)
+                    .font(OttlineFont.medium(13))
+                    .foregroundStyle(palette.success)
+            }
+
+            recapShareButtonsRow
+        }
+    }
+
+    private var recapShareButtonsRow: some View {
+        HStack(spacing: 10) {
+            Button {
+                guard let img = recapImage else { return }
+                CardExporter.saveImageToPhotos(img)
+                savedToast = OttlineStrings.tr("리캡 카드를 사진함에 저장했어요.", "Saved recap card to Photos.", locale: locale)
+            } label: {
+                HStack(spacing: 6) {
+                    OttlineLucideIcon(kind: .download, size: 15, color: palette.ink)
+                    Text(OttlineStrings.tr("카드 저장", "Save card", locale: locale))
+                        .font(OttlineFont.semiBold(14))
+                }
+                .foregroundStyle(palette.ink)
+                .frame(maxWidth: .infinity, minHeight: 48)
+                .background(palette.card)
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(palette.border, lineWidth: 1)
+                )
+            }
+            .buttonStyle(.plain)
+
+            Button {
+                guard let img = recapImage else { return }
+                CardExporter.presentImageShareSheet(
+                    img,
+                    title: OttlineStrings.tr("ottline 리캡 카드", "ottline recap card", locale: locale)
+                )
+            } label: {
+                HStack(spacing: 6) {
+                    OttlineLucideIcon(kind: .share2, size: 15, color: palette.onBrandOrange)
+                    Text(OttlineStrings.tr("공유하기", "Share", locale: locale))
+                        .font(OttlineFont.semiBold(14))
+                }
+                .foregroundStyle(palette.onBrandOrange)
+                .frame(maxWidth: .infinity, minHeight: 48)
+                .background(palette.brandOrange)
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+            }
+            .buttonStyle(.plain)
+            .disabled(recapImage == nil)
         }
     }
 
@@ -487,6 +580,12 @@ public struct BookshelfScreen: View {
 
     @Environment(\.ottlinePalette) private var palette
     @Environment(\.appLocale) private var locale
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @Environment(\.ottlineViewportWidth) private var viewportWidth
+
+    private var metrics: PadLayoutMetrics {
+        PadLayoutMetrics.resolve(horizontalSizeClass: horizontalSizeClass, viewportWidth: viewportWidth)
+    }
 
     @State private var selectedMajor: Int? = nil
     @State private var retrying: Bool = false
@@ -507,7 +606,8 @@ public struct BookshelfScreen: View {
         VStack(spacing: 0) {
             subScreenHeader(
                 title: OttlineStrings.tr("내 서가 (KDC 000~900)", "My Bookshelf (KDC 000-900)", locale: locale),
-                onBack: onBack
+                onBack: onBack,
+                metrics: metrics
             )
 
             ScrollView {
@@ -520,8 +620,12 @@ public struct BookshelfScreen: View {
                     .font(OttlineFont.regular(13.5))
                     .foregroundStyle(palette.mutedInk)
 
-                    // 2-Column 10-Cell KDC Overview Grid
-                    LazyVGrid(columns: [GridItem(.flexible(), spacing: 8), GridItem(.flexible(), spacing: 8)], spacing: 8) {
+                    // KDC Overview Grid (2-col Compact / 3-col Portrait / 5-col Wide)
+                    let kdcColumns = Array(
+                        repeating: GridItem(.flexible(), spacing: 8),
+                        count: metrics.kdcOverviewColumns
+                    )
+                    LazyVGrid(columns: kdcColumns, spacing: 8) {
                         ForEach(gridShelves) { shelf in
                             let isSelected = selectedMajor != nil && selectedMajor == shelf.major
                             Button {
@@ -661,8 +765,9 @@ public struct BookshelfScreen: View {
 
                     OttlineAppFooter()
                 }
-                .padding(.horizontal, 18)
+                .ottlineContentContainer(metrics)
                 .padding(.top, 16)
+                .padding(.bottom, 16)
             }
         }
         .background(palette.background)
@@ -721,33 +826,50 @@ public struct BookshelfScreen: View {
 
     @ViewBuilder
     private func shelfBooksRow(_ books: [BookshelfBookItem]) -> some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(alignment: .top, spacing: 14) {
+        if metrics.isSpread {
+            LazyVGrid(
+                columns: [GridItem(.adaptive(minimum: 104, maximum: 132), spacing: 16)],
+                alignment: .leading,
+                spacing: 16
+            ) {
                 ForEach(books) { book in
-                    Button {
-                        onOpenTitleDetail(book.representativeLog.title.id)
-                    } label: {
-                        VStack(alignment: .leading, spacing: 6) {
-                            PosterImage(
-                                posterUrl: book.representativeLog.title.posterUrl,
-                                titleName: book.representativeLog.title.name,
-                                titleType: .book,
-                                width: 84,
-                                height: 122,
-                                cornerRadius: 6
-                            )
-                            Text(book.representativeLog.title.name)
-                                .font(OttlineFont.semiBold(13))
-                                .foregroundStyle(palette.ink)
-                                .lineLimit(2)
-                                .multilineTextAlignment(.leading)
-                                .frame(width: 84, alignment: .leading)
-                        }
+                    shelfBookItemButton(book, width: 100, height: 145, fluid: true)
+                }
+            }
+        } else {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(alignment: .top, spacing: 14) {
+                    ForEach(books) { book in
+                        shelfBookItemButton(book, width: 84, height: 122, fluid: false)
                     }
-                    .buttonStyle(.plain)
                 }
             }
         }
+    }
+
+    private func shelfBookItemButton(_ book: BookshelfBookItem, width: CGFloat, height: CGFloat, fluid: Bool) -> some View {
+        Button {
+            onOpenTitleDetail(book.representativeLog.title.id)
+        } label: {
+            VStack(alignment: .leading, spacing: 6) {
+                PosterImage(
+                    posterUrl: book.representativeLog.title.posterUrl,
+                    titleName: book.representativeLog.title.name,
+                    titleType: .book,
+                    width: width,
+                    height: height,
+                    cornerRadius: 6
+                )
+                Text(book.representativeLog.title.name)
+                    .font(OttlineFont.semiBold(13))
+                    .foregroundStyle(palette.ink)
+                    .lineLimit(2)
+                    .multilineTextAlignment(.leading)
+                    .frame(width: fluid ? nil : width, alignment: .leading)
+                    .frame(maxWidth: fluid ? .infinity : nil, alignment: .leading)
+            }
+        }
+        .buttonStyle(.plain)
     }
 
     private func retryClassifications() async {
@@ -769,6 +891,12 @@ public struct FeedbackScreen: View {
 
     @Environment(\.ottlinePalette) private var palette
     @Environment(\.appLocale) private var locale
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @Environment(\.ottlineViewportWidth) private var viewportWidth
+
+    private var metrics: PadLayoutMetrics {
+        PadLayoutMetrics.resolve(horizontalSizeClass: horizontalSizeClass, viewportWidth: viewportWidth)
+    }
 
     @State private var threads: [FeedbackThreadSummary] = []
     @State private var activeDetail: FeedbackThreadDetail?
@@ -788,7 +916,8 @@ public struct FeedbackScreen: View {
                     } else {
                         onBack()
                     }
-                }
+                },
+                metrics: metrics
             )
 
             ScrollView {
@@ -859,143 +988,24 @@ public struct FeedbackScreen: View {
                         .font(OttlineFont.regular(13))
                         .foregroundStyle(palette.mutedInk)
 
-                        // Composer
-                        VStack(alignment: .leading, spacing: 10) {
-                            Text(OttlineStrings.tr("문의 남기기", "Send a message", locale: locale))
-                                .font(OttlineFont.semiBold(16))
-                                .foregroundStyle(palette.ink)
-
-                            ScrollView(.horizontal, showsIndicators: false) {
-                                HStack(spacing: 8) {
-                                    ForEach(FeedbackCategory.allCases, id: \.self) { cat in
-                                        let selected = category == cat
-                                        Button {
-                                            category = cat
-                                        } label: {
-                                            Text(OttlineStrings.feedbackCategoryLabel(cat, locale: locale))
-                                                .font(selected ? OttlineFont.semiBold(12.5) : OttlineFont.regular(12.5))
-                                                .foregroundStyle(selected ? palette.onBrandNavy : palette.ink)
-                                                .padding(.horizontal, 12)
-                                                .frame(minHeight: 36)
-                                                .background(selected ? palette.brandNavy : palette.paperStrong)
-                                                .clipShape(RoundedRectangle(cornerRadius: 8))
-                                        }
-                                        .buttonStyle(.plain)
-                                    }
-                                }
+                        if metrics.detailTwoColumns {
+                            HStack(alignment: .top, spacing: 20) {
+                                feedbackComposerCard
+                                    .frame(maxWidth: 440)
+                                feedbackThreadListSection
+                                    .frame(maxWidth: .infinity, alignment: .topLeading)
                             }
-
-                            TextField(
-                                OttlineStrings.tr("예: 기록 연결 코드가 보이지 않아요", "Example: I can’t find my connection code", locale: locale),
-                                text: $subject
-                            )
-                            .font(OttlineFont.regular(14))
-                            .padding(12)
-                            .background(palette.background)
-                            .clipShape(RoundedRectangle(cornerRadius: 8))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 8)
-                                    .stroke(palette.border, lineWidth: 1)
-                            )
-
-                            TextField(
-                                OttlineStrings.tr(
-                                    "무엇이 궁금한지, 어떤 상황에서 문제가 발생했는지 자세히 남겨주세요.",
-                                    "Tell us what you are trying to do and what went wrong.",
-                                    locale: locale
-                                ),
-                                text: $bodyText,
-                                axis: .vertical
-                            )
-                            .lineLimit(3...6)
-                            .font(OttlineFont.regular(14))
-                            .padding(12)
-                            .background(palette.background)
-                            .clipShape(RoundedRectangle(cornerRadius: 8))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 8)
-                                    .stroke(palette.border, lineWidth: 1)
-                            )
-
-                            Button {
-                                Task { await createThread() }
-                            } label: {
-                                Text(submitting
-                                    ? OttlineStrings.tr("보내는 중…", "Sending…", locale: locale)
-                                    : OttlineStrings.tr("문의 보내기", "Send message", locale: locale)
-                                )
-                                .font(OttlineFont.semiBold(14.5))
-                                .foregroundStyle(palette.onBrandOrange)
-                                .frame(maxWidth: .infinity, minHeight: 48)
-                                .background(palette.brandOrange)
-                                .clipShape(RoundedRectangle(cornerRadius: 8))
-                            }
-                            .buttonStyle(.plain)
-                            .disabled(bodyText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || submitting)
-                        }
-                        .padding(16)
-                        .background(palette.card)
-                        .clipShape(RoundedRectangle(cornerRadius: 8))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 8)
-                                .stroke(palette.border, lineWidth: 1)
-                        )
-
-                        Text(OttlineStrings.tr("내 문의 목록", "My messages", locale: locale))
-                            .font(OttlineFont.semiBold(16))
-                            .foregroundStyle(palette.ink)
-                            .padding(.top, 4)
-
-                        if threads.isEmpty && !loading {
-                            Text(OttlineStrings.tr("아직 보낸 문의가 없어요.", "You haven’t sent any messages yet.", locale: locale))
-                                .font(OttlineFont.regular(13.5))
-                                .foregroundStyle(palette.mutedInk)
-                                .padding(.vertical, 12)
-                        }
-
-                        ForEach(threads) { t in
-                            Button {
-                                Task {
-                                    activeDetail = try? await repository.api.getFeedbackThreadDetail(threadId: t.id)
-                                }
-                            } label: {
-                                VStack(alignment: .leading, spacing: 6) {
-                                    HStack {
-                                        Text((t.subject?.isEmpty == false)
-                                            ? t.subject!
-                                            : OttlineStrings.feedbackCategoryLabel(t.category, locale: locale)
-                                        )
-                                        .font(OttlineFont.semiBold(14.5))
-                                        .foregroundStyle(palette.ink)
-                                        Spacer()
-                                        Text(OttlineStrings.feedbackStatusLabel(t.status, locale: locale))
-                                            .font(OttlineFont.semiBold(12))
-                                            .foregroundStyle(palette.primaryAccent)
-                                    }
-                                    if let preview = t.lastMessagePreview, !preview.isEmpty {
-                                        Text(preview)
-                                            .font(OttlineFont.regular(13))
-                                            .foregroundStyle(palette.mutedInk)
-                                            .lineLimit(2)
-                                    }
-                                }
-                                .padding(14)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .background(palette.card)
-                                .clipShape(RoundedRectangle(cornerRadius: 8))
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 8)
-                                        .stroke(palette.border, lineWidth: 1)
-                                )
-                            }
-                            .buttonStyle(.plain)
+                        } else {
+                            feedbackComposerCard
+                            feedbackThreadListSection
                         }
                     }
 
                     OttlineAppFooter()
                 }
-                .padding(.horizontal, 18)
+                .ottlineContentContainer(metrics)
                 .padding(.top, 16)
+                .padding(.bottom, 16)
             }
         }
         .background(palette.background)
@@ -1009,6 +1019,143 @@ public struct FeedbackScreen: View {
         }
         .task {
             await reloadThreads()
+        }
+    }
+
+    private var feedbackComposerCard: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(OttlineStrings.tr("문의 남기기", "Send a message", locale: locale))
+                .font(OttlineFont.semiBold(16))
+                .foregroundStyle(palette.ink)
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(FeedbackCategory.allCases, id: \.self) { cat in
+                        let selected = category == cat
+                        Button {
+                            category = cat
+                        } label: {
+                            Text(OttlineStrings.feedbackCategoryLabel(cat, locale: locale))
+                                .font(selected ? OttlineFont.semiBold(12.5) : OttlineFont.regular(12.5))
+                                .foregroundStyle(selected ? palette.onBrandNavy : palette.ink)
+                                .padding(.horizontal, 12)
+                                .frame(minHeight: 36)
+                                .background(selected ? palette.brandNavy : palette.paperStrong)
+                                .clipShape(RoundedRectangle(cornerRadius: 8))
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+
+            TextField(
+                OttlineStrings.tr("예: 기록 연결 코드가 보이지 않아요", "Example: I can’t find my connection code", locale: locale),
+                text: $subject
+            )
+            .font(OttlineFont.regular(14))
+            .padding(12)
+            .background(palette.background)
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+            .overlay(
+                RoundedRectangle(cornerRadius: 8)
+                    .stroke(palette.border, lineWidth: 1)
+            )
+
+            TextField(
+                OttlineStrings.tr(
+                    "무엇이 궁금한지, 어떤 상황에서 문제가 발생했는지 자세히 남겨주세요.",
+                    "Tell us what you are trying to do and what went wrong.",
+                    locale: locale
+                ),
+                text: $bodyText,
+                axis: .vertical
+            )
+            .lineLimit(3...6)
+            .font(OttlineFont.regular(14))
+            .padding(12)
+            .background(palette.background)
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+            .overlay(
+                RoundedRectangle(cornerRadius: 8)
+                    .stroke(palette.border, lineWidth: 1)
+            )
+
+            Button {
+                Task { await createThread() }
+            } label: {
+                Text(submitting
+                    ? OttlineStrings.tr("보내는 중…", "Sending…", locale: locale)
+                    : OttlineStrings.tr("문의 보내기", "Send message", locale: locale)
+                )
+                .font(OttlineFont.semiBold(14.5))
+                .foregroundStyle(palette.onBrandOrange)
+                .frame(maxWidth: .infinity, minHeight: 48)
+                .background(palette.brandOrange)
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+            }
+            .buttonStyle(.plain)
+            .disabled(bodyText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || submitting)
+        }
+        .padding(16)
+        .background(palette.card)
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(palette.border, lineWidth: 1)
+        )
+    }
+
+    private var feedbackThreadListSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(OttlineStrings.tr("내 문의 목록", "My messages", locale: locale))
+                .font(OttlineFont.semiBold(16))
+                .foregroundStyle(palette.ink)
+                .padding(.top, metrics.detailTwoColumns ? 0 : 4)
+
+            if threads.isEmpty && !loading {
+                Text(OttlineStrings.tr("아직 보낸 문의가 없어요.", "You haven’t sent any messages yet.", locale: locale))
+                    .font(OttlineFont.regular(13.5))
+                    .foregroundStyle(palette.mutedInk)
+                    .padding(.vertical, 12)
+            }
+
+            ForEach(threads) { t in
+                Button {
+                    Task {
+                        activeDetail = try? await repository.api.getFeedbackThreadDetail(threadId: t.id)
+                    }
+                } label: {
+                    VStack(alignment: .leading, spacing: 6) {
+                        HStack {
+                            Text((t.subject?.isEmpty == false)
+                                ? t.subject!
+                                : OttlineStrings.feedbackCategoryLabel(t.category, locale: locale)
+                            )
+                            .font(OttlineFont.semiBold(14.5))
+                            .foregroundStyle(palette.ink)
+                            Spacer()
+                            Text(OttlineStrings.feedbackStatusLabel(t.status, locale: locale))
+                                .font(OttlineFont.semiBold(12))
+                                .foregroundStyle(palette.primaryAccent)
+                        }
+                        if let preview = t.lastMessagePreview, !preview.isEmpty {
+                            Text(preview)
+                                .font(OttlineFont.regular(13))
+                                .foregroundStyle(palette.mutedInk)
+                                .lineLimit(2)
+                        }
+                    }
+                    .padding(14)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(palette.card)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8)
+                            .stroke(palette.border, lineWidth: 1)
+                    )
+                }
+                .buttonStyle(.plain)
+            }
         }
     }
 
@@ -1118,6 +1265,12 @@ public struct GuideInfoScreen: View {
 
     @Environment(\.ottlinePalette) private var palette
     @Environment(\.appLocale) private var locale
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @Environment(\.ottlineViewportWidth) private var viewportWidth
+
+    private var metrics: PadLayoutMetrics {
+        PadLayoutMetrics.resolve(horizontalSizeClass: horizontalSizeClass, viewportWidth: viewportWidth)
+    }
     @State private var activeSlug: String?
 
     private var headerTitle: String {
@@ -1131,7 +1284,7 @@ public struct GuideInfoScreen: View {
 
     public var body: some View {
         VStack(spacing: 0) {
-            subScreenHeader(title: headerTitle, onBack: onBack)
+            subScreenHeader(title: headerTitle, onBack: onBack, metrics: metrics)
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 14) {
@@ -1148,8 +1301,9 @@ public struct GuideInfoScreen: View {
 
                     OttlineAppFooter()
                 }
-                .padding(.horizontal, 18)
+                .ottlineContentContainer(metrics)
                 .padding(.top, 16)
+                .padding(.bottom, 16)
             }
         }
         .background(palette.background)
@@ -1179,37 +1333,50 @@ public struct GuideInfoScreen: View {
                 title: locale == "en" ? article.titleEn : article.titleKo,
                 body: locale == "en" ? article.bodyEn : article.bodyKo
             )
+        } else if metrics.isSpread {
+            LazyVGrid(
+                columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)],
+                spacing: 12
+            ) {
+                ForEach(canonicalGuideArticles) { article in
+                    guideArticleRowButton(article, fillHeight: true)
+                }
+            }
         } else {
             ForEach(canonicalGuideArticles) { article in
-                Button {
-                    activeSlug = article.slug
-                } label: {
-                    HStack(alignment: .top, spacing: 12) {
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text(locale == "en" ? article.titleEn : article.titleKo)
-                                .font(OttlineFont.semiBold(15.5))
-                                .foregroundStyle(palette.primaryAccent)
-                                .multilineTextAlignment(.leading)
-                            Text(locale == "en" ? article.summaryEn : article.summaryKo)
-                                .font(OttlineFont.regular(13.5))
-                                .foregroundStyle(palette.mutedInk)
-                                .multilineTextAlignment(.leading)
-                        }
-                        Spacer(minLength: 0)
-                        OttlineLucideIcon(kind: .chevronRight, size: 16, color: palette.subtleInk)
-                    }
-                    .padding(16)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(palette.card)
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 8)
-                            .stroke(palette.border, lineWidth: 1)
-                    )
-                }
-                .buttonStyle(.plain)
+                guideArticleRowButton(article, fillHeight: false)
             }
         }
+    }
+
+    private func guideArticleRowButton(_ article: GuideArticleItem, fillHeight: Bool) -> some View {
+        Button {
+            activeSlug = article.slug
+        } label: {
+            HStack(alignment: .top, spacing: 12) {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(locale == "en" ? article.titleEn : article.titleKo)
+                        .font(OttlineFont.semiBold(15.5))
+                        .foregroundStyle(palette.primaryAccent)
+                        .multilineTextAlignment(.leading)
+                    Text(locale == "en" ? article.summaryEn : article.summaryKo)
+                        .font(OttlineFont.regular(13.5))
+                        .foregroundStyle(palette.mutedInk)
+                        .multilineTextAlignment(.leading)
+                }
+                Spacer(minLength: 0)
+                OttlineLucideIcon(kind: .chevronRight, size: 16, color: palette.subtleInk)
+            }
+            .padding(16)
+            .frame(maxWidth: .infinity, maxHeight: fillHeight ? .infinity : nil, alignment: .topLeading)
+            .background(palette.card)
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+            .overlay(
+                RoundedRectangle(cornerRadius: 8)
+                    .stroke(palette.border, lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
     }
 
     @ViewBuilder
@@ -1369,7 +1536,11 @@ public struct GuideInfoScreen: View {
     }
 }
 
-private func subScreenHeader(title: String, onBack: @escaping () -> Void) -> some View {
+private func subScreenHeader(
+    title: String,
+    onBack: @escaping () -> Void,
+    metrics: PadLayoutMetrics = PadLayoutMetrics(mode: .compact, viewportWidth: 390)
+) -> some View {
     HStack(spacing: 10) {
         Button(action: onBack) {
             OttlineLucideIcon(kind: .chevronLeft, size: 20, color: .primary)
@@ -1383,6 +1554,6 @@ private func subScreenHeader(title: String, onBack: @escaping () -> Void) -> som
 
         Spacer()
     }
-    .padding(.horizontal, 18)
+    .ottlineContentContainer(metrics)
     .padding(.vertical, 10)
 }

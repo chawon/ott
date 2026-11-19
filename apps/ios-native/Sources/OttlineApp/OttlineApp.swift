@@ -24,11 +24,22 @@ public struct OttlineApp: App {
     }
 }
 
+private struct OttlineRootWidthPreferenceKey: PreferenceKey {
+    static var defaultValue: CGFloat = 390
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        let next = nextValue()
+        if next > 0 { value = next }
+    }
+}
+
 public struct OttlineRootContainerView: View {
     public let repository: OttlineRepository
 
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.colorScheme) private var systemColorScheme
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @Environment(\.openURL) private var openURL
+    @State private var viewportWidth: CGFloat = UIDevice.current.userInterfaceIdiom == .pad ? 1024 : 390
     @State private var activeTab: TopLevelTab = .home
     @State private var overlayStack: [ActiveOverlayScreen] = []
     @State private var quickRecordRequest: QuickRecordRequest?
@@ -47,6 +58,76 @@ public struct OttlineRootContainerView: View {
 
     public init(repository: OttlineRepository) {
         self.repository = repository
+    }
+
+    private var metrics: PadLayoutMetrics {
+        PadLayoutMetrics.resolve(horizontalSizeClass: horizontalSizeClass, viewportWidth: viewportWidth)
+    }
+
+    private var compactQuickRecordBinding: Binding<QuickRecordRequest?> {
+        Binding(
+            get: { horizontalSizeClass == .regular ? nil : quickRecordRequest },
+            set: { quickRecordRequest = $0 }
+        )
+    }
+
+    private var regularQuickRecordBinding: Binding<QuickRecordRequest?> {
+        Binding(
+            get: { horizontalSizeClass == .regular ? quickRecordRequest : nil },
+            set: { quickRecordRequest = $0 }
+        )
+    }
+
+    private func toggleTheme() {
+        let current = repository.prefs.snapshot.themeMode
+        let nextTheme: ThemeMode = {
+            switch current {
+            case .system: return .light
+            case .light: return .dark
+            case .dark: return .system
+            }
+        }()
+        repository.prefs.setThemeMode(nextTheme)
+    }
+
+    private func selectLocale(_ nextLocale: String) {
+        repository.prefs.setLocale(nextLocale)
+        RecapNotificationManager.shared.syncScheduleIfEnabled(prefs: repository.prefs)
+        RecapNotificationManager.shared.refreshEveningReminderIfEnabled(logs: repository.logs, prefs: repository.prefs)
+        SpotlightIndexManager.shared.syncLogs(repository.logs, locale: nextLocale)
+        repository.prefs.updateWidgetSnapshot(from: repository.logs)
+    }
+
+    private func startBrowserHandoff() {
+        if let url = repository.buildBrowserHandoffStartUrl() {
+            openURL(url)
+        }
+    }
+
+    @ViewBuilder
+    private func quickRecordModalContent(_ req: QuickRecordRequest, palette: OttlinePalette, locale: String, preferredScheme: ColorScheme?) -> some View {
+        QuickRecordSheet(
+            request: req,
+            repository: repository,
+            onDismiss: { quickRecordRequest = nil },
+            onOpenTimeline: {
+                overlayStack.removeAll()
+                activeTab = .timeline
+            },
+            onOpenTitleDetail: { tid in
+                overlayStack.append(.titleDetail(tid))
+            },
+            onOpenPublicDiscussion: { discussionId in
+                overlayStack.append(.publicDiscussion(discussionId))
+            },
+            onOpenShareCard: { log in
+                rootShareCardLog = log
+            }
+        )
+        .environment(\.ottlinePalette, palette)
+        .environment(\.appLocale, locale)
+        .environment(\.ottlineViewportWidth, viewportWidth)
+        .preferredColorScheme(preferredScheme)
     }
 
     public var body: some View {
@@ -72,36 +153,39 @@ public struct OttlineRootContainerView: View {
 
         ZStack {
             VStack(spacing: 0) {
-                OttlineTopBar(
-                    nickname: snap.nickname,
-                    personaKey: snap.personaKey,
-                    themeMode: snap.themeMode,
-                    onLogoTap: {
-                        overlayStack.removeAll()
-                        activeTab = .home
-                    },
-                    onSelectLocale: { nextLocale in
-                        repository.prefs.setLocale(nextLocale)
-                        RecapNotificationManager.shared.syncScheduleIfEnabled(prefs: repository.prefs)
-                        RecapNotificationManager.shared.refreshEveningReminderIfEnabled(logs: repository.logs, prefs: repository.prefs)
-                        SpotlightIndexManager.shared.syncLogs(repository.logs, locale: nextLocale)
-                        repository.prefs.updateWidgetSnapshot(from: repository.logs)
-                    },
-                    onToggleTheme: {
-                        let nextTheme: ThemeMode = {
-                            switch snap.themeMode {
-                            case .system: return .light
-                            case .light: return .dark
-                            case .dark: return .system
-                            }
-                        }()
-                        repository.prefs.setThemeMode(nextTheme)
-                    },
-                    onProfileTap: {
-                        overlayStack.removeAll()
-                        activeTab = .mySpace
-                    }
-                )
+                if metrics.isSpread {
+                    OttlinePadHeader(
+                        repository: repository,
+                        activeTab: activeTab,
+                        themeMode: snap.themeMode,
+                        viewportWidth: viewportWidth,
+                        onSelectTab: { nextTab in
+                            overlayStack.removeAll()
+                            activeTab = nextTab
+                        },
+                        onQuickRecord: {
+                            quickRecordRequest = QuickRecordRequest(autoFocusSearch: true)
+                        },
+                        onToggleTheme: toggleTheme,
+                        onSelectLocale: selectLocale
+                    )
+                } else {
+                    OttlineTopBar(
+                        nickname: snap.nickname,
+                        personaKey: snap.personaKey,
+                        themeMode: snap.themeMode,
+                        onLogoTap: {
+                            overlayStack.removeAll()
+                            activeTab = .home
+                        },
+                        onSelectLocale: selectLocale,
+                        onToggleTheme: toggleTheme,
+                        onProfileTap: {
+                            overlayStack.removeAll()
+                            activeTab = .mySpace
+                        }
+                    )
+                }
 
                 ZStack(alignment: .bottom) {
                     ZStack {
@@ -113,16 +197,18 @@ public struct OttlineRootContainerView: View {
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
 
-                    OttlineBottomBar(
-                        activeTab: activeTab,
-                        onSelectTab: { nextTab in
-                            overlayStack.removeAll()
-                            activeTab = nextTab
-                        },
-                        onQuickRecordTap: {
-                            quickRecordRequest = QuickRecordRequest(autoFocusSearch: true)
-                        }
-                    )
+                    if !metrics.isSpread {
+                        OttlineBottomBar(
+                            activeTab: activeTab,
+                            onSelectTab: { nextTab in
+                                overlayStack.removeAll()
+                                activeTab = nextTab
+                            },
+                            onQuickRecordTap: {
+                                quickRecordRequest = QuickRecordRequest(autoFocusSearch: true)
+                            }
+                        )
+                    }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
@@ -134,8 +220,21 @@ public struct OttlineRootContainerView: View {
                 }
             }
         }
+        .background {
+            GeometryReader { proxy in
+                Color.clear
+                    .preference(key: OttlineRootWidthPreferenceKey.self, value: proxy.size.width)
+            }
+            .ignoresSafeArea()
+        }
+        .onPreferenceChange(OttlineRootWidthPreferenceKey.self) { nextWidth in
+            if abs(nextWidth - viewportWidth) > 0.5 {
+                viewportWidth = nextWidth
+            }
+        }
         .environment(\.ottlinePalette, palette)
         .environment(\.appLocale, snap.locale)
+        .environment(\.ottlineViewportWidth, viewportWidth)
         .environment(\.openOttlineOverlay) { target in
             overlayStack.append(target)
         }
@@ -144,33 +243,18 @@ public struct OttlineRootContainerView: View {
             activeTab = tab
         }
         .preferredColorScheme(preferredScheme)
-        .fullScreenCover(item: $quickRecordRequest) { req in
-            QuickRecordSheet(
-                request: req,
-                repository: repository,
-                onDismiss: { quickRecordRequest = nil },
-                onOpenTimeline: {
-                    overlayStack.removeAll()
-                    activeTab = .timeline
-                },
-                onOpenTitleDetail: { tid in
-                    overlayStack.append(.titleDetail(tid))
-                },
-                onOpenPublicDiscussion: { discussionId in
-                    overlayStack.append(.publicDiscussion(discussionId))
-                },
-                onOpenShareCard: { log in
-                    rootShareCardLog = log
-                }
-            )
-            .environment(\.ottlinePalette, palette)
-            .environment(\.appLocale, snap.locale)
-            .preferredColorScheme(preferredScheme)
+        .fullScreenCover(item: compactQuickRecordBinding) { req in
+            quickRecordModalContent(req, palette: palette, locale: snap.locale, preferredScheme: preferredScheme)
+        }
+        .sheet(item: regularQuickRecordBinding) { req in
+            quickRecordModalContent(req, palette: palette, locale: snap.locale, preferredScheme: preferredScheme)
+                .presentationDetents([.large])
         }
         .sheet(item: $rootShareCardLog) { log in
             ShareCardDialog(log: log, repository: repository)
                 .environment(\.ottlinePalette, palette)
                 .environment(\.appLocale, snap.locale)
+                .environment(\.ottlineViewportWidth, viewportWidth)
                 .preferredColorScheme(preferredScheme)
         }
         .onOpenURL { url in
@@ -264,7 +348,8 @@ public struct OttlineRootContainerView: View {
                 },
                 onOpenPublicDiscussion: { did in
                     overlayStack.append(.publicDiscussion(did))
-                }
+                },
+                onStartBrowserHandoff: startBrowserHandoff
             )
 
         case .timeline:
@@ -301,7 +386,8 @@ public struct OttlineRootContainerView: View {
                 onOpenBookshelf: { overlayStack.append(.bookshelf(nil)) },
                 onOpenFeedback: { overlayStack.append(.feedback(nil)) },
                 onOpenGuides: { overlayStack.append(.guides(nil)) },
-                onOpenAbout: { overlayStack.append(.about) }
+                onOpenAbout: { overlayStack.append(.about) },
+                onStartBrowserHandoff: startBrowserHandoff
             )
         }
     }

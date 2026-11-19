@@ -13,10 +13,17 @@ public struct MySpaceScreen: View {
     public var onOpenFeedback: () -> Void
     public var onOpenGuides: () -> Void
     public var onOpenAbout: () -> Void = {}
+    public var onStartBrowserHandoff: () -> Void = {}
 
     @Environment(\.ottlinePalette) private var palette
     @Environment(\.appLocale) private var locale
     @Environment(\.openURL) private var openURL
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @Environment(\.ottlineViewportWidth) private var viewportWidth
+
+    private var metrics: PadLayoutMetrics {
+        PadLayoutMetrics.resolve(horizontalSizeClass: horizontalSizeClass, viewportWidth: viewportWidth)
+    }
 
     @State private var profileExpanded: Bool = false
     @State private var editNickname: String = ""
@@ -67,7 +74,7 @@ public struct MySpaceScreen: View {
                         .foregroundStyle(palette.mutedInk)
 
                     Text(OttlineStrings.tr("어디서든, 나의 기록", "Your records, wherever you are", locale: locale))
-                        .font(OttlineFont.semiBold(25))
+                        .font(OttlineFont.semiBold(metrics.isSpread ? 30 : 25))
                         .kerning(-0.7)
                         .foregroundStyle(palette.ink)
 
@@ -99,7 +106,118 @@ public struct MySpaceScreen: View {
                         )
                 }
 
-                // 2. My Profile Panel (`나의 프로필` / `My profile`)
+                if metrics.mySpaceTwoColumns {
+                    HStack(alignment: .top, spacing: 20) {
+                        VStack(alignment: .leading, spacing: 20) {
+                            myProfileCard(snap: snap, nickname: nickname, personaTitle: personaTitle)
+                            pairingAndDevicesCard(snap: snap)
+                            accountInfoCard(snap: snap)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .topLeading)
+
+                        VStack(alignment: .leading, spacing: 20) {
+                            remindersAndFeaturesCard(snap: snap)
+                            helpLinksCard
+                            exportCsvCard(exportLogs: exportLogs)
+                            debugServerSection(snap: snap)
+                            dataManagementCard
+                        }
+                        .frame(maxWidth: .infinity, alignment: .topLeading)
+                    }
+                } else {
+                    myProfileCard(snap: snap, nickname: nickname, personaTitle: personaTitle)
+                    pairingAndDevicesCard(snap: snap)
+                    accountInfoCard(snap: snap)
+                    helpLinksCard
+                    exportCsvCard(exportLogs: exportLogs)
+                    remindersAndFeaturesCard(snap: snap)
+                    debugServerSection(snap: snap)
+                    dataManagementCard
+                }
+
+                OttlineAppFooter()
+            }
+            .ottlineContentContainer(metrics)
+            .padding(.top, metrics.isSpread ? 24 : 20)
+            .padding(.bottom, 16)
+        }
+        .background(palette.background)
+        .alert(
+            OttlineStrings.tr("모든 기기 연결을 해제할까요?", "Unlink all devices?", locale: locale),
+            isPresented: $showUnlinkAllAlert
+        ) {
+            Button(OttlineStrings.tr("취소", "Cancel", locale: locale), role: .cancel) {}
+            Button(OttlineStrings.tr("모든 기기 연결 해제", "Unlink all devices", locale: locale), role: .destructive) {
+                Task { await performUnlinkAll() }
+            }
+        } message: {
+            Text(OttlineStrings.tr(
+                "이 기기의 기록 캐시도 비워지고 연결된 모든 기기 세션이 끊어집니다.",
+                "This clears local cached data on this device and disconnects all linked devices.",
+                locale: locale
+            ))
+        }
+        .alert(
+            OttlineStrings.tr("연결 코드로 기기를 이어받을까요?", "Link with this connection code?", locale: locale),
+            isPresented: $showPairConfirmAlert
+        ) {
+            Button(OttlineStrings.tr("취소", "Cancel", locale: locale), role: .cancel) {}
+            Button(OttlineStrings.tr("연결하기", "Connect", locale: locale)) {
+                Task { await performPairWithCode() }
+            }
+        } message: {
+            Text(OttlineStrings.tr(
+                "이 기기에 남아 있던 기록도 함께 병합되어 하나의 타임라인으로 이어집니다.",
+                "Records on this device will be merged into your linked timeline.",
+                locale: locale
+            ))
+        }
+        .alert(
+            OttlineStrings.tr("이 기기에 보관된 기록을 초기화할까요?", "Clear local device data?", locale: locale),
+            isPresented: $showLocalResetAlert
+        ) {
+            Button(OttlineStrings.tr("취소", "Cancel", locale: locale), role: .cancel) {}
+            Button(OttlineStrings.tr("로컬 데이터 초기화", "Reset local data", locale: locale), role: .destructive) {
+                repository.resetLocalData()
+                profileExpanded = false
+                editNickname = ""
+                editPersonaKey = .cinemaKeeper
+                devices = []
+                toastMessage = OttlineStrings.tr("로컬 데이터를 초기화했어요.", "Local data reset.", locale: locale)
+            }
+        } message: {
+            Text(OttlineStrings.tr(
+                "이 기기에 보관된 기록과 캐시를 비워요. 서버 데이터는 삭제되지 않아요.",
+                "Clear the records and cache kept on this device. Your server data stays safe.",
+                locale: locale
+            ))
+        }
+        .sheet(isPresented: $showServerDeleteSheet) {
+            serverDeleteConfirmationSheet
+        }
+        .onAppear {
+            editNickname = snap.nickname ?? ""
+            editPersonaKey = snap.personaKey ?? .cinemaKeeper
+            if autoExpandPairing {
+                pairingSectionExpanded = true
+                onConsumeAutoExpandPairing()
+            } else if snap.pairingCode?.isEmpty ?? true {
+                pairingSectionExpanded = true
+            }
+        }
+        .onChange(of: autoExpandPairing) { _, next in
+            if next {
+                pairingSectionExpanded = true
+                onConsumeAutoExpandPairing()
+            }
+        }
+        .task {
+            await loadProfileAndDevices()
+        }
+    }
+
+    @ViewBuilder
+    private func myProfileCard(snap: PreferencesSnapshot, nickname: String, personaTitle: String?) -> some View {
                 VStack(alignment: .leading, spacing: 14) {
                     HStack(alignment: .center, spacing: 16) {
                         PersonaAvatar(
@@ -185,7 +303,11 @@ public struct MySpaceScreen: View {
                             .font(OttlineFont.medium(12.5))
                             .foregroundStyle(palette.mutedInk)
 
-                        LazyVGrid(columns: [GridItem(.flexible(), spacing: 8), GridItem(.flexible(), spacing: 8)], spacing: 8) {
+                        let avatarColumns = Array(
+                            repeating: GridItem(.flexible(), spacing: 8),
+                            count: metrics.isSpread ? 3 : 2
+                        )
+                        LazyVGrid(columns: avatarColumns, spacing: 8) {
                             ForEach(OttlineStrings.personaPresets, id: \.key) { preset in
                                 let selected = editPersonaKey == preset.key
                                 Button {
@@ -267,7 +389,10 @@ public struct MySpaceScreen: View {
                     RoundedRectangle(cornerRadius: 8)
                         .stroke(palette.border, lineWidth: 1)
                 )
+    }
 
+    @ViewBuilder
+    private func pairingAndDevicesCard(snap: PreferencesSnapshot) -> some View {
                 // 3. Collapsible Pairing & Connected Devices (`기기 연결 · 복구 코드`)
                 DisclosureGroup(isExpanded: $pairingSectionExpanded) {
                     VStack(alignment: .leading, spacing: 14) {
@@ -433,6 +558,23 @@ public struct MySpaceScreen: View {
                             .buttonStyle(.plain)
                             .disabled(inputPairingCode.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || pairingBusy)
 
+                            Button(action: onStartBrowserHandoff) {
+                                HStack(spacing: 6) {
+                                    OttlineLucideIcon(kind: .externalLink, size: 15, color: palette.primaryAccent)
+                                    Text(OttlineStrings.tr("웹(Safari·Chrome) 기록 가져오기", "Bring records from browser", locale: locale))
+                                        .font(OttlineFont.semiBold(13.5))
+                                }
+                                .foregroundStyle(palette.primaryAccent)
+                                .frame(maxWidth: .infinity, minHeight: 46)
+                                .background(palette.card)
+                                .clipShape(RoundedRectangle(cornerRadius: 8))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 8)
+                                        .stroke(palette.primaryAccent.opacity(0.45), lineWidth: 1)
+                                )
+                            }
+                            .buttonStyle(.plain)
+
                             DisclosureGroup(isExpanded: $lostCodeExpanded) {
                                 VStack(alignment: .leading, spacing: 6) {
                                     Text(OttlineStrings.tr(
@@ -580,7 +722,10 @@ public struct MySpaceScreen: View {
                     RoundedRectangle(cornerRadius: 8)
                         .stroke(palette.border, lineWidth: 1)
                 )
+    }
 
+    @ViewBuilder
+    private func accountInfoCard(snap: PreferencesSnapshot) -> some View {
                 // 5. Collapsible Account Info (`내 계정 정보`)
                 DisclosureGroup(isExpanded: $accountInfoExpanded) {
                     VStack(alignment: .leading, spacing: 8) {
@@ -628,7 +773,10 @@ public struct MySpaceScreen: View {
                     RoundedRectangle(cornerRadius: 8)
                         .stroke(palette.border, lineWidth: 1)
                 )
+    }
 
+    @ViewBuilder
+    private var helpLinksCard: some View {
                 // 6. Help Links (`기록을 더 잘 이어가도록` / `A little help with your records`)
                 VStack(alignment: .leading, spacing: 10) {
                     Text(OttlineStrings.tr("기록을 더 잘 이어가도록", "A little help with your records", locale: locale))
@@ -658,7 +806,10 @@ public struct MySpaceScreen: View {
                     RoundedRectangle(cornerRadius: 8)
                         .stroke(palette.border, lineWidth: 1)
                 )
+    }
 
+    @ViewBuilder
+    private func exportCsvCard(exportLogs: [WatchLog]) -> some View {
                 // 7. Export My Records (`내 기록 내보내기` / `Export my records`)
                 VStack(alignment: .leading, spacing: 12) {
                     Text(OttlineStrings.tr("내 기록 내보내기", "Export my records", locale: locale))
@@ -762,7 +913,10 @@ public struct MySpaceScreen: View {
                     RoundedRectangle(cornerRadius: 8)
                         .stroke(palette.border, lineWidth: 1)
                 )
+    }
 
+    @ViewBuilder
+    private func remindersAndFeaturesCard(snap: PreferencesSnapshot) -> some View {
                 // 8. Reminders & iOS Native Features (Recap, Evening Reminder, Shortcuts Automation, Widgets & Spotlight)
                 VStack(alignment: .leading, spacing: 14) {
                     Text(OttlineStrings.tr("알림 · iOS 맞춤 기능", "Reminders & iOS features", locale: locale))
@@ -780,8 +934,9 @@ public struct MySpaceScreen: View {
                                         prefs: repository.prefs
                                     )
                                     if next && !granted {
+                                        let devLabel = PadLayoutMetrics.deviceLabel(locale: "ko")
                                         toastMessage = OttlineStrings.tr(
-                                            "아이폰 설정 → 알림 → ottline에서 알림을 허용해 주세요.",
+                                            "\(devLabel) 설정 → 알림 → ottline에서 알림을 허용해 주세요.",
                                             "Please allow notifications in Settings → Notifications → ottline.",
                                             locale: locale
                                         )
@@ -821,8 +976,9 @@ public struct MySpaceScreen: View {
                                             prefs: repository.prefs
                                         )
                                         if next && !granted {
+                                            let devLabel = PadLayoutMetrics.deviceLabel(locale: "ko")
                                             toastMessage = OttlineStrings.tr(
-                                                "아이폰 설정 → 알림 → ottline에서 알림을 허용해 주세요.",
+                                                "\(devLabel) 설정 → 알림 → ottline에서 알림을 허용해 주세요.",
                                                 "Please allow notifications in Settings → Notifications → ottline.",
                                                 locale: locale
                                             )
@@ -898,8 +1054,9 @@ public struct MySpaceScreen: View {
                     DisclosureGroup(isExpanded: $shortcutsGuideExpanded) {
                         VStack(alignment: .leading, spacing: 10) {
                             VStack(alignment: .leading, spacing: 6) {
+                                let devLabelKo = PadLayoutMetrics.deviceLabel(locale: "ko")
                                 Text(OttlineStrings.tr(
-                                    "1. 아이폰 ‘단축어’ 앱 → 하단 ‘자동화’ → ‘+’ → ‘앱’ 선택",
+                                    "1. \(devLabelKo) ‘단축어’ 앱 → 하단 ‘자동화’ → ‘+’ → ‘앱’ 선택",
                                     "1. Open Apple ‘Shortcuts’ → Automation → ‘+’ → App",
                                     locale: locale
                                 ))
@@ -935,10 +1092,11 @@ public struct MySpaceScreen: View {
                                             respectCooldown: false,
                                             delaySeconds: 1.0
                                         )
+                                        let devLabelKo = PadLayoutMetrics.deviceLabel(locale: "ko")
                                         toastMessage = scheduled
                                             ? OttlineStrings.tr("테스트 기록 알림을 보냈어요.", "Sent a sample prompt notification.", locale: locale)
                                             : OttlineStrings.tr(
-                                                "아이폰 설정 → 알림 → ottline에서 알림을 허용해 주세요.",
+                                                "\(devLabelKo) 설정 → 알림 → ottline에서 알림을 허용해 주세요.",
                                                 "Please allow notifications in Settings → Notifications → ottline.",
                                                 locale: locale
                                             )
@@ -998,9 +1156,11 @@ public struct MySpaceScreen: View {
                     }
                     .tint(palette.ink)
 
+                    let devLabelKo = PadLayoutMetrics.deviceLabel(locale: "ko")
+                    let devLabelEn = PadLayoutMetrics.deviceLabel(locale: "en")
                     Text(OttlineStrings.tr(
-                        "홈·잠금 화면 위젯과 iPhone Spotlight 검색에서도 내 타임라인 작품을 바로 찾을 수 있어요.",
-                        "Your timeline is also available in Home & Lock Screen widgets and iPhone Spotlight search.",
+                        "홈·잠금 화면 위젯과 \(devLabelKo) Spotlight 검색에서도 내 타임라인 작품을 바로 찾을 수 있어요.",
+                        "Your timeline is also available in Home & Lock Screen widgets and \(devLabelEn) Spotlight search.",
                         locale: locale
                     ))
                     .font(OttlineFont.regular(12))
@@ -1013,7 +1173,10 @@ public struct MySpaceScreen: View {
                     RoundedRectangle(cornerRadius: 8)
                         .stroke(palette.border, lineWidth: 1)
                 )
+    }
 
+    @ViewBuilder
+    private func debugServerSection(snap: PreferencesSnapshot) -> some View {
                 #if DEBUG
                 // Debug API Server Switcher
                 VStack(alignment: .leading, spacing: 10) {
@@ -1050,8 +1213,13 @@ public struct MySpaceScreen: View {
                     RoundedRectangle(cornerRadius: 8)
                         .stroke(palette.border, lineWidth: 1)
                 )
+                #else
+                EmptyView()
                 #endif
+    }
 
+    @ViewBuilder
+    private var dataManagementCard: some View {
                 // 9. Collapsible Data Management (`기록과 연결 데이터 관리`)
                 DisclosureGroup(isExpanded: $dataManageExpanded) {
                     VStack(alignment: .leading, spacing: 16) {
@@ -1132,85 +1300,6 @@ public struct MySpaceScreen: View {
                     RoundedRectangle(cornerRadius: 8)
                         .stroke(palette.border, lineWidth: 1)
                 )
-
-                OttlineAppFooter()
-            }
-            .padding(.horizontal, 18)
-            .padding(.top, 20)
-        }
-        .background(palette.background)
-        .alert(
-            OttlineStrings.tr("모든 기기 연결을 해제할까요?", "Unlink all devices?", locale: locale),
-            isPresented: $showUnlinkAllAlert
-        ) {
-            Button(OttlineStrings.tr("취소", "Cancel", locale: locale), role: .cancel) {}
-            Button(OttlineStrings.tr("모든 기기 연결 해제", "Unlink all devices", locale: locale), role: .destructive) {
-                Task { await performUnlinkAll() }
-            }
-        } message: {
-            Text(OttlineStrings.tr(
-                "이 기기의 기록 캐시도 비워지고 연결된 모든 기기 세션이 끊어집니다.",
-                "This clears local cached data on this device and disconnects all linked devices.",
-                locale: locale
-            ))
-        }
-        .alert(
-            OttlineStrings.tr("연결 코드로 기기를 이어받을까요?", "Link with this connection code?", locale: locale),
-            isPresented: $showPairConfirmAlert
-        ) {
-            Button(OttlineStrings.tr("취소", "Cancel", locale: locale), role: .cancel) {}
-            Button(OttlineStrings.tr("연결하기", "Connect", locale: locale)) {
-                Task { await performPairWithCode() }
-            }
-        } message: {
-            Text(OttlineStrings.tr(
-                "이 기기에 남아 있던 기록도 함께 병합되어 하나의 타임라인으로 이어집니다.",
-                "Records on this device will be merged into your linked timeline.",
-                locale: locale
-            ))
-        }
-        .alert(
-            OttlineStrings.tr("이 기기에 보관된 기록을 초기화할까요?", "Clear local device data?", locale: locale),
-            isPresented: $showLocalResetAlert
-        ) {
-            Button(OttlineStrings.tr("취소", "Cancel", locale: locale), role: .cancel) {}
-            Button(OttlineStrings.tr("로컬 데이터 초기화", "Reset local data", locale: locale), role: .destructive) {
-                repository.resetLocalData()
-                profileExpanded = false
-                editNickname = ""
-                editPersonaKey = .cinemaKeeper
-                devices = []
-                toastMessage = OttlineStrings.tr("로컬 데이터를 초기화했어요.", "Local data reset.", locale: locale)
-            }
-        } message: {
-            Text(OttlineStrings.tr(
-                "이 기기에 보관된 기록과 캐시를 비워요. 서버 데이터는 삭제되지 않아요.",
-                "Clear the records and cache kept on this device. Your server data stays safe.",
-                locale: locale
-            ))
-        }
-        .sheet(isPresented: $showServerDeleteSheet) {
-            serverDeleteConfirmationSheet
-        }
-        .onAppear {
-            editNickname = snap.nickname ?? ""
-            editPersonaKey = snap.personaKey ?? .cinemaKeeper
-            if autoExpandPairing {
-                pairingSectionExpanded = true
-                onConsumeAutoExpandPairing()
-            } else if snap.pairingCode?.isEmpty ?? true {
-                pairingSectionExpanded = true
-            }
-        }
-        .onChange(of: autoExpandPairing) { _, next in
-            if next {
-                pairingSectionExpanded = true
-                onConsumeAutoExpandPairing()
-            }
-        }
-        .task {
-            await loadProfileAndDevices()
-        }
     }
 
     private func helpLinkRow(label: String, action: @escaping () -> Void) -> some View {

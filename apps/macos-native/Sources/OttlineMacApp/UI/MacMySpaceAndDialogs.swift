@@ -1416,65 +1416,185 @@ private struct MacShareAnchorView: NSViewRepresentable {
 }
 
 public enum MacImageExportHelper {
+    private static func nsColor(hex: UInt32, alpha: CGFloat = 1.0) -> NSColor {
+        NSColor(
+            srgbRed: CGFloat((hex >> 16) & 0xFF) / 255.0,
+            green: CGFloat((hex >> 8) & 0xFF) / 255.0,
+            blue: CGFloat(hex & 0xFF) / 255.0,
+            alpha: alpha
+        )
+    }
+
+    private static func drawBitmapImage(
+        pointSize: CGSize,
+        scale: CGFloat = 2.0,
+        draw: (CGContext, CGRect) -> Void
+    ) -> NSImage {
+        let pixelW = max(1, Int((pointSize.width * scale).rounded()))
+        let pixelH = max(1, Int((pointSize.height * scale).rounded()))
+        guard let rep = NSBitmapImageRep(
+            bitmapDataPlanes: nil,
+            pixelsWide: pixelW,
+            pixelsHigh: pixelH,
+            bitsPerSample: 8,
+            samplesPerPixel: 4,
+            hasAlpha: true,
+            isPlanar: false,
+            colorSpaceName: .deviceRGB,
+            bytesPerRow: 0,
+            bitsPerPixel: 0
+        ) else {
+            return NSImage(size: pointSize)
+        }
+        rep.size = pointSize
+        if let baseCtx = NSGraphicsContext(bitmapImageRep: rep) {
+            let cg = baseCtx.cgContext
+            cg.saveGState()
+            cg.translateBy(x: 0, y: pointSize.height)
+            cg.scaleBy(x: 1, y: -1)
+            let flippedCtx = NSGraphicsContext(cgContext: cg, flipped: true)
+            NSGraphicsContext.saveGraphicsState()
+            NSGraphicsContext.current = flippedCtx
+            draw(cg, CGRect(origin: .zero, size: pointSize))
+            NSGraphicsContext.restoreGraphicsState()
+            cg.restoreGState()
+        }
+        let img = NSImage(size: pointSize)
+        img.addRepresentation(rep)
+        return img
+    }
+
     @MainActor
     public static func renderRecoveryCardImage(pairingCode: String, nickname: String?, locale: String) -> NSImage {
-        let cardView = VStack(alignment: .leading, spacing: 14) {
-            Text("ottline · ON THE TIMELINE")
-                .font(.system(size: 13, weight: .bold))
-                .foregroundStyle(Color(hex: 0x1E4D8C))
-            Text(locale == "en" ? "Record Connection Card" : "기록 연결 보관 카드")
-                .font(.system(size: 20, weight: .bold))
-                .foregroundStyle(Color(hex: 0x0F0F0F))
-            if let nick = nickname, !nick.isEmpty {
-                Text(nick).font(.system(size: 14, weight: .medium)).foregroundStyle(Color(hex: 0x4A4A4A))
-            }
-            Text(pairingCode)
-                .font(.system(size: 26, weight: .bold, design: .monospaced))
-                .padding(16)
-                .frame(maxWidth: .infinity)
-                .background(Color(hex: 0xFEF9EE))
-                .clipShape(RoundedRectangle(cornerRadius: 8))
-        }
-        .padding(28)
-        .frame(width: 520, alignment: .leading)
-        .background(Color(hex: 0xF8F6F2))
+        let size = CGSize(width: 520, height: 260)
+        return drawBitmapImage(pointSize: size) { _, bounds in
+            nsColor(hex: 0xF8F6F2).setFill()
+            bounds.fill()
 
-        let renderer = ImageRenderer(content: cardView)
-        renderer.scale = 2.0
-        return renderer.nsImage ?? NSImage(size: NSSize(width: 520, height: 260))
+            let pad: CGFloat = 28
+            let contentWidth = bounds.width - pad * 2
+            var cursorY: CGFloat = 28
+
+            let brandAttrs: [NSAttributedString.Key: Any] = [
+                .font: NSFont.systemFont(ofSize: 13, weight: .bold),
+                .foregroundColor: nsColor(hex: 0x1E4D8C)
+            ]
+            ("ottline · ON THE TIMELINE" as NSString).draw(
+                in: CGRect(x: pad, y: cursorY, width: contentWidth, height: 20),
+                withAttributes: brandAttrs
+            )
+            cursorY += 28
+
+            let heading = locale == "en" ? "Record Connection Card" : "기록 연결 보관 카드"
+            let headingAttrs: [NSAttributedString.Key: Any] = [
+                .font: NSFont.systemFont(ofSize: 20, weight: .bold),
+                .foregroundColor: nsColor(hex: 0x0F0F0F)
+            ]
+            (heading as NSString).draw(
+                in: CGRect(x: pad, y: cursorY, width: contentWidth, height: 28),
+                withAttributes: headingAttrs
+            )
+            cursorY += 34
+
+            if let nick = nickname?.trimmingCharacters(in: .whitespacesAndNewlines), !nick.isEmpty {
+                let nickAttrs: [NSAttributedString.Key: Any] = [
+                    .font: NSFont.systemFont(ofSize: 14, weight: .medium),
+                    .foregroundColor: nsColor(hex: 0x4A4A4A)
+                ]
+                (nick as NSString).draw(
+                    in: CGRect(x: pad, y: cursorY, width: contentWidth, height: 22),
+                    withAttributes: nickAttrs
+                )
+                cursorY += 30
+            }
+
+            let boxRect = CGRect(x: pad, y: cursorY + 4, width: contentWidth, height: 64)
+            let boxPath = NSBezierPath(roundedRect: boxRect, xRadius: 8, yRadius: 8)
+            nsColor(hex: 0xFEF9EE).setFill()
+            boxPath.fill()
+
+            let para = NSMutableParagraphStyle()
+            para.alignment = .center
+            let codeAttrs: [NSAttributedString.Key: Any] = [
+                .font: NSFont.monospacedSystemFont(ofSize: 26, weight: .bold),
+                .foregroundColor: nsColor(hex: 0x0F0F0F),
+                .paragraphStyle: para
+            ]
+            let codeRect = CGRect(x: boxRect.minX + 12, y: boxRect.minY + 16, width: boxRect.width - 24, height: 34)
+            (pairingCode as NSString).draw(in: codeRect, withAttributes: codeAttrs)
+        }
     }
 
     @MainActor
     public static func renderFallbackShareCard(log: WatchLog, ratioKey: String, locale: String) -> NSImage {
         let size = ratioKey == "9:16" ? CGSize(width: 540, height: 960) : CGSize(width: 540, height: 675)
-        let cardView = VStack(alignment: .leading, spacing: 18) {
-            Spacer()
-            Text(OttlineStrings.statusLabel(log.status, type: log.title.type, locale: locale))
-                .font(.system(size: 16, weight: .bold))
-                .foregroundStyle(Color(hex: 0xFF9933))
-            Text(log.title.name)
-                .font(.system(size: 32, weight: .bold))
-                .foregroundStyle(.white)
-            if let note = log.note, !note.isEmpty, !log.spoiler {
-                Text(note)
-                    .font(.system(size: 18))
-                    .foregroundStyle(.white.opacity(0.9))
-            }
-            Spacer()
-            Text("ottline.app")
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundStyle(.white.opacity(0.65))
-        }
-        .padding(36)
-        .frame(width: size.width, height: size.height, alignment: .leading)
-        .background(Color(hex: 0x0B1224))
+        return drawBitmapImage(pointSize: size) { _, bounds in
+            nsColor(hex: 0x0B1224).setFill()
+            bounds.fill()
 
-        let renderer = ImageRenderer(content: cardView)
-        renderer.scale = 2.0
-        return renderer.nsImage ?? NSImage(size: size)
+            let pad: CGFloat = 36
+            let contentWidth = bounds.width - pad * 2
+            var cursorY = bounds.height * 0.44
+
+            let statusText = OttlineStrings.statusLabel(log.status, type: log.title.type, locale: locale)
+            let statusAttrs: [NSAttributedString.Key: Any] = [
+                .font: NSFont.systemFont(ofSize: 16, weight: .bold),
+                .foregroundColor: nsColor(hex: 0xFF9933)
+            ]
+            (statusText as NSString).draw(
+                in: CGRect(x: pad, y: cursorY, width: contentWidth, height: 24),
+                withAttributes: statusAttrs
+            )
+            cursorY += 34
+
+            let titlePara = NSMutableParagraphStyle()
+            titlePara.lineBreakMode = .byWordWrapping
+            let titleAttrs: [NSAttributedString.Key: Any] = [
+                .font: NSFont.systemFont(ofSize: 32, weight: .bold),
+                .foregroundColor: NSColor.white,
+                .paragraphStyle: titlePara
+            ]
+            let titleNs = log.title.name as NSString
+            let titleBound = titleNs.boundingRect(
+                with: CGSize(width: contentWidth, height: 140),
+                options: [.usesLineFragmentOrigin, .usesFontLeading],
+                attributes: titleAttrs
+            )
+            let titleHeight = ceil(titleBound.height)
+            titleNs.draw(in: CGRect(x: pad, y: cursorY, width: contentWidth, height: titleHeight), withAttributes: titleAttrs)
+            cursorY += titleHeight + 18
+
+            if let note = log.note?.trimmingCharacters(in: .whitespacesAndNewlines), !note.isEmpty, !log.spoiler {
+                let notePara = NSMutableParagraphStyle()
+                notePara.lineBreakMode = .byWordWrapping
+                let noteAttrs: [NSAttributedString.Key: Any] = [
+                    .font: NSFont.systemFont(ofSize: 18, weight: .regular),
+                    .foregroundColor: NSColor.white.withAlphaComponent(0.9),
+                    .paragraphStyle: notePara
+                ]
+                let maxNoteHeight = max(24, bounds.height - pad - 44 - cursorY)
+                (note as NSString).draw(
+                    in: CGRect(x: pad, y: cursorY, width: contentWidth, height: maxNoteHeight),
+                    withAttributes: noteAttrs
+                )
+            }
+
+            let footerAttrs: [NSAttributedString.Key: Any] = [
+                .font: NSFont.systemFont(ofSize: 14, weight: .semibold),
+                .foregroundColor: NSColor.white.withAlphaComponent(0.65)
+            ]
+            ("ottline.app" as NSString).draw(
+                in: CGRect(x: pad, y: bounds.height - pad - 20, width: contentWidth, height: 22),
+                withAttributes: footerAttrs
+            )
+        }
     }
 
     public static func pngData(from image: NSImage) -> Data? {
+        if let directRep = image.representations.compactMap({ $0 as? NSBitmapImageRep }).first,
+           let data = directRep.representation(using: .png, properties: [:]) {
+            return data
+        }
         guard let tiff = image.tiffRepresentation,
               let rep = NSBitmapImageRep(data: tiff) else {
             return nil

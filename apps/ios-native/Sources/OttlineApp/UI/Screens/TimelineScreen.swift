@@ -14,6 +14,12 @@ public struct TimelineScreen: View {
 
     @Environment(\.ottlinePalette) private var palette
     @Environment(\.appLocale) private var locale
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @Environment(\.ottlineViewportWidth) private var viewportWidth
+
+    private var metrics: PadLayoutMetrics {
+        PadLayoutMetrics.resolve(horizontalSizeClass: horizontalSizeClass, viewportWidth: viewportWidth)
+    }
 
     // Filters
     @State private var typeFilter: String = "all" // "all" | "movie" | "series" | "book"
@@ -122,121 +128,15 @@ public struct TimelineScreen: View {
             LazyVStack(alignment: .leading, spacing: 20) {
                 // 1. Page Heading
                 VStack(alignment: .leading, spacing: 14) {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(OttlineStrings.tr("남겨둔 이야기", "THE STORIES YOU KEPT", locale: locale))
-                            .font(OttlineFont.medium(11))
-                            .kerning(0.88)
-                            .foregroundStyle(palette.mutedInk)
-
-                        Text(headerTitle(nickname: nickname))
-                            .font(OttlineFont.semiBold(27))
-                            .kerning(-0.7)
-                            .foregroundStyle(palette.ink)
-
-                        Text(headerSubtitle(personaTitle: personaTitle))
-                            .font(OttlineFont.regular(13.5))
-                            .foregroundStyle(palette.mutedInk)
-                    }
-
-                    // Tools row
-                    FlowLayout(horizontalSpacing: 8, verticalSpacing: 8) {
-                        if !futureMode {
-                            Button {
-                                onOpenQuickRecord(QuickRecordRequest(autoFocusSearch: true))
-                            } label: {
-                                HStack(spacing: 6) {
-                                    OttlineLucideIcon(kind: .plus, size: 15, color: palette.onBrandOrange, strokeWidth: 2.2)
-                                    Text(OttlineStrings.tr("기록 남기기", "Keep a story", locale: locale))
-                                        .font(OttlineFont.semiBold(14))
-                                }
-                                .foregroundStyle(palette.onBrandOrange)
-                                .padding(.horizontal, 14)
-                                .frame(minHeight: 44)
-                                .background(palette.brandOrange)
-                                .clipShape(RoundedRectangle(cornerRadius: 8))
-                            }
-                            .buttonStyle(.plain)
-
-                            if !(snap.userId ?? "").isEmpty {
-                                Button {
-                                    futureMode = true
-                                    Task { await loadRecommendationState() }
-                                } label: {
-                                    HStack(spacing: 6) {
-                                        OttlineLucideIcon(kind: .sparkles, size: 14, color: palette.primaryAccent, strokeWidth: 2.0)
-                                        Text(!nickname.isEmpty
-                                            ? OttlineStrings.tr("\(nickname)의 미래는?", "\(nickname)'s future?", locale: locale)
-                                            : OttlineStrings.tr("미래의 타임라인", "Future timeline", locale: locale)
-                                        )
-                                        .font(OttlineFont.semiBold(13.5))
-                                    }
-                                    .foregroundStyle(palette.primaryAccent)
-                                    .padding(.horizontal, 13)
-                                    .frame(minHeight: 44)
-                                    .background(palette.card)
-                                    .clipShape(RoundedRectangle(cornerRadius: 8))
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 8)
-                                            .stroke(palette.primaryAccent.opacity(0.35), lineWidth: 1)
-                                    )
-                                }
-                                .buttonStyle(.plain)
-                            }
-
-                            if !filteredLogs.isEmpty,
-                               let csvUrl = CsvExporter.writeTemporaryCsvFile(logs: filteredLogs, locale: locale) {
-                                ShareLink(item: csvUrl) {
-                                    OttlineLucideIcon(kind: .download, size: 16, color: palette.ink, strokeWidth: 2.0)
-                                        .frame(width: 44, height: 44)
-                                        .background(palette.card)
-                                        .clipShape(RoundedRectangle(cornerRadius: 8))
-                                        .overlay(
-                                            RoundedRectangle(cornerRadius: 8)
-                                                .stroke(palette.border, lineWidth: 1)
-                                        )
-                                }
-                                .buttonStyle(.plain)
-                                .accessibilityLabel(OttlineStrings.tr("CSV 내보내기", "Export CSV", locale: locale))
-                            }
-                        } else {
-                            Button {
-                                futureMode = false
-                            } label: {
-                                Text(OttlineStrings.tr("← 타임라인으로 돌아오기", "← Back to timeline", locale: locale))
-                                    .font(OttlineFont.semiBold(13.5))
-                                    .foregroundStyle(palette.ink)
-                                    .padding(.horizontal, 14)
-                                    .frame(minHeight: 44)
-                                    .background(palette.card)
-                                    .clipShape(RoundedRectangle(cornerRadius: 8))
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 8)
-                                            .stroke(palette.border, lineWidth: 1)
-                                    )
-                            }
-                            .buttonStyle(.plain)
-
-                            Button {
-                                showExcludedSheet = true
-                            } label: {
-                                Text(OttlineStrings.tr(
-                                    "제외한 작품 (\(recState.exclusions.count))",
-                                    "Excluded (\(recState.exclusions.count))",
-                                    locale: locale
-                                ))
-                                .font(OttlineFont.medium(13))
-                                .foregroundStyle(palette.mutedInk)
-                                .padding(.horizontal, 12)
-                                .frame(minHeight: 44)
-                                .background(palette.card)
-                                .clipShape(RoundedRectangle(cornerRadius: 8))
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 8)
-                                        .stroke(palette.border, lineWidth: 1)
-                                )
-                            }
-                            .buttonStyle(.plain)
+                    if metrics.isSpread {
+                        HStack(alignment: .bottom, spacing: 20) {
+                            timelineHeaderText(nickname: nickname, personaTitle: personaTitle)
+                            Spacer(minLength: 16)
+                            timelineToolsRow(snap: snap, nickname: nickname, filteredLogs: filteredLogs)
                         }
+                    } else {
+                        timelineHeaderText(nickname: nickname, personaTitle: personaTitle)
+                        timelineToolsRow(snap: snap, nickname: nickname, filteredLogs: filteredLogs)
                     }
                 }
                 .padding(.bottom, 14)
@@ -244,8 +144,8 @@ public struct TimelineScreen: View {
                     Rectangle().fill(palette.border).frame(height: 1)
                 }
 
-                // 2. Report Entry Row
-                if !futureMode {
+                // 2. Report Entry Row (Compact only — spread places it cleanly in header tools)
+                if !futureMode && !metrics.isSpread {
                     Button(action: onOpenReport) {
                         HStack(spacing: 8) {
                             OttlineLucideIcon(kind: .clock3, size: 15, color: palette.primaryAccent, strokeWidth: 2.0)
@@ -407,8 +307,8 @@ public struct TimelineScreen: View {
 
                 OttlineAppFooter()
             }
-            .padding(.horizontal, 18)
-            .padding(.top, 18)
+            .ottlineContentContainer(metrics)
+            .padding(.top, metrics.isSpread ? 24 : 18)
             .padding(.bottom, 16)
         }
         .background(palette.background)
@@ -436,6 +336,149 @@ public struct TimelineScreen: View {
             let books = repository.logs.map(\.title).filter { $0.type == .book }
             if !books.isEmpty {
                 await repository.ensureBookClassificationsCached(titles: books)
+            }
+        }
+    }
+
+    private func timelineHeaderText(nickname: String, personaTitle: String?) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(OttlineStrings.tr("남겨둔 이야기", "THE STORIES YOU KEPT", locale: locale))
+                .font(OttlineFont.medium(11))
+                .kerning(0.88)
+                .foregroundStyle(palette.mutedInk)
+
+            Text(headerTitle(nickname: nickname))
+                .font(OttlineFont.semiBold(metrics.isSpread ? 30 : 27))
+                .kerning(-0.7)
+                .foregroundStyle(palette.ink)
+
+            Text(headerSubtitle(personaTitle: personaTitle))
+                .font(OttlineFont.regular(metrics.isSpread ? 14 : 13.5))
+                .foregroundStyle(palette.mutedInk)
+        }
+    }
+
+    @ViewBuilder
+    private func timelineToolsRow(snap: PreferencesSnapshot, nickname: String, filteredLogs: [WatchLog]) -> some View {
+        let controlMinHeight: CGFloat = metrics.isSpread ? 48 : 44
+        FlowLayout(horizontalSpacing: 8, verticalSpacing: 8) {
+            if !futureMode {
+                // Header `OttlinePadHeader` already exposes `기록 남기기` in spread mode (`pref_mw6ez7ie_51c36197`).
+                if !metrics.isSpread {
+                    Button {
+                        onOpenQuickRecord(QuickRecordRequest(autoFocusSearch: true))
+                    } label: {
+                        HStack(spacing: 6) {
+                            OttlineLucideIcon(kind: .plus, size: 15, color: palette.onBrandOrange, strokeWidth: 2.2)
+                            Text(OttlineStrings.tr("기록 남기기", "Keep a story", locale: locale))
+                                .font(OttlineFont.semiBold(14))
+                        }
+                        .foregroundStyle(palette.onBrandOrange)
+                        .padding(.horizontal, 14)
+                        .frame(minHeight: controlMinHeight)
+                        .background(palette.brandOrange)
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                    }
+                    .buttonStyle(.plain)
+                } else {
+                    Button(action: onOpenReport) {
+                        HStack(spacing: 6) {
+                            OttlineLucideIcon(kind: .clock3, size: 15, color: palette.primaryAccent, strokeWidth: 2.0)
+                            Text(OttlineStrings.tr("이용 리포트", "Usage Report", locale: locale))
+                                .font(OttlineFont.semiBold(13.5))
+                        }
+                        .foregroundStyle(palette.primaryAccent)
+                        .padding(.horizontal, 14)
+                        .frame(minHeight: controlMinHeight)
+                        .background(palette.card)
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8)
+                                .stroke(palette.border, lineWidth: 1)
+                        )
+                    }
+                    .buttonStyle(.plain)
+                }
+
+                if !(snap.userId ?? "").isEmpty {
+                    Button {
+                        futureMode = true
+                        Task { await loadRecommendationState() }
+                    } label: {
+                        HStack(spacing: 6) {
+                            OttlineLucideIcon(kind: .sparkles, size: 14, color: palette.primaryAccent, strokeWidth: 2.0)
+                            Text(!nickname.isEmpty
+                                ? OttlineStrings.tr("\(nickname)의 미래는?", "\(nickname)'s future?", locale: locale)
+                                : OttlineStrings.tr("미래의 타임라인", "Future timeline", locale: locale)
+                            )
+                            .font(OttlineFont.semiBold(13.5))
+                        }
+                        .foregroundStyle(palette.primaryAccent)
+                        .padding(.horizontal, 13)
+                        .frame(minHeight: controlMinHeight)
+                        .background(palette.card)
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8)
+                                .stroke(palette.primaryAccent.opacity(0.35), lineWidth: 1)
+                        )
+                    }
+                    .buttonStyle(.plain)
+                }
+
+                if !filteredLogs.isEmpty,
+                   let csvUrl = CsvExporter.writeTemporaryCsvFile(logs: filteredLogs, locale: locale) {
+                    ShareLink(item: csvUrl) {
+                        OttlineLucideIcon(kind: .download, size: 16, color: palette.ink, strokeWidth: 2.0)
+                            .frame(width: controlMinHeight, height: controlMinHeight)
+                            .background(palette.card)
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 8)
+                                    .stroke(palette.border, lineWidth: 1)
+                            )
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(OttlineStrings.tr("CSV 내보내기", "Export CSV", locale: locale))
+                }
+            } else {
+                Button {
+                    futureMode = false
+                } label: {
+                    Text(OttlineStrings.tr("← 타임라인으로 돌아오기", "← Back to timeline", locale: locale))
+                        .font(OttlineFont.semiBold(13.5))
+                        .foregroundStyle(palette.ink)
+                        .padding(.horizontal, 14)
+                        .frame(minHeight: controlMinHeight)
+                        .background(palette.card)
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8)
+                                .stroke(palette.border, lineWidth: 1)
+                        )
+                }
+                .buttonStyle(.plain)
+
+                Button {
+                    showExcludedSheet = true
+                } label: {
+                    Text(OttlineStrings.tr(
+                        "제외한 작품 (\(recState.exclusions.count))",
+                        "Excluded (\(recState.exclusions.count))",
+                        locale: locale
+                    ))
+                    .font(OttlineFont.medium(13))
+                    .foregroundStyle(palette.mutedInk)
+                    .padding(.horizontal, 12)
+                    .frame(minHeight: controlMinHeight)
+                    .background(palette.card)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8)
+                            .stroke(palette.border, lineWidth: 1)
+                    )
+                }
+                .buttonStyle(.plain)
             }
         }
     }
@@ -782,7 +825,7 @@ public struct TimelineScreen: View {
             }
         }()
 
-        return HStack(alignment: .top, spacing: 14) {
+        return HStack(alignment: .top, spacing: metrics.isSpread ? 18 : 14) {
             // Left Date Column (`34pt` day number)
             VStack(alignment: .leading, spacing: 1) {
                 Text(RecordDate.formatTimelineMonth(dateIso, locale: locale))
@@ -797,9 +840,9 @@ public struct TimelineScreen: View {
                         .foregroundStyle(palette.mutedInk)
                 }
             }
-            .frame(width: 50, alignment: .leading)
+            .frame(width: metrics.isSpread ? 58 : 50, alignment: .leading)
 
-            // Middle Poster (`58x87` borderless)
+            // Middle Poster (`58x87` compact / `68x102` spread)
             Button {
                 onOpenTitleDetail(log.title.id)
             } label: {
@@ -807,8 +850,8 @@ public struct TimelineScreen: View {
                     posterUrl: log.seasonPosterUrl ?? log.title.posterUrl,
                     titleName: log.title.name,
                     titleType: log.title.type,
-                    width: 58,
-                    height: 87
+                    width: metrics.isSpread ? 68 : 58,
+                    height: metrics.isSpread ? 102 : 87
                 )
             }
             .buttonStyle(.plain)
@@ -884,7 +927,7 @@ public struct TimelineScreen: View {
                 }
 
                 if let note = log.note?.trimmingCharacters(in: .whitespacesAndNewlines), !note.isEmpty {
-                    InlineNoteText(text: note, fontSize: 15.5, lineLimit: 4)
+                    InlineNoteText(text: note, fontSize: 15.5, lineLimit: metrics.isSpread ? 6 : 4)
                         .padding(.top, 2)
                 }
 
@@ -1064,6 +1107,16 @@ public struct TimelineScreen: View {
                     .font(OttlineFont.regular(14))
                     .foregroundStyle(palette.mutedInk)
                     .padding(.vertical, 16)
+                } else if metrics.isSpread {
+                    LazyVGrid(
+                        columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)],
+                        spacing: 12
+                    ) {
+                        ForEach(recState.items) { item in
+                            recommendationCard(item)
+                                .frame(maxHeight: .infinity, alignment: .topLeading)
+                        }
+                    }
                 } else {
                     ForEach(recState.items) { item in
                         recommendationCard(item)
