@@ -210,6 +210,7 @@ try {
         await banner.getAttribute("data-store-platform"),
         "windows-store",
       );
+      assert.match(await banner.innerText(), /Ctrl\+Shift\+O/);
       const link = f.page.getByTestId("store-install-link");
       checkWindowsUrl(
         await link.getAttribute("href"),
@@ -345,6 +346,132 @@ try {
     }
   }
 
+  for (const [locale, width, captureType] of [
+    ["ko", 1440, "video"],
+    ["en", 390, "book"],
+  ]) {
+    const f = await fixture({ locale, width });
+    try {
+      const capturedTitle = "별 + 이야기 &handoff=1 #2";
+      await f.page.setViewportSize({
+        width,
+        height: locale === "en" ? 650 : 900,
+      });
+      const params = new URLSearchParams({
+        quick: "1",
+        quick_focus: "1",
+        capture_title: capturedTitle,
+        capture_platform: "Disney+",
+        capture_type: captureType,
+        capture_source_url: "https://example.test/?token=PRIVATE-SOURCE",
+        user_id: "PRIVATE-USER",
+        device_id: "PRIVATE-DEVICE",
+        pairing_code: "PRIVATE-CODE",
+      });
+      await f.page.goto(
+        `${base.origin}/${locale === "en" ? "en" : ""}?${params}`,
+      );
+      const dialog = f.page.getByRole("dialog");
+      const bridge = dialog.getByTestId("windows-quick-record-bridge");
+      const search = dialog.getByTestId("title-search");
+      const appLink = bridge.locator('a[href^="ottline:"]');
+      const storeLink = bridge.locator('a[href^="https:"]');
+      const preference = bridge.getByRole("checkbox");
+      const appUrl = new URL(await appLink.getAttribute("href"));
+      assert.equal(appUrl.protocol, "ottline:");
+      assert.equal(appUrl.hostname, "quick");
+      assert.equal(appUrl.hash, "");
+      assert.deepEqual(Object.fromEntries(appUrl.searchParams), {
+        quick: "1",
+        title: capturedTitle,
+        q: capturedTitle,
+        platform: "Disney+",
+        type: captureType,
+      });
+      checkWindowsUrl(
+        await storeLink.getAttribute("href"),
+        locale,
+        "extension_handoff",
+      );
+      assert.equal(await search.inputValue(), capturedTitle);
+      await until(
+        () => search.evaluate((el) => el === document.activeElement),
+        "Default capture entry focuses web title search",
+      );
+      assert.equal(await preference.isChecked(), false);
+      await f.page.screenshot({
+        path: join(output, `extension-${locale}.png`),
+      });
+
+      await preference.check();
+      await f.page.reload();
+      assert.equal(await preference.isChecked(), true);
+      await until(
+        () => appLink.evaluate((el) => el === document.activeElement),
+        "Saved app preference focuses the app link on the next capture",
+      );
+      await appLink.evaluate((link) => {
+        link.addEventListener("click", (event) => {
+          event.preventDefault();
+          link.dataset.testLaunch = link.href;
+        });
+      });
+      await f.page.keyboard.press("Enter");
+      assert.equal(await appLink.getAttribute("data-test-launch"), appUrl.href);
+      assert.equal(await search.inputValue(), capturedTitle);
+      await activateExternalLink(f.page, storeLink);
+
+      await preference.uncheck();
+      await f.page.reload();
+      assert.equal(await preference.isChecked(), false);
+      await until(
+        () => search.evaluate((el) => el === document.activeElement),
+        "Clearing the preference restores search focus on the next capture",
+      );
+
+      if (locale === "ko") {
+        await search.fill(title.name);
+        await dialog.getByTestId("title-search-result").first().click();
+        await bridge.waitFor({ state: "detached" });
+        await dialog.getByTestId("record-status-DONE").click();
+        await dialog.getByTestId("record-save-initial").click();
+        await dialog.getByTestId("record-done").waitFor();
+      }
+      assert.deepEqual(f.errors, []);
+      scenarios++;
+    } finally {
+      await f.context.close();
+    }
+  }
+
+  for (const item of [
+    { userAgent: MAC },
+    { userAgent: ANDROID },
+    { standalone: true },
+    { userAgent: `${WINDOWS} WebView2` },
+    { quick: "0" },
+    { captureTitle: " " },
+  ]) {
+    const f = await fixture(item);
+    try {
+      const params = new URLSearchParams({
+        quick: item.quick ?? "1",
+        capture_title: item.captureTitle ?? title.name,
+      });
+      await f.page.goto(`${base.origin}/?${params}`);
+      const dialog = f.page.getByRole("dialog");
+      await dialog.getByTestId("title-search").waitFor();
+      assert.equal(
+        await dialog.getByTestId("windows-quick-record-bridge").count(),
+        0,
+      );
+      assert.deepEqual(f.errors, []);
+      scenarios++;
+    } finally {
+      await f.context.close();
+    }
+  }
+
   for (const item of [
     { name: "windows-ko", locale: "ko", expected: "windows-store" },
     { name: "windows-en", locale: "en", width: 390, expected: "windows-store" },
@@ -365,6 +492,10 @@ try {
         `${base.origin}/${f.locale === "en" ? "en" : ""}?quick=1`,
       );
       await f.page.getByTestId("title-search").fill(title.name);
+      assert.equal(
+        await f.page.getByTestId("windows-quick-record-bridge").count(),
+        0,
+      );
       await f.page.getByTestId("title-search-result").first().click();
       await f.page.getByTestId("record-status-DONE").click();
       await f.page.getByTestId("record-save-initial").click();
@@ -387,6 +518,10 @@ try {
           "Saved impression recorded",
         );
         if (item.expected === "windows-store") {
+          assert.match(
+            await f.page.getByTestId("saved-windows-store-cta").innerText(),
+            /Ctrl\+Shift\+O/,
+          );
           checkWindowsUrl(
             await link.getAttribute("href"),
             f.locale,

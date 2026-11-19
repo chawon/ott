@@ -150,7 +150,7 @@ test("Windows cooldown has an independent storage key and exact 14-day boundary"
   }
 });
 
-test("Windows public links carry only locale and the three fixed cid placements", () => {
+test("Windows public links carry only locale and fixed cid placements", () => {
   for (const locale of ["ko", "en"]) {
     const plainUrl = new URL(localizedStoreUrls(locale).microsoftStore);
     assert.equal(
@@ -166,6 +166,7 @@ test("Windows public links carry only locale and the three fixed cid placements"
       "web_global_banner",
       "web_quicklog_saved",
       "about_platform_card",
+      "extension_handoff",
     ]) {
       const url = new URL(
         buildNativeStoreUrl({
@@ -196,6 +197,18 @@ test("Windows public links carry only locale and the three fixed cid placements"
       );
     }
   }
+});
+
+test("the extension handoff campaign is Windows-only", () => {
+  assert.throws(
+    () =>
+      buildNativeStoreUrl({
+        platform: "android-play",
+        locale: "ko",
+        campaign: "extension_handoff",
+      }),
+    TypeError,
+  );
 });
 
 test("private or unknown strings cannot become campaign values", () => {

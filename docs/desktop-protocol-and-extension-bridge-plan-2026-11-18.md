@@ -89,9 +89,10 @@ ottline://quick?quick=1&title={encodedTitle}&q={encodedTitle}&platform={encodedP
 - **대상 파일**: [`apps/web/app/[locale]/page.tsx:224-230`](../apps/web/app/[locale]/page.tsx#L224-L230), QuickLog/홈 배너 컴포넌트, [`apps/web/lib/store-acquisition.mjs`](../apps/web/lib/store-acquisition.mjs), [`apps/web/app/[locale]/about/page.tsx`](../apps/web/app/[locale]/about/page.tsx)
 - **구현 내용**:
   1. 브라우저 확장이 열어주는 `?quick=1&capture_title=...&capture_platform=...&capture_type=...` 파라미터로 진입했고 현재 OS가 **Windows(`Windows NT`)**인 경우:
-     - 기존처럼 웹 QuickLog는 그대로 열어두되(기록 차단 금지), 상단에 조용한 보조 바 **"Windows 앱에서 바로 기록하기"**(`ottline://quick?quick=1&title=...&q=...&platform=...&type=...`) 및 **"앱 설치가 아직이라면 Microsoft Store에서 받기"**(`cid=extension_handoff`)를 함께 노출한다.
-     - 사용자가 `"항상 Windows 앱으로 열기"`를 선택하면 `localStorage` 플래그를 저장해 다음 확장 진입 시 안내 배너에서 즉시 앱 전환을 우선 제공한다.
-  2. `/about` 페이지에서 브라우저 확장 카드를 Android·iOS·Windows·macOS 메인 클라이언트 아래 **‘보조 도구’** 위상으로 조정하고, 문구에 *"Windows·macOS 데스크톱 앱과 함께 쓰면 브라우저에서 본 작품을 앱으로 바로 넘겨 기록할 수 있어요"*를 반영한다.
+     - 기존 웹 QuickLog 검색 단계 안에 **"Windows 앱에서 바로 기록하기"**와 **"Microsoft Store에서 설치"**(`cid=extension_handoff`)를 함께 표시한다. Windows 일반 브라우저에서만 제공하며 제목 검색과 저장은 기존 흐름을 사용한다.
+     - 앱으로 전달하는 URI는 `ottline://quick?quick=1&title=...&q=...&platform=...&type=...`이다. 제목과 플랫폼 값은 쿼리로 인코딩하고 타입은 `video`·`book`·`all`만 사용한다. 플랫폼 값이 없으면 생략한다.
+     - `"항상 Windows 앱으로 열기"`를 선택하면 이 브라우저에 설정을 저장한다. 다음 확장 진입에서 앱 링크를 강조하고 우선 포커스한다. 링크를 클릭하거나 Enter를 눌러 설치된 앱을 열 수 있다. 설정을 해제한 뒤 다음 진입부터는 제목 검색에 포커스한다.
+  2. `/about`의 앱 목록 아래에 브라우저 확장 **‘보조 도구’** 섹션을 둔다. Windows 앱으로 작품을 넘겨 기록하는 방법과 Mac App Store 출시 후 macOS 앱 연결을 지원한다는 점을 안내한다.
   3. **후속 정리 포함**: [PR `#133` 후속 메모](./web-acquisition-funnel-plan-2026-11-17.md#후속-phase-1-작업-시-실행할-검사)에 기록된 `Ctrl+Alt+O` → **`Ctrl+Shift+O`** 문구 정정도 이 Web PR에서 함께 처리한다.
 
 ### Phase B — Apple (`origin/feature/ios-native-v2`) macOS 출시 전 규격 정렬
@@ -126,6 +127,8 @@ ottline://quick?quick=1&title={encodedTitle}&q={encodedTitle}&platform={encodedP
 - [ ] macOS 연결 기기 목록에서 `macOS App · macOS`로 표시되는지 확인.
 
 ### Web (`apps/web`) 담당
-- [ ] `capture_title` 브릿지 노출 시 기존 웹 QuickLog 입력·저장 흐름을 막지 않으며, `ottline://quick` URI에 계정/기기 식별자 및 불필요한 원문 URL 파라미터가 포함되지 않는지 테스트.
-- [ ] Windows `Ctrl+Shift+O` 단축키 문구 정정 및 `test:seo-runtime`·`test:store-acquisition-runtime` 통과 확인.
+- [x] 확장 진입에서 QuickLog 제목 입력·저장, 앱 링크의 제목·플랫폼·타입 인코딩과 계정·기기·원본 URL 제외 확인.
+- [x] Windows `Ctrl+Shift+O`를 한·영 전역 배너·저장 후 CTA·소개 카드에서 확인. `test:seo-runtime` 공개 19개·개인 14개 경로, `test:store-acquisition-runtime` 29개 시나리오 통과.
+- [x] 로컬 프로덕션 빌드와 타입 검사, 스토어 정책 18건·분석 10건·SEO 단위 20건, 키보드 접근성과 저장 회귀 검사 통과.
+- [ ] 실제 Windows 앱이 설치된 기기에서 프로토콜 활성화와 새 기록 창의 프리필 확인. 로컬 Chromium에서는 링크 활성화와 브라우저의 웹 기록 계속 사용을 확인했다.
 - [ ] macOS 출시 후 Phase C 적용 시 iPadOS(`Macintosh` + `maxTouchPoints > 1`)가 `macos-appstore`로 오분류되지 않는지 `lib/store-acquisition.test.mjs` 단위 테스트로 고정.
