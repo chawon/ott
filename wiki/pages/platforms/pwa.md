@@ -3,7 +3,7 @@
 > 설치형 웹앱, 로컬 기록·Outbox와 한·영 오프라인 재진입 안내
 
 ## 관련 페이지
-- [[twa]]
+- [Android TWA 운영 이력](../../archive/twa.md)
 - [[ms-store]]
 - [[browser-extension]]
 
@@ -11,7 +11,7 @@
 
 ## 현재 상태
 
-> **채널 역할 (`2026-11-18` 기준)**: Google Play(구 [[twa]])와 Microsoft Store(구 PWABuilder Edge PWA)는 각각 [[android-native]](`2026-11-09`)·[[windows-native]](`2026-11-18`) 순수 네이티브 앱으로 전환 종료되어 스토어 래퍼형 배포는 더 이상 운영하지 않는다. 현재 PWA(`ottline.app` manifest + `sw.js` v7)는 **macOS·Linux 등 비-스토어 데스크톱 브라우저 설치(`browser-pwa`) 및 iOS/웹 기존 홈 화면 설치 사용자**를 위한 웹 설치 채널로만 유지한다.
+웹 PWA는 브라우저에서 설치한 데스크톱 앱과 기존 모바일 홈 화면 설치 사용자를 위한 채널이다. Google Play는 [Android Native](android-native.md)를, Microsoft Store는 [Windows Native](windows-native.md)를 배포한다. Android TWA와 Microsoft Store PWA에서 남은 데이터 이전은 전환 기록을 따른다. [Android 전환](../../../docs/android-native-v2-transition.md), [Windows 전환](../../../docs/windows-native-v2-transition.md)
 
 PWA 기본 요건(manifest, icons, screenshots, 설치 배너, service worker)을 갖추고 있다.
 

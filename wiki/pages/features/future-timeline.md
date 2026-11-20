@@ -41,7 +41,7 @@ V32의 `recommendation_account_state`, `recommendation_batches`, `recommendation
 
 - [정책·동시성·카탈로그 계약](../../../docs/future-timeline-account-policy.md)
 - [운영 배포·백업·검증](../../../docs/ottline-v2-production-rollout.md)
-- [OpenAI 전환 검토](../../../docs/future-timeline-openai-review.md)
+- [OpenAI 전환 검토](../../../docs/archive/features/future-timeline-openai-review.md)
 
 구현: `apps/api/src/main/java/com/watchlog/api/llm`, `service/RecommendationAccountStore.java`, `RecommendationService.java`, `RecommendationCatalogService.java`, `apps/web/lib/useRecommendations.ts`, `recommendations.ts`, `app/[locale]/timeline/page.tsx`.
 

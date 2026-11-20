@@ -1,6 +1,6 @@
 # 미래의 타임라인 — 계정별 선택과 하루 3회 정책
 
-2026-11-08 사용자가 승인한 후속 작업이다. 기존 `feature/ottline-ux-v2-web`에서 API·DB·웹을 함께 수정한다. 기존 디자인과 로컬 우선 기록 흐름을 유지한다. Google Books 개발 키 연결·네이티브 앱·운영 배포는 이번 범위에 없다.
+2026-11-08 Web v2와 함께 API·DB·Web에 반영한 미래의 타임라인 계약이다. 데이터 전송 범위와 계정별 제외·생성 한도, 실제 작품 연결을 다룬다. 배포는 [v2 운영 기록](ottline-v2-production-rollout.md), 앱별 지원은 [플랫폼 현황](platforms.md)을 따른다.
 
 ## 확정한 동작
 
@@ -92,7 +92,7 @@ LLM이 생성한 ID·ISBN을 믿고 저장하지 않는다. OpenAI는 알려진 
 - 웹 helper **8개**, TypeScript·수정 파일 Biome·Next.js 16.3.8 빌드 통과. 격리 브라우저 주요 시나리오 **11개** 통과. 카탈로그에서 실제 IndexedDB WISHLIST/outbox까지 이어지는 기존 저장 흐름을 확인했다. API는 전부 가로채 실제 서버 쓰기는 없었다.
 - 모바일 도서 판본 목록의 가로 나열을 추가로 재현해 카탈로그용 시트로 분리했다. 최종 모바일 KO/EN·PC 판본 목록과 닫기 버튼 영역은 수정한 빌드에서 별도 통과했다. 판본 선택 전 기록이 없고 사용자의 WISHLIST 저장 시 선택한 ISBN/provider로 실제 IndexedDB 기록과 outbox가 생기는 것도 세 화면에서 확인했다.
 
-비공개 검증 근거: `.recovery/ottline-v2/future-account-real/`, `future-state-red/`, `future-state-*/`. 로컬은 Flyway 비활성 상태라 V32 신규 테이블만 개발 DB에 적용했다. 운영은 V32를 포함한 API 배포가 먼저 필요하며 이번 작업에서는 배포하지 않았다.
+비공개 검증 근거: `.recovery/ottline-v2/future-account-real/`, `future-state-red/`, `future-state-*/`. 로컬은 Flyway 비활성 상태라 V32 신규 테이블만 개발 DB에 적용했다. 이 절의 검증은 개발 환경의 기록이다. 이후 운영 API에 V32를 적용하고 Web을 배포했다. [운영 검증](ottline-v2-production-rollout.md)
 
 ## 개발 환경 반영
 

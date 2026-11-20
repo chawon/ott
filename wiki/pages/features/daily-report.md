@@ -10,7 +10,7 @@
 
 ## 목적과 화면
 
-`/admin/report`는 Cloudflare 요청·방문자·page view, GA4 session·활성/신규 사용자, 자체 제품 활동과 production pod 상태를 한 화면에 보여준다. 관리자 화면은 locale segment를 사용하지 않고 한국어로 고정한다.
+`/admin/report`는 Cloudflare 요청·방문·page view, GA4 session·활성/신규 사용자, 자체 제품 활동과 production pod 상태를 한 화면에 보여준다. 관리자 화면은 locale segment를 사용하지 않고 한국어로 고정한다.
 
 `DailyReportService`는 KST 기준 전일 범위를 집계하고 기본 schedule인 UTC 00:00(KST 09:00)에 Telegram 메시지를 보낸다.
 
@@ -20,7 +20,7 @@
 
 | 소스 | 수집 데이터 | 방식 |
 |---|---|---|
-| Cloudflare | 요청 수, 방문자, page view | Cloudflare GraphQL Analytics API |
+| Cloudflare | 요청 수, 방문, page view | Cloudflare GraphQL Analytics API |
 | GA4 | session, 활성 사용자, page view, 신규 사용자 | GA4 Data API 서비스 계정 |
 | 자체 analytics | 실행 session, 활성 client, 행동 사용자, 독립 행동 도달 | `analytics_events` |
 | 서비스 DB | 서버에 반영된 신규 기록 수 | `watch_logs.created_at` |
@@ -32,10 +32,10 @@
 
 - 리포트 날짜는 KST 전일이다.
 - Cloudflare HTTP·RUM은 KST 전일 `[00:00, 다음 날 00:00)`을 UTC `datetime_geq`/`datetime_lt`로 변환해 같은 범위를 조회한다.
-- GA4는 KST 날짜를 조회하지만 오전 9시 발송 시점의 값이 이후 증가할 수 있다. 잠정치 표기는 별도 후속 작업이다.
-- Kubernetes는 리포트 날짜의 누적 통계가 아니라 조회 시점의 현재 상태다. 시점 표기는 별도 후속 작업이다.
+- GA4 전일 수치는 조회 후 보정될 수 있어 관리자 화면과 Telegram에 잠정치로 표시한다.
+- Kubernetes는 생성 시점의 스냅샷으로 표시하고 `generatedAt`의 KST 시각을 함께 보여준다.
 
-Cloudflare 응답의 `uniqueVisitors` 필드와 `방문자` 라벨은 현재 RUM `visits` 값을 담는다. 시간대 보정과 분리해 다음 단계에서 이름을 정리한다.
+Cloudflare의 방문 지표는 RUM `visits` 값이다. 순차 배포 호환용 `uniqueVisitors`에도 같은 값을 담는다. [지표 의미와 배포 기록](../../../docs/plan-daily-report.md#2026-08-03-지표-의미와-조회-시점-정리)
 
 ---
 
@@ -90,9 +90,9 @@ report:
 📊 ottline 데일리 리포트 (YYYY-MM-DD)
 
 🌐 트래픽 (Cloudflare)
-• 요청 / 방문자 / 페이지뷰
+• 요청 / 방문 / 페이지뷰
 
-📈 사용자 (GA4)
+📈 사용자 (GA4 · 잠정치)
 • 세션 / 활성 사용자 / 페이지뷰 / 신규 사용자
 
 🎯 앱 활동 (내부)
@@ -101,7 +101,7 @@ report:
 • 검색 / 제목 선택 / 기기 연결 / 첫 기록 / 기록 사용자
 • 신규 로그 수(DB)
 
-☸️ 인프라 (K8s / ott)
+☸️ 인프라 (K8s / ott · 조회 시점)
 • pod 상태 / image tag / CPU / memory
 ~~~
 

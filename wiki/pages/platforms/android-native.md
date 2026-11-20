@@ -1,64 +1,44 @@
-# Android Native (`apps/android-native`)
+# Android 앱
 
-> `2026-11-09`(`v2.0.0` `vc24` / `v2.0.1` `vc25`)부터 기존 Bubblewrap TWA를 대체해 Google Play `app.ottline` 프로덕션에 배포되는 순수 Android Native(Kotlin + Jetpack Compose + Room + WorkManager) 앱
+Kotlin · Jetpack Compose · Room · WorkManager 기반의 Google Play용 앱. `2026-11-09`부터 기존 Bubblewrap TWA를 네이티브 앱으로 이전했다.
 
-## 관련 페이지
-- [[ottline-v2]]
-- [[twa]]
-- [[pwa]]
-- [[personal-profile]]
-- [[future-timeline]]
+## 운영 상태
 
----
+기준일 2026-11-20.
 
-## 현재 상태 (`2026-11-09`)
+| 항목 | 확인 내용 |
+|---|---|
+| 최신 배포 기록 | `2.0.4` (`versionCode=28`), 2026-11-18 KST, 빌드와 Google Play 배포 단계 성공 |
+| 앱 식별자 | `app.ottline`, Debug 기본 `app.ottline.dev` |
+| 지원 버전 | 최소 Android 7.0(API 24), `targetSdk=36`, `compileSdk=36` |
+| 소스와 검증 | [apps/android-native](../../../apps/android-native/), [Android 빌드·릴리스 워크플로](../../../.github/workflows/native-android-release.yml) |
 
-- **패키지명**: `app.ottline` (Debug 빌드는 기존 앱과 동시 설치 가능하도록 `app.ottline.dev`)
-- **최신 프로덕션 버전**: `2.0.4` (`versionCode = 28`, `status = completed`, 100%)
-- **최소/타겟 SDK**: `minSdk = 24` (Android 7.0), `targetSdk = 36`, `compileSdk = 36`
-- **소스 경로**: `apps/android-native/`
-- **GitHub Actions**:
-  - `.github/workflows/native-android-ci.yml` (PR/main 단위 테스트·Lint·Debug APK 빌드)
-  - `.github/workflows/native-android-release.yml` (서명 Release AAB 빌드, DEX/R8 계약 검증 `scripts/verify-release-aab.sh`, `gplay release` 자동 배포)
+버전과 배포 결과의 근거는 [빌드·배포 실행 44111552653](https://github.com/chawon/ott/actions/runs/44111552653)이다. 로컬 빌드와 서명 절차는 [Android 개발 가이드](../../../apps/android-native/README.md)를 참고한다.
 
----
+## 주요 진입점과 데이터
 
-## 핵심 아키텍처 및 UX v2 구성
+- [LauncherActivity.kt](../../../apps/android-native/app/src/main/java/app/ottline/LauncherActivity.kt)와 [OttlineAppRoot.kt](../../../apps/android-native/app/src/main/java/app/ottline/ui/OttlineAppRoot.kt)에서 딥링크와 화면을 연결한다.
+- [QuickRecordDialog.kt](../../../apps/android-native/app/src/main/java/app/ottline/ui/screens/QuickRecordDialog.kt)는 작품 선택 후 최초 기록을 저장하고 별도 단계에서 장소·상황·메모 등 부가 정보를 보완한다. `2.0.4`는 서버 동기화 뒤 정규 ID가 바뀌어도 기존 기록에 부가 정보를 저장하고 이미 생긴 로컬 중복을 병합한다. [PR #134](https://github.com/chawon/ott/pull/134)
+- [OttlineRepository.kt](../../../apps/android-native/app/src/main/java/app/ottline/data/OttlineRepository.kt)는 Room의 기록과 outbox를 관리한다. WorkManager가 연결 복구 시 서버와 동기화한다.
 
-1. **한 손 수첩 UX v2 & 풀화면 빠른 기록 모달 (`QuickLogModal.kt`)**
-   - 따뜻한 종이 톤 라이트(`#F8F6F2`) / 다크(`#15120F`), 브랜드 네이비(`#1E4D8C`), 포인트 오렌지(`#FF9933`), `Pretendard` 타이포그래피, 열린 책+재생 심볼 및 6종 동화풍 스토리북 아바타 내장.
-   - 풀화면 다이얼로그(`usePlatformDefaultWidth = false`)로 작품 선택 시 팝업 축소나 하단 잘림 없이 동작.
-   - 상태 선택(`봤어요·보는 중·보고 싶어요` / `읽었어요·읽는 중·읽고 싶어요`)과 저장을 분리하고, 하단 고정 바의 **기록 남기기** 버튼으로 명시적 저장.
-   - **그날의 순간**(달력 날짜, 플랫폼, 장소, 상황, 3단계 감상 느낌, 메모, 함께 화면 나누기) 섹션을 기본 펼침 상태로 표시.
-2. **오프라인 우선(Local-First) + Outbox 동기화**
-   - `Room`(`OttlineDatabase`) + `OutboxEntity` + `SyncWorker`(`WorkManager`)로 오프라인 작성 후 온라인 복귀 시 자동 push/pull 동기화 및 서버 정규 ID 리매핑.
-3. **기존 TWA 컴포넌트 100% 호환**
-   - `app.ottline.LauncherActivity`, `app.ottline.QuickLogWidgetProvider`, `app.ottline.WatchReminderSettingsActivity`, `app.ottline.WatchReminderWorker`, `app.ottline.RevisitReminderWorker` 컴포넌트 명칭과 `SharedPreferences` 키 유지.
+## 기존 TWA 사용자 이전
 
----
+설치 토큰에 서버 매핑이 있으면 업데이트한 앱이 먼저 기존 기기 세션을 복원하고 기록을 동기화한다. 서버에서 세션을 복원할 수 없으면 기존 TWA가 사용한 브라우저에서 `?native_handoff=1`을 열어 웹의 계정·기록을 동기화한 뒤 `ottline://open`으로 복귀한다. 네이티브 `2.0.0`에서 이미 새 기록을 작성한 경우 연결 코드로 계정을 병합한다. [Android 전환 및 복구 가이드](../../../docs/android-native-v2-transition.md)
 
-## 기존 TWA(`versionCode <= 23`) → 네이티브 업데이트 자동 세션·기록 복구 (`2.0.1` / `vc25`)
+| 버전 | 출시 변경 | 증빙 |
+|---|---|---|
+| `2.0.0 (24)` | Play 앱을 Bubblewrap TWA에서 네이티브로 전환 | [42550886641](https://github.com/chawon/ott/actions/runs/42550886641) |
+| `2.0.1 (25)` | TWA 세션·기록 복구 | [42564729159](https://github.com/chawon/ott/actions/runs/42564729159) |
+| `2.0.2 (26)` | Play 인앱 리뷰와 스토어 평가 진입점 | [43023168335](https://github.com/chawon/ott/actions/runs/43023168335) |
+| `2.0.3 (27)` | 웹 Play 유입, Install Referrer와 계정 핸드오프 | [43028828768](https://github.com/chawon/ott/actions/runs/43028828768) |
+| `2.0.4 (28)` | 빠른 기록의 중복 생성 방지와 기존 중복 정리 | [44111552653](https://github.com/chawon/ott/actions/runs/44111552653) |
 
-기존 TWA는 사용자 세션을 브라우저(`https://ottline.app`) `localStorage`/`IndexedDB`에 저장했기 때문에, 네이티브 업데이트 첫 실행 시 아래 **2단계 자동 복구**로 기존 기록과 프로필을 이어받는다.
+## 연결된 기기 표시
 
-1. **1단계 — 백그라운드 `install_token` 서버 세션 즉시 복원 (`OttlineRepository.tryRestoreFromTwaInstallToken`)**
-   - 앱 내부 `shared_prefs/ottline.android_install.xml`에 남아 있는 구버전 TWA의 43자 Base64URL `install_token`을 감지해 `POST /api/android/notification-devices/restore-session`을 호출한다.
-   - 서버 `android_notification_devices`에 매핑된 기존 `(userId, deviceId, pairingCode, nickname, personaKey)`를 브라우저 실행 없이 즉시 복원하고 타임라인을 동기화한다.
-2. **2단계 — `TwaBrowserBridge` 외부 브라우저 자동 핸드오프**
-   - 1단계 매핑이 없거나 오프라인으로만 기록했던 경우, `TwaBrowserBridge.resolveExternalBrowserPackage`가 기존 TWA 브라우저 패키지(`com.google.androidbrowserhelper.trusted.PREFS_FILE.xml` 기록 → `CustomTabsClient.getPackageName` → `CustomTabsService` 지원 브라우저 순, `app.ottline` 자신은 제외)를 특정해 `https://ottline.app/{ko|en}?native_handoff=1`을 연다.
-   - 웹(`<head>` 인라인 스크립트 및 `AndroidAppContextRecorder.tsx`)이 `localStorage`·`IndexedDB` 세션을 동기화한 뒤 `ottline://open?handoff=1&status=ok&...` 딥링크로 네이티브 앱에 즉시 되돌려준다.
-3. **임시 계정 자동 병합 (`OttlineRepository.completeTwaHandoff`)**
-   - `2.0.0`(`vc24`)에서 이미 임시 계정에 새 기록을 작성한 상태에서 기존 TWA 세션이 복구되면 `pairWithCode`로 새 기록과 기존 TWA 기록을 손실 없이 병합한다.
+API는 기존 `2.0.4` 앱의 `ottline-android/` User-Agent를 인식해 웹에서도 연결 기기를 `Android App · Android`로 표시한다. `main`에는 Android 앱의 `X-Client-Platform: android_native` 전송과 기기 라벨 정렬도 추가됐다. Play에 배포된 `2.0.4`의 소스 SHA와 API 운영 SHA는 각각 `7b373d0`, `38112ca`다. [PR #136](https://github.com/chawon/ott/pull/136)
 
----
+## 관련 문서
 
-## 프로덕션 배포 이력 (`2026-11-09`)
-
-- **`2.0.0` (`versionCode = 24`)**: main SHA `45ccac3b797a29bf78691e52972748b1a9cf3a47`, Android Release Run `42550886641` (`production` 트랙 `completed`), Play edit `12908968039807814595`로 v2 신규 아이콘(`512x512`)·피처 그래픽(`1024x500`)·스크린샷 5장(`1080x1920`) 및 스토어 문구 반영.
-- **`2.0.1` (`versionCode = 25`)**: main SHA `916be7abe9a8712d3f5a0a5e460a7bf820e23b0c`, API Run `42564733989`, Web Run `42564731554`, Android Release Run `42564729159` (`production` 트랙 `completed`), Play edit `18276584036455797705`로 `ko-KR`/`en-US` 출시 노트 반영.
----
-
-## 연결된 기기 표시 (`Android App · Android`)
-
-- `OttlineApiClient.buildRequest`는 공통 API 요청에 `X-Client-Platform: android_native` 헤더와 `ottline-android/<version>` User-Agent를 전송한다(외부 공유 링크 메타 추출 `resolveSharedUrlTitle` 제외).
-- API `AuthService`는 `X-Client-Platform: android_native`뿐 아니라 헤더 없는 기존 `2.0.4` 앱의 `ottline-android/` User-Agent도 `os = "Android"`, `browser = "Android App"`으로 분류하며, 앱 내 `MySpaceScreen`도 웹(`/account`)과 동일한 `browser · os` 순서로 표시한다.
+- [ottline v2](../features/ottline-v2.md)
+- [TWA 이력](../../archive/twa.md)
+- [Web/PWA](pwa.md)

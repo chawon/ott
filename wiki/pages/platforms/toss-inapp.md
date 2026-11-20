@@ -1,134 +1,22 @@
-# 토스 인앱 (앱인토스 미니앱)
+# 토스 인앱
 
-> @apps-in-toss/web-framework 기반 WebView 방식으로 ottline을 토스 앱 내 미니앱으로 출시
+토스 앱의 WebView에서 앱인토스 미니앱 `내 OTT 타임라인`을 제공한다. 2026-05-18 재검토 승인 후 출시했다. 토스 앱 안에서는 `intoss://ottline`으로 열 수 있다. [공개 링크](https://minion.toss.im/XYvjpUB2)
 
-## 관련 페이지
-- [[twa]]
-- [[pwa]]
-- [[ottline-branding]]
+## 소스와 출시
 
----
+| 항목 | 기준 |
+| --- | --- |
+| 운영 빌드 소스 | [별도 배포 브랜치 `chore/toss-inapp-current-release-20260517`](https://github.com/chawon/ott/tree/8bfb63190e84e9e549e0d99f78d3ffe5a6423665/apps/web) |
+| 빌드 | `apps/web/granite.config.ts`의 WebView 설정과 `npm run build:next-ait` 정적 export를 사용한다. 토스 제출 산출물은 `apps/web/ottline.ait`다. |
+| SDK 및 API | 운영 브랜치의 `@apps-in-toss/web-framework` 선언 `^2.5.1`, API 주소 `https://ottline.app` |
+| 출시 근거 | 2026-05-18 승인·출시 기록 및 공개 링크의 토스 딥링크 확인. 콘솔의 최신 번들 버전과 실기기 동작은 후속 제출 전 확인한다. |
 
-## 현황
+`main`의 웹 배포와 토스의 검토·출시는 별개다. Web v2를 이식할 경우 실제 서비스 중인 토스 번들을 먼저 대조하고 정적 빌드, 페어링 코드 기기 연결, 빠른 기록, 이미지 저장 및 텍스트 공유를 토스 앱에서 검증한다.
 
-| 항목 | 상태 |
-|------|------|
-| 파트너사 신청 | ✅ 완료 |
-| 토스 표시명 확정 | ✅ `내 OTT 타임라인` |
-| 앱 등록 및 검수 요청 | ✅ 2026-04-05 최초 요청, 2026-05-18 재검토 승인 |
-| 1차 검수 결과 | ❌ 반려 (2026-04-14) |
-| 반려 대응 코드 | ✅ 완료 (2026-04-14) |
-| 실기기 재테스트 | ✅ 완료 |
-| 출시 상태 | ✅ 승인 및 출시 완료 (2026-05-18 기준) |
+## 미니앱에서 확인할 동작
 
-## 기술 스택
+- 앱인토스 환경에서는 PWA 설치 안내와 서비스워커 등록을 건너뛴다.
+- 토스 브리지로 공유 카드 이미지를 기기에 저장하고, 공유 버튼은 텍스트 공유를 사용한다.
+- 정적 페이지에서 API를 호출할 때는 `https://ottline.app/api/…`를 사용한다. 운영 API 계약이나 페어링 방식 변경 시 현재 공개 번들과 새 번들 양쪽에서 확인한다.
 
-- SDK: `@apps-in-toss/web-framework` v2.4.1
-- 설정: `apps/web/granite.config.ts` (appName, brand, icon CDN URL), `apps/web/ottline.ait` (번들)
-- 진입: `intoss://ottline`
-- 공개 링크: `https://minion.toss.im/XYvjpUB2`
-- 방식: 기존 Next.js 앱에 WebView SDK를 얹는 방식 (React Native 신규 개발 아님)
-
-## 구현 완료 항목 (Phase 1)
-
-- `@apps-in-toss/web-framework` 설치 및 `ait init`
-- `granite.config.ts` 설정 (appName, primaryColor `#1E4D8C`, icon)
-- PWA 설치 배너 — `window.__appsInToss` 감지 시 미니앱 환경에서 비활성화
-- Service Worker — 미니앱 환경에서 등록 스킵
-- 샌드박스 및 프로덕션 앱 접근 테스트 완료
-
-## 정책 준수 검토 (Phase 2)
-
-> 검토 완료: 2026-04-07
-
-| 항목 | 결과 | 비고 |
-|------|------|------|
-| 자사 앱 설치 유도 금지 | ✅ 준수 | PWA 배너 `window.__appsInToss` 감지 시 비활성화 완료 |
-| 공유카드 외부 링크 | ❌ **조치 필요** | "공유하기 링크가 자사 웹사이트로 랜딩되는 상태" = 명시적 제한 행위. 미니앱 환경에서 `ottline.app으로 열기` 버튼 제거 필요 |
-| 로그인 정책 | ⚠️ 잠재 이슈 | 로그인 UI 없어 직접 충돌 없음. 페어링 코드는 커스텀 계정 연결로 판단될 여지 있음 |
-| 결제 | ✅ 해당 없음 | 결제 기능 없음 |
-| 광고 | ✅ 해당 없음 | 광고 없음 |
-| 다크패턴 | ✅ 준수 | 온보딩 오버레이 현재 비활성화 상태 |
-| 서비스 카테고리 | ✅ 출시 가능 | 금융·가상자산·의료 등 제한 카테고리 아님 |
-| 앱 내 기능 등록 (비게임 필수 1개↑) | ✅ 완료 | 콘솔 등록 확인, 미니앱 재진입으로 동작 검증 완료 (2026-04-07) |
-
-### 보류 항목
-
-- [ ] **공유카드**: 운영 중 추가 정책 피드백이 오면 `ShareBottomSheet`에서 `window.__appsInToss` 감지 시 `ottline.app으로 열기` 버튼 숨김 처리 검토
-
-참고: [자사 앱 설치/외부 링크 가이드라인](https://developers-apps-in-toss.toss.im/checklist/miniapp-external-link.md), [서비스 오픈 정책](https://developers-apps-in-toss.toss.im/intro/guide.md)
-
-## 검수 피드백 및 이슈
-
-### 2026-04-14 심사 반려 사유
-
-1. 불필요한 화면 확대·축소 제스처가 활성화되어 있음
-2. 일부 UI 컴포넌트 비정상 동작
-   - 이미지 저장 미동작
-   - 공유하기 버튼이 `준비 중...` 상태로 보임
-
-### 2026-04-14 대응 코드
-
-- `apps/web/app/[locale]/layout.tsx`
-  - `tossmini.com` 또는 `window.__appsInToss` 환경에서 `viewport`를 `maximum-scale=1`, `user-scalable=no`로 강제
-- `apps/web/lib/appsInToss.ts`
-  - 앱인토스 브리지 유틸 추가 (`saveBase64Data`, `share`)
-- `apps/web/lib/share.ts`
-  - 저장 시 앱인토스 네이티브 저장 우선 사용
-  - 앱인토스 환경에서는 공유 카드 이미지를 로컬 canvas로 생성해 미리보기/저장에 사용
-  - Web Share(files) 또는 네이티브 파일 공유가 불가한 경우 앱인토스 텍스트 공유 fallback
-- `apps/web/components/ShareBottomSheet.tsx`
-  - preview 준비 여부와 무관하게 `공유하기` 버튼 즉시 활성화
-  - 공유 시 이미지 blob 생성 우선, 실패 시에만 텍스트 공유로 fallback
-
-### 2026-04-14 실기기 재테스트 결과
-
-- [x] 앱인토스 sandbox/production 도메인에서 실제 핀치 줌 차단 확인
-- [x] 공유 카드 미리보기 확인
-- [x] 공유 카드 `이미지 저장` 동작 확인
-- [x] `공유하기` 버튼이 `준비 중...` 상태에 고정되지 않음 확인
-- [x] 2026-04-21 공개 링크 운영 반영 확인
-
-### 2026-04-21 공개 링크 반영
-
-- 사용자 공개 진입 링크 운영 확인: `https://minion.toss.im/XYvjpUB2`
-- `/about` 서비스 소개는 토스 진입점 설명과 페어링 코드 연속성 메시지를 분리해 정리
-
-### 2026-05-18 승인 및 출시 완료
-
-- 토스 인앱 미니앱이 재검토 승인 후 출시 완료됨.
-- 토스 표시명은 `내 OTT 타임라인` 기준으로 운영한다.
-- 토스 인앱은 별도 브랜치로 계속 운영하며, main 병합 대상이 아닌 채널별 배포 산출물로 관리한다.
-
-### 현재 제한사항
-
-- 앱인토스 SDK `share` 브리지는 텍스트 메시지 공유만 지원한다.
-- 따라서 미니앱의 `공유하기`는 현재 이미지 첨부가 아니라 텍스트 공유로 동작한다.
-- 심사 대응 기준에서는
-  - 저장 버튼은 정상 동작
-  - 공유 버튼도 정상 동작
-  - 단, 공유 포맷은 SDK 제약상 텍스트다.
-
-### 아이콘 & 썸네일 (2026-04-06 피드백)
-
-**요건**: 크롭되지 않으며 배경색이 포함된 꽉 찬 사각형으로 제출
-
-| 파일 | 조치 | 결과 |
-|------|------|------|
-| `public/icon-600.png` | 투명 모서리 → `#F0F6FF` 배경색으로 채움, CDN 재업로드 | ✅ 완료 (2026-04-07) |
-| `public/thumbnail-1932x828.png` | 양쪽 177px 레터박스 바 → 수직 그래디언트 연장으로 제거, 재업로드 | ✅ 완료 (2026-04-07) |
-
-> `granite.config.ts`의 icon은 토스 콘솔에 `icon-600.png`를 업로드해서 발급받은 CDN URL(`static.toss.im/appsintoss/...`)로 설정되어 있음. 검수 피드백의 아이콘 문제는 이 파일이 원인. `.ait` 번들의 icon은 별도로 `./public/icon-192.png` 참조.
-
-### 페어링 코드 (잠재적 이슈)
-
-로그인 UI가 없으므로 "토스 로그인만 허용" 정책과 직접 충돌하지 않음.
-단, 검수에서 페어링 코드를 커스텀 계정 연결로 판단할 경우 반려 가능성 있음.
-→ 반려 시 토스 로그인 연동 검토.
-
-## 참고
-
-- [앱인토스 개발자 센터](https://developers-apps-in-toss.toss.im)
-- [WebView 튜토리얼](https://developers-apps-in-toss.toss.im/tutorials/webview.md)
-- [비게임 출시 가이드](https://developers-apps-in-toss.toss.im/checklist/app-nongame.md)
-- [미니앱 출시 절차](https://developers-apps-in-toss.toss.im/development/deploy.md)
+[초기 검수 및 출시 이력](../../archive/toss-inapp-launch-2026.md) · [앱인토스 개발자 센터](https://developers-apps-in-toss.toss.im)

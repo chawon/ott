@@ -30,7 +30,7 @@ Microsoft Partner Center 획득 리포트(최근 12개월, `2026-03-18` 출시 �
 
 ## 2. `apps/web` 코드베이스에서 확인된 유입·전환 누수 지점
 
-현재 웹 코드에는 Android Google Play 전환 장치만 구축되어 있고, Windows·iOS 웹 방문자 유도 및 검색 유입 입구가 비어 있다.
+Phase 1 착수 전에는 Android에만 Google Play 전환 장치가 있었다. Windows·iOS 웹 방문자 유도와 검색 유입의 기준선은 아래와 같다.
 
 1. **Windows·iOS 웹 방문자에게 스토어 앱 대신 브라우저 PWA 설치만 안내**
    - [`apps/web/components/PwaInstallBanner.tsx`](../apps/web/components/PwaInstallBanner.tsx#L68-L116): Android(`isAndroidUserAgent`)만 `beforeinstallprompt`를 억제하고 Google Play(`android-play`) 배너를 띄운다.
@@ -38,7 +38,7 @@ Microsoft Partner Center 획득 리포트(최근 12개월, `2026-03-18` 출시 �
 2. **iOS Safari 공식 Smart App Banner 미적용**
    - [`apps/web/app/[locale]/layout.tsx`](../apps/web/app/[locale]/layout.tsx#L25-L72) 및 [`<head>`](../apps/web/app/[locale]/layout.tsx#L174-L222)에 `<meta name="apple-itunes-app" content="app-id=6780318110">`(`itunes` 메타데이터)가 빠져 있다.
 3. **QuickLog 첫 저장 직후 전환 시점 누락 (Windows·iOS)**
-   - [`apps/web/components/QuickLogCard.tsx`](../apps/web/components/QuickLogCard.tsx#L1498)는 기록 저장 직후 [`SavedAndroidPlayCta.tsx`](../apps/web/components/SavedAndroidPlayCta.tsx#L17-L96)만 렌더링한다. 웹에서 1건을 방금 기록해 가치를 체감한 Windows·iOS 방문자에게는 아무 스토어 안내도 뜨지 않는다.
+   - [`apps/web/components/QuickLogCard.tsx`](../apps/web/components/QuickLogCard.tsx#L1498)는 기록 저장 직후 당시 `SavedAndroidPlayCta.tsx`만 렌더링했다. 웹에서 1건을 방금 기록해 가치를 체감한 Windows·iOS 방문자에게는 아무 스토어 안내도 뜨지 않는다.
    - 참고: [`layout.tsx`](../apps/web/app/[locale]/layout.tsx#L129-L152)에는 이미 `?native_handoff=1` → `ottline://open?handoff=1` 자동 세션·기록 핸드오프 스크립트가 들어 있어 Windows Native v2 및 Android Native와 바로 이어진다.
 4. **`/about` Windows v2 카피 구버전 유지 & 캠페인 파라미터(`?cid=`, `?ct=`) 부재**
    - [`apps/web/messages/ko.json`](../apps/web/messages/ko.json#L572-L574) / [`en.json`](../apps/web/messages/en.json#L572-L574)의 `About.platformWindowsDesc`가 여전히 *"같은 웹 앱을 Microsoft Store 배포 형태로 열 수 있어..."*로 구버전 PWA를 설명한다.
@@ -82,7 +82,7 @@ Microsoft Partner Center 획득 리포트(최근 12개월, `2026-03-18` 출시 �
 - 인앱 WebView(`TossApp` 등 설치 전환이 부적절한 임베드 환경) 감지 시 배너를 과도하게 띄우지 않도록 예외 규칙을 unit test로 고정한다.
 
 #### 1-4. QuickLog 저장 직후 네이티브 스토어 안내 확장
-- **대상 파일**: [`apps/web/components/SavedAndroidPlayCta.tsx`](../apps/web/components/SavedAndroidPlayCta.tsx) 일반화(예: `SavedNativeStoreCta.tsx`) 및 [`apps/web/components/QuickLogCard.tsx`](../apps/web/components/QuickLogCard.tsx#L1498)
+- **구현 파일**: [`apps/web/components/SavedNativeStoreCta.tsx`](../apps/web/components/SavedNativeStoreCta.tsx)와 [`apps/web/components/QuickLogCard.tsx`](../apps/web/components/QuickLogCard.tsx#L1498)
 - Android에서 이미 검증된 저장 직후 CTA 패턴(`data-testid` 유지 또는 플랫폼별 확장)을 Windows·iOS 웹 사용자에게도 확장한다.
   - Android: Google Play(`campaign: "quicklog_saved"`, `webHandoff: true`) — 기존 동작 유지.
   - Windows 비-standalone 웹: Microsoft Store(`cid=web_quicklog_saved`), *"방금 남긴 기록, Windows 11 위젯과 데스크톱 앱에서도 페어링 코드로 그대로 이어집니다"* 안내.

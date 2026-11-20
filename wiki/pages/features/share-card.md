@@ -6,7 +6,7 @@
 - [[book-log]]
 - [[analytics]]
 - [[personal-profile]]
-- [[seasonal-recap]]
+- [seasonal-recap](../../archive/seasonal-recap.md)
 
 ---
 

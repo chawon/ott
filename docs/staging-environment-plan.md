@@ -63,19 +63,9 @@ ArgoCD는 `deploy/oke/`만 production source of truth로 본다.
 
 ---
 
-## 버전 표시
+## 배포 버전 확인
 
-Footer에는 production web/API 버전만 표시한다.
-
-```
-web a1b2c3d · api a1b2c3d
-```
-
-- web 버전: K8s Deployment의 `APP_VERSION` env
-- api 버전: `BACKEND_URL/actuator/info` 호출 결과
-- production workflow가 배포 시 `APP_VERSION`을 `{short-sha}` 형식으로 기록한다.
-
----
+Web/API Deployment에서 컨테이너 이미지 태그의 전체 SHA와 `APP_VERSION`의 짧은 SHA를 배포 워크플로우에 입력한 커밋과 비교한다. ArgoCD 적용 상태와 Pod readiness를 함께 확인한다.
 
 ## On-demand Staging
 

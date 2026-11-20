@@ -21,7 +21,9 @@
 
 ---
 
-## 2. 실측 코드 대조: Windows vs Apple (`feature/ios-native-v2:7038ce0`) 현황
+## 2. Apple 규격 정렬 전 코드 대조 (`7038ce0`)
+
+이 표는 최초 설계 당시의 비교다. 최신 Apple 브랜치의 구현과 실기기 확인 항목은 [Phase B](#phase-b--apple-브랜치의-macos-출시-전-규격-정렬)를 따른다.
 
 | 항목 | Windows Native (`main` `2.0.0.0` 출시됨) | macOS / iOS Native (`origin/feature/ios-native-v2`) | 격차 및 조치 방향 |
 |---|---|---|---|
@@ -47,7 +49,7 @@ ottline://quick?quick=1&title={encodedTitle}&q={encodedTitle}&platform={encodedP
 - **Windows `v2.0.0.0` 무재빌드 호환성**:
   - Windows `ShareIntentParser`는 `host == "quick"`과 `quick=1`, `title`, `platform`, `type`을 이미 읽으므로 **스토어에 출시된 Windows `2.0.0.0` 재빌드 없이 바로 동작**한다 ([`MainViewModel.cs:2049-2056`](../apps/windows-native/src/Ottline.App/ViewModels/MainViewModel.cs#L2049-L2056)).
   - 현재 Apple(`feature/ios-native-v2`) 코드에서도 `qVal("quick") == "1"`과 `q`, `platform`, `type`이 읽히지만, 추후 단일 키 호출과의 일관성을 위해 **Apple 측(`OttlineMacApp.swift`, `OttlineApp.swift`)도 아래 별칭을 모두 허용**한다.
-- **권장 파서 규격 (Apple 측 보강)**:
+- **Apple 브랜치 파서 규격**:
   - 빠른 기록 진입 조건: `host == "quick" || host == "quick-record" || qVal("quick") == "1"`
   - 초기 검색어: `qVal("q") ?? qVal("title") ?? qVal("query") ?? qVal("capture_title") ?? ""`
   - 플랫폼 프리필: `qVal("platform") ?? qVal("capture_platform")` (트림 후 비어 있지 않을 때 적용)
@@ -103,7 +105,9 @@ ottline://quick?quick=1&title={encodedTitle}&q={encodedTitle}&platform={encodedP
 - 운영 Web Pod의 자산을 사용한 Chromium 검사 29개가 통과했다. 한·영 확장 진입, 앱 링크 활성화, 앱 우선 설정의 유지·해제, `cid=extension_handoff`와 웹 저장을 확인했다. 저장과 이벤트는 브라우저에서 모의 처리했으며 Windows 앱 실행과 프리필은 실기기 확인 항목이다.
 - macOS 앱 연결은 Mac App Store 출시 후 Phase C에서 활성화한다.
 
-### Phase B — Apple (`origin/feature/ios-native-v2`) macOS 출시 전 규격 정렬
+### Phase B — Apple 브랜치의 macOS 출시 전 규격 정렬
+
+`8685ff2`에서 아래 공통 규격을 구현했다. [PR #137](https://github.com/chawon/ott/pull/137)의 `4addda3`에서 [macOS CI](https://github.com/chawon/ott/actions/runs/44558347464)와 [iOS CI](https://github.com/chawon/ott/actions/runs/44558347502)가 통과했다. Mac App Store 출시와 Safari·Chrome에서 설치 앱으로 이어받는 실기기 검증은 별도 항목이다. [macOS 플랫폼 현황](../wiki/pages/platforms/macos-native.md)
 
 - **대상 파일**: `apps/macos-native/Sources/OttlineMacApp/OttlineMacApp.swift`, `apps/ios-native/Sources/OttlineApp/OttlineApp.swift`, `apps/apple-core/Sources/OttlineCore/`
 - **구현 내용**:
@@ -130,9 +134,11 @@ ottline://quick?quick=1&title={encodedTitle}&q={encodedTitle}&platform={encodedP
 ## 5. 트랙별 검증 체크리스트
 
 ### Apple (`feature/ios-native-v2`) 담당
-- [ ] `ottline://quick?quick=1&title=...&q=...&platform=Netflix&type=video` 수신 시 `OttlineMacApp` / `OttlineApp` 빠른 기록 시트에 제목·플랫폼·타입이 프리필되는지 단위 테스트 및 수동 실행 확인.
-- [ ] `https://ottline.app/ko?native_handoff=1` 호출 후 브라우저에서 `ottline://open?handoff=1&status=ok&...` 복귀 시 기존 웹 기록과 연결 코드가 병합·복원되고 `status=empty` 안내가 정상 동작하는지 확인.
-- [ ] macOS 연결 기기 목록에서 `macOS App · macOS`로 표시되는지 확인.
+
+- [x] 빠른 기록 별칭 파싱 및 브라우저 세션 병합 단위 테스트와 macOS/iOS CI 통과.
+- [ ] 설치한 macOS 앱에서 빠른 기록 링크의 제목·플랫폼·타입 미리 채움을 확인.
+- [ ] Safari와 Chrome에서 `https://ottline.app/ko?native_handoff=1`을 호출해 세션·연결 코드·로컬 미동기화 기록 병합과 `status=empty` 안내를 확인.
+- [ ] 운영 API에 연결한 macOS 앱에서 `macOS App · macOS` 기기 표시를 확인.
 
 ### Web (`apps/web`) 담당
 - [x] 확장 진입에서 QuickLog 제목 입력·저장, 앱 링크의 제목·플랫폼·타입 인코딩과 계정·기기·원본 URL 제외 확인.

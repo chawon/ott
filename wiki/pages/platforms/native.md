@@ -1,53 +1,31 @@
-# Native 앱 (React Native + Expo)
+# iOS 앱
 
-> `apps/native/`의 iOS 네이티브 앱. 기준일: 2026-10-14.
+기준일 2026-11-20. iOS는 App Store에서 Expo 기반 `1.0.4`를 배포 중이며 SwiftUI 기반 v2의 통합 PR이 열려 있다.
 
-## 현황
+## 운영 앱
 
-`apps/native`는 main에 병합됐으며 2026-06-29 [App Store](https://apps.apple.com/app/ottline/id6780318110)에 출시됐다. 사용자 화면을 React Native로 구현한다. Android의 현재 배포 경로는 별도의 [[twa]]다.
-
-- 공개 버전: `1.0.3` (`2026-10-14` Apple 공개 조회).
-- 최신 EAS 빌드: `1.0.4 (24)`, SHA `fc074ceef188161940a9aec6facaef2034f2119f`, [빌드 성공](https://expo.dev/accounts/ergate23/projects/ottline/builds/057972ad-3c10-4a59-9e5b-ef051c1a160d).
-- 카카오 책 공급자 식별자 보존, 기존 Naver 기록 호환, Expo SDK 55 패치와 CI 검사를 반영했다.
-- Apple 계약 차단 해제 후 같은 빌드로 재제출했다. Apple `VALID`, 내부 TestFlight `IN_BETA_TESTING`, `expired=false`를 확인했다. 사용자가 같은 빌드의 App Store 심사를 제출했고 `WAITING_FOR_REVIEW`, `AFTER_APPROVAL`을 확인했다. 승인 후 공개·실제 업데이트를 확인한다.
-- 상세: [카카오 적용·검증](../../../docs/native-kakao-books.md), [TestFlight 이력](../../../docs/ios-testflight-review-notes.md).
-
-## 기술과 화면
-
-| 항목 | 현재 구현 |
+| 항목 | 확인 내용 |
 |---|---|
-| 프레임워크 | Expo SDK 55, React Native `0.83.10`, React `19.2.1` |
-| 라우팅 | Expo Router |
-| 주요 탭 | 기록하기 `log`, 타임라인 `timeline`, 함께 `together`, 설정 `account` |
-| 추가 화면 | 작품·공개 글 상세, 이용 리포트, 문의, 소개·FAQ·개인정보 안내, 오프라인 안내 |
-| 인증·저장 | Zustand, SecureStore, SQLite 로컬 기록·outbox |
-| API·동기화 | 기본 `https://ottline.app`, `/api/sync/push`, `/api/sync/pull` |
-| 언어·테마 | 한국어·영어, 라이트·다크·시스템 설정 |
-| 테스트 | Jest 11 suites / 39 tests, TypeScript, Expo doctor, iOS Hermes export |
+| App Store | `1.0.4` build `24`. 공개 버전은 Apple 한국 스토어 조회, 빌드 번호는 제출 이력으로 확인 |
+| 소스 | `main`의 [apps/native](../../../apps/native/) |
+| 앱 식별자 | Bundle ID `app.ottline`, Apple ID `6780318110` |
+| 기술 | Expo SDK 55, React Native `0.83.10`, Expo Router, SQLite, SecureStore |
+| 배포 | [Native iOS CI](../../../.github/workflows/native-ios-ci.yml), [Native iOS TestFlight](../../../.github/workflows/native-ios-testflight.yml), EAS, App Store Connect |
+| 도서 검색 | 공개 앱은 Kakao 검색과 이전 Naver 기록의 호환을 유지한다. `main` 소스의 Google Books capability는 다음에 해당 코드를 포함한 빌드에서 적용된다 |
 
-검색·공개 글의 작품 변환은 `lib/titleAdapters.ts`, 로컬 DB는 `lib/localDb.ts`, 동기화는 `lib/sync.ts`와 `lib/syncPayload.ts`에서 관리한다. `KAKAO`와 `NAVER` 책 식별자를 모두 유지한다.
+공개 버전과 빌드 근거는 [App Store](https://apps.apple.com/kr/app/ottline/id6780318110), [Apple 공개 조회](https://itunes.apple.com/lookup?id=6780318110&country=kr), [EAS 빌드 24](https://expo.dev/accounts/ergate23/projects/ottline/builds/057972ad-3c10-4a59-9e5b-ef051c1a160d)에서 확인할 수 있다. 실제 업데이트 설치 후 기록·수정과 운영 지표 확인은 [1.0 출시 체크리스트](../../../docs/archive/ios/ios-app-store-launch-checklist.md)에 남아 있다.
 
-## 실행과 검사
+실행, 검증, 다음 EAS 빌드 번호 관리는 [iOS 개발 및 배포 가이드](../../../apps/native/DEVELOPMENT.md)를 따른다.
 
-저장소 루트에서 실행한다.
+## SwiftUI v2 전환
 
-```bash
-npm ci
-npm run start --workspace native
-npm run native:typecheck
-npm run native:test
-npm run native:testflight:check
-```
+- [PR #137](https://github.com/chawon/ott/pull/137)의 `feature/ios-native-v2` 브랜치가 iOS `apps/ios-native`, macOS `apps/macos-native`, 공통 SwiftPM 패키지 `apps/apple-core`를 함께 추가한다.
+- iOS v2에서 Expo SecureStore·SQLite 이전, WidgetKit, 공유 확장, Siri 단축어, Handoff, iPad 레이아웃을 구현했다. PR의 [iOS SwiftUI CI](https://github.com/chawon/ott/actions/runs/44558347502)와 [macOS SwiftUI CI](https://github.com/chawon/ott/actions/runs/44558347464)가 성공했다.
+- PR 병합, 실제 iPhone의 1.0.4 업데이트와 데이터 이전 검증, v2 TestFlight·App Store 배포는 확인이 남아 있다.
 
-## 빌드·제출
+## 관련 문서
 
-- `.github/workflows/native-ios-ci.yml`: 타입·Jest·Expo doctor·iOS Hermes export.
-- `.github/workflows/native-ios-testflight.yml`: 명시한 Git SHA를 체크아웃하고 검사 후 EAS 빌드·자동 제출. 배포 러너 Node `24`, EAS CLI `24.13.0`.
-- `apps/native/eas.json`: TestFlight store 배포, 로컬 버전 관리와 빌드 번호 자동 증가. 다음 빌드 전 로컬 기준을 완료 빌드 `24` 이상으로 올린다. 재제출할 때는 성공한 기존 빌드 ID를 지정한다.
-- EAS project: `efe8f7e5-75d8-45a9-9a4e-88bfeba07b98`, bundle ID: `app.ottline`, Apple app ID: `6780318110`.
-
-## 관련 페이지
-
-- [[twa]]
-- [[book-log]]
-- [[kmp]]
+- [카카오 도서 검색 및 iOS 1.0.4 배포 기록](../../../docs/native-kakao-books.md)
+- [영어 도서 검색](../../../docs/google-books-en-search.md)
+- [초기 Expo TestFlight 제출 이력](../../../docs/archive/ios/ios-testflight-review-notes.md)
+- [Android 네이티브](android-native.md)

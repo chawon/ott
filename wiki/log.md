@@ -1,5 +1,12 @@
 # Wiki Log
 
+## 정리 · 플랫폼 통합 개발 지휘부
+
+- 기준 소스 `main 3920e30`. [플랫폼 현황](../docs/platforms.md), [공통 API와 데이터 계약](../docs/product-contracts.md), [기능 변경안](../docs/changes/README.md)을 현재 문서로 연결했다.
+- Android·Windows 네이티브 전환 이후의 소스와 배포 경로를 확인했다. App Store의 Expo iOS와 PR #137의 SwiftUI iOS·macOS를 구분했다.
+- 구형 Android TWA와 초기 Web 시안, 종료된 절차와 검토 자료를 [소스](../archive/README.md), [문서](../docs/archive/README.md), [Wiki](archive/README.md) 아카이브에 보관했다.
+- 기록 정정. Android `2.0.0 (24)` 배포 run `42550886641`의 빌드 SHA는 `7ef08aa`다. 현재 Android 패키지 테스트·Lint·서명 빌드는 `native-android-release.yml`에서 실행된다. [Android 전환 기록](../docs/android-native-v2-transition.md)
+
 ## [2026-11-19] deploy: 브라우저 확장→Windows 빠른 기록 Phase A
 
 - PR #138을 병합하고 Web SHA `4472ad3`을 production run `44441612541`로 배포했다. Windows 확장 진입의 QuickLog에 앱 링크와 설치 캠페인 `cid=extension_handoff`를 추가했다.
