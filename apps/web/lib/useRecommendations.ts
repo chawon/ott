@@ -4,7 +4,9 @@ import { useEffect, useEffectEvent, useRef, useState } from "react";
 import { trackEvent } from "./analytics";
 import { getUserId, listLogsLocal } from "./localStore";
 import {
+  RECOMMENDATION_GENERATION_TIMEOUT_MS,
   RecommendationRequestError,
+  recommendationDeadline,
   recommendationRequest,
 } from "./recommendationApi";
 import {
@@ -99,10 +101,10 @@ export function useRecommendations(locale: string, active = true) {
     return promise;
   }
 
-  async function readState(scope: Scope) {
+  async function readState(scope: Scope, signal = scope.controller.signal) {
     const response = await recommendationRequest<RecommendationState>(
       "/state",
-      { ...scope, signal: scope.controller.signal },
+      { ...scope, signal },
     );
     if (current(scope)) accept(scope, response.data);
     return response.data;
@@ -173,28 +175,32 @@ export function useRecommendations(locale: string, active = true) {
   }
 
   async function poll(scope: Scope, initial: RecommendationState) {
-    let next = initial;
-    for (let count = 0; next.generating && count < 80; count++) {
-      await new Promise<void>((resolve, reject) => {
-        const timer = window.setTimeout(done, 1500);
-        function done() {
-          scope.controller.signal.removeEventListener("abort", abort);
-          resolve();
-        }
-        function abort() {
-          clearTimeout(timer);
-          reject(new DOMException("Account changed", "AbortError"));
-        }
-        scope.controller.signal.addEventListener("abort", abort, {
-          once: true,
+    const { signal, dispose } = recommendationDeadline(
+      scope.controller.signal,
+      RECOMMENDATION_GENERATION_TIMEOUT_MS,
+    );
+    try {
+      let next = initial;
+      while (next.generating && current(scope)) {
+        if (signal.aborted) throw signal.reason;
+        await new Promise<void>((resolve, reject) => {
+          const timer = window.setTimeout(done, 1500);
+          function done() {
+            signal.removeEventListener("abort", abort);
+            resolve();
+          }
+          function abort() {
+            clearTimeout(timer);
+            reject(signal.reason);
+          }
+          signal.addEventListener("abort", abort, { once: true });
         });
-        if (scope.controller.signal.aborted) abort();
-      });
-      if (!current(scope)) return next;
-      next = await readState(scope);
+        if (current(scope)) next = await readState(scope, signal);
+      }
+      return next;
+    } finally {
+      dispose();
     }
-    if (next.generating) throw new Error("Generation is still in progress");
-    return next;
   }
 
   async function generateInside(scope: Scope) {
@@ -212,15 +218,16 @@ export function useRecommendations(locale: string, active = true) {
     setError(null);
     setRestored([]);
     try {
-      if (!(await flush(scope)))
-        throw new Error("Pending changes are not connected yet");
-      if (!current(scope)) return;
       const requestId =
         scope.queue.generationRequestIds[scope.locale] ?? safeUUID();
       updateQueue(
         scope,
         withRecommendationRequest(scope.queue, scope.locale, requestId),
       );
+      if (!(await flush(scope)))
+        throw new Error("Pending changes are not connected yet");
+      if (!current(scope)) return;
+      const previousGenerationId = scope.server?.generationId;
       const response = await recommendationRequest<RecommendationState>(
         "/generate",
         { ...scope, signal: scope.controller.signal },
@@ -235,23 +242,17 @@ export function useRecommendations(locale: string, active = true) {
         ? await poll(scope, response.data)
         : response.data;
       if (!current(scope)) return;
-      if (!final.hasBatch) {
-        if (final.quota.remaining === 0) {
-          updateQueue(
-            scope,
-            withRecommendationRequest(scope.queue, scope.locale, null),
+      if (final.quota.remaining > 0 && final.generationId !== requestId) {
+        if (!final.hasBatch)
+          throw new Error("There is no completed batch in this language yet");
+        // The shared quota can change without a new batch in this language.
+        const beforeWait = response.data.generating
+          ? response.data.generationId
+          : previousGenerationId;
+        if (response.status === 202 && final.generationId === beforeWait)
+          throw new Error(
+            "The concurrent generation did not complete in this language",
           );
-          setError(null);
-          return;
-        }
-        throw new Error("There is no completed batch in this language yet");
-      }
-      if (
-        response.status === 202 &&
-        final.generationId === response.data.generationId &&
-        final.quota.used === response.data.quota.used
-      ) {
-        throw new Error("The concurrent generation did not complete");
       }
       updateQueue(
         scope,
@@ -264,7 +265,8 @@ export function useRecommendations(locale: string, active = true) {
         accept(scope, failure.state);
       if (
         failure instanceof RecommendationRequestError &&
-        failure.status === 429
+        failure.status === 429 &&
+        failure.state?.quota.remaining === 0
       ) {
         updateQueue(
           scope,
@@ -281,7 +283,7 @@ export function useRecommendations(locale: string, active = true) {
     }
   }
 
-  function reload() {
+  function reload(retryPending = false) {
     const scope = scopeRef.current;
     if (!scope || !activeRef.current || refreshRef.current) return;
     refreshRef.current = true;
@@ -289,52 +291,47 @@ export function useRecommendations(locale: string, active = true) {
       if (!scope.server) setLoading(true);
       try {
         await flush(scope);
-        const next = await readState(scope);
+        const initial = await readState(scope);
         if (!current(scope)) return;
         setError(null);
-        if (next.generating) {
-          scope.autoAttempted.add(next.quota.date);
+        let next = initial;
+        if (initial.generating) {
+          scope.autoAttempted.add(initial.quota.date);
           busyRef.current = true;
           setLoading(true);
-          const final = await poll(scope, next);
+          next = await poll(scope, initial);
           if (!current(scope)) return;
-          const pendingId = scope.queue.generationRequestIds[scope.locale];
-          if (
-            final.quota.remaining === 0 ||
-            (final.hasBatch && final.generationId === pendingId)
-          ) {
+        }
+        const pendingId = scope.queue.generationRequestIds[scope.locale];
+        if (pendingId) {
+          if (next.quota.remaining === 0 || next.generationId === pendingId) {
             updateQueue(
               scope,
               withRecommendationRequest(scope.queue, scope.locale, null),
             );
-          } else if (!final.hasBatch || pendingId) {
-            setError("generate");
-          }
-        } else if (scope.queue.generationRequestIds[scope.locale]) {
-          if (
-            next.quota.remaining === 0 ||
-            (next.hasBatch &&
-              next.generationId ===
-                scope.queue.generationRequestIds[scope.locale])
-          ) {
-            updateQueue(
-              scope,
-              withRecommendationRequest(scope.queue, scope.locale, null),
-            );
+          } else if (retryPending && !initial.generating && next.eligible) {
+            await generateInside(scope);
           } else {
             setError("generate");
           }
+        } else if (initial.generating) {
+          if (!next.hasBatch && next.quota.remaining > 0) setError("generate");
         } else if (
           next.eligible &&
           !next.hasBatch &&
           next.quota.remaining > 0 &&
-          !scope.autoAttempted.has(next.quota.date)
+          (retryPending || !scope.autoAttempted.has(next.quota.date))
         ) {
           scope.autoAttempted.add(next.quota.date);
           await generateInside(scope);
         }
       } catch {
-        if (current(scope)) setError("load");
+        if (current(scope))
+          setError(
+            scope.queue.generationRequestIds[scope.locale]
+              ? "generate"
+              : "load",
+          );
       } finally {
         if (current(scope)) {
           setLoading(false);
@@ -421,6 +418,17 @@ export function useRecommendations(locale: string, active = true) {
     function reconcile() {
       if (activeRef.current) reloadFromEffect();
     }
+    function reconnect() {
+      const scope = scopeRef.current;
+      if (!scope || !refreshRef.current) {
+        reconcile();
+        return;
+      }
+      // An online event can arrive before the previous read has timed out.
+      void scope.chain.then(() => {
+        if (scopeRef.current === scope) reconcile();
+      });
+    }
     function syncUpdated() {
       const scope = scopeRef.current;
       if (scope) void readLocalFromEffect(scope);
@@ -443,14 +451,14 @@ export function useRecommendations(locale: string, active = true) {
     window.addEventListener("auth:revoked", updateScope);
     window.addEventListener("storage", storageUpdated);
     window.addEventListener("focus", reconcile);
-    window.addEventListener("online", reconcile);
+    window.addEventListener("online", reconnect);
     window.addEventListener("sync:updated", syncUpdated);
     return () => {
       window.removeEventListener("auth:changed", updateScope);
       window.removeEventListener("auth:revoked", updateScope);
       window.removeEventListener("storage", storageUpdated);
       window.removeEventListener("focus", reconcile);
-      window.removeEventListener("online", reconcile);
+      window.removeEventListener("online", reconnect);
       window.removeEventListener("sync:updated", syncUpdated);
       scopeRef.current?.controller.abort();
       scopeRef.current = null;
@@ -464,14 +472,15 @@ export function useRecommendations(locale: string, active = true) {
 
   function generate() {
     const scope = scopeRef.current;
+    if (!scope || busyRef.current) return;
+    if (scope.queue.generationRequestIds[scope.locale]) {
+      reload(true);
+      return;
+    }
     if (
-      !scope ||
-      busyRef.current ||
-      !scope.server ||
-      !scope.server.eligible ||
+      !scope.server?.eligible ||
       scope.server.generating ||
-      (scope.server.quota.remaining <= 0 &&
-        !scope.queue.generationRequestIds[scope.locale])
+      scope.server.quota.remaining <= 0
     )
       return;
     busyRef.current = true;
@@ -582,9 +591,9 @@ export function useRecommendations(locale: string, active = true) {
       !server.generating,
     pendingCount: queue.operations.length,
     syncError,
-    load: reload,
+    load: () => reload(),
     generate,
-    retry: error === "generate" ? generate : reload,
+    retry: () => reload(error === "generate"),
     dismiss,
     lastDismissed,
     undoDismiss,
