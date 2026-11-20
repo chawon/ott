@@ -15,6 +15,7 @@
 
 - **Store Product ID / Identity**: `9NSVNZGDMGF5` / `ChawonLee.ottline` (`PackageFamilyName`: `ChawonLee.ottline_ry7416pek43sa`, `Publisher`: `CN=A486532B-583B-4088-AFDE-FC4377E51968`)
 - **현재 게시 버전**: `2.0.0.0` (`ottline-2.0.0.0.msixbundle`, `x64` + `arm64`, `158.90 MB`, `Submission Id = 1152921505702424456`, **`Status = Published`**, `2026-11-18` Microsoft Store 카탈로그 및 `winget` 반영 완료)
+- **심사 중인 업데이트 (`2026-11-20`)**: `2.0.1.0` (`main` `1fb24ee`, [PR #140](https://github.com/chawon/ott/pull/140), `ottline-2.0.1.0.msixbundle` `158.90 MB`, `Submission Id = 1152921505702457337`, **`Status = Certification`**, `Errors = 0`) — 서버 계정 삭제 `DELETE /api/auth/account` 경로 정정, 실패·네트워크 오류 시 로컬 기록·`outbox`·연결 상태 보존, 미연결 가드 및 한·영 안내 반영 (`Published` 전환 후 스토어 설치판 실기기 검증 예정). [삭제 정책](../features/delete-sync.md#windows-확인-사항)
 - **스토어 등록 제목**: KO `ottline - 영화·드라마·책·독서 기록` / EN `ottline: Movie, TV & Book Log`
 - **지원 장치 패밀리**: `Desktop` 전용 (`Holographic: false`)
 - **실기기 검증 (`2026-11-18`)**: `winget install --id 9NSVNZGDMGF5 --source msstore`(`SignatureKind: Store`) 정식 설치 및 별도 PC `1.0.x` Edge PWA → `2.0.0.0` 업데이트 후 첫 실행 웹 브라우저 연결(`?native_handoff=1` → `ottline://open?handoff=1`) 자동 핸드오프 확인 완료

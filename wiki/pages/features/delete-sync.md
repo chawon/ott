@@ -21,11 +21,11 @@
 | Web/PWA | 설정에서 IndexedDB·브라우저 저장소를 초기화한다. 계정 삭제는 `DELETE /api/auth/account`를 호출한다. [설정 화면](../../../apps/web/app/%5Blocale%5D/account/page.tsx) |
 | Android Native | Room과 로컬 인증·동기화 상태를 초기화한다. 계정 삭제는 같은 API를 호출하며 `401` 또는 `404` 응답 시 로컬 정리를 완료한다. [저장소](../../../apps/android-native/app/src/main/java/app/ottline/data/OttlineRepository.kt) |
 | iOS | 로컬 DB를 초기화한다. 계정 삭제는 같은 API를 호출하고 성공 후 로컬 DB를 초기화한다. [설정 화면](../../../apps/native/app/%28tabs%29/account/index.tsx) |
-| Windows Native | 설정에 두 액션이 있다. 공개판 `2.0.0.0`에는 구 경로(`/api/account`) 이슈가 남아 있으며, `fix/windows-account-deletion` 브랜치에서 `DELETE /api/auth/account` 및 실패 보존으로 수정했다(스토어 업데이트 대기). [Windows 확인 사항](#windows-확인-사항) |
+| Windows Native | 설정에 두 액션이 있다. 공개판 `2.0.0.0`에는 구 경로(`/api/account`) 이슈가 남아 있으며, `main` `1fb24ee`(PR #140)에서 `DELETE /api/auth/account` 및 실패 보존으로 수정해 `2.0.1.0` 스토어 심사(`Certification`) 중이다. [Windows 확인 사항](#windows-확인-사항) |
 
 ### Windows 확인 사항
 
 - **현재 공개판 (`2.0.0.0`, Microsoft Store)**: 클라이언트가 `DELETE /api/account`를 호출하고 HTTP 성공 여부를 확인하지 않아, 실패 응답 뒤에도 로컬 DB를 초기화하고 성공 메시지를 표시할 수 있다.
-- **코드 수정 및 로컬 검증 (`2026-11-20`, 브랜치 `fix/windows-account-deletion`, 기준 `main` `e93f3e4`)**:
+- **수정 병합 및 스토어 제출 (`2026-11-20`, `main` `1fb24ee`, [PR #140](https://github.com/chawon/ott/pull/140))**:
   - `DELETE /api/auth/account` 호출, `UserId`/`DeviceId` 미연결 시 버튼 비활성화 및 요청 차단, HTTP 오류(`401`/`404`/`500` 등)와 네트워크 실패·타임아웃 시 로컬 기록·이력·`outbox`·연결 상태 보존, 서버 2xx 확인 후 로컬 DB 및 계정 설정 초기화와 한·영 안내로 수정했다. [Windows API 클라이언트](../../../apps/windows-native/src/Ottline.Core/Remote/OttlineApiClient.cs), [Windows 저장소](../../../apps/windows-native/src/Ottline.Core/Data/OttlineRepository.cs), [설정 ViewModel](../../../apps/windows-native/src/Ottline.App/ViewModels/MainViewModel.cs)
-  - 모의 API 단위 테스트(`Ottline.Tests` 19/19)와 `x64`/`arm64` MSIXBundle 패키지 검증을 통과했다. PR 병합 후 Microsoft Store 업데이트 배포 및 스토어 설치판 실기기 확인이 남아 있다. [후속 작업](../../../docs/changes/v2-follow-up.md#1-windows-서버-계정-삭제-수정)
+  - 모의 API 단위 테스트(`Ottline.Tests` 19/19), PR/main `Native Windows CI`([`44696668066`](https://github.com/chawon/ott/actions/runs/44696668066), [`44697026662`](https://github.com/chawon/ott/actions/runs/44697026662)), `v2.0.1.0` MSIXBundle 패키지 검증을 통과하고 Microsoft Store에 제출해 `Certification` 심사 중이다(Submission `1152921505702457337`, `Errors: 0`). 공개 게시 후 스토어 설치판 실기기 확인이 남아 있다. [후속 작업](../../../docs/changes/v2-follow-up.md#1-windows-서버-계정-삭제-수정)

@@ -1,10 +1,10 @@
 # Wiki Log
 
-## [2026-11-20] fix(windows): 서버 계정 삭제 API 경로 및 실패 보존 수정 (PR 준비)
+## [2026-11-20] release(windows): 서버 계정 삭제 수정 PR #140 병합 및 Microsoft Store v2.0.1.0 심사 제출
 
-- 브랜치 `fix/windows-account-deletion` (기준 `main` `e93f3e4`). Windows `OttlineApiClient.DeleteServerAccountAsync()` 경로를 `DELETE /api/auth/account`로 수정(`UnlinkDeviceAsync`도 `DELETE /api/auth/devices/{id}`로 정정)하고 `OttlineRepository.DeleteServerAccountAsync()`·`MainViewModel`·`MainWindow`에 서버 2xx 확인 후 로컬 초기화, HTTP 오류·네트워크 실패 시 기록·이력·`outbox`·연결 상태 보존, 미연결 계정 가드, 한·영 안내 문구를 반영했다.
-- 로컬 검증: 모의 API 단위 테스트 5건 추가 포함 `Ottline.Tests` 19/19 통과, `build-msix.ps1` + `verify-msix.ps1`로 `x64`/`arm64` MSIX 및 통합 MSIXBundle 검증 완료.
-- 현재 Microsoft Store 공개판은 `2.0.0.0` 유지 상태이며 PR 병합·Windows CI·스토어 업데이트 제출 및 스토어 설치판 실기기 확인이 남아 있다. [후속 작업](../docs/changes/v2-follow-up.md#1-windows-서버-계정-삭제-수정) · [삭제 정책](pages/features/delete-sync.md#windows-확인-사항)
+- [PR #140](https://github.com/chawon/ott/pull/140) (`main` `1fb24ee`, 코드 커밋 `e8b9f24`). Windows `OttlineApiClient.DeleteServerAccountAsync()` 경로를 `DELETE /api/auth/account`로 수정(`UnlinkDeviceAsync`도 `DELETE /api/auth/devices/{id}`로 정정)하고 `OttlineRepository.DeleteServerAccountAsync()`·`MainViewModel`·`MainWindow`에 서버 2xx 확인 후 로컬 초기화, HTTP 오류·네트워크 실패 시 기록·이력·`outbox`·연결 상태 보존, 미연결 계정 가드, 한·영 안내 문구를 반영했다.
+- 검증: 모의 API 단위 테스트 5건 추가 포함 `Ottline.Tests` 19/19 통과, `Native Windows CI` PR Run [`44696668066`](https://github.com/chawon/ott/actions/runs/44696668066) 및 `main` Run [`44697026662`](https://github.com/chawon/ott/actions/runs/44697026662) 통과, `ottline-2.0.1.0.msixbundle`(`x64`+`arm64`, `158.90 MB`) 로컬 빌드·무결성 검증 완료.
+- 스토어 제출: Partner Center `9NSVNZGDMGF5`에 `v2.0.1.0` 제출 완료(Submission `1152921505702457337`, `Status = Certification`, `Errors = 0`, `Desktop` 전용 유지). 현재 공개판은 `2.0.0.0`이며 `2.0.1.0` 공개 게시 후 스토어 설치판 실기기 확인이 남아 있다. [후속 작업](../docs/changes/v2-follow-up.md#1-windows-서버-계정-삭제-수정) · [삭제 정책](pages/features/delete-sync.md#windows-확인-사항)
 
 ## 계획 · 브라우저 확장·토스 인앱·ChatGPT 앱
 
