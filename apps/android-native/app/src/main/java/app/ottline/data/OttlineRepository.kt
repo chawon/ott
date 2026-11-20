@@ -11,6 +11,7 @@ import app.ottline.data.local.AppPreferences
 import app.ottline.data.local.BookClassificationEntity
 import app.ottline.data.local.OttlineDatabase
 import app.ottline.data.local.OutboxEntity
+import app.ottline.data.local.RecommendationStore
 import app.ottline.data.local.TitleEntity
 import app.ottline.data.local.WatchLogEntity
 import app.ottline.data.local.WatchLogHistoryEntity
@@ -121,6 +122,16 @@ class OttlineRepository(
         db.bookClassificationDao().observeAll().combine(MutableStateFlow(Unit)) { list, _ ->
             list.map { it.toModel() }
         }
+
+    val recommendationStore: RecommendationStore = RecommendationStore(appContext)
+
+    val recommendations: RecommendationCoordinator = RecommendationCoordinator(
+        store = recommendationStore,
+        prefs = prefs,
+        api = api,
+        isNetworkOnline = { isNetworkOnline() },
+        trackEvent = { eventName, props -> trackEvent(eventName, props) }
+    )
 
     init {
         api.onAuthRevoked = {
@@ -1184,6 +1195,8 @@ class OttlineRepository(
     }
 
     private suspend fun resetLocalDataInternal() {
+        val previousUserId = prefs.current.userId
+        recommendations.onAccountCleared(previousUserId)
         runCatching { RevisitReminderScheduler.onAccountDisconnected(appContext) }
         saveMutex.withLock {
             db.outboxDao().clearAll()
