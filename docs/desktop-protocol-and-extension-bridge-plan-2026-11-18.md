@@ -127,7 +127,7 @@ ottline://quick?quick=1&title={encodedTitle}&q={encodedTitle}&platform={encodedP
 ### 확장 프로그램 (`apps/browser-extension`) 운영 원칙
 
 - `popup-core.js`가 이미 `https://ottline.app/?quick=1&capture_title=...`로 이동하므로, **Phase A·C가 배포되면 3개 확장 스토어(Chrome·Edge·Whale) 재심사 없이도 확장 → 웹 브릿지 → Windows/macOS 네이티브 앱 전환이 즉시 동작**한다.
-- 확장은 별도 기능 추가 없이 현행 동결 상태를 유지한다. 추후 v2 아이콘·설명 정비로 1회 스토어 재제출할 일이 생길 때만 팝업 내 *"데스크톱 앱으로 직접 열기"* 보조 옵션 추가 여부를 검토한다.
+- 확장은 작품 캡처와 Web 빠른 기록 진입을 맡는다. 다음 확장 패키지의 개인정보·등록정보 변경 범위와 검증은 [후속 채널 개편 방향](changes/v2-channel-strategy.md#브라우저-확장)을 따른다.
 
 ---
 

@@ -2,6 +2,8 @@
 
 `ottline Helper`는 OTT 작품 상세 페이지에서 사용자가 팝업 버튼을 눌렀을 때 작품 제목과 플랫폼을 웹의 빠른 기록으로 넘긴다. 소스는 [`apps/browser-extension`](../../../apps/browser-extension)이다.
 
+갱신 범위와 출시 순서는 [후속 채널 개편 방향](../../../docs/changes/v2-channel-strategy.md#브라우저-확장)을 따른다.
+
 ## 배포 및 유지보수
 
 | 스토어 | 확인된 상태 |

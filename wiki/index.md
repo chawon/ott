@@ -13,6 +13,7 @@
 | [macOS](pages/platforms/macos-native.md) | SwiftUI 개발 브랜치와 웹 연결 조건 |
 | [브라우저 확장](pages/platforms/browser-extension.md) | Chrome·Edge·Whale에서 Web과 Windows 빠른 기록 연결 |
 | [토스 인앱](pages/platforms/toss-inapp.md) | 별도 브랜치에서 빌드하는 앱인토스 미니앱 |
+| [ChatGPT 앱](../docs/changes/v2-channel-strategy.md#chatgpt-앱) | 읽기 전용 타임라인 연결의 재제출 준비 |
 | [구형 Android TWA](archive/twa.md) | Android 네이티브 전환 전의 배포 이력 |
 
 ## 기능

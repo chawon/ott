@@ -7,6 +7,7 @@
 | 주제 | 기준 문서 |
 | --- | --- |
 | 앱별 개발·출시 | [플랫폼 현황](platforms.md) · [채널별 Wiki](../wiki/index.md#플랫폼) |
+| v2 후속 채널 | [브라우저 확장·토스 인앱·ChatGPT 앱 개편 방향](changes/v2-channel-strategy.md) |
 | 시각·문구 | [DESIGN.md](../DESIGN.md) · [v2 브랜드 자산](ottline-ci-v2-integration.md) · [포인트 색상](accent-color-hierarchy.md) · [문구 가이드](../wiki/pages/processes/ux-copy.md) |
 | 기록과 데이터 보존 | [타임라인](timeline-infinite-scroll.md) · [수정·삭제 정책](../wiki/pages/features/delete-sync.md) · [내보내기](timeline-export.md) · [기기 연결 복구 카드](pairing-recovery-card.md) |
 | 도서 | [한국어 Kakao](kakao-book-search.md) · [영어 Google Books](google-books-en-search.md) · [KDC 내 서가](kdc-bookshelf-v1.md) |

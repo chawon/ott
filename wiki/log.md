@@ -1,5 +1,10 @@
 # Wiki Log
 
+## 계획 · 브라우저 확장·토스 인앱·ChatGPT 앱
+
+- 브라우저 확장은 Web 빠른 기록 진입을 유지하고 원본 URL과 권한을 줄이는 패키지 갱신을 준비한다. 토스 인앱은 공개판에서 핵심 동작과 반복 기록을 확인한다.
+- ChatGPT 앱의 기존 반려 통지에서 스크린샷 요건 미충족을 확인했다. 읽기 전용 조회를 실제 ChatGPT에서 검증하고 현재 제출 자료를 준비한다. [후속 채널 개편 방향](../docs/changes/v2-channel-strategy.md)
+
 ## 정리 · 플랫폼 통합 개발 지휘부
 
 - 기준 소스 `main 3920e30`. [플랫폼 현황](../docs/platforms.md), [공통 API와 데이터 계약](../docs/product-contracts.md), [기능 변경안](../docs/changes/README.md)을 현재 문서로 연결했다.
