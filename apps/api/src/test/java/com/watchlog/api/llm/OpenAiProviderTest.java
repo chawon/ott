@@ -76,7 +76,7 @@ class OpenAiProviderTest {
                 .andExpect(jsonPath("$.model").value("gpt-6-luna"))
                 .andExpect(jsonPath("$.reasoning.effort").value("none"))
                 .andRespond(withSuccess(response("{\"recommendations\":[]}"), MediaType.APPLICATION_JSON));
-        var provider = new OpenAiProvider(builder.build(), props(null, "gpt-6-luna", "none"));
+        var provider = new OpenAiProvider(builder.build(), props(null, "gpt-6-luna", null));
         assertThat(provider.cacheKey()).isEqualTo("openai:gpt-6-luna:none");
         assertThat(provider.recommend("synthetic")).isEmpty();
         server.verify();

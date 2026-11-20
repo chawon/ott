@@ -34,7 +34,7 @@ spec:
             - name: OPENAI_MODEL
               value: "gpt-6-luna"
             - name: OPENAI_REASONING_EFFORT
-              value: "low"
+              value: "none"
             - name: GOOGLE_BOOKS_API_KEY
               valueFrom:
                 secretKeyRef:
