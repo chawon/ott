@@ -6,31 +6,63 @@ import com.watchlog.api.dto.TitleSearchItemDto;
 import com.watchlog.api.kakao.KakaoBookClient;
 import com.watchlog.api.llm.RecommendationItem;
 import com.watchlog.api.tmdb.TmdbClient;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.stream.Stream;
 
 @Service
 public class RecommendationCatalogService {
+    private static final Duration DEFAULT_ENRICH_TIMEOUT = Duration.ofSeconds(4);
     private static final ExecutorService EXECUTOR = Executors.newVirtualThreadPerTaskExecutor();
     private final TmdbClient tmdb;
     private final BookSearchService books;
     private final KakaoBookClient kakao;
+    private final Duration enrichTimeout;
 
+    @Autowired
     public RecommendationCatalogService(TmdbClient tmdb, BookSearchService books, KakaoBookClient kakao) {
+        this(tmdb, books, kakao, DEFAULT_ENRICH_TIMEOUT);
+    }
+
+    RecommendationCatalogService(TmdbClient tmdb, BookSearchService books, KakaoBookClient kakao, Duration enrichTimeout) {
         this.tmdb = tmdb;
         this.books = books;
         this.kakao = kakao;
+        this.enrichTimeout = enrichTimeout;
     }
 
     public List<RecommendationItem> enrich(List<RecommendationItem> items, String language) {
-        var futures = items.stream().map(item -> CompletableFuture.supplyAsync(() -> enrichOne(item, language), EXECUTOR)
-                .completeOnTimeout(item, 12, TimeUnit.SECONDS).exceptionally(failure -> item)).toList();
-        return futures.stream().map(CompletableFuture::join).toList();
+        if (items == null || items.isEmpty()) return List.of();
+        long deadlineNanos = System.nanoTime() + enrichTimeout.toNanos();
+        var futures = items.stream()
+                .map(item -> CompletableFuture.supplyAsync(() -> enrichOne(item, language), EXECUTOR))
+                .toList();
+        var results = new ArrayList<RecommendationItem>(items.size());
+        for (int i = 0; i < items.size(); i++) {
+            var item = items.get(i);
+            var future = futures.get(i);
+            long remainingNanos = Math.max(1L, deadlineNanos - System.nanoTime());
+            try {
+                var enriched = future.get(remainingNanos, TimeUnit.NANOSECONDS);
+                results.add(enriched != null ? enriched : item);
+            } catch (TimeoutException timeout) {
+                future.cancel(true);
+                results.add(item);
+            } catch (InterruptedException interrupted) {
+                Thread.currentThread().interrupt();
+                future.cancel(true);
+                results.add(item);
+            } catch (ExecutionException | CancellationException failure) {
+                results.add(item);
+            }
+        }
+        return List.copyOf(results);
     }
 
     private RecommendationItem enrichOne(RecommendationItem item, String language) {

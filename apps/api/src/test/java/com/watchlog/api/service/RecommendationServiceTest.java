@@ -268,9 +268,12 @@ class RecommendationServiceTest {
                     List.of(item("Keep 3"), item("Keep 4"), item("Keep 5"), item("Keep 6")));
             service.generate(userId, "ko", UUID.randomUUID());
             var messages = capture.list.stream().map(ch.qos.logback.classic.spi.ILoggingEvent::getFormattedMessage).toList();
-            assertThat(messages).anySatisfy(message -> assertThat(message).contains("stage=primary", "received=4", "afterRecords=3", "afterExclusions=2"));
-            assertThat(messages).anySatisfy(message -> assertThat(message).contains("stage=refill", "received=4", "newCandidates=4"));
-            assertThat(messages).anySatisfy(message -> assertThat(message).contains("stage=complete", "selected=6", "returned=6", "quotaCharged=1"));
+            assertThat(messages).anySatisfy(message -> assertThat(message)
+                    .contains("stage=primary", "requested=9", "received=4", "afterRecords=3", "afterExclusions=2", "llmMs=", "enrichMs=", "roundMs="));
+            assertThat(messages).anySatisfy(message -> assertThat(message)
+                    .contains("stage=refill", "received=4", "newCandidates=4", "llmMs=", "enrichMs=", "roundMs="));
+            assertThat(messages).anySatisfy(message -> assertThat(message)
+                    .contains("stage=complete", "selected=6", "returned=6", "quotaCharged=1", "totalMs="));
             assertThat(String.join("\n", messages)).doesNotContain("Private Recorded Title", "Private Dismissed Title", "Keep 1");
         } finally {
             logger.detachAppender(capture);

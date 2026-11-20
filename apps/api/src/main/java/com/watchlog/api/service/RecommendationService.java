@@ -24,6 +24,7 @@ public class RecommendationService {
     private static final Logger log = LoggerFactory.getLogger(RecommendationService.class);
     private static final int MIN_LOGS_REQUIRED = 5;
     private static final int TARGET_COUNT = 6;
+    private static final int PRIMARY_CANDIDATE_COUNT = 9;
     private static final int CANDIDATE_POOL_SIZE = 12;
     private static final ExecutorService EXECUTOR = Executors.newVirtualThreadPerTaskExecutor();
     private final WatchLogRepository logs;
@@ -80,14 +81,16 @@ public class RecommendationService {
         if (claim == RecommendationAccountStore.Claim.REUSED) return new Generation(HttpStatus.OK, state(userId, lang));
         if (claim == RecommendationAccountStore.Claim.IN_PROGRESS) return new Generation(HttpStatus.ACCEPTED, state(userId, lang));
         if (claim == RecommendationAccountStore.Claim.LIMIT_REACHED) return new Generation(HttpStatus.TOO_MANY_REQUESTS, state(userId, lang));
+        long generationStart = System.nanoTime();
         try {
-            var first = candidateRound(userId, requestId, lang, history, selected, legacyExcluded, List.of(), CANDIDATE_POOL_SIZE, "primary");
+            var first = candidateRound(userId, requestId, lang, history, selected, legacyExcluded, List.of(), PRIMARY_CANDIDATE_COUNT, "primary");
             var gathered = new ArrayList<>(first.enriched());
             boolean refill = first.accepted().size() < TARGET_COUNT;
             boolean refillFailed = false;
             if (refill) {
                 var considered = Stream.concat(first.received().stream(), first.enriched().stream()).toList();
                 int missing = TARGET_COUNT - first.accepted().size();
+                long refillStart = System.nanoTime();
                 try {
                     var extra = candidateRound(userId, requestId, lang, history, selected, legacyExcluded,
                             considered, Math.min(CANDIDATE_POOL_SIZE, Math.max(TARGET_COUNT, missing * 2)), "refill");
@@ -95,7 +98,7 @@ public class RecommendationService {
                 } catch (ResponseStatusException failure) {
                     // A useful first selection survives an optional refill outage.
                     refillFailed = true;
-                    log.warn("[Recommendation] requestId={} stage=refill failed=true", requestId);
+                    log.warn("[Recommendation] requestId={} stage=refill failed=true roundMs={}", requestId, elapsedMs(refillStart));
                 }
             }
             // Re-read choices and records: another device may have changed them during either round.
@@ -104,13 +107,14 @@ public class RecommendationService {
             // Completion and the quota increment commit together. A crash cannot leave a charged failed batch.
             store.complete(userId, requestId, lang, providerKey, items);
             var result = state(userId, lang, legacyExcluded);
-            log.info("[Recommendation] requestId={} stage=complete target={} refill={} refillFailed={} selected={} returned={} partial={} quotaCharged=1",
-                    requestId, TARGET_COUNT, refill, refillFailed, items.size(), result.items().size(), result.items().size() < TARGET_COUNT);
+            log.info("[Recommendation] requestId={} stage=complete target={} refill={} refillFailed={} selected={} returned={} partial={} quotaCharged=1 totalMs={}",
+                    requestId, TARGET_COUNT, refill, refillFailed, items.size(), result.items().size(), result.items().size() < TARGET_COUNT, elapsedMs(generationStart));
             return new Generation(HttpStatus.OK, result);
         } catch (Exception failure) {
             store.fail(userId, requestId);
+            log.warn("[Recommendation] requestId={} stage=fail totalMs={} error={}",
+                    requestId, elapsedMs(generationStart), failure.getClass().getSimpleName());
             if (failure instanceof ResponseStatusException response) throw response;
-            log.warn("Recommendation generation failed ({})", failure.getClass().getSimpleName());
             throw unavailable();
         }
     }
@@ -154,24 +158,33 @@ public class RecommendationService {
 
     private CandidateRound candidateRound(UUID userId, UUID requestId, String language, List<WatchLogEntity> history,
             List<LlmProvider> selected, List<String> legacyExcluded, List<RecommendationItem> considered, int requested, String stage) {
+        long roundStart = System.nanoTime();
         var excluded = Stream.concat(Stream.concat(
                         namesForPrompt(store.exclusions(userId).stream().map(RecommendationAccountStore.Exclusion::item).toList()),
                         logs.findTitlesForRecommendationExclusion(userId).stream().map(title -> title.getName())),
                 Stream.concat(legacyExcluded.stream(), namesForPrompt(considered)))
                 .filter(Objects::nonNull).filter(name -> !name.isBlank()).distinct().toList();
+        long llmStart = System.nanoTime();
         var received = callProviders(RecommendationPromptBuilder.candidatePool(history, language, excluded, requested), selected);
+        long llmMs = elapsedMs(llmStart);
         var distinct = RecommendationTitleMatcher.filter(received, List.of(), List.of());
         var pool = distinct.stream().limit(CANDIDATE_POOL_SIZE).toList();
+        long enrichStart = System.nanoTime();
         var enriched = RecommendationTitleMatcher.filter(catalog.enrich(pool, language), List.of(), List.of());
+        long enrichMs = elapsedMs(enrichStart);
         return store.readSnapshot(() -> {
             var afterRecords = RecommendationTitleMatcher.filter(enriched, logs.findTitlesForRecommendationExclusion(userId), List.of());
             var afterExcluded = RecommendationTitleMatcher.filter(afterRecords, List.of(), legacyExcluded,
                     store.exclusions(userId).stream().map(RecommendationAccountStore.Exclusion::item).toList());
             var accepted = RecommendationTitleMatcher.filter(afterExcluded, List.of(), List.of(), considered);
-            log.info("[Recommendation] requestId={} stage={} requested={} received={} distinct={} catalogPool={} afterCatalog={} afterRecords={} afterExclusions={} newCandidates={}",
-                    requestId, stage, requested, received.size(), distinct.size(), pool.size(), enriched.size(), afterRecords.size(), afterExcluded.size(), accepted.size());
+            log.info("[Recommendation] requestId={} stage={} requested={} received={} distinct={} catalogPool={} afterCatalog={} afterRecords={} afterExclusions={} newCandidates={} llmMs={} enrichMs={} roundMs={}",
+                    requestId, stage, requested, received.size(), distinct.size(), pool.size(), enriched.size(), afterRecords.size(), afterExcluded.size(), accepted.size(), llmMs, enrichMs, elapsedMs(roundStart));
             return new CandidateRound(received, enriched, accepted);
         });
+    }
+
+    private static long elapsedMs(long startNanos) {
+        return TimeUnit.NANOSECONDS.toMillis(Math.max(0L, System.nanoTime() - startNanos));
     }
 
     private List<RecommendationItem> eligible(UUID userId, List<RecommendationItem> items, List<String> legacyExcluded) {

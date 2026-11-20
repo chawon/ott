@@ -69,6 +69,20 @@ class OpenAiProviderTest {
     }
 
     @Test
+    void supportsNoneReasoningEffortForGpt6Luna() throws Exception {
+        var builder = RestClient.builder().baseUrl("https://api.openai.com");
+        var server = MockRestServiceServer.bindTo(builder).build();
+        server.expect(requestTo("https://api.openai.com/v1/responses"))
+                .andExpect(jsonPath("$.model").value("gpt-6-luna"))
+                .andExpect(jsonPath("$.reasoning.effort").value("none"))
+                .andRespond(withSuccess(response("{\"recommendations\":[]}"), MediaType.APPLICATION_JSON));
+        var provider = new OpenAiProvider(builder.build(), props(null, "gpt-6-luna", "none"));
+        assertThat(provider.cacheKey()).isEqualTo("openai:gpt-6-luna:none");
+        assertThat(provider.recommend("synthetic")).isEmpty();
+        server.verify();
+    }
+
+    @Test
     void skipsReasoningParameterForModelsThatDoNotSupportIt() throws Exception {
         var builder = RestClient.builder().baseUrl("https://api.openai.com");
         var server = MockRestServiceServer.bindTo(builder).build();
