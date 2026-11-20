@@ -21,9 +21,9 @@
 | 재시도 | 요청 UUID와 서버 임대로 중복 생성·차감 방지 |
 | 계정 정리 | 연결 계정 합치기와 서버 데이터 전체 삭제에 포함 |
 
-OpenAI `gpt-6-luna`, reasoning effort `low`를 사용하며 키는 OCI Vault → 별도 ExternalSecret → API 환경변수로 전달한다. 다른 provider 구현은 호환을 위해 남아 있지만 OpenAI가 설정되면 우선한다.
+OpenAI `gpt-6-luna`, reasoning effort `none`을 사용하며 키는 OCI Vault → 별도 ExternalSecret → API 환경변수로 전달한다. 다른 provider 구현은 호환을 위해 남아 있지만 OpenAI가 설정되면 우선한다.
 
-최종 후보는 6개를 목표로 한다. 첫 후보군 12개에서 실제 카탈로그·기록·제외를 확인하고 필요하면 한 번 더 보충한다. 같은 생성의 보충은 추가 횟수를 차감하지 않는다. 새 기록은 기존 후보에서 바로 제외하며 취향 변경은 다음 생성에 반영한다.
+최종 후보는 6개를 목표로 한다. 첫 후보군 9개(최대 12개 스키마)에서 실제 카탈로그(배치 공유 4초 마감, TMDB 3초/5초 타임아웃)·기록·제외를 확인하고 필요하면 한 번 더 보충한다. 같은 생성의 보충은 추가 횟수를 차감하지 않는다. 새 기록은 기존 후보에서 바로 제외하며 취향 변경은 다음 생성에 반영한다.
 
 ## API와 저장
 
@@ -38,6 +38,8 @@ V32의 `recommendation_account_state`, `recommendation_batches`, `recommendation
 ## 운영 검증
 
 배포 SHA `b9f88a6`에서 실제 OpenAI 추천 6개 → 제외 후 5개 → 새 추천 6개와 기기 간 공유를 확인했다. 성공 3회 뒤 네 번째 요청은 429이며 동일 UUID 재시도와 제외 되돌리기는 추가 차감하지 않았다. 테스트 계정과 추천 데이터는 정리했다.
+
+`2026-11-20` [PR #144](https://github.com/chawon/ott/pull/144)(`main` `7e9913d`, production run [`44708627801`](https://github.com/chawon/ott/actions/runs/44708627801))로 `gpt-6-luna` `reasoning.effort=none` 전환, 1차 후보 9개, 카탈로그 4초 마감, TMDB 타임아웃(3s/5s) 및 `[Recommendation]` 단계별 소요시간 로깅을 운영 반영했다. 운영 실요청에서 `llmMs=12405`, `enrichMs=715`, `totalMs=13230`(`selected=6, returned=6`)을 확인했다. 전 플랫폼 클라이언트 타임아웃·폴링 정합성은 [#142](https://github.com/chawon/ott/issues/142)에서 별도 추적한다.
 
 - [정책·동시성·카탈로그 계약](../../../docs/future-timeline-account-policy.md)
 - [운영 배포·백업·검증](../../../docs/ottline-v2-production-rollout.md)

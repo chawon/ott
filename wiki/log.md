@@ -1,5 +1,12 @@
 # Wiki Log
 
+## [2026-11-20] deploy(api): 미래의 타임라인 추천 생성 응답 지연 단축 및 단계별 계측 (#143, PR #144)
+
+- [PR #144](https://github.com/chawon/ott/pull/144) (`main` `7e9913d`, manifest `15112e0`, `Deploy API to Production` run [`44708627801`](https://github.com/chawon/ott/actions/runs/44708627801)).
+- OpenAI `gpt-6-luna` 기본 `OPENAI_REASONING_EFFORT`를 `low` → `none`으로 전환하고, 1차 후보 수 `12 → 9`, `RecommendationCatalogService` 배치 공유 4초 마감, `TmdbConfig` `connect 3s / read 5s` 타임아웃, `[Recommendation]` 단계별 소요시간(`llmMs`, `enrichMs`, `roundMs`, `totalMs`) 로깅을 반영했다.
+- 운영 확인: ArgoCD `ott-app` `Synced / Healthy` (`15112e0`), `ott-api` Pod `1/1 Running`·재시작 0·`APP_VERSION=7e9913d`·`OPENAI_REASONING_EFFORT=none`. 운영 실요청 로그에서 `llmMs=12405`, `enrichMs=715`, `totalMs=13230` (`selected=6, returned=6`) 확인.
+- 전 플랫폼 클라이언트 타임아웃(Android/Apple 20s, Windows 15s)·폴링 정합성 조사는 공통 이슈 [#142](https://github.com/chawon/ott/issues/142)로 등록해 관리 본부에서 추적한다. [미래의 타임라인](pages/features/future-timeline.md) · [플랫폼 현황](../docs/platforms.md)
+
 ## [2026-11-20] release(windows): 서버 계정 삭제 수정 PR #140 병합 및 Microsoft Store v2.0.1.0 심사 제출
 
 - [PR #140](https://github.com/chawon/ott/pull/140) (`main` `1fb24ee`, 코드 커밋 `e8b9f24`). Windows `OttlineApiClient.DeleteServerAccountAsync()` 경로를 `DELETE /api/auth/account`로 수정(`UnlinkDeviceAsync`도 `DELETE /api/auth/devices/{id}`로 정정)하고 `OttlineRepository.DeleteServerAccountAsync()`·`MainViewModel`·`MainWindow`에 서버 2xx 확인 후 로컬 초기화, HTTP 오류·네트워크 실패 시 기록·이력·`outbox`·연결 상태 보존, 미연결 계정 가드, 한·영 안내 문구를 반영했다.

@@ -4,7 +4,7 @@
 
 | 대상 | 구현 소스 | 출시·개발 상태 | 기록 |
 | --- | --- | --- | --- |
-| 공통 API | [apps/api](../apps/api) | 운영 `38112ca`. Android·Windows·macOS·iOS의 연결 기기 표기를 지원한다. | [API/데이터 계약](product-contracts.md) · [운영 설정](../deploy/oke/api-deployment.yaml) |
+| 공통 API | [apps/api](../apps/api) | 운영 `7e9913d`([PR #144](https://github.com/chawon/ott/pull/144)). Android·Windows·macOS·iOS의 연결 기기 표기와 `gpt-6-luna` `reasoning.effort=none`·카탈로그 4초 마감·단계별 타이밍 로그를 포함한다. | [API/데이터 계약](product-contracts.md) · [운영 설정](../deploy/oke/api-deployment.yaml) |
 | Web/PWA | [apps/web](../apps/web) | 운영 `4472ad3`, v2 Web/PWA 및 확장 → Windows 빠른 기록 링크 포함. 브라우저 설치형 PWA를 제공한다. | [PWA](../wiki/pages/platforms/pwa.md) · [Web 개편 배포](ottline-v2-production-rollout.md) · [운영 설정](../deploy/oke/web-deployment.yaml) |
 | Android | [apps/android-native](../apps/android-native) | Google Play `app.ottline`, Kotlin/Compose 기반. 배포 워크플로우에서 확인한 버전은 `2.0.4 (28)`. 운영 API는 기존 앱의 User-Agent로 기기를 구분한다. main의 전용 플랫폼 헤더는 다음 바이너리 변경에 해당한다. | [Android Wiki](../wiki/pages/platforms/android-native.md) · [Play 배포 run](https://github.com/chawon/ott/actions/runs/44111552653) · [전환과 복구](android-native-v2-transition.md) |
 | iOS | [apps/native](../apps/native) | App Store 공개 Expo React Native `1.0.4 (24)`. SwiftUI v2 `apps/ios-native` 및 공용 `apps/apple-core`는 PR #137에서 개발 중이다. | [iOS Wiki](../wiki/pages/platforms/native.md) · [App Store](https://apps.apple.com/app/ottline/id6780318110) · [Apple PR #137](https://github.com/chawon/ott/pull/137) |
