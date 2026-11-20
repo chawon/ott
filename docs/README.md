@@ -2,6 +2,10 @@
 
 기능을 바꿀 때는 [플랫폼 현황](platforms.md)에서 적용 대상을 찾고, [변경안 양식](changes/README.md)으로 공통 동작과 플랫폼별 검증을 정한다. 요청·응답, 저장과 동기화는 [공통 API와 데이터 계약](product-contracts.md)에서 시작한다.
 
+## 에이전트로 작업하기
+
+ottline 저장소 루트에서 새 세션을 연다. Codex와 Antigravity(`agy`)는 [AGENTS.md](../AGENTS.md)를 직접 읽고, Claude Code는 [CLAUDE.md](../CLAUDE.md)를 통해 같은 지침을 읽는다. 진행할 항목과 확인 기준은 [v2 후속 작업](changes/v2-follow-up.md)에서 찾는다.
+
 ## 설계와 운영
 
 | 주제 | 기준 문서 |

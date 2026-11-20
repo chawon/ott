@@ -8,6 +8,14 @@
 If present, read `./.omd/preferences.md` — pending corrections not yet folded into DESIGN.md. Apply them; flag conflicts.
 <!-- omd:end -->
 
+## 지침과 작업 인계
+
+Codex와 Google Antigravity(`agy`)는 저장소 루트의 이 파일을 읽는다. Claude Code는 [CLAUDE.md](CLAUDE.md)에서 같은 파일을 불러온다. 세 도구에서 ottline 저장소 루트를 열어 작업한다.
+
+- 작업을 이어갈 때는 [v2 후속 작업](docs/changes/v2-follow-up.md)과 해당 변경안의 최신 브랜치·PR·검증 결과를 확인한다. 사용자가 요청한 작업과 플랫폼 범위에서 진행한다.
+- Wiki를 편집할 때는 [Wiki 지침](wiki/AGENTS.md)을 먼저 읽는다.
+- 다른 도구로 작업을 넘길 때는 해당 변경안에 작업 브랜치와 기준 커밋, 완료한 검증, 남은 실기기·출시 확인을 남긴다.
+
 ## 역할
 
 이 저장소는 ottline의 플랫폼 간 변경을 설계하고 조율하는 곳이다. 공유 API와 합의된 플랫폼별 구현을 관리한다. 출발점은 [문서 지도](docs/README.md)다.
