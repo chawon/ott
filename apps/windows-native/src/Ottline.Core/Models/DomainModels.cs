@@ -717,3 +717,20 @@ public sealed record WatchReminderCandidate(
     long DurationMinutes,
     DateTimeOffset DetectedAt
 );
+
+public enum ServerAccountDeleteOutcome
+{
+    Deleted,
+    NotConnected,
+    HttpError,
+    NetworkError
+}
+
+public sealed record ServerAccountDeleteResult(
+    ServerAccountDeleteOutcome Outcome,
+    int? StatusCode = null,
+    string? ErrorMessage = null
+)
+{
+    public bool IsSuccess => Outcome == ServerAccountDeleteOutcome.Deleted;
+}

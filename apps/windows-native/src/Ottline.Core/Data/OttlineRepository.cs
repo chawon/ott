@@ -44,6 +44,57 @@ public sealed class OttlineRepository : IDisposable
 
     public void RefreshApi() => RefreshApiConfiguration();
 
+    public async Task<ServerAccountDeleteResult> DeleteServerAccountAsync(CancellationToken ct = default)
+    {
+        var currentSettings = _db.LoadSettings();
+        RefreshApiConfiguration(currentSettings);
+
+        var effectiveDeviceId = Guid.TryParse(currentSettings.DeviceId, out _)
+            ? currentSettings.DeviceId
+            : (Guid.TryParse(currentSettings.AuthToken, out _) ? currentSettings.AuthToken : null);
+
+        if (!Guid.TryParse(currentSettings.UserId, out _) || !Guid.TryParse(effectiveDeviceId, out _))
+        {
+            return new ServerAccountDeleteResult(ServerAccountDeleteOutcome.NotConnected);
+        }
+
+        var result = await _api.DeleteServerAccountAsync(ct).ConfigureAwait(false);
+        if (!result.IsSuccess)
+        {
+            return result;
+        }
+
+        _db.ResetLocalData(preserveSettings: false);
+        var resetSettings = new LocalSettings(
+            BaseUrl: currentSettings.BaseUrl,
+            AuthToken: null,
+            UserId: null,
+            DeviceId: Guid.NewGuid().ToString("D"),
+            DeviceName: currentSettings.DeviceName,
+            Locale: currentSettings.Locale,
+            ThemeMode: currentSettings.ThemeMode,
+            DisplayName: "나의 기록실",
+            Handle: "",
+            AvatarPreset: "cinema_keeper",
+            Bio: "",
+            RecoveryCode: null,
+            RecoveryCodeIssuedAt: null,
+            LastSyncCursor: null,
+            LastSyncedAt: null,
+            WatchReminderEnabled: currentSettings.WatchReminderEnabled,
+            RevisitReminderEnabled: currentSettings.RevisitReminderEnabled,
+            MinimizeToTray: currentSettings.MinimizeToTray,
+            GlobalHotkeyEnabled: currentSettings.GlobalHotkeyEnabled,
+            HasCompletedBrowserHandoff: false,
+            HasDismissedMigrationBanner: false,
+            HasSeenIntroThisSession: currentSettings.HasSeenIntroThisSession,
+            HasAutoAttemptedUpgradeHandoff: currentSettings.HasAutoAttemptedUpgradeHandoff
+        );
+        _db.SaveSettings(resetSettings);
+        RefreshApiConfiguration(resetSettings);
+        return result;
+    }
+
     public async Task EnsureRegisteredAsync(CancellationToken ct = default)
     {
         var s = _db.LoadSettings();

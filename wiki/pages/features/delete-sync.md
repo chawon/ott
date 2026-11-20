@@ -21,8 +21,11 @@
 | Web/PWA | 설정에서 IndexedDB·브라우저 저장소를 초기화한다. 계정 삭제는 `DELETE /api/auth/account`를 호출한다. [설정 화면](../../../apps/web/app/%5Blocale%5D/account/page.tsx) |
 | Android Native | Room과 로컬 인증·동기화 상태를 초기화한다. 계정 삭제는 같은 API를 호출하며 `401` 또는 `404` 응답 시 로컬 정리를 완료한다. [저장소](../../../apps/android-native/app/src/main/java/app/ottline/data/OttlineRepository.kt) |
 | iOS | 로컬 DB를 초기화한다. 계정 삭제는 같은 API를 호출하고 성공 후 로컬 DB를 초기화한다. [설정 화면](../../../apps/native/app/%28tabs%29/account/index.tsx) |
-| Windows Native | 설정에 두 액션이 있다. 현재 소스의 계정 전체 삭제 요청 경로가 서버 계약과 다르다. [Windows 확인 사항](#windows-확인-사항) |
+| Windows Native | 설정에 두 액션이 있다. 공개판 `2.0.0.0`에는 구 경로(`/api/account`) 이슈가 남아 있으며, `fix/windows-account-deletion` 브랜치에서 `DELETE /api/auth/account` 및 실패 보존으로 수정했다(스토어 업데이트 대기). [Windows 확인 사항](#windows-확인-사항) |
 
 ### Windows 확인 사항
 
-`2026-11-20` 소스 확인 기준으로 Windows 클라이언트는 `DELETE /api/account`를 호출한다. 서버는 `DELETE /api/auth/account`에 계정 삭제를 연결한다. Windows는 HTTP 성공 여부를 반환하지만 설정 화면 흐름이 그 값을 확인하지 않아, 실패 응답 뒤에도 현재 기기 DB를 초기화하고 성공 메시지를 표시할 수 있다. 수정 시 서버 경로와 결과 처리, 실패 시 로컬 데이터 보존, 성공 시 계정·기기 초기화를 함께 검증한다. [Windows API 클라이언트](../../../apps/windows-native/src/Ottline.Core/Remote/OttlineApiClient.cs), [설정 ViewModel](../../../apps/windows-native/src/Ottline.App/ViewModels/MainViewModel.cs)
+- **현재 공개판 (`2.0.0.0`, Microsoft Store)**: 클라이언트가 `DELETE /api/account`를 호출하고 HTTP 성공 여부를 확인하지 않아, 실패 응답 뒤에도 로컬 DB를 초기화하고 성공 메시지를 표시할 수 있다.
+- **코드 수정 및 로컬 검증 (`2026-11-20`, 브랜치 `fix/windows-account-deletion`, 기준 `main` `e93f3e4`)**:
+  - `DELETE /api/auth/account` 호출, `UserId`/`DeviceId` 미연결 시 버튼 비활성화 및 요청 차단, HTTP 오류(`401`/`404`/`500` 등)와 네트워크 실패·타임아웃 시 로컬 기록·이력·`outbox`·연결 상태 보존, 서버 2xx 확인 후 로컬 DB 및 계정 설정 초기화와 한·영 안내로 수정했다. [Windows API 클라이언트](../../../apps/windows-native/src/Ottline.Core/Remote/OttlineApiClient.cs), [Windows 저장소](../../../apps/windows-native/src/Ottline.Core/Data/OttlineRepository.cs), [설정 ViewModel](../../../apps/windows-native/src/Ottline.App/ViewModels/MainViewModel.cs)
+  - 모의 API 단위 테스트(`Ottline.Tests` 19/19)와 `x64`/`arm64` MSIXBundle 패키지 검증을 통과했다. PR 병합 후 Microsoft Store 업데이트 배포 및 스토어 설치판 실기기 확인이 남아 있다. [후속 작업](../../../docs/changes/v2-follow-up.md#1-windows-서버-계정-삭제-수정)

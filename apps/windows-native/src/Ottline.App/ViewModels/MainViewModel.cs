@@ -179,6 +179,7 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
     private string _newFeedbackSubject = string.Empty;
     private string _newFeedbackBody = string.Empty;
     private FeedbackThread? _selectedFeedbackThread;
+    private bool _isDeletingServerAccount;
     private readonly int _splashMessageIndex = DateTime.Now.DayOfYear % 3;
 
     public MainViewModel(OttlineRepository? repository = null, bool skipStartupNetwork = false)
@@ -1413,6 +1414,29 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
     public bool IsSelectedFeedbackThreadEmpty => _selectedFeedbackThread == null;
     public bool IsFeedbackThreadsEmpty => FeedbackThreads.Count == 0;
 
+    public bool HasConnectedServerAccount =>
+        Guid.TryParse(_settings.UserId, out _)
+        && (Guid.TryParse(_settings.DeviceId, out _) || Guid.TryParse(_settings.AuthToken, out _));
+
+    public bool IsDeletingServerAccount
+    {
+        get => _isDeletingServerAccount;
+        private set
+        {
+            if (_isDeletingServerAccount == value) return;
+            _isDeletingServerAccount = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(CanDeleteServerAccount));
+            OnPropertyChanged(nameof(DeleteAccountButtonLabel));
+        }
+    }
+
+    public bool CanDeleteServerAccount => HasConnectedServerAccount && !_isDeletingServerAccount;
+
+    public string DeleteAccountButtonLabel => _isDeletingServerAccount
+        ? _strings.DeleteAccountInProgressLabel
+        : _strings.MySpaceDeleteAllAction;
+
     public OttlineWidgetSnapshot WidgetPreviewSnapshot => _widgetPreviewSnapshot;
     public bool IsWidgetPackageActive => Widgets.OttlineWidgetProvider.IsPackagedProcess();
     public bool ShowDeveloperServerSettings => string.Equals(Environment.GetEnvironmentVariable("OTTLINE_DEV"), "1", StringComparison.Ordinal);
@@ -1629,6 +1653,9 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
         OnPropertyChanged(nameof(FeedbackCategoryComboOptions));
         OnPropertyChanged(nameof(FeedbackCategoryComboIndex));
         OnPropertyChanged(nameof(DisplayRecoveryCode));
+        OnPropertyChanged(nameof(HasConnectedServerAccount));
+        OnPropertyChanged(nameof(CanDeleteServerAccount));
+        OnPropertyChanged(nameof(DeleteAccountButtonLabel));
         OnPropertyChanged(nameof(CurrentAvatarImageUri));
         OnPropertyChanged(nameof(CurrentAvatarPersonaLabel));
         OnPropertyChanged(nameof(EditDisplayName));
@@ -2504,16 +2531,78 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
     public void ResetLocalCacheOnly()
     {
         _repo.Database.ResetLocalData(preserveSettings: true);
+        IsTitleDetailOpen = false;
+        SelectedDetailLog = null;
+        SelectedTitleHistory.Clear();
         RefreshLocalState();
-        ShowToast("이 기기의 로컬 기록 캐시가 초기화되었습니다.");
+        RefreshTimelineItems();
+        ShowToast(_strings.LocalResetSuccessNotice);
     }
 
-    public async Task DeleteServerAccountPermanentlyAsync()
+    public async Task<ServerAccountDeleteResult> DeleteServerAccountPermanentlyAsync(CancellationToken ct = default)
     {
-        await _repo.Api.DeleteServerAccountAsync();
-        _repo.Database.ResetLocalData(preserveSettings: false);
-        RefreshLocalState();
-        ShowToast("계정과 모든 기기의 기록이 삭제되었습니다.");
+        if (_isDeletingServerAccount)
+        {
+            return new ServerAccountDeleteResult(
+                ServerAccountDeleteOutcome.NetworkError,
+                ErrorMessage: "Deletion already in progress"
+            );
+        }
+
+        if (!HasConnectedServerAccount)
+        {
+            ShowToast(_strings.DeleteAccountNotConnectedNotice);
+            return new ServerAccountDeleteResult(ServerAccountDeleteOutcome.NotConnected);
+        }
+
+        IsDeletingServerAccount = true;
+        try
+        {
+            var result = await _repo.DeleteServerAccountAsync(ct);
+            if (!result.IsSuccess)
+            {
+                ShowToast(result.Outcome switch
+                {
+                    ServerAccountDeleteOutcome.NotConnected => _strings.DeleteAccountNotConnectedNotice,
+                    ServerAccountDeleteOutcome.NetworkError => _strings.DeleteAccountNetworkFailedNotice,
+                    _ => _strings.DeleteAccountFailedNotice
+                });
+                return result;
+            }
+
+            IsTitleDetailOpen = false;
+            SelectedDetailLog = null;
+            SelectedTitleHistory.Clear();
+            IsProfileEditorOpen = false;
+            PairPreview = null;
+            PairCodeInput = string.Empty;
+            LinkedDevices.Clear();
+            FeedbackThreads.Clear();
+            SelectedFeedbackThread = null;
+            Recommendations.Clear();
+            OnPropertyChanged(nameof(IsFeedbackThreadsEmpty));
+
+            RefreshLocalState();
+            RefreshTimelineItems();
+            ShowToast(_strings.DeleteAccountSuccessNotice);
+            return result;
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            ShowToast(_strings.DeleteAccountNetworkFailedNotice);
+            return new ServerAccountDeleteResult(
+                ServerAccountDeleteOutcome.NetworkError,
+                ErrorMessage: ex.Message
+            );
+        }
+        finally
+        {
+            IsDeletingServerAccount = false;
+        }
     }
 
     public void ShowToast(string message)
