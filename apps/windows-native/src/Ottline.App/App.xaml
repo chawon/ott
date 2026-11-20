@@ -111,6 +111,11 @@
                                 <Setter TargetName="border" Property="Background" Value="{DynamicResource BgHoverBrush}" />
                                 <Setter TargetName="border" Property="BorderBrush" Value="{DynamicResource BorderStrongBrush}" />
                             </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="border" Property="Background" Value="{DynamicResource BgSecondaryBrush}" />
+                                <Setter TargetName="border" Property="Opacity" Value="0.55" />
+                                <Setter Property="Cursor" Value="Arrow" />
+                            </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>

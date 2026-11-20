@@ -2641,7 +2641,8 @@
                                                 Click="LocalReset_Click"
                                                 Margin="0,0,10,0" />
                                         <Button Style="{StaticResource SecondaryButtonStyle}"
-                                                Content="{Binding Strings.MySpaceDeleteAllAction}"
+                                                Content="{Binding DeleteAccountButtonLabel}"
+                                                IsEnabled="{Binding CanDeleteServerAccount}"
                                                 Foreground="{DynamicResource ErrorBrush}"
                                                 Click="ServerDeleteAccount_Click" />
                                     </StackPanel>

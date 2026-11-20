@@ -906,8 +906,8 @@ public partial class MainWindow : Window
     {
         var res = System.Windows.MessageBox.Show(
             this,
-            "이 기기에 저장된 로컬 기록만 초기화할까요? (연결된 다른 기기나 서버의 기록은 남습니다)",
-            "이 기기 기록 초기화 확인",
+            _vm.Strings.LocalResetConfirmBody,
+            _vm.Strings.LocalResetConfirmTitle,
             MessageBoxButton.YesNo,
             MessageBoxImage.Warning
         );
@@ -919,16 +919,32 @@ public partial class MainWindow : Window
 
     private async void ServerDeleteAccount_Click(object sender, RoutedEventArgs e)
     {
+        if (!_vm.CanDeleteServerAccount)
+        {
+            if (!_vm.HasConnectedServerAccount)
+            {
+                _vm.ShowToast(_vm.Strings.DeleteAccountNotConnectedNotice);
+            }
+            return;
+        }
+
         var res = System.Windows.MessageBox.Show(
             this,
-            "계정과 모든 기기의 기록을 영구 삭제할까요? 이 작업은 되돌릴 수 없습니다.",
-            "계정과 모든 기록 삭제 확인",
+            _vm.Strings.DeleteAccountConfirmBody,
+            _vm.Strings.DeleteAccountConfirmTitle,
             MessageBoxButton.YesNo,
             MessageBoxImage.Stop
         );
         if (res == MessageBoxResult.Yes)
         {
-            await _vm.DeleteServerAccountPermanentlyAsync();
+            try
+            {
+                await _vm.DeleteServerAccountPermanentlyAsync();
+            }
+            catch
+            {
+                _vm.ShowToast(_vm.Strings.DeleteAccountFailedNotice);
+            }
         }
     }
 

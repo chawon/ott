@@ -313,6 +313,30 @@ public sealed record OttlineStrings(
         : "내보내기, 로컬 초기화, 서버 데이터 삭제를 관리해요.";
     public string MySpaceResetLocalAction => IsEn ? "Reset local data" : "로컬 데이터 초기화";
     public string MySpaceDeleteAllAction => IsEn ? "Delete all server data" : "서버 데이터 전체 삭제";
+    public string DeleteAccountInProgressLabel => IsEn ? "Deleting server data…" : "서버 데이터 삭제 중…";
+    public string LocalResetConfirmTitle => IsEn ? "Reset local data" : "로컬 데이터 초기화";
+    public string LocalResetConfirmBody => IsEn
+        ? "Clear records and cache stored on this device? Your synced server data stays safe."
+        : "이 기기에 보관된 기록과 캐시만 초기화할까요? 서버에 동기화된 기록은 삭제되지 않아요.";
+    public string LocalResetSuccessNotice => IsEn
+        ? "Cleared local records on this device."
+        : "이 기기의 로컬 기록을 초기화했어요.";
+    public string DeleteAccountConfirmTitle => IsEn ? "Delete all server data" : "서버 데이터 전체 삭제";
+    public string DeleteAccountConfirmBody => IsEn
+        ? "This will permanently delete synced records, comments, inbox messages, analytics data, and all linked devices for this account. Local data on this device will also be cleared and cannot be undone. Continue?"
+        : "서버에 저장된 기록, 댓글, 문의, 분석 데이터와 연결된 모든 기기가 삭제됩니다. 이 기기의 로컬 데이터도 함께 초기화되며 되돌릴 수 없어요. 계속할까요?";
+    public string DeleteAccountSuccessNotice => IsEn
+        ? "Deleted your server account and cleared local data on this device."
+        : "서버 계정과 이 기기의 로컬 데이터를 모두 삭제했어요.";
+    public string DeleteAccountFailedNotice => IsEn
+        ? "Could not delete your server account. Your local records and connection are still safe. Please try again in a little while."
+        : "서버 계정 삭제를 완료하지 못했어요. 이 기기의 기록과 연결 상태는 그대로 유지했어요. 잠시 뒤 다시 시도해 주세요.";
+    public string DeleteAccountNetworkFailedNotice => IsEn
+        ? "Could not reach the server to delete your account. Your local records and connection are still safe. Check your connection and try again."
+        : "네트워크 연결을 확인하지 못해 서버 계정을 삭제하지 못했어요. 이 기기의 기록과 연결 상태는 그대로 유지했어요. 연결을 확인한 뒤 다시 시도해 주세요.";
+    public string DeleteAccountNotConnectedNotice => IsEn
+        ? "No server account is connected on this device. Use Reset local data to clear records kept here."
+        : "서버에 연결된 계정이 없어요. 이 기기의 기록만 비우려면 로컬 데이터 초기화를 사용해 주세요.";
 
     // My Space Sub-views (Report, Bookshelf, Watch Reminder, Feedback, Guides)
     public string ReportHeadingTitle => IsEn ? "My Usage Report" : "내 이용 리포트";

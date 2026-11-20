@@ -1,5 +1,11 @@
 # Wiki Log
 
+## [2026-11-20] fix(windows): 서버 계정 삭제 API 경로 및 실패 보존 수정 (PR 준비)
+
+- 브랜치 `fix/windows-account-deletion` (기준 `main` `e93f3e4`). Windows `OttlineApiClient.DeleteServerAccountAsync()` 경로를 `DELETE /api/auth/account`로 수정(`UnlinkDeviceAsync`도 `DELETE /api/auth/devices/{id}`로 정정)하고 `OttlineRepository.DeleteServerAccountAsync()`·`MainViewModel`·`MainWindow`에 서버 2xx 확인 후 로컬 초기화, HTTP 오류·네트워크 실패 시 기록·이력·`outbox`·연결 상태 보존, 미연결 계정 가드, 한·영 안내 문구를 반영했다.
+- 로컬 검증: 모의 API 단위 테스트 5건 추가 포함 `Ottline.Tests` 19/19 통과, `build-msix.ps1` + `verify-msix.ps1`로 `x64`/`arm64` MSIX 및 통합 MSIXBundle 검증 완료.
+- 현재 Microsoft Store 공개판은 `2.0.0.0` 유지 상태이며 PR 병합·Windows CI·스토어 업데이트 제출 및 스토어 설치판 실기기 확인이 남아 있다. [후속 작업](../docs/changes/v2-follow-up.md#1-windows-서버-계정-삭제-수정) · [삭제 정책](pages/features/delete-sync.md#windows-확인-사항)
+
 ## 계획 · 브라우저 확장·토스 인앱·ChatGPT 앱
 
 - 브라우저 확장은 Web 빠른 기록 진입을 유지하고 원본 URL과 권한을 줄이는 패키지 갱신을 준비한다. 토스 인앱은 공개판에서 핵심 동작과 반복 기록을 확인한다.

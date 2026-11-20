@@ -15,7 +15,7 @@
 
 운영 Web/API Deployment의 이미지와 Ready 상태, Argo CD의 `Synced` / `Healthy`를 읽기 전용으로 대조했다. 스토어의 버전 번호, 제출 상태, 설치 검증은 각 채널의 근거를 따른다.
 
-Windows의 서버 계정 삭제는 현재 소스에서 호출 경로와 성공 처리의 불일치가 확인돼 있다. [삭제 정책과 Windows 구현 현황](../wiki/pages/features/delete-sync.md)
+Windows의 서버 계정 삭제는 현재 공개 스토어판(`2.0.0.0`)에서 호출 경로와 성공 처리 불일치가 남아 있으며, `fix/windows-account-deletion` 브랜치에서 코드 수정 및 모의 API·MSIX 검증을 마쳤다(PR 병합·스토어 업데이트 및 설치판 확인 대기). [삭제 정책과 Windows 구현 현황](../wiki/pages/features/delete-sync.md)
 
 ## 이전 설치와 연결 채널
 
