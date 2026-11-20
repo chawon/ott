@@ -1,0 +1,185 @@
+# TWA (Trusted Web Activity — 레거시 `versionCode <= 23`)
+
+> 보관 문서입니다. 당시 배경과 구현·출시 기록을 보존합니다. 현재 배포는 [Android Native](../pages/platforms/android-native.md)를 따릅니다.
+
+
+> `2026-11-09`(`versionCode >= 24`, `v2.0.0+`)부터 Google Play `app.ottline`은 순수 네이티브 앱인 [android-native](../pages/platforms/android-native.md)(../pages/platforms/`apps/android-native/`)로 전환되었다. 이 문서는 `1.0.19`(`versionCode=23`)까지의 Bubblewrap TWA(`apps/twa/`) 운영 이력을 보존한다.
+
+## 관련 페이지
+- [android-native](../pages/platforms/android-native.md)
+- [ottline-v2](../pages/features/ottline-v2.md)
+- [pwa](../pages/platforms/pwa.md)
+- [ms-store](../pages/platforms/ms-store.md)
+- [analytics](../pages/features/analytics.md)
+
+---
+
+## 현재 상태 (`2026-11-09` 네이티브 전환 완료)
+
+**`2026-11-09`부터 Android 프로덕션 배포 경로는 [android-native](../pages/platforms/android-native.md)(../pages/platforms/`apps/android-native`, `2.0.1` `versionCode=25`)로 전환되었다.** 기존 TWA(`versionCode <= 23`)에서 업데이트하는 사용자는 첫 실행 시 `install_token` 서버 세션 복원 및 `TwaBrowserBridge` 외부 브라우저 자동 핸드오프를 통해 이전 기록과 프로필을 자동으로 이어받는다.
+
+- 패키지명: `app.ottline`
+- 도메인: `https://ottline.app`
+- 런처명: `ottline`
+- 최소 지원 버전: Android 7.0(API 24), Play 자동 보호 유지
+- GitHub Actions:
+  - `.github/workflows/twa-debug.yml`
+  - `.github/workflows/twa-build-aab.yml`
+  - `.github/workflows/twa-release.yml`
+- Play 배포 이력:
+  - internal track 배포 성공 (`versionName=1.0.0`, `versionCode=4`)
+  - `twa-release.yml` 기준 `gplay release` 자동 업로드 경로 유지
+- 현재 운영 상태(2026-10-25):
+  - Google Play 프로덕션 액세스 심사 통과 및 production 출시 완료
+  - Play `production`: `1.0.19` (`versionCode=23`, `status=completed`, 100%)
+  - TWA release run: `40169071221`
+  - Main SHA: `2bbff18256dffd7078e61fbfe44c2a23433d3031` (PR `#122`·`#123`)
+  - 범위: 감지 주기 간 사용시간 누적, 일별 통계 구간 분리, 알림 실패 재시도 및 최소 Android 7.0(API 24) 적용
+  - CI 서명 AAB와 Play bundles API의 SHA-256 일치 확인; 실제 기기 업데이트·알림 수신은 후속 확인
+  - `alpha` 테스터 그룹은 `ottline-beta-testers@googlegroups.com`
+- Android Play 유입 활성화 1차 Web 배포(2026-08-18):
+  - Android 브라우저·설치형 PWA에는 Google Play 전환 팝업을 노출하고, ottline TWA에서는 해당 팝업을 숨김
+  - ottline TWA에서 첫 기록이 생긴 뒤 홈에 시청 기록 알림 설정 카드를 노출하고 `ottline://watch-reminder`로 연결
+  - 정확한 `android-app://app.ottline` referrer, 현재 launch URL의 버전·install token, 그 신호로 기록한 session flag만 TWA 판정에 사용
+  - 일반 WebView·standalone PWA·다른 패키지 TWA는 ottline TWA 판정에서 제외
+  - PR `#93`, main SHA `57f98e6317dcce303fc9d32e488b546a68b9c2c6`, Web production run `32099474936`, `APP_VERSION=57f98e6`
+  - Web 전용 배포로 Android AAB는 변경하지 않음
+- `1.0.5` 업데이트(2026-05-11):
+  - 목적: 재진행 중인 비공개 테스트에서 테스터 의견 수집과 조치 이력을 남기기 위한 피드백 루프 보강
+  - Google Play TWA 세션에서만 설정 화면에 Android 테스트 체크리스트와 `Android 테스트 의견 보내기` 진입 추가
+  - 문의함 preset: `/feedback?source=android-alpha`, `/feedback?source=android-alpha-share`
+  - QuickLog 공유 진입 성공/실패 안내와 공유 기록 의견 링크 추가
+  - `twa-release.yml`에 `release_notes` 입력 추가
+  - 배포 상태: Play `alpha` `1.0.5` (`versionCode=9`, `status=completed`)
+- 현재 작업환경 재검증(2026-04-17):
+  - 로컬 `./gradlew assembleDebug` / `./gradlew bundleRelease`는 WSL/ARM 환경의 `aapt2` 바이너리 호환 문제로 실패하는 것이 알려진 제약
+  - 따라서 Android APK/AAB는 계속 GitHub Actions를 source of truth로 사용
+  - 로컬 빌드 실패는 코드 회귀 판단 근거로 쓰지 않음
+
+## 히스토리 요약
+
+1. 2026-01: `feature/flutter-android`
+   - `apps/mobile` Flutter 앱과 debug APK CI만 존재
+   - Play release/signing 경로는 완성되지 않음
+2. 2026-02: `apps/twa`
+   - Bubblewrap TWA가 실제 Android 배포 경로가 됨
+   - 공유 인텐트, 홈 위젯, internal track 업로드까지 완료
+3. 2026-03: 문서상 `TWA -> Capacitor` 결정이 기록됨
+   - 저장소에는 `apps/cap`이나 Capacitor 설정이 없음
+   - 즉, 코드 실체 없는 문서 결정만 남아 있던 상태
+4. 2026-03~04: `feat/native-mobile-app`
+   - `apps/native` React Native + Expo 후보 앱 추가
+   - main 미머지, EAS/Play/TestFlight 파이프라인 없음
+
+---
+
+## 배포 기준 정보
+
+- 패키지명: `app.ottline`
+- 도메인: `https://ottline.app`
+- 앱명: `ottline`
+
+---
+
+## Google Play 배포 현황
+
+- 내부 테스트 트랙 배포 이력 있음 (`track=internal`, `versionName=1.0.0`, `versionCode=4`)
+- 2026-10-25 기준 최신 반영:
+  - `production`: `23 (1.0.19)`, `status=completed`, 100%
+  - `beta`: `22 (1.0.18)`, `status=completed`
+  - `alpha`: `13 (1.0.9)`, `status=completed`
+  - `internal`: `18 (1.0.14)`, `status=completed`
+  - `alpha` 테스터 그룹: `ottline-beta-testers@googlegroups.com`
+- 2026-05-11 `1.0.5` (`versionCode=9`) alpha 업데이트는 GitHub Actions run `25656711609`로 배포했고, `gplay` 확인 기준 `status=completed`
+- 2026-05-21 `1.0.6` (`versionCode=10`) alpha refresh는 GitHub Actions run `26228374153`로 배포했고, `gplay` 확인 기준 `status=completed`
+- 2026-06-10 `1.0.12` (`versionCode=16`) production 업데이트는 GitHub Actions run `27256880845`로 배포했고, `gplay` 확인 기준 `status=completed`
+- 2026-07-22 `1.0.13` (`versionCode=17`) Android 16/API 36 production 업데이트는 GitHub Actions run `29895085515`로 배포했고, `gplay` 확인 기준 `status=completed`
+- 2026-10-25 `1.0.19` (`versionCode=23`) 시청 기록 알림 복구와 최소 API 24 production 업데이트는 GitHub Actions run `40169071221`로 배포했고, 새 Play edit `09339353177853118628`에서 `status=completed`를 확인했다. CI AAB와 Play 등록 해시는 `6bf3b47dc4a0964ef062f534e61cf9eefdb20662fe0ee312cdf1b9561d73ddcb`로 일치한다. 상세는 `docs/android-watch-reminder-reliability.md`.
+- GitHub Actions `twa-release.yml` — AAB 빌드 후 `gplay release`
+- 관련 Secret:
+  - `TWA_KEYSTORE_BASE64`
+  - `TWA_KEYSTORE_PASSWORD`
+  - `TWA_KEY_ALIAS`
+  - `TWA_KEY_PASSWORD`
+  - `GPLAY_SERVICE_ACCOUNT_JSON`
+
+---
+
+## 공유 인텐트 / Web Share Target (2026-02-15, 2026-04-29 갱신)
+
+Android `ACTION_SEND` 수신 → 웹앱에 `shared_text`, `shared_subject` 쿼리 전달 → QuickLog 검색창 자동 프리필
+
+2026-04-29 `1.0.4` alpha에서는 PWA manifest와 TWA metadata에 Web Share Target을 명시하고, URL 공유용 `shared_url`도 홈 QuickLog 입력으로 병합한다. Next metadata `manifest.ts`는 live JSON에 `share_target`을 노출하지 않아 `/manifest.webmanifest`를 route handler로 전환했고, web production deploy run `25090523988` 이후 live manifest에서 `share_target` 노출을 확인했다.
+
+**지원 OTT 파서:**
+- Netflix, Disney+, Prime Video, Apple TV, TVING, Coupang Play, WATCHA
+- 파서 위치: `apps/web/lib/shareIntent.ts`
+- URL 리졸버: `apps/web/app/share-resolve/route.ts` (allowlist 도메인만 HTML 메타 파싱)
+
+---
+
+## Android 홈 화면 위젯 (2026-02-18, 2026-04-29 갱신)
+
+- `빠른 기록` 위젯
+- 액션:
+  - `영상` → `/?quick=1&quick_type=video&quick_focus=1`
+  - `책` → `/?quick=1&quick_type=book&quick_focus=1`
+  - `타임라인` → `/timeline`
+- 위치: `apps/twa/app/src/main/java/app/ottline/QuickLogWidgetProvider.java`
+
+## Android 런처 Shortcuts (2026-04-29, 1.0.4 alpha)
+
+- `기록하기` → `/?quick=1&quick_focus=1`
+- `영상 기록` → `/?quick=1&quick_type=video&quick_focus=1`
+- `책 기록` → `/?quick=1&quick_type=book&quick_focus=1`
+- `타임라인` → `/timeline`
+
+---
+
+## Asset Links 설정
+
+`apps/web/public/.well-known/assetlinks.json`에 release keystore SHA-256 fingerprint 등록 필요
+
+현재 등록된 fingerprint:
+- `FF:83:9F:7B:63:74:47:2D:D4:EF:5F:B4:4A:0E:6A:54:4F:5D:A9:A6:79:C5:FA:05:C0:6F:63:B8:E3:07:A3:36`
+- `0E:25:31:CD:8B:18:6B:F3:5D:7C:10:13:7B:AC:FA:D0:97:42:52:A5:13:0E:43:E6:3C:5F:4B:04:88:66:56:66`
+- `5A:B6:69:AB:DA:C1:22:68:06:F3:9B:EE:C2:45:F3:88:43:2A:53:9D:B2:15:44:D7:82:90:68:20:7D:F3:59:70`
+
+---
+
+## Play 스토어 등록정보 기준
+
+- **앱 이름:** `ottline`
+- **짧은 설명:** 영화·시리즈·책 기록을 남기고 나만의 타임라인으로 모아보세요.
+- **카테고리:** Lifestyle
+- **연락처 이메일:** `contact@ottline.app`
+- **개인정보처리방침:** `https://ottline.app/privacy`
+- **브랜딩 규칙:** 이번 출시에서는 `ott.preview.pe.kr`, `On the Timeline`, 구 아이콘/구 스크린샷을 다시 쓰지 않음
+- **상세 입력 문서:** `docs/twa-play-store-listing-ko.md`
+
+## App Content 등록 기준
+
+- Ads: 현재 기준 `No`
+- App access: 핵심 기록 기능은 로그인 없이 리뷰 가능
+- Data safety: Privacy 페이지와 실제 수집 항목이 일치해야 함
+- Content rating: IARC 설문 기준으로 확정
+- Target audience: 어린이 전용 앱으로 제출하지 않음
+
+---
+
+## 빌드 방식
+
+- WSL ARM Linux 환경에서 로컬 Android 빌드는 정식 검증 경로가 아님
+- `./gradlew assembleDebug`, `./gradlew bundleRelease`는 로컬에서 `aapt2` 호환 문제로 실패할 수 있으며, 이는 알려진 환경 제약
+- APK/AAB는 GitHub Actions에서 생성 후 아티팩트 다운로드
+- 로컬 확인이 필요하면 `apps/twa`에서 `GRADLE_USER_HOME=./.gradle ./gradlew :app:generateShorcutsFile --no-daemon` 같은 리소스 생성 작업만 제한적으로 사용
+
+---
+
+## 후속 후보
+
+- `feat/native-mobile-app`
+  - React Native + Expo 후보 앱
+  - `app.ottline.native` 패키지 사용
+  - 현재는 Expo Go/웹 실행과 API 연동 단계
+  - Android 배포 기준 구현으로 채택된 상태는 아님

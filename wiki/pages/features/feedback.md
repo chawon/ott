@@ -4,7 +4,7 @@
 
 ## 관련 페이지
 - [[analytics]]
-- [[ux-reviews]]
+- [ux-reviews](../../archive/ux-reviews.md)
 
 ---
 

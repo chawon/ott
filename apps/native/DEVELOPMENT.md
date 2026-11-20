@@ -1,58 +1,34 @@
-# ottline Native
+# ottline iOS 개발 및 배포
 
-React Native + Expo Router 기반 iOS 네이티브 앱.
+이 가이드는 현재 App Store 앱에 대응하는 `apps/native`의 Expo React Native 코드를 다룬다. 운영 빌드와 SwiftUI 전환 상태는 [iOS 플랫폼 Wiki](../../wiki/pages/platforms/native.md)에서 확인한다.
 
-상위 실행 계획은 `docs/ios-native-full-parity-testflight-plan.md`를 기준으로 한다.
+## 작업 경로
 
-## 현재 범위
+- 사용자 화면과 라우팅은 `app/`의 Expo Router, 로컬 기록·수정 이력·outbox는 [lib/localDb.ts](lib/localDb.ts)에 있다.
+- [lib/api.ts](lib/api.ts)는 기본적으로 `https://ottline.app`을 사용한다. 개발 환경은 `EXPO_PUBLIC_API_BASE_URL`로 바꿀 수 있다. 기기 연결 정보는 SecureStore에 있고, [lib/sync.ts](lib/sync.ts)와 [lib/syncPayload.ts](lib/syncPayload.ts)가 `/api/sync/*`를 호출한다.
+- 검색과 공개 글의 작품 변환은 [lib/titleAdapters.ts](lib/titleAdapters.ts)에서 관리한다. `KAKAO`와 `NAVER` 식별자를 모두 보존한다. [영어 도서 검색](../../docs/google-books-en-search.md)은 공개 앱에서 Kakao를 사용하며, `main`의 Expo 소스에는 영어 검색용 Google Books capability와 출처 표시가 들어 있다.
+- iOS v2 SwiftUI 전환 작업은 [PR #137](https://github.com/chawon/ott/pull/137)의 `apps/ios-native`와 `apps/apple-core`에서 진행한다. PR에서 Expo SecureStore와 SQLite 이전, WidgetKit, 공유 확장 및 iPad 레이아웃을 함께 다룬다.
 
-- 현재 정식 배포: 카카오 책 공급자와 작품 ID를 보존하고 기존 Naver 책 호환을 유지하는 `1.0.4 (24)`를 App Store에 배포 완료했다(`2026-10-16` 사용자 확인).
-- iOS bundle identifier: `app.ottline`
-- Android production 경로는 계속 `apps/twa`다. 이 앱은 Android 배포 경로가 아니다.
-- 구현 화면: 기록, 타임라인, 제목 상세/수정/history, 함께, 계정, 문의함, 내 리포트, 안내 화면
-- 데이터: `expo-sqlite` local-first 저장소 + outbox + local history + `/api/sync/*`
-- 인증: `expo-secure-store` 기반 `userId`, `deviceId`, `pairingCode`
-- 알림: 명시적 opt-in 기반 locale-aware 주간/월간 회고 로컬 알림 + `/me/report` tap route
-- UGC 운영: 공개 글/댓글 신고는 기존 문의함 작성 화면으로 대상 정보를 prefill해 접수한다.
-- 2026-06-21 parity 보강: Web QuickLog와 같은 `영상/책` 2분류 검색, 상태 먼저 저장하는 QuickLog, 최근 함께 기록 기반 빈 검색 추천, 타임라인 카드 공유/함께 공개, 제목 상세 함께 진입, 설정 CSV 범위 내보내기, foreground sync를 실기기 QA 대상으로 추가했다.
+## 실행과 검증
 
-## 아직 부족한 범위
-
-- 실제 App Store `1.0.4` 업데이트 설치 후 책 검색·저장과 기존 Naver 기록 수정 확인
-- 운영 지표의 `platform=ios_native`, `appVersion=1.0.4`, `buildNumber=24` 반영 확인
-- 실제 iPhone에서 ko/en와 light/dark 조합 스크린 확인
-- iOS 알림의 실제 iPhone/TestFlight 수신 및 tap route 검증
-- locale/theme 기반은 `NativePreferencesProvider`와 `lib/i18n.ts`에 있다. 현재 탭 제목, 안내 화면, 기록하기, 타임라인, 제목 상세, 함께 목록, 공개 상세, 계정, 복구 카드, 문의함, 내 리포트, 리포트 공유 카드, 회고 알림, format helper, app shell dark theme까지 연결되어 있다. 계정 화면의 `system`/`light`/`dark` 수동 theme 설정은 SecureStore에 저장되며 analytics theme context에도 반영된다.
-
-## 실행
+저장소 루트에서 실행한다.
 
 ```bash
-npm install
+npm ci
 npm run start --workspace native
-npm run ios --workspace native
-```
-
-## 검증
-
-```bash
 npm run native:typecheck
 npm run native:test
 npm run native:testflight:check:structure
 ```
 
-## TestFlight 준비
+macOS에서 `npm run ios --workspace native`로 iOS 앱을 빌드하고 실행한다. [Native iOS CI](../../.github/workflows/native-ios-ci.yml)는 타입 검사, Jest, Expo Doctor, iOS 번들 export를 실행한다. 실제 서명과 TestFlight 설치 가능 여부는 EAS 및 App Store Connect에서 확인한다.
 
-EAS project, App Store Connect 앱 레코드, iOS signing credentials, EAS Submit API key, GitHub `EXPO_TOKEN` 구성은 완료됐다.
-현재 기준 최신 App Store 배포는 main SHA `fc074ceef188161940a9aec6facaef2034f2119f`의 `1.0.4 (24)`다(`2026-10-16` 사용자 확인). EAS build `057972ad-3c10-4a59-9e5b-ef051c1a160d`, EAS submission `5bd70cfa-2952-4c6b-bc2e-4268c466abc8`로 업로드했고, `2026-10-14` App Review 제출 후 정식 배포를 완료했다. 상세 이력은 `docs/native-kakao-books.md`, `docs/ios-testflight-review-notes.md`, 출시 후 확인은 `docs/ios-app-store-launch-checklist.md`를 따른다.
+## Expo TestFlight 및 App Store
 
-새 TestFlight build가 필요하면 다음 순서로 진행한다.
+1. App Store Connect의 최신 처리 빌드 번호를 확인한다. `main`의 [app.json](app.json)에는 `ios.buildNumber=23`이 있고, 공개된 마지막 Expo 빌드는 `1.0.4 (24)`다. 다음 Expo 빌드는 `app.json`의 기준을 App Store Connect 최신 완료 빌드 이상으로 올려 [eas.json](eas.json)의 `autoIncrement`가 고유 번호를 만들게 한다.
+2. `npm run native:testflight:check`, `npm run native:typecheck`, `npm run native:test`, `apps/native`에서 `npx expo-doctor`를 실행하고 PR CI를 확인한다.
+3. [Native iOS TestFlight](../../.github/workflows/native-ios-testflight.yml)를 병합된 SHA로 수동 실행한다. EAS 제출을 다시 시도할 때는 성공한 빌드 ID를 재사용한다.
+4. App Store Connect의 처리 결과와 TestFlight 설치를 확인한다. 실기기에서는 기존 앱 업데이트, 기기 연결, 영상·도서 기록 및 수정, 오프라인 동기화, 공유, 회고 알림과 탭 진입, 한국어·영어와 라이트·다크 조합을 확인한다.
+5. App Review 제출 전 개인정보 라벨, 스크린샷, 리뷰어 접근, 계정 데이터 전체 삭제를 확인한다. 제출·공개 및 실제 스토어 업데이트 설치 결과를 각각 기록한다.
 
-1. iOS 수정은 `main`에서 `fix/native-*` 또는 `feature/native-*` 브랜치를 만들어 진행하고, 로컬 `ios.buildNumber` 기준을 완료 빌드 `24` 이상으로 올려 다음 빌드 번호 중복을 방지
-2. `npm run native:testflight:check`, `npm run native:typecheck`, `npm run native:test`, `apps/native`의 `npx expo-doctor`, `git diff --check` 확인
-3. PR CI 통과 후 `main`에 병합
-4. GitHub Actions `Native iOS TestFlight` workflow를 병합된 main SHA로 수동 실행
-5. App Store Connect TestFlight 탭에서 processing/available 확인
-6. 내부 테스터 설치 후 `docs/ios-native-full-parity-testflight-plan.md`의 iPhone 실기기 확인표 수행
-
-실제 App Store 제출 전에는 개인정보 라벨, 리뷰 계정/설명, 스크린샷, 계정 삭제 플로우 검증을 별도로 확인한다.
-App Store Connect 입력 초안과 reviewer 접근 설명은 `docs/ios-testflight-review-notes.md`에서 관리한다.
+이전 제출 이력과 실기기 검증표는 [1.0 출시 체크리스트](../../docs/archive/ios/ios-app-store-launch-checklist.md), [TestFlight 제출 이력](../../docs/archive/ios/ios-testflight-review-notes.md), [Expo 초기 출시 계획](../../docs/archive/ios/ios-native-full-parity-testflight-plan.md)에 보관한다.

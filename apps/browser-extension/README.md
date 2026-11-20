@@ -25,7 +25,7 @@ supported streaming title pages.
 - Uses Korean UI for Korean browser locales and English UI otherwise
 - Opens `https://ottline.app/` for Korean or `https://ottline.app/en` for English
 - Prefills QuickLog search query and platform
-- Final save still happens in the web app
+- Save in the web app or open the Windows app from the web QuickLog to finish there
 - Does not automatically track viewing or create logs in the background
 
 ## Validation
@@ -43,3 +43,5 @@ Localized Chrome Web Store screenshots and promotional tiles are written to
 - No page-injected CTA yet
 - Locale follows the browser; there is no manual locale setting
 - No automatic record creation
+
+[Store versions and desktop handoff](../../wiki/pages/platforms/browser-extension.md)

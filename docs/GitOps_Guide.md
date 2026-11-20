@@ -92,13 +92,14 @@ graph TD
 
 ### A. 새로운 버전 배포 방법 (Routine Deployment)
 
-main 머지는 클러스터에 자동 배포되지 않는다. 프로덕션 반영은 수동 workflow로 수행한다.
+Web/API 코드의 main 머지는 새 운영 이미지를 만들지 않는다. 앱 이미지는 수동 워크플로우로 배포하며, main의 `deploy/oke/` 변경은 Argo CD가 자동 동기화한다.
 
 1.  **코드 수정:** `apps/web` 또는 `apps/api` 코드를 수정합니다.
 2.  **PR/CI 검증:** `deploy-web.yml` / `deploy-api.yml`이 빌드와 Dockerfile 검증을 수행합니다.
 3.  **main 머지:** 검증된 변경을 main에 병합합니다.
 4.  **수동 배포:** GitHub Actions에서 **Deploy Web/API to Production**을 실행하고 main SHA를 입력합니다.
-5.  **GitOps 적용:** workflow가 `deploy/oke/*.yaml`의 이미지 태그를 갱신하면 ArgoCD가 production 파드를 교체합니다.
+5.  **API 의존 변경:** API를 먼저 배포해 실제 API 응답을 확인한 뒤 동일한 SHA로 Web을 배포한다.
+6.  **GitOps 적용:** workflow가 `deploy/oke/*.yaml`의 이미지 태그를 갱신하면 ArgoCD가 production 파드를 교체합니다.
 
 ### B. 환경 설정 변경 (Config/Secret)
 
@@ -119,8 +120,8 @@ main 머지는 클러스터에 자동 배포되지 않는다. 프로덕션 반�
 *   **Git Push 충돌:** Web과 API production workflow가 동시에 배포될 경우 manifest push 단계에서 충돌이 날 수 있습니다. 워크플로우에는 `git pull --rebase` 로직이 포함되어 있어 자동으로 해결을 시도합니다.
 *   **파드 에러 (CrashLoopBackOff):** `kubectl logs -n ott <pod-name>`으로 로그를 확인하세요. DB 연결 정보나 환경 변수 문제일 수 있습니다.
 *   **롤백 (Rollback):**
-    *   GitHub에서 문제가 발생하기 전의 커밋으로 `git revert` 합니다.
-    *   ArgoCD가 과거 버전의 이미지 태그로 Manifest를 되돌리고, 클러스터도 롤백됩니다.
+    *   영향받은 서비스의 이전 정상 이미지 SHA와 `APP_VERSION`으로 운영 매니페스트를 되돌립니다. 서로 의존하는 릴리스는 클라이언트와 서버의 호환 순서를 확인합니다.
+    *   Argo CD 동기화 뒤 이미지와 실제 기능을 확인합니다. DB 스키마 및 기존 데이터 복구는 별도로 검토합니다.
     *   *참고:* Deployment 설정에 `revisionHistoryLimit: 3`이 적용되어 있어, 클러스터 내에는 최근 3개의 버전만 기록으로 남습니다.
 
 ### D. 접속 정보

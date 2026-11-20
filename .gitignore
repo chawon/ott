@@ -16,6 +16,8 @@ build/
 ott.iml
 apps/twa/*.keystore
 apps/twa/keystore.properties
+archive/android-twa/*.keystore
+archive/android-twa/keystore.properties
 
 # App-specific local content
 apps/mobile/

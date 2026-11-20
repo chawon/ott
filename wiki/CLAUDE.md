@@ -1,74 +1,15 @@
-# OTT Wiki — Schema & Instructions
+# OTT Wiki 관리
 
-You are the maintainer of this wiki. Your job is to keep it accurate, interlinked, and up-to-date as the project evolves.
+[개발 문서 지도](../docs/README.md)와 [플랫폼 현황](../docs/platforms.md)을 출발점으로 한다. 이 Wiki는 구현·출시 근거를 찾아갈 수 있는 요약이다. 정책이나 계약 원문에는 `docs/`를, 동작의 근거에는 플랫폼의 코드·테스트·배포 기록을 연결한다.
 
-## Directory Layout
+| 경로 | 역할 |
+| --- | --- |
+| [index.md](index.md) | 기능·아키텍처·플랫폼·운영 탐색 |
+| [log.md](log.md) | 변경이나 출시 시점의 근거와 정정 이력 |
+| `pages/` | 현재 참조하는 주제별 페이지 |
+| [archive/](archive/README.md) | 종료된 계획, 캠페인, 구형 플랫폼과 날짜가 있는 검토 기록 |
 
-```
-wiki/
-  CLAUDE.md          # 이 파일 — 규칙과 워크플로우 정의
-  index.md           # 모든 페이지의 목록 + 한 줄 요약
-  log.md             # ingest/query/lint 이력
-  pages/
-    features/        # 기능 단위 (book-log, analytics, share-card 등)
-    architecture/    # 기술 결정, 시스템 설계
-    platforms/       # web, native, twa, browser-extension
-    processes/       # 배포, GitOps, i18n, 리뷰 프로세스 등
-```
-
-Sources (읽기 전용, 절대 수정 금지):
-```
-docs/                # 기획/설계 문서 원본
-apps/                # 실제 코드
-```
-
-## Page Conventions
-
-- 파일명: `kebab-case.md`
-- 언어: 한국어 (코드/기술 용어는 영어 그대로)
-- 각 페이지 상단에 관련 페이지 링크 (`## 관련 페이지`)
-- 사실과 의견을 구분 — 의견/결정엔 날짜 표기
-
-### 페이지 헤더 형식
-
-```markdown
-# 페이지 제목
-
-> 한 줄 요약
-
-## 관련 페이지
-- [[다른-페이지]]
-
----
-```
-
-## Operations
-
-### Ingest
-새 문서(docs/, 코드, 대화)가 추가됐을 때:
-1. 문서를 읽고 핵심 정보 추출
-2. 기존 페이지 업데이트 or 새 페이지 생성
-3. 영향받는 페이지의 크로스링크 업데이트
-4. `index.md` 갱신
-5. `log.md`에 ingest 기록 추가
-
-### Query
-질문에 답할 때:
-1. 관련 페이지를 찾아 종합
-2. 답변 후 위키에 없던 내용이면 페이지로 파일링
-
-### Lint
-위키 건강 체크:
-- 모순된 정보
-- 오래된 클레임 (날짜 기반)
-- 고아 페이지 (링크 없음)
-- 누락된 크로스링크
-
-## Log Entry Format
-
-```
-## [YYYY-MM-DD] <operation>: <brief description>
-- 대상: <source or query>
-- 생성/수정: <page list>
-- 노트: <anything notable>
-```
+- 파일 이름은 `kebab-case.md`를 사용한다. GitHub에서도 바로 열리는 상대 Markdown 링크를 사용한다.
+- 구현, CI, 스토어 제출, 공개 출시, 실기기 검증을 구분한다. 버전이나 날짜에는 대상 브랜치, 커밋, 실행 링크 또는 운영 근거를 붙인다.
+- 기능 변경안은 [변경안 양식](../docs/changes/README.md)에 맞춰 작성한다. 실행한 검증과 플랫폼별 남은 일은 그 변경안에 둔다. Wiki에는 사용자가 지금 경험하는 동작과 원문 링크를 기록한다.
+- 아카이브할 때 역사적 결론과 원문을 보존하고, 기존 링크가 있는 페이지 및 인덱스를 갱신한다. 다른 페이지와 모순이 생기면 코드와 출시 근거를 확인하고 Wiki 로그에 정정 이유를 적는다.

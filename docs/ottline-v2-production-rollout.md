@@ -46,7 +46,7 @@
 ## 후속 배포: Android Native v2 전환 및 TWA 자동 세션·기록 복구 (`2026-11-09`)
 
 - **Android Native `2.0.0` (`versionCode=24`) 모노레포 통합 및 출시**:
-  - `apps/android-native` 및 `.github/workflows/native-android-ci.yml`·`native-android-release.yml`을 `main` SHA `45ccac3b797a29bf78691e52972748b1a9cf3a47`로 반영하고, [Android Release 42550886641](https://github.com/chawon/ott/actions/runs/42550886641)로 Google Play `production` 트랙에 배포했다.
+  - `apps/android-native`와 [Android 빌드·릴리스 워크플로](../.github/workflows/native-android-release.yml)를 `main` SHA `7ef08aa36f5d3dbf419122f3f73b550c1dd4277f`에 반영했다. [Android Release 42550886641](https://github.com/chawon/ott/actions/runs/42550886641)이 이 SHA를 빌드해 Google Play `production` 트랙에 배포했다.
   - Play Store 등록정보(`ko-KR` 앱 설명, v2 `512x512` 아이콘, `1024x500` 피처 그래픽, `1080x1920` 네이티브 스크린샷 5장)를 Play edit `12908968039807814595`로 커밋했다.
 - **Android Native `2.0.1` (`versionCode=25`) + API/Web TWA 자동 세션 복구 출시**:
   - 기존 TWA(`versionCode <= 23`)에서 업데이트한 사용자가 첫 실행 시 이전 기록과 프로필을 자동으로 이어받도록 2단계 자동 복구(`install_token` 기반 `POST /api/android/notification-devices/restore-session` + `TwaBrowserBridge` 외부 브라우저 `?native_handoff=1` → `ottline://open?handoff=1` 핸드오프 및 임시 계정 자동 병합)를 `main` SHA `916be7abe9a8712d3f5a0a5e460a7bf820e23b0c`로 반영했다.

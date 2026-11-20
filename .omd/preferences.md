@@ -15,7 +15,7 @@ signal: user-correction
 confidence: explicit
 status: pending
 source_agent: codex
-source_context: "prototypes/ottline-v2/app.js; prototypes/ottline-v2/styles.css"
+source_context: "archive/prototypes/ottline-v2/app.js; archive/prototypes/ottline-v2/styles.css"
 ```
 
 Preserve generous spacing and an airy layout on desktop.
@@ -30,7 +30,7 @@ signal: user-correction
 confidence: explicit
 status: pending
 source_agent: codex
-source_context: "prototypes/ottline-v2/app.js; prototypes/ottline-v2/styles.css"
+source_context: "archive/prototypes/ottline-v2/app.js; archive/prototypes/ottline-v2/styles.css"
 ```
 
 Give mobile its own task hierarchy and touch interactions instead of scaling the desktop layout.
@@ -45,7 +45,7 @@ signal: user-correction
 confidence: explicit
 status: pending
 source_agent: codex
-source_context: "prototypes/ottline-v2/app.js; prototypes/ottline-v2/styles.css"
+source_context: "archive/prototypes/ottline-v2/app.js; archive/prototypes/ottline-v2/styles.css"
 ```
 
 Design alternatives should differ clearly in composition and task priority, not only in colors and card styling.
@@ -61,7 +61,7 @@ signal: user-correction
 confidence: explicit
 status: pending
 source_agent: codex
-source_context: "prototypes/ottline-v2/app.js; prototypes/ottline-v2/styles.css"
+source_context: "archive/prototypes/ottline-v2/app.js; archive/prototypes/ottline-v2/styles.css"
 ```
 
 TPO is a core part of the recording flow and must remain available in new input designs.
@@ -76,7 +76,7 @@ signal: user-correction
 confidence: explicit
 status: pending
 source_agent: codex
-source_context: "prototypes/ottline-v2/app.js; prototypes/ottline-v2/styles.css"
+source_context: "archive/prototypes/ottline-v2/app.js; archive/prototypes/ottline-v2/styles.css"
 ```
 
 Record cards and details need a clear hierarchy for time, place, and occasion alongside the title, status, and note.
@@ -91,7 +91,7 @@ signal: user-statement
 confidence: explicit
 status: pending
 source_agent: codex
-source_context: "prototypes/ottline-v2/app.js; prototypes/ottline-v2/styles.css"
+source_context: "archive/prototypes/ottline-v2/app.js; archive/prototypes/ottline-v2/styles.css"
 ```
 
 Use Archive A as the selected direction, preserving its roomy desktop and dedicated mobile hierarchy.
@@ -106,7 +106,7 @@ signal: user-correction
 confidence: explicit
 status: pending
 source_agent: codex
-source_context: "prototypes/ottline-v2/app.js; prototypes/ottline-v2/data.js; DESIGN.md:224"
+source_context: "archive/prototypes/ottline-v2/app.js; archive/prototypes/ottline-v2/data.js; DESIGN.md:224"
 ```
 
 Use warm everyday Korean and English across recording, sharing, and connection flows, avoiding task or submission language while keeping consequences clear.
@@ -121,7 +121,7 @@ signal: user-correction
 confidence: explicit
 status: pending
 source_agent: codex
-source_context: "prototypes/ottline-v2/app.js"
+source_context: "archive/prototypes/ottline-v2/app.js"
 ```
 
 Treat records without notes as complete records; avoid repeated deficit messages in lists and reserve optional invitations for detail views.
@@ -136,7 +136,7 @@ signal: user-correction
 confidence: explicit
 status: pending
 source_agent: codex
-source_context: "prototypes/ottline-v2/app.js; prototypes/ottline-v2/styles.css"
+source_context: "archive/prototypes/ottline-v2/app.js; archive/prototypes/ottline-v2/styles.css"
 ```
 
 The selected A direction should feel like a substantial redesign at first glance; the current refinement feels too similar to the existing service.
@@ -151,7 +151,7 @@ signal: user-statement
 confidence: explicit
 status: pending
 source_agent: codex
-source_context: "prototypes/ottline-v2/app.js"
+source_context: "archive/prototypes/ottline-v2/app.js"
 ```
 
 Use "그날의 순간" as the TPO section name. Keep input and preservation guidance concrete instead of repeating the metaphor everywhere.
@@ -166,7 +166,7 @@ signal: user-correction
 confidence: explicit
 status: pending
 source_agent: codex
-source_context: "prototypes/ottline-v2/app.js; apps/web/components/QuickLogCard.tsx"
+source_context: "archive/prototypes/ottline-v2/app.js; apps/web/components/QuickLogCard.tsx"
 ```
 
 The redesign must preserve the existing recording fields, including platform presets and custom platform entry, instead of reducing the flow to place and occasion.
@@ -181,7 +181,7 @@ signal: user-correction
 confidence: explicit
 status: pending
 source_agent: codex
-source_context: "prototypes/ottline-v2/app.js"
+source_context: "archive/prototypes/ottline-v2/app.js"
 ```
 
 Choose and show calendar dates without time-of-day inputs in the recording flow.
@@ -196,7 +196,7 @@ signal: user-correction
 confidence: explicit
 status: pending
 source_agent: codex
-source_context: "prototypes/ottline-v2/app.js; prototypes/ottline-v2/README.md"
+source_context: "archive/prototypes/ottline-v2/app.js; archive/prototypes/ottline-v2/README.md"
 ```
 
 Use Timeline rather than Archive as the central product term, and align the experience with ottline and its subtitle on the timeline: watched and read stories connected through personal time.
@@ -211,7 +211,7 @@ signal: user-correction
 confidence: explicit
 status: pending
 source_agent: codex
-source_context: "prototypes/ottline-v2/styles.css"
+source_context: "archive/prototypes/ottline-v2/styles.css"
 ```
 
 Keep clear vertical spacing between the title search field and the media-type choices.
@@ -226,7 +226,7 @@ signal: user-correction
 confidence: explicit
 status: pending
 source_agent: codex
-source_context: "prototypes/ottline-v2/app.js"
+source_context: "archive/prototypes/ottline-v2/app.js"
 ```
 
 Offer code-keeping guidance only to users without another linked device, and avoid repeating it after each saved record.
@@ -241,7 +241,7 @@ signal: user-correction
 confidence: explicit
 status: pending
 source_agent: codex
-source_context: "prototypes/ottline-v2/assets/avatars/v3; prototypes/ottline-v2/profile-options.js"
+source_context: "archive/prototypes/ottline-v2/assets/avatars/v3; archive/prototypes/ottline-v2/profile-options.js"
 ```
 
 Use childlike, gender-ambiguous storybook avatars with round oversized heads, tiny bodies, and simple faces, distinguished by expressions, poses, and activity props while retaining the warm cream/navy hand-painted style. This supersedes the mature facial features and adult gender variation in pref_mw0aml5r_a4427292; avoid beards, makeup, defined jawlines, and adult proportions.
@@ -256,7 +256,7 @@ signal: user-correction
 confidence: explicit
 status: pending
 source_agent: codex
-source_context: "prototypes/ottline-v2/app.js; prototypes/ottline-v2/styles.css"
+source_context: "archive/prototypes/ottline-v2/app.js; archive/prototypes/ottline-v2/styles.css"
 ```
 
 Open mobile title search from the top of the visible screen and keep its input, media-type choices, and scrollable candidates usable above the software keyboard.
@@ -271,7 +271,7 @@ signal: user-correction
 confidence: explicit
 status: pending
 source_agent: codex
-source_context: "prototypes/ottline-v2/app.js; prototypes/ottline-v2/rating-options.js; prototypes/ottline-v2/share-card.js"
+source_context: "archive/prototypes/ottline-v2/app.js; archive/prototypes/ottline-v2/rating-options.js; archive/prototypes/ottline-v2/share-card.js"
 ```
 
 Preserve the existing three qualitative feeling choices instead of a star scale, with video and book wording kept consistent across recording, record display, and share cards. Choosing a feeling remains optional.
@@ -316,7 +316,7 @@ signal: user-correction
 confidence: explicit
 status: pending
 source_agent: codex
-source_context: "apps/web/messages/en.json; apps/web/components/QuickLogCard.tsx; apps/web/app/[locale]/account/page.tsx; prototypes/ottline-v2/app.js"
+source_context: "apps/web/messages/en.json; apps/web/components/QuickLogCard.tsx; apps/web/app/[locale]/account/page.tsx; archive/prototypes/ottline-v2/app.js"
 ```
 
 Use neutral "The moment" section labels, natural everyday English for people, occasions, platforms, and dates, "recovery card" for the private connection-code backup, and "record" for user-facing records. Keep headings and actions in sentence case while preserving proper names, acronyms, personal-area names, and intentionally retrospective editorial copy.

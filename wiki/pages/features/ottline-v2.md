@@ -1,5 +1,7 @@
 # ottline v2
 
+Web/PWA의 v2 기록 흐름을 설명한다. Android·iOS·Windows·macOS의 적용 및 출시 상태는 [플랫폼 현황](../../../docs/platforms.md)을 따른다.
+
 2026-11-08 Web/PWA와 API를 같은 SHA `b9f88a6d5f329ffa1bfaea4dacc3b7be8bfb3022`로 운영 반영했다. PC는 펼쳐보는 기록장, 모바일은 한 손 수첩으로 구성한다.
 
 - 홈의 월별 대표·목록은 봤거나 읽은 작품만 모으며, 진행 중인 작품은 ‘아직 못다 한 이야기’에서 이어간다.
@@ -12,16 +14,16 @@ API 169개와 Web CI, 운영 검색·기록·수정·동기화·연결·추천, 
 
 `2026-11-11`에는 PR `#127`, Web SHA `aa99154`로 sitemap 수정일·v2 OG 이미지·페이지별 Twitter 메타데이터와 가이드 `Article`·`BreadcrumbList`를 운영 반영했다. 공개 URL 19개와 개인 화면 14개의 색인 경계를 확인했으며 API·네이티브 바이너리는 유지했다. [SEO 후속 배포 기록](../../../docs/seo-v2-refresh-2026-11-11.md)을 따른다.
 
-`2026-11-09`에는 순수 Android 네이티브 앱([[android-native]], `apps/android-native`)을 모노레포에 통합해 Google Play `production` 트랙에 `2.0.0`(`versionCode=24`, SHA `45ccac3`) 및 기존 TWA 세션·기록 2단계 자동 복구를 포함한 `2.0.1`(`versionCode=25`, SHA `916be7a`)을 배포하고 v2 스토어 아이콘·피처 그래픽·스크린샷 5장을 반영했다. iOS·Windows·확장·토스 패키지는 플랫폼별 작업과 제출을 별도로 진행한다.
+`2026-11-09`에는 Android 네이티브 앱을 Play에 배포했다. 기존 TWA 계정과 미동기화 기록은 서버 설치 토큰과 브라우저 핸드오프로 이어받는다. [Android 전환](../../../docs/android-native-v2-transition.md)
 
 `2026-11-12`에는 PR `#130`, Web SHA `4cabcd5`로 한·영 오프라인 재진입 안내, 검색 키보드·보조기술 지원, 모션 감소, 포커스 대비와 본문 바로가기를 운영 반영했다. 공개 자산 일치와 별도 브라우저 컨텍스트의 통신 실패 시 한·영 HTTP 200 fallback을 확인했다. [접근성·오프라인 배포 기록](../../../docs/web-offline-accessibility-2026-11-12.md)을 따른다.
 
-`2026-11-17`에는 순수 Windows 네이티브 앱([[windows-native]], `apps/windows-native`)을 PR `#132`(main SHA `7bc5a46`, `Native Windows CI` Run `44030185194` 통과)로 모노레포에 통합하고, Microsoft Store `9NSVNZGDMGF5`에 `2.0.0.0`(`ottline-2.0.0.0.msixbundle`, `Desktop` 전용, KO/EN 부제 포함 제목 및 신규 아트워크·스크린샷 12종, 기존 Edge Store PWA `?native_handoff=1` 자동 이어받기 포함)을 Submission `1152921505702424456`으로 제출해 `Certification` 진입을 확인했다. [Windows Native v2 전환 및 Store 제출 기록](../../../docs/windows-native-v2-transition.md)을 따른다.
+`2026-11-18`에는 Windows 네이티브 `2.0.0.0`의 Microsoft Store 게시와 구형 Store PWA에서 계정·기록을 이어받는 동작을 확인했다. `2026-11-19` Web 배포에서 브라우저 확장이 여는 화면에 Windows 빠른 기록 링크를 추가했다. [Windows 전환](../../../docs/windows-native-v2-transition.md) · [확장 연결](../../../docs/desktop-protocol-and-extension-bridge-plan-2026-11-18.md)
 
 - [운영 배포와 검증](../../../docs/ottline-v2-production-rollout.md)
-- [플랫폼별 출시 준비](../../../docs/ottline-v2-release-readiness.md)
+- [플랫폼별 출시 현황](../../../docs/platforms.md)
 - [웹 구현 기록](../../../docs/ottline-ux-v2-web.md)
 - [Android Native v2 전환 및 TWA 자동 복구 기록](../../../docs/android-native-v2-transition.md)
-- [Windows Native v2 전환 및 Store 제출 기록](../../../docs/windows-native-v2-transition.md)
+- [Windows Native v2 전환 및 Store 출시 기록](../../../docs/windows-native-v2-transition.md)
 
 관련: [[android-native]], [[windows-native]], [[ms-store]], [[timeline]], [[future-timeline]], [[personal-profile]], [[share-card]], [[pwa]].
