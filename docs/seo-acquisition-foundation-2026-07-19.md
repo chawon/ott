@@ -45,6 +45,12 @@ v2 개편 이후의 sitemap 수정일·공유 메타데이터·가이드 구조�
 
 자체 `analytics_events`는 `created_at` 기준 180일이 지나면 매일 자동 삭제한다. GA4와 Clarity로 전송된 데이터는 각 제공자의 설정과 정책을 따른다.
 
+### ChatGPT 검색 유입 (2026-11-20)
+
+ChatGPT 검색 링크의 `utm_source=chatgpt.com`과 ChatGPT referrer는 출처 `chatgpt`, 채널 `ai_referral`로 집계한다. 가이드에서 기록 화면으로 이동해도 같은 세션의 최초 진입 경로와 출처를 사용한다.
+
+운영 브라우저 검사에서 한국어 영화 가이드는 UTM, 영어 책 가이드는 referrer로 진입했다. 두 경로 모두 가이드의 기록하기 버튼에서 작품 검색과 로컬 첫 기록까지 이어졌고 모든 이벤트가 처음 진입한 가이드와 같은 세션을 유지했다. 검사 당시 운영으로 보내는 기록과 통계 쓰기는 차단했다. API 분류 회귀 검사는 공식 UTM, ChatGPT referrer 및 기존 캠페인 우선순위를 확인한다.
+
 ## Cloudflare Access 운영 설정
 
 배포 전에 Cloudflare Zero Trust에서 다음 설정을 완료해야 한다.

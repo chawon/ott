@@ -302,6 +302,7 @@ public class AcquisitionAnalyticsQuery {
     private static String canonicalSource(String source) {
         return switch (source) {
             case "googleadwords", "google-ads", "adwords" -> "google";
+            case "chatgpt.com" -> "chatgpt";
             case "fb", "facebook-ads" -> "facebook";
             case "twitter" -> "x";
             case "apple", "ios-app-store" -> "app_store";
