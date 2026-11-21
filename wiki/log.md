@@ -1,11 +1,13 @@
 # Wiki Log
 
-## [2026-11-21] release(ios): SwiftUI iOS·iPadOS v2.0.0 (26) App Store 심사 제출 (PR #137)
+## [2026-11-21] release(apple): SwiftUI iOS·iPadOS & macOS v2.0.0 (27) App Store 심사 제출 및 PR #137 병합
 
-- [PR #137](https://github.com/chawon/ott/pull/137) (`feature/ios-native-v2`, 제출 기준 커밋 `f8fa77d`).
-- 주요 반영: 최소 지원 OS `iOS 16.0` 하향, 미래의 타임라인 복구·로캘 격리(`#142`), 2단계 포스터 캐시(`NSCache` + 디스크 LRU), 온디바이스 즉시 공유 카드 생성, 도킹 하단 바, iPad `서가` 중복 및 iPhone 영어 `Together` 탭 잘림 수정.
-- 검증: `OttlineCoreTests` 18/18·`OttlineMacTests` 5/5 통과, 실기기 iPhone X (`iOS 16.7.16`) 및 iPad 10세대 설치·동작 확인.
-- 스토어 제출: `app.ottline` `2.0.0 (26)`(`MinimumOSVersion 16.0`, `OttlineWidgetExtension`·`OttlineShareExtension` 포함) App Store Connect 업로드(`EXPORT SUCCEEDED`) 및 한·영 스크린샷(iPhone 6.3" / iPad 13")·릴리즈 노트·심사 메모 입력 후 심사 제출 완료. 공개 승인·`1.0.4` 공개판 업데이트 최종 확인·PR #137 병합과 macOS v2 검수·Mac App Store 준비가 다음 단계다. [iOS Wiki](pages/platforms/native.md) · [후속 작업](../docs/changes/v2-follow-up.md#2-apple-v2-업데이트-검증) · [플랫폼 현황](../docs/platforms.md)
+- [PR #137](https://github.com/chawon/ott/pull/137) `main` 병합 완료(`d0844fc`, 코드 HEAD `2634fdc`).
+- 공용 `OttlineCore`: `AppPreferences`·`OttlineRepository` 락 기반 상태 저장 + 메인 스레드 비동기 통합 발행(백그라운드 동기화 중 AB-BA 데드락 해소), 미래의 타임라인 90초 타임아웃·언어별 `requestId` 복구(`#142`), 2단계 포스터 캐시(`NSCache` + 디스크 LRU), 커스텀 드롭다운(`OttlineSelectDropdown`), `QuickRecordSheet` 초기 상태 즉시 반영 및 macOS 포커스 점프 방지.
+- iOS·iPadOS: 최소 지원 `iOS 16.0` 하향, 온디바이스 즉시 공유 카드, 도킹 하단 바, iPad `서가` 중복·iPhone 영어 `Together` 탭 수정. 실기기 iPhone X(`iOS 16.7.16`)·iPad 10세대 검증.
+- macOS: App Sandbox(`com.apple.security.app-sandbox`) 활성화·Release 권한 검증, 온디바이스 즉시 공유 카드(`1080×1920` / `1080×1350`), 전 메뉴 `1280px` 폭 통일·2컬럼 작품 상세, 인트로 스플래시, `함께` 내부 스크롤바 정리, 웹 기준 가이드·소개·FAQ·개인정보·문의함 5종 구현 및 실기기 검수.
+- 검증·CI: `OttlineTests` 18/18·`OttlineMacTests` 5/5 통과, `Native iOS v2 CI (SwiftUI)` Run [`44897582945`](https://github.com/chawon/ott/actions/runs/44897582945) · `Native macOS v2 CI (SwiftUI)` Run [`44897582916`](https://github.com/chawon/ott/actions/runs/44897582916) 모두 성공.
+- 스토어 제출: App Store Connect `app.ottline`(`id6780318110`)에 **iOS·iPadOS `2.0.0 (27)`**(iPhone 6.3"·iPad 13" 한·영 스크린샷) 및 신규 플랫폼 **macOS `2.0.0 (27)`**(`2560×1600` 한·영 스크린샷), ASO 앱 이름·부제 반영 후 두 플랫폼 모두 **App Store 심사 제출 완료**(공개 승인·실사용 최종 확인 대기). [iOS Wiki](pages/platforms/native.md) · [macOS Wiki](pages/platforms/macos-native.md) · [후속 작업](../docs/changes/v2-follow-up.md#2-apple-v2-업데이트-검증) · [플랫폼 현황](../docs/platforms.md)
 
 ## [2026-11-20] deploy(api): 미래의 타임라인 추천 생성 응답 지연 단축 및 단계별 계측 (#143, PR #144)
 

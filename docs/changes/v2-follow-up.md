@@ -27,24 +27,26 @@ Windows의 서버 계정 삭제에서 요청 경로와 실패 처리의 불일�
 
 ## 2. Apple v2 업데이트 검증
 
-[PR #137](https://github.com/chawon/ott/pull/137)(`feature/ios-native-v2`)에서 iOS·iPadOS와 macOS SwiftUI v2를 단계적으로 검증·출시한다.
+[PR #137](https://github.com/chawon/ott/pull/137) 병합 완료 (`main` `d0844fc`, 코드 HEAD `2634fdc`). iOS·iPadOS와 macOS SwiftUI v2 모두 **`2.0.0 (27)`**으로 App Store Connect 심사 제출을 마쳤다.
 
-### iOS / iPadOS 진행 현황 (`2026-11-21`)
+### iOS / iPadOS · macOS 진행 현황 (`2026-11-21`)
 
-- **브랜치 / 제출 기준 커밋**: `feature/ios-native-v2` `f8fa77d` (`bfcfd30`~`f8fa77d`: 최소 지원 `iOS 16.0` 하향, 미래의 타임라인 복구 `#142`, 2단계 포스터 캐시, 온디바이스 즉시 공유 카드, 도킹 하단 바, iPad `서가` 중복·iPhone 영어 `Together` 탭 수정 포함)
-- **완료한 검증 및 App Store 제출**:
-  - **단위 테스트**: `OttlineCoreTests` 18/18 통과, `OttlineMacTests` 5/5 통과
-  - **실기기 검증**: 실기기 **iPhone X (`iOS 16.7.16`)** 및 **iPad 10세대**에 서명 빌드 설치·실행하여 홈·타임라인·도킹 하단 바·포스터 캐시·공유 카드 즉시 생성·앱 아이콘을 확인
-  - **App Store 제출 (`2.0.0`, build `26`)**: Release 아카이브(`CFBundleIdentifier=app.ottline`, `MinimumOSVersion=16.0`, `OttlineWidgetExtension.appex` + `OttlineShareExtension.appex` 포함)를 App Store Connect에 업로드(`EXPORT SUCCEEDED`)하고, 한국어·영어(미국) 스크린샷(iPhone 6.3" `1206×2622`, iPad 13" `2048×2732`)·릴리즈 노트·심사 메모를 입력해 **App Store 심사 제출 완료**
-- **남은 확인 (iOS)**:
-  - App Store `2.0.0 (26)` 심사 승인·공개 게시 확인 및 공개 스토어판의 기존 Expo `1.0.4` 인플레이스 업데이트 실사용 최종 확인
-  - [PR #137](https://github.com/chawon/ott/pull/137) CI 통과 확인 및 `main` 병합
-
-### macOS 남은 작업
-
-- 서명된 설치 앱에서 실기기 UI·기능 검수, App Sandbox(`com.apple.security.app-sandbox`) 활성화 검증, 공유 카드 로컬 생성 전환 점검
-- Safari·Chrome의 계정과 기록 이어받기(`?native_handoff=1` → `ottline://open?handoff=1`), 기존 세션이 없는 경우, 빠른 기록(`ottline://quick`) 제목·플랫폼 미리 채우기 확인
-- App Store Connect 신규 macOS 플랫폼 등록·제출 및 게시 URL 확인 후 웹·브라우저 확장 macOS 분기 활성화. [macOS 플랫폼 상태](../../wiki/pages/platforms/macos-native.md)
+- **PR / 병합 커밋**: [PR #137](https://github.com/chawon/ott/pull/137) 병합 완료 (`main` `d0844fc`, 제출 기준 커밋 `2634fdc`)
+- **주요 반영 내역**:
+  - 공용 `OttlineCore`: `ObservableObject` 메인 스레드 비동기 통합 발행(`AppPreferences`·`OttlineRepository` AB-BA 데드락 방지), 미래의 타임라인 90초 타임아웃·언어별 `requestId` 복구(`#142`), 2단계 포스터 캐시(`NSCache` + 디스크 LRU), 커스텀 드롭다운(`OttlineSelectDropdown`), `QuickRecordSheet` 초기 상태 즉시 반영 및 macOS 포커스 점프 방지
+  - iOS / iPadOS(`apps/ios-native`): 최소 지원 OS `iOS 16.0` 하향, 온디바이스 즉시 공유 카드, 도킹 하단 바, arm64 Debug 스택 오버플로우 해결(`OttlineDeferredSection`), iPad `서가` 중복·iPhone 영어 `Together` 필터 잘림 수정
+  - macOS(`apps/macos-native`): **App Sandbox**(`com.apple.security.app-sandbox`) 활성화 및 검증, 온디바이스 즉시 공유 카드(`1080×1920` / `1080×1350`), 전 메뉴 `1280px` 폭 통일 및 2컬럼 작품 상세, 인트로 스플래시, `함께` 내부 스크롤바 정리, 웹 기준 가이드·소개·FAQ·개인정보·문의함 5종 페이지 구현
+- **완료한 검증 및 스토어 제출**:
+  - **단위 테스트**: `OttlineTests` (iOS) **18/18 통과**, `OttlineMacTests` (macOS App Sandbox 서명 환경) **5/5 통과**
+  - **GitHub Actions CI**: `Native iOS v2 CI (SwiftUI)` Run [`44897582945`](https://github.com/chawon/ott/actions/runs/44897582945) · `Native macOS v2 CI (SwiftUI)` Run [`44897582916`](https://github.com/chawon/ott/actions/runs/44897582916) 모두 통과
+  - **실기기 검증**: iPhone X (`iOS 16.7.16`), iPad 10세대, macOS(App Sandbox 빌드)에서 핵심 흐름·공유 카드·UI 확인 완료
+  - **App Store 제출 (`2.0.0`, build `27`)**:
+    - **iOS / iPadOS**: `app.ottline` `2.0.0 (27)`(`MinimumOSVersion 16.0`, Widget·Share 익스텐션 포함) 업로드 및 한·영 스크린샷(iPhone 6.3" / iPad 13")·ASO 제목/부제 반영 후 **심사 제출 완료**
+    - **macOS**: `app.ottline` (`id6780318110` macOS 플랫폼 신규 추가) `2.0.0 (27)`(`LSMinimumSystemVersion 14.0`, App Sandbox Release 권한 검증) 업로드 및 한·영 스크린샷(`2560×1600` 각 5장)·심사 메모 입력 후 **최초 심사 제출 완료**
+- **남은 확인**:
+  - App Store iOS·iPadOS `2.0.0 (27)` 심사 승인·공개 게시 확인 및 공개 스토어판에서 기존 Expo `1.0.4` 인플레이스 업데이트 최종 확인
+  - Mac App Store `2.0.0 (27)` 심사 승인·공개 게시 확인, 공개 스토어 설치판에서 Safari·Chrome 핸드오프(`?native_handoff=1` → `ottline://open?handoff=1`)·`ottline://quick` 확인 및 웹·브라우저 확장 macOS 분기 활성화 ([macOS 플랫폼 상태](../../wiki/pages/platforms/macos-native.md))
+  - *(후속 v2.0.1 검토)* macOS 데스크톱 WidgetKit 익스텐션 추가 및 macOS 전용 App Group 연결
 
 ## 3. 브라우저 확장·토스·ChatGPT 앱
 
