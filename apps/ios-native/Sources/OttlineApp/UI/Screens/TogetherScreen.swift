@@ -4,7 +4,7 @@ import OttlineCore
 // MARK: - 1. TOGETHER SCREEN (CURATED QUESTIONS + PUBLIC DISCUSSIONS)
 
 public struct TogetherScreen: View {
-    public let repository: OttlineRepository
+    @ObservedObject public var repository: OttlineRepository
     public var onOpenTitleDetail: (String) -> Void
     public var onOpenPublicDiscussion: (String) -> Void
     public var onOpenQuickRecord: (QuickRecordRequest) -> Void
@@ -70,13 +70,13 @@ public struct TogetherScreen: View {
         .task {
             await loadTogetherData()
         }
-        .onChange(of: selectedType) { _, _ in
+        .onChange(of: selectedType) { _ in
             syncSelectedDiscussion()
         }
-        .onChange(of: searchQuery) { _, _ in
+        .onChange(of: searchQuery) { _ in
             syncSelectedDiscussion()
         }
-        .onChange(of: sortBy) { _, _ in
+        .onChange(of: sortBy) { _ in
             syncSelectedDiscussion()
         }
     }
@@ -388,7 +388,8 @@ public struct TogetherScreen: View {
                                         initialDiscussionId: disc.id,
                                         repository: repository,
                                         showSyncLogCheckbox: true,
-                                        onSelectTitle: onOpenTitleDetail
+                                        onSelectTitle: onOpenTitleDetail,
+                                        onReportComment: onReportUgc
                                     )
                                     .id(disc.id)
                                 }
@@ -474,7 +475,7 @@ public struct TogetherScreen: View {
                 OttlineStickyFooterLayout(
                     minHeight: scrollGeo.size.height,
                     topPadding: 20,
-                    bottomPadding: metrics.isSpread ? 24 : 110,
+                    bottomPadding: 24,
                     minSpacing: 20
                 ) {
                     VStack(alignment: .leading, spacing: 20) {
@@ -936,7 +937,7 @@ public struct TogetherScreen: View {
 
 public struct PublicDiscussionDetailScreen: View {
     public let discussionId: String
-    public let repository: OttlineRepository
+    @ObservedObject public var repository: OttlineRepository
     public var onBack: () -> Void
     public var onOpenTitleDetail: (String) -> Void
     public var onOpenQuickRecord: (QuickRecordRequest) -> Void
@@ -945,6 +946,7 @@ public struct PublicDiscussionDetailScreen: View {
     @Environment(\.appLocale) private var locale
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @Environment(\.ottlineViewportWidth) private var viewportWidth
+    @Environment(\.openOttlineOverlay) private var openOverlay
 
     private var metrics: PadLayoutMetrics {
         PadLayoutMetrics.resolve(horizontalSizeClass: horizontalSizeClass, viewportWidth: viewportWidth)
@@ -976,7 +978,7 @@ public struct PublicDiscussionDetailScreen: View {
                 OttlineStickyFooterLayout(
                     minHeight: scrollGeo.size.height,
                     topPadding: metrics.isSpread ? 20 : 12,
-                    bottomPadding: metrics.isSpread ? 24 : 110,
+                    bottomPadding: 24,
                     minSpacing: 18
                 ) {
                     VStack(alignment: .leading, spacing: 18) {
@@ -1013,7 +1015,8 @@ public struct PublicDiscussionDetailScreen: View {
                                 initialDiscussionId: discussionId,
                                 repository: repository,
                                 showSyncLogCheckbox: true,
-                                onSelectTitle: onOpenTitleDetail
+                                onSelectTitle: onOpenTitleDetail,
+                                onReportComment: { prefill in openOverlay(.feedback(prefill)) }
                             )
                             .frame(maxWidth: .infinity)
                         }
@@ -1025,7 +1028,8 @@ public struct PublicDiscussionDetailScreen: View {
                             initialDiscussionId: discussionId,
                             repository: repository,
                             showSyncLogCheckbox: true,
-                            onSelectTitle: onOpenTitleDetail
+                            onSelectTitle: onOpenTitleDetail,
+                            onReportComment: { prefill in openOverlay(.feedback(prefill)) }
                         )
                     }
                 } else {

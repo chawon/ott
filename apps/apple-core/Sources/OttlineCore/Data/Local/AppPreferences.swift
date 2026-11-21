@@ -1,5 +1,5 @@
 import Foundation
-import Observation
+import Combine
 import Security
 #if canImport(WidgetKit)
 import WidgetKit
@@ -180,8 +180,7 @@ public struct SharedWidgetSnapshot: Codable, Equatable, Sendable {
     }
 }
 
-@Observable
-public final class AppPreferences {
+public final class AppPreferences: ObservableObject {
     public static let productionApiBaseUrl = "https://ottline.app"
     public static let appGroupId = "group.app.ottline"
     public static let widgetSnapshotKey = "ottline.widget.snapshot.v2"
@@ -193,8 +192,8 @@ public final class AppPreferences {
     private let keychainService: String
     public let sessionId: String = UUID().uuidString.lowercased()
 
-    public private(set) var snapshot: PreferencesSnapshot
-    public private(set) var activationDismissedInSession: Bool = false
+    @Published public private(set) var snapshot: PreferencesSnapshot
+    @Published public private(set) var activationDismissedInSession: Bool = false
 
     public static var defaultGroupDefaults: UserDefaults? {
         #if os(macOS)
@@ -361,6 +360,7 @@ public final class AppPreferences {
         defaults.removeObject(forKey: "ottline.v2.last_sync_since")
         defaults.removeObject(forKey: "ottline.v2.last_sync_user_id")
         defaults.set(false, forKey: "ottline.v2.single_device_reminder_shown")
+        defaults.removeObject(forKey: Self.pendingRecommendationRequestsKey)
         activationDismissedInSession = false
         Self.deleteKeychain(service: keychainService, key: "user_id")
         Self.deleteKeychain(service: keychainService, key: "device_id")
@@ -513,6 +513,42 @@ public final class AppPreferences {
         var set = dismissedNextWatchSignatures()
         set.insert(signature)
         defaults.set(Array(set), forKey: "ottline.v2.dismissed_next_watch")
+    }
+
+    // MARK: - Durable Pending Recommendation Request IDs (per account & locale)
+
+    private static let pendingRecommendationRequestsKey = "ottline.v2.pending_recommendation_requests"
+
+    private static func recommendationScopeKey(userId: String, locale: String) -> String {
+        let trimmedUser = userId.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let normalizedLocale = locale.trimmingCharacters(in: .whitespacesAndNewlines).lowercased().hasPrefix("ko") ? "ko" : "en"
+        return "\(trimmedUser)|\(normalizedLocale)"
+    }
+
+    public func pendingRecommendationRequestId(userId: String, locale: String) -> String? {
+        let trimmedUser = userId.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedUser.isEmpty else { return nil }
+        let map = defaults.dictionary(forKey: Self.pendingRecommendationRequestsKey) as? [String: String] ?? [:]
+        let key = Self.recommendationScopeKey(userId: trimmedUser, locale: locale)
+        let raw = map[key]?.trimmingCharacters(in: .whitespacesAndNewlines)
+        return (raw?.isEmpty == false) ? raw : nil
+    }
+
+    public func setPendingRecommendationRequestId(_ requestId: String?, userId: String, locale: String) {
+        let trimmedUser = userId.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedUser.isEmpty else { return }
+        var map = defaults.dictionary(forKey: Self.pendingRecommendationRequestsKey) as? [String: String] ?? [:]
+        let key = Self.recommendationScopeKey(userId: trimmedUser, locale: locale)
+        if let trimmed = requestId?.trimmingCharacters(in: .whitespacesAndNewlines), !trimmed.isEmpty {
+            map[key] = trimmed
+        } else {
+            map.removeValue(forKey: key)
+        }
+        defaults.set(map, forKey: Self.pendingRecommendationRequestsKey)
+    }
+
+    public func clearPendingRecommendationRequests() {
+        defaults.removeObject(forKey: Self.pendingRecommendationRequestsKey)
     }
 
     // MARK: - Widget Snapshot Sync

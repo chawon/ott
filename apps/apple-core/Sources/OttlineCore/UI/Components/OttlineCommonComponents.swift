@@ -7,6 +7,20 @@ public enum TopLevelTab: String, CaseIterable, Sendable {
     case mySpace
 }
 
+/// Isolates a heavy SwiftUI section into its own `View.body` stack frame with a fixed-size type-erased wrapper,
+/// preventing arm64 Debug (`-Onone`) stack overflows in large multi-branch SwiftUI views on physical iOS devices.
+public struct OttlineDeferredSection: View {
+    private let build: () -> AnyView
+
+    public init<Content: View>(@ViewBuilder _ content: @escaping () -> Content) {
+        self.build = { AnyView(content()) }
+    }
+
+    public var body: some View {
+        build()
+    }
+}
+
 // MARK: - 1. Brand Mark (Open-Book + Play Triangle)
 
 public struct OttlineBrandMark: View {
@@ -1020,10 +1034,15 @@ public struct OttlineBottomBar: View {
             RoundedRectangle(cornerRadius: 12)
                 .stroke(palette.border, lineWidth: 1)
         )
-        .shadow(color: Color.black.opacity(palette.isDark ? 0.28 : 0.10), radius: 14, x: 0, y: 6)
+        .shadow(color: Color.black.opacity(palette.isDark ? 0.24 : 0.08), radius: 10, x: 0, y: 4)
         .padding(.horizontal, 14)
-        .padding(.top, 4)
-        .padding(.bottom, 6)
+        .padding(.top, 6)
+        .padding(.bottom, 2)
+        .frame(maxWidth: .infinity)
+        .background(
+            palette.background
+                .ignoresSafeArea(edges: .bottom)
+        )
     }
 
     private func navTabButton(tab: TopLevelTab, label: String, icon: OttlineLucideIconKind) -> some View {
@@ -1129,6 +1148,8 @@ public struct PosterImage: View {
     public var widthBucket: String = "w342"
 
     @Environment(\.ottlinePalette) private var palette
+    @State private var loadedImage: OttlinePlatformImage?
+    @State private var loadedUrl: URL?
 
     public init(
         posterUrl: String?,
@@ -1150,22 +1171,28 @@ public struct PosterImage: View {
 
     public var body: some View {
         let resolvedUrl = tmdbResizeUrl(posterUrl, bucket: widthBucket).flatMap(URL.init(string:))
+        // Synchronous memory-cache fast path avoids placeholder flashing on tab switch / scroll reuse.
+        let activeImage: OttlinePlatformImage? = {
+            guard let resolvedUrl else { return nil }
+            if let hit = OttlinePosterImageCache.shared.cachedImage(for: resolvedUrl) {
+                return hit
+            }
+            if loadedUrl == resolvedUrl {
+                return loadedImage
+            }
+            return nil
+        }()
+
         Group {
-            if let resolvedUrl {
-                AsyncImage(url: resolvedUrl) { phase in
-                    switch phase {
-                    case .success(let img):
-                        if titleType == .book {
-                            ZStack {
-                                palette.mutedBg
-                                img.resizable().scaledToFit()
-                            }
-                        } else {
-                            img.resizable().scaledToFill()
-                        }
-                    default:
-                        fallbackBox
+            if let activeImage {
+                let img = OttlinePosterImageCache.swiftUIImage(activeImage)
+                if titleType == .book {
+                    ZStack {
+                        palette.mutedBg
+                        img.resizable().scaledToFit()
                     }
+                } else {
+                    img.resizable().scaledToFill()
                 }
             } else {
                 fallbackBox
@@ -1173,6 +1200,23 @@ public struct PosterImage: View {
         }
         .frame(width: width, height: height)
         .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
+        .task(id: resolvedUrl) {
+            guard let resolvedUrl else {
+                loadedImage = nil
+                loadedUrl = nil
+                return
+            }
+            if let hit = OttlinePosterImageCache.shared.cachedImage(for: resolvedUrl) {
+                loadedImage = hit
+                loadedUrl = resolvedUrl
+                return
+            }
+            let fetched = await OttlinePosterImageCache.shared.image(for: resolvedUrl)
+            if !Task.isCancelled {
+                loadedImage = fetched
+                loadedUrl = resolvedUrl
+            }
+        }
     }
 
     private var fallbackBox: some View {
@@ -1419,7 +1463,7 @@ public struct SyncNoticeBanner: View {
 
 // MARK: - 8. Shared App Navigation Routes & Environment Keys
 
-public enum ActiveOverlayScreen: Equatable, Sendable {
+public enum ActiveOverlayScreen: Equatable, Hashable, Sendable {
     case titleDetail(String)
     case publicDiscussion(String)
     case report
@@ -1681,32 +1725,49 @@ public struct InlineNoteText: View {
     public var fontSize: CGFloat = 14
     public var lineLimit: Int? = nil
     public var preserveNewlines: Bool = false
+    public var lineSpacing: CGFloat? = nil
 
     @Environment(\.ottlinePalette) private var palette
 
-    public init(text: String, fontSize: CGFloat = 14, lineLimit: Int? = nil, preserveNewlines: Bool = false) {
+    public init(
+        text: String,
+        fontSize: CGFloat = 14,
+        lineLimit: Int? = nil,
+        preserveNewlines: Bool = false,
+        lineSpacing: CGFloat? = nil
+    ) {
         self.text = text
         self.fontSize = fontSize
         self.lineLimit = lineLimit
         self.preserveNewlines = preserveNewlines
+        self.lineSpacing = lineSpacing
     }
+
+    private static let mentionRegex: NSRegularExpression? = try? NSRegularExpression(pattern: #"@[^\s@#⏎]{1,36}"#)
 
     public var body: some View {
         let crlfNormalized = text.replacingOccurrences(of: "\r\n", with: "\n")
         let normalized = preserveNewlines
             ? crlfNormalized
             : crlfNormalized.replacingOccurrences(of: "\n", with: " ⏎ ")
-        Text(attributedNote(normalized))
-            .font(OttlineFont.regular(fontSize))
-            .lineSpacing(preserveNewlines ? 5 : 4)
-            .lineLimit(lineLimit)
-            .frame(maxWidth: .infinity, alignment: .leading)
+        Group {
+            if normalized.contains("@") {
+                Text(attributedNote(normalized))
+            } else {
+                Text(normalized)
+                    .foregroundStyle(palette.ink)
+            }
+        }
+        .font(OttlineFont.regular(fontSize))
+        .lineSpacing(lineSpacing ?? (preserveNewlines ? 5 : 4))
+        .lineLimit(lineLimit)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private func attributedNote(_ raw: String) -> AttributedString {
         var result = AttributedString(raw)
         result.foregroundColor = palette.ink
-        if let regex = try? NSRegularExpression(pattern: #"@[^\s@#⏎]{1,36}"#) {
+        if let regex = Self.mentionRegex {
             let ns = raw as NSString
             let matches = regex.matches(in: raw, range: NSRange(location: 0, length: ns.length))
             for match in matches {
@@ -2014,10 +2075,11 @@ public struct DiscussionReactionChipsView: View {
 public struct CommentsPanelView: View {
     public var title: Title
     public var initialDiscussionId: String?
-    public let repository: OttlineRepository
+    @ObservedObject public var repository: OttlineRepository
     public var showSyncLogCheckbox: Bool = true
     public var onSelectTitle: ((String) -> Void)? = nil
     public var onDiscussionResolved: ((String) -> Void)? = nil
+    public var onReportComment: ((String) -> Void)? = nil
 
     @Environment(\.ottlinePalette) private var palette
     @Environment(\.appLocale) private var locale
@@ -2046,14 +2108,16 @@ public struct CommentsPanelView: View {
         repository: OttlineRepository,
         showSyncLogCheckbox: Bool = true,
         onSelectTitle: ((String) -> Void)? = nil,
-        onDiscussionResolved: ((String) -> Void)? = nil
+        onDiscussionResolved: ((String) -> Void)? = nil,
+        onReportComment: ((String) -> Void)? = nil
     ) {
         self.title = title
         self.initialDiscussionId = initialDiscussionId
-        self.repository = repository
+        self._repository = ObservedObject(wrappedValue: repository)
         self.showSyncLogCheckbox = showSyncLogCheckbox
         self.onSelectTitle = onSelectTitle
         self.onDiscussionResolved = onDiscussionResolved
+        self.onReportComment = onReportComment
     }
 
     private var sortedComments: [TitleCommentItem] {
@@ -2173,6 +2237,25 @@ public struct CommentsPanelView: View {
                                 Text(RecordDate.formatCommentDateTime(comment.createdAt, locale: locale))
                                     .font(OttlineFont.regular(11.5))
                                     .foregroundStyle(palette.subtleInk)
+                                if !isMine, let onReportComment {
+                                    Button {
+                                        let author = comment.authorName.isEmpty
+                                            ? OttlineStrings.tr("익명", "Anonymous", locale: locale)
+                                            : comment.authorName
+                                        let snippet = String(comment.body.prefix(120))
+                                        let prefix = OttlineStrings.tr(
+                                            "[댓글 신고] 작품: \(title.name) / 작성자: \(author) (ID: \(comment.id))\n내용: \(snippet)\n사유: ",
+                                            "[Comment Report] Title: \(title.name) / Author: \(author) (ID: \(comment.id))\nContent: \(snippet)\nReason: ",
+                                            locale: locale
+                                        )
+                                        onReportComment(prefix)
+                                    } label: {
+                                        Text(OttlineStrings.tr("신고", "Report", locale: locale))
+                                            .font(OttlineFont.regular(11.5))
+                                            .foregroundStyle(palette.subtleInk)
+                                    }
+                                    .buttonStyle(.plain)
+                                }
                             }
                             InlineNoteText(text: comment.body, fontSize: 14, preserveNewlines: true)
                         }

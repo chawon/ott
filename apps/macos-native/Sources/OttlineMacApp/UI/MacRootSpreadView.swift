@@ -3,14 +3,14 @@ import AppKit
 import OttlineCore
 
 public struct MacRootSpreadView: View {
-    public let repository: OttlineRepository
+    @ObservedObject public var repository: OttlineRepository
     @Bindable public var appState: OttlineMacAppState
 
     @Environment(\.colorScheme) private var systemColorScheme
     @Environment(\.scenePhase) private var scenePhase
 
     public init(repository: OttlineRepository, appState: OttlineMacAppState) {
-        self.repository = repository
+        self._repository = ObservedObject(wrappedValue: repository)
         self.appState = appState
     }
 
@@ -105,10 +105,15 @@ public struct MacRootSpreadView: View {
             }
 
             ZStack {
+                tabContent(palette: palette, locale: snap.locale)
+                    .opacity(appState.overlayStack.isEmpty ? 1 : 0)
+                    .allowsHitTesting(appState.overlayStack.isEmpty)
+                    .accessibilityHidden(!appState.overlayStack.isEmpty)
+
                 if let overlay = appState.overlayStack.last {
                     desktopOverlayView(for: overlay, palette: palette, locale: snap.locale)
-                } else {
-                    tabContent(palette: palette, locale: snap.locale)
+                        .id(overlay)
+                        .background(palette.background.ignoresSafeArea())
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -248,7 +253,7 @@ public struct MacRootSpreadView: View {
 // MARK: - PC Web Parity Top Header (`AppHeader.tsx` 1:1 Desktop Nav)
 
 public struct MacAppHeader: View {
-    public let repository: OttlineRepository
+    @ObservedObject public var repository: OttlineRepository
     public let activeTab: TopLevelTab
     public let themeMode: ThemeMode
     public let onSelectTab: (TopLevelTab) -> Void
@@ -422,7 +427,7 @@ public struct MacAppHeader: View {
 // MARK: - Mac Home Spread View ("펼쳐보는 기록장")
 
 public struct MacHomeSpreadView: View {
-    public let repository: OttlineRepository
+    @ObservedObject public var repository: OttlineRepository
     @Bindable public var appState: OttlineMacAppState
 
     @Environment(\.ottlinePalette) private var palette
@@ -916,25 +921,19 @@ public struct MacHomeSpreadView: View {
     }
 
     private func activationPosterTile(name: String, posterUrl: String?, type: TitleType, year: Int?) -> some View {
-        let resolvedUrl = tmdbResizeUrl(posterUrl, bucket: "w500").flatMap(URL.init(string:))
         return VStack(alignment: .leading, spacing: 8) {
-            Color.clear
-                .aspectRatio(2.0 / 3.0, contentMode: .fit)
-                .overlay {
-                    if let resolvedUrl {
-                        AsyncImage(url: resolvedUrl) { phase in
-                            switch phase {
-                            case .success(let img):
-                                img.resizable().scaledToFill()
-                            default:
-                                activationPosterFallback(type: type)
-                            }
-                        }
-                    } else {
-                        activationPosterFallback(type: type)
-                    }
-                }
-                .clipShape(RoundedRectangle(cornerRadius: 6))
+            GeometryReader { geo in
+                PosterImage(
+                    posterUrl: posterUrl,
+                    titleName: name,
+                    titleType: type,
+                    width: max(1, geo.size.width),
+                    height: max(1, geo.size.height),
+                    cornerRadius: 6,
+                    widthBucket: "w500"
+                )
+            }
+            .aspectRatio(2.0 / 3.0, contentMode: .fit)
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(name)
@@ -1881,12 +1880,15 @@ struct MacFeaturedPosterView: View {
     }
 
     var body: some View {
-        GeometryReader { proxy in
+        let candidateUrls = Self.candidateUrls(posterUrl: posterUrl, titleType: titleType)
+        let displayImage = OttlinePosterImageCache.shared.cachedFirstAvailable(urls: candidateUrls) ?? loadedImage
+
+        return GeometryReader { proxy in
             let boxW = max(1, proxy.size.width)
             let boxH = max(1, proxy.size.height)
 
             Group {
-                if let nsImage = loadedImage {
+                if let nsImage = displayImage {
                     if titleType == .book {
                         let rep = nsImage.representations.first
                         let repW = rep?.pixelsWide ?? 0
@@ -1923,25 +1925,17 @@ struct MacFeaturedPosterView: View {
             .clipShape(RoundedRectangle(cornerRadius: 8))
         }
         .task(id: "\(titleType.rawValue)|\(posterUrl ?? "")") {
+            let urls = Self.candidateUrls(posterUrl: posterUrl, titleType: titleType)
+            if let cached = OttlinePosterImageCache.shared.cachedFirstAvailable(urls: urls) {
+                loadedImage = cached
+                loadFinished = true
+                return
+            }
             loadedImage = nil
             loadFinished = false
-            let urls = Self.candidateUrls(posterUrl: posterUrl, titleType: titleType)
-            for url in urls {
-                if Task.isCancelled { return }
-                do {
-                    let (data, response) = try await URLSession.shared.data(from: url)
-                    if Task.isCancelled { return }
-                    let ok = (response as? HTTPURLResponse).map { (200..<300).contains($0.statusCode) } ?? true
-                    if ok, let image = NSImage(data: data) {
-                        loadedImage = image
-                        loadFinished = true
-                        return
-                    }
-                } catch {
-                    if Task.isCancelled { return }
-                }
-            }
+            let fetched = await OttlinePosterImageCache.shared.loadFirstAvailable(urls: urls)
             if !Task.isCancelled {
+                loadedImage = fetched
                 loadFinished = true
             }
         }

@@ -6,7 +6,7 @@ import CoreSpotlight
 
 @main
 public struct OttlineApp: App {
-    @State private var repository: OttlineRepository = {
+    @StateObject private var repository: OttlineRepository = {
         let prefs = AppPreferences()
         let db = OttlineDatabase()
         let api = OttlineApiClient(prefs: prefs)
@@ -25,7 +25,7 @@ public struct OttlineApp: App {
 }
 
 public struct OttlineRootContainerView: View {
-    public let repository: OttlineRepository
+    @ObservedObject public var repository: OttlineRepository
 
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.colorScheme) private var systemColorScheme
@@ -48,7 +48,7 @@ public struct OttlineRootContainerView: View {
     @State private var handoffNoticeMessage: String?
 
     public init(repository: OttlineRepository) {
-        self.repository = repository
+        self._repository = ObservedObject(wrappedValue: repository)
     }
 
     private var compactQuickRecordBinding: Binding<QuickRecordRequest?> {
@@ -188,15 +188,21 @@ public struct OttlineRootContainerView: View {
                         )
                     }
 
-                    ZStack(alignment: .bottom) {
+                    VStack(spacing: 0) {
                         ZStack {
+                            tabContentView
+                                .opacity(overlayStack.isEmpty ? 1 : 0)
+                                .allowsHitTesting(overlayStack.isEmpty)
+                                .accessibilityHidden(!overlayStack.isEmpty)
+
                             if let currentOverlay = overlayStack.last {
                                 overlayView(for: currentOverlay)
-                            } else {
-                                tabContentView
+                                    .id(currentOverlay)
+                                    .background(palette.background.ignoresSafeArea())
                             }
                         }
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .clipped()
 
                         if !metrics.isSpread {
                             OttlineBottomBar(
@@ -290,7 +296,7 @@ public struct OttlineRootContainerView: View {
                 handleIncomingUrl(pendingUrl)
             }
         }
-        .onChange(of: scenePhase) { _, newPhase in
+        .onChange(of: scenePhase) { newPhase in
             if newPhase == .active {
                 if let pendingUrl = PendingIntentRouteStore.shared.consumePendingUrl() {
                     handleIncomingUrl(pendingUrl)

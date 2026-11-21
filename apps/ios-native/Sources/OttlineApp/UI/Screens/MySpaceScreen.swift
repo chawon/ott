@@ -5,7 +5,7 @@ import UIKit
 #endif
 
 public struct MySpaceScreen: View {
-    public let repository: OttlineRepository
+    @ObservedObject public var repository: OttlineRepository
     public var autoExpandPairing: Bool = false
     public var onConsumeAutoExpandPairing: () -> Void
     public var onOpenReport: () -> Void
@@ -69,7 +69,7 @@ public struct MySpaceScreen: View {
                 OttlineStickyFooterLayout(
                     minHeight: scrollGeo.size.height,
                     topPadding: metrics.isSpread ? 24 : 20,
-                    bottomPadding: metrics.isSpread ? 24 : 110,
+                    bottomPadding: 24,
                     minSpacing: 20
                 ) {
                     VStack(alignment: .leading, spacing: 20) {
@@ -116,30 +116,30 @@ public struct MySpaceScreen: View {
                 if metrics.mySpaceTwoColumns {
                     HStack(alignment: .top, spacing: 20) {
                         VStack(alignment: .leading, spacing: 20) {
-                            myProfileCard(snap: snap, nickname: nickname, personaTitle: personaTitle)
-                            pairingAndDevicesCard(snap: snap)
-                            accountInfoCard(snap: snap)
+                            OttlineDeferredSection { myProfileCard(snap: snap, nickname: nickname, personaTitle: personaTitle) }
+                            OttlineDeferredSection { pairingAndDevicesCard(snap: snap) }
+                            OttlineDeferredSection { accountInfoCard(snap: snap) }
                         }
                         .frame(maxWidth: .infinity, alignment: .topLeading)
 
                         VStack(alignment: .leading, spacing: 20) {
-                            remindersAndFeaturesCard(snap: snap)
-                            helpLinksCard
-                            exportCsvCard(exportLogs: exportLogs)
-                            debugServerSection(snap: snap)
-                            dataManagementCard
+                            OttlineDeferredSection { remindersAndFeaturesCard(snap: snap) }
+                            OttlineDeferredSection { helpLinksCard }
+                            OttlineDeferredSection { exportCsvCard(exportLogs: exportLogs) }
+                            OttlineDeferredSection { debugServerSection(snap: snap) }
+                            OttlineDeferredSection { dataManagementCard }
                         }
                         .frame(maxWidth: .infinity, alignment: .topLeading)
                     }
                 } else {
-                    myProfileCard(snap: snap, nickname: nickname, personaTitle: personaTitle)
-                    pairingAndDevicesCard(snap: snap)
-                    accountInfoCard(snap: snap)
-                    helpLinksCard
-                    exportCsvCard(exportLogs: exportLogs)
-                    remindersAndFeaturesCard(snap: snap)
-                    debugServerSection(snap: snap)
-                    dataManagementCard
+                    OttlineDeferredSection { myProfileCard(snap: snap, nickname: nickname, personaTitle: personaTitle) }
+                    OttlineDeferredSection { pairingAndDevicesCard(snap: snap) }
+                    OttlineDeferredSection { accountInfoCard(snap: snap) }
+                    OttlineDeferredSection { helpLinksCard }
+                    OttlineDeferredSection { exportCsvCard(exportLogs: exportLogs) }
+                    OttlineDeferredSection { remindersAndFeaturesCard(snap: snap) }
+                    OttlineDeferredSection { debugServerSection(snap: snap) }
+                    OttlineDeferredSection { dataManagementCard }
                 }
                     }
 
@@ -212,7 +212,7 @@ public struct MySpaceScreen: View {
                 pairingSectionExpanded = true
             }
         }
-        .onChange(of: autoExpandPairing) { _, next in
+        .onChange(of: autoExpandPairing) { next in
             if next {
                 pairingSectionExpanded = true
                 onConsumeAutoExpandPairing()
@@ -908,54 +908,31 @@ public struct MySpaceScreen: View {
                         }
                     }
 
-                    if let csvUrl = CsvExporter.writeTemporaryCsvFile(logs: exportLogs, locale: locale) {
-                        ShareLink(
-                            item: csvUrl,
-                            subject: Text("ottline timeline export"),
-                            message: Text("ottline CSV")
-                        ) {
-                            HStack(spacing: 6) {
-                                OttlineLucideIcon(kind: .download, size: 15, color: palette.ink)
-                                Text(OttlineStrings.tr("CSV 다운로드", "Download CSV", locale: locale))
-                                    .font(OttlineFont.semiBold(14))
-                            }
-                            .foregroundStyle(palette.ink)
-                            .padding(.horizontal, 16)
-                            .frame(minHeight: 44)
-                            .background(palette.card)
-                            .clipShape(RoundedRectangle(cornerRadius: 8))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 8)
-                                    .stroke(palette.border, lineWidth: 1)
-                            )
+                    Button {
+                        if let csvUrl = CsvExporter.writeTemporaryCsvFile(logs: exportLogs, locale: locale) {
+                            CardExporter.presentFileShareSheet(csvUrl)
+                        } else {
+                            let csvString = CsvExporter.buildCsv(exportLogs, locale: locale)
+                            CardExporter.presentTextShareSheet(csvString)
                         }
-                        .buttonStyle(.plain)
-                        .disabled(exportLogs.isEmpty)
-                    } else {
-                        let csvString = CsvExporter.buildCsv(exportLogs, locale: locale)
-                        ShareLink(
-                            item: csvString,
-                            subject: Text("ottline timeline export"),
-                            message: Text("ottline CSV")
-                        ) {
-                            HStack(spacing: 6) {
-                                OttlineLucideIcon(kind: .download, size: 15, color: palette.ink)
-                                Text(OttlineStrings.tr("CSV 다운로드", "Download CSV", locale: locale))
-                                    .font(OttlineFont.semiBold(14))
-                            }
-                            .foregroundStyle(palette.ink)
-                            .padding(.horizontal, 16)
-                            .frame(minHeight: 44)
-                            .background(palette.card)
-                            .clipShape(RoundedRectangle(cornerRadius: 8))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 8)
-                                    .stroke(palette.border, lineWidth: 1)
-                            )
+                    } label: {
+                        HStack(spacing: 6) {
+                            OttlineLucideIcon(kind: .download, size: 15, color: palette.ink)
+                            Text(OttlineStrings.tr("CSV 다운로드", "Download CSV", locale: locale))
+                                .font(OttlineFont.semiBold(14))
                         }
-                        .buttonStyle(.plain)
-                        .disabled(exportLogs.isEmpty)
+                        .foregroundStyle(palette.ink)
+                        .padding(.horizontal, 16)
+                        .frame(minHeight: 44)
+                        .background(palette.card)
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8)
+                                .stroke(palette.border, lineWidth: 1)
+                        )
                     }
+                    .buttonStyle(.plain)
+                    .disabled(exportLogs.isEmpty)
 
                     Text(OttlineStrings.tr(
                         "최신 기록을 포함하려면 동기화가 완료된 상태에서 내보내기 해주세요.",

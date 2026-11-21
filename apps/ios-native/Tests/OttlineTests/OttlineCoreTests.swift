@@ -802,4 +802,520 @@ final class OttlineCoreTests: XCTestCase {
             "https://image.tmdb.org/t/p/w780/abc.jpg"
         )
     }
+
+    // MARK: - 12. Future Timeline Generation, Timeout/Drop Recovery, 202 Polling, Idempotency & Cross-Locale Isolation
+
+    private final class ScriptedRecommendationTransport: RecommendationTransport, @unchecked Sendable {
+        private let lock = NSLock()
+        private var stateQueue: [Result<RecommendationState, Error>] = []
+        private var fallbackState: RecommendationState
+        private var generateHandler: ((String) async throws -> (Int, RecommendationState))?
+        private var excludeHandler: ((RecommendationItem) async throws -> RecommendationExclusion)?
+        private(set) var sentRequestIds: [String] = []
+        private(set) var stateCallCount: Int = 0
+        private(set) var restoredKeys: [String] = []
+
+        init(initialState: RecommendationState) {
+            self.fallbackState = initialState
+        }
+
+        func setFallbackState(_ state: RecommendationState) {
+            lock.withLock { fallbackState = state }
+        }
+
+        func enqueueState(_ results: [Result<RecommendationState, Error>]) {
+            lock.withLock { stateQueue.append(contentsOf: results) }
+        }
+
+        func setGenerateHandler(_ handler: @escaping (String) async throws -> (Int, RecommendationState)) {
+            lock.withLock { generateHandler = handler }
+        }
+
+        func setExcludeHandler(_ handler: @escaping (RecommendationItem) async throws -> RecommendationExclusion) {
+            lock.withLock { excludeHandler = handler }
+        }
+
+        func getRecommendationState() async throws -> RecommendationState {
+            let next: Result<RecommendationState, Error> = lock.withLock {
+                stateCallCount += 1
+                if !stateQueue.isEmpty {
+                    return stateQueue.removeFirst()
+                }
+                return .success(fallbackState)
+            }
+            return try next.get()
+        }
+
+        func generateRecommendations(requestId: String) async throws -> (statusCode: Int, state: RecommendationState) {
+            let handler: ((String) async throws -> (Int, RecommendationState))? = lock.withLock {
+                sentRequestIds.append(requestId)
+                return generateHandler
+            }
+            guard let handler else {
+                return (200, lock.withLock { fallbackState })
+            }
+            return try await handler(requestId)
+        }
+
+        func excludeRecommendation(_ item: RecommendationItem) async throws -> RecommendationExclusion {
+            let handler = lock.withLock { excludeHandler }
+            if let handler {
+                return try await handler(item)
+            }
+            return RecommendationExclusion(key: "ex-\(item.name)", name: item.name, type: item.type)
+        }
+
+        func restoreRecommendationExclusion(key: String) async throws {
+            lock.withLock { restoredKeys.append(key) }
+        }
+    }
+
+    private func makeTestRecState(
+        items: [RecommendationItem],
+        used: Int,
+        limit: Int = 3,
+        generationId: String? = nil,
+        generating: Bool = false,
+        hasBatch: Bool? = nil,
+        eligible: Bool = true
+    ) -> RecommendationState {
+        RecommendationState(
+            items: items,
+            exclusions: [],
+            quota: RecommendationQuota(
+                date: "2026-11-21",
+                timezone: "Asia/Seoul",
+                limit: limit,
+                used: used,
+                remaining: max(0, limit - used),
+                resetsAt: "2026-11-22T00:00:00+09:00"
+            ),
+            generatedAt: (hasBatch ?? !items.isEmpty) ? "2026-11-21T15:00:00+09:00" : nil,
+            generationId: generationId,
+            generating: generating,
+            hasBatch: hasBatch ?? !items.isEmpty,
+            eligible: eligible
+        )
+    }
+
+    private func makeTestPrefs(_ tag: String) -> (AppPreferences, () -> Void) {
+        let suiteName = "ottline.test.future.\(tag).\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        let prefs = AppPreferences(
+            defaults: defaults,
+            groupDefaults: nil,
+            keychainService: "app.ottline.test.future.\(tag).\(UUID().uuidString)"
+        )
+        return (prefs, { defaults.removePersistentDomain(forName: suiteName) })
+    }
+
+    func testFutureTimelineGenerateTimeoutHeaderAndUserAgent() async throws {
+        final class GenerateProbeProtocol: URLProtocol {
+            nonisolated(unsafe) static var capturedRequest: URLRequest?
+            override class func canInit(with request: URLRequest) -> Bool { true }
+            override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
+            override func startLoading() {
+                Self.capturedRequest = request
+                let json = #"""
+                {
+                  "items": [{"name":"헤어질 결심","type":"movie","reason":"여운이 깊은 멜로","genres":["드라마"],"year":2022}],
+                  "exclusions": [],
+                  "quota": {"date":"2026-11-21","timezone":"Asia/Seoul","limit":3,"used":1,"remaining":2,"resetsAt":"2026-11-22T00:00:00+09:00"},
+                  "generatedAt": "2026-11-21T15:00:00+09:00",
+                  "generationId": "11111111-1111-4111-8111-111111111111",
+                  "generating": false,
+                  "hasBatch": true,
+                  "eligible": true
+                }
+                """#
+                let resp = HTTPURLResponse(
+                    url: request.url!,
+                    statusCode: 200,
+                    httpVersion: nil,
+                    headerFields: ["Content-Type": "application/json"]
+                )!
+                client?.urlProtocol(self, didReceive: resp, cacheStoragePolicy: .notAllowed)
+                client?.urlProtocol(self, didLoad: Data(json.utf8))
+                client?.urlProtocolDidFinishLoading(self)
+            }
+            override func stopLoading() {}
+        }
+
+        XCTAssertGreaterThanOrEqual(OttlineApiClient.recommendationGenerateTimeoutSeconds, 60)
+        XCTAssertEqual(OttlineApiClient.recommendationGenerateTimeoutSeconds, 90)
+        let ua = OttlineApiClient.defaultUserAgent
+        XCTAssertTrue(ua.contains("iPhone; iOS") || ua.contains("iPad; iPadOS"))
+
+        let (prefs, cleanup) = makeTestPrefs("timeout")
+        defer { cleanup() }
+        prefs.saveAuth(userId: "u-1", deviceId: "d-1", pairingCode: "ABCD1234")
+
+        GenerateProbeProtocol.capturedRequest = nil
+        let config = URLSessionConfiguration.ephemeral
+        config.protocolClasses = [GenerateProbeProtocol.self]
+        let api = OttlineApiClient(prefs: prefs, session: URLSession(configuration: config))
+
+        let (code, state) = try await api.generateRecommendations(requestId: "11111111-1111-4111-8111-111111111111")
+        XCTAssertEqual(code, 200)
+        XCTAssertEqual(state.generationId, "11111111-1111-4111-8111-111111111111")
+        XCTAssertEqual(GenerateProbeProtocol.capturedRequest?.timeoutInterval, 90)
+        XCTAssertEqual(GenerateProbeProtocol.capturedRequest?.value(forHTTPHeaderField: "User-Agent"), ua)
+    }
+
+    func testFutureTimelineFirstGenerationExplicitRegenAndUndoExclusion() async {
+        let (prefs, cleanup) = makeTestPrefs("firstgen")
+        defer { cleanup() }
+
+        let emptyState = makeTestRecState(items: [], used: 0, generationId: nil, hasBatch: false)
+        let transport = ScriptedRecommendationTransport(initialState: emptyState)
+        var generatedIds = ["req-first-1", "req-regen-2"]
+        var serverQuotaUsed = 0
+
+        transport.setGenerateHandler { requestId in
+            serverQuotaUsed += 1
+            let item = RecommendationItem(
+                name: serverQuotaUsed == 1 ? "패스트 라이브즈" : "애프터썬",
+                type: .movie,
+                reason: "조용한 여운"
+            )
+            let next = self.makeTestRecState(items: [item], used: serverQuotaUsed, generationId: requestId)
+            transport.setFallbackState(next)
+            return (200, next)
+        }
+
+        let coordinator = FutureTimelineCoordinator(
+            transport: transport,
+            attemptStore: prefs,
+            ensureUserId: { "user-a" },
+            pollIntervalNanoseconds: 1_000_000,
+            maxPollAttempts: 10,
+            uuidGenerator: { generatedIds.removeFirst() }
+        )
+
+        await coordinator.loadState(locale: "ko")
+        XCTAssertEqual(coordinator.state.quota.used, 0)
+        XCTAssertFalse(coordinator.state.hasBatch)
+
+        // 1. First generation increments quota by 1
+        await coordinator.requestGeneration(locale: "ko")
+        XCTAssertEqual(coordinator.state.items.map(\.name), ["패스트 라이브즈"])
+        XCTAssertEqual(coordinator.state.quota.used, 1)
+        XCTAssertNil(coordinator.errorMessage)
+        XCTAssertFalse(coordinator.hasPendingAttempt)
+
+        // 2. Explicit regeneration increments quota by 1 again with a fresh requestId
+        await coordinator.requestGeneration(locale: "ko")
+        XCTAssertEqual(coordinator.state.items.map(\.name), ["애프터썬"])
+        XCTAssertEqual(coordinator.state.quota.used, 2)
+        XCTAssertEqual(transport.sentRequestIds, ["req-first-1", "req-regen-2"])
+        XCTAssertNil(coordinator.errorMessage)
+
+        // 3. Exclude + Undo restore
+        let target = coordinator.state.items[0]
+        await coordinator.excludeItem(target, locale: "ko")
+        XCTAssertEqual(coordinator.lastExcludedItem?.name, "애프터썬")
+        await coordinator.restoreExclusion(key: coordinator.lastExcludedItem!.key, locale: "ko")
+        XCTAssertNil(coordinator.lastExcludedItem)
+        XCTAssertEqual(transport.restoredKeys, ["ex-애프터썬"])
+    }
+
+    func testFutureTimelineDroppedResponsePreservesPreviousBatchAndRecoversAcrossRestartAndDoubleTap() async {
+        let (prefs, cleanup) = makeTestPrefs("drop-recover")
+        defer { cleanup() }
+
+        let oldItem = RecommendationItem(name: "기존 추천작", type: .movie, reason: "이전 배치")
+        let newItem = RecommendationItem(name: "새 추천작", type: .series, reason: "복구된 배치")
+        let initialBatch = makeTestRecState(items: [oldItem], used: 1, generationId: "gen-old")
+
+        // Scenario A: POST drops with timeout, server already finished -> immediate `/state` recovery succeeds (+1 total quota)
+        let transportA = ScriptedRecommendationTransport(initialState: initialBatch)
+        let completedBatchA = makeTestRecState(items: [newItem], used: 2, generationId: "req-drop-a")
+        transportA.setGenerateHandler { _ in
+            transportA.setFallbackState(completedBatchA)
+            throw URLError(.timedOut)
+        }
+
+        let coordA = FutureTimelineCoordinator(
+            transport: transportA,
+            attemptStore: prefs,
+            ensureUserId: { "user-drop" },
+            pollIntervalNanoseconds: 1_000_000,
+            maxPollAttempts: 10,
+            uuidGenerator: { "req-drop-a" }
+        )
+        await coordA.loadState(locale: "ko")
+        await coordA.requestGeneration(locale: "ko")
+        XCTAssertEqual(coordA.state.items.map(\.name), ["새 추천작"])
+        XCTAssertEqual(coordA.state.quota.used, 2)
+        XCTAssertNil(coordA.errorMessage)
+        XCTAssertFalse(coordA.hasPendingAttempt)
+
+        // Scenario B: Offline drop (both POST and immediate `/state` fail) -> previous items stay visible,
+        // app restarts (new coordinator sharing same AppPreferences), `/state` still shows old batch,
+        // double-tap retry fires ONLY ONE POST with the EXACT SAME `requestId`, total quota increment = 1!
+        let transportB = ScriptedRecommendationTransport(initialState: initialBatch)
+        var serverCompletedIds: Set<String> = []
+        var serverQuotaB = 1
+        var failFirstPost = true
+
+        transportB.enqueueState([
+            .success(initialBatch),          // initial loadState
+            .failure(URLError(.notConnectedToInternet)), // immediate recovery after dropped POST
+            .success(initialBatch),          // after app restart: loadState still sees old batch
+            .success(initialBatch)           // retry pre-check `/state` before idempotent POST
+        ])
+        transportB.setGenerateHandler { requestId in
+            if failFirstPost {
+                failFirstPost = false
+                throw URLError(.networkConnectionLost)
+            }
+            try? await Task.sleep(nanoseconds: 40_000_000)
+            if !serverCompletedIds.contains(requestId) {
+                serverCompletedIds.insert(requestId)
+                serverQuotaB += 1
+            }
+            let done = self.makeTestRecState(items: [newItem], used: serverQuotaB, generationId: requestId)
+            transportB.setFallbackState(done)
+            return (200, done)
+        }
+
+        let coordBeforeRestart = FutureTimelineCoordinator(
+            transport: transportB,
+            attemptStore: prefs,
+            ensureUserId: { "user-restart" },
+            pollIntervalNanoseconds: 1_000_000,
+            maxPollAttempts: 10,
+            uuidGenerator: { "req-same-id-1" }
+        )
+        await coordBeforeRestart.loadState(locale: "ko")
+        await coordBeforeRestart.requestGeneration(locale: "ko")
+
+        // Previous batch preserved & pending requestId persisted
+        XCTAssertEqual(coordBeforeRestart.state.items.map(\.name), ["기존 추천작"])
+        XCTAssertTrue(coordBeforeRestart.hasPendingAttempt)
+        XCTAssertNotNil(coordBeforeRestart.errorMessage)
+        XCTAssertEqual(prefs.pendingRecommendationRequestId(userId: "user-restart", locale: "ko"), "req-same-id-1")
+
+        // Simulate app restart with a brand-new coordinator instance sharing `prefs`
+        let coordAfterRestart = FutureTimelineCoordinator(
+            transport: transportB,
+            attemptStore: prefs,
+            ensureUserId: { "user-restart" },
+            pollIntervalNanoseconds: 1_000_000,
+            maxPollAttempts: 10,
+            uuidGenerator: { "req-must-not-be-used" }
+        )
+        await coordAfterRestart.loadState(locale: "ko")
+        XCTAssertEqual(coordAfterRestart.state.items.map(\.name), ["기존 추천작"])
+        XCTAssertTrue(coordAfterRestart.hasPendingAttempt)
+
+        // Double-tap retry concurrently
+        async let tap1: Void = coordAfterRestart.requestGeneration(locale: "ko")
+        async let tap2: Void = coordAfterRestart.requestGeneration(locale: "ko")
+        _ = await (tap1, tap2)
+
+        XCTAssertEqual(transportB.sentRequestIds, ["req-same-id-1", "req-same-id-1"])
+        XCTAssertEqual(coordAfterRestart.state.items.map(\.name), ["새 추천작"])
+        XCTAssertEqual(coordAfterRestart.state.quota.used, 2) // +1 total increment!
+        XCTAssertFalse(coordAfterRestart.hasPendingAttempt)
+        XCTAssertNil(coordAfterRestart.errorMessage)
+    }
+
+    func testFutureTimeline202PollingSurvivesTransientErrorsAndResumes() async {
+        let (prefs, cleanup) = makeTestPrefs("polling")
+        defer { cleanup() }
+
+        let oldItem = RecommendationItem(name: "이전 작품", type: .movie, reason: "이전")
+        let polledItem = RecommendationItem(name: "폴링 완료 작품", type: .book, reason: "차분한 산문")
+        let initial = makeTestRecState(items: [oldItem], used: 1, generationId: "gen-1")
+        let running = makeTestRecState(items: [oldItem], used: 1, generationId: "gen-1", generating: true)
+        let finished = makeTestRecState(items: [polledItem], used: 2, generationId: "req-poll-2", generating: false)
+
+        let transport = ScriptedRecommendationTransport(initialState: initial)
+        transport.setGenerateHandler { _ in (202, running) }
+        transport.enqueueState([
+            .success(initial),
+            .success(running),
+            .failure(URLError(.networkConnectionLost)),
+            .failure(URLError(.timedOut)),
+            .success(running),
+            .success(finished)
+        ])
+
+        let coordinator = FutureTimelineCoordinator(
+            transport: transport,
+            attemptStore: prefs,
+            ensureUserId: { "user-poll" },
+            pollIntervalNanoseconds: 1_000_000,
+            maxPollAttempts: 10,
+            maxConsecutivePollErrors: 4,
+            uuidGenerator: { "req-poll-2" }
+        )
+
+        await coordinator.loadState(locale: "ko")
+        await coordinator.requestGeneration(locale: "ko")
+
+        XCTAssertEqual(coordinator.state.items.map(\.name), ["폴링 완료 작품"])
+        XCTAssertEqual(coordinator.state.quota.used, 2)
+        XCTAssertFalse(coordinator.isGenerating)
+        XCTAssertFalse(coordinator.hasPendingAttempt)
+        XCTAssertNil(coordinator.errorMessage)
+    }
+
+    func testFutureTimelineFailureAnd429PreservePreviousBatchWithZeroExtraQuota() async {
+        let (prefs, cleanup) = makeTestPrefs("fail429")
+        defer { cleanup() }
+
+        let oldItem = RecommendationItem(name: "유지되어야 할 작품", type: .movie, reason: "이전 배치")
+        let initial = makeTestRecState(items: [oldItem], used: 1, generationId: "gen-prev")
+        let transport = ScriptedRecommendationTransport(initialState: initial)
+        transport.setGenerateHandler { _ in
+            throw ApiError(statusCode: 503, code: "unavailable", message: "Temporarily unavailable")
+        }
+
+        let coordinator = FutureTimelineCoordinator(
+            transport: transport,
+            attemptStore: prefs,
+            ensureUserId: { "user-err" },
+            pollIntervalNanoseconds: 1_000_000,
+            maxPollAttempts: 5,
+            uuidGenerator: { "req-fail-1" }
+        )
+
+        await coordinator.loadState(locale: "ko")
+        await coordinator.requestGeneration(locale: "ko")
+
+        // 503 failure: 0 extra quota, previous batch still visible, requestId kept for retry
+        XCTAssertEqual(coordinator.state.items.map(\.name), ["유지되어야 할 작품"])
+        XCTAssertEqual(coordinator.state.quota.used, 1)
+        XCTAssertTrue(coordinator.hasPendingAttempt)
+        XCTAssertNotNil(coordinator.errorMessage)
+
+        // Now server returns 429 LIMIT_REACHED (with previous items intact and quota 3/3)
+        let exhausted = makeTestRecState(items: [oldItem], used: 3, generationId: "gen-prev")
+        transport.setFallbackState(exhausted)
+        transport.setGenerateHandler { _ in (429, exhausted) }
+
+        await coordinator.requestGeneration(locale: "ko")
+        XCTAssertEqual(coordinator.state.items.map(\.name), ["유지되어야 할 작품"])
+        XCTAssertEqual(coordinator.state.quota.used, 3)
+        XCTAssertEqual(coordinator.state.quota.remaining, 0)
+        XCTAssertFalse(coordinator.hasPendingAttempt)
+        XCTAssertNotNil(coordinator.errorMessage)
+    }
+
+    func testFutureTimelineCrossLocaleQuotaIsolationNeverMarksOtherLanguageSuccess() async {
+        let (prefs, cleanup) = makeTestPrefs("cross-locale")
+        defer { cleanup() }
+
+        let koOld = RecommendationItem(name: "한국어 기존 배치", type: .movie, reason: "ko")
+        let koInitial = makeTestRecState(items: [koOld], used: 1, generationId: "ko-gen-1")
+        let koRunning = makeTestRecState(items: [koOld], used: 1, generationId: "ko-gen-1", generating: true)
+        // Another language (`en`) finished on the same account: `quota.used` rose from 1 -> 2,
+        // `generating` became false, yet `ko`'s `generationId` stayed `ko-gen-1`!
+        let koAfterEnFinished = makeTestRecState(items: [koOld], used: 2, generationId: "ko-gen-1", generating: false)
+
+        let transport = ScriptedRecommendationTransport(initialState: koInitial)
+        transport.setGenerateHandler { _ in (202, koRunning) }
+        transport.enqueueState([
+            .success(koInitial),
+            .success(koAfterEnFinished)
+        ])
+
+        let coordinator = FutureTimelineCoordinator(
+            transport: transport,
+            attemptStore: prefs,
+            ensureUserId: { "user-multi" },
+            pollIntervalNanoseconds: 1_000_000,
+            maxPollAttempts: 5,
+            uuidGenerator: { "ko-req-2" }
+        )
+
+        await coordinator.loadState(locale: "ko")
+        await coordinator.requestGeneration(locale: "ko")
+
+        // MUST NOT treat `en`'s quota increment as `ko` generation success!
+        XCTAssertEqual(coordinator.state.items.map(\.name), ["한국어 기존 배치"])
+        XCTAssertEqual(coordinator.state.quota.used, 2)
+        XCTAssertNotNil(coordinator.errorMessage)
+        XCTAssertTrue(coordinator.hasPendingAttempt)
+        XCTAssertEqual(prefs.pendingRecommendationRequestId(userId: "user-multi", locale: "ko"), "ko-req-2")
+        XCTAssertNil(prefs.pendingRecommendationRequestId(userId: "user-multi", locale: "en"))
+
+        // Verify per-locale storage isolation & cleanup on clearAccountSession
+        prefs.setPendingRecommendationRequestId("en-req-9", userId: "user-multi", locale: "en")
+        XCTAssertEqual(prefs.pendingRecommendationRequestId(userId: "user-multi", locale: "ko"), "ko-req-2")
+        XCTAssertEqual(prefs.pendingRecommendationRequestId(userId: "user-multi", locale: "en"), "en-req-9")
+        prefs.clearAccountSession()
+        XCTAssertNil(prefs.pendingRecommendationRequestId(userId: "user-multi", locale: "ko"))
+        XCTAssertNil(prefs.pendingRecommendationRequestId(userId: "user-multi", locale: "en"))
+    }
+
+    // MARK: - 13. Shared 2-Tier Poster Image Cache (Memory + Disk + In-Flight Deduplication)
+
+    func testPosterImageCacheMemoryDiskAndInFlightDeduplication() async throws {
+        final class PosterMockProtocol: URLProtocol {
+            nonisolated(unsafe) static var requestCount = 0
+            nonisolated(unsafe) static var pngData = Data()
+            override class func canInit(with request: URLRequest) -> Bool { true }
+            override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
+            override func startLoading() {
+                Self.requestCount += 1
+                let resp = HTTPURLResponse(
+                    url: request.url!,
+                    statusCode: 200,
+                    httpVersion: nil,
+                    headerFields: ["Content-Type": "image/png"]
+                )!
+                let data = Self.pngData
+                DispatchQueue.global().asyncAfter(deadline: .now() + 0.03) {
+                    self.client?.urlProtocol(self, didReceive: resp, cacheStoragePolicy: .notAllowed)
+                    self.client?.urlProtocol(self, didLoad: data)
+                    self.client?.urlProtocolDidFinishLoading(self)
+                }
+            }
+            override func stopLoading() {}
+        }
+
+        let renderer = UIGraphicsImageRenderer(size: CGSize(width: 16, height: 24))
+        let samplePng = renderer.pngData { ctx in
+            UIColor.systemOrange.setFill()
+            ctx.fill(CGRect(x: 0, y: 0, width: 16, height: 24))
+        }
+        PosterMockProtocol.requestCount = 0
+        PosterMockProtocol.pngData = samplePng
+
+        let config = URLSessionConfiguration.ephemeral
+        config.protocolClasses = [PosterMockProtocol.self]
+        let mockSession = URLSession(configuration: config)
+
+        let tempDir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("poster_cache_test_\(UUID().uuidString)", isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: tempDir) }
+
+        let url = URL(string: "https://image.tmdb.org/t/p/w342/test_poster_1.jpg")!
+        let cache1 = OttlinePosterImageCache(cacheDirectory: tempDir, session: mockSession)
+
+        // 1. Concurrent requests deduplicate to 1 network fetch
+        async let img1 = cache1.image(for: url)
+        async let img2 = cache1.image(for: url)
+        async let img3 = cache1.image(for: url)
+        let (r1, r2, r3) = await (img1, img2, img3)
+        XCTAssertNotNil(r1)
+        XCTAssertNotNil(r2)
+        XCTAssertNotNil(r3)
+        XCTAssertEqual(PosterMockProtocol.requestCount, 1)
+
+        // 2. Synchronous memory hit with 0 network calls
+        XCTAssertNotNil(cache1.cachedImage(for: url))
+        XCTAssertEqual(PosterMockProtocol.requestCount, 1)
+
+        // 3. Simulated app restart (brand-new cache instance) hits persistent disk cache with 0 extra network calls
+        let cache2 = OttlinePosterImageCache(cacheDirectory: tempDir, session: mockSession)
+        XCTAssertNil(cache2.cachedImage(for: url))
+        let diskHit = await cache2.image(for: url)
+        XCTAssertNotNil(diskHit)
+        XCTAssertEqual(PosterMockProtocol.requestCount, 1)
+        XCTAssertNotNil(cache2.cachedImage(for: url))
+    }
 }

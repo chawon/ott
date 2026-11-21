@@ -155,7 +155,7 @@ public struct QuickLogWidgetView: View {
                         .font(.system(size: 11, weight: .bold))
                 }
             }
-            .containerBackground(.clear, for: .widget)
+            .ottlineClearWidgetBackground()
             .widgetURL(URL(string: "ottline://quick-record?quick=1"))
 
         case .accessoryRectangular:
@@ -212,7 +212,7 @@ public struct QuickLogWidgetView: View {
                     .widgetURL(URL(string: "ottline://quick-record?quick=1"))
                 }
             }
-            .containerBackground(.clear, for: .widget)
+            .ottlineClearWidgetBackground()
 
         case .accessoryInline:
             Group {
@@ -225,7 +225,7 @@ public struct QuickLogWidgetView: View {
                     )
                 }
             }
-            .containerBackground(.clear, for: .widget)
+            .ottlineClearWidgetBackground()
             .widgetURL(URL(string: "ottline://quick-record?quick=1"))
 
         default:
@@ -338,7 +338,31 @@ public struct QuickLogWidgetView: View {
                 }
             }
         }
-        .containerBackground(warmCream, for: .widget)
+        .ottlineHomeWidgetBackground(warmCream)
+        .widgetURL(URL(string: "ottline://quick-record?quick=1"))
+    }
+}
+
+private extension View {
+    @ViewBuilder
+    func ottlineClearWidgetBackground() -> some View {
+        if #available(iOSApplicationExtension 17.0, iOS 17.0, *) {
+            self.containerBackground(.clear, for: .widget)
+        } else {
+            self
+        }
+    }
+
+    @ViewBuilder
+    func ottlineHomeWidgetBackground(_ color: Color) -> some View {
+        if #available(iOSApplicationExtension 17.0, iOS 17.0, *) {
+            self.containerBackground(color, for: .widget)
+        } else {
+            self
+                .padding(14)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                .background(color)
+        }
     }
 }
 

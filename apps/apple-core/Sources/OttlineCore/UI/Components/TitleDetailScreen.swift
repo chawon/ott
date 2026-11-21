@@ -2,7 +2,7 @@ import SwiftUI
 
 public struct TitleDetailScreen: View {
     public let titleId: String
-    public let repository: OttlineRepository
+    @ObservedObject public var repository: OttlineRepository
     public var onBack: () -> Void
     public var onOpenQuickRecord: (QuickRecordRequest) -> Void
     public var onOpenTitleDetail: (String) -> Void
@@ -43,7 +43,7 @@ public struct TitleDetailScreen: View {
         onReportUgc: @escaping (String) -> Void
     ) {
         self.titleId = titleId
-        self.repository = repository
+        self._repository = ObservedObject(wrappedValue: repository)
         self.onBack = onBack
         self.onOpenQuickRecord = onOpenQuickRecord
         self.onOpenTitleDetail = onOpenTitleDetail
@@ -63,7 +63,7 @@ public struct TitleDetailScreen: View {
                 OttlineStickyFooterLayout(
                     minHeight: detailGeo.size.height,
                     topPadding: isRegularLayout ? 20 : 8,
-                    bottomPadding: isRegularLayout ? 24 : 110,
+                    bottomPadding: 24,
                     minSpacing: 20
                 ) {
                     VStack(alignment: .leading, spacing: 20) {
@@ -170,7 +170,8 @@ public struct TitleDetailScreen: View {
                 title: title,
                 repository: repository,
                 showSyncLogCheckbox: false,
-                onSelectTitle: onOpenTitleDetail
+                onSelectTitle: onOpenTitleDetail,
+                onReportComment: onReportUgc
             )
         }
     }
@@ -189,23 +190,6 @@ public struct TitleDetailScreen: View {
             .buttonStyle(.plain)
 
             Spacer()
-
-            if let title = resolvedTitle {
-                Button {
-                    let prefix = OttlineStrings.tr(
-                        "[신고/문의] 작품: \(title.name) (\(title.id))\n사유: ",
-                        "[Report] Title: \(title.name) (\(title.id))\nReason: ",
-                        locale: locale
-                    )
-                    onReportUgc(prefix)
-                } label: {
-                    Text(OttlineStrings.tr("신고", "Report", locale: locale))
-                        .font(OttlineFont.regular(12.5))
-                        .foregroundStyle(palette.subtleInk)
-                        .frame(minHeight: 36)
-                }
-                .buttonStyle(.plain)
-            }
         }
     }
 

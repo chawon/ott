@@ -3,6 +3,7 @@ import OttlineCore
 #if canImport(UIKit)
 import UIKit
 import LinkPresentation
+import UniformTypeIdentifiers
 #endif
 
 public enum ShareCardRatio: String, CaseIterable, Sendable {
@@ -45,149 +46,151 @@ public enum CardExporter {
 
         let isBook = log.title.type == .book
         let posterUrl = (log.seasonPosterUrl?.isEmpty == false ? log.seasonPosterUrl : log.title.posterUrl)
-        let posterImage = await fetchRemoteImage(tmdbResizeUrl(posterUrl, bucket: "w780") ?? posterUrl)
+        let candidateUrls = sharePosterCandidateUrls(posterUrl: posterUrl, isBook: isBook)
+        let posterImage = await OttlinePosterImageCache.shared.loadFirstAvailable(urls: candidateUrls)
 
-        let format = UIGraphicsImageRendererFormat()
-        format.scale = 1.0
-        format.opaque = true
-        let renderer = UIGraphicsImageRenderer(size: CGSize(width: w, height: h), format: format)
+        return await Task.detached(priority: .userInitiated) {
+            let format = UIGraphicsImageRendererFormat()
+            format.scale = 1.0
+            format.opaque = true
+            let renderer = UIGraphicsImageRenderer(size: CGSize(width: w, height: h), format: format)
+            let (topColor, contentBgColor) = extractAdaptiveDarkColors(from: posterImage)
 
-        return renderer.image { ctx in
-            let cg = ctx.cgContext
-            let topHeight = h * 0.70
-            let topColor = UIColor(red: 0.043, green: 0.047, blue: 0.063, alpha: 1.0) // #0B0C10
-            let contentBgColor = UIColor(red: 0.043, green: 0.071, blue: 0.141, alpha: 1.0) // #0B1224
+            return renderer.image { ctx in
+                let cg = ctx.cgContext
+                let topHeight = h * 0.70
 
-            topColor.setFill()
-            cg.fill(CGRect(x: 0, y: 0, width: w, height: topHeight))
-            contentBgColor.setFill()
-            cg.fill(CGRect(x: 0, y: topHeight, width: w, height: h - topHeight))
+                topColor.setFill()
+                cg.fill(CGRect(x: 0, y: 0, width: w, height: topHeight))
+                contentBgColor.setFill()
+                cg.fill(CGRect(x: 0, y: topHeight, width: w, height: h - topHeight))
 
-            if let posterImage {
-                drawAspectFill(
-                    image: posterImage,
-                    in: CGRect(x: 0, y: 0, width: w, height: topHeight),
-                    verticalAnchor: isBook ? 0.0 : 0.12
-                )
-            } else {
-                let fallbackFont = pretendardFont(name: "Pretendard-Bold", size: s(52), weight: .bold)
-                let attrs: [NSAttributedString.Key: Any] = [
-                    .font: fallbackFont,
-                    .foregroundColor: UIColor.white.withAlphaComponent(0.35)
-                ]
-                (log.title.name as NSString).draw(
-                    in: CGRect(x: s(88), y: topHeight * 0.4, width: w - s(176), height: s(200)),
-                    withAttributes: attrs
-                )
-            }
+                if let posterImage {
+                    drawAspectFill(
+                        image: posterImage,
+                        in: CGRect(x: 0, y: 0, width: w, height: topHeight),
+                        verticalAnchor: isBook ? 0.0 : 0.12
+                    )
+                } else {
+                    let fallbackFont = pretendardFont(name: "Pretendard-Bold", size: s(52), weight: .bold)
+                    let attrs: [NSAttributedString.Key: Any] = [
+                        .font: fallbackFont,
+                        .foregroundColor: UIColor.white.withAlphaComponent(0.35)
+                    ]
+                    (log.title.name as NSString).draw(
+                        in: CGRect(x: s(88), y: topHeight * 0.4, width: w - s(176), height: s(200)),
+                        withAttributes: attrs
+                    )
+                }
 
-            // Gradient fade at bottom 36% of poster area
-            let gradTop = topHeight * 0.64
-            let colors = [contentBgColor.withAlphaComponent(0.0).cgColor, contentBgColor.cgColor] as CFArray
-            if let gradient = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(), colors: colors, locations: [0.0, 1.0]) {
-                cg.saveGState()
-                cg.addRect(CGRect(x: 0, y: gradTop, width: w, height: topHeight - gradTop + 2))
-                cg.clip()
-                cg.drawLinearGradient(
-                    gradient,
-                    start: CGPoint(x: 0, y: gradTop),
-                    end: CGPoint(x: 0, y: topHeight + 2),
-                    options: []
-                )
-                cg.restoreGState()
-            }
+                // Gradient fade at bottom 36% of poster area
+                let gradTop = topHeight * 0.64
+                let colors = [contentBgColor.withAlphaComponent(0.0).cgColor, contentBgColor.cgColor] as CFArray
+                if let gradient = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(), colors: colors, locations: [0.0, 1.0]) {
+                    cg.saveGState()
+                    cg.addRect(CGRect(x: 0, y: gradTop, width: w, height: topHeight - gradTop + 2))
+                    cg.clip()
+                    cg.drawLinearGradient(
+                        gradient,
+                        start: CGPoint(x: 0, y: gradTop),
+                        end: CGPoint(x: 0, y: topHeight + 2),
+                        options: []
+                    )
+                    cg.restoreGState()
+                }
 
-            // Content Stack
-            let contentLeft = s(88)
-            let maxWidth = w - s(176)
-            var cursorY = topHeight + s(64)
+                // Content Stack
+                let contentLeft = s(88)
+                let maxWidth = w - s(176)
+                var cursorY = topHeight + s(64)
 
-            let titleFont = pretendardFont(name: "Pretendard-Bold", size: s(isBook ? 64 : 84), weight: .bold)
-            let titleText = String(log.title.name.prefix(60))
-            let titleRect = drawWrappedText(
-                titleText,
-                font: titleFont,
-                color: .white,
-                x: contentLeft,
-                y: cursorY,
-                maxWidth: maxWidth,
-                maxHeight: s(190)
-            )
-            cursorY += titleRect.height + s(18)
-
-            if includeNote, let note = log.note?.trimmingCharacters(in: .whitespacesAndNewlines), !note.isEmpty {
-                let clamped = "“\(String(note.replacingOccurrences(of: "\n", with: " ").prefix(isBook ? 120 : 80)))”"
-                let noteFont = pretendardFont(name: "Pretendard-Medium", size: s(isBook ? 40 : 38), weight: .medium)
-                let noteColor = UIColor(red: 0.859, green: 0.894, blue: 1.0, alpha: 1.0) // #DBE4FF
-                let noteRect = drawWrappedText(
-                    clamped,
-                    font: noteFont,
-                    color: noteColor,
+                let titleFont = pretendardFont(name: "Pretendard-Bold", size: s(isBook ? 64 : 84), weight: .bold)
+                let titleText = String(log.title.name.prefix(60))
+                let titleRect = drawWrappedText(
+                    titleText,
+                    font: titleFont,
+                    color: .white,
                     x: contentLeft,
                     y: cursorY,
                     maxWidth: maxWidth,
-                    maxHeight: s(130)
+                    maxHeight: s(190)
                 )
-                cursorY += noteRect.height + s(18)
-            }
+                cursorY += titleRect.height + s(18)
 
-            // Capsule pills (`ShareBottomSheet` parity)
-            let statusLabel = OttlineStrings.statusLabel(log.status, type: log.title.type, locale: locale)
-            let feelingLabel = showRatingLabel ? RecordFeelings.resolveFeeling(rating: log.rating, isBook: isBook, locale: locale)?.label : nil
-            let dateStr = RecordDate.formatDotDate(log.watchedAt.isEmpty ? log.createdAt : log.watchedAt)
-
-            var pills = [statusLabel]
-            if let feelingLabel { pills.append(feelingLabel) }
-            pills.append(dateStr)
-
-            let pillFont = pretendardFont(name: "Pretendard-SemiBold", size: s(isBook ? 26 : 28), weight: .semibold)
-            let pillTextColor = UIColor(red: 0.796, green: 0.835, blue: 0.961, alpha: 1.0)
-            var pillX = contentLeft
-            let pillH = s(48)
-
-            for pill in pills {
-                let textSize = (pill as NSString).size(withAttributes: [.font: pillFont])
-                let pillW = textSize.width + s(32)
-                let rect = CGRect(x: pillX, y: cursorY, width: pillW, height: pillH)
-                let path = UIBezierPath(roundedRect: rect, cornerRadius: pillH / 2)
-                UIColor.white.withAlphaComponent(0.08).setFill()
-                path.fill()
-                (pill as NSString).draw(
-                    at: CGPoint(x: pillX + s(16), y: cursorY + (pillH - textSize.height) / 2),
-                    withAttributes: [.font: pillFont, .foregroundColor: pillTextColor]
-                )
-                pillX += pillW + s(12)
-            }
-
-            // Footer signature with real persona avatar asset when available
-            let footerY = h - s(92)
-            let wmFont = pretendardFont(name: "Pretendard-Medium", size: s(26), weight: .medium)
-            var textX = contentLeft
-            let trimmedNick = nickname?.trimmingCharacters(in: .whitespacesAndNewlines)
-            let showSig = includeSignature && (trimmedNick?.isEmpty == false)
-            if showSig,
-               let pKey = personaKey,
-               let preset = OttlineStrings.personaPresets.first(where: { $0.key == pKey }),
-               let avatarImg = UIImage(named: preset.assetName) {
-                let avatarSize = s(40)
-                let avatarRect = CGRect(x: contentLeft, y: footerY - s(6), width: avatarSize, height: avatarSize)
-                cg.saveGState()
-                UIBezierPath(roundedRect: avatarRect, cornerRadius: s(12)).addClip()
-                avatarImg.draw(in: avatarRect)
-                cg.restoreGState()
-                textX += avatarSize + s(16)
-            }
-            let footerText: String = {
-                if showSig, let nick = trimmedNick {
-                    return "\(nick) · by ottline.app"
+                if includeNote, let note = log.note?.trimmingCharacters(in: .whitespacesAndNewlines), !note.isEmpty {
+                    let clamped = "“\(String(note.replacingOccurrences(of: "\n", with: " ").prefix(isBook ? 120 : 80)))”"
+                    let noteFont = pretendardFont(name: "Pretendard-Medium", size: s(isBook ? 40 : 38), weight: .medium)
+                    let noteColor = UIColor(red: 0.859, green: 0.894, blue: 1.0, alpha: 1.0) // #DBE4FF
+                    let noteRect = drawWrappedText(
+                        clamped,
+                        font: noteFont,
+                        color: noteColor,
+                        x: contentLeft,
+                        y: cursorY,
+                        maxWidth: maxWidth,
+                        maxHeight: s(130)
+                    )
+                    cursorY += noteRect.height + s(18)
                 }
-                return "ottline.app"
-            }()
-            (footerText as NSString).draw(
-                at: CGPoint(x: textX, y: footerY),
-                withAttributes: [.font: wmFont, .foregroundColor: UIColor.white.withAlphaComponent(0.75)]
-            )
-        }
+
+                // Capsule pills (`ShareBottomSheet` parity)
+                let statusLabel = OttlineStrings.statusLabel(log.status, type: log.title.type, locale: locale)
+                let feelingLabel = showRatingLabel ? RecordFeelings.resolveFeeling(rating: log.rating, isBook: isBook, locale: locale)?.label : nil
+                let dateStr = RecordDate.formatDotDate(log.watchedAt.isEmpty ? log.createdAt : log.watchedAt)
+
+                var pills = [statusLabel]
+                if let feelingLabel { pills.append(feelingLabel) }
+                pills.append(dateStr)
+
+                let pillFont = pretendardFont(name: "Pretendard-SemiBold", size: s(isBook ? 26 : 28), weight: .semibold)
+                let pillTextColor = UIColor(red: 0.796, green: 0.835, blue: 0.961, alpha: 1.0)
+                var pillX = contentLeft
+                let pillH = s(48)
+
+                for pill in pills {
+                    let textSize = (pill as NSString).size(withAttributes: [.font: pillFont])
+                    let pillW = textSize.width + s(32)
+                    let rect = CGRect(x: pillX, y: cursorY, width: pillW, height: pillH)
+                    let path = UIBezierPath(roundedRect: rect, cornerRadius: pillH / 2)
+                    UIColor.white.withAlphaComponent(0.08).setFill()
+                    path.fill()
+                    (pill as NSString).draw(
+                        at: CGPoint(x: pillX + s(16), y: cursorY + (pillH - textSize.height) / 2),
+                        withAttributes: [.font: pillFont, .foregroundColor: pillTextColor]
+                    )
+                    pillX += pillW + s(12)
+                }
+
+                // Footer signature with real persona avatar asset when available
+                let footerY = h - s(92)
+                let wmFont = pretendardFont(name: "Pretendard-Medium", size: s(26), weight: .medium)
+                var textX = contentLeft
+                let trimmedNick = nickname?.trimmingCharacters(in: .whitespacesAndNewlines)
+                let showSig = includeSignature && (trimmedNick?.isEmpty == false)
+                if showSig,
+                   let pKey = personaKey,
+                   let preset = OttlineStrings.personaPresets.first(where: { $0.key == pKey }),
+                   let avatarImg = UIImage(named: preset.assetName) {
+                    let avatarSize = s(40)
+                    let avatarRect = CGRect(x: contentLeft, y: footerY - s(6), width: avatarSize, height: avatarSize)
+                    cg.saveGState()
+                    UIBezierPath(roundedRect: avatarRect, cornerRadius: s(12)).addClip()
+                    avatarImg.draw(in: avatarRect)
+                    cg.restoreGState()
+                    textX += avatarSize + s(16)
+                }
+                let footerText: String = {
+                    if showSig, let nick = trimmedNick {
+                        return "\(nick) · by ottline.app"
+                    }
+                    return "ottline.app"
+                }()
+                (footerText as NSString).draw(
+                    at: CGPoint(x: textX, y: footerY),
+                    withAttributes: [.font: wmFont, .foregroundColor: UIColor.white.withAlphaComponent(0.75)]
+                )
+            }
+        }.value
     }
 
     // MARK: - 2. 9:16 Story Recap Card (`1080x1920`)
@@ -258,10 +261,19 @@ public enum CardExporter {
             }
         }()
 
-        var posterImages: [UIImage?] = []
-        for p in posters {
-            let img = await fetchRemoteImage(tmdbResizeUrl(p.posterUrl, bucket: "w500") ?? p.posterUrl)
-            posterImages.append(img)
+        let posterImages: [UIImage?] = await withTaskGroup(of: (Int, UIImage?).self) { group in
+            for (idx, p) in posters.enumerated() {
+                group.addTask {
+                    let candidates = sharePosterCandidateUrls(posterUrl: p.posterUrl, isBook: false)
+                    let img = await OttlinePosterImageCache.shared.loadFirstAvailable(urls: candidates)
+                    return (idx, img)
+                }
+            }
+            var ordered = Array<UIImage?>(repeating: nil, count: posters.count)
+            for await (idx, img) in group {
+                if idx < ordered.count { ordered[idx] = img }
+            }
+            return ordered
         }
 
         let format = UIGraphicsImageRendererFormat()
@@ -455,6 +467,23 @@ public enum CardExporter {
 
     @MainActor
     public static func presentImageShareSheet(_ image: UIImage, title: String) {
+        let pngUrl = writeTemporaryPng(image, fileName: "ottline-share-card.png")
+        let itemSource = ShareCardActivityItemSource(image: image, fileUrl: pngUrl, title: title)
+        presentActivitySheet(items: [itemSource])
+    }
+
+    @MainActor
+    public static func presentFileShareSheet(_ url: URL) {
+        presentActivitySheet(items: [url])
+    }
+
+    @MainActor
+    public static func presentTextShareSheet(_ text: String) {
+        presentActivitySheet(items: [text])
+    }
+
+    @MainActor
+    private static func presentActivitySheet(items: [Any]) {
         guard let scene = UIApplication.shared.connectedScenes
             .compactMap({ $0 as? UIWindowScene })
             .first(where: { $0.activationState == .foregroundActive })
@@ -467,8 +496,7 @@ public enum CardExporter {
         while let presented = topVC.presentedViewController {
             topVC = presented
         }
-        let itemSource = ShareCardActivityItemSource(image: image, title: title)
-        let activityVC = UIActivityViewController(activityItems: [itemSource], applicationActivities: nil)
+        let activityVC = UIActivityViewController(activityItems: items, applicationActivities: nil)
         if let popover = activityVC.popoverPresentationController {
             popover.sourceView = topVC.view
             popover.sourceRect = CGRect(
@@ -484,17 +512,55 @@ public enum CardExporter {
 
     // MARK: - Internal Drawing Helpers
 
-    private static func fetchRemoteImage(_ urlString: String?) async -> UIImage? {
-        guard let urlString, let url = URL(string: urlString) else { return nil }
-        do {
-            var req = URLRequest(url: url, timeoutInterval: 8)
-            req.cachePolicy = .returnCacheDataElseLoad
-            let (data, resp) = try await URLSession.shared.data(for: req)
-            guard let http = resp as? HTTPURLResponse, (200...299).contains(http.statusCode) else { return nil }
-            return UIImage(data: data)
-        } catch {
-            return nil
+    private static func sharePosterCandidateUrls(posterUrl: String?, isBook: Bool) -> [URL] {
+        guard let raw = posterUrl?.trimmingCharacters(in: .whitespacesAndNewlines), !raw.isEmpty else {
+            return []
         }
+        var out: [URL] = []
+        func append(_ str: String?) {
+            guard let str, let u = URL(string: str), !out.contains(u) else { return }
+            out.append(u)
+        }
+        if isBook {
+            append(PadLayoutMetrics.resolveFeaturedPosterUrl(raw, isBook: true))
+            append(tmdbResizeUrl(raw, bucket: "w342"))
+        } else {
+            append(tmdbResizeUrl(raw, bucket: "w780"))
+            append(tmdbResizeUrl(raw, bucket: "w500"))
+            append(tmdbResizeUrl(raw, bucket: "w342"))
+        }
+        append(raw)
+        return out
+    }
+
+    private static func extractAdaptiveDarkColors(from image: UIImage?) -> (top: UIColor, content: UIColor) {
+        let fallbackTop = UIColor(red: 0.043, green: 0.047, blue: 0.063, alpha: 1.0) // #0B0C10
+        let fallbackContent = UIColor(red: 0.043, green: 0.071, blue: 0.141, alpha: 1.0) // #0B1224
+        guard let cg = image?.cgImage else { return (fallbackTop, fallbackContent) }
+
+        var pixel = [UInt8](repeating: 0, count: 4)
+        guard let ctx = CGContext(
+            data: &pixel,
+            width: 1,
+            height: 1,
+            bitsPerComponent: 8,
+            bytesPerRow: 4,
+            space: CGColorSpaceCreateDeviceRGB(),
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        ) else {
+            return (fallbackTop, fallbackContent)
+        }
+        ctx.interpolationQuality = .medium
+        ctx.draw(cg, in: CGRect(x: 0, y: 0, width: 1, height: 1))
+        let r = CGFloat(pixel[0]) / 255.0
+        let g = CGFloat(pixel[1]) / 255.0
+        let b = CGFloat(pixel[2]) / 255.0
+        if r + g + b < 0.05 {
+            return (fallbackTop, fallbackContent)
+        }
+        let top = UIColor(red: max(0.04, r * 0.20), green: max(0.04, g * 0.20), blue: max(0.06, b * 0.20), alpha: 1.0)
+        let content = UIColor(red: max(0.04, r * 0.25), green: max(0.05, g * 0.25), blue: max(0.08, b * 0.25), alpha: 1.0)
+        return (top, content)
     }
 
     private static func drawAspectFill(image: UIImage, in box: CGRect, verticalAnchor: CGFloat) {
@@ -579,23 +645,37 @@ public enum CardExporter {
 
 private final class ShareCardActivityItemSource: NSObject, UIActivityItemSource {
     private let image: UIImage
+    private let fileUrl: URL?
     private let title: String
 
-    init(image: UIImage, title: String) {
+    init(image: UIImage, fileUrl: URL?, title: String) {
         self.image = image
+        self.fileUrl = fileUrl
         self.title = title
         super.init()
     }
 
     func activityViewControllerPlaceholderItem(_ activityViewController: UIActivityViewController) -> Any {
-        image
+        fileUrl ?? image
     }
 
     func activityViewController(
         _ activityViewController: UIActivityViewController,
         itemForActivityType activityType: UIActivity.ActivityType?
     ) -> Any? {
-        image
+        if activityType == .saveToCameraRoll
+            || activityType == .copyToPasteboard
+            || activityType == .assignToContact {
+            return image
+        }
+        return fileUrl ?? image
+    }
+
+    func activityViewController(
+        _ activityViewController: UIActivityViewController,
+        dataTypeIdentifierForActivityType activityType: UIActivity.ActivityType?
+    ) -> String {
+        UTType.png.identifier
     }
 
     func activityViewController(
@@ -608,6 +688,7 @@ private final class ShareCardActivityItemSource: NSObject, UIActivityItemSource 
     func activityViewControllerLinkMetadata(_ activityViewController: UIActivityViewController) -> LPLinkMetadata? {
         let metadata = LPLinkMetadata()
         metadata.title = title
+        metadata.originalURL = fileUrl
         metadata.imageProvider = NSItemProvider(object: image)
         metadata.iconProvider = NSItemProvider(object: image)
         return metadata

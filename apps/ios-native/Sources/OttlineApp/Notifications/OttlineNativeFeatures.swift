@@ -188,27 +188,21 @@ public struct OttlineShortcutsProvider: AppShortcutsProvider {
             phrases: [
                 "\(.applicationName) 빠른 기록 열기",
                 "Keep a story in \(.applicationName)"
-            ],
-            shortTitle: "빠른 기록 열기",
-            systemImageName: "plus.circle"
+            ]
         )
         AppShortcut(
             intent: OpenContinueWatchingIntent(),
             phrases: [
                 "\(.applicationName) 이어보는 작품 열기",
                 "Continue watching in \(.applicationName)"
-            ],
-            shortTitle: "이어보는 작품 기록",
-            systemImageName: "play.tv"
+            ]
         )
         AppShortcut(
             intent: SendWatchReminderNotificationIntent(),
             phrases: [
                 "\(.applicationName) 시청 기록 알림 보내기",
                 "Remind me to log in \(.applicationName)"
-            ],
-            shortTitle: "시청 종료 알림 보내기",
-            systemImageName: "bell.badge"
+            ]
         )
     }
 }

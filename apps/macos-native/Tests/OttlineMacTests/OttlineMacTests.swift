@@ -226,4 +226,119 @@ final class OttlineMacTests: XCTestCase {
         XCTAssertEqual(prefs.snapshot.nickname, "밤산책")
         XCTAssertEqual(prefs.snapshot.personaKey, .bookDrifter)
     }
+
+    func testMacFutureTimeline202PollingDroppedRecoveryAndCrossLocaleIsolation() async {
+        final class MacMockRecTransport: RecommendationTransport, @unchecked Sendable {
+            private let lock = NSLock()
+            private var states: [Result<RecommendationState, Error>] = []
+            private var fallback: RecommendationState
+            private var onGenerate: ((String) async throws -> (Int, RecommendationState))?
+            private(set) var requestIds: [String] = []
+
+            init(initial: RecommendationState) { self.fallback = initial }
+            func setFallback(_ s: RecommendationState) { lock.withLock { fallback = s } }
+            func enqueue(_ list: [Result<RecommendationState, Error>]) { lock.withLock { states.append(contentsOf: list) } }
+            func setOnGenerate(_ fn: @escaping (String) async throws -> (Int, RecommendationState)) { lock.withLock { onGenerate = fn } }
+
+            func getRecommendationState() async throws -> RecommendationState {
+                let res: Result<RecommendationState, Error> = lock.withLock {
+                    states.isEmpty ? .success(fallback) : states.removeFirst()
+                }
+                return try res.get()
+            }
+
+            func generateRecommendations(requestId: String) async throws -> (statusCode: Int, state: RecommendationState) {
+                let fn = lock.withLock { () -> ((String) async throws -> (Int, RecommendationState))? in
+                    requestIds.append(requestId)
+                    return onGenerate
+                }
+                if let fn { return try await fn(requestId) }
+                return (200, lock.withLock { fallback })
+            }
+
+            func excludeRecommendation(_ item: RecommendationItem) async throws -> RecommendationExclusion {
+                RecommendationExclusion(key: "k-\(item.name)", name: item.name, type: item.type)
+            }
+
+            func restoreRecommendationExclusion(key: String) async throws {}
+        }
+
+        XCTAssertEqual(OttlineApiClient.recommendationGenerateTimeoutSeconds, 90)
+        XCTAssertTrue(OttlineApiClient.defaultUserAgent.contains("Macintosh; Mac OS X"))
+
+        let suiteName = "ottline.mac.future.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let prefs = AppPreferences(
+            defaults: defaults,
+            groupDefaults: nil,
+            keychainService: "app.ottline.mac.future.\(UUID().uuidString)"
+        )
+
+        func makeState(items: [RecommendationItem], used: Int, genId: String?, generating: Bool = false) -> RecommendationState {
+            RecommendationState(
+                items: items,
+                exclusions: [],
+                quota: RecommendationQuota(date: "2026-11-21", timezone: "Asia/Seoul", limit: 3, used: used, remaining: max(0, 3 - used), resetsAt: "2026-11-22T00:00:00+09:00"),
+                generatedAt: items.isEmpty ? nil : "2026-11-21T15:00:00+09:00",
+                generationId: genId,
+                generating: generating,
+                hasBatch: !items.isEmpty,
+                eligible: true
+            )
+        }
+
+        let prevItem = RecommendationItem(name: "맥 기존작", type: .movie, reason: "이전")
+        let doneItem = RecommendationItem(name: "맥 복구작", type: .series, reason: "202 폴링 복구")
+        let sInitial = makeState(items: [prevItem], used: 1, genId: "mac-gen-1")
+        let sRunning = makeState(items: [prevItem], used: 1, genId: "mac-gen-1", generating: true)
+        let sOtherLocaleDone = makeState(items: [prevItem], used: 2, genId: "mac-gen-1", generating: false)
+        let sCompleted = makeState(items: [doneItem], used: 3, genId: "mac-req-2", generating: false)
+
+        let transport = MacMockRecTransport(initial: sInitial)
+        var attempt = 0
+        transport.setOnGenerate { _ in
+            attempt += 1
+            if attempt == 1 {
+                return (202, sRunning)
+            }
+            // Retry drops response while server completes
+            transport.setFallback(sCompleted)
+            throw URLError(.timedOut)
+        }
+        transport.enqueue([
+            .success(sInitial),
+            .failure(URLError(.networkConnectionLost)),
+            .success(sOtherLocaleDone), // other locale finished -> NOT success for ko!
+            .success(sOtherLocaleDone), // retry pre-check `/state`
+            .success(sCompleted)        // post-drop recovery `/state`
+        ])
+
+        let coord = FutureTimelineCoordinator(
+            transport: transport,
+            attemptStore: prefs,
+            ensureUserId: { "mac-user-1" },
+            pollIntervalNanoseconds: 1_000_000,
+            maxPollAttempts: 8,
+            maxConsecutivePollErrors: 3,
+            uuidGenerator: { "mac-req-2" }
+        )
+
+        await coord.loadState(locale: "ko")
+        await coord.requestGeneration(locale: "ko")
+
+        // After 202 polling through transient error, other locale finished -> preserved previous batch + same requestId
+        XCTAssertEqual(coord.state.items.map(\.name), ["맥 기존작"])
+        XCTAssertTrue(coord.hasPendingAttempt)
+        XCTAssertNotNil(coord.errorMessage)
+        XCTAssertEqual(prefs.pendingRecommendationRequestId(userId: "mac-user-1", locale: "ko"), "mac-req-2")
+
+        // Retry uses exact same `mac-req-2`, drops response, and recovers completed batch from `/state`
+        await coord.requestGeneration(locale: "ko")
+        XCTAssertEqual(transport.requestIds, ["mac-req-2", "mac-req-2"])
+        XCTAssertEqual(coord.state.items.map(\.name), ["맥 복구작"])
+        XCTAssertEqual(coord.state.quota.used, 3)
+        XCTAssertFalse(coord.hasPendingAttempt)
+        XCTAssertNil(coord.errorMessage)
+    }
 }

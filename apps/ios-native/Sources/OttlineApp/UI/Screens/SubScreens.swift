@@ -7,7 +7,7 @@ import UIKit
 // MARK: - 1. PERSONAL REPORT & RECAP STUDIO SCREEN
 
 public struct ReportScreen: View {
-    public let repository: OttlineRepository
+    @ObservedObject public var repository: OttlineRepository
     public var onBack: () -> Void
     public var onOpenTitleDetail: (String) -> Void
 
@@ -58,7 +58,7 @@ public struct ReportScreen: View {
                     OttlineStickyFooterLayout(
                         minHeight: scrollGeo.size.height,
                         topPadding: 16,
-                        bottomPadding: metrics.isSpread ? 24 : 110,
+                        bottomPadding: 24,
                         minSpacing: 20
                     ) {
                         VStack(alignment: .leading, spacing: 20) {
@@ -289,7 +289,7 @@ public struct ReportScreen: View {
             loading = false
             await renderCurrentRecap(monthPosters: monthPosters)
         }
-        .onChange(of: selectedRecapKind) { _, _ in
+        .onChange(of: selectedRecapKind) { _ in
             Task { await renderCurrentRecap(monthPosters: monthPosters) }
         }
     }
@@ -474,103 +474,15 @@ public struct ReportScreen: View {
     private func renderCurrentRecap(monthPosters: [SeasonalRecapPoster]) async {
         renderingRecap = true
         let snap = repository.prefs.snapshot
-        let isEn = locale == "en"
-        let rawTopGenre = (report.monthlyTopGenre ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
 
-        let posters: [RecapShareCardPosterPayload] = {
-            switch selectedRecapKind {
-            case .weekly:
-                return (report.previousWeekPosters ?? []).prefix(6).map {
-                    RecapShareCardPosterPayload(title: $0.title, titleType: $0.titleType, posterUrl: $0.posterUrl, count: $0.count)
-                }
-            case .monthly:
-                return monthPosters.prefix(6).map {
-                    RecapShareCardPosterPayload(title: $0.title, titleType: $0.titleType, posterUrl: $0.posterUrl, count: $0.count)
-                }
-            case .halfYear:
-                return (report.seasonalRecap?.posters ?? monthPosters).prefix(6).map {
-                    RecapShareCardPosterPayload(title: $0.title, titleType: $0.titleType, posterUrl: $0.posterUrl, count: $0.count)
-                }
-            }
-        }()
-
-        let wireKind: String
-        let titleText: String
-        let subtitleText: String
-        let periodLabel: String?
-        let stats: [RecapShareCardStatPayload]
-
-        switch selectedRecapKind {
-        case .weekly:
-            wireKind = "weekly"
-            titleText = isEn ? "Weekly record recap" : "지난주 기록 회고"
-            subtitleText = isEn
-                ? "\(report.previousWeekLogs) records from last week, gathered into one card."
-                : "지난주 남긴 \(report.previousWeekLogs)개의 기록을 한 장에 모았습니다."
-            periodLabel = nil
-            stats = [
-                RecapShareCardStatPayload(label: isEn ? "Last week's records" : "지난주 기록", value: "\(report.previousWeekLogs)"),
-                RecapShareCardStatPayload(label: isEn ? "Total records" : "총 기록", value: "\(report.totalLogs)"),
-                RecapShareCardStatPayload(label: isEn ? "Recording streak" : "연속 기록", value: "\(report.streakDays)")
-            ]
-        case .monthly:
-            wireKind = "monthly"
-            titleText = isEn ? "Monthly genre recap" : "이번 달 장르 회고"
-            subtitleText = rawTopGenre.isEmpty
-                ? (isEn ? "Log more this month to make your genre card richer." : "이번 달 기록을 더 남기면 장르 회고 카드가 풍성해집니다.")
-                : (isEn ? "Your most logged genre this month is \(rawTopGenre), with \(report.monthlyTopGenreCount) records." : "이번 달 가장 많이 남긴 장르는 \(rawTopGenre)입니다. 총 \(report.monthlyTopGenreCount)회 기록했어요.")
-            periodLabel = RecordDate.formatMonthLabel(RecordDate.monthKey(nil), locale: locale)
-            stats = [
-                RecapShareCardStatPayload(label: isEn ? "Records this month" : "이번 달 기록", value: "\(report.thisMonthLogs)"),
-                RecapShareCardStatPayload(label: isEn ? "Top genre this month" : "이번 달 최다 장르", value: rawTopGenre.isEmpty ? "-" : rawTopGenre),
-                RecapShareCardStatPayload(label: isEn ? "Records with a note" : "메모 남긴 비율", value: "\(Int(report.noteFillPct.rounded()))%")
-            ]
-        case .halfYear:
-            wireKind = "half-year"
-            let h1Count = report.seasonalRecap?.totalLogs ?? report.totalLogs
-            titleText = isEn ? "2026 first-half recap" : "2026년 상반기 돌아보기"
-            subtitleText = isEn
-                ? "A poster recap of your \(h1Count) records from the first half of 2026."
-                : "상반기에 남긴 \(h1Count)개의 기록을 포스터 카드로 모았어요."
-            periodLabel = isEn ? "Jan 1 - Jun 30, 2026" : "2026.01.01 - 2026.06.30"
-            stats = [
-                RecapShareCardStatPayload(label: isEn ? "First-half records" : "상반기 기록", value: "\(h1Count)"),
-                RecapShareCardStatPayload(label: isEn ? "Most recorded type" : "가장 많이 남긴 종류", value: formattedTopType(report.seasonalRecap?.topType ?? report.topType)),
-                RecapShareCardStatPayload(label: isEn ? "Records with a note" : "메모 남긴 비율", value: "\(Int((report.seasonalRecap?.noteFillPct ?? report.noteFillPct).rounded()))%")
-            ]
-        }
-
-        let payload = RecapShareCardRequestPayload(
-            recapKind: wireKind,
-            format: "story",
-            title: titleText,
-            subtitle: subtitleText,
-            periodLabel: periodLabel,
-            posterItems: posters,
-            stats: stats,
-            footer: selectedRecapKind == .halfYear
-                ? (isEn ? "A first half of watching, reading, and remembering" : "보고, 읽고, 남긴 상반기")
-                : "ottline.app"
+        // Render recap card locally using cached poster art (instant, works offline, matches Android native).
+        let finalImage = await CardExporter.renderRecapCardImage(
+            kind: selectedRecapKind,
+            report: report,
+            monthPosters: monthPosters,
+            nickname: snap.nickname,
+            locale: locale
         )
-
-        var rendered: UIImage?
-        if let pngData = try? await repository.api.renderServerShareCard(payload),
-           let serverImg = UIImage(data: pngData) {
-            rendered = serverImg
-        }
-
-        let finalImage: UIImage
-        if let rendered {
-            finalImage = rendered
-        } else {
-            finalImage = await CardExporter.renderRecapCardImage(
-                kind: selectedRecapKind,
-                report: report,
-                monthPosters: monthPosters,
-                nickname: snap.nickname,
-                locale: locale
-            )
-        }
         recapImage = finalImage
         renderingRecap = false
     }
@@ -579,7 +491,7 @@ public struct ReportScreen: View {
 // MARK: - 2. KDC BOOKSHELF SCREEN (`000`~`900`)
 
 public struct BookshelfScreen: View {
-    public let repository: OttlineRepository
+    @ObservedObject public var repository: OttlineRepository
     public var initialKdcMajor: Int? = nil
     public var onBack: () -> Void
     public var onOpenTitleDetail: (String) -> Void
@@ -622,7 +534,7 @@ public struct BookshelfScreen: View {
                     OttlineStickyFooterLayout(
                         minHeight: scrollGeo.size.height,
                         topPadding: 16,
-                        bottomPadding: metrics.isSpread ? 24 : 110,
+                        bottomPadding: 24,
                         minSpacing: 20
                     ) {
                         VStack(alignment: .leading, spacing: 20) {
@@ -898,7 +810,7 @@ public struct BookshelfScreen: View {
 // MARK: - 3. FEEDBACK & SUPPORT THREADS SCREEN
 
 public struct FeedbackScreen: View {
-    public let repository: OttlineRepository
+    @ObservedObject public var repository: OttlineRepository
     public var prefilledBody: String?
     public var onConsumePrefill: () -> Void
     public var onBack: () -> Void
@@ -939,7 +851,7 @@ public struct FeedbackScreen: View {
                     OttlineStickyFooterLayout(
                         minHeight: scrollGeo.size.height,
                         topPadding: 16,
-                        bottomPadding: metrics.isSpread ? 24 : 110,
+                        bottomPadding: 24,
                         minSpacing: 20
                     ) {
                         VStack(alignment: .leading, spacing: 14) {
@@ -1312,7 +1224,7 @@ public struct GuideInfoScreen: View {
                     OttlineStickyFooterLayout(
                         minHeight: scrollGeo.size.height,
                         topPadding: 16,
-                        bottomPadding: metrics.isSpread ? 24 : 110,
+                        bottomPadding: 24,
                         minSpacing: 20
                     ) {
                         VStack(alignment: .leading, spacing: 14) {

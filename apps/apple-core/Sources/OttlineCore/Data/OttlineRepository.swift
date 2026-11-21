@@ -1,5 +1,5 @@
 import Foundation
-import Observation
+import Combine
 #if canImport(UIKit)
 import UIKit
 #endif
@@ -22,22 +22,22 @@ public struct SyncState: Equatable, Sendable {
     }
 }
 
-@Observable
-public final class OttlineRepository: @unchecked Sendable {
+public final class OttlineRepository: ObservableObject, @unchecked Sendable {
     public let db: OttlineDatabase
     public let prefs: AppPreferences
     public let api: OttlineApiClient
 
-    public private(set) var logs: [WatchLog] = []
-    public private(set) var logSyncStatuses: [String: String] = [:]
-    public private(set) var outboxCount: Int = 0
-    public private(set) var bookClassifications: [String: BookClassificationItemDto] = [:]
-    public private(set) var syncState: SyncState = SyncState()
+    @Published public private(set) var logs: [WatchLog] = []
+    @Published public private(set) var logSyncStatuses: [String: String] = [:]
+    @Published public private(set) var outboxCount: Int = 0
+    @Published public private(set) var bookClassifications: [String: BookClassificationItemDto] = [:]
+    @Published public private(set) var syncState: SyncState = SyncState()
 
     private let syncLock = NSLock()
     private var isSyncingFlag = false
     private var pendingSyncRetryFlag = false
     private var appOpenTracked = false
+    private var prefsCancellable: AnyCancellable?
 
     public static let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "2.0.0"
     public static let buildNumber = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "25"
@@ -46,6 +46,16 @@ public final class OttlineRepository: @unchecked Sendable {
         self.db = db
         self.prefs = prefs
         self.api = api
+
+        self.prefsCancellable = prefs.objectWillChange.sink { [weak self] _ in
+            if Thread.isMainThread {
+                self?.objectWillChange.send()
+            } else {
+                DispatchQueue.main.async {
+                    self?.objectWillChange.send()
+                }
+            }
+        }
 
         // Seamless v1 -> v2 migration on first startup
         LegacyIosMigrator.runMigrationIfNeeded(prefs: prefs, db: db)
@@ -804,29 +814,57 @@ public final class OttlineRepository: @unchecked Sendable {
 
     public func upsertLogsFromServerPage(_ items: [WatchLog]) {
         guard !items.isEmpty else { return }
-        for item in items {
-            db.reconcileCanonicalTitle(item.title)
-            if db.getOutboxById("LOG:\(item.id)") != nil {
-                continue
-            }
-            let hasPendingForTitle = db.getActiveLogsByTitleId(item.title.id).contains {
-                db.getOutboxById("LOG:\($0.id)") != nil
-            }
-            if hasPendingForTitle {
-                continue
-            }
-            let serverUpdated = item.updatedAt ?? item.watchedAt
-            if let existing = db.getWatchLogById(item.id) {
-                let localMs = RecordDate.parseInstantMillis(existing.updatedAt)
-                let serverMs = RecordDate.parseInstantMillis(serverUpdated)
-                if localMs > serverMs {
+        var didMutate = false
+        db.inTransaction {
+            for item in items {
+                if db.getOutboxById("LOG:\(item.id)") != nil {
                     continue
                 }
+                let serverUpdated = item.updatedAt ?? item.watchedAt
+                if let existing = db.getWatchLogById(item.id),
+                   existing.deletedAt == nil,
+                   existing.syncStatus == "SYNCED",
+                   existing.updatedAt == serverUpdated,
+                   existing.log.title.id == item.title.id,
+                   existing.log.title.name == item.title.name,
+                   (item.title.posterUrl == nil || existing.log.title.posterUrl == item.title.posterUrl),
+                   existing.log.status == item.status,
+                   existing.log.rating == item.rating,
+                   existing.log.note == item.note,
+                   existing.log.spoiler == item.spoiler,
+                   existing.log.ott == item.ott,
+                   existing.log.seasonNumber == item.seasonNumber,
+                   existing.log.episodeNumber == item.episodeNumber,
+                   existing.log.seasonPosterUrl == item.seasonPosterUrl,
+                   existing.log.seasonYear == item.seasonYear,
+                   existing.log.watchedAt == item.watchedAt,
+                   existing.log.place == item.place,
+                   existing.log.occasion == item.occasion,
+                   db.getActiveLogsByTitleId(item.title.id).count <= 1 {
+                    continue
+                }
+                db.reconcileCanonicalTitle(item.title)
+                let hasPendingForTitle = db.getActiveLogsByTitleId(item.title.id).contains {
+                    db.getOutboxById("LOG:\($0.id)") != nil
+                }
+                if hasPendingForTitle {
+                    continue
+                }
+                if let existing = db.getWatchLogById(item.id) {
+                    let localMs = RecordDate.parseInstantMillis(existing.updatedAt)
+                    let serverMs = RecordDate.parseInstantMillis(serverUpdated)
+                    if localMs > serverMs {
+                        continue
+                    }
+                }
+                db.upsertWatchLog(item, updatedAt: serverUpdated, deletedAt: nil, syncStatus: "SYNCED")
+                db.deleteLogsByTitleExcept(titleId: item.title.id, keepLogId: item.id)
+                didMutate = true
             }
-            db.upsertWatchLog(item, updatedAt: serverUpdated, deletedAt: nil, syncStatus: "SYNCED")
-            db.deleteLogsByTitleExcept(titleId: item.title.id, keepLogId: item.id)
         }
-        reloadFromLocalDb()
+        if didMutate {
+            reloadFromLocalDb()
+        }
     }
 
     // MARK: - 5. KDC Bookshelf Classification Cache (Korean-only)

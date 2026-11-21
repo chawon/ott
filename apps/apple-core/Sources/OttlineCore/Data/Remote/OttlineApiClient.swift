@@ -1,4 +1,7 @@
 import Foundation
+#if canImport(UIKit)
+import UIKit
+#endif
 
 public struct ApiError: Error, LocalizedError, Sendable {
     public let statusCode: Int
@@ -29,8 +32,24 @@ public final class OttlineApiClient: @unchecked Sendable {
     public static var defaultDeviceName: String {
         #if os(macOS)
         return "Mac (ottline)"
+        #elseif canImport(UIKit)
+        return UIDevice.current.userInterfaceIdiom == .pad ? "iPad (ottline)" : "iPhone (ottline)"
         #else
         return "iOS (ottline)"
+        #endif
+    }
+
+    public static var defaultUserAgent: String {
+        let appVer = (Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String) ?? "2.0.0"
+        #if os(macOS)
+        return "ottline-mac/\(appVer) (Macintosh; Mac OS X)"
+        #elseif canImport(UIKit)
+        let isPad = UIDevice.current.userInterfaceIdiom == .pad
+        return isPad
+            ? "ottline-ios/\(appVer) (iPad; iPadOS)"
+            : "ottline-ios/\(appVer) (iPhone; iOS)"
+        #else
+        return "ottline-apple/\(appVer)"
         #endif
     }
 
@@ -56,7 +75,8 @@ public final class OttlineApiClient: @unchecked Sendable {
         bodyData: Data? = nil,
         requireAuth: Bool = false,
         extraHeaders: [String: String] = [:],
-        useWebRoot: Bool = false
+        useWebRoot: Bool = false,
+        timeoutInterval: TimeInterval = 20
     ) throws -> URLRequest {
         let root = useWebRoot ? webBaseUrl : baseApiUrl
         let fullStr = "\(root)\(path.hasPrefix("/") ? path : "/\(path)")"
@@ -70,15 +90,12 @@ public final class OttlineApiClient: @unchecked Sendable {
             throw ApiError(statusCode: 0, code: "invalid_url", message: "Invalid URL components")
         }
 
-        var req = URLRequest(url: url, timeoutInterval: 20)
+        var req = URLRequest(url: url, timeoutInterval: timeoutInterval)
         req.httpMethod = method
         req.setValue("application/json", forHTTPHeaderField: "Accept")
         req.setValue(prefs.snapshot.locale, forHTTPHeaderField: "Accept-Language")
         req.setValue(Self.defaultClientPlatform, forHTTPHeaderField: "X-Client-Platform")
-        #if os(macOS)
-        let appVer = (Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String) ?? "2.0.0"
-        req.setValue("ottline-mac/\(appVer) (Macintosh; Mac OS X)", forHTTPHeaderField: "User-Agent")
-        #endif
+        req.setValue(Self.defaultUserAgent, forHTTPHeaderField: "User-Agent")
         req.setValue("google_books_v1", forHTTPHeaderField: "X-Book-Search-Capability")
 
         if fullStr.lowercased().contains("ngrok") {
@@ -438,12 +455,24 @@ public final class OttlineApiClient: @unchecked Sendable {
         return try await send(req, as: RecommendationState.self)
     }
 
+    public static let recommendationGenerateTimeoutSeconds: TimeInterval = 90
+
     public func generateRecommendations(requestId: String) async throws -> (statusCode: Int, state: RecommendationState) {
         let body = try JSONEncoder().encode(RecommendationGenerateRequest(requestId: requestId))
-        let req = try makeRequest(path: "/recommendations/generate", method: "POST", bodyData: body, requireAuth: true)
+        let req = try makeRequest(
+            path: "/recommendations/generate",
+            method: "POST",
+            bodyData: body,
+            requireAuth: true,
+            timeoutInterval: Self.recommendationGenerateTimeoutSeconds
+        )
         let (data, response) = try await session.data(for: req)
         guard let http = response as? HTTPURLResponse else {
             throw ApiError(statusCode: 0, code: "network_error", message: "Non-HTTP response")
+        }
+        if (http.statusCode == 401 || http.statusCode == 403),
+           req.value(forHTTPHeaderField: "X-User-Id") != nil {
+            onAuthRevoked?()
         }
         if http.statusCode == 200 || http.statusCode == 202 || http.statusCode == 429,
            let decoded = try? JSONDecoder().decode(RecommendationState.self, from: data) {

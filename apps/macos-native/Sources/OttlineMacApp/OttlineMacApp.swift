@@ -1,3 +1,4 @@
+import Combine
 import SwiftUI
 import AppKit
 import CoreText
@@ -74,19 +75,41 @@ public final class OttlineMacAppState {
     }
 }
 
+private final class MacRepositoryHolder: ObservableObject {
+    let repository: OttlineRepository?
+    private var cancellable: AnyCancellable?
+
+    init() {
+        guard !OttlineMacApp.isRunningUnitTests else {
+            self.repository = nil
+            return
+        }
+        let prefs = AppPreferences()
+        let db = OttlineDatabase()
+        let api = OttlineApiClient(prefs: prefs)
+        let repo = OttlineRepository(db: db, prefs: prefs, api: api)
+        self.repository = repo
+        self.cancellable = repo.objectWillChange.sink { [weak self] _ in
+            if Thread.isMainThread {
+                self?.objectWillChange.send()
+            } else {
+                DispatchQueue.main.async {
+                    self?.objectWillChange.send()
+                }
+            }
+        }
+    }
+}
+
 @main
 public struct OttlineMacApp: App {
     static let isRunningUnitTests =
         ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
 
-    @State private var repository: OttlineRepository? = {
-        guard !OttlineMacApp.isRunningUnitTests else { return nil }
-        let prefs = AppPreferences()
-        let db = OttlineDatabase()
-        let api = OttlineApiClient(prefs: prefs)
-        return OttlineRepository(db: db, prefs: prefs, api: api)
-    }()
+    @StateObject private var repoHolder = MacRepositoryHolder()
     @State private var appState = OttlineMacAppState()
+
+    private var repository: OttlineRepository? { repoHolder.repository }
 
     public init() {
         Self.registerBundledFonts()

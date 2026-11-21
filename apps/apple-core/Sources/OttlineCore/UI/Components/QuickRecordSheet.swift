@@ -47,7 +47,7 @@ public struct QuickRecordRequest: Equatable, Identifiable, Sendable {
 
 public struct QuickRecordSheet: View {
     public let request: QuickRecordRequest
-    public let repository: OttlineRepository
+    @ObservedObject public var repository: OttlineRepository
     public var onDismiss: () -> Void
     public var onOpenTimeline: () -> Void
     public var onOpenTitleDetail: (String) -> Void
@@ -115,7 +115,7 @@ public struct QuickRecordSheet: View {
         onOpenShareCard: @escaping (WatchLog) -> Void = { _ in }
     ) {
         self.request = request
-        self.repository = repository
+        self._repository = ObservedObject(wrappedValue: repository)
         self.onDismiss = onDismiss
         self.onOpenTimeline = onOpenTimeline
         self.onOpenTitleDetail = onOpenTitleDetail
@@ -130,11 +130,11 @@ public struct QuickRecordSheet: View {
 
             switch stage {
             case .search:
-                searchStageView
+                OttlineDeferredSection { searchStageView }
             case .status, .edit:
-                recordFormStageView
+                OttlineDeferredSection { recordFormStageView }
             case .saved:
-                savedStageView
+                OttlineDeferredSection { savedStageView }
             }
         }
         .background(palette.card)
@@ -658,12 +658,14 @@ public struct QuickRecordSheet: View {
                     if stage == .status {
                         statusChoiceSection(title: title)
                         seriesSeasonEpisodeSection(title: title)
-                        momentDetailsSection(
-                            title: title,
-                            isBook: isBook,
-                            label: OttlineStrings.tr("그날의 순간 (선택)", "The moment (optional)", locale: locale),
-                            includeStatusAndSeries: false
-                        )
+                        OttlineDeferredSection {
+                            momentDetailsSection(
+                                title: title,
+                                isBook: isBook,
+                                label: OttlineStrings.tr("그날의 순간 (선택)", "The moment (optional)", locale: locale),
+                                includeStatusAndSeries: false
+                            )
+                        }
                     } else {
                         // Stage 4: Feelings first, then Moment refine, then Note + Share checkboxes
                         VStack(alignment: .leading, spacing: 8) {
@@ -673,12 +675,14 @@ public struct QuickRecordSheet: View {
                             RecordFeelingsPicker(rating: $feelingScore, isBook: isBook)
                         }
 
-                        momentDetailsSection(
-                            title: title,
-                            isBook: isBook,
-                            label: OttlineStrings.tr("그날의 순간", "The moment", locale: locale),
-                            includeStatusAndSeries: true
-                        )
+                        OttlineDeferredSection {
+                            momentDetailsSection(
+                                title: title,
+                                isBook: isBook,
+                                label: OttlineStrings.tr("그날의 순간", "The moment", locale: locale),
+                                includeStatusAndSeries: true
+                            )
+                        }
 
                         VStack(alignment: .leading, spacing: 8) {
                             Text(OttlineStrings.tr("메모", "Note", locale: locale))
@@ -1014,24 +1018,24 @@ public struct QuickRecordSheet: View {
     ) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             if includeStatusAndSeries {
-                statusChoiceSection(title: title)
-                seriesSeasonEpisodeSection(title: title)
+                OttlineDeferredSection { statusChoiceSection(title: title) }
+                OttlineDeferredSection { seriesSeasonEpisodeSection(title: title) }
             }
 
-            momentDateCard(isBook: isBook)
-            momentPlatformCard(isBook: isBook)
+            OttlineDeferredSection { momentDateCard(isBook: isBook) }
+            OttlineDeferredSection { momentPlatformCard(isBook: isBook) }
 
             #if os(macOS)
             HStack(alignment: .top, spacing: 12) {
-                momentPlaceCard(title: title)
+                OttlineDeferredSection { momentPlaceCard(title: title) }
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                momentOccasionCard()
+                OttlineDeferredSection { momentOccasionCard() }
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             }
             #else
             VStack(spacing: 12) {
-                momentPlaceCard(title: title)
-                momentOccasionCard()
+                OttlineDeferredSection { momentPlaceCard(title: title) }
+                OttlineDeferredSection { momentOccasionCard() }
             }
             #endif
         }
@@ -1095,7 +1099,7 @@ public struct QuickRecordSheet: View {
                     }
                     .padding(12)
                     .frame(width: 300)
-                    .onChange(of: watchedDate) { _, _ in
+                    .onChange(of: watchedDate) { _ in
                         showCalendarPopover = false
                     }
                 }

@@ -178,6 +178,14 @@ public final class OttlineDatabase: @unchecked Sendable {
         sqlite3_exec(db, sql, nil, nil, nil)
     }
 
+    public func inTransaction(_ work: () -> Void) {
+        lock.lock()
+        defer { lock.unlock() }
+        exec("BEGIN IMMEDIATE;")
+        work()
+        exec("COMMIT;")
+    }
+
     private func nextRevisionLocked() -> Int64 {
         guard let db else { return Int64(Date().timeIntervalSince1970 * 1000) }
         exec("INSERT INTO meta_counters(key, val) VALUES('outbox_rev', 0) ON CONFLICT(key) DO UPDATE SET val = val + 1;")

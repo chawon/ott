@@ -106,16 +106,227 @@ public enum PlatformCatalog {
 public enum RecordDate {
     public static let kstTimeZone = TimeZone(identifier: "Asia/Seoul") ?? .current
 
-    private static var kstCalendar: Calendar {
-        var cal = Calendar(identifier: .gregorian)
-        cal.timeZone = kstTimeZone
-        return cal
+    private final class FormatterCache: @unchecked Sendable {
+        static let shared = FormatterCache()
+
+        private let lock = NSLock()
+        private let kstCalendar: Calendar
+        private let isoFrac: ISO8601DateFormatter
+        private let isoStd: ISO8601DateFormatter
+        private let ymd: DateFormatter
+        private let displayKo: DateFormatter
+        private let displayEn: DateFormatter
+        private let dot: DateFormatter
+        private let commentKo: DateFormatter
+        private let commentEn: DateFormatter
+        private let homeTodayKo: DateFormatter
+        private let homeTodayEn: DateFormatter
+        private let featuredKo: DateFormatter
+        private let featuredEn: DateFormatter
+        private let shortKo: DateFormatter
+        private let shortEn: DateFormatter
+        private let timelineMonthKo: DateFormatter
+        private let timelineMonthEn: DateFormatter
+        private let timelineDay: DateFormatter
+        private let monthKeyFormatter: DateFormatter
+        private let monthLabelEn: DateFormatter
+
+        private var parsedDateCache: [String: Date] = [:]
+        private var monthKeyCache: [String: String] = [:]
+
+        private init() {
+            var cal = Calendar(identifier: .gregorian)
+            cal.timeZone = RecordDate.kstTimeZone
+            self.kstCalendar = cal
+
+            let isoFrac = ISO8601DateFormatter()
+            isoFrac.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+            self.isoFrac = isoFrac
+
+            let isoStd = ISO8601DateFormatter()
+            isoStd.formatOptions = [.withInternetDateTime]
+            self.isoStd = isoStd
+
+            func make(_ format: String, localeId: String) -> DateFormatter {
+                let df = DateFormatter()
+                df.calendar = cal
+                df.timeZone = RecordDate.kstTimeZone
+                df.locale = Locale(identifier: localeId)
+                df.dateFormat = format
+                return df
+            }
+
+            self.ymd = make("yyyy-MM-dd", localeId: "en_US_POSIX")
+            self.displayKo = make("yyyy년 M월 d일", localeId: "ko_KR")
+            self.displayEn = make("MMM d, yyyy", localeId: "en_US")
+            self.dot = make("yyyy.MM.dd", localeId: "en_US_POSIX")
+            self.commentKo = make("M월 d일 a hh:mm", localeId: "ko_KR")
+            self.commentEn = make("MMM d, hh:mm a", localeId: "en_US")
+            self.homeTodayKo = make("M월 d일 EEEE", localeId: "ko_KR")
+            self.homeTodayEn = make("EEEE, MMMM d", localeId: "en_US")
+            self.featuredKo = make("M월 d일 (E)", localeId: "ko_KR")
+            self.featuredEn = make("MMM d (EEE)", localeId: "en_US")
+            self.shortKo = make("M월 d일", localeId: "ko_KR")
+            self.shortEn = make("MMM d", localeId: "en_US")
+            self.timelineMonthKo = make("M월", localeId: "ko_KR")
+            self.timelineMonthEn = make("MMM", localeId: "en_US")
+            self.timelineDay = make("d", localeId: "en_US_POSIX")
+            self.monthKeyFormatter = make("yyyy-MM", localeId: "en_US_POSIX")
+            self.monthLabelEn = make("MMM yyyy", localeId: "en_US")
+        }
+
+        private func parseDateLocked(_ isoOrDate: String?) -> Date? {
+            guard let raw = isoOrDate?.trimmingCharacters(in: .whitespacesAndNewlines), !raw.isEmpty else {
+                return nil
+            }
+            if let cached = parsedDateCache[raw] {
+                return cached
+            }
+            let parsed: Date? = isoFrac.date(from: raw)
+                ?? isoStd.date(from: raw)
+                ?? ymd.date(from: String(raw.prefix(10)))
+            if let parsed {
+                if parsedDateCache.count > 2048 {
+                    parsedDateCache.removeAll(keepingCapacity: true)
+                }
+                parsedDateCache[raw] = parsed
+            }
+            return parsed
+        }
+
+        func nowIso() -> String {
+            lock.lock()
+            defer { lock.unlock() }
+            return isoFrac.string(from: Date())
+        }
+
+        func todayDateString() -> String {
+            lock.lock()
+            defer { lock.unlock() }
+            return ymd.string(from: Date())
+        }
+
+        func parseDate(_ isoOrDate: String?) -> Date? {
+            lock.lock()
+            defer { lock.unlock() }
+            return parseDateLocked(isoOrDate)
+        }
+
+        func recordDateInput(_ iso: String?) -> String {
+            lock.lock()
+            defer { lock.unlock() }
+            guard let d = parseDateLocked(iso) else { return ymd.string(from: Date()) }
+            return ymd.string(from: d)
+        }
+
+        func resolveWatchedAt(_ trimmed: String, existingIso: String?) -> String {
+            lock.lock()
+            defer { lock.unlock() }
+            if let existing = existingIso,
+               let existingDate = parseDateLocked(existing),
+               ymd.string(from: existingDate) == trimmed {
+                return existing
+            }
+            if let parsed = ymd.date(from: trimmed) {
+                // Noon KST so date never shifts across timezones
+                let noon = parsed.addingTimeInterval(12 * 3600)
+                return isoStd.string(from: noon)
+            }
+            return isoFrac.string(from: Date())
+        }
+
+        func formatDisplayDate(_ iso: String?, locale: String) -> String {
+            lock.lock()
+            defer { lock.unlock() }
+            guard let d = parseDateLocked(iso) else { return ymd.string(from: Date()) }
+            return (locale == "en" ? displayEn : displayKo).string(from: d)
+        }
+
+        func formatDotDate(_ iso: String?) -> String {
+            lock.lock()
+            defer { lock.unlock() }
+            guard let d = parseDateLocked(iso) else {
+                return ymd.string(from: Date()).replacingOccurrences(of: "-", with: ".")
+            }
+            return dot.string(from: d)
+        }
+
+        func formatCommentDateTime(_ iso: String?, locale: String) -> String {
+            lock.lock()
+            defer { lock.unlock() }
+            guard let d = parseDateLocked(iso) else { return "" }
+            return (locale == "en" ? commentEn : commentKo).string(from: d)
+        }
+
+        func formatHomeToday(_ locale: String) -> String {
+            lock.lock()
+            defer { lock.unlock() }
+            return (locale == "en" ? homeTodayEn : homeTodayKo).string(from: Date())
+        }
+
+        func formatFeaturedDate(_ iso: String?, locale: String) -> String {
+            lock.lock()
+            defer { lock.unlock() }
+            let d = parseDateLocked(iso) ?? Date()
+            return (locale == "en" ? featuredEn : featuredKo).string(from: d)
+        }
+
+        func formatShortMonthDay(_ iso: String?, locale: String) -> String {
+            lock.lock()
+            defer { lock.unlock() }
+            let d = parseDateLocked(iso) ?? Date()
+            return (locale == "en" ? shortEn : shortKo).string(from: d)
+        }
+
+        func formatTimelineMonth(_ iso: String?, locale: String) -> String {
+            lock.lock()
+            defer { lock.unlock() }
+            let d = parseDateLocked(iso) ?? Date()
+            return (locale == "en" ? timelineMonthEn : timelineMonthKo).string(from: d)
+        }
+
+        func formatTimelineDay(_ iso: String?) -> String {
+            lock.lock()
+            defer { lock.unlock() }
+            let d = parseDateLocked(iso) ?? Date()
+            return timelineDay.string(from: d)
+        }
+
+        func monthKey(_ iso: String?) -> String {
+            lock.lock()
+            defer { lock.unlock() }
+            if let raw = iso?.trimmingCharacters(in: .whitespacesAndNewlines), !raw.isEmpty {
+                if let cached = monthKeyCache[raw] {
+                    return cached
+                }
+                if let d = parseDateLocked(raw) {
+                    let result = monthKeyFormatter.string(from: d)
+                    if monthKeyCache.count > 2048 {
+                        monthKeyCache.removeAll(keepingCapacity: true)
+                    }
+                    monthKeyCache[raw] = result
+                    return result
+                }
+            }
+            return monthKeyFormatter.string(from: Date())
+        }
+
+        func formatEnglishMonthLabel(year: Int, month: Int) -> String {
+            lock.lock()
+            defer { lock.unlock() }
+            var comps = DateComponents()
+            comps.year = year
+            comps.month = month
+            comps.day = 1
+            if let date = kstCalendar.date(from: comps) {
+                return monthLabelEn.string(from: date)
+            }
+            return "\(year)-\(month)"
+        }
     }
 
     public static func nowIso() -> String {
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        return formatter.string(from: Date())
+        FormatterCache.shared.nowIso()
     }
 
     public static func todayIsoDateTime() -> String {
@@ -123,34 +334,11 @@ public enum RecordDate {
     }
 
     public static func todayDateString() -> String {
-        let formatter = DateFormatter()
-        formatter.calendar = kstCalendar
-        formatter.timeZone = kstTimeZone
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.dateFormat = "yyyy-MM-dd"
-        return formatter.string(from: Date())
+        FormatterCache.shared.todayDateString()
     }
 
     public static func parseDate(_ isoOrDate: String?) -> Date? {
-        guard let raw = isoOrDate?.trimmingCharacters(in: .whitespacesAndNewlines), !raw.isEmpty else {
-            return nil
-        }
-        let isoFrac = ISO8601DateFormatter()
-        isoFrac.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        if let d = isoFrac.date(from: raw) { return d }
-
-        let isoStd = ISO8601DateFormatter()
-        isoStd.formatOptions = [.withInternetDateTime]
-        if let d = isoStd.date(from: raw) { return d }
-
-        let df = DateFormatter()
-        df.calendar = kstCalendar
-        df.timeZone = kstTimeZone
-        df.locale = Locale(identifier: "en_US_POSIX")
-        df.dateFormat = "yyyy-MM-dd"
-        if let d = df.date(from: String(raw.prefix(10))) { return d }
-
-        return nil
+        FormatterCache.shared.parseDate(isoOrDate)
     }
 
     public static func parseInstantMillis(_ iso: String?) -> Int64 {
@@ -159,154 +347,48 @@ public enum RecordDate {
     }
 
     public static func recordDateInput(_ iso: String?) -> String {
-        guard let d = parseDate(iso) else { return todayDateString() }
-        let df = DateFormatter()
-        df.calendar = kstCalendar
-        df.timeZone = kstTimeZone
-        df.locale = Locale(identifier: "en_US_POSIX")
-        df.dateFormat = "yyyy-MM-dd"
-        return df.string(from: d)
+        FormatterCache.shared.recordDateInput(iso)
     }
 
     public static func resolveWatchedAt(_ dateStr: String, existingIso: String?) -> String {
         let trimmed = dateStr.trimmingCharacters(in: .whitespacesAndNewlines)
-        if let existing = existingIso, recordDateInput(existing) == trimmed {
-            return existing
-        }
-        let df = DateFormatter()
-        df.calendar = kstCalendar
-        df.timeZone = kstTimeZone
-        df.locale = Locale(identifier: "en_US_POSIX")
-        df.dateFormat = "yyyy-MM-dd"
-        if let parsed = df.date(from: trimmed) {
-            // Noon KST so date never shifts across timezones
-            let noon = parsed.addingTimeInterval(12 * 3600)
-            let iso = ISO8601DateFormatter()
-            iso.formatOptions = [.withInternetDateTime]
-            return iso.string(from: noon)
-        }
-        return nowIso()
+        return FormatterCache.shared.resolveWatchedAt(trimmed, existingIso: existingIso)
     }
 
     public static func formatDisplayDate(_ iso: String?, locale: String) -> String {
-        guard let d = parseDate(iso) else { return todayDateString() }
-        let df = DateFormatter()
-        df.calendar = kstCalendar
-        df.timeZone = kstTimeZone
-        if locale == "en" {
-            df.locale = Locale(identifier: "en_US")
-            df.dateFormat = "MMM d, yyyy"
-        } else {
-            df.locale = Locale(identifier: "ko_KR")
-            df.dateFormat = "yyyy년 M월 d일"
-        }
-        return df.string(from: d)
+        FormatterCache.shared.formatDisplayDate(iso, locale: locale)
     }
 
     public static func formatDotDate(_ iso: String?) -> String {
-        guard let d = parseDate(iso) else {
-            return todayDateString().replacingOccurrences(of: "-", with: ".")
-        }
-        let df = DateFormatter()
-        df.calendar = kstCalendar
-        df.timeZone = kstTimeZone
-        df.locale = Locale(identifier: "en_US_POSIX")
-        df.dateFormat = "yyyy.MM.dd"
-        return df.string(from: d)
+        FormatterCache.shared.formatDotDate(iso)
     }
 
     public static func formatCommentDateTime(_ iso: String?, locale: String) -> String {
-        guard let d = parseDate(iso) else { return "" }
-        let df = DateFormatter()
-        df.calendar = kstCalendar
-        df.timeZone = kstTimeZone
-        if locale == "en" {
-            df.locale = Locale(identifier: "en_US")
-            df.dateFormat = "MMM d, hh:mm a"
-        } else {
-            df.locale = Locale(identifier: "ko_KR")
-            df.dateFormat = "M월 d일 a hh:mm"
-        }
-        return df.string(from: d)
+        FormatterCache.shared.formatCommentDateTime(iso, locale: locale)
     }
 
     public static func formatHomeToday(_ locale: String) -> String {
-        let df = DateFormatter()
-        df.calendar = kstCalendar
-        df.timeZone = kstTimeZone
-        if locale == "en" {
-            df.locale = Locale(identifier: "en_US")
-            df.dateFormat = "EEEE, MMMM d"
-        } else {
-            df.locale = Locale(identifier: "ko_KR")
-            df.dateFormat = "M월 d일 EEEE"
-        }
-        return df.string(from: Date())
+        FormatterCache.shared.formatHomeToday(locale)
     }
 
     public static func formatFeaturedDate(_ iso: String?, locale: String) -> String {
-        let d = parseDate(iso) ?? Date()
-        let df = DateFormatter()
-        df.calendar = kstCalendar
-        df.timeZone = kstTimeZone
-        if locale == "en" {
-            df.locale = Locale(identifier: "en_US")
-            df.dateFormat = "MMM d (EEE)"
-        } else {
-            df.locale = Locale(identifier: "ko_KR")
-            df.dateFormat = "M월 d일 (E)"
-        }
-        return df.string(from: d)
+        FormatterCache.shared.formatFeaturedDate(iso, locale: locale)
     }
 
     public static func formatShortMonthDay(_ iso: String?, locale: String) -> String {
-        let d = parseDate(iso) ?? Date()
-        let df = DateFormatter()
-        df.calendar = kstCalendar
-        df.timeZone = kstTimeZone
-        if locale == "en" {
-            df.locale = Locale(identifier: "en_US")
-            df.dateFormat = "MMM d"
-        } else {
-            df.locale = Locale(identifier: "ko_KR")
-            df.dateFormat = "M월 d일"
-        }
-        return df.string(from: d)
+        FormatterCache.shared.formatShortMonthDay(iso, locale: locale)
     }
 
     public static func formatTimelineMonth(_ iso: String?, locale: String) -> String {
-        let d = parseDate(iso) ?? Date()
-        let df = DateFormatter()
-        df.calendar = kstCalendar
-        df.timeZone = kstTimeZone
-        if locale == "en" {
-            df.locale = Locale(identifier: "en_US")
-            df.dateFormat = "MMM"
-        } else {
-            df.locale = Locale(identifier: "ko_KR")
-            df.dateFormat = "M월"
-        }
-        return df.string(from: d)
+        FormatterCache.shared.formatTimelineMonth(iso, locale: locale)
     }
 
     public static func formatTimelineDay(_ iso: String?) -> String {
-        let d = parseDate(iso) ?? Date()
-        let df = DateFormatter()
-        df.calendar = kstCalendar
-        df.timeZone = kstTimeZone
-        df.locale = Locale(identifier: "en_US_POSIX")
-        df.dateFormat = "d"
-        return df.string(from: d)
+        FormatterCache.shared.formatTimelineDay(iso)
     }
 
     public static func monthKey(_ iso: String?) -> String {
-        let d = parseDate(iso) ?? Date()
-        let df = DateFormatter()
-        df.calendar = kstCalendar
-        df.timeZone = kstTimeZone
-        df.locale = Locale(identifier: "en_US_POSIX")
-        df.dateFormat = "yyyy-MM"
-        return df.string(from: d)
+        FormatterCache.shared.monthKey(iso)
     }
 
     public static func formatMonthLabel(_ monthKey: String, locale: String) -> String {
@@ -318,19 +400,7 @@ public enum RecordDate {
             return monthKey
         }
         if locale == "en" {
-            var comps = DateComponents()
-            comps.year = year
-            comps.month = month
-            comps.day = 1
-            if let date = kstCalendar.date(from: comps) {
-                let df = DateFormatter()
-                df.calendar = kstCalendar
-                df.timeZone = kstTimeZone
-                df.locale = Locale(identifier: "en_US")
-                df.dateFormat = "MMM yyyy"
-                return df.string(from: date)
-            }
-            return "\(year)-\(month)"
+            return FormatterCache.shared.formatEnglishMonthLabel(year: year, month: month)
         } else {
             return "\(year)년 \(month)월"
         }
@@ -373,40 +443,41 @@ public enum TimelineMoments {
     }
 
     public static func groupLogsByMonth(_ logs: [WatchLog]) -> [MonthLogGroup] {
-        let sorted = logs.sorted {
-            RecordDate.parseInstantMillis(timelineSortKey($0)) > RecordDate.parseInstantMillis(timelineSortKey($1))
+        let keyed = logs.map { log -> (log: WatchLog, sortKey: String, millis: Int64) in
+            let key = timelineSortKey(log)
+            return (log, key, RecordDate.parseInstantMillis(key))
         }
+        let sorted = keyed.sorted { $0.millis > $1.millis }
         var order: [String] = []
         var map: [String: [WatchLog]] = [:]
-        for log in sorted {
-            let mk = RecordDate.monthKey(timelineSortKey(log))
+        for item in sorted {
+            let mk = RecordDate.monthKey(item.sortKey)
             if map[mk] == nil {
                 order.append(mk)
                 map[mk] = []
             }
-            map[mk]?.append(log)
+            map[mk]?.append(item.log)
         }
         return order.map { MonthLogGroup(monthKey: $0, logs: map[$0] ?? []) }
     }
 
     public static func groupCompletedLogsByWatchedMonth(_ logs: [WatchLog]) -> [MonthLogGroup] {
-        let sorted = logs
+        let keyed = logs
             .filter { $0.status == .done }
-            .sorted {
-                let a = $0.watchedAt.isEmpty ? $0.createdAt : $0.watchedAt
-                let b = $1.watchedAt.isEmpty ? $1.createdAt : $1.watchedAt
-                return RecordDate.parseInstantMillis(a) > RecordDate.parseInstantMillis(b)
+            .map { log -> (log: WatchLog, dateKey: String, millis: Int64) in
+                let key = log.watchedAt.isEmpty ? log.createdAt : log.watchedAt
+                return (log, key, RecordDate.parseInstantMillis(key))
             }
+        let sorted = keyed.sorted { $0.millis > $1.millis }
         var order: [String] = []
         var map: [String: [WatchLog]] = [:]
-        for log in sorted {
-            let dateKey = log.watchedAt.isEmpty ? log.createdAt : log.watchedAt
-            let mk = RecordDate.monthKey(dateKey)
+        for item in sorted {
+            let mk = RecordDate.monthKey(item.dateKey)
             if map[mk] == nil {
                 order.append(mk)
                 map[mk] = []
             }
-            map[mk]?.append(log)
+            map[mk]?.append(item.log)
         }
         return order.map { MonthLogGroup(monthKey: $0, logs: map[$0] ?? []) }
     }

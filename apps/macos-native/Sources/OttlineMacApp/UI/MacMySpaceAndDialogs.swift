@@ -6,7 +6,7 @@ import OttlineCore
 // MARK: - Mac My Space Spread View (2-Column Desktop Workspace)
 
 public struct MacMySpaceSpreadView: View {
-    public let repository: OttlineRepository
+    @ObservedObject public var repository: OttlineRepository
     @Bindable public var appState: OttlineMacAppState
 
     @Environment(\.ottlinePalette) private var palette
@@ -684,7 +684,7 @@ public struct MacMySpaceSpreadView: View {
 // MARK: - Mac Bookshelf, Report, Feedback, Guide Views & Menu Bar Popover
 
 public struct MacBookshelfView: View {
-    public let repository: OttlineRepository
+    @ObservedObject public var repository: OttlineRepository
     public var initialKdcMajor: Int?
     public let onBack: () -> Void
     public let onOpenTitleDetail: (String) -> Void
@@ -803,7 +803,7 @@ public struct MacBookshelfView: View {
 }
 
 public struct MacReportView: View {
-    public let repository: OttlineRepository
+    @ObservedObject public var repository: OttlineRepository
     public let onBack: () -> Void
     public let onOpenTitleDetail: (String) -> Void
     public var onOpenQuickRecord: (() -> Void)? = nil
@@ -919,7 +919,7 @@ public struct MacReportView: View {
 }
 
 public struct MacFeedbackView: View {
-    public let repository: OttlineRepository
+    @ObservedObject public var repository: OttlineRepository
     public var prefilledBody: String?
     public let onBack: () -> Void
 
@@ -1086,7 +1086,7 @@ public struct MacGuideInfoView: View {
 
 public struct MacShareCardDialog: View {
     public let log: WatchLog
-    public let repository: OttlineRepository
+    @ObservedObject public var repository: OttlineRepository
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.ottlinePalette) private var palette
@@ -1106,7 +1106,7 @@ public struct MacShareCardDialog: View {
 
     public init(log: WatchLog, repository: OttlineRepository) {
         self.log = log
-        self.repository = repository
+        self._repository = ObservedObject(wrappedValue: repository)
         let hasNote = !(log.note?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true) && !log.spoiler
         self._includeNote = State(initialValue: hasNote)
     }
@@ -1673,7 +1673,7 @@ public enum MacImageExportHelper {
 // MARK: - Mac Menu Bar Quick Log Popover
 
 public struct MacMenuBarQuickLogView: View {
-    public let repository: OttlineRepository
+    @ObservedObject public var repository: OttlineRepository
     @Bindable public var appState: OttlineMacAppState
 
     @Environment(\.openWindow) private var openWindow

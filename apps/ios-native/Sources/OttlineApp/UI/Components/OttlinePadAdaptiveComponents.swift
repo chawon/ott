@@ -156,7 +156,7 @@ public extension View {
 // MARK: - 2. iPad Spread Top Header (`OttlinePadHeader` — Web Desktop / Mac Parity)
 
 public struct OttlinePadHeader: View {
-    public let repository: OttlineRepository
+    @ObservedObject public var repository: OttlineRepository
     public let activeTab: TopLevelTab
     public let themeMode: ThemeMode
     public let viewportWidth: CGFloat
@@ -178,7 +178,7 @@ public struct OttlinePadHeader: View {
         onToggleTheme: @escaping () -> Void,
         onSelectLocale: @escaping (String) -> Void
     ) {
-        self.repository = repository
+        self._repository = ObservedObject(wrappedValue: repository)
         self.activeTab = activeTab
         self.themeMode = themeMode
         self.viewportWidth = viewportWidth
@@ -399,12 +399,15 @@ public struct PadFeaturedPosterView: View {
     }
 
     public var body: some View {
-        GeometryReader { proxy in
+        let candidateUrls = PadLayoutMetrics.featuredPosterCandidateUrls(posterUrl: posterUrl, titleType: titleType)
+        let displayImage = OttlinePosterImageCache.shared.cachedFirstAvailable(urls: candidateUrls) ?? loadedImage
+
+        return GeometryReader { proxy in
             let boxW = max(1, proxy.size.width)
             let boxH = max(1, proxy.size.height)
 
             Group {
-                if let uiImage = loadedImage {
+                if let uiImage = displayImage {
                     if titleType == .book {
                         let pixelW = CGFloat(uiImage.cgImage?.width ?? Int(round(uiImage.size.width * uiImage.scale)))
                         let pixelH = CGFloat(uiImage.cgImage?.height ?? Int(round(uiImage.size.height * uiImage.scale)))
@@ -442,25 +445,17 @@ public struct PadFeaturedPosterView: View {
         }
         .aspectRatio(2.0 / 3.0, contentMode: .fit)
         .task(id: "\(titleType.rawValue)|\(posterUrl ?? "")") {
+            let urls = PadLayoutMetrics.featuredPosterCandidateUrls(posterUrl: posterUrl, titleType: titleType)
+            if let cached = OttlinePosterImageCache.shared.cachedFirstAvailable(urls: urls) {
+                loadedImage = cached
+                loadFinished = true
+                return
+            }
             loadedImage = nil
             loadFinished = false
-            let urls = PadLayoutMetrics.featuredPosterCandidateUrls(posterUrl: posterUrl, titleType: titleType)
-            for url in urls {
-                if Task.isCancelled { return }
-                do {
-                    let (data, response) = try await URLSession.shared.data(from: url)
-                    if Task.isCancelled { return }
-                    let ok = (response as? HTTPURLResponse).map { (200..<300).contains($0.statusCode) } ?? true
-                    if ok, let image = UIImage(data: data) {
-                        loadedImage = image
-                        loadFinished = true
-                        return
-                    }
-                } catch {
-                    if Task.isCancelled { return }
-                }
-            }
+            let fetched = await OttlinePosterImageCache.shared.loadFirstAvailable(urls: urls)
             if !Task.isCancelled {
+                loadedImage = fetched
                 loadFinished = true
             }
         }

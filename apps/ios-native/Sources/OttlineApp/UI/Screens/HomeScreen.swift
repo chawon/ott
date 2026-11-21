@@ -2,7 +2,7 @@ import SwiftUI
 import OttlineCore
 
 public struct HomeScreen: View {
-    public let repository: OttlineRepository
+    @ObservedObject public var repository: OttlineRepository
     public var onOpenQuickRecord: (QuickRecordRequest) -> Void
     public var onOpenTitleDetail: (String) -> Void
     public var onOpenTimeline: () -> Void
@@ -44,7 +44,7 @@ public struct HomeScreen: View {
         onOpenPublicDiscussion: @escaping (String) -> Void = { _ in },
         onStartBrowserHandoff: @escaping () -> Void = {}
     ) {
-        self.repository = repository
+        self._repository = ObservedObject(wrappedValue: repository)
         self.onOpenQuickRecord = onOpenQuickRecord
         self.onOpenTitleDetail = onOpenTitleDetail
         self.onOpenTimeline = onOpenTimeline
@@ -94,27 +94,58 @@ public struct HomeScreen: View {
                 OttlineStickyFooterLayout(
                     minHeight: scrollGeo.size.height,
                     topPadding: metrics.isSpread ? 24 : 20,
-                    bottomPadding: metrics.isSpread ? 24 : 110,
+                    bottomPadding: 24,
                     minSpacing: 24
                 ) {
                     LazyVStack(alignment: .leading, spacing: metrics.isSpread ? 28 : 24) {
-                // 1. Editorial Header (`HomeTimelineView.tsx` compact vs spread parity)
-                if metrics.isSpread {
-                    padEditorialHeader(isEmpty: logs.isEmpty)
-                } else {
-                    compactEditorialHeader(isEmpty: logs.isEmpty)
-                }
+                let isCompactLoggedHome = !metrics.isSpread && !isInitialSyncLoading && !logs.isEmpty
 
-                // 2. Sync Notice Banner (`HomeTimelineView.tsx` `.syncNotice` parity)
-                if hasPendingSync {
-                    SyncNoticeBanner(
-                        syncState: repository.syncState,
-                        outboxCount: max(
-                            repository.outboxCount,
-                            repository.logSyncStatuses.values.filter { $0 == "PENDING" || $0 == "FAILED" }.count
-                        ),
-                        onRetryTap: { repository.triggerSyncAsync() }
-                    )
+                if isCompactLoggedHome {
+                    // Compact logged Home: keep header -> month pills -> Featured Memory Card symmetrically snug (`12pt`).
+                    VStack(alignment: .leading, spacing: 12) {
+                        compactEditorialHeader(isEmpty: false)
+
+                        if hasPendingSync {
+                            SyncNoticeBanner(
+                                syncState: repository.syncState,
+                                outboxCount: max(
+                                    repository.outboxCount,
+                                    repository.logSyncStatuses.values.filter { $0 == "PENDING" || $0 == "FAILED" }.count
+                                ),
+                                onRetryTap: { repository.triggerSyncAsync() }
+                            )
+                        }
+
+                        if !availableMonths.isEmpty {
+                            horizontalMonthSelector(availableMonths: availableMonths, selectedMonth: selectedMonth)
+                        }
+
+                        // Order 0 (Mobile CSS): Featured Memory Card (`그날의 온기` / `A moment kept`)
+                        if let featured = featuredMemory {
+                            OttlineDeferredSection { featuredMemoryCard(featured) }
+                        } else {
+                            OttlineDeferredSection { emptyCompletedMonthCard }
+                        }
+                    }
+                } else {
+                    // 1. Editorial Header (`HomeTimelineView.tsx` compact vs spread parity)
+                    if metrics.isSpread {
+                        OttlineDeferredSection { padEditorialHeader(isEmpty: logs.isEmpty) }
+                    } else {
+                        OttlineDeferredSection { compactEditorialHeader(isEmpty: logs.isEmpty) }
+                    }
+
+                    // 2. Sync Notice Banner (`HomeTimelineView.tsx` `.syncNotice` parity)
+                    if hasPendingSync {
+                        SyncNoticeBanner(
+                            syncState: repository.syncState,
+                            outboxCount: max(
+                                repository.outboxCount,
+                                repository.logSyncStatuses.values.filter { $0 == "PENDING" || $0 == "FAILED" }.count
+                            ),
+                            onRetryTap: { repository.triggerSyncAsync() }
+                        )
+                    }
                 }
 
                 // 3. Initial Loading Skeleton / Empty State / Logged State
@@ -172,18 +203,6 @@ public struct HomeScreen: View {
                         .frame(width: 215)
                     }
                 } else {
-                    // Month Selector (`HomeTimelineView.tsx` `.months` — only DONE months)
-                    if !availableMonths.isEmpty {
-                        horizontalMonthSelector(availableMonths: availableMonths, selectedMonth: selectedMonth)
-                    }
-
-                    // Order 0 (Mobile CSS): Featured Memory Card (`그날의 온기` / `A moment kept`)
-                    if let featured = featuredMemory {
-                        featuredMemoryCard(featured)
-                    } else {
-                        emptyCompletedMonthCard
-                    }
-
                     // Order 1 (Mobile CSS): `.homeSide` (`아직 못다 한 이야기` + Flat Side Links)
                     VStack(alignment: .leading, spacing: 12) {
                         if !inProgressLogs.isEmpty {
@@ -953,12 +972,14 @@ public struct HomeScreen: View {
                         .clipShape(RoundedRectangle(cornerRadius: 8))
                         .overlay(
                             RoundedRectangle(cornerRadius: 8)
-                                .stroke(selected ? palette.primaryAccent : palette.border, lineWidth: 1)
+                                .strokeBorder(selected ? palette.primaryAccent : palette.border, lineWidth: selected ? 1.5 : 1)
                         )
                     }
                     .buttonStyle(.plain)
                 }
             }
+            .padding(.horizontal, 1)
+            .padding(.vertical, 2)
         }
     }
 
@@ -1448,6 +1469,12 @@ public struct HomeScreen: View {
             }
         }()
 
+        let hasMoment = !(log.ott?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true)
+            || log.place != nil
+            || log.occasion != nil
+        let trimmedNote = log.note?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let hasVisibleNote = !log.spoiler && !trimmedNote.isEmpty
+
         return VStack(alignment: .leading, spacing: 14) {
             HStack(spacing: 10) {
                 Text(OttlineStrings.tr("그날의 온기", "A moment kept", locale: locale))
@@ -1513,19 +1540,30 @@ public struct HomeScreen: View {
                             .foregroundStyle(palette.mutedInk)
                     }
 
-                    RecordMomentList(
-                        ott: log.ott,
-                        place: log.place,
-                        occasion: log.occasion,
-                        compact: true
-                    )
-
-                    if !log.spoiler, let note = log.note?.trimmingCharacters(in: .whitespacesAndNewlines), !note.isEmpty {
+                    if hasMoment || hasVisibleNote {
                         Rectangle()
                             .fill(palette.border)
                             .frame(height: 1)
-                            .padding(.vertical, 2)
-                        InlineNoteText(text: note, fontSize: 15.5, lineLimit: 4)
+                            .padding(.vertical, 3)
+                    }
+
+                    if hasMoment {
+                        RecordMomentList(
+                            ott: log.ott,
+                            place: log.place,
+                            occasion: log.occasion,
+                            compact: true
+                        )
+                    }
+
+                    if hasVisibleNote {
+                        InlineNoteText(
+                            text: trimmedNote,
+                            fontSize: 14.5,
+                            lineLimit: 3,
+                            lineSpacing: 7
+                        )
+                        .padding(.top, hasMoment ? 4 : 0)
                     }
 
                     HStack(spacing: 12) {
