@@ -1,5 +1,12 @@
 # Wiki Log
 
+## [2026-11-21] release(ios): SwiftUI iOS·iPadOS v2.0.0 (26) App Store 심사 제출 (PR #137)
+
+- [PR #137](https://github.com/chawon/ott/pull/137) (`feature/ios-native-v2`, 제출 기준 커밋 `f8fa77d`).
+- 주요 반영: 최소 지원 OS `iOS 16.0` 하향, 미래의 타임라인 복구·로캘 격리(`#142`), 2단계 포스터 캐시(`NSCache` + 디스크 LRU), 온디바이스 즉시 공유 카드 생성, 도킹 하단 바, iPad `서가` 중복 및 iPhone 영어 `Together` 탭 잘림 수정.
+- 검증: `OttlineCoreTests` 18/18·`OttlineMacTests` 5/5 통과, 실기기 iPhone X (`iOS 16.7.16`) 및 iPad 10세대 설치·동작 확인.
+- 스토어 제출: `app.ottline` `2.0.0 (26)`(`MinimumOSVersion 16.0`, `OttlineWidgetExtension`·`OttlineShareExtension` 포함) App Store Connect 업로드(`EXPORT SUCCEEDED`) 및 한·영 스크린샷(iPhone 6.3" / iPad 13")·릴리즈 노트·심사 메모 입력 후 심사 제출 완료. 공개 승인·`1.0.4` 공개판 업데이트 최종 확인·PR #137 병합과 macOS v2 검수·Mac App Store 준비가 다음 단계다. [iOS Wiki](pages/platforms/native.md) · [후속 작업](../docs/changes/v2-follow-up.md#2-apple-v2-업데이트-검증) · [플랫폼 현황](../docs/platforms.md)
+
 ## [2026-11-20] deploy(api): 미래의 타임라인 추천 생성 응답 지연 단축 및 단계별 계측 (#143, PR #144)
 
 - [PR #144](https://github.com/chawon/ott/pull/144) (`main` `7e9913d`, manifest `15112e0`, `Deploy API to Production` run [`44708627801`](https://github.com/chawon/ott/actions/runs/44708627801)).

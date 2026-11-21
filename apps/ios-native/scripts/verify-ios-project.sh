@@ -10,7 +10,11 @@ grep -q 'PRODUCT_BUNDLE_IDENTIFIER: app.ottline' "$ROOT_DIR/project.yml"
 grep -q 'PRODUCT_BUNDLE_IDENTIFIER: app.ottline.QuickLogWidget' "$ROOT_DIR/project.yml"
 grep -q 'PRODUCT_BUNDLE_IDENTIFIER: app.ottline.ShareExtension' "$ROOT_DIR/project.yml"
 grep -q 'MARKETING_VERSION: "2.0.0"' "$ROOT_DIR/project.yml"
-grep -q 'CURRENT_PROJECT_VERSION: "25"' "$ROOT_DIR/project.yml"
+BUILD_NUM="$(awk -F'"' '/CURRENT_PROJECT_VERSION:/ {print $2; exit}' "$ROOT_DIR/project.yml")"
+if [[ ! "$BUILD_NUM" =~ ^[0-9]+$ ]] || (( BUILD_NUM < 25 )); then
+  echo "ERROR: CURRENT_PROJECT_VERSION must be an integer >= 25 (got: '${BUILD_NUM:-empty}')"
+  exit 1
+fi
 
 # 2. Verify Info.plist & Entitlements
 grep -q '<key>ITSAppUsesNonExemptEncryption</key>' "$ROOT_DIR/Sources/OttlineApp/Info.plist"
