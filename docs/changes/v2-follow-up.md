@@ -27,10 +27,24 @@ Windows의 서버 계정 삭제에서 요청 경로와 실패 처리의 불일�
 
 ## 2. Apple v2 업데이트 검증
 
-[PR #137](https://github.com/chawon/ott/pull/137)의 iOS·macOS CI는 통과했다. 다음 작업은 서명 빌드의 실기기 검증이다.
+[PR #137](https://github.com/chawon/ott/pull/137)(`feature/ios-native-v2`)에서 iOS·iPadOS와 macOS SwiftUI v2를 단계적으로 검증·출시한다.
 
-- iOS는 기존 App Store Expo `1.0.4` 설치에 v2 빌드를 덮어 업데이트한다. 계정, 기존 기록과 이력, 미동기화 수정이 보존되고 재실행·재연결 뒤 중복 없이 동기화되는지 확인한다. [iOS 플랫폼 상태](../../wiki/pages/platforms/native.md)
-- macOS는 서명된 설치 앱에서 Safari·Chrome의 계정과 기록 이어받기, 기존 세션이 없는 경우, 빠른 기록 제목·플랫폼 미리 채우기를 확인한다. Mac App Store 공개 여부와 웹의 연결 활성화는 각각 확인한다. [macOS 플랫폼 상태](../../wiki/pages/platforms/macos-native.md)
+### iOS / iPadOS 진행 현황 (`2026-11-21`)
+
+- **브랜치 / 제출 기준 커밋**: `feature/ios-native-v2` `f8fa77d` (`bfcfd30`~`f8fa77d`: 최소 지원 `iOS 16.0` 하향, 미래의 타임라인 복구 `#142`, 2단계 포스터 캐시, 온디바이스 즉시 공유 카드, 도킹 하단 바, iPad `서가` 중복·iPhone 영어 `Together` 탭 수정 포함)
+- **완료한 검증 및 App Store 제출**:
+  - **단위 테스트**: `OttlineCoreTests` 18/18 통과, `OttlineMacTests` 5/5 통과
+  - **실기기 검증**: 실기기 **iPhone X (`iOS 16.7.16`)** 및 **iPad 10세대**에 서명 빌드 설치·실행하여 홈·타임라인·도킹 하단 바·포스터 캐시·공유 카드 즉시 생성·앱 아이콘을 확인
+  - **App Store 제출 (`2.0.0`, build `26`)**: Release 아카이브(`CFBundleIdentifier=app.ottline`, `MinimumOSVersion=16.0`, `OttlineWidgetExtension.appex` + `OttlineShareExtension.appex` 포함)를 App Store Connect에 업로드(`EXPORT SUCCEEDED`)하고, 한국어·영어(미국) 스크린샷(iPhone 6.3" `1206×2622`, iPad 13" `2048×2732`)·릴리즈 노트·심사 메모를 입력해 **App Store 심사 제출 완료**
+- **남은 확인 (iOS)**:
+  - App Store `2.0.0 (26)` 심사 승인·공개 게시 확인 및 공개 스토어판의 기존 Expo `1.0.4` 인플레이스 업데이트 실사용 최종 확인
+  - [PR #137](https://github.com/chawon/ott/pull/137) CI 통과 확인 및 `main` 병합
+
+### macOS 남은 작업
+
+- 서명된 설치 앱에서 실기기 UI·기능 검수, App Sandbox(`com.apple.security.app-sandbox`) 활성화 검증, 공유 카드 로컬 생성 전환 점검
+- Safari·Chrome의 계정과 기록 이어받기(`?native_handoff=1` → `ottline://open?handoff=1`), 기존 세션이 없는 경우, 빠른 기록(`ottline://quick`) 제목·플랫폼 미리 채우기 확인
+- App Store Connect 신규 macOS 플랫폼 등록·제출 및 게시 URL 확인 후 웹·브라우저 확장 macOS 분기 활성화. [macOS 플랫폼 상태](../../wiki/pages/platforms/macos-native.md)
 
 ## 3. 브라우저 확장·토스·ChatGPT 앱
 

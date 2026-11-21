@@ -39,3 +39,12 @@ apps/windows-native/**/bin/
 apps/windows-native/**/obj/
 apps/windows-native/output/
 apps/windows-native/.vs/
+
+# Apple SwiftPM / XcodeGen local build & generated project artifacts
+apps/apple-core/.build/
+apps/apple-core/.swiftpm/
+apps/ios-native/Ottline.xcodeproj/
+apps/macos-native/OttlineMac.xcodeproj/
+*.xcresult
+xcuserdata/
+.DS_Store
