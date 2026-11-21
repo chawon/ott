@@ -85,8 +85,8 @@ public struct MacMySpaceSpreadView: View {
 
                 OttlineAppFooter()
             }
-            .frame(maxWidth: 1120)
-            .padding(.horizontal, 28)
+            .frame(maxWidth: 1280)
+            .padding(.horizontal, 32)
             .padding(.top, 24)
             .frame(maxWidth: .infinity)
         }
@@ -617,8 +617,15 @@ public struct MacMySpaceSpreadView: View {
                 ))
                 .font(OttlineFont.regular(13.5))
                 TextField(word, text: $deleteConfirmInput)
-                    .textFieldStyle(.roundedBorder)
-                Button(OttlineStrings.tr("영구 삭제", "Delete permanently", locale: locale)) {
+                    .textFieldStyle(.plain)
+                    .font(OttlineFont.regular(14))
+                    .foregroundStyle(palette.ink)
+                    .padding(.horizontal, 12)
+                    .frame(height: 42)
+                    .background(palette.card)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(palette.border, lineWidth: 1))
+                Button {
                     Task {
                         deletingAccount = true
                         try? await repository.deleteServerAccountAndLocalData()
@@ -628,10 +635,18 @@ public struct MacMySpaceSpreadView: View {
                         showServerDeleteSheet = false
                         toastMessage = OttlineStrings.tr("서버 데이터를 모두 삭제했어요.", "All server data deleted.", locale: locale)
                     }
+                } label: {
+                    Text(OttlineStrings.tr("영구 삭제", "Delete permanently", locale: locale))
+                        .font(OttlineFont.semiBold(14))
+                        .foregroundStyle(Color.white)
+                        .padding(.horizontal, 18)
+                        .frame(height: 42)
+                        .background(palette.danger)
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
                 }
-                .buttonStyle(.borderedProminent)
-                .tint(palette.danger)
+                .buttonStyle(.plain)
                 .disabled(!ready)
+                .opacity(ready ? 1 : 0.45)
             }
             .padding(20)
             .toolbar {
@@ -795,8 +810,9 @@ public struct MacBookshelfView: View {
                     }
                 }
             }
-            .frame(maxWidth: 1020)
-            .padding(28)
+            .frame(maxWidth: 1280)
+            .padding(.horizontal, 32)
+            .padding(.vertical, 24)
             .frame(maxWidth: .infinity)
         }
     }
@@ -892,8 +908,9 @@ public struct MacReportView: View {
                     .overlay(RoundedRectangle(cornerRadius: 8).stroke(palette.border, lineWidth: 1))
                 }
             }
-            .frame(maxWidth: 960)
-            .padding(28)
+            .frame(maxWidth: 1280)
+            .padding(.horizontal, 32)
+            .padding(.vertical, 24)
             .frame(maxWidth: .infinity)
         }
         .task {
@@ -915,170 +932,6 @@ public struct MacReportView: View {
         .background(palette.card)
         .clipShape(RoundedRectangle(cornerRadius: 8))
         .overlay(RoundedRectangle(cornerRadius: 8).stroke(palette.border, lineWidth: 1))
-    }
-}
-
-public struct MacFeedbackView: View {
-    @ObservedObject public var repository: OttlineRepository
-    public var prefilledBody: String?
-    public let onBack: () -> Void
-
-    @Environment(\.ottlinePalette) private var palette
-    @Environment(\.appLocale) private var locale
-    @State private var threads: [FeedbackThreadSummary] = []
-    @State private var bodyText: String = ""
-    @State private var sending: Bool = false
-
-    public var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 18) {
-                Button(action: onBack) {
-                    Text(OttlineStrings.tr("← 뒤로", "← Back", locale: locale))
-                        .font(OttlineFont.medium(13.5))
-                        .foregroundStyle(palette.mutedInk)
-                }
-                .buttonStyle(.plain)
-
-                Text(OttlineStrings.tr("내 문의함", "Feedback Inbox", locale: locale))
-                    .font(OttlineFont.bold(22))
-                    .foregroundStyle(palette.ink)
-
-                TextField(
-                    OttlineStrings.tr("불편한 점이나 전하고 싶은 이야기를 남겨주세요.", "Share an issue or idea.", locale: locale),
-                    text: $bodyText,
-                    axis: .vertical
-                )
-                .lineLimit(4...8)
-                .textFieldStyle(.roundedBorder)
-
-                Button {
-                    Task {
-                        let trimmed = bodyText.trimmingCharacters(in: .whitespacesAndNewlines)
-                        guard !trimmed.isEmpty, !sending else { return }
-                        sending = true
-                        _ = try? await repository.ensureAuthenticated()
-                        if (try? await repository.api.createFeedbackThread(category: .other, subject: nil, body: trimmed)) != nil {
-                            bodyText = ""
-                            threads = (try? await repository.api.getFeedbackThreads()) ?? threads
-                        }
-                        sending = false
-                    }
-                } label: {
-                    Text(sending ? OttlineStrings.tr("전송 중...", "Sending...", locale: locale) : OttlineStrings.tr("문의 보내기", "Send feedback", locale: locale))
-                        .font(OttlineFont.semiBold(14))
-                        .foregroundStyle(palette.onBrandOrange)
-                        .padding(.horizontal, 16)
-                        .frame(height: 40)
-                        .background(palette.brandOrange)
-                        .clipShape(RoundedRectangle(cornerRadius: 8))
-                }
-                .buttonStyle(.plain)
-                .disabled(bodyText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || sending)
-
-                ForEach(threads) { th in
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(th.lastMessagePreview ?? th.subject ?? th.category.rawValue)
-                            .font(OttlineFont.medium(14))
-                            .foregroundStyle(palette.ink)
-                        Text(RecordDate.formatDisplayDate(th.createdAt, locale: locale))
-                            .font(OttlineFont.regular(11.5))
-                            .foregroundStyle(palette.subtleInk)
-                    }
-                    .padding(14)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(palette.card)
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
-                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(palette.border, lineWidth: 1))
-                }
-            }
-            .frame(maxWidth: 760)
-            .padding(28)
-            .frame(maxWidth: .infinity)
-        }
-        .onAppear {
-            if let p = prefilledBody { bodyText = p }
-        }
-        .task {
-            if !(repository.prefs.snapshot.userId ?? "").isEmpty {
-                threads = (try? await repository.api.getFeedbackThreads()) ?? []
-            }
-        }
-    }
-}
-
-public enum MacInfoMode {
-    case guides, about, faq, privacy
-}
-
-public struct MacGuideInfoView: View {
-    public var initialSlug: String? = nil
-    public let mode: MacInfoMode
-    public let onBack: () -> Void
-
-    @Environment(\.ottlinePalette) private var palette
-    @Environment(\.appLocale) private var locale
-
-    public var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
-                Button(action: onBack) {
-                    Text(OttlineStrings.tr("← 뒤로", "← Back", locale: locale))
-                        .font(OttlineFont.medium(13.5))
-                        .foregroundStyle(palette.mutedInk)
-                }
-                .buttonStyle(.plain)
-
-                Text(titleText)
-                    .font(OttlineFont.bold(24))
-                    .foregroundStyle(palette.ink)
-
-                Text(bodyText)
-                    .font(OttlineFont.regular(15))
-                    .foregroundStyle(palette.ink)
-                    .lineSpacing(6)
-            }
-            .frame(maxWidth: 780)
-            .padding(28)
-            .frame(maxWidth: .infinity)
-        }
-    }
-
-    private var titleText: String {
-        switch mode {
-        case .guides: return OttlineStrings.tr("기록 가이드", "Recording guides", locale: locale)
-        case .about: return OttlineStrings.tr("ottline 소개", "About ottline", locale: locale)
-        case .faq: return OttlineStrings.tr("자주 묻는 질문", "FAQ", locale: locale)
-        case .privacy: return OttlineStrings.tr("개인정보처리방침", "Privacy Policy", locale: locale)
-        }
-    }
-
-    private var bodyText: String {
-        switch mode {
-        case .guides:
-            return OttlineStrings.tr(
-                "영화, 시리즈, 책 기록을 한 곳에 모아두고 그날의 플랫폼·장소·함께한 사람을 부담 없이 남길 수 있어요. 맥에서는 ⌘N으로 새 기록을 열고 메뉴바에서도 바로 기록할 수 있습니다.",
-                "Keep your film, series, and book memories in one personal timeline. On macOS, press ⌘N or use the menu bar quick logger anytime.",
-                locale: locale
-            )
-        case .about:
-            return OttlineStrings.tr(
-                "ottline은 보고 읽은 순간을 나의 타임라인에 조용히 모아두는 개인 감상 수첩입니다. 웹·iOS·Android·macOS를 하나의 연결 코드로 이어 쓸 수 있습니다.",
-                "ottline is a quiet personal recordbook for stories you watch and read, kept seamlessly across web, iOS, Android, and macOS.",
-                locale: locale
-            )
-        case .faq:
-            return OttlineStrings.tr(
-                "Q. 기록은 다른 사람에게 보이나요?\n아니요. 직접 ‘함께 나누기’로 댓글을 남기기 전까지 내 기록은 나에게만 보입니다.\n\nQ. 개별 기록 삭제가 없나요?\nottline은 감상 변화의 맥락을 소중히 여겨 수정 이력(‘남겨온 기록’)으로 남깁니다. 전체 초기화는 내 공간에서 지원합니다.",
-                "Q. Are my records public?\nNo. Your timeline stays private until you explicitly choose to share a note or card.",
-                locale: locale
-            )
-        case .privacy:
-            return OttlineStrings.tr(
-                "ottline은 최소한의 기기 연결 식별자 외에 개인정보를 요구하지 않으며, 내 공간의 ‘서버 데이터 전체 삭제’를 통해 언제든 계정의 모든 기록과 기기 연결을 영구 삭제할 수 있습니다.",
-                "ottline works without login credentials and lets you permanently delete all synced server data anytime from My Space.",
-                locale: locale
-            )
-        }
     }
 }
 
@@ -1347,52 +1200,32 @@ public struct MacShareCardDialog: View {
     private func renderCard() async {
         rendering = true
         let snap = repository.prefs.snapshot
-        let feeling = includeRating
-            ? RecordFeelings.resolveFeeling(rating: log.rating, isBook: log.title.type == .book, locale: locale)
-            : nil
-        let ratingValueInt: Int? = feeling.map {
-            switch $0.value {
-            case 3: return 5
-            case 2: return 3
-            default: return 1
-            }
-        }
         let hasNote = !(log.note?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true) && !log.spoiler
-        let noteValue = (includeNote && hasNote) ? log.note?.trimmingCharacters(in: .whitespacesAndNewlines) : nil
         let trimmedNick = snap.nickname?.trimmingCharacters(in: .whitespacesAndNewlines)
         let signatureEnabled = snap.isProfileComplete && includeSignature && (trimmedNick?.isEmpty == false) && snap.personaKey != nil
-        let avatarUrl = signatureEnabled ? snap.personaKey.map { "/avatars/storybook/\($0.rawValue).webp" } : nil
 
-        let payload = LogShareCardRequestPayload(
-            title: log.title.name,
-            titleType: log.title.type.rawValue,
-            format: ratioKey == "9:16" ? "story" : "feed",
-            note: (noteValue?.isEmpty == false) ? noteValue : nil,
-            statusLabel: OttlineStrings.statusLabel(log.status, type: log.title.type, locale: locale),
-            ratingLabel: feeling?.label,
-            ratingValue: ratingValueInt,
-            date: RecordDate.formatDotDate(log.watchedAt.isEmpty ? log.createdAt : log.watchedAt),
-            posterUrl: log.seasonPosterUrl ?? log.title.posterUrl,
-            showProfileSignature: signatureEnabled,
-            profileNickname: signatureEnabled ? trimmedNick : nil,
-            profileAvatarUrl: avatarUrl,
-            profilePersonaKey: signatureEnabled ? snap.personaKey?.rawValue : nil
+        // Render locally on-device (matching iOS & Android native) using cached poster art so preview & toggles finish in <150ms.
+        let image = await MacImageExportHelper.renderShareCardImage(
+            log: log,
+            ratioKey: ratioKey,
+            showRatingLabel: includeRating,
+            includeNote: includeNote && hasNote,
+            includeSignature: signatureEnabled,
+            nickname: trimmedNick,
+            personaKey: snap.personaKey,
+            locale: locale
         )
+        renderedImage = image
 
-        if let data = try? await repository.api.renderServerShareCard(payload),
-           let img = NSImage(data: data) {
-            renderedPngData = data
-            renderedImage = img
-            dragTempFileUrl = MacImageExportHelper.writeTempSharePng(data: data, titleName: log.title.name)
-        } else {
-            let fallback = MacImageExportHelper.renderFallbackShareCard(log: log, ratioKey: ratioKey, locale: locale)
-            let fallbackData = MacImageExportHelper.pngData(from: fallback)
-            renderedPngData = fallbackData
-            renderedImage = fallback
-            if let fallbackData {
-                dragTempFileUrl = MacImageExportHelper.writeTempSharePng(data: fallbackData, titleName: log.title.name)
-            }
-        }
+        let titleName = log.title.name
+        let encoded: (Data?, URL?) = await Task.detached(priority: .userInitiated) {
+            let png = MacImageExportHelper.pngData(from: image)
+            let url = png.flatMap { MacImageExportHelper.writeTempSharePng(data: $0, titleName: titleName) }
+            return (png, url)
+        }.value
+
+        renderedPngData = encoded.0
+        dragTempFileUrl = encoded.1
         rendering = false
     }
 }
@@ -1525,67 +1358,298 @@ public enum MacImageExportHelper {
         }
     }
 
+    private static func pretendardFont(name: String, size: CGFloat, weight: NSFont.Weight) -> NSFont {
+        NSFont(name: name, size: size) ?? NSFont.systemFont(ofSize: size, weight: weight)
+    }
+
+    private static func extractAdaptiveDarkColors(from image: NSImage?) -> (top: NSColor, content: NSColor) {
+        let fallbackTop = nsColor(hex: 0x0B0C10)
+        let fallbackContent = nsColor(hex: 0x0B1224)
+        guard let cg = image?.cgImage(forProposedRect: nil, context: nil, hints: nil) else {
+            return (fallbackTop, fallbackContent)
+        }
+        var pixel = [UInt8](repeating: 0, count: 4)
+        guard let ctx = CGContext(
+            data: &pixel,
+            width: 1,
+            height: 1,
+            bitsPerComponent: 8,
+            bytesPerRow: 4,
+            space: CGColorSpaceCreateDeviceRGB(),
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        ) else {
+            return (fallbackTop, fallbackContent)
+        }
+        ctx.interpolationQuality = .medium
+        ctx.draw(cg, in: CGRect(x: 0, y: 0, width: 1, height: 1))
+        let r = CGFloat(pixel[0]) / 255.0
+        let g = CGFloat(pixel[1]) / 255.0
+        let b = CGFloat(pixel[2]) / 255.0
+        if r + g + b < 0.05 {
+            return (fallbackTop, fallbackContent)
+        }
+        let top = NSColor(srgbRed: max(0.04, r * 0.20), green: max(0.04, g * 0.20), blue: max(0.06, b * 0.20), alpha: 1.0)
+        let content = NSColor(srgbRed: max(0.04, r * 0.25), green: max(0.05, g * 0.25), blue: max(0.08, b * 0.25), alpha: 1.0)
+        return (top, content)
+    }
+
+    private static func drawAspectFill(image: NSImage, in box: CGRect, verticalAnchor: CGFloat, cg: CGContext) {
+        let imgSize = image.size
+        guard imgSize.width > 0, imgSize.height > 0 else { return }
+        let scale = max(box.width / imgSize.width, box.height / imgSize.height)
+        let drawW = imgSize.width * scale
+        let drawH = imgSize.height * scale
+        let dx = box.minX + (box.width - drawW) * 0.5
+        let dy = box.minY - max(0, drawH - box.height) * verticalAnchor
+        cg.saveGState()
+        cg.addRect(box)
+        cg.clip()
+        image.draw(
+            in: CGRect(x: dx, y: dy, width: drawW, height: drawH),
+            from: .zero,
+            operation: .sourceOver,
+            fraction: 1.0,
+            respectFlipped: true,
+            hints: [.interpolation: NSImageInterpolation.high]
+        )
+        cg.restoreGState()
+    }
+
+    private static func drawWrappedText(
+        _ text: String,
+        font: NSFont,
+        color: NSColor,
+        x: CGFloat,
+        y: CGFloat,
+        maxWidth: CGFloat,
+        maxHeight: CGFloat
+    ) -> CGRect {
+        let style = NSMutableParagraphStyle()
+        style.lineBreakMode = .byWordWrapping
+        style.lineSpacing = 6
+        let attrs: [NSAttributedString.Key: Any] = [
+            .font: font,
+            .foregroundColor: color,
+            .paragraphStyle: style
+        ]
+        let ns = text as NSString
+        let bound = ns.boundingRect(
+            with: CGSize(width: maxWidth, height: maxHeight),
+            options: [.usesLineFragmentOrigin, .usesFontLeading],
+            attributes: attrs
+        )
+        let drawRect = CGRect(x: x, y: y, width: maxWidth, height: min(maxHeight, ceil(bound.height)))
+        ns.draw(in: drawRect, withAttributes: attrs)
+        return drawRect
+    }
+
+    /// Instant on-device share card renderer (`1080×1920` Story or `1080×1350` Feed) using `OttlinePosterImageCache`.
+    public static func renderShareCardImage(
+        log: WatchLog,
+        ratioKey: String,
+        showRatingLabel: Bool = true,
+        includeNote: Bool = true,
+        includeSignature: Bool = false,
+        nickname: String? = nil,
+        personaKey: PersonaKey? = nil,
+        locale: String = "ko"
+    ) async -> NSImage {
+        let rawPoster = (log.seasonPosterUrl?.isEmpty == false ? log.seasonPosterUrl : log.title.posterUrl)
+        let candidateUrls = MacFeaturedPosterView.candidateUrls(posterUrl: rawPoster, titleType: log.title.type)
+        let posterImage = await OttlinePosterImageCache.shared.loadFirstAvailable(urls: candidateUrls)
+        return await MainActor.run {
+            drawShareCard(
+                log: log,
+                posterImage: posterImage,
+                ratioKey: ratioKey,
+                showRatingLabel: showRatingLabel,
+                includeNote: includeNote,
+                includeSignature: includeSignature,
+                nickname: nickname,
+                personaKey: personaKey,
+                locale: locale
+            )
+        }
+    }
+
     @MainActor
     public static func renderFallbackShareCard(log: WatchLog, ratioKey: String, locale: String) -> NSImage {
-        let size = ratioKey == "9:16" ? CGSize(width: 540, height: 960) : CGSize(width: 540, height: 675)
-        return drawBitmapImage(pointSize: size) { _, bounds in
-            nsColor(hex: 0x0B1224).setFill()
-            bounds.fill()
+        let hasNote = !(log.note?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true) && !log.spoiler
+        return drawShareCard(
+            log: log,
+            posterImage: nil,
+            ratioKey: ratioKey,
+            showRatingLabel: true,
+            includeNote: hasNote,
+            includeSignature: false,
+            nickname: nil,
+            personaKey: nil,
+            locale: locale
+        )
+    }
 
-            let pad: CGFloat = 36
-            let contentWidth = bounds.width - pad * 2
-            var cursorY = bounds.height * 0.44
+    @MainActor
+    private static func drawShareCard(
+        log: WatchLog,
+        posterImage: NSImage?,
+        ratioKey: String,
+        showRatingLabel: Bool,
+        includeNote: Bool,
+        includeSignature: Bool,
+        nickname: String?,
+        personaKey: PersonaKey?,
+        locale: String
+    ) -> NSImage {
+        let isFeed = ratioKey != "9:16"
+        let w: CGFloat = 1080
+        let h: CGFloat = isFeed ? 1350 : 1920
+        let scale: CGFloat = isFeed ? 0.8 : 1.0
+        func s(_ val: CGFloat) -> CGFloat { (val * scale).rounded() }
+        let isBook = log.title.type == .book
 
-            let statusText = OttlineStrings.statusLabel(log.status, type: log.title.type, locale: locale)
-            let statusAttrs: [NSAttributedString.Key: Any] = [
-                .font: NSFont.systemFont(ofSize: 16, weight: .bold),
-                .foregroundColor: nsColor(hex: 0xFF9933)
-            ]
-            (statusText as NSString).draw(
-                in: CGRect(x: pad, y: cursorY, width: contentWidth, height: 24),
-                withAttributes: statusAttrs
-            )
-            cursorY += 34
+        let (topColor, contentBgColor) = extractAdaptiveDarkColors(from: posterImage)
 
-            let titlePara = NSMutableParagraphStyle()
-            titlePara.lineBreakMode = .byWordWrapping
-            let titleAttrs: [NSAttributedString.Key: Any] = [
-                .font: NSFont.systemFont(ofSize: 32, weight: .bold),
-                .foregroundColor: NSColor.white,
-                .paragraphStyle: titlePara
-            ]
-            let titleNs = log.title.name as NSString
-            let titleBound = titleNs.boundingRect(
-                with: CGSize(width: contentWidth, height: 140),
-                options: [.usesLineFragmentOrigin, .usesFontLeading],
-                attributes: titleAttrs
-            )
-            let titleHeight = ceil(titleBound.height)
-            titleNs.draw(in: CGRect(x: pad, y: cursorY, width: contentWidth, height: titleHeight), withAttributes: titleAttrs)
-            cursorY += titleHeight + 18
+        return drawBitmapImage(pointSize: CGSize(width: w, height: h), scale: 1.0) { cg, _ in
+            let topHeight = h * 0.70
 
-            if let note = log.note?.trimmingCharacters(in: .whitespacesAndNewlines), !note.isEmpty, !log.spoiler {
-                let notePara = NSMutableParagraphStyle()
-                notePara.lineBreakMode = .byWordWrapping
-                let noteAttrs: [NSAttributedString.Key: Any] = [
-                    .font: NSFont.systemFont(ofSize: 18, weight: .regular),
-                    .foregroundColor: NSColor.white.withAlphaComponent(0.9),
-                    .paragraphStyle: notePara
+            topColor.setFill()
+            cg.fill(CGRect(x: 0, y: 0, width: w, height: topHeight))
+            contentBgColor.setFill()
+            cg.fill(CGRect(x: 0, y: topHeight, width: w, height: h - topHeight))
+
+            if let posterImage {
+                drawAspectFill(
+                    image: posterImage,
+                    in: CGRect(x: 0, y: 0, width: w, height: topHeight),
+                    verticalAnchor: isBook ? 0.0 : 0.12,
+                    cg: cg
+                )
+            } else {
+                let fallbackFont = pretendardFont(name: "Pretendard-Bold", size: s(52), weight: .bold)
+                let attrs: [NSAttributedString.Key: Any] = [
+                    .font: fallbackFont,
+                    .foregroundColor: NSColor.white.withAlphaComponent(0.35)
                 ]
-                let maxNoteHeight = max(24, bounds.height - pad - 44 - cursorY)
-                (note as NSString).draw(
-                    in: CGRect(x: pad, y: cursorY, width: contentWidth, height: maxNoteHeight),
-                    withAttributes: noteAttrs
+                (log.title.name as NSString).draw(
+                    in: CGRect(x: s(88), y: topHeight * 0.4, width: w - s(176), height: s(200)),
+                    withAttributes: attrs
                 )
             }
 
-            let footerAttrs: [NSAttributedString.Key: Any] = [
-                .font: NSFont.systemFont(ofSize: 14, weight: .semibold),
-                .foregroundColor: NSColor.white.withAlphaComponent(0.65)
-            ]
-            ("ottline.app" as NSString).draw(
-                in: CGRect(x: pad, y: bounds.height - pad - 20, width: contentWidth, height: 22),
-                withAttributes: footerAttrs
+            // Gradient fade at bottom 36% of poster area
+            let gradTop = topHeight * 0.64
+            let colors = [contentBgColor.withAlphaComponent(0.0).cgColor, contentBgColor.cgColor] as CFArray
+            if let gradient = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(), colors: colors, locations: [0.0, 1.0]) {
+                cg.saveGState()
+                cg.addRect(CGRect(x: 0, y: gradTop, width: w, height: topHeight - gradTop + 2))
+                cg.clip()
+                cg.drawLinearGradient(
+                    gradient,
+                    start: CGPoint(x: 0, y: gradTop),
+                    end: CGPoint(x: 0, y: topHeight + 2),
+                    options: []
+                )
+                cg.restoreGState()
+            }
+
+            // Content Stack
+            let contentLeft = s(88)
+            let maxWidth = w - s(176)
+            var cursorY = topHeight + s(64)
+
+            let titleFont = pretendardFont(name: "Pretendard-Bold", size: s(isBook ? 64 : 84), weight: .bold)
+            let titleText = String(log.title.name.prefix(60))
+            let titleRect = drawWrappedText(
+                titleText,
+                font: titleFont,
+                color: .white,
+                x: contentLeft,
+                y: cursorY,
+                maxWidth: maxWidth,
+                maxHeight: s(190)
+            )
+            cursorY += titleRect.height + s(18)
+
+            if includeNote, !log.spoiler, let note = log.note?.trimmingCharacters(in: .whitespacesAndNewlines), !note.isEmpty {
+                let clamped = "“\(String(note.replacingOccurrences(of: "\n", with: " ").prefix(isBook ? 120 : 80)))”"
+                let noteFont = pretendardFont(name: "Pretendard-Medium", size: s(isBook ? 40 : 38), weight: .medium)
+                let noteColor = nsColor(hex: 0xDBE4FF)
+                let noteRect = drawWrappedText(
+                    clamped,
+                    font: noteFont,
+                    color: noteColor,
+                    x: contentLeft,
+                    y: cursorY,
+                    maxWidth: maxWidth,
+                    maxHeight: s(130)
+                )
+                cursorY += noteRect.height + s(18)
+            }
+
+            // Capsule pills
+            let statusLabel = OttlineStrings.statusLabel(log.status, type: log.title.type, locale: locale)
+            let feelingLabel = showRatingLabel
+                ? RecordFeelings.resolveFeeling(rating: log.rating, isBook: isBook, locale: locale)?.label
+                : nil
+            let dateStr = RecordDate.formatDotDate(log.watchedAt.isEmpty ? log.createdAt : log.watchedAt)
+
+            var pills = [statusLabel]
+            if let feelingLabel { pills.append(feelingLabel) }
+            pills.append(dateStr)
+
+            let pillFont = pretendardFont(name: "Pretendard-SemiBold", size: s(isBook ? 26 : 28), weight: .semibold)
+            let pillTextColor = nsColor(hex: 0xCBD5F5)
+            var pillX = contentLeft
+            let pillH = s(48)
+
+            for pill in pills {
+                let textSize = (pill as NSString).size(withAttributes: [.font: pillFont])
+                let pillW = textSize.width + s(32)
+                let rect = CGRect(x: pillX, y: cursorY, width: pillW, height: pillH)
+                let path = NSBezierPath(roundedRect: rect, xRadius: pillH / 2, yRadius: pillH / 2)
+                NSColor.white.withAlphaComponent(0.08).setFill()
+                path.fill()
+                (pill as NSString).draw(
+                    at: CGPoint(x: pillX + s(16), y: cursorY + (pillH - textSize.height) / 2),
+                    withAttributes: [.font: pillFont, .foregroundColor: pillTextColor]
+                )
+                pillX += pillW + s(12)
+            }
+
+            // Footer signature with real persona avatar asset when available
+            let footerY = h - s(92)
+            let wmFont = pretendardFont(name: "Pretendard-Medium", size: s(26), weight: .medium)
+            var textX = contentLeft
+            let trimmedNick = nickname?.trimmingCharacters(in: .whitespacesAndNewlines)
+            let showSig = includeSignature && (trimmedNick?.isEmpty == false)
+            if showSig,
+               let pKey = personaKey,
+               let preset = OttlineStrings.personaPresets.first(where: { $0.key == pKey }),
+               let avatarImg = NSImage(named: NSImage.Name(preset.assetName)) {
+                let avatarSize = s(40)
+                let avatarRect = CGRect(x: contentLeft, y: footerY - s(6), width: avatarSize, height: avatarSize)
+                cg.saveGState()
+                NSBezierPath(roundedRect: avatarRect, xRadius: s(12), yRadius: s(12)).addClip()
+                avatarImg.draw(
+                    in: avatarRect,
+                    from: .zero,
+                    operation: .sourceOver,
+                    fraction: 1.0,
+                    respectFlipped: true,
+                    hints: [.interpolation: NSImageInterpolation.high]
+                )
+                cg.restoreGState()
+                textX += avatarSize + s(16)
+            }
+            let footerText: String = {
+                if showSig, let nick = trimmedNick {
+                    return "\(nick) · by ottline.app"
+                }
+                return "ottline.app"
+            }()
+            (footerText as NSString).draw(
+                at: CGPoint(x: textX, y: footerY),
+                withAttributes: [.font: wmFont, .foregroundColor: NSColor.white.withAlphaComponent(0.75)]
             )
         }
     }

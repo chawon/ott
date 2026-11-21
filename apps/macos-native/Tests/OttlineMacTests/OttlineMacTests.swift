@@ -46,14 +46,40 @@ final class OttlineMacTests: XCTestCase {
         XCTAssertEqual(count, 1)
         XCTAssertEqual(repo.logs.first?.id, "mac-shared-1")
 
-        // Verify share card PNG generation & temporary file export for NSSharingServicePicker
+        // Verify on-device share card PNG generation (`1080x1920` Story & `1080x1350` Feed) & temporary file export
         let sampleLog = repo.logs.first!
+        let storyImg = await MacImageExportHelper.renderShareCardImage(
+            log: sampleLog,
+            ratioKey: "9:16",
+            showRatingLabel: true,
+            includeNote: true,
+            includeSignature: true,
+            nickname: "밤산책",
+            personaKey: .cinemaKeeper,
+            locale: "ko"
+        )
+        let storyRep = try XCTUnwrap(storyImg.representations.compactMap { $0 as? NSBitmapImageRep }.first)
+        XCTAssertEqual(storyRep.pixelsWide, 1080)
+        XCTAssertEqual(storyRep.pixelsHigh, 1920)
+
+        let feedImg = await MacImageExportHelper.renderShareCardImage(
+            log: sampleLog,
+            ratioKey: "4:5",
+            showRatingLabel: true,
+            includeNote: true,
+            includeSignature: false,
+            locale: "en"
+        )
+        let feedRep = try XCTUnwrap(feedImg.representations.compactMap { $0 as? NSBitmapImageRep }.first)
+        XCTAssertEqual(feedRep.pixelsWide, 1080)
+        XCTAssertEqual(feedRep.pixelsHigh, 1350)
+
         let cardImg = await MainActor.run {
             MacImageExportHelper.renderFallbackShareCard(log: sampleLog, ratioKey: "9:16", locale: "ko")
         }
         XCTAssertGreaterThan(cardImg.size.width, 0)
-        guard let pngData = MacImageExportHelper.pngData(from: cardImg) else {
-            return XCTFail("Expected PNG data from fallback share card")
+        guard let pngData = MacImageExportHelper.pngData(from: storyImg) else {
+            return XCTFail("Expected PNG data from on-device share card")
         }
         XCTAssertGreaterThan(pngData.count, 8)
         XCTAssertEqual(Array(pngData.prefix(4)), [0x89, 0x50, 0x4E, 0x47])

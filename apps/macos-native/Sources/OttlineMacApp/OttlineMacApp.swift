@@ -90,12 +90,8 @@ private final class MacRepositoryHolder: ObservableObject {
         let repo = OttlineRepository(db: db, prefs: prefs, api: api)
         self.repository = repo
         self.cancellable = repo.objectWillChange.sink { [weak self] _ in
-            if Thread.isMainThread {
+            DispatchQueue.main.async {
                 self?.objectWillChange.send()
-            } else {
-                DispatchQueue.main.async {
-                    self?.objectWillChange.send()
-                }
             }
         }
     }
@@ -185,7 +181,10 @@ public struct OttlineMacApp: App {
         MenuBarExtra(
             isInserted: Binding(
                 get: { repository?.prefs.snapshot.macosMenuBarEnabled ?? false },
-                set: { repository?.prefs.setMacosMenuBarEnabled($0) }
+                set: { newValue in
+                    guard repository?.prefs.snapshot.macosMenuBarEnabled != newValue else { return }
+                    repository?.prefs.setMacosMenuBarEnabled(newValue)
+                }
             )
         ) {
             if let repository {

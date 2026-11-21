@@ -27,11 +27,19 @@ public final class OttlineRepository: ObservableObject, @unchecked Sendable {
     public let prefs: AppPreferences
     public let api: OttlineApiClient
 
-    @Published public private(set) var logs: [WatchLog] = []
-    @Published public private(set) var logSyncStatuses: [String: String] = [:]
-    @Published public private(set) var outboxCount: Int = 0
-    @Published public private(set) var bookClassifications: [String: BookClassificationItemDto] = [:]
-    @Published public private(set) var syncState: SyncState = SyncState()
+    private let stateLock = NSLock()
+    private var _logs: [WatchLog] = []
+    private var _logSyncStatuses: [String: String] = [:]
+    private var _outboxCount: Int = 0
+    private var _bookClassifications: [String: BookClassificationItemDto] = [:]
+    private var _syncState: SyncState = SyncState()
+    private var pendingChangeNotify: Bool = false
+
+    public var logs: [WatchLog] { stateLock.withLock { _logs } }
+    public var logSyncStatuses: [String: String] { stateLock.withLock { _logSyncStatuses } }
+    public var outboxCount: Int { stateLock.withLock { _outboxCount } }
+    public var bookClassifications: [String: BookClassificationItemDto] { stateLock.withLock { _bookClassifications } }
+    public var syncState: SyncState { stateLock.withLock { _syncState } }
 
     private let syncLock = NSLock()
     private var isSyncingFlag = false
@@ -42,19 +50,38 @@ public final class OttlineRepository: ObservableObject, @unchecked Sendable {
     public static let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "2.0.0"
     public static let buildNumber = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "25"
 
+    private func publishChange() {
+        let shouldSchedule: Bool = stateLock.withLock {
+            if pendingChangeNotify { return false }
+            pendingChangeNotify = true
+            return true
+        }
+        guard shouldSchedule else { return }
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            self.stateLock.withLock { self.pendingChangeNotify = false }
+            self.objectWillChange.send()
+        }
+    }
+
+    private func updateSyncState(_ next: SyncState) {
+        let changed: Bool = stateLock.withLock {
+            if _syncState == next { return false }
+            _syncState = next
+            return true
+        }
+        if changed {
+            publishChange()
+        }
+    }
+
     public init(db: OttlineDatabase, prefs: AppPreferences, api: OttlineApiClient) {
         self.db = db
         self.prefs = prefs
         self.api = api
 
         self.prefsCancellable = prefs.objectWillChange.sink { [weak self] _ in
-            if Thread.isMainThread {
-                self?.objectWillChange.send()
-            } else {
-                DispatchQueue.main.async {
-                    self?.objectWillChange.send()
-                }
-            }
+            self?.publishChange()
         }
 
         // Seamless v1 -> v2 migration on first startup
@@ -72,10 +99,13 @@ public final class OttlineRepository: ObservableObject, @unchecked Sendable {
         let statuses = db.getLogSyncStatuses()
         let count = db.outboxCount()
         let cls = db.getAllBookClassifications()
-        self.logs = activeLogs
-        self.logSyncStatuses = statuses
-        self.outboxCount = count
-        self.bookClassifications = cls
+        stateLock.withLock {
+            self._logs = activeLogs
+            self._logSyncStatuses = statuses
+            self._outboxCount = count
+            self._bookClassifications = cls
+        }
+        publishChange()
         prefs.updateWidgetSnapshot(from: activeLogs)
         SpotlightIndexManager.shared.syncLogs(activeLogs, locale: prefs.snapshot.locale)
         RecapNotificationManager.shared.refreshEveningReminderIfEnabled(logs: activeLogs, prefs: prefs)
@@ -359,7 +389,7 @@ public final class OttlineRepository: ObservableObject, @unchecked Sendable {
         prefs.clearAccountSession()
         SpotlightIndexManager.shared.clearAll()
         reloadFromLocalDb()
-        syncState = SyncState(status: .idle)
+        updateSyncState(SyncState(status: .idle))
     }
 
     // MARK: - 2. Local-First Recording & Revision History ("낙장불입")
@@ -631,12 +661,12 @@ public final class OttlineRepository: ObservableObject, @unchecked Sendable {
                 continue
             }
 
-            syncState = SyncState(status: .syncing, lastSyncedAt: syncState.lastSyncedAt)
+            updateSyncState(SyncState(status: .syncing, lastSyncedAt: syncState.lastSyncedAt))
 
             do {
                 let auth = try await ensureAuthenticated()
                 guard let userId = auth.userId, let deviceId = auth.deviceId else {
-                    syncState = SyncState(status: .idle)
+                    updateSyncState(SyncState(status: .idle))
                     releaseSyncLock()
                     return false
                 }
@@ -683,17 +713,17 @@ public final class OttlineRepository: ObservableObject, @unchecked Sendable {
 
                 let nowIso = RecordDate.nowIso()
                 reloadFromLocalDb()
-                syncState = SyncState(status: .idle, lastSyncedAt: nowIso, errorMessage: nil)
+                updateSyncState(SyncState(status: .idle, lastSyncedAt: nowIso, errorMessage: nil))
                 lastSucceeded = true
             } catch {
                 let pendingIds = pending.filter { $0.entityType == "LOG" }.map(\.entityId)
                 db.markLogsSyncStatus(ids: pendingIds, status: "FAILED")
                 reloadFromLocalDb()
-                syncState = SyncState(
+                updateSyncState(SyncState(
                     status: .failed,
                     lastSyncedAt: syncState.lastSyncedAt,
                     errorMessage: error.localizedDescription
-                )
+                ))
                 releaseSyncLock()
                 return false
             }
@@ -954,7 +984,7 @@ public final class OttlineRepository: ObservableObject, @unchecked Sendable {
         prefs.clearAccountSession()
         SpotlightIndexManager.shared.clearAll()
         reloadFromLocalDb()
-        syncState = SyncState(status: .idle)
+        updateSyncState(SyncState(status: .idle))
     }
 
     public func deleteServerAccountAndLocalData() async throws {

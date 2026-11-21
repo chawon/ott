@@ -18,6 +18,7 @@ fi
 # 2. Verify Info.plist & Entitlements
 grep -q '<key>ATSApplicationFontsPath</key>' "$ROOT_DIR/Sources/OttlineMacApp/Info.plist"
 grep -q '<key>ITSAppUsesNonExemptEncryption</key>' "$ROOT_DIR/Sources/OttlineMacApp/Info.plist"
+grep -q '<key>com.apple.security.app-sandbox</key>' "$ROOT_DIR/Sources/OttlineMacApp/OttlineMacApp.entitlements"
 grep -q '<key>com.apple.security.network.client</key>' "$ROOT_DIR/Sources/OttlineMacApp/OttlineMacApp.entitlements"
 
 # 3. Verify Pretendard OTF fonts exist in shared Fonts directory

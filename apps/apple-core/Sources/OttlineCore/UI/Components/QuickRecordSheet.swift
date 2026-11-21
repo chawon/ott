@@ -58,6 +58,9 @@ public struct QuickRecordSheet: View {
     @Environment(\.appLocale) private var locale
     @Environment(\.openURL) private var openURL
     @FocusState private var searchFieldFocused: Bool
+    #if os(macOS)
+    @FocusState private var macSheetTopFocus: Bool
+    #endif
 
     @State private var stage: QuickRecordStage = .search
     @State private var initializedRequestId: String?
@@ -121,11 +124,107 @@ public struct QuickRecordSheet: View {
         self.onOpenTitleDetail = onOpenTitleDetail
         self.onOpenPublicDiscussion = onOpenPublicDiscussion
         self.onOpenShareCard = onOpenShareCard
+
+        let normalizedTab = request.initialTypeTab.lowercased()
+        let allowedTabs: Set<String> = ["all", "movie", "series", "book"]
+        var initStage: QuickRecordStage = .search
+        var initTitle: Title? = nil
+        var initGoogleUrl: String? = nil
+        var initSavedLog: WatchLog? = nil
+        var initEditing = false
+        var initStatus: LogStatus? = request.preferredStatus
+        var initDate = Date()
+        var initPlatform = request.prefilledPlatform ?? ""
+        var initPlace: Place? = nil
+        var initOccasion: Occasion? = nil
+        var initRating: Double? = nil
+        var initSeason: Int? = nil
+        var initEpisode: Int? = nil
+        var initSeasonPoster: String? = nil
+        var initSeasonYear: Int? = nil
+        var initNote = ""
+        var initSpoiler = false
+        var initMomentExpanded = false
+
+        if let existing = request.existingLog {
+            initStage = .edit
+            initEditing = true
+            initTitle = existing.title
+            initSavedLog = existing
+            initStatus = existing.status
+            initDate = RecordDate.parseDate(existing.watchedAt) ?? Date()
+            initPlatform = existing.ott ?? ""
+            initPlace = existing.place
+            initOccasion = existing.occasion
+            initRating = existing.rating
+            initSeason = existing.seasonNumber
+            initEpisode = existing.episodeNumber
+            initSeasonPoster = existing.seasonPosterUrl
+            initSeasonYear = existing.seasonYear
+            initNote = existing.note ?? ""
+            initSpoiler = existing.spoiler
+            initMomentExpanded = !request.openNoteStage
+        } else if let preTitle = request.preselectedTitle ?? request.preselectedSearchItem?.toNewTitle() {
+            let finalTitle = repository.findMatchingLocalTitle(preTitle) ?? preTitle
+            initTitle = finalTitle
+            initGoogleUrl = request.preselectedSearchItem?.resolvedGoogleBooksUrl
+            if let existing = repository.db.getActiveLogsByTitleId(finalTitle.id).first {
+                initSavedLog = existing
+                initStatus = existing.status
+                initDate = RecordDate.parseDate(existing.watchedAt) ?? Date()
+                initPlatform = existing.ott ?? initPlatform
+                initPlace = existing.place
+                initOccasion = existing.occasion
+                initRating = existing.rating
+                initSeason = existing.seasonNumber
+                initEpisode = existing.episodeNumber
+                initSeasonPoster = existing.seasonPosterUrl
+                initSeasonYear = existing.seasonYear
+                initNote = existing.note ?? ""
+                initSpoiler = existing.spoiler
+            }
+            initMomentExpanded = false
+            initStage = .status
+        }
+
+        self._stage = State(initialValue: initStage)
+        self._initializedRequestId = State(initialValue: request.id)
+        self._query = State(initialValue: request.initialQuery)
+        self._searchTab = State(initialValue: allowedTabs.contains(normalizedTab) ? normalizedTab : "all")
+        self._videoOnlyInitialFilter = State(initialValue: normalizedTab == "video")
+        self._selectedTitle = State(initialValue: initTitle)
+        self._googleBooksInfoUrl = State(initialValue: initGoogleUrl)
+        self._savedLog = State(initialValue: initSavedLog)
+        self._isEditingExisting = State(initialValue: initEditing)
+        self._chosenStatus = State(initialValue: initStatus)
+        self._watchedDate = State(initialValue: initDate)
+        self._selectedPlatform = State(initialValue: initPlatform)
+        self._selectedPlace = State(initialValue: initPlace)
+        self._selectedOccasion = State(initialValue: initOccasion)
+        self._feelingScore = State(initialValue: initRating)
+        self._selectedSeason = State(initialValue: initSeason)
+        self._selectedEpisode = State(initialValue: initEpisode)
+        self._seasonPosterUrl = State(initialValue: initSeasonPoster)
+        self._seasonYear = State(initialValue: initSeasonYear)
+        self._noteText = State(initialValue: initNote)
+        self._spoiler = State(initialValue: initSpoiler)
+        self._momentExpanded = State(initialValue: initMomentExpanded)
     }
 
     public var body: some View {
-        VStack(spacing: 0) {
+        let base = VStack(spacing: 0) {
             headerView
+                #if os(macOS)
+                .overlay(alignment: .topLeading) {
+                    // Keep macOS initial sheet focus anchored at the top so `.edit` / `.status` sheets
+                    // never auto-scroll down to the bottom `noteText` field when the slide animation completes.
+                    Color.clear
+                        .frame(width: 1, height: 1)
+                        .focusable()
+                        .focusEffectDisabled()
+                        .focused($macSheetTopFocus)
+                }
+                #endif
             Divider().overlay(palette.border)
 
             switch stage {
@@ -142,12 +241,16 @@ public struct QuickRecordSheet: View {
             if initializedRequestId != request.id {
                 initializedRequestId = request.id
                 initializeFromRequest()
+            } else if request.existingLog == nil,
+                      let t = selectedTitle,
+                      request.preselectedTitle != nil || request.preselectedSearchItem != nil {
+                repository.trackTitleSelect(t, source: request.selectSource ?? "preselected")
             }
             if stage == .search && request.autoFocusSearch {
                 try? await Task.sleep(nanoseconds: 80_000_000)
                 searchFieldFocused = true
             }
-            if recentDiscussions.isEmpty && popularSuggestions.isEmpty {
+            if stage == .search && recentDiscussions.isEmpty && popularSuggestions.isEmpty {
                 await loadInitialSuggestions()
             }
         }
@@ -160,6 +263,16 @@ public struct QuickRecordSheet: View {
         .task(id: selectedSeason) {
             await loadEpisodesForSelectedSeason()
         }
+
+        #if os(macOS)
+        if #available(macOS 14.0, *), stage != .search {
+            base.defaultFocus($macSheetTopFocus, true)
+        } else {
+            base
+        }
+        #else
+        base
+        #endif
     }
 
     // MARK: - Header (`QuickLogDialog.tsx` + `recording.module.css` Mobile 1:1 Parity)

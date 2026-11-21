@@ -116,8 +116,8 @@ public struct MacTimelineSpreadView: View {
 
                             OttlineAppFooter(bottomPadding: 0)
                         }
-                        .frame(maxWidth: 1120, alignment: .leading)
-                        .padding(.horizontal, 28)
+                        .frame(maxWidth: 1280, alignment: .leading)
+                        .padding(.horizontal, 32)
                         .frame(maxWidth: .infinity)
                     }
                 }
@@ -153,8 +153,8 @@ public struct MacTimelineSpreadView: View {
                         OttlineAppFooter(bottomPadding: 28)
                             .padding(.top, 24)
                     }
-                    .frame(maxWidth: 1120, alignment: .leading)
-                    .padding(.horizontal, 28)
+                    .frame(maxWidth: 1280, alignment: .leading)
+                    .padding(.horizontal, 32)
                     .padding(.top, 24)
                     .frame(maxWidth: .infinity)
                 }
@@ -1174,7 +1174,7 @@ public struct MacTogetherSpreadView: View {
         }
 
         VStack(spacing: 0) {
-            HStack(alignment: .top, spacing: 20) {
+            HStack(alignment: .top, spacing: 24) {
                 // Left Pane: Curated Prompts & Discussion List
                 VStack(alignment: .leading, spacing: 12) {
                     Text(OttlineStrings.tr("함께 기록", "TOGETHER", locale: locale))
@@ -1198,7 +1198,7 @@ public struct MacTogetherSpreadView: View {
                     .clipShape(RoundedRectangle(cornerRadius: 8))
                     .overlay(RoundedRectangle(cornerRadius: 8).stroke(palette.border, lineWidth: 1))
 
-                    ScrollView {
+                    ScrollView(.vertical, showsIndicators: false) {
                         VStack(alignment: .leading, spacing: 10) {
                             if !curated.isEmpty && searchQuery.isEmpty {
                                 Text(OttlineStrings.tr("오늘의 글감", "Curated prompts", locale: locale))
@@ -1269,12 +1269,14 @@ public struct MacTogetherSpreadView: View {
                                 }
                             }
                         }
+                        .padding(.bottom, 28)
                     }
+                    .scrollIndicators(.never)
                 }
                 .frame(width: 360)
 
                 // Right Pane: Selected Title & Full Comments Reader
-                ScrollView {
+                ScrollView(.vertical, showsIndicators: false) {
                     if let disc = selectedDiscussion {
                         let discTitle = Title(
                             id: disc.titleId,
@@ -1384,9 +1386,10 @@ public struct MacTogetherSpreadView: View {
                             .frame(maxWidth: .infinity, minHeight: 240)
                     }
                 }
+                .scrollIndicators(.never)
             }
-            .frame(maxWidth: 1120)
-            .padding(.horizontal, 28)
+            .frame(maxWidth: 1280)
+            .padding(.horizontal, 32)
             .padding(.top, 24)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }

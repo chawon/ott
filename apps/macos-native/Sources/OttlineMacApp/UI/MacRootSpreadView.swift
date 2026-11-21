@@ -8,6 +8,9 @@ public struct MacRootSpreadView: View {
 
     @Environment(\.colorScheme) private var systemColorScheme
     @Environment(\.scenePhase) private var scenePhase
+    @State private var showSplash: Bool = {
+        ProcessInfo.processInfo.environment["OTTLINE_SKIP_SPLASH"] != "1"
+    }()
 
     public init(repository: OttlineRepository, appState: OttlineMacAppState) {
         self._repository = ObservedObject(wrappedValue: repository)
@@ -32,8 +35,9 @@ public struct MacRootSpreadView: View {
             }
         }()
 
-        VStack(spacing: 0) {
-            MacAppHeader(
+        ZStack {
+            VStack(spacing: 0) {
+                MacAppHeader(
                 repository: repository,
                 activeTab: appState.activeTab,
                 themeMode: snap.themeMode,
@@ -116,9 +120,28 @@ public struct MacRootSpreadView: View {
                         .background(palette.background.ignoresSafeArea())
                 }
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+            .background(palette.background.ignoresSafeArea())
+
+            if showSplash {
+                OttlineIntroSplashOverlay(nickname: snap.nickname) {
+                    showSplash = false
+                }
+                .transition(.opacity)
+                .zIndex(999)
+            }
         }
         .background(palette.background.ignoresSafeArea())
+        .onChange(of: appState.quickRecordRequest != nil) { _, hasRequest in
+            if hasRequest && showSplash { showSplash = false }
+        }
+        .onChange(of: appState.isImportingBrowserHandoff) { _, importing in
+            if importing && showSplash { showSplash = false }
+        }
+        .onChange(of: appState.overlayStack.isEmpty) { _, isEmpty in
+            if !isEmpty && showSplash { showSplash = false }
+        }
         .environment(\.ottlinePalette, palette)
         .environment(\.appLocale, snap.locale)
         .environment(\.openOttlineOverlay) { target in
@@ -148,16 +171,19 @@ public struct MacRootSpreadView: View {
                     appState.shareCardLog = log
                 }
             )
-            .frame(minWidth: 680, idealWidth: 740, minHeight: 680, idealHeight: 780)
+            .frame(width: 720, height: 740)
             .environment(\.ottlinePalette, palette)
             .environment(\.appLocale, snap.locale)
             .preferredColorScheme(preferredScheme)
         }
-        .sheet(item: $appState.shareCardLog) { log in
-            MacShareCardDialog(log: log, repository: repository)
-                .environment(\.ottlinePalette, palette)
-                .environment(\.appLocale, snap.locale)
-                .preferredColorScheme(preferredScheme)
+        .background {
+            Color.clear
+                .sheet(item: $appState.shareCardLog) { log in
+                    MacShareCardDialog(log: log, repository: repository)
+                        .environment(\.ottlinePalette, palette)
+                        .environment(\.appLocale, snap.locale)
+                        .preferredColorScheme(preferredScheme)
+                }
         }
         .onChange(of: scenePhase) { _, nextPhase in
             if nextPhase == .active {
@@ -197,20 +223,15 @@ public struct MacRootSpreadView: View {
     private func desktopOverlayView(for screen: ActiveOverlayScreen, palette: OttlinePalette, locale: String) -> some View {
         switch screen {
         case .titleDetail(let tid):
-            ScrollView {
-                TitleDetailScreen(
-                    titleId: tid,
-                    repository: repository,
-                    onBack: { _ = appState.overlayStack.popLast() },
-                    onOpenQuickRecord: { req in appState.quickRecordRequest = req },
-                    onOpenTitleDetail: { nextTid in appState.overlayStack.append(.titleDetail(nextTid)) },
-                    onOpenShareCard: { log in appState.shareCardLog = log },
-                    onReportUgc: { prefill in appState.overlayStack.append(.feedback(prefill)) }
-                )
-                .frame(maxWidth: 960)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 16)
-            }
+            TitleDetailScreen(
+                titleId: tid,
+                repository: repository,
+                onBack: { _ = appState.overlayStack.popLast() },
+                onOpenQuickRecord: { req in appState.quickRecordRequest = req },
+                onOpenTitleDetail: { nextTid in appState.overlayStack.append(.titleDetail(nextTid)) },
+                onOpenShareCard: { log in appState.shareCardLog = log },
+                onReportUgc: { prefill in appState.overlayStack.append(.feedback(prefill)) }
+            )
         case .publicDiscussion(let did):
             MacTogetherSpreadView(repository: repository, appState: appState, initialDiscussionId: did)
         case .report:
@@ -239,13 +260,58 @@ public struct MacRootSpreadView: View {
                 onBack: { _ = appState.overlayStack.popLast() }
             )
         case .guides(let slug):
-            MacGuideInfoView(initialSlug: slug, mode: .guides, onBack: { _ = appState.overlayStack.popLast() })
+            MacGuideInfoView(
+                initialSlug: slug,
+                mode: .guides,
+                onBack: { _ = appState.overlayStack.popLast() },
+                onOpenQuickRecord: { contentType in
+                    appState.quickRecordRequest = QuickRecordRequest(initialTypeTab: contentType, autoFocusSearch: true)
+                },
+                onOpenOverlay: { next in appState.overlayStack.append(next) },
+                onOpenMySpace: {
+                    appState.overlayStack.removeAll()
+                    appState.activeTab = .mySpace
+                }
+            )
         case .about:
-            MacGuideInfoView(mode: .about, onBack: { _ = appState.overlayStack.popLast() })
+            MacGuideInfoView(
+                mode: .about,
+                onBack: { _ = appState.overlayStack.popLast() },
+                onOpenQuickRecord: { contentType in
+                    appState.quickRecordRequest = QuickRecordRequest(initialTypeTab: contentType, autoFocusSearch: true)
+                },
+                onOpenOverlay: { next in appState.overlayStack.append(next) },
+                onOpenMySpace: {
+                    appState.overlayStack.removeAll()
+                    appState.activeTab = .mySpace
+                }
+            )
         case .faq:
-            MacGuideInfoView(mode: .faq, onBack: { _ = appState.overlayStack.popLast() })
+            MacGuideInfoView(
+                mode: .faq,
+                onBack: { _ = appState.overlayStack.popLast() },
+                onOpenQuickRecord: { contentType in
+                    appState.quickRecordRequest = QuickRecordRequest(initialTypeTab: contentType, autoFocusSearch: true)
+                },
+                onOpenOverlay: { next in appState.overlayStack.append(next) },
+                onOpenMySpace: {
+                    appState.overlayStack.removeAll()
+                    appState.activeTab = .mySpace
+                }
+            )
         case .privacy:
-            MacGuideInfoView(mode: .privacy, onBack: { _ = appState.overlayStack.popLast() })
+            MacGuideInfoView(
+                mode: .privacy,
+                onBack: { _ = appState.overlayStack.popLast() },
+                onOpenQuickRecord: { contentType in
+                    appState.quickRecordRequest = QuickRecordRequest(initialTypeTab: contentType, autoFocusSearch: true)
+                },
+                onOpenOverlay: { next in appState.overlayStack.append(next) },
+                onOpenMySpace: {
+                    appState.overlayStack.removeAll()
+                    appState.activeTab = .mySpace
+                }
+            )
         }
     }
 }
@@ -378,6 +444,7 @@ public struct MacAppHeader: View {
                 .fill(palette.border)
                 .frame(height: 1)
                 .frame(maxWidth: 1280)
+                .padding(.horizontal, 32)
         }
     }
 

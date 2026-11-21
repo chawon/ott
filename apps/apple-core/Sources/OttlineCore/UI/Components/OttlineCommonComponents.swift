@@ -9,6 +9,7 @@ public enum TopLevelTab: String, CaseIterable, Sendable {
 
 /// Isolates a heavy SwiftUI section into its own `View.body` stack frame with a fixed-size type-erased wrapper,
 /// preventing arm64 Debug (`-Onone`) stack overflows in large multi-branch SwiftUI views on physical iOS devices.
+#if os(iOS)
 public struct OttlineDeferredSection: View {
     private let build: () -> AnyView
 
@@ -20,6 +21,19 @@ public struct OttlineDeferredSection: View {
         build()
     }
 }
+#else
+public struct OttlineDeferredSection<Content: View>: View {
+    private let build: () -> Content
+
+    public init(@ViewBuilder _ content: @escaping () -> Content) {
+        self.build = content
+    }
+
+    public var body: some View {
+        build()
+    }
+}
+#endif
 
 // MARK: - 1. Brand Mark (Open-Book + Play Triangle)
 
@@ -1495,6 +1509,155 @@ public extension EnvironmentValues {
     }
 }
 
+// MARK: - 8B. Custom Warm Select Dropdown (`DESIGN.md` 8px Cookpad Selectbox)
+
+public struct OttlineSelectOption<Value: Hashable>: Identifiable {
+    public let value: Value
+    public let label: String
+    public var id: Value { value }
+
+    public init(value: Value, label: String) {
+        self.value = value
+        self.label = label
+    }
+}
+
+public enum OttlineSelectBackgroundStyle {
+    case card
+    case background
+}
+
+public struct OttlineSelectDropdown<Value: Hashable>: View {
+    @Binding public var selection: Value
+    public let options: [OttlineSelectOption<Value>]
+    public var prefix: String = ""
+    public var compact: Bool = false
+    public var fullWidth: Bool = false
+    public var backgroundStyle: OttlineSelectBackgroundStyle = .card
+
+    @Environment(\.ottlinePalette) private var palette
+    @State private var isOpen: Bool = false
+    @State private var isHovered: Bool = false
+    @State private var hoveredOption: Value?
+
+    public init(
+        selection: Binding<Value>,
+        options: [OttlineSelectOption<Value>],
+        prefix: String = "",
+        compact: Bool = false,
+        fullWidth: Bool = false,
+        backgroundStyle: OttlineSelectBackgroundStyle = .card
+    ) {
+        self._selection = selection
+        self.options = options
+        self.prefix = prefix
+        self.compact = compact
+        self.fullWidth = fullWidth
+        self.backgroundStyle = backgroundStyle
+    }
+
+    public var body: some View {
+        let currentLabel = options.first(where: { $0.value == selection })?.label ?? ""
+        let fillColor: Color = {
+            if isHovered {
+                return palette.paperStrong
+            }
+            switch backgroundStyle {
+            case .card: return palette.card
+            case .background: return palette.background
+            }
+        }()
+
+        Button {
+            isOpen.toggle()
+        } label: {
+            HStack(spacing: compact ? 6 : 8) {
+                Text("\(prefix)\(currentLabel)")
+                    .font(compact ? OttlineFont.medium(12.5) : OttlineFont.regular(14))
+                    .foregroundStyle(palette.ink)
+                    .lineLimit(1)
+                if fullWidth {
+                    Spacer(minLength: 4)
+                }
+                OttlineLucideIcon(
+                    kind: isOpen ? .chevronUp : .chevronDown,
+                    size: compact ? 13 : 14,
+                    color: isOpen ? palette.primaryAccent : palette.mutedInk,
+                    strokeWidth: 2
+                )
+            }
+            .padding(.horizontal, compact ? 12 : 14)
+            .frame(minHeight: compact ? 32 : 44)
+            .frame(maxWidth: fullWidth ? .infinity : nil, alignment: .leading)
+            .background(fillColor)
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+            .overlay(
+                RoundedRectangle(cornerRadius: 8)
+                    .stroke(isOpen ? palette.primaryAccent : palette.border, lineWidth: isOpen ? 1.5 : 1)
+            )
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .onHover { hovering in
+            isHovered = hovering
+        }
+        .popover(isPresented: $isOpen, arrowEdge: .bottom) {
+            dropdownListContent
+        }
+    }
+
+    @ViewBuilder
+    private var dropdownListContent: some View {
+        let content = VStack(alignment: .leading, spacing: 4) {
+            ForEach(options) { option in
+                let selected = option.value == selection
+                let rowHovered = hoveredOption == option.value
+                Button {
+                    selection = option.value
+                    isOpen = false
+                } label: {
+                    HStack(spacing: 10) {
+                        Text(option.label)
+                            .font(selected ? OttlineFont.semiBold(13.5) : OttlineFont.regular(13.5))
+                            .foregroundStyle(selected ? palette.primaryAccent : palette.ink)
+                            .lineLimit(1)
+                        Spacer(minLength: 12)
+                        if selected {
+                            OttlineLucideIcon(kind: .check, size: 14, color: palette.primaryAccent, strokeWidth: 2.4)
+                        }
+                    }
+                    .padding(.horizontal, 12)
+                    .frame(minWidth: compact ? 150 : 188, minHeight: 36, alignment: .leading)
+                    .background(
+                        selected
+                            ? palette.paperStrong
+                            : (rowHovered ? palette.mutedBg.opacity(0.65) : Color.clear)
+                    )
+                    .clipShape(RoundedRectangle(cornerRadius: 6))
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .onHover { inside in
+                    hoveredOption = inside ? option.value : (hoveredOption == option.value ? nil : hoveredOption)
+                }
+            }
+        }
+        .padding(6)
+        .background(palette.card)
+        .environment(\.ottlinePalette, palette)
+
+        #if os(iOS)
+        if #available(iOS 16.4, *) {
+            content.presentationCompactAdaptation(.popover)
+        } else {
+            content
+        }
+        #else
+        content
+        #endif
+    }
+}
+
 // MARK: - 9. Shared v2 Components (`RecordFeelingsPicker`, `RecordMomentList`, `InlineNoteText`, `FlowLayout`, Footer, Reactions, Comments)
 
 public struct FlowLayout: Layout {
@@ -2175,45 +2338,22 @@ public struct CommentsPanelView: View {
 
                         Spacer()
 
-                        Menu {
-                            Button {
-                                sortOrder = "oldest"
-                                visibleCount = 5
-                            } label: {
-                                HStack {
-                                    Text(OttlineStrings.tr("오래된 순", "Oldest", locale: locale))
-                                    if sortOrder == "oldest" {
-                                        Image(systemName: "checkmark")
-                                    }
+                        OttlineSelectDropdown(
+                            selection: Binding(
+                                get: { sortOrder },
+                                set: { next in
+                                    sortOrder = next
+                                    visibleCount = 5
                                 }
-                            }
-                            Button {
-                                sortOrder = "latest"
-                                visibleCount = 5
-                            } label: {
-                                HStack {
-                                    Text(OttlineStrings.tr("최신 순", "Latest", locale: locale))
-                                    if sortOrder == "latest" {
-                                        Image(systemName: "checkmark")
-                                    }
-                                }
-                            }
-                        } label: {
-                            HStack(spacing: 4) {
-                                Text("\(OttlineStrings.tr("정렬", "Sort", locale: locale)): \(sortOrder == "oldest" ? OttlineStrings.tr("오래된 순", "Oldest", locale: locale) : OttlineStrings.tr("최신 순", "Latest", locale: locale))")
-                                    .font(OttlineFont.medium(12))
-                                    .foregroundStyle(palette.ink)
-                                OttlineLucideIcon(kind: .chevronDown, size: 13, color: palette.mutedInk, strokeWidth: 2)
-                            }
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 5)
-                            .background(palette.card)
-                            .clipShape(RoundedRectangle(cornerRadius: 7))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 7)
-                                    .stroke(palette.border, lineWidth: 1)
-                            )
-                        }
+                            ),
+                            options: [
+                                OttlineSelectOption(value: "oldest", label: OttlineStrings.tr("오래된 순", "Oldest", locale: locale)),
+                                OttlineSelectOption(value: "latest", label: OttlineStrings.tr("최신 순", "Latest", locale: locale))
+                            ],
+                            prefix: "\(OttlineStrings.tr("정렬", "Sort", locale: locale)): ",
+                            compact: true,
+                            backgroundStyle: .card
+                        )
                     }
 
                     let currentUserId = repository.prefs.snapshot.userId

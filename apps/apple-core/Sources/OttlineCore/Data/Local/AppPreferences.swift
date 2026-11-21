@@ -192,8 +192,32 @@ public final class AppPreferences: ObservableObject {
     private let keychainService: String
     public let sessionId: String = UUID().uuidString.lowercased()
 
-    @Published public private(set) var snapshot: PreferencesSnapshot
-    @Published public private(set) var activationDismissedInSession: Bool = false
+    private let stateLock = NSLock()
+    private var _snapshot: PreferencesSnapshot
+    private var _activationDismissedInSession: Bool = false
+    private var pendingChangeNotify: Bool = false
+
+    public var snapshot: PreferencesSnapshot {
+        stateLock.withLock { _snapshot }
+    }
+
+    public var activationDismissedInSession: Bool {
+        stateLock.withLock { _activationDismissedInSession }
+    }
+
+    private func publishChange() {
+        let shouldSchedule: Bool = stateLock.withLock {
+            if pendingChangeNotify { return false }
+            pendingChangeNotify = true
+            return true
+        }
+        guard shouldSchedule else { return }
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            self.stateLock.withLock { self.pendingChangeNotify = false }
+            self.objectWillChange.send()
+        }
+    }
 
     public static var defaultGroupDefaults: UserDefaults? {
         #if os(macOS)
@@ -211,17 +235,18 @@ public final class AppPreferences: ObservableObject {
         self.defaults = defaults
         self.groupDefaults = groupDefaults
         self.keychainService = keychainService
-        self.snapshot = Self.loadSnapshot(
+        let initial = Self.loadSnapshot(
             defaults: defaults,
             groupDefaults: groupDefaults,
             keychainService: keychainService,
             sessionId: sessionId
         )
-        groupDefaults?.set(self.snapshot.locale, forKey: "ottline.v2.locale")
-        if let uid = self.snapshot.userId, !uid.isEmpty {
+        self._snapshot = initial
+        groupDefaults?.set(initial.locale, forKey: "ottline.v2.locale")
+        if let uid = initial.userId, !uid.isEmpty {
             groupDefaults?.set(uid, forKey: "ottline.v2.user_id")
         }
-        if let did = self.snapshot.deviceId, !did.isEmpty {
+        if let did = initial.deviceId, !did.isEmpty {
             groupDefaults?.set(did, forKey: "ottline.v2.device_id")
         }
     }
@@ -299,12 +324,20 @@ public final class AppPreferences: ObservableObject {
     }
 
     private func reload() {
-        snapshot = Self.loadSnapshot(
+        let next = Self.loadSnapshot(
             defaults: defaults,
             groupDefaults: groupDefaults,
             keychainService: keychainService,
             sessionId: sessionId
         )
+        let changed: Bool = stateLock.withLock {
+            if _snapshot == next { return false }
+            _snapshot = next
+            return true
+        }
+        if changed {
+            publishChange()
+        }
     }
 
     public func saveAuth(
@@ -361,15 +394,29 @@ public final class AppPreferences: ObservableObject {
         defaults.removeObject(forKey: "ottline.v2.last_sync_user_id")
         defaults.set(false, forKey: "ottline.v2.single_device_reminder_shown")
         defaults.removeObject(forKey: Self.pendingRecommendationRequestsKey)
-        activationDismissedInSession = false
+        let dismissedChanged: Bool = stateLock.withLock {
+            let prev = _activationDismissedInSession
+            _activationDismissedInSession = false
+            return prev != false
+        }
         Self.deleteKeychain(service: keychainService, key: "user_id")
         Self.deleteKeychain(service: keychainService, key: "device_id")
         Self.deleteKeychain(service: keychainService, key: "pairing_code")
         reload()
+        if dismissedChanged {
+            publishChange()
+        }
     }
 
     public func dismissActivationForSession() {
-        activationDismissedInSession = true
+        let changed: Bool = stateLock.withLock {
+            if _activationDismissedInSession { return false }
+            _activationDismissedInSession = true
+            return true
+        }
+        if changed {
+            publishChange()
+        }
     }
 
     public func setLocale(_ locale: String) {
@@ -446,6 +493,9 @@ public final class AppPreferences: ObservableObject {
     }
 
     public func setMacosMenuBarEnabled(_ enabled: Bool) {
+        if snapshot.macosMenuBarEnabled == enabled {
+            return
+        }
         defaults.set(enabled, forKey: "ottline.v2.macos_menubar_enabled")
         reload()
     }

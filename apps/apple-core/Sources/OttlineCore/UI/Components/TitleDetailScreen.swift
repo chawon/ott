@@ -102,10 +102,12 @@ public struct TitleDetailScreen: View {
         }
         #else
         GeometryReader { detailGeo in
+            let useTwoColumnSpread = detailGeo.size.width >= 820
+
             ScrollView {
                 OttlineStickyFooterLayout(
                     minHeight: detailGeo.size.height,
-                    topPadding: 8,
+                    topPadding: 24,
                     bottomPadding: 28,
                     minSpacing: 20
                 ) {
@@ -113,8 +115,18 @@ public struct TitleDetailScreen: View {
                         topBar
 
                         if let title = resolvedTitle {
-                            primaryDetailColumn(title: title)
-                            secondaryDetailColumn(title: title)
+                            if useTwoColumnSpread {
+                                HStack(alignment: .top, spacing: 28) {
+                                    primaryDetailColumn(title: title)
+                                        .frame(width: 400, alignment: .topLeading)
+
+                                    secondaryDetailColumn(title: title)
+                                        .frame(maxWidth: .infinity, alignment: .topLeading)
+                                }
+                            } else {
+                                primaryDetailColumn(title: title)
+                                secondaryDetailColumn(title: title)
+                            }
                         } else {
                             loadingTitleView
                         }
@@ -122,7 +134,9 @@ public struct TitleDetailScreen: View {
 
                     OttlineAppFooter(bottomPadding: 0)
                 }
-                .padding(.horizontal, 16)
+                .frame(maxWidth: 1280, alignment: .leading)
+                .padding(.horizontal, 32)
+                .frame(maxWidth: .infinity)
             }
         }
         .background(palette.background)
