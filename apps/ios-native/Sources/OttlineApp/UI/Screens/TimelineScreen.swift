@@ -1241,7 +1241,7 @@ public struct TimelineScreen: View {
                                         .foregroundStyle(palette.primaryAccent)
                                 }
                                 if isBook, locale == "ko", let kdcMajor {
-                                    Text("\(BookshelfBuilder.kdcSectionName(major: kdcMajor, locale: locale)) 서가")
+                                    Text(BookshelfBuilder.kdcSectionName(major: kdcMajor, locale: locale))
                                         .font(OttlineFont.medium(11))
                                         .foregroundStyle(palette.primaryAccent)
                                         .lineLimit(1)
@@ -1320,7 +1320,7 @@ public struct TimelineScreen: View {
                 let author = log.title.author?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
                 if !author.isEmpty { return author }
                 if locale == "ko", let kdcMajor {
-                    return "\(BookshelfBuilder.kdcSectionName(major: kdcMajor, locale: locale)) 서가"
+                    return BookshelfBuilder.kdcSectionName(major: kdcMajor, locale: locale)
                 }
                 return nil
             } else {
