@@ -1,0 +1,12 @@
+{
+  "images" : [
+    {
+      "filename" : "avatar_midnight_logger.png",
+      "idiom" : "universal"
+    }
+  ],
+  "info" : {
+    "author" : "xcode",
+    "version" : 1
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "images" : [
+    {
+      "filename" : "avatar_archive_collector.png",
+      "idiom" : "universal"
+    }
+  ],
+  "info" : {
+    "author" : "xcode",
+    "version" : 1
+  }
+}

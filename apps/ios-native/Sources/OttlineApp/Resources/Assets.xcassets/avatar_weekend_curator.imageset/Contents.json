@@ -1,0 +1,12 @@
+{
+  "images" : [
+    {
+      "filename" : "avatar_weekend_curator.png",
+      "idiom" : "universal"
+    }
+  ],
+  "info" : {
+    "author" : "xcode",
+    "version" : 1
+  }
+}

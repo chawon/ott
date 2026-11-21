@@ -1,6 +1,6 @@
 # iOS 앱
 
-기준일 2026-11-20. iOS는 App Store에서 Expo 기반 `1.0.4`를 배포 중이며 SwiftUI 기반 v2의 통합 PR이 열려 있다.
+기준일 2026-11-21. App Store 공개판은 Expo 기반 `1.0.4 (24)`이며, SwiftUI 네이티브 v2 `2.0.0 (26)`이 App Store 심사에 제출된 상태다.
 
 ## 운영 앱
 
@@ -19,9 +19,10 @@
 
 ## SwiftUI v2 전환
 
-- [PR #137](https://github.com/chawon/ott/pull/137)의 `feature/ios-native-v2` 브랜치가 iOS `apps/ios-native`, macOS `apps/macos-native`, 공통 SwiftPM 패키지 `apps/apple-core`를 함께 추가한다.
-- iOS v2에서 Expo SecureStore·SQLite 이전, WidgetKit, 공유 확장, Siri 단축어, Handoff, iPad 레이아웃을 구현했다. PR의 [iOS SwiftUI CI](https://github.com/chawon/ott/actions/runs/44558347502)와 [macOS SwiftUI CI](https://github.com/chawon/ott/actions/runs/44558347464)가 성공했다.
-- PR 병합, 실제 iPhone의 1.0.4 업데이트와 데이터 이전 검증, v2 TestFlight·App Store 배포는 확인이 남아 있다.
+- [PR #137](https://github.com/chawon/ott/pull/137)의 `feature/ios-native-v2` 브랜치가 iOS `apps/ios-native`(`iOS 16.0+`), macOS `apps/macos-native`, 공통 SwiftPM 패키지 `apps/apple-core`를 함께 추가한다.
+- iOS v2에서 Expo SecureStore·SQLite 이전, WidgetKit, 공유 확장, Siri 단축어, Handoff, iPad 2컬럼 레이아웃, 2단계 포스터 캐시, 온디바이스 공유 카드 생성, 미래의 타임라인 복구(`#142`)를 구현했다.
+- `2026-11-21` 커밋 `f8fa77d` 기준으로 실기기(iPhone X `iOS 16.7.16`, iPad 10세대) 검증을 마치고, Release 빌드 **`2.0.0 (26)`**(`OttlineWidgetExtension`·`OttlineShareExtension` 포함)을 App Store Connect에 업로드해 한·영 스크린샷과 함께 **App Store 심사 제출**을 완료했다.
+- App Store `2.0.0 (26)` 심사 승인·공개 게시, 공개 스토어판 기준 기존 Expo `1.0.4` 업데이트 실사용 확인, PR #137 병합이 남아 있다. [v2 후속 작업](../../../docs/changes/v2-follow-up.md#2-apple-v2-업데이트-검증)
 
 ## 관련 문서
 
