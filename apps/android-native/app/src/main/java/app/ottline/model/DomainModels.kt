@@ -510,23 +510,6 @@ data class CreateCommentRequest(
 )
 
 @Serializable
-data class CuratedContent(
-    val id: String,
-    val titleId: String,
-    val titleName: String,
-    val titleType: TitleType = TitleType.MOVIE,
-    val titleYear: Int? = null,
-    val posterUrl: String? = null,
-    val kind: String = "",
-    val body: String,
-    val actorKey: String = "",
-    val actorType: String = "AI_CURATOR",
-    val actorDisplayName: String = "",
-    val disclosure: String = "",
-    val publishedAt: String = ""
-)
-
-@Serializable
 data class RecommendationItem(
     val name: String,
     val type: TitleType = TitleType.MOVIE,

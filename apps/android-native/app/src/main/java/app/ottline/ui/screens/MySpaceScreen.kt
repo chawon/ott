@@ -86,6 +86,7 @@ import app.ottline.ui.components.PersonaAvatar
 import app.ottline.ui.i18n.LocalAppLocale
 import app.ottline.ui.i18n.OttlineStrings
 import app.ottline.ui.i18n.tr
+import app.ottline.ui.layout.LocalAdaptiveLayoutMetrics
 import app.ottline.ui.theme.LocalOttlinePalette
 import app.ottline.ui.util.CardExporter
 import kotlinx.coroutines.launch
@@ -113,6 +114,7 @@ fun MySpaceScreen(
     val context = LocalContext.current
     val locale = LocalAppLocale.current
     val palette = LocalOttlinePalette.current
+    val metrics = LocalAdaptiveLayoutMetrics.current
     val scope = rememberCoroutineScope()
 
     // Profile editor progressive disclosure state (collapsed by default — U03)
@@ -198,7 +200,7 @@ fun MySpaceScreen(
     }
 
     LazyColumn(
-        contentPadding = PaddingValues(horizontal = 18.dp, vertical = 16.dp),
+        contentPadding = PaddingValues(horizontal = metrics.horizontalPadding, vertical = 16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
         modifier = Modifier.fillMaxSize()
     ) {

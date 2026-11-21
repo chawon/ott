@@ -87,6 +87,7 @@ import app.ottline.ui.components.noSwipeNav
 import app.ottline.ui.i18n.LocalAppLocale
 import app.ottline.ui.i18n.OttlineStrings
 import app.ottline.ui.i18n.tr
+import app.ottline.ui.layout.LocalAdaptiveLayoutMetrics
 import app.ottline.ui.theme.LocalOttlinePalette
 import app.ottline.ui.util.CardExporter
 import java.time.LocalDate
@@ -113,6 +114,7 @@ fun TimelineScreen(
     val context = LocalContext.current
     val locale = LocalAppLocale.current
     val palette = LocalOttlinePalette.current
+    val metrics = LocalAdaptiveLayoutMetrics.current
     val scope = rememberCoroutineScope()
 
     val contentTypeTab = filterState.typeFilter
@@ -328,7 +330,7 @@ fun TimelineScreen(
     }
 
     LazyColumn(
-        contentPadding = PaddingValues(horizontal = 18.dp, vertical = 16.dp),
+        contentPadding = PaddingValues(horizontal = metrics.horizontalPadding, vertical = 16.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
         modifier = Modifier.fillMaxSize()
     ) {

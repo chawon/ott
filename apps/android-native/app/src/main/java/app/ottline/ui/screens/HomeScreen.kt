@@ -94,6 +94,7 @@ import app.ottline.ui.components.noSwipeNav
 import app.ottline.ui.i18n.LocalAppLocale
 import app.ottline.ui.i18n.OttlineStrings
 import app.ottline.ui.i18n.tr
+import app.ottline.ui.layout.LocalAdaptiveLayoutMetrics
 import app.ottline.ui.theme.LocalOttlinePalette
 
 private const val HOME_DISCUSSION_LIMIT = 6
@@ -121,6 +122,7 @@ fun HomeScreen(
     val context = LocalContext.current
     val locale = LocalAppLocale.current
     val palette = LocalOttlinePalette.current
+    val metrics = LocalAdaptiveLayoutMetrics.current
     val primaryAccent = if (palette.isDark) palette.ink else palette.brandNavy
 
     val doneLogs = remember(logs) {
@@ -236,7 +238,12 @@ fun HomeScreen(
         !activationDismissed
 
     LazyColumn(
-        contentPadding = PaddingValues(start = 18.dp, end = 18.dp, top = 24.dp, bottom = 36.dp),
+        contentPadding = PaddingValues(
+            start = metrics.horizontalPadding,
+            end = metrics.horizontalPadding,
+            top = 24.dp,
+            bottom = 36.dp
+        ),
         modifier = Modifier.fillMaxSize()
     ) {
         // 1. Editorial Header (`HomeTimelineView.tsx` lines 205–241 + `timeline.module.css` lines 835–875)

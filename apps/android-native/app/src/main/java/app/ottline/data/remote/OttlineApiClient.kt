@@ -10,7 +10,6 @@ import app.ottline.model.CreateCommentRequest
 import app.ottline.model.CreateDiscussionRequest
 import app.ottline.model.CreateFeedbackMessageRequest
 import app.ottline.model.CreateFeedbackThreadRequest
-import app.ottline.model.CuratedContent
 import app.ottline.model.DeviceInfo
 import app.ottline.model.Discussion
 import app.ottline.model.DiscussionListItem
@@ -419,11 +418,6 @@ class OttlineApiClient(
             bodyJson = json.encodeToString(ToggleReactionRequest(type)),
             includeAuth = true
         )
-
-    suspend fun getCuratedContents(limit: Int = 6): List<CuratedContent> =
-        runCatching {
-            executeJson<List<CuratedContent>>("/curated-contents?limit=$limit")
-        }.getOrDefault(emptyList())
 
     // --- Recommendations, Report, Feedback, Analytics ---
 

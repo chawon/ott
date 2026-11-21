@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -57,6 +58,7 @@ import app.ottline.ui.components.RecordFeelingBadge
 import app.ottline.ui.i18n.LocalAppLocale
 import app.ottline.ui.i18n.OttlineStrings
 import app.ottline.ui.i18n.tr
+import app.ottline.ui.layout.LocalAdaptiveLayoutMetrics
 import app.ottline.ui.theme.LocalOttlinePalette
 
 /**
@@ -78,6 +80,7 @@ fun TitleDetailScreen(
 ) {
     val locale = LocalAppLocale.current
     val palette = LocalOttlinePalette.current
+    val metrics = LocalAdaptiveLayoutMetrics.current
 
     val reactiveLog = remember(allLogs, titleId) {
         allLogs.firstOrNull { it.title.id == titleId }
@@ -136,13 +139,17 @@ fun TitleDetailScreen(
         }
     }
 
-    LazyColumn(
-        contentPadding = PaddingValues(horizontal = 18.dp, vertical = 14.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-        modifier = Modifier.fillMaxSize()
-    ) {
-        item {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+    val currentTitle = title
+    if (metrics.titleDetailTwoColumn && currentTitle != null) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = metrics.horizontalPadding, vertical = 14.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(bottom = 12.dp)
+            ) {
                 IconButton(onClick = onBack) {
                     Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = tr("뒤로", "Back"), tint = palette.ink)
                 }
@@ -152,350 +159,136 @@ fun TitleDetailScreen(
                     color = palette.ink
                 )
             }
-        }
 
-        val currentTitle = title
-        if (loading && currentTitle == null) {
-            item {
-                CircularProgressIndicator(color = palette.brandNavy)
-            }
-        } else if (currentTitle == null) {
-            item {
-                Text(tr("작품 정보를 불러오지 못했어요.", "Could not load this title."), color = palette.danger)
-            }
-        } else {
-            // Title Overview Card
-            item {
-                Surface(
-                    shape = RoundedCornerShape(10.dp),
-                    color = palette.card,
-                    border = BorderStroke(1.dp, palette.border),
-                    modifier = Modifier.fillMaxWidth()
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(20.dp),
+                modifier = Modifier.weight(1f)
+            ) {
+                LazyColumn(
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    contentPadding = PaddingValues(bottom = 28.dp),
+                    modifier = Modifier
+                        .weight(1.1f)
+                        .fillMaxHeight()
                 ) {
-                    Column(
-                        verticalArrangement = Arrangement.spacedBy(12.dp),
-                        modifier = Modifier.padding(18.dp)
-                    ) {
-                        Row(verticalAlignment = Alignment.Top) {
-                            PosterImage(
-                                posterUrl = reactiveLog?.seasonPosterUrl ?: currentTitle.posterUrl,
-                                titleName = currentTitle.name,
-                                titleType = currentTitle.type,
-                                modifier = Modifier.size(width = 96.dp, height = 138.dp),
-                                widthBucket = "w500"
-                            )
-                            Spacer(Modifier.width(16.dp))
-                            Column(
-                                verticalArrangement = Arrangement.spacedBy(6.dp),
-                                modifier = Modifier.weight(1f)
-                            ) {
-                                Text(
-                                    text = OttlineStrings.titleTypeLabel(currentTitle.type, locale),
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = palette.mutedInk
-                                )
-                                Text(
-                                    text = currentTitle.name,
-                                    style = MaterialTheme.typography.headlineSmall,
-                                    color = palette.ink
-                                )
-                                val meta = listOfNotNull(
-                                    currentTitle.year?.toString(),
-                                    currentTitle.author,
-                                    currentTitle.publisher,
-                                    currentTitle.directors?.takeIf { it.isNotEmpty() }?.joinToString(", ")
-                                ).joinToString(" · ")
-                                if (meta.isNotEmpty()) {
-                                    Text(meta, style = MaterialTheme.typography.bodySmall, color = palette.mutedInk)
-                                }
-                                if (!currentTitle.genres.isNullOrEmpty()) {
-                                    Text(
-                                        text = currentTitle.genres.joinToString(" · "),
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = palette.brandNavy
-                                    )
-                                }
-                            }
-                        }
-
-                        if (!currentTitle.overview.isNullOrBlank()) {
-                            Text(
-                                text = currentTitle.overview,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = palette.mutedInk
-                            )
-                        }
+                    item {
+                        TitleOverviewCard(
+                            currentTitle = currentTitle,
+                            reactiveLog = reactiveLog,
+                            locale = locale
+                        )
                     }
-                }
-            }
-
-            // Personal Record ("그날의 온기") Card
-            item {
-                val log = reactiveLog
-                if (log == null) {
-                    Surface(
-                        shape = RoundedCornerShape(10.dp),
-                        color = palette.paperStrong,
-                        border = BorderStroke(1.dp, palette.border),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Column(
-                            verticalArrangement = Arrangement.spacedBy(10.dp),
-                            modifier = Modifier.padding(18.dp)
-                        ) {
+                    item {
+                        PersonalMomentCard(
+                            currentTitle = currentTitle,
+                            log = reactiveLog,
+                            locale = locale,
+                            spoilerRevealed = spoilerRevealed,
+                            onRevealSpoiler = { spoilerRevealed = true },
+                            onOpenQuickRecord = onOpenQuickRecord,
+                            onOpenShareCard = { shareCardLog = it }
+                        )
+                    }
+                    if (history.size > 1) {
+                        item {
                             Text(
-                                text = tr("아직 내 타임라인에 남기지 않은 작품이에요.", "Not in your timeline yet."),
+                                text = tr("남겨온 기록 (${history.size})", "Revision history (${history.size})"),
                                 style = MaterialTheme.typography.titleSmall,
                                 color = palette.ink
                             )
-                            Button(
-                                onClick = {
-                                    onOpenQuickRecord(
-                                        QuickRecordRequest(
-                                            preselectedTitle = currentTitle,
-                                            autoFocusSearch = false
-                                        )
-                                    )
-                                },
-                                shape = RoundedCornerShape(10.dp),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = palette.brandOrange,
-                                    contentColor = Color(0xFF0F0F0F)
-                                ),
-                                modifier = Modifier.heightIn(min = 48.dp)
-                            ) {
-                                Text(tr("이 작품 기록 남기기", "Leave a record"), fontWeight = FontWeight.Bold)
-                            }
                         }
-                    }
-                } else {
-                    Surface(
-                        shape = RoundedCornerShape(10.dp),
-                        color = palette.paperStrong,
-                        border = BorderStroke(1.dp, palette.border),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Column(
-                            verticalArrangement = Arrangement.spacedBy(12.dp),
-                            modifier = Modifier.padding(18.dp)
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Text(
-                                    text = tr("그날의 온기", "A moment kept"),
-                                    style = MaterialTheme.typography.titleMedium,
-                                    color = palette.brandNavy
-                                )
-                                Text(
-                                    text = RecordDate.formatDisplayDate(log.watchedAt, locale),
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = palette.subtleInk
-                                )
-                            }
-
-                            val statusAccent = if (palette.isDark) palette.ink else palette.brandNavy
-                            FlowRow(
-                                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                                verticalArrangement = Arrangement.spacedBy(6.dp)
-                            ) {
-                                Text(
-                                    text = OttlineStrings.statusLabel(log.status, currentTitle.type, locale),
-                                    style = MaterialTheme.typography.titleSmall,
-                                    color = statusAccent,
-                                    modifier = Modifier.align(Alignment.CenterVertically)
-                                )
-                                RecordFeelingBadge(
-                                    rating = log.rating,
-                                    titleType = currentTitle.type,
-                                    iconSize = 16.dp,
-                                    textStyle = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Medium),
-                                    color = palette.ink,
-                                    modifier = Modifier.align(Alignment.CenterVertically)
-                                )
-                                if (log.seasonNumber != null) {
-                                    val ep = log.episodeNumber?.let { if (locale == "en") " · Ep $it" else " · ${it}화" }.orEmpty()
-                                    Text(
-                                        text = (if (locale == "en") "Season ${log.seasonNumber}" else "시즌 ${log.seasonNumber}") + ep,
-                                        style = MaterialTheme.typography.titleSmall,
-                                        color = palette.mutedInk,
-                                        modifier = Modifier.align(Alignment.CenterVertically)
-                                    )
-                                }
-                            }
-
-                            val momentDetails = listOfNotNull(
-                                log.ott?.takeIf { it.isNotBlank() }?.let { tr("플랫폼", "Platform") to it },
-                                log.place?.let { tr("장소", "Place") to OttlineStrings.placeLabel(it, locale) },
-                                log.occasion?.let { tr("함께한 순간", "Occasion") to OttlineStrings.occasionLabel(it, locale) }
-                            )
-                            if (momentDetails.isNotEmpty()) {
-                                FlowRow(
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                    verticalArrangement = Arrangement.spacedBy(6.dp)
-                                ) {
-                                    momentDetails.forEach { (k, v) ->
-                                        Surface(
-                                            shape = RoundedCornerShape(8.dp),
-                                            color = palette.card,
-                                            border = BorderStroke(1.dp, palette.border)
-                                        ) {
-                                            Text(
-                                                text = "$k · $v",
-                                                style = MaterialTheme.typography.bodySmall,
-                                                color = palette.ink,
-                                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-
-                            if (!log.note.isNullOrBlank()) {
-                                Surface(
-                                    shape = RoundedCornerShape(8.dp),
-                                    color = palette.card,
-                                    border = BorderStroke(1.dp, palette.border),
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .then(
-                                            if (log.spoiler && !spoilerRevealed) {
-                                                Modifier.clickable { spoilerRevealed = true }
-                                            } else {
-                                                Modifier
-                                            }
-                                        )
-                                ) {
-                                    if (log.spoiler && !spoilerRevealed) {
-                                        Text(
-                                            text = tr("스포일러가 포함된 문장이에요 · 눌러서 보기", "Spoiler note · Tap to reveal"),
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            color = palette.mutedInk,
-                                            modifier = Modifier.padding(14.dp)
-                                        )
-                                    } else {
-                                        Text(
-                                            text = log.note.trim(),
-                                            style = MaterialTheme.typography.bodyLarge,
-                                            color = palette.ink,
-                                            modifier = Modifier.padding(14.dp)
-                                        )
-                                    }
-                                }
-                            }
-
-                            Row(
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Button(
-                                    onClick = {
-                                        onOpenQuickRecord(
-                                            QuickRecordRequest(
-                                                preselectedTitle = currentTitle,
-                                                existingLog = log,
-                                                autoFocusSearch = false
-                                            )
-                                        )
-                                    },
-                                    shape = RoundedCornerShape(10.dp),
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = palette.brandNavy,
-                                        contentColor = palette.onBrandNavy
-                                    ),
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .heightIn(min = 48.dp)
-                                ) {
-                                    Icon(Icons.Outlined.Edit, contentDescription = null, modifier = Modifier.size(16.dp))
-                                    Spacer(Modifier.width(4.dp))
-                                    Text(tr("다듬기", "Edit"), fontWeight = FontWeight.Bold)
-                                }
-
-                                OutlinedButton(
-                                    onClick = { shareCardLog = log },
-                                    shape = RoundedCornerShape(10.dp),
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .heightIn(min = 48.dp)
-                                ) {
-                                    Icon(Icons.Outlined.Share, contentDescription = null, modifier = Modifier.size(16.dp))
-                                    Spacer(Modifier.width(4.dp))
-                                    Text(tr("공유 카드", "Share card"))
-                                }
-                            }
+                        items(history, key = { it.id }) { h ->
+                            RevisionHistoryItemCard(h = h, titleType = currentTitle.type, locale = locale)
                         }
                     }
                 }
-            }
 
-            // Revision History ("남겨온 기록")
-            if (history.size > 1) {
-                item {
+                LazyColumn(
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    contentPadding = PaddingValues(bottom = 28.dp),
+                    modifier = Modifier
+                        .weight(0.9f)
+                        .fillMaxHeight()
+                ) {
+                    item {
+                        CommentsSection(
+                            titleId = currentTitle.id,
+                            titleType = currentTitle.type,
+                            repository = repository,
+                            onOpenMentionedTitle = onNavigateToTitle,
+                            onReportComment = onReportContent
+                        )
+                    }
+                }
+            }
+        }
+    } else {
+        LazyColumn(
+            contentPadding = PaddingValues(horizontal = metrics.horizontalPadding, vertical = 14.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+            modifier = Modifier.fillMaxSize()
+        ) {
+            item {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = tr("뒤로", "Back"), tint = palette.ink)
+                    }
                     Text(
-                        text = tr("남겨온 기록 (${history.size})", "Revision history (${history.size})"),
-                        style = MaterialTheme.typography.titleSmall,
+                        text = tr("작품과 기록", "Story & Moment"),
+                        style = MaterialTheme.typography.titleMedium,
                         color = palette.ink
                     )
                 }
-                items(history, key = { it.id }) { h ->
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = palette.card,
-                        border = BorderStroke(1.dp, palette.border),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Column(
-                            verticalArrangement = Arrangement.spacedBy(4.dp),
-                            modifier = Modifier.padding(12.dp)
-                        ) {
-                            val statusAccent = if (palette.isDark) palette.ink else palette.brandNavy
-                            FlowRow(
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                verticalArrangement = Arrangement.spacedBy(4.dp)
-                            ) {
-                                Text(
-                                    text = "${RecordDate.formatDisplayDate(h.watchedAt, locale)} · ${OttlineStrings.statusLabel(h.status, currentTitle.type, locale)}",
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = statusAccent,
-                                    modifier = Modifier.align(Alignment.CenterVertically)
-                                )
-                                RecordFeelingBadge(
-                                    rating = h.rating,
-                                    titleType = currentTitle.type,
-                                    iconSize = 14.dp,
-                                    textStyle = MaterialTheme.typography.labelMedium,
-                                    color = palette.ink,
-                                    modifier = Modifier.align(Alignment.CenterVertically)
-                                )
-                                h.ott?.takeIf { it.isNotBlank() }?.let { ottText ->
-                                    Text(
-                                        text = "· $ottText",
-                                        style = MaterialTheme.typography.labelMedium,
-                                        color = palette.mutedInk,
-                                        modifier = Modifier.align(Alignment.CenterVertically)
-                                    )
-                                }
-                            }
-                            if (!h.note.isNullOrBlank()) {
-                                Text(h.note, style = MaterialTheme.typography.bodySmall, color = palette.mutedInk)
-                            }
-                        }
-                    }
-                }
             }
 
-            // Together Comments Section
-            item {
-                CommentsSection(
-                    titleId = currentTitle.id,
-                    titleType = currentTitle.type,
-                    repository = repository,
-                    onOpenMentionedTitle = onNavigateToTitle,
-                    onReportComment = onReportContent
-                )
+            if (loading && currentTitle == null) {
+                item {
+                    CircularProgressIndicator(color = palette.brandNavy)
+                }
+            } else if (currentTitle == null) {
+                item {
+                    Text(tr("작품 정보를 불러오지 못했어요.", "Could not load this title."), color = palette.danger)
+                }
+            } else {
+                item {
+                    TitleOverviewCard(
+                        currentTitle = currentTitle,
+                        reactiveLog = reactiveLog,
+                        locale = locale
+                    )
+                }
+                item {
+                    PersonalMomentCard(
+                        currentTitle = currentTitle,
+                        log = reactiveLog,
+                        locale = locale,
+                        spoilerRevealed = spoilerRevealed,
+                        onRevealSpoiler = { spoilerRevealed = true },
+                        onOpenQuickRecord = onOpenQuickRecord,
+                        onOpenShareCard = { shareCardLog = it }
+                    )
+                }
+                if (history.size > 1) {
+                    item {
+                        Text(
+                            text = tr("남겨온 기록 (${history.size})", "Revision history (${history.size})"),
+                            style = MaterialTheme.typography.titleSmall,
+                            color = palette.ink
+                        )
+                    }
+                    items(history, key = { it.id }) { h ->
+                        RevisionHistoryItemCard(h = h, titleType = currentTitle.type, locale = locale)
+                    }
+                }
+                item {
+                    CommentsSection(
+                        titleId = currentTitle.id,
+                        titleType = currentTitle.type,
+                        repository = repository,
+                        onOpenMentionedTitle = onNavigateToTitle,
+                        onReportComment = onReportContent
+                    )
+                }
             }
         }
     }
@@ -510,5 +303,339 @@ fun TitleDetailScreen(
                 repository.trackEvent("share_card_export", mapOf("mode" to mode))
             }
         )
+    }
+}
+
+@Composable
+private fun TitleOverviewCard(
+    currentTitle: app.ottline.model.Title,
+    reactiveLog: WatchLog?,
+    locale: String
+) {
+    val palette = LocalOttlinePalette.current
+    Surface(
+        shape = RoundedCornerShape(8.dp),
+        color = palette.card,
+        border = BorderStroke(1.dp, palette.border),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier.padding(18.dp)
+        ) {
+            Row(verticalAlignment = Alignment.Top) {
+                PosterImage(
+                    posterUrl = reactiveLog?.seasonPosterUrl ?: currentTitle.posterUrl,
+                    titleName = currentTitle.name,
+                    titleType = currentTitle.type,
+                    modifier = Modifier.size(width = 96.dp, height = 138.dp),
+                    widthBucket = "w500"
+                )
+                Spacer(Modifier.width(16.dp))
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text(
+                        text = OttlineStrings.titleTypeLabel(currentTitle.type, locale),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = palette.mutedInk
+                    )
+                    Text(
+                        text = currentTitle.name,
+                        style = MaterialTheme.typography.headlineSmall,
+                        color = palette.ink
+                    )
+                    val meta = listOfNotNull(
+                        currentTitle.year?.toString(),
+                        currentTitle.author,
+                        currentTitle.publisher,
+                        currentTitle.directors?.takeIf { it.isNotEmpty() }?.joinToString(", ")
+                    ).joinToString(" · ")
+                    if (meta.isNotEmpty()) {
+                        Text(meta, style = MaterialTheme.typography.bodySmall, color = palette.mutedInk)
+                    }
+                    if (!currentTitle.genres.isNullOrEmpty()) {
+                        Text(
+                            text = currentTitle.genres.joinToString(" · "),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = palette.brandNavy
+                        )
+                    }
+                }
+            }
+
+            if (!currentTitle.overview.isNullOrBlank()) {
+                Text(
+                    text = currentTitle.overview,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = palette.mutedInk
+                )
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun PersonalMomentCard(
+    currentTitle: app.ottline.model.Title,
+    log: WatchLog?,
+    locale: String,
+    spoilerRevealed: Boolean,
+    onRevealSpoiler: () -> Unit,
+    onOpenQuickRecord: (QuickRecordRequest) -> Unit,
+    onOpenShareCard: (WatchLog) -> Unit
+) {
+    val palette = LocalOttlinePalette.current
+    if (log == null) {
+        Surface(
+            shape = RoundedCornerShape(8.dp),
+            color = palette.paperStrong,
+            border = BorderStroke(1.dp, palette.border),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+                modifier = Modifier.padding(18.dp)
+            ) {
+                Text(
+                    text = tr("아직 내 타임라인에 남기지 않은 작품이에요.", "Not in your timeline yet."),
+                    style = MaterialTheme.typography.titleSmall,
+                    color = palette.ink
+                )
+                Button(
+                    onClick = {
+                        onOpenQuickRecord(
+                            QuickRecordRequest(
+                                preselectedTitle = currentTitle,
+                                autoFocusSearch = false
+                            )
+                        )
+                    },
+                    shape = RoundedCornerShape(8.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = palette.brandOrange,
+                        contentColor = Color(0xFF0F0F0F)
+                    ),
+                    modifier = Modifier.heightIn(min = 48.dp)
+                ) {
+                    Text(tr("이 작품 기록 남기기", "Leave a record"), fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+    } else {
+        Surface(
+            shape = RoundedCornerShape(8.dp),
+            color = palette.paperStrong,
+            border = BorderStroke(1.dp, palette.border),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.padding(18.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = tr("그날의 온기", "A moment kept"),
+                        style = MaterialTheme.typography.titleMedium,
+                        color = palette.brandNavy
+                    )
+                    Text(
+                        text = RecordDate.formatDisplayDate(log.watchedAt, locale),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = palette.subtleInk
+                    )
+                }
+
+                val statusAccent = if (palette.isDark) palette.ink else palette.brandNavy
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Text(
+                        text = OttlineStrings.statusLabel(log.status, currentTitle.type, locale),
+                        style = MaterialTheme.typography.titleSmall,
+                        color = statusAccent,
+                        modifier = Modifier.align(Alignment.CenterVertically)
+                    )
+                    RecordFeelingBadge(
+                        rating = log.rating,
+                        titleType = currentTitle.type,
+                        iconSize = 16.dp,
+                        textStyle = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Medium),
+                        color = palette.ink,
+                        modifier = Modifier.align(Alignment.CenterVertically)
+                    )
+                    if (log.seasonNumber != null) {
+                        val ep = log.episodeNumber?.let { if (locale == "en") " · Ep $it" else " · ${it}화" }.orEmpty()
+                        Text(
+                            text = (if (locale == "en") "Season ${log.seasonNumber}" else "시즌 ${log.seasonNumber}") + ep,
+                            style = MaterialTheme.typography.titleSmall,
+                            color = palette.mutedInk,
+                            modifier = Modifier.align(Alignment.CenterVertically)
+                        )
+                    }
+                }
+
+                val momentDetails = listOfNotNull(
+                    log.ott?.takeIf { it.isNotBlank() }?.let { tr("플랫폼", "Platform") to it },
+                    log.place?.let { tr("장소", "Place") to OttlineStrings.placeLabel(it, locale) },
+                    log.occasion?.let { tr("함께한 순간", "Occasion") to OttlineStrings.occasionLabel(it, locale) }
+                )
+                if (momentDetails.isNotEmpty()) {
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        momentDetails.forEach { (k, v) ->
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = palette.card,
+                                border = BorderStroke(1.dp, palette.border)
+                            ) {
+                                Text(
+                                    text = "$k · $v",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = palette.ink,
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+
+                if (!log.note.isNullOrBlank()) {
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = palette.card,
+                        border = BorderStroke(1.dp, palette.border),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .then(
+                                if (log.spoiler && !spoilerRevealed) {
+                                    Modifier.clickable { onRevealSpoiler() }
+                                } else {
+                                    Modifier
+                                }
+                            )
+                    ) {
+                        if (log.spoiler && !spoilerRevealed) {
+                            Text(
+                                text = tr("스포일러가 포함된 문장이에요 · 눌러서 보기", "Spoiler note · Tap to reveal"),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = palette.mutedInk,
+                                modifier = Modifier.padding(14.dp)
+                            )
+                        } else {
+                            Text(
+                                text = log.note.trim(),
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = palette.ink,
+                                modifier = Modifier.padding(14.dp)
+                            )
+                        }
+                    }
+                }
+
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Button(
+                        onClick = {
+                            onOpenQuickRecord(
+                                QuickRecordRequest(
+                                    preselectedTitle = currentTitle,
+                                    existingLog = log,
+                                    autoFocusSearch = false
+                                )
+                            )
+                        },
+                        shape = RoundedCornerShape(8.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = palette.brandNavy,
+                            contentColor = palette.onBrandNavy
+                        ),
+                        modifier = Modifier
+                            .weight(1f)
+                            .heightIn(min = 48.dp)
+                    ) {
+                        Icon(Icons.Outlined.Edit, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(Modifier.width(4.dp))
+                        Text(tr("다듬기", "Edit"), fontWeight = FontWeight.Bold)
+                    }
+
+                    OutlinedButton(
+                        onClick = { onOpenShareCard(log) },
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier
+                            .weight(1f)
+                            .heightIn(min = 48.dp)
+                    ) {
+                        Icon(Icons.Outlined.Share, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(Modifier.width(4.dp))
+                        Text(tr("공유 카드", "Share card"))
+                    }
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun RevisionHistoryItemCard(
+    h: WatchLogHistory,
+    titleType: TitleType,
+    locale: String
+) {
+    val palette = LocalOttlinePalette.current
+    Surface(
+        shape = RoundedCornerShape(8.dp),
+        color = palette.card,
+        border = BorderStroke(1.dp, palette.border),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+            modifier = Modifier.padding(12.dp)
+        ) {
+            val statusAccent = if (palette.isDark) palette.ink else palette.brandNavy
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Text(
+                    text = "${RecordDate.formatDisplayDate(h.watchedAt, locale)} · ${OttlineStrings.statusLabel(h.status, titleType, locale)}",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = statusAccent,
+                    modifier = Modifier.align(Alignment.CenterVertically)
+                )
+                RecordFeelingBadge(
+                    rating = h.rating,
+                    titleType = titleType,
+                    iconSize = 14.dp,
+                    textStyle = MaterialTheme.typography.labelMedium,
+                    color = palette.ink,
+                    modifier = Modifier.align(Alignment.CenterVertically)
+                )
+                h.ott?.takeIf { it.isNotBlank() }?.let { ottText ->
+                    Text(
+                        text = "· $ottText",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = palette.mutedInk,
+                        modifier = Modifier.align(Alignment.CenterVertically)
+                    )
+                }
+            }
+            if (!h.note.isNullOrBlank()) {
+                Text(h.note, style = MaterialTheme.typography.bodySmall, color = palette.mutedInk)
+            }
+        }
     }
 }
