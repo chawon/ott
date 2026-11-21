@@ -554,7 +554,7 @@ public struct TogetherScreen: View {
                             .stroke(palette.border, lineWidth: 1)
                     )
 
-                    HStack(spacing: 12) {
+                    HStack(spacing: 8) {
                         HStack(spacing: 4) {
                             ForEach([
                                 ("all", OttlineStrings.tr("전체", "All", locale: locale)),
@@ -569,6 +569,8 @@ public struct TogetherScreen: View {
                                     Text(label)
                                         .font(active ? OttlineFont.semiBold(13.5) : OttlineFont.medium(13.5))
                                         .foregroundStyle(active ? palette.ink : palette.mutedInk)
+                                        .lineLimit(1)
+                                        .fixedSize(horizontal: true, vertical: false)
                                         .padding(.horizontal, 8)
                                         .padding(.vertical, 8)
                                         .overlay(alignment: .bottom) {
@@ -583,10 +585,39 @@ public struct TogetherScreen: View {
 
                         Spacer(minLength: 4)
 
-                        HStack(spacing: 4) {
-                            sortButton(key: "latest", label: OttlineStrings.tr("최신", "Latest", locale: locale))
-                            sortButton(key: "comments", label: OttlineStrings.tr("이야기 많은순", "Most comments", locale: locale))
+                        Menu {
+                            Button {
+                                sortBy = "latest"
+                            } label: {
+                                Text(OttlineStrings.tr("최신", "Latest", locale: locale))
+                            }
+                            Button {
+                                sortBy = "comments"
+                            } label: {
+                                Text(OttlineStrings.tr("이야기 많은순", "Most comments", locale: locale))
+                            }
+                        } label: {
+                            HStack(spacing: 4) {
+                                Text(sortBy == "comments"
+                                    ? OttlineStrings.tr("많은순", "Top", locale: locale)
+                                    : OttlineStrings.tr("최신", "Latest", locale: locale)
+                                )
+                                .font(OttlineFont.medium(12.5))
+                                .foregroundStyle(palette.mutedInk)
+                                .lineLimit(1)
+                                .fixedSize(horizontal: true, vertical: false)
+                                OttlineLucideIcon(kind: .chevronDown, size: 13, color: palette.mutedInk)
+                            }
+                            .padding(.horizontal, 10)
+                            .frame(minHeight: 32)
+                            .background(palette.card)
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 8)
+                                    .stroke(palette.border, lineWidth: 1)
+                            )
                         }
+                        .padding(.bottom, 4)
                     }
                     .overlay(alignment: .bottom) {
                         Rectangle().fill(palette.border).frame(height: 1)
@@ -730,22 +761,6 @@ public struct TogetherScreen: View {
         }
         .buttonStyle(.plain)
         .disabled(resolvingCuratedId == item.id)
-    }
-
-    private func sortButton(key: String, label: String) -> some View {
-        let active = sortBy == key
-        return Button {
-            sortBy = key
-        } label: {
-            Text(label)
-                .font(active ? OttlineFont.semiBold(12.5) : OttlineFont.regular(12.5))
-                .foregroundStyle(active ? palette.primaryAccent : palette.mutedInk)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 6)
-                .background(active ? palette.paperStrong : Color.clear)
-                .clipShape(RoundedRectangle(cornerRadius: 6))
-        }
-        .buttonStyle(.plain)
     }
 
     @ViewBuilder
