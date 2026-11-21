@@ -1,12 +1,12 @@
 # 분석(Analytics)
 
-> Web/PWA/TWA/iOS 사용 지표, 개인 리포트, 관리자 운영 지표와 검색 유입 이후 행동을 함께 보는 분석 시스템
+> 제품 활동, 웹 유입, 개인·관리자 리포트를 집계하는 시스템
 
 ## 관련 페이지
 - [[daily-report]]
 - [[pwa]]
-- [[seasonal-recap]]
-- [[twa]]
+- [플랫폼별 상태](../../../docs/platforms.md)
+- [기기 표시와 플랫폼 헤더](../../../docs/native-desktop-device-info.md)
 
 ---
 
@@ -33,6 +33,8 @@
 | `log_create` | 기록 생성 |
 | `guide_cta_click` | 검색 가이드에서 QuickLog로 이동 |
 
+네이티브 Android는 `platform=twa`와 `androidRuntime=native`를, Windows 앱은 `platform=pwa`와 `windowsRuntime=native`를 전송한다. iOS Expo는 `platform=ios_native`를 전송한다. 연결 기기 표기는 인증 API의 별도 계약이다.
+
 공통 필드는 `event_id`, `user_id`, `client_id`, `session_id`, `event_name`, `occurred_at`, `platform`, `client_version`, `properties`다. `platform`은 `web`, `pwa`, `twa`, `ios_native` 중 하나다.
 
 웹 context에는 `hostname`, `landingPath`, referrer origin, locale, device/browser/OS, 설치 상태와 UTM을 넣는다. URL의 `source` 값은 `android-watch-reminder`, `android-revisit-reminder`만 `entrySource`로 저장하며 임의 값과 전체 referrer query는 저장하지 않는다.
@@ -53,13 +55,15 @@
 
 ### 유입 session
 
-유입 지표는 요청 기간 안에 web/PWA/TWA `app_open`이 있는 distinct session만 분모로 삼고 `ios_native`는 제외한다.
+유입 지표는 요청 기간 안에 `platform`이 `web`·`pwa`·`twa`인 `app_open`의 distinct session을 분모로 삼는다.
 
 - `sessions`: 유입 session
 - `engagedSessions`: 같은 session에 검색·선택·연결·첫 기록·기록 생성 중 하나가 있는 수
 - `firstLogSessions`: 같은 session에 `first_log_create`가 있는 수
 - `logCreateSessions`: 같은 session에 `log_create`가 있는 수
 - `orphanConversionSessions`: 행동 이벤트는 있지만 해당 기간에 `app_open`이 없는 session
+
+Windows Store CTA와 캠페인 `cid`는 별도 전환 지표로 기록한다. [Windows 유입 배포 기록](../../../docs/desktop-acquisition-rollout-2026-11-18.md)
 
 attribution 우선순위는 유효한 UTM → 허용된 `entrySource` → 외부 referrer → direct/unknown이다. channel은 `organic_search`, `paid_search`, `ai_referral`, `social`, `store_referral`, `referral`, `owned_reengagement`, `direct`, `unknown`으로 정규화한다.
 

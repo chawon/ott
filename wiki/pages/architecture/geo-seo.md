@@ -4,7 +4,7 @@
 
 ## 관련 페이지
 - [[i18n]]
-- [[ottline-branding]]
+- [ottline-branding](../../archive/ottline-branding.md)
 - [[pwa]]
 
 ---

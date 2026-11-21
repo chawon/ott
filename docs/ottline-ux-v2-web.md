@@ -201,7 +201,7 @@ Next.js 빌드·타입 검사·`git diff --check` 통과. 전체 Biome 검사에
 - 기존 기록·공유 재시도 7개와 프로토타입의 한·영 모바일 TPO 표시 회귀를 통과했다. 최종 빌드·타입 검사, 변경 소스 Biome(기존 경고·정보만), JS 구문·diff 검사도 통과했다.
 - 실제 개발 카탈로그를 조회해 새 방문자의 홈·기록창·내 공간 캡처 6장(각 2560×1600)을 만들었다. 개인 계정이나 기록은 생성하지 않았다. 최종 가이드 18개 이미지 검사에서 모바일·PC 및 DPR 1/2의 실제 전달 픽셀 수를 충족했다. PC 약 1023px 표시에는 1080/2048px를 전달하며 목록도 새 언어별 이미지를 사용한다.
 
-문구·UI·이미지 검증 결과는 `/tmp/ottline-en-copy-qa`, 프로토타입 캡처는 `prototypes/ottline-v2/qa-output/date-only`에 보관한다. 기존 미리보기 4173과 ngrok 주소를 유지한다.
+문구·UI·이미지 검증 결과는 `/tmp/ottline-en-copy-qa`, 프로토타입 캡처는 당시 `qa-output/date-only`에 저장했다. [v2 시안 소스](../archive/prototypes/ottline-v2/README.md)는 보관 경로에서 로컬로 재현할 수 있다.
 
 ### 실행 서비스와 주소
 

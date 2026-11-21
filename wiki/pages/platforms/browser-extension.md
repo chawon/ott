@@ -1,96 +1,26 @@
-# 브라우저 확장 (Browser Extension)
+# 브라우저 확장
 
-> PC에서 OTT 작품 상세 페이지를 보다가 ottline 기록 화면으로 빠르게 연결하는 보조 도구
+`ottline Helper`는 OTT 작품 상세 페이지에서 사용자가 팝업 버튼을 눌렀을 때 작품 제목과 플랫폼을 웹의 빠른 기록으로 넘긴다. 소스는 [`apps/browser-extension`](../../../apps/browser-extension)이다.
 
-## 관련 페이지
-- [[pwa]]
-- [[windows-native]]
+갱신 범위와 출시 순서는 [후속 채널 개편 방향](../../../docs/changes/v2-channel-strategy.md#브라우저-확장)을 따른다.
 
----
+## 배포 및 유지보수
 
-## 현재 포지셔닝 및 데스크톱 네이티브 브릿지 계획 (2026-11-18)
+| 스토어 | 확인된 상태 |
+| --- | --- |
+| [Chrome Web Store](https://chromewebstore.google.com/detail/ottline-helper/achangjgnpbideilpolbohbkmmkmojpo) | 공개 페이지에서 `0.1.0` 확인 |
+| [Microsoft Edge Add-ons](https://microsoftedge.microsoft.com/addons/detail/ottline-helper/egghbkekjopgknhggoeiekgdooofihbo) | 공개 제품 페이지 확인. `0.1.0` 배포 기록 |
+| [Whale Store](https://store.whale.naver.com/detail/fdifiinpckjcafdndikchfhmkejhdfhc) | `0.1.0` 배포 기록과 공개 링크 유지 |
 
-- [[windows-native]] (`2.0.0.0` 출시)가 OTT 시청 종료 알림 및 전역 단축키(`Ctrl+Shift+O`)를 자체 내장하고 `feature/ios-native-v2`에서 `apps/macos-native` 출시를 준비함에 따라, 확장 프로그램은 주력 클라이언트에서 **데스크톱 네이티브 앱으로 연결해 주는 경량 브릿지·무료 검색 노출 채널(기능 동결)**로 포지션을 전환한다.
-- Chrome·Edge·Whale 스토어 재심사 없이도 `ottline.app/?quick=1&capture_title=...` 웹 브릿지에서 Windows·macOS 공통 딥링크(`ottline://quick?quick=1&title=...&q=...&platform=...&type=video`)로 넘기도록 단계별 계획을 수립했다. macOS 출시 전 Apple 측 `title`/`capture_title` 수용 및 `?native_handoff=1` → `ottline://open?handoff=1` 세션 이어받기 정렬을 포함한다.
-- 상세 규격 및 트랙별 체크리스트: [데스크톱 공통 프로토콜·핸드오프 및 확장 브릿지 계획 (2026-11-18)](../../../docs/desktop-protocol-and-extension-bridge-plan-2026-11-18.md)
+소스 manifest는 `0.1.1`이고 [Actions 패키지](https://github.com/chawon/ott/actions/runs/30154927303)가 생성됐다. 스토어별 게시 상태는 각 스토어에서 확인한다. 확장은 기존 캡처를 유지하며 데스크톱 앱 연결은 웹에서 제공한다.
 
----
+## 빠른 기록 연결
 
-## 목적
+1. Netflix, Disney+, TVING, wavve, Coupang Play, WATCHA의 지원 작품 상세 페이지에서 툴바의 확장 팝업을 연다.
+2. 기록 버튼을 누르면 브라우저 언어에 따라 ottline 웹이 열리고 `quick=1`, `capture_title`, `capture_type`, `capture_platform` 등으로 검색을 채운다. 사용자가 최종 저장을 누른다.
+3. Windows 일반 브라우저에서는 웹에서 계속 기록하거나 `ottline://quick`으로 [Windows 앱](windows-native.md)을 열 수 있다. `항상 Windows 앱으로 열기`는 다음 진입에서 앱 링크를 먼저 선택하며 클릭 또는 Enter로 앱을 연다. 미설치 사용자는 `cid=extension_handoff`가 붙은 Microsoft Store 링크를 이용할 수 있다.
+4. [macOS 앱](macos-native.md) 연결은 Mac App Store 게시 이후 웹에서 활성화한다.
 
-- 모바일의 `공유 → 기록` 흐름을 데스크탑 브라우저까지 확장
-- 자동 추적이 아닌 사용자 명시 클릭으로만 기록 시작
+Windows 웹 연결은 [PR #138](https://github.com/chawon/ott/pull/138), Web SHA `4472ad3`로 2026-11-19 배포했다. 운영 Chromium에서 링크와 웹 기록을 검증했다. Windows 정식 설치 앱의 실행과 제목·플랫폼 미리 채움은 실기기 확인 항목이다. [공통 프로토콜·핸드오프](../../../docs/desktop-protocol-and-extension-bridge-plan-2026-11-18.md)
 
----
-
-## 배포 현황
-
-- **Chrome Web Store:** 배포 완료 (2026-03-26) — `achangjgnpbideilpolbohbkmmkmojpo`
-- **Edge Add-ons Store:** 배포 완료 — `egghbkekjopgknhggoeiekgdooofihbo` — https://microsoftedge.microsoft.com/addons/detail/ottline-helper/egghbkekjopgknhggoeiekgdooofihbo
-- **Whale Store:** 제출 완료 (2026-04-13) — 심사 중
-
----
-
-## 구조
-
-```
-apps/browser-extension/
-├── manifest.json    (Manifest V3)
-├── content.js       (DOM에서 제목/메타데이터 추출)
-├── popup.html/css/js (팝업 UI)
-└── README.md
-```
-
----
-
-## 동작 흐름
-
-1. 지원 OTT 사이트의 작품 상세 페이지에서 content script가 제목을 읽음
-2. 툴바 버튼 클릭 → 팝업 열림
-3. 팝업에서 `ottline에 기록하기` 버튼 클릭
-4. `https://ottline.app/ko`로 이동하며 QuickLog 초기값을 query param으로 전달
-   - `capture_title`, `capture_type`, `capture_platform`, `capture_source_url`, `capture_source_site`
-5. 웹앱에서 사용자가 최종 저장
-
----
-
-## 지원 사이트
-
-Netflix, Disney+, TVING, wavve, Coupang Play, WATCHA
-
-- OTT 상세 페이지 URL 패턴 + `og:title` 기반 추출
-- 사이트 구조 변경 시 보정 필요
-
----
-
-## 제품 원칙
-
-1. **자동 저장 금지** — 보기만 해도 기록되면 안 됨
-2. **명시적 시작** — 확장 버튼 클릭 시에만 동작
-3. **최소 권한** — `activeTab` + 필요 도메인만 `host_permissions`
-4. **본체 분리** — 기록 저장/관리의 중심은 웹앱/PWA
-
-**피해야 할 권한:** `<all_urls>`, 불필요한 background, 탭 히스토리 접근
-
----
-
-## 패키지 생성
-
-GitHub Actions `browser-extension-package.yml` 실행 → `ottline-helper-<version>.zip` 아티팩트
-
-Chrome Web Store 제출 시 주의: 특정 OTT 서비스명 나열로 배포 거부된 사례 있음. 설명에서 서비스명 제외.
-
----
-
-## 알려진 이슈
-
-- Netflix 모달에서 날짜 텍스트("YYYY년 M월 D일")를 제목으로 잡는 케이스 있음
-  - 임시 패치: `normalizeTitle` + `scanNetflixModalTitle`에 날짜 패턴 필터 추가
-  - 근본 원인: `titleSelectors` 및 텍스트 스캔 범위가 넓어 메타데이터 엘리먼트를 잡음
-  - 스토어 제출 전 제대로 고쳐야 함
-
-## 다음 단계
-
-1. Netflix 모달 selector 정밀화 (날짜/메타데이터 엘리먼트 제외)
-2. 사이트별 캡처 정확도 전반 검증
-3. locale/base URL 설정 페이지 추가 여부 검토
+캡처 변경 시 지원 사이트에서 작품 상세 페이지와 미지원 페이지를 모두 확인하고 `node --test apps/browser-extension/extension.test.mjs`를 실행한다. 도메인 권한은 지원 사이트 목록으로 제한한다. 새 스토어 산출물은 [`browser-extension-package.yml`](../../../.github/workflows/browser-extension-package.yml)이 만든다. [초기 설계와 제출 이력](../../../docs/archive/desktop/browser-extension-mvp.md)

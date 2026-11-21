@@ -1,28 +1,24 @@
 # Android Native v2 전환 및 TWA 자동 세션 복구 기록
 
-기준일: `2026-11-09`
-대상 경로: `apps/android-native`, `apps/web`, `apps/api`, `.github/workflows/native-android-ci.yml`, `.github/workflows/native-android-release.yml`
+2026-11-09 Android 네이티브 전환과 기존 사용자 복구 기록. 현재 앱 상태는 [Android 플랫폼 Wiki](../wiki/pages/platforms/android-native.md), 개발·배포 절차는 [Android 개발 가이드](../apps/android-native/README.md)에서 관리한다.
 
 ---
 
 ## 1. 배경 및 전환 목표
 
-기존 Google Play `app.ottline`(`versionCode <= 23`, `1.0.19`)은 Bubblewrap 기반 TWA(`apps/twa`)로 운영되었으나, `ottline v2`(한 손 수첩 UX v2 + CI v2) 개편에 맞춰 다음 목표를 달성하기 위해 **순수 Android Native(`Kotlin + Jetpack Compose + Room + WorkManager`)** 프로젝트(`apps/android-native`)로 전면 전환했다.
+기존 Google Play `app.ottline`(`versionCode <= 23`, `1.0.19`)은 [Bubblewrap 기반 TWA](../archive/android-twa/)로 운영되었으나, `ottline v2`(한 손 수첩 UX v2 + CI v2) 개편에 맞춰 다음 목표를 달성하기 위해 **순수 Android Native(`Kotlin + Jetpack Compose + Room + WorkManager`)** 프로젝트(`apps/android-native`)로 전면 전환했다.
 
-1. **오프라인 우선(Local-First) 및 즉각적인 네이티브 반응성**: 네트워크 지연이나 브라우저 탭 초기화를 기다리지 않고 `Room`(`OttlineDatabase`) + `OutboxEntity` + `SyncWorker`(`WorkManager`)로 오프라인에서도 즉시 검색·기록·조회가 가능하도록 구성.
-2. **기존 Google Play `app.ottline` 100% 업그레이드 호환**: 패키지명(`app.ottline`), 서명 키스토어(`android.keystore`), 매니페스트 진입 컴포넌트(`LauncherActivity`, `QuickLogWidgetProvider`, `WatchReminderSettingsActivity`, `WatchReminderWorker`, `RevisitReminderWorker`) 및 `SharedPreferences` 파일을 그대로 유지.
-3. **기존 TWA 사용자 데이터·계정 무손실 자동 이어받기**: TWA(`versionCode <= 23`)에서 업데이트한 사용자가 첫 실행 시 별도의 수동 코드 입력 없이도 기존 기록, 연결 코드(`pairingCode`), 프로필(`nickname`, `personaKey`)을 자동으로 복원·병합.
+1. **오프라인 우선(Local-First) 및 즉각적인 네이티브 반응성**: `Room`(`OttlineDatabase`), `OutboxEntity`, `SyncWorker`(`WorkManager`)로 로컬에 있는 기록을 오프라인에서도 조회·편집하고 연결 복구 후 동기화한다.
+2. **기존 Google Play `app.ottline` 설치에서 앱 업데이트**: 패키지명(`app.ottline`), 서명 키스토어(`android.keystore`), 매니페스트 진입 컴포넌트(`LauncherActivity`, `QuickLogWidgetProvider`, `WatchReminderSettingsActivity`, `WatchReminderWorker`, `RevisitReminderWorker`) 및 `SharedPreferences` 파일을 그대로 유지.
+3. **기존 TWA 사용자 데이터·계정 이어받기**: TWA(`versionCode <= 23`)에서 업데이트한 사용자가 첫 실행 시 별도의 수동 코드 입력 없이도 기존 기록, 연결 코드(`pairingCode`), 프로필(`nickname`, `personaKey`)을 자동으로 복원·병합.
 
 ---
 
 ## 2. 주요 아키텍처 및 UX v2 반영 사항 (`apps/android-native`)
 
-### 2.1 한 손 수첩 UX v2 & 풀화면 빠른 기록 모달
-- **테마 및 브랜드 자산**: 따뜻한 종이 톤 라이트(`#F8F6F2`) / 다크(`#15120F`), 브랜드 네이비(`#1E4D8C`), 포인트 오렌지(`#FF9933`), `Pretendard` 타이포그래피, 열린 책+재생 브랜드 심볼(`mark.svg` / Adaptive Icon)과 6종 동화풍 스토리북 아바타 내장.
-- **빠른 기록(`QuickLogModal`)**:
-  - 풀화면(`DialogProperties(usePlatformDefaultWidth = false)` + `fillMaxSize()`) 구성으로 작품을 선택한 뒤에도 모달 높이가 줄어들거나 하단 영역이 잘리지 않음.
-  - 모바일 웹 v2와 동일하게 **상태 선택(`봤어요·보는 중·보고 싶어요` / `읽었어요·읽는 중·읽고 싶어요`)과 저장 행위를 분리**하고, 하단 고정 액션 바(`navigationBarsPadding` + `imePadding`)의 **기록 남기기** 버튼으로 명확하게 저장.
-  - 풀화면 전환에 맞춰 **그날의 순간**(달력 날짜, 플랫폼, 장소, 상황, 3단계 감상 느낌, 메모, 함께 화면 나누기) 섹션을 기본 펼침(`showMoments = true`) 상태로 노출.
+### 2.1 빠른 기록
+
+`QuickRecordDialog`에서 작품을 찾고 상태를 선택한 뒤 **기록 남기기**로 저장한다. 이어지는 단계에서 날짜, 플랫폼, 장소, 상황, 감상 느낌과 메모를 남긴다. 기존 기록의 보완은 저장된 기록에 반영한다.
 
 ### 2.2 전체 탭 및 로컬 우선 동기화
 - **홈 / 타임라인 / 작품 상세 / 함께 / 내 공간**:
@@ -62,16 +58,15 @@
 
 ## 4. CI/CD 및 Google Play 프로덕션 배포 이력 (`2026-11-09`)
 
-### 4.1 GitHub Actions 워크플로우
-- **PR/main 검증 CI**: `.github/workflows/native-android-ci.yml` (`testDebugUnitTest`, `lintDebug`, `assembleDebug`)
-- **서명 AAB 빌드 및 Google Play 배포**: `.github/workflows/native-android-release.yml`
+### 4.1 GitHub Actions 워크플로
+- **서명 AAB 빌드 및 Google Play 배포**는 [native-android-release.yml](../.github/workflows/native-android-release.yml)에서 수행한다.
   - `testDebugUnitTest`, `lintDebug`, `bundleRelease` 실행
   - `scripts/verify-release-aab.sh`로 `WorkDatabase_Impl.<init>()` 및 `OttlineDatabase_Impl.<init>()` DEX 보존과 5개 필수 매니페스트 컴포넌트 검증
   - `gplay release`로 지정 트랙(`internal` / `alpha` / `beta` / `production`) 자동 배포 및 서명 AAB + R8 `mapping.txt` 아티팩트 업로드
 
 ### 4.2 배포 타임라인 (`2026-11-09`)
 1. **`2.0.0` (`versionCode = 24`) 모노레포 통합 및 프로덕션 출시**:
-   - Main SHA: `45ccac3b797a29bf78691e52972748b1a9cf3a47`
+   - 워크플로가 빌드한 main SHA `7ef08aa36f5d3dbf419122f3f73b550c1dd4277f`
    - Android Release Run: [`42550886641`](https://github.com/chawon/ott/actions/runs/42550886641) (`production` 트랙 `completed`)
 2. **Google Play 스토어 등록정보 및 v2 그래픽 에셋 업데이트**:
    - `ko-KR` / `en-US` 스토어 설명 및 출시 노트 업데이트, v2 신규 아이콘(`512x512`), 피처 그래픽(`1024x500`), 네이티브 휴대폰 스크린샷 5장(`1080x1920`) 반영 완료 (Play edit `12908968039807814595`).

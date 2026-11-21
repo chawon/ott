@@ -1030,9 +1030,27 @@ public sealed class OttlineApiClient : IDisposable
 
     public async Task<bool> UnlinkDeviceAsync(string targetDeviceId, CancellationToken ct = default)
     {
-        using var req = CreateRequest(HttpMethod.Delete, $"/api/account/devices?deviceId={Uri.EscapeDataString(targetDeviceId)}");
-        using var res = await _httpClient.SendAsync(req, ct).ConfigureAwait(false);
-        return res.IsSuccessStatusCode;
+        if (string.IsNullOrWhiteSpace(targetDeviceId)
+            || !Guid.TryParse(_userId, out _)
+            || !Guid.TryParse(_deviceId, out _))
+        {
+            return false;
+        }
+
+        try
+        {
+            using var req = CreateRequest(HttpMethod.Delete, $"/api/auth/devices/{Uri.EscapeDataString(targetDeviceId.Trim())}");
+            using var res = await _httpClient.SendAsync(req, ct).ConfigureAwait(false);
+            return res.IsSuccessStatusCode;
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch
+        {
+            return false;
+        }
     }
 
     public async Task<IReadOnlyList<FeedbackThread>> FetchFeedbackThreadsAsync(CancellationToken ct = default)
@@ -1210,11 +1228,43 @@ public sealed class OttlineApiClient : IDisposable
         );
     }
 
-    public async Task<bool> DeleteServerAccountAsync(CancellationToken ct = default)
+    public async Task<ServerAccountDeleteResult> DeleteServerAccountAsync(CancellationToken ct = default)
     {
-        using var req = CreateRequest(HttpMethod.Delete, "/api/account");
-        using var res = await _httpClient.SendAsync(req, ct).ConfigureAwait(false);
-        return res.IsSuccessStatusCode;
+        if (!Guid.TryParse(_userId, out _) || !Guid.TryParse(_deviceId, out _))
+        {
+            return new ServerAccountDeleteResult(ServerAccountDeleteOutcome.NotConnected);
+        }
+
+        try
+        {
+            using var req = CreateRequest(HttpMethod.Delete, "/api/auth/account");
+            using var res = await _httpClient.SendAsync(req, ct).ConfigureAwait(false);
+            if (res.IsSuccessStatusCode)
+            {
+                return new ServerAccountDeleteResult(
+                    ServerAccountDeleteOutcome.Deleted,
+                    (int)res.StatusCode
+                );
+            }
+
+            return new ServerAccountDeleteResult(
+                ServerAccountDeleteOutcome.HttpError,
+                (int)res.StatusCode,
+                res.ReasonPhrase
+            );
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            return new ServerAccountDeleteResult(
+                ServerAccountDeleteOutcome.NetworkError,
+                null,
+                ex.Message
+            );
+        }
     }
 
     /// <summary>

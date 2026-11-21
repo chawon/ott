@@ -1,5 +1,36 @@
 # Wiki Log
 
+## [2026-11-20] deploy(api): 미래의 타임라인 추천 생성 응답 지연 단축 및 단계별 계측 (#143, PR #144)
+
+- [PR #144](https://github.com/chawon/ott/pull/144) (`main` `7e9913d`, manifest `15112e0`, `Deploy API to Production` run [`44708627801`](https://github.com/chawon/ott/actions/runs/44708627801)).
+- OpenAI `gpt-6-luna` 기본 `OPENAI_REASONING_EFFORT`를 `low` → `none`으로 전환하고, 1차 후보 수 `12 → 9`, `RecommendationCatalogService` 배치 공유 4초 마감, `TmdbConfig` `connect 3s / read 5s` 타임아웃, `[Recommendation]` 단계별 소요시간(`llmMs`, `enrichMs`, `roundMs`, `totalMs`) 로깅을 반영했다.
+- 운영 확인: ArgoCD `ott-app` `Synced / Healthy` (`15112e0`), `ott-api` Pod `1/1 Running`·재시작 0·`APP_VERSION=7e9913d`·`OPENAI_REASONING_EFFORT=none`. 운영 실요청 로그에서 `llmMs=12405`, `enrichMs=715`, `totalMs=13230` (`selected=6, returned=6`) 확인.
+- 전 플랫폼 클라이언트 타임아웃(Android/Apple 20s, Windows 15s)·폴링 정합성 조사는 공통 이슈 [#142](https://github.com/chawon/ott/issues/142)로 등록해 관리 본부에서 추적한다. [미래의 타임라인](pages/features/future-timeline.md) · [플랫폼 현황](../docs/platforms.md)
+
+## [2026-11-20] release(windows): 서버 계정 삭제 수정 PR #140 병합 및 Microsoft Store v2.0.1.0 심사 제출
+
+- [PR #140](https://github.com/chawon/ott/pull/140) (`main` `1fb24ee`, 코드 커밋 `e8b9f24`). Windows `OttlineApiClient.DeleteServerAccountAsync()` 경로를 `DELETE /api/auth/account`로 수정(`UnlinkDeviceAsync`도 `DELETE /api/auth/devices/{id}`로 정정)하고 `OttlineRepository.DeleteServerAccountAsync()`·`MainViewModel`·`MainWindow`에 서버 2xx 확인 후 로컬 초기화, HTTP 오류·네트워크 실패 시 기록·이력·`outbox`·연결 상태 보존, 미연결 계정 가드, 한·영 안내 문구를 반영했다.
+- 검증: 모의 API 단위 테스트 5건 추가 포함 `Ottline.Tests` 19/19 통과, `Native Windows CI` PR Run [`44696668066`](https://github.com/chawon/ott/actions/runs/44696668066) 및 `main` Run [`44697026662`](https://github.com/chawon/ott/actions/runs/44697026662) 통과, `ottline-2.0.1.0.msixbundle`(`x64`+`arm64`, `158.90 MB`) 로컬 빌드·무결성 검증 완료.
+- 스토어 제출: Partner Center `9NSVNZGDMGF5`에 `v2.0.1.0` 제출 완료(Submission `1152921505702457337`, `Status = Certification`, `Errors = 0`, `Desktop` 전용 유지). 현재 공개판은 `2.0.0.0`이며 `2.0.1.0` 공개 게시 후 스토어 설치판 실기기 확인이 남아 있다. [후속 작업](../docs/changes/v2-follow-up.md#1-windows-서버-계정-삭제-수정) · [삭제 정책](pages/features/delete-sync.md#windows-확인-사항)
+
+## 계획 · 브라우저 확장·토스 인앱·ChatGPT 앱
+
+- 브라우저 확장은 Web 빠른 기록 진입을 유지하고 원본 URL과 권한을 줄이는 패키지 갱신을 준비한다. 토스 인앱은 공개판에서 핵심 동작과 반복 기록을 확인한다.
+- ChatGPT 앱의 기존 반려 통지에서 스크린샷 요건 미충족을 확인했다. 읽기 전용 조회를 실제 ChatGPT에서 검증하고 현재 제출 자료를 준비한다. [후속 채널 개편 방향](../docs/changes/v2-channel-strategy.md)
+
+## 정리 · 플랫폼 통합 개발 지휘부
+
+- 기준 소스 `main 3920e30`. [플랫폼 현황](../docs/platforms.md), [공통 API와 데이터 계약](../docs/product-contracts.md), [기능 변경안](../docs/changes/README.md)을 현재 문서로 연결했다.
+- Android·Windows 네이티브 전환 이후의 소스와 배포 경로를 확인했다. App Store의 Expo iOS와 PR #137의 SwiftUI iOS·macOS를 구분했다.
+- 구형 Android TWA와 초기 Web 시안, 종료된 절차와 검토 자료를 [소스](../archive/README.md), [문서](../docs/archive/README.md), [Wiki](archive/README.md) 아카이브에 보관했다.
+- 기록 정정. Android `2.0.0 (24)` 배포 run `42550886641`의 빌드 SHA는 `7ef08aa`다. 현재 Android 패키지 테스트·Lint·서명 빌드는 `native-android-release.yml`에서 실행된다. [Android 전환 기록](../docs/android-native-v2-transition.md)
+
+## [2026-11-19] deploy: 브라우저 확장→Windows 빠른 기록 Phase A
+
+- PR #138을 병합하고 Web SHA `4472ad3`을 production run `44441612541`로 배포했다. Windows 확장 진입의 QuickLog에 앱 링크와 설치 캠페인 `cid=extension_handoff`를 추가했다.
+- 운영 브라우저 29개 시나리오, 한·영 공개 `/about`의 보조 도구·`Ctrl+Shift+O`, SEO 공개 19개·개인 14개 경로와 IndexNow 19개 접수를 확인했다. ArgoCD `Synced Healthy`, Web과 API Pod Ready·재시작 0을 확인했다.
+- [배포·검증 기록](../docs/desktop-protocol-and-extension-bridge-plan-2026-11-18.md)
+
 ## [2026-11-18] plan: 데스크톱(Windows·macOS) 공통 ottline:// 프로토콜·핸드오프 및 브라우저 확장 전환 명세 작성
 - 대상: `docs/desktop-protocol-and-extension-bridge-plan-2026-11-18.md` (신규), `wiki/pages/platforms/browser-extension.md`, `wiki/pages/platforms/windows-native.md`, `wiki/index.md`
 - 노트:

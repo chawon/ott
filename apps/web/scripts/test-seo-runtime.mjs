@@ -178,14 +178,28 @@ for (const entry of entries) {
       "hl",
     ]);
     assert.match(html, /Windows 11/);
-    assert.match(html, /Ctrl\+Alt\+O/);
+    assert.match(html, /Ctrl\+Shift\+O/);
+    assert.doesNotMatch(html, /Ctrl\+Alt\+O/);
+    const companionSection = html
+      .match(/<section\b[^>]*>[\s\S]*?<\/section>/g)
+      ?.find((section) =>
+        section.includes(english ? "Companion tools" : "보조 도구"),
+      );
+    assert.ok(
+      companionSection,
+      `${pathname}: a separate companion tools section`,
+    );
+    assert.match(companionSection, /Mac App Store/);
+    for (const label of ["Chrome Web Store", "Edge Add-ons", "Whale Store"]) {
+      assert.ok(companionSection.includes(label), `${pathname}: ${label} link`);
+    }
     assert.doesNotMatch(
       html,
       /same web app is also available through Microsoft Store packaging|같은 웹 앱을 Microsoft Store 배포 형태/,
     );
     assert.equal(
       Date.parse(entry.lastmod),
-      Date.parse("2026-11-17T00:00:00+09:00"),
+      Date.parse("2026-11-18T00:00:00+09:00"),
     );
     const appStore = tags(html, "a").find((tag) =>
       tag.href?.startsWith("https://apps.apple.com/"),

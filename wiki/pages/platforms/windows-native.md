@@ -3,22 +3,23 @@
 > `2026-11-17` 제출 및 **`2026-11-18` 정식 출시(`v2.0.0.0`, `Published`)**로 기존 PWABuilder Edge PWA(`1.0.1.0`)를 대체해 Microsoft Store `9NSVNZGDMGF5`(`ChawonLee.ottline`)에 인플레이스 전환된 순수 Windows Native(`.NET 8 WPF + SQLite + Windows 11 공식 위젯`) 앱
 
 ## 관련 페이지
-- [[ottline-v2]]
-- [[ms-store]]
-- [[pwa]]
-- [[personal-profile]]
-- [[future-timeline]]
+
+- [Microsoft Store](ms-store.md)
+- [브라우저 확장](browser-extension.md)
+- [macOS 네이티브 v2](macos-native.md)
+- [ottline v2](../features/ottline-v2.md)
 
 ---
 
-## 현재 상태 (`2026-11-18`)
+## 소스와 출시
 
 - **Store Product ID / Identity**: `9NSVNZGDMGF5` / `ChawonLee.ottline` (`PackageFamilyName`: `ChawonLee.ottline_ry7416pek43sa`, `Publisher`: `CN=A486532B-583B-4088-AFDE-FC4377E51968`)
 - **현재 게시 버전**: `2.0.0.0` (`ottline-2.0.0.0.msixbundle`, `x64` + `arm64`, `158.90 MB`, `Submission Id = 1152921505702424456`, **`Status = Published`**, `2026-11-18` Microsoft Store 카탈로그 및 `winget` 반영 완료)
+- **심사 중인 업데이트 (`2026-11-20`)**: `2.0.1.0` (`main` `1fb24ee`, [PR #140](https://github.com/chawon/ott/pull/140), `ottline-2.0.1.0.msixbundle` `158.90 MB`, `Submission Id = 1152921505702457337`, **`Status = Certification`**, `Errors = 0`) — 서버 계정 삭제 `DELETE /api/auth/account` 경로 정정, 실패·네트워크 오류 시 로컬 기록·`outbox`·연결 상태 보존, 미연결 가드 및 한·영 안내 반영 (`Published` 전환 후 스토어 설치판 실기기 검증 예정). [삭제 정책](../features/delete-sync.md#windows-확인-사항)
 - **스토어 등록 제목**: KO `ottline - 영화·드라마·책·독서 기록` / EN `ottline: Movie, TV & Book Log`
 - **지원 장치 패밀리**: `Desktop` 전용 (`Holographic: false`)
 - **실기기 검증 (`2026-11-18`)**: `winget install --id 9NSVNZGDMGF5 --source msstore`(`SignatureKind: Store`) 정식 설치 및 별도 PC `1.0.x` Edge PWA → `2.0.0.0` 업데이트 후 첫 실행 웹 브라우저 연결(`?native_handoff=1` → `ottline://open?handoff=1`) 자동 핸드오프 확인 완료
-- **소스 경로**: `apps/windows-native/` (`OttlineWindows.sln`, `Ottline.App`, `Ottline.Core`, `Ottline.Tests`)
+- **소스 경로**: [`apps/windows-native`](../../../apps/windows-native) (`OttlineWindows.sln`, `Ottline.App`, `Ottline.Core`, `Ottline.Tests`)
 - **GitHub Actions**:
   - `.github/workflows/native-windows-ci.yml` (PR/main `x64` + `arm64` MSIX/MSIXBundle 빌드 및 계약 검증 — PR `#132` Run `44030185194` 통과, main SHA `7bc5a46`)
   - `.github/workflows/native-windows-release.yml` (`msstore-cli` 기반 `artifact_only` / `store_draft` / `store_commit` 배포)
@@ -31,7 +32,7 @@
 - 기존 `X-Client-Platform: windows_native` 요청은 `Windows App · Windows`로 표시한다. 앱에서 연결 기기 목록을 조회하면 기존 ID·계정·등록 시각을 유지하며 갱신되므로 Windows 재빌드·재페어링은 필요 없다.
 - `macos_native`도 `macOS App · macOS`로 처리하며 해당 헤더를 보내는 Mac 빌드가 필요하다. Store 바이너리·심사 상태는 이번 Web/API 배포에서 변경하지 않았다.
 - [운영 배포·검증 기록](../../../docs/desktop-acquisition-rollout-2026-11-18.md)
-- `ottline helper`([[browser-extension]]) 및 웹에서 Windows·macOS 공통 딥링크(`ottline://quick?quick=1&title=...&q=...`)로 연결하고 macOS 브라우저 핸드오프(`ottline://open?handoff=1`)를 정렬하는 설계는 [데스크톱 공통 프로토콜·핸드오프 및 확장 브릿지 계획 (2026-11-18)](../../../docs/desktop-protocol-and-extension-bridge-plan-2026-11-18.md)을 따른다. (Windows `v2.0.0.0`은 이미 `quick`·`title`을 지원하므로 재빌드 불필요)
+- 2026-11-19 Web SHA `4472ad3`으로 [브라우저 확장](browser-extension.md)에서 들어온 빠른 기록을 Windows 앱으로 넘기는 연결을 배포했다. Chromium에서 앱 링크와 웹 저장 경로를 확인했다. 정식 설치 앱 실행 및 제목·플랫폼 미리 채움은 실기기 확인 항목이다. 출시된 Windows `2.0.0.0`은 이미 `ottline://quick`을 처리한다. [공통 프로토콜·핸드오프](../../../docs/desktop-protocol-and-extension-bridge-plan-2026-11-18.md)
 
 ## 핵심 아키텍처 및 UX v2 구성
 

@@ -12,9 +12,11 @@ import ShareBottomSheet from "@/components/ShareBottomSheet";
 import SoftwareApplicationJsonLd from "@/components/SoftwareApplicationJsonLd";
 import HomeTimelineView from "@/components/timeline-v2/HomeTimelineView";
 import styles from "@/components/timeline-v2/timeline.module.css";
+import WindowsQuickRecordBridge from "@/components/WindowsQuickRecordBridge";
 import { Link } from "@/i18n/routing";
 import { trackEvent } from "@/lib/analytics";
 import { api, apiWithAuth } from "@/lib/api";
+import { buildDesktopQuickRecordUrl } from "@/lib/desktop-quick-record.mjs";
 import {
   countLogsLocal,
   dismissProfilePrompt,
@@ -32,6 +34,7 @@ import {
   parseShareIntentText,
   sanitizeResolvedTitle,
 } from "@/lib/shareIntent";
+import { getInstallBannerMode } from "@/lib/store-acquisition.mjs";
 import { selectPopularTitleFillers } from "@/lib/titleFallback";
 import type {
   DiscussionListItem,
@@ -135,6 +138,9 @@ export default function HomePage() {
     "video",
   );
   const [sharedPlatform, setSharedPlatform] = useState<string>("");
+  const [windowsQuickRecordHref, setWindowsQuickRecordHref] = useState<
+    string | null
+  >(null);
   const [shareImportStatus, setShareImportStatus] =
     useState<ShareImportStatus | null>(null);
   const [autoFocusSearch, setAutoFocusSearch] = useState(false);
@@ -184,6 +190,7 @@ export default function HomePage() {
     if (!open) {
       setSharedQuery("");
       setSharedPlatform("");
+      setWindowsQuickRecordHref(null);
       setShareImportStatus(null);
       setActivationTitleSelection(null);
       setHighlightedStatus(null);
@@ -277,6 +284,28 @@ export default function HomePage() {
         setSharedQuery(captureTitle);
         setShareImportStatus("imported");
         setAutoFocusSearch(true);
+        if (
+          quickEnabled &&
+          !hasSharedInput &&
+          !fromWatchReminder &&
+          params.get("native_handoff") !== "1" &&
+          getInstallBannerMode({
+            userAgent: navigator.userAgent,
+            maxTouchPoints: navigator.maxTouchPoints,
+            displayMode: window.matchMedia("(display-mode: standalone)").matches
+              ? "standalone"
+              : "browser",
+            embedded: window.self !== window.top,
+          }) === "windows-store"
+        ) {
+          setWindowsQuickRecordHref(
+            buildDesktopQuickRecordUrl({
+              title: captureTitle,
+              platform: capturePlatform,
+              type: captureType,
+            }),
+          );
+        }
       }
 
       const platform = inferShareIntentPlatform(rawShared, rawSubject);
@@ -580,7 +609,12 @@ export default function HomePage() {
         initialPlatform={sharedPlatform}
         autoFocusSearch={autoFocusSearch}
         searchFocusSignal={searchFocusSignal}
-        shareImportStatus={shareImportStatus}
+        searchAccessory={
+          windowsQuickRecordHref ? (
+            <WindowsQuickRecordBridge href={windowsQuickRecordHref} />
+          ) : null
+        }
+        shareImportStatus={windowsQuickRecordHref ? null : shareImportStatus}
         shareImportFeedbackHref={feedbackHref("android-alpha-share")}
         activationTitleSelection={activationTitleSelection}
         highlightedStatus={highlightedStatus}

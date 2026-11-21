@@ -4,7 +4,7 @@
 
 ## 관련 페이지
 - [[gitops]]
-- [[ottline-branding]]
+- [도메인 컷오버 기록](../../archive/navigation-auth-migration.md)
 - [[security]]
 
 ---
@@ -24,6 +24,8 @@ OKE 클러스터
 - `staging.ottline.app` ingress
 - `deploy/oke-staging/*`
 - staging 자동 배포 이미지 태그(`staging-{sha}`)
+
+구 도메인 `ott.preview.pe.kr/*`는 `2026-04-18`부터 Cloudflare 301로 `https://ottline.app/*`에 연결된다.
 
 과거 staging DB(`watchlog_staging`)와 Vault secret은 별도 백업/참조 여부를 확인한 뒤 정리한다.
 
@@ -67,13 +69,6 @@ DB migration, 외부 심사, 위험한 계약 변경처럼 별도 검증 환경�
 
 ---
 
-## 버전 표시
+## 배포 버전 확인
 
-Footer에는 production 버전만 표시한다.
-
-```
-web a1b2c3d · api a1b2c3d
-```
-
-- web 버전: K8s Deployment `APP_VERSION` env
-- api 버전: `BACKEND_URL/actuator/info`
+GitHub Actions에서 입력 SHA를 확인하고 ArgoCD에서 적용 상태를 확인한다. Web/API Deployment의 이미지 태그와 `APP_VERSION`에 같은 SHA가 반영됐는지 확인한다. [배포 운영 가이드](../../../docs/staging-environment-plan.md)

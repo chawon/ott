@@ -43,6 +43,18 @@ class AcquisitionAttributionTest {
     }
 
     @Test
+    void chatGptSearchUtmAndReferrerUseTheSameSource() {
+        var chatGpt = new AcquisitionAnalyticsQuery.Attribution("ai_referral", "chatgpt");
+
+        assertThat(AcquisitionAnalyticsQuery.classifyAttribution(
+                "chatgpt.com", null, null, "direct"
+        )).isEqualTo(chatGpt);
+        assertThat(AcquisitionAnalyticsQuery.classifyAttribution(
+                null, null, null, "https://chatgpt.com"
+        )).isEqualTo(chatGpt);
+    }
+
+    @Test
     void arbitraryEntrySourceIsIgnored() {
         assertThat(AcquisitionAnalyticsQuery.classifyAttribution(
                 null, null, "user@example.com", "direct"

@@ -21,7 +21,9 @@
 
 ---
 
-## 2. 실측 코드 대조: Windows vs Apple (`feature/ios-native-v2:7038ce0`) 현황
+## 2. Apple 규격 정렬 전 코드 대조 (`7038ce0`)
+
+이 표는 최초 설계 당시의 비교다. 최신 Apple 브랜치의 구현과 실기기 확인 항목은 [Phase B](#phase-b--apple-브랜치의-macos-출시-전-규격-정렬)를 따른다.
 
 | 항목 | Windows Native (`main` `2.0.0.0` 출시됨) | macOS / iOS Native (`origin/feature/ios-native-v2`) | 격차 및 조치 방향 |
 |---|---|---|---|
@@ -47,7 +49,7 @@ ottline://quick?quick=1&title={encodedTitle}&q={encodedTitle}&platform={encodedP
 - **Windows `v2.0.0.0` 무재빌드 호환성**:
   - Windows `ShareIntentParser`는 `host == "quick"`과 `quick=1`, `title`, `platform`, `type`을 이미 읽으므로 **스토어에 출시된 Windows `2.0.0.0` 재빌드 없이 바로 동작**한다 ([`MainViewModel.cs:2049-2056`](../apps/windows-native/src/Ottline.App/ViewModels/MainViewModel.cs#L2049-L2056)).
   - 현재 Apple(`feature/ios-native-v2`) 코드에서도 `qVal("quick") == "1"`과 `q`, `platform`, `type`이 읽히지만, 추후 단일 키 호출과의 일관성을 위해 **Apple 측(`OttlineMacApp.swift`, `OttlineApp.swift`)도 아래 별칭을 모두 허용**한다.
-- **권장 파서 규격 (Apple 측 보강)**:
+- **Apple 브랜치 파서 규격**:
   - 빠른 기록 진입 조건: `host == "quick" || host == "quick-record" || qVal("quick") == "1"`
   - 초기 검색어: `qVal("q") ?? qVal("title") ?? qVal("query") ?? qVal("capture_title") ?? ""`
   - 플랫폼 프리필: `qVal("platform") ?? qVal("capture_platform")` (트림 후 비어 있지 않을 때 적용)
@@ -89,12 +91,23 @@ ottline://quick?quick=1&title={encodedTitle}&q={encodedTitle}&platform={encodedP
 - **대상 파일**: [`apps/web/app/[locale]/page.tsx:224-230`](../apps/web/app/[locale]/page.tsx#L224-L230), QuickLog/홈 배너 컴포넌트, [`apps/web/lib/store-acquisition.mjs`](../apps/web/lib/store-acquisition.mjs), [`apps/web/app/[locale]/about/page.tsx`](../apps/web/app/[locale]/about/page.tsx)
 - **구현 내용**:
   1. 브라우저 확장이 열어주는 `?quick=1&capture_title=...&capture_platform=...&capture_type=...` 파라미터로 진입했고 현재 OS가 **Windows(`Windows NT`)**인 경우:
-     - 기존처럼 웹 QuickLog는 그대로 열어두되(기록 차단 금지), 상단에 조용한 보조 바 **"Windows 앱에서 바로 기록하기"**(`ottline://quick?quick=1&title=...&q=...&platform=...&type=...`) 및 **"앱 설치가 아직이라면 Microsoft Store에서 받기"**(`cid=extension_handoff`)를 함께 노출한다.
-     - 사용자가 `"항상 Windows 앱으로 열기"`를 선택하면 `localStorage` 플래그를 저장해 다음 확장 진입 시 안내 배너에서 즉시 앱 전환을 우선 제공한다.
-  2. `/about` 페이지에서 브라우저 확장 카드를 Android·iOS·Windows·macOS 메인 클라이언트 아래 **‘보조 도구’** 위상으로 조정하고, 문구에 *"Windows·macOS 데스크톱 앱과 함께 쓰면 브라우저에서 본 작품을 앱으로 바로 넘겨 기록할 수 있어요"*를 반영한다.
+     - 기존 웹 QuickLog 검색 단계 안에 **"Windows 앱에서 바로 기록하기"**와 **"Microsoft Store에서 설치"**(`cid=extension_handoff`)를 함께 표시한다. Windows 일반 브라우저에서만 제공하며 제목 검색과 저장은 기존 흐름을 사용한다.
+     - 앱으로 전달하는 URI는 `ottline://quick?quick=1&title=...&q=...&platform=...&type=...`이다. 제목과 플랫폼 값은 쿼리로 인코딩하고 타입은 `video`·`book`·`all`만 사용한다. 플랫폼 값이 없으면 생략한다.
+     - `"항상 Windows 앱으로 열기"`를 선택하면 이 브라우저에 설정을 저장한다. 다음 확장 진입에서 앱 링크를 강조하고 우선 포커스한다. 링크를 클릭하거나 Enter를 눌러 설치된 앱을 열 수 있다. 설정을 해제한 뒤 다음 진입부터는 제목 검색에 포커스한다.
+  2. `/about`의 앱 목록 아래에 브라우저 확장 **‘보조 도구’** 섹션을 둔다. Windows 앱으로 작품을 넘겨 기록하는 방법과 Mac App Store 출시 후 macOS 앱 연결을 지원한다는 점을 안내한다.
   3. **후속 정리 포함**: [PR `#133` 후속 메모](./web-acquisition-funnel-plan-2026-11-17.md#후속-phase-1-작업-시-실행할-검사)에 기록된 `Ctrl+Alt+O` → **`Ctrl+Shift+O`** 문구 정정도 이 Web PR에서 함께 처리한다.
 
-### Phase B — Apple (`origin/feature/ios-native-v2`) macOS 출시 전 규격 정렬
+#### Phase A 운영 배포 (2026-11-19)
+
+- [PR #138](https://github.com/chawon/ott/pull/138)을 병합하고 `4472ad39a88395959187897a51f891cd13bf3e23`을 [웹 운영 배포](https://github.com/chawon/ott/actions/runs/44441612541)에 입력했다. [PR CI](https://github.com/chawon/ott/actions/runs/44321330160)와 [main CI](https://github.com/chawon/ott/actions/runs/44441545662)가 통과했다.
+- 운영 manifest는 `7e6735e8de00d1a9ffcd4b99a59731576464caa4`다. ArgoCD `Synced Healthy`, Web 이미지와 `APP_VERSION=4472ad3`, Web/API Pod `1/1` Ready와 재시작 0을 확인했다.
+- 공개 버전 응답과 한·영 `/about`의 보조 도구 섹션·`Ctrl+Shift+O`·Windows Store 링크를 확인했다. 운영 SEO 검사는 공개 URL 19개·개인 경로 14개에서 통과했고 IndexNow는 19개 URL을 접수했다.
+- 운영 Web Pod의 자산을 사용한 Chromium 검사 29개가 통과했다. 한·영 확장 진입, 앱 링크 활성화, 앱 우선 설정의 유지·해제, `cid=extension_handoff`와 웹 저장을 확인했다. 저장과 이벤트는 브라우저에서 모의 처리했으며 Windows 앱 실행과 프리필은 실기기 확인 항목이다.
+- macOS 앱 연결은 Mac App Store 출시 후 Phase C에서 활성화한다.
+
+### Phase B — Apple 브랜치의 macOS 출시 전 규격 정렬
+
+`8685ff2`에서 아래 공통 규격을 구현했다. [PR #137](https://github.com/chawon/ott/pull/137)의 `4addda3`에서 [macOS CI](https://github.com/chawon/ott/actions/runs/44558347464)와 [iOS CI](https://github.com/chawon/ott/actions/runs/44558347502)가 통과했다. Mac App Store 출시와 Safari·Chrome에서 설치 앱으로 이어받는 실기기 검증은 별도 항목이다. [macOS 플랫폼 현황](../wiki/pages/platforms/macos-native.md)
 
 - **대상 파일**: `apps/macos-native/Sources/OttlineMacApp/OttlineMacApp.swift`, `apps/ios-native/Sources/OttlineApp/OttlineApp.swift`, `apps/apple-core/Sources/OttlineCore/`
 - **구현 내용**:
@@ -114,18 +127,22 @@ ottline://quick?quick=1&title={encodedTitle}&q={encodedTitle}&platform={encodedP
 ### 확장 프로그램 (`apps/browser-extension`) 운영 원칙
 
 - `popup-core.js`가 이미 `https://ottline.app/?quick=1&capture_title=...`로 이동하므로, **Phase A·C가 배포되면 3개 확장 스토어(Chrome·Edge·Whale) 재심사 없이도 확장 → 웹 브릿지 → Windows/macOS 네이티브 앱 전환이 즉시 동작**한다.
-- 확장은 별도 기능 추가 없이 현행 동결 상태를 유지한다. 추후 v2 아이콘·설명 정비로 1회 스토어 재제출할 일이 생길 때만 팝업 내 *"데스크톱 앱으로 직접 열기"* 보조 옵션 추가 여부를 검토한다.
+- 확장은 작품 캡처와 Web 빠른 기록 진입을 맡는다. 다음 확장 패키지의 개인정보·등록정보 변경 범위와 검증은 [후속 채널 개편 방향](changes/v2-channel-strategy.md#브라우저-확장)을 따른다.
 
 ---
 
 ## 5. 트랙별 검증 체크리스트
 
-### Apple (`feature/ios-native-v2` — Phase B 구현 반영됨) 담당
-- [x] `ottline://quick?quick=1&title=...&q=...&platform=Netflix&type=video` 수신 시 `OttlineMacApp` / `OttlineApp` 빠른 기록 시트에 제목·플랫폼·타입이 프리필되는지 단위 테스트 및 수동 실행 확인 (`OttlineDeepLinkParser`, `OttlineMacTests.testUniversalQuickLinkAliasesAndBrowserHandoffMerge`, `OttlineCoreTests.testShareIntentParserAndCsvExporter`).
-- [x] `https://ottline.app/ko?native_handoff=1` 호출 후 브라우저에서 `ottline://open?handoff=1&status=ok&...` 복귀 시 기존 웹 기록과 연결 코드가 병합·복원되고 `status=empty` 안내가 정상 동작하는지 확인 (`OttlineRepository.importBrowserHandoff` 단위 테스트 검증; Safari/Chrome 실브라우저 전환 수동 확인은 실기기/macOS 앱에서 추가 점검 가능).
-- [x] macOS 연결 기기 목록에서 `macOS App · macOS`로 표시되는지 확인 (백엔드 PR `#135` + `OttlineApiClient.defaultClientPlatform = "macos_native"` + `DeviceItem.displayName` 정렬 완료).
+### Apple (`feature/ios-native-v2`) 담당
+
+- [x] 빠른 기록 별칭 파싱 및 브라우저 세션 병합 단위 테스트와 macOS/iOS CI 통과.
+- [ ] 설치한 macOS 앱에서 빠른 기록 링크의 제목·플랫폼·타입 미리 채움을 확인.
+- [ ] Safari와 Chrome에서 `https://ottline.app/ko?native_handoff=1`을 호출해 세션·연결 코드·로컬 미동기화 기록 병합과 `status=empty` 안내를 확인.
+- [ ] 운영 API에 연결한 macOS 앱에서 `macOS App · macOS` 기기 표시를 확인.
 
 ### Web (`apps/web`) 담당
-- [ ] `capture_title` 브릿지 노출 시 기존 웹 QuickLog 입력·저장 흐름을 막지 않으며, `ottline://quick` URI에 계정/기기 식별자 및 불필요한 원문 URL 파라미터가 포함되지 않는지 테스트.
-- [ ] Windows `Ctrl+Shift+O` 단축키 문구 정정 및 `test:seo-runtime`·`test:store-acquisition-runtime` 통과 확인.
+- [x] 확장 진입에서 QuickLog 제목 입력·저장, 앱 링크의 제목·플랫폼·타입 인코딩과 계정·기기·원본 URL 제외 확인.
+- [x] Windows `Ctrl+Shift+O`를 한·영 전역 배너·저장 후 CTA·소개 카드에서 확인. `test:seo-runtime` 공개 19개·개인 14개 경로, `test:store-acquisition-runtime` 29개 시나리오 통과.
+- [x] 로컬 프로덕션 빌드와 타입 검사, 스토어 정책 18건·분석 10건·SEO 단위 20건, 키보드 접근성과 저장 회귀 검사 통과.
+- [ ] 실제 Windows 앱이 설치된 기기에서 프로토콜 활성화와 새 기록 창의 프리필 확인. 로컬 Chromium에서는 링크 활성화와 브라우저의 웹 기록 계속 사용을 확인했다.
 - [ ] macOS 출시 후 Phase C 적용 시 iPadOS(`Macintosh` + `maxTouchPoints > 1`)가 `macos-appstore`로 오분류되지 않는지 `lib/store-acquisition.test.mjs` 단위 테스트로 고정.

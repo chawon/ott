@@ -16,6 +16,6 @@ public record LlmProperties(
     public LlmProperties {
         openaiModel = openaiModel == null || openaiModel.isBlank() ? "gpt-6-luna" : openaiModel.strip();
         openaiBaseUrl = openaiBaseUrl == null || openaiBaseUrl.isBlank() ? "https://api.openai.com" : openaiBaseUrl;
-        openaiReasoningEffort = openaiReasoningEffort == null ? "low" : openaiReasoningEffort.strip();
+        openaiReasoningEffort = openaiReasoningEffort == null ? "none" : openaiReasoningEffort.strip();
     }
 }

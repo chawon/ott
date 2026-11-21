@@ -81,6 +81,25 @@ class RecommendationCatalogServiceTest {
         assertThat(catalog.enrich(List.of(item), "ko")).containsExactly(item);
     }
 
+    @Test
+    void slowCatalogLookupsShareABatchDeadlineAndFallBackWithoutBlocking() throws Exception {
+        var fastItem = movie("Interstellar", 2014);
+        var slowItem = movie("Slow Story", 2020);
+        when(tmdb.searchMulti("Interstellar", "ko")).thenReturn(List.of(hit("157336", "인터스텔라", "Interstellar", "2014-11-05")));
+        when(tmdb.searchMulti("Slow Story", "ko")).thenAnswer(call -> {
+            Thread.sleep(2000);
+            return List.of();
+        });
+        var bounded = new RecommendationCatalogService(tmdb, books, kakao, java.time.Duration.ofMillis(120));
+        long start = System.nanoTime();
+        var results = bounded.enrich(List.of(fastItem, slowItem), "ko");
+        long elapsedMs = java.util.concurrent.TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
+        assertThat(elapsedMs).isLessThan(1000L);
+        assertThat(results).hasSize(2);
+        assertThat(results.get(0).providerId()).isEqualTo("157336");
+        assertThat(results.get(1)).isEqualTo(slowItem);
+    }
+
     private static RecommendationItem movie(String name, Integer year) {
         return new RecommendationItem(name, "movie", "A quiet connection", List.of(), null, null, null, year, List.of());
     }

@@ -1,3 +1,5 @@
+@AGENTS.md
+
 <!-- omd:start v=1 hash=672475c77b07 -->
 # Design System (oh-my-design)
 

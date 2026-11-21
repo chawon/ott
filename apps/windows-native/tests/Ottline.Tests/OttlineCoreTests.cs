@@ -450,6 +450,314 @@ public sealed class OttlineCoreTests
         }
     }
 
+    [Fact]
+    public async Task DeleteServerAccount_CallsAuthAccountEndpointAndResetsLocalDataOnlyAfterSuccess()
+    {
+        var tempDbPath = Path.Combine(Path.GetTempPath(), $"ottline_delete_ok_{Guid.NewGuid():N}.db");
+        try
+        {
+            var userId = "11111111-2222-3333-4444-555555555555";
+            var deviceId = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee";
+            var handler = new RecordingHttpMessageHandler(_ =>
+                new HttpResponseMessage(System.Net.HttpStatusCode.NoContent));
+
+            using var db = new OttlineDatabase(tempDbPath);
+            using var httpClient = new HttpClient(handler);
+            using var api = new Ottline.Core.Remote.OttlineApiClient(httpClient);
+            using var repo = new OttlineRepository(db, api);
+
+            repo.UpdateSettings(s => s with
+            {
+                BaseUrl = "https://ottline.app",
+                UserId = userId,
+                DeviceId = deviceId,
+                RecoveryCode = "ABCD1234",
+                DisplayName = "테스터",
+                AvatarPreset = "midnight_logger",
+                Locale = "en",
+                ThemeMode = ThemeMode.DARK,
+                LastSyncCursor = "2026-11-20T00:00:00Z",
+                HasCompletedBrowserHandoff = true,
+                HasDismissedMigrationBanner = true
+            });
+
+            var book = TitleFallback.BuildManualBookMetadata("소년이 온다", "한강", "창비", "9788936434120");
+            repo.SaveLogLocalFirst(book, LogStatus.DONE, RecordFeeling.SATISFIED, "2026-11-19", note: "기록 보존 테스트");
+            Assert.Single(repo.GetAllLogs());
+            Assert.Single(repo.GetHistoryForTitle(book.Id));
+            Assert.True(repo.GetPendingOutboxCount() > 0);
+
+            var result = await repo.DeleteServerAccountAsync();
+
+            Assert.True(result.IsSuccess);
+            Assert.Equal(ServerAccountDeleteOutcome.Deleted, result.Outcome);
+            Assert.Equal(204, result.StatusCode);
+
+            var deleteReq = Assert.Single(handler.Requests, r => r.Method == HttpMethod.Delete);
+            Assert.Equal("https://ottline.app/api/auth/account", deleteReq.Uri);
+            Assert.Equal(userId, deleteReq.UserIdHeader);
+            Assert.Equal(deviceId, deleteReq.DeviceIdHeader);
+            Assert.Equal("windows_native", deleteReq.ClientPlatformHeader);
+
+            Assert.Empty(repo.GetAllLogs());
+            Assert.Empty(repo.GetHistoryForTitle(book.Id));
+            Assert.Equal(0, repo.GetPendingOutboxCount());
+
+            var afterSettings = repo.GetSettings();
+            Assert.Null(afterSettings.UserId);
+            Assert.Null(afterSettings.AuthToken);
+            Assert.Null(afterSettings.RecoveryCode);
+            Assert.Null(afterSettings.LastSyncCursor);
+            Assert.Equal("나의 기록실", afterSettings.DisplayName);
+            Assert.Equal("cinema_keeper", afterSettings.AvatarPreset);
+            Assert.True(Guid.TryParse(afterSettings.DeviceId, out _));
+            Assert.NotEqual(deviceId, afterSettings.DeviceId);
+            // Non-account device preferences remain intact
+            Assert.Equal("en", afterSettings.Locale);
+            Assert.Equal(ThemeMode.DARK, afterSettings.ThemeMode);
+            Assert.Equal("https://ottline.app", afterSettings.BaseUrl);
+
+            // Second attempt without connected account does not call server
+            var secondAttempt = await repo.DeleteServerAccountAsync();
+            Assert.False(secondAttempt.IsSuccess);
+            Assert.Equal(ServerAccountDeleteOutcome.NotConnected, secondAttempt.Outcome);
+            Assert.Single(handler.Requests, r => r.Method == HttpMethod.Delete);
+        }
+        finally
+        {
+            try { File.Delete(tempDbPath); } catch { }
+        }
+    }
+
+    [Fact]
+    public async Task DeleteServerAccount_PreservesLocalLogsOutboxAndConnectionOnHttpErrorsAndSupportsRetry()
+    {
+        var tempDbPath = Path.Combine(Path.GetTempPath(), $"ottline_delete_http_err_{Guid.NewGuid():N}.db");
+        try
+        {
+            var userId = "11111111-2222-3333-4444-555555555555";
+            var deviceId = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee";
+            var nextStatus = System.Net.HttpStatusCode.InternalServerError;
+            var handler = new RecordingHttpMessageHandler(_ => new HttpResponseMessage(nextStatus));
+
+            using var db = new OttlineDatabase(tempDbPath);
+            using var httpClient = new HttpClient(handler);
+            using var api = new Ottline.Core.Remote.OttlineApiClient(httpClient);
+            using var repo = new OttlineRepository(db, api);
+
+            repo.UpdateSettings(s => s with
+            {
+                UserId = userId,
+                DeviceId = deviceId,
+                RecoveryCode = "KEEP5678",
+                DisplayName = "보존 계정",
+                LastSyncCursor = "2026-11-20T01:00:00Z"
+            });
+
+            var movie = TitleFallback.BuildManualVideoMetadata("헤어질 결심", TitleType.movie, 2022);
+            repo.SaveLogLocalFirst(movie, LogStatus.IN_PROGRESS, null, "2026-11-18", note: "1차 기록");
+            repo.SaveLogLocalFirst(movie, LogStatus.DONE, RecordFeeling.SATISFIED, "2026-11-19", note: "수정된 기록");
+            var expectedOutboxCount = repo.GetPendingOutboxCount();
+            Assert.True(expectedOutboxCount > 0);
+
+            foreach (var failureStatus in new[]
+                     {
+                         System.Net.HttpStatusCode.Unauthorized,
+                         System.Net.HttpStatusCode.NotFound,
+                         System.Net.HttpStatusCode.InternalServerError
+                     })
+            {
+                nextStatus = failureStatus;
+                var failed = await repo.DeleteServerAccountAsync();
+
+                Assert.False(failed.IsSuccess);
+                Assert.Equal(ServerAccountDeleteOutcome.HttpError, failed.Outcome);
+                Assert.Equal((int)failureStatus, failed.StatusCode);
+
+                var preservedLogs = repo.GetAllLogs();
+                Assert.Single(preservedLogs);
+                Assert.Equal("수정된 기록", preservedLogs[0].Note);
+                Assert.Equal(2, repo.GetHistoryForTitle(movie.Id).Count);
+                Assert.Equal(expectedOutboxCount, repo.GetPendingOutboxCount());
+
+                var preservedSettings = repo.GetSettings();
+                Assert.Equal(userId, preservedSettings.UserId);
+                Assert.Equal(deviceId, preservedSettings.DeviceId);
+                Assert.Equal("KEEP5678", preservedSettings.RecoveryCode);
+                Assert.Equal("보존 계정", preservedSettings.DisplayName);
+                Assert.Equal("2026-11-20T01:00:00Z", preservedSettings.LastSyncCursor);
+            }
+
+            // Retry after server recovers succeeds and wipes local records & connection
+            nextStatus = System.Net.HttpStatusCode.OK;
+            var retry = await repo.DeleteServerAccountAsync();
+            Assert.True(retry.IsSuccess);
+            Assert.Equal(ServerAccountDeleteOutcome.Deleted, retry.Outcome);
+            Assert.Empty(repo.GetAllLogs());
+            Assert.Equal(0, repo.GetPendingOutboxCount());
+            Assert.Null(repo.GetSettings().UserId);
+            Assert.Null(repo.GetSettings().RecoveryCode);
+        }
+        finally
+        {
+            try { File.Delete(tempDbPath); } catch { }
+        }
+    }
+
+    [Fact]
+    public async Task DeleteServerAccount_PreservesLocalStateOnNetworkFailureAndAllowsRetry()
+    {
+        var tempDbPath = Path.Combine(Path.GetTempPath(), $"ottline_delete_net_err_{Guid.NewGuid():N}.db");
+        try
+        {
+            var userId = "22222222-3333-4444-5555-666666666666";
+            var deviceId = "bbbbbbbb-cccc-dddd-eeee-ffffffffffff";
+            var mode = "http_exception";
+            var handler = new RecordingHttpMessageHandler(_ =>
+            {
+                if (mode == "http_exception") throw new HttpRequestException("Simulated offline network");
+                if (mode == "timeout") throw new TaskCanceledException("Simulated timeout");
+                return new HttpResponseMessage(System.Net.HttpStatusCode.NoContent);
+            });
+
+            using var db = new OttlineDatabase(tempDbPath);
+            using var httpClient = new HttpClient(handler);
+            using var api = new Ottline.Core.Remote.OttlineApiClient(httpClient);
+            using var repo = new OttlineRepository(db, api);
+
+            repo.UpdateSettings(s => s with
+            {
+                UserId = userId,
+                DeviceId = deviceId,
+                RecoveryCode = "NET99999"
+            });
+
+            var title = TitleFallback.BuildManualVideoMetadata("패스트 라이브즈", TitleType.movie, 2023);
+            repo.SaveLogLocalFirst(title, LogStatus.DONE, RecordFeeling.SATISFIED, "2026-11-20", note: "오프라인 미동기화 기록");
+            var outboxBefore = repo.GetPendingOutboxCount();
+            Assert.True(outboxBefore > 0);
+
+            foreach (var failureMode in new[] { "http_exception", "timeout" })
+            {
+                mode = failureMode;
+                var failed = await repo.DeleteServerAccountAsync();
+
+                Assert.False(failed.IsSuccess);
+                Assert.Equal(ServerAccountDeleteOutcome.NetworkError, failed.Outcome);
+                Assert.Null(failed.StatusCode);
+
+                Assert.Single(repo.GetAllLogs());
+                Assert.Equal(outboxBefore, repo.GetPendingOutboxCount());
+                Assert.Equal(userId, repo.GetSettings().UserId);
+                Assert.Equal(deviceId, repo.GetSettings().DeviceId);
+                Assert.Equal("NET99999", repo.GetSettings().RecoveryCode);
+            }
+
+            // Network returns -> retry deletes cleanly
+            mode = "ok";
+            var retried = await repo.DeleteServerAccountAsync();
+            Assert.True(retried.IsSuccess);
+            Assert.Empty(repo.GetAllLogs());
+            Assert.Equal(0, repo.GetPendingOutboxCount());
+            Assert.Null(repo.GetSettings().UserId);
+        }
+        finally
+        {
+            try { File.Delete(tempDbPath); } catch { }
+        }
+    }
+
+    [Fact]
+    public async Task DeleteServerAccount_WhenNotConnected_DoesNotCallServerOrResetLocalData()
+    {
+        var tempDbPath = Path.Combine(Path.GetTempPath(), $"ottline_delete_unlinked_{Guid.NewGuid():N}.db");
+        try
+        {
+            var handler = new RecordingHttpMessageHandler(_ =>
+                new HttpResponseMessage(System.Net.HttpStatusCode.OK));
+
+            using var db = new OttlineDatabase(tempDbPath);
+            using var httpClient = new HttpClient(handler);
+            using var api = new Ottline.Core.Remote.OttlineApiClient(httpClient);
+            using var repo = new OttlineRepository(db, api);
+
+            var title = TitleFallback.BuildManualVideoMetadata("로컬 전용 기록", TitleType.movie, 2026);
+            repo.SaveLogLocalFirst(title, LogStatus.DONE, RecordFeeling.SATISFIED, "2026-11-20");
+
+            var result = await repo.DeleteServerAccountAsync();
+
+            Assert.False(result.IsSuccess);
+            Assert.Equal(ServerAccountDeleteOutcome.NotConnected, result.Outcome);
+            Assert.DoesNotContain(handler.Requests, r => r.Method == HttpMethod.Delete);
+            Assert.Single(repo.GetAllLogs());
+            Assert.True(repo.GetPendingOutboxCount() > 0);
+        }
+        finally
+        {
+            try { File.Delete(tempDbPath); } catch { }
+        }
+    }
+
+    [Fact]
+    public async Task UnlinkDevice_CallsAuthDevicesPathAndHandlesErrors()
+    {
+        var userId = "11111111-2222-3333-4444-555555555555";
+        var deviceId = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee";
+        var targetId = "99999999-8888-7777-6666-555555555555";
+        var handler = new RecordingHttpMessageHandler(_ =>
+            new HttpResponseMessage(System.Net.HttpStatusCode.NoContent));
+
+        using var httpClient = new HttpClient(handler);
+        using var api = new Ottline.Core.Remote.OttlineApiClient(httpClient);
+        api.Configure("https://ottline.app", null, deviceId, "ko", userId);
+
+        var ok = await api.UnlinkDeviceAsync(targetId);
+        Assert.True(ok);
+        var req = Assert.Single(handler.Requests, r => r.Method == HttpMethod.Delete);
+        Assert.Equal($"https://ottline.app/api/auth/devices/{targetId}", req.Uri);
+        Assert.Equal(userId, req.UserIdHeader);
+        Assert.Equal(deviceId, req.DeviceIdHeader);
+    }
+
+    private sealed record RecordedHttpRequest(
+        HttpMethod Method,
+        string Uri,
+        string? UserIdHeader,
+        string? DeviceIdHeader,
+        string? ClientPlatformHeader
+    );
+
+    private sealed class RecordingHttpMessageHandler : HttpMessageHandler
+    {
+        private readonly Func<HttpRequestMessage, HttpResponseMessage> _responder;
+        private readonly System.Collections.Concurrent.ConcurrentQueue<RecordedHttpRequest> _requests = new();
+        public IReadOnlyCollection<RecordedHttpRequest> Requests => _requests;
+
+        public RecordingHttpMessageHandler(Func<HttpRequestMessage, HttpResponseMessage> responder)
+        {
+            _responder = responder;
+        }
+
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            request.Headers.TryGetValues("X-User-Id", out var userIds);
+            request.Headers.TryGetValues("X-Device-Id", out var deviceIds);
+            request.Headers.TryGetValues("X-Client-Platform", out var platforms);
+            _requests.Enqueue(new RecordedHttpRequest(
+                request.Method,
+                request.RequestUri?.ToString() ?? string.Empty,
+                userIds?.FirstOrDefault(),
+                deviceIds?.FirstOrDefault(),
+                platforms?.FirstOrDefault()
+            ));
+            if (request.Method != HttpMethod.Delete)
+            {
+                return Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.OK));
+            }
+            return Task.FromResult(_responder(request));
+        }
+    }
+
     private sealed class StubOfflineHttpMessageHandler : HttpMessageHandler
     {
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) =>
