@@ -1,5 +1,7 @@
 # Web/PWA 함께 목록·상세와 큐레이터 종료
 
+[PR #153](https://github.com/chawon/ott/pull/153)은 최종 SHA `c693fd8`에 병합했다. 본부의 API → 실제 API 확인 → 동일 SHA Web 배포와 실제 운영 화면 근거는 [통합 운영 반영 기록](../web-api-rollout-2026-11-22.md)에 모은다. 아래 격리 API/브라우저 검증과 실제 설치형 PWA·태블릿 실사용 검증을 구분한다.
+
 2026-11-22 [제품 기획 운영](../product-planning.md)과 [기능 기준표](../feature-matrix.md)에 맞춰 Web/PWA의 세 실행 카드를 함께 구현한다. 공통 기능의 출시 완료는 본부가 각 플랫폼 근거로 판단한다. 이 문서는 Web 변경과 검증만 기록하며 [공통 계약](../product-contracts.md)을 복제하지 않는다.
 
 ## 사용자 문제와 완료 조건

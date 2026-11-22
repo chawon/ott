@@ -26,7 +26,7 @@
 | [개인 프로필](pages/features/personal-profile.md) · [복구 카드](pages/features/pairing-recovery-card.md) | 페어링 계정 개인화와 복구 |
 | [책 기록](pages/features/book-log.md) | Kakao·Google Books, ISBN 판본과 독서 플랫폼 |
 | [함께 인기 작품](pages/features/home-popular-fallback.md) · [공개 리액션](pages/features/public-reactions.md) | 공개 이야기, 인기 작품 보충과 내 기록 연결 |
-| [미래의 타임라인](pages/features/future-timeline.md) · [큐레이터](pages/features/ai-curator.md) | 개인 추천과 Telegram 공개 글 승인 |
+| [미래의 타임라인](pages/features/future-timeline.md) · [큐레이터](pages/features/ai-curator.md) | 개인 추천 복구와 큐레이터 종료·보관 이력 |
 | [공유 카드](pages/features/share-card.md) · [DNA Aura](pages/features/dna-aura.md) | 기록 이미지 공유와 Expo iOS 특질 시각화 |
 | [다크 모드](pages/features/dark-mode.md) | Web/PWA 라이트·다크·시스템 테마 |
 | [문의함](pages/features/feedback.md) | 사용자 문의·관리자 답변 |

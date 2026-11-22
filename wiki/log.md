@@ -1,5 +1,15 @@
 # Wiki Log
 
+## [2026-11-22] release(web/api): 본부 검토 후 5개 PR 통합·동일 SHA 운영 반영
+
+- PR [#145](https://github.com/chawon/ott/pull/145)·[#150](https://github.com/chawon/ott/pull/150)·[#151](https://github.com/chawon/ott/pull/151)·[#152](https://github.com/chawon/ott/pull/152)·[#153](https://github.com/chawon/ott/pull/153)을 main `c693fd86f49d5433350ad7e61b2ec53fd9bab055`로 병합했다. 가상 통합과 실제 main tree가 일치했다.
+- 최종 SHA의 [API CI 44985947298](https://github.com/chawon/ott/actions/runs/44985947298)·[Web CI 44985968381](https://github.com/chawon/ott/actions/runs/44985968381) 성공 뒤 [API production 44986440444](https://github.com/chawon/ott/actions/runs/44986440444) → 실제 API 확인 → 같은 SHA [Web production 44986943059](https://github.com/chawon/ott/actions/runs/44986943059)을 완료했다. Web 공개 버전 확인·IndexNow도 성공했다.
+- 큐레이터 공개 KO/EN `200 [] / no-store`·인증 후 쓰기 `410`, 보관 GET·기기 합성 UA13개와 기존 ID 보존을 실제 API에서 확인했다. 함께 상세 초기 상태·큰 화면 2단·큐레이터 UI 제거, Apple 서비스 안내·ChatGPT 안내 제외와 추천 복구를 배포했다.
+- 실제 운영 Pod의 익명 브라우저 14개를 모두 통과했다. 신고3링크의 desktop/mobile × 직접/카드/새로고침18회, 가시영역1·선택/제목/댓글대상과 소개/가이드4조건을 확인했다. 실제 공개 API GET90건 모두200, 전달 비GET0·curator0·pageerror0, 버전전후 `c693fd8`이었다.
+- 기록648·수정 이력1094·큐레이터 자료6·승인5·감사1·수신상태1, Flyway32 및 보관 자료 전체 행 해시를 보존했다. 검증 fixture는 ID 한정으로 정리하고 잔여0·삭제 후401을 확인했다. 실제 메시지는 발송하지 않았다.
+- ArgoCD `Synced Healthy`, API/Web 이미지·`APP_VERSION=c693fd8`·Pod Ready/restart0과 ExternalSecret4종 `Ready`를 확인했다. 공개 직접 HTTP probe의 Cloudflare403 제한과 실제 Pod 브라우저 확인을 구분한다.
+- 실제 설치형 PWA·Mac 설치판 연결·공개 앱의 기기 표시와 각 네이티브 설치판은 후속 검증을 유지한다. 기존 등록의 고아 기록 귀속은 [별도 API #155](https://github.com/chawon/ott/issues/155)로 등록했다. [통합 운영 반영 기록](../docs/web-api-rollout-2026-11-22.md).
+
 ## [2026-11-22] release(android): 태블릿·디자인·네비게이션·추천 복구 PR #146·#148 병합 및 Google Play 2.0.5 (29) 배포 업로드
 
 - [PR #146](https://github.com/chawon/ott/pull/146) (`main` `1ebfe94`) 및 [PR #148](https://github.com/chawon/ott/pull/148) (`main` `37eda7f`) 순차 병합 완료.

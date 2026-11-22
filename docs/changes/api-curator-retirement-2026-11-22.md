@@ -4,7 +4,7 @@
 
 함께의 ottline 큐레이터 질문 기능을 종료한다. 기존 설치 앱은 빈 배열을 계속 파싱할 수 있어야 하며, 과거 게시물·승인 이력과 사용자 기록은 보존한다. [공통 결정](https://github.com/users/chawon/projects/1/views/2?pane=issue&itemId=313278873) · [API 업무](https://github.com/users/chawon/projects/1/views/2?pane=issue&itemId=313279191)
 
-상태는 `feat/api-curator-retirement-20261122`, 기준 `main 4664791`의 구현 후보다. PR·CI·배포 근거는 검증 후 아래에 기록한다. 운영 이미지를 배포하거나 운영 DB·Telegram을 조작하지 않았다.
+개발 기준은 `main 4664791`, 브랜치는 `feat/api-curator-retirement-20261122`다. [PR #150](https://github.com/chawon/ott/pull/150)을 최종 SHA `c693fd8`에 병합했다. 본부의 운영 배포·실제 계약과 데이터 보존 확인은 [통합 운영 반영 기록](../web-api-rollout-2026-11-22.md)을 따른다. 아래 개발 단계의 테스트·미실행 기록과 구분한다.
 
 ## 계약과 데이터
 
@@ -41,4 +41,4 @@ WSL에는 Docker CLI가 없어 전체 PostgreSQL 필수 suite gate·컨테이너
 3. 같은 SHA의 Web을 배포하고 플랫폼별 새 바이너리의 화면 제거를 검증한다. 기존 API 배열 경로는 유지한다.
 4. DB 변경이 없어 데이터 복원은 필요하지 않다. 구 API 이미지로만 되돌리면 공개 피드와 관리자 쓰기가 다시 열릴 수 있으므로 종료 동작을 보존하는 이미지/차단을 먼저 확보해야 한다. `CURATOR_AUTOMATION_ENABLED=false`는 계속 유지한다.
 
-공개 API 확인, 스케줄 중지의 운영 근거와 플랫폼별 스토어 반영은 배포 후 남은 작업이다.
+공개 API·스케줄 중지의 현재 운영 근거는 [통합 운영 반영 기록](../web-api-rollout-2026-11-22.md)에 모은다. 네이티브 설치판·스토어 반영은 각 플랫폼 카드에서 별도로 확인한다.

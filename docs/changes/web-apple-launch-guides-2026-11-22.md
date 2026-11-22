@@ -6,7 +6,7 @@
 
 - [프로젝트 카드와 배포 후 완료 조건](https://github.com/users/chawon/projects/1/views/2?pane=issue&itemId=313827749)
 - 작업 브랜치 `feat/web-apple-launch-guides-20261122`. 최초 기준 main `4664791`, 추가 안내 정리 기준 main `1d9d4ea`.
-- 구현은 검증 후보이며 운영 Web 배포와 Mac 스토어 설치판 검증은 남아 있다.
+- [PR #151](https://github.com/chawon/ott/pull/151)은 최종 SHA `c693fd8`에 병합했다. 운영 Web 배포와 공개 페이지의 현재 확인은 [통합 운영 반영 기록](../web-api-rollout-2026-11-22.md)을 따른다. Mac 스토어 설치판·Safari/Chrome 연결과 실제 설치형 PWA 검증은 별도다.
 
 ## 공통 계약
 
@@ -21,7 +21,7 @@
 
 | 대상 | 변경과 소스 | 검증과 상태 |
 | --- | --- | --- |
-| Web/PWA | [About](../../apps/web/app/[locale]/about/page.tsx), [Guide](../../apps/web/app/[locale]/guide/page.tsx), [가이드 문구](../../apps/web/lib/guides.ts), 한·영 메시지, [스토어 URL](../../apps/web/lib/store-acquisition.mjs), [SEO](../../apps/web/lib/seo.ts), [sitemap](../../apps/web/app/sitemap.ts) | 로컬 production 빌드·한국어/영어·390/1440px 검증 통과. 공개 Web 배포 후 확인 대기 |
+| Web/PWA | [About](../../apps/web/app/[locale]/about/page.tsx), [Guide](../../apps/web/app/[locale]/guide/page.tsx), [가이드 문구](../../apps/web/lib/guides.ts), 한·영 메시지, [스토어 URL](../../apps/web/lib/store-acquisition.mjs), [SEO](../../apps/web/lib/seo.ts), [sitemap](../../apps/web/app/sitemap.ts) | 로컬 검증·최종 CI 성공 후 `c693fd8`로 운영 배포했다. 운영 화면 근거와 남은 설치판 조건은 [통합 기록](../web-api-rollout-2026-11-22.md)을 따른다. |
 | ChatGPT | 공개 소개의 미운영 안내만 제외. 기존 직접 경로·OAuth/MCP·리뷰 자료/계약 보존 | 관련 소스와 기존 SEO 공개 경계를 확인. 서비스 재개/중단이나 API 변경 작업이 아님 |
 | iOS·iPadOS·macOS | 출시 플랫폼과 연결 코드 안내의 출처. 해당 앱 소스와 바이너리는 변경하지 않음 | 현재 SwiftUI `내 공간`의 연결 코드 표시·입력 소스와 안내를 대조. Mac App Store 설치판의 Safari·Chrome 연결 확인은 macOS 담당 업무 |
 | API·Android·Windows·확장·토스 | 기존 동작·계약 보존. 확장 안내에서 종료된 ‘Mac App Store 출시 후’ 문구만 제거 | 스토어 유입 정책 18개 통과. 별도 출시 없음 |

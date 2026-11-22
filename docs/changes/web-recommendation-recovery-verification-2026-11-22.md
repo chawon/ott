@@ -1,10 +1,12 @@
 # Web 추천 복구 PR 검증 인계
 
+[PR #145](https://github.com/chawon/ott/pull/145)은 최종 SHA `c693fd8`에 병합했다. 본부의 운영 배포 근거는 [통합 운영 반영 기록](../web-api-rollout-2026-11-22.md)을 따른다. 실제 설치형 PWA와 운영 생성 횟수 실측의 남은 조건은 유지한다.
+
 [제품 기획 운영](../product-planning.md)과 [기능 기준표](../feature-matrix.md)에 따라 코드·모의 API·실제 공개판 근거를 구분한다. 기존 공통 정책은 [미래의 타임라인 계정 정책](../future-timeline-account-policy.md), API의 실제 배포는 [선행 API 배포 카드 #143](https://github.com/chawon/ott/issues/143)을 따른다.
 
 ## 변경과 통합
 
-- [공통 이슈 #142](https://github.com/chawon/ott/issues/142), [Web 카드](https://github.com/users/chawon/projects/1/views/2?pane=issue&itemId=312248032), [Draft PR #145](https://github.com/chawon/ott/pull/145), 브랜치 `fix/web-recommendation-recovery`.
+- [공통 이슈 #142](https://github.com/chawon/ott/issues/142), [Web 카드](https://github.com/users/chawon/projects/1/views/2?pane=issue&itemId=312248032), [PR #145](https://github.com/chawon/ott/pull/145), 브랜치 `fix/web-recommendation-recovery`.
 - 기존 `dbf6a2e17670968ccd6cc2475414daf5f1bb2b6b`와 [당시 Verify Web 성공](https://github.com/chawon/ott/actions/runs/44724325673)을 보존했다. 이 변경의 계정·언어별 requestId, 상태 조회 후 재시도, 제외 동기화 실패 후 생성 의도와 기한 제어를 다시 작성하지 않았다.
 - 2026-11-22 main `8a4a0cf`를 충돌 없이 병합한 통합 커밋은 `b0f1e9a96f9763f3198bd84fb81b04bff28264c3`이다. 통합 직후 main 대비 변경은 원래 세 파일(`recommendationApi.ts`, `useRecommendations.ts`, `test-future-timeline-state.mjs`)뿐이었다. 네이티브 코드가 통합으로 들어온 사실을 이 Web PR의 변경이나 스토어 출시로 표시하지 않는다.
 - 추가 작업은 기존 브라우저 스크립트의 실제 서비스워커 제어 검증 옵션과 본 검증 문서다. `FUTURE_QA_SERVICE_WORKER=1`은 실제 `/sw.js` 등록/활성/제어를 기다리고 제어 스크립트·display mode를 결과에 남긴다. 독립된 새 테스트나 추천 구현을 만들지 않는다.

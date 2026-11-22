@@ -1,6 +1,6 @@
 # 공통 기능 기준과 플랫폼별 차이
 
-초기 기준일은 2026-11-22, 소스 기준은 [main `37eda7f`](https://github.com/chawon/ott/commit/37eda7f)다. 이 문서는 목표 지원 범위와 확인된 차이를 관리한다. 앱 버전·공개 상태는 [플랫폼 현황](platforms.md), 세부 데이터 의미는 [공통 계약](product-contracts.md)을 따른다. 전체 플랫폼의 실제 기능 감사는 [첫 기획 업무](https://github.com/users/chawon/projects/1/views/2?pane=issue&itemId=313856052)에서 진행한다.
+초기 기준일은 2026-11-22다. Web·API의 [운영 `c693fd8`](web-api-rollout-2026-11-22.md) 반영을 갱신했으며 네이티브·스토어는 각 근거를 유지한다. 이 문서는 목표 지원 범위와 확인된 차이를 관리한다. 앱 버전·공개 상태는 [플랫폼 현황](platforms.md), 세부 데이터 의미는 [공통 계약](product-contracts.md)을 따른다. 전체 플랫폼의 실제 기능 감사는 [첫 기획 업무](https://github.com/users/chawon/projects/1/views/2?pane=issue&itemId=313856052)에서 진행한다.
 
 ## 기록 방식
 
@@ -51,10 +51,10 @@
 
 | 항목 | 확인한 상태와 차이 판정 | 담당·다음 근거 |
 | --- | --- | --- |
-| 함께 큐레이터 종료 | 종료 이행 중. API [PR #150](https://github.com/chawon/ott/pull/150)은 GET 200 `[]`와 관리자 인증 후 쓰기 410을 구현한다. Android 제거는 [PR #148](https://github.com/chawon/ott/pull/148)로 main에 병합됐다. Android의 Play 제출·공개·설치판 근거는 [플랫폼 현황](platforms.md)과 담당 카드에서 확인한다. Web·Apple·Windows의 반영도 각 카드에서 추적한다. | [공통 종료 카드](https://github.com/users/chawon/projects/1/views/2?pane=issue&itemId=313278873). API→실제 API 확인→동일 SHA Web과 각 네이티브 공개판 확인 |
-| 큰 화면 함께 2단 | 화면 폭에 따른 배치는 허용된 차이, 나머지 대상의 지원 공백은 추가 반영 필요다. macOS·iPad는 참조 구현이며 Apple 출시는 사용자 확인을 받았다. Android 코드는 #148로 병합, Web·Windows와 iPad 정합성 확인은 후속 업무다. | [공통 2단 카드](https://github.com/users/chawon/projects/1/views/2?pane=issue&itemId=313284669). 전환 폭보다 선택·검색·댓글·기록·탐색 결과를 함께 대조 |
-| iPad·Android 태블릿 기기 표기 | 추가 반영 필요. [API #147](https://github.com/chawon/ott/issues/147)·[PR #152](https://github.com/chawon/ott/pull/152)에서 구분한다. iPad/태블릿 표시를 추가하면서 기존 플랫폼 헤더와 Android OS 계열 집계를 유지한다. | API 담당. 기존 기기 갱신과 새/구형 UA, 실제 배포 응답을 확인 |
-| macOS 서비스 안내 | 사용자 확인으로 앱은 출시됐고, Web 공개 안내 반영은 [PR #151](https://github.com/chawon/ott/pull/151)에 있다. 실제 Web 배포와 Mac 스토어 설치판 연결 검증은 확인이 남아 있다. | [Web 안내 카드](https://github.com/users/chawon/projects/1/views/2?pane=issue&itemId=313827749) · [Mac 설치판 카드](https://github.com/users/chawon/projects/1/views/2?pane=issue&itemId=313827720) |
+| 함께 큐레이터 종료 | 종료 이행 중. API·Web `c693fd8` 운영 반영으로 GET200 `[]`·인증 후 쓰기410·자동화/UI/조회/이벤트 종료와 보관 자료를 확인했다. Android 제거 #148은 main에 병합됐으며 Play 공개·설치판, Apple·Windows·토스 및 설치형 PWA의 실제 확인은 담당 카드에서 추적한다. | [공통 종료 카드](https://github.com/users/chawon/projects/1/views/2?pane=issue&itemId=313278873) · [운영 근거](web-api-rollout-2026-11-22.md) |
+| 큰 화면 함께 2단 | 화면 폭에 따른 배치는 허용된 차이다. Web은 `c693fd8`로 운영 반영했다. macOS·iPad는 참조 구현이며 Apple 출시는 사용자 확인을 받았다. Android 코드는 #148로 병합됐고 Windows·iPad 정합성과 실제 설치형 PWA/터치·확대 검증은 남아 있다. | [공통 2단 카드](https://github.com/users/chawon/projects/1/views/2?pane=issue&itemId=313284669). 전환 폭보다 선택·검색·댓글·기록·탐색 결과를 함께 대조 |
+| iPad·Android 태블릿 기기 표기 | API `c693fd8` 운영 반영. 전용 QA 계정의 합성 UA13개와 metadata-free touch에서 표기·기존 ID/createdAt·다른 기기 정보를 보존했다. 실제 공개 앱의 화면·설치 버전 정합성 확인은 [#147](https://github.com/chawon/ott/issues/147)에 남아 있다. 기존 플랫폼 헤더와 Android OS 계열 집계는 유지한다. | API·각 플랫폼 담당. [운영 응답과 QA 정리 근거](web-api-rollout-2026-11-22.md) |
+| macOS 서비스 안내 | macOS·iPhone·iPad 안내와 미운영 ChatGPT 안내 제외를 Web `c693fd8`로 배포했다. 공개 안내·본문/메타/스키마와 실제 Mac 스토어 설치판의 Safari/Chrome 연결 검증을 구분한다. | [Web 안내 카드](https://github.com/users/chawon/projects/1/views/2?pane=issue&itemId=313827749) · [Mac 설치판 카드](https://github.com/users/chawon/projects/1/views/2?pane=issue&itemId=313827720) |
 | 확장·토스·ChatGPT의 기능 범위 | 채널 역할에 따른 차이를 허용한다. 확장 세 스토어는 보조 진입, 토스는 별도 공개 번들, ChatGPT는 미운영 읽기 전용 커넥터다. 실제 탑재·공개판을 확인한 뒤 필요한 실행 카드를 만든다. | [채널별 전략](changes/v2-channel-strategy.md)과 플랫폼 담당 |
 
 차이마다 **영향 사용자·기능, 목표 지원 범위, 현재 버전/근거, 허용 사유 또는 부족한 동작, 담당·관련 카드, 재검토 시점/조건**을 남긴다. 기획 담당은 차이 대장을 관리하고 본부가 담당별 반영과 공통 완료를 판정한다. 이후 감사와 PR·출시 결과가 쌓이면 위 초기 항목의 근거를 갱신한다.

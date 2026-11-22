@@ -4,7 +4,7 @@
 
 같은 계정에 연결한 iPad와 iPhone, Android 태블릿과 폰이 같은 이름으로 표시된다. 기존 연결을 유지한 채 해당 앱이 보내는 표시용 메타데이터로 구분한다. [API #147](https://github.com/chawon/ott/issues/147) · [프로젝트 업무](https://github.com/users/chawon/projects/1/views/2?pane=issue&itemId=313150426)
 
-개발 기준 `main 4664791`, branch `fix/api-tablet-device-labels-20261122`의 구현 후보다. Android #146·#148이 반영된 `main 37eda7f`를 통합 기준으로 갱신했다. 운영 배포·스토어 바이너리를 변경하지 않았다. 큐레이터 종료 PR과 독립된 API 변경이며 해당 자동화·배포 설정을 포함하지 않는다.
+개발 기준 `main 4664791`, branch `fix/api-tablet-device-labels-20261122`에서 Android #146·#148의 `main 37eda7f`를 통합했다. [PR #152](https://github.com/chawon/ott/pull/152)는 최종 SHA `c693fd8`에 병합했다. 본부의 API 배포·기기 메타데이터/기존 ID 확인은 [통합 운영 반영 기록](../web-api-rollout-2026-11-22.md)을 따른다. 공개 바이너리와 실제 플랫폼 화면 확인은 별도다. 이 PR 자체는 큐레이터 자동화·배포 설정을 포함하지 않는다.
 
 ## API와 판별 결정
 

@@ -74,7 +74,7 @@
 
 ### Curated contents · 종료 호환 계약
 
-`2026-11-22` 개발 후보의 계약이다. 운영 반영·검증 상태는 [큐레이터 종료 변경안](changes/api-curator-retirement-2026-11-22.md)을 따른다.
+`2026-11-22` main `c693fd8`에 병합한 종료 계약이다. 운영 반영·실제 검증 상태는 [통합 운영 반영 기록](web-api-rollout-2026-11-22.md), 세부 변경 결정은 [큐레이터 종료 변경안](changes/api-curator-retirement-2026-11-22.md)을 따른다.
 
 1. `GET /api/curated-contents?limit=`는 한국어·영어 및 기존 설치 앱에 **HTTP 200 빈 배열 `[]`**을 반환하며 `Cache-Control: no-store`를 사용한다. 기존 게시 자료가 DB에 남아 있어도 공개하지 않는다.
 2. 인증된 관리자의 `POST /internal/admin/curated-contents/drafts`, `POST /internal/admin/curated-contents/{id}/publish`, `POST /internal/admin/curated-contents/{id}/disable`는 **410 Gone**을 반환하며 데이터를 변경하지 않는다. 기존 관리자 토큰 검증은 유지한다.
@@ -97,7 +97,7 @@
 2. `POST /api/auth/pair`
 3. `GET /api/auth/devices`
    1. 연결 기기 메타데이터는 `X-Client-Platform`의 `ios_native`·`android_native`·`windows_native`·`macos_native`(및 헤더 없는 Android 네이티브 `ottline-android/` User-Agent)를 각각 `iOS App`·`Android App`·`Windows App`·`macOS App`으로 분류한다. 등록·코드 연결과 해당 기기의 목록 조회 시 갱신하며, 기존 기기 ID·계정 연결을 보존한다. analytics 플랫폼 허용값과는 별도 계약이다. 상세는 [native-desktop-device-info.md](native-desktop-device-info.md)를 따른다.
-   2. `2026-11-22` 태블릿 표시 개발 후보는 같은 네이티브 플랫폼 값을 유지하면서 iPad를 `browser=iPad App`·`os=iPadOS`, Android 태블릿을 `browser=Android Tablet App`·`os=Android`로 구분한다. 명시적 기기 신호를 사용하고 빈/불명 UA로 기존 태블릿 표기를 지우지 않는다. 판별 규칙·호환성과 배포 상태는 [태블릿 표시 변경안](changes/api-tablet-device-info-2026-11-22.md)을 따른다.
+   2. `2026-11-22` main `c693fd8`의 태블릿 표시는 같은 네이티브 플랫폼 값을 유지하면서 iPad를 `browser=iPad App`·`os=iPadOS`, Android 태블릿을 `browser=Android Tablet App`·`os=Android`로 구분한다. 명시적 기기 신호를 사용하고 빈/불명 UA로 기존 태블릿 표기를 지우지 않는다. 판별 규칙·호환성은 [태블릿 표시 변경안](changes/api-tablet-device-info-2026-11-22.md), 운영 근거는 [통합 운영 반영 기록](web-api-rollout-2026-11-22.md)을 따른다.
 4. `DELETE /api/auth/devices/{id}`
 5. `DELETE /api/auth/devices/all`
 6. `DELETE /api/auth/account`

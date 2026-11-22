@@ -37,6 +37,8 @@ V32의 `recommendation_account_state`, `recommendation_batches`, `recommendation
 
 ## 운영 검증
 
+`2026-11-22` Web `c693fd8`([PR #145](https://github.com/chawon/ott/pull/145))로 응답 유실·폴링 단절 뒤 서버 상태를 먼저 확인하고 같은 계정·언어의 요청 ID로 재시도하는 복구를 배포했다. 다른 언어의 공통 횟수 증가를 현재 언어 결과의 완료로 오인하지 않으며 제외 동기화 실패에서도 생성 의도를 보존한다. 통합본 서비스워커 제어 브라우저 회귀를 통과했으나 실제 설치형 PWA와 운영 `quota.used` 실측은 남아 있다. [통합 운영 반영](../../../docs/web-api-rollout-2026-11-22.md) · [검증 인계](../../../docs/changes/web-recommendation-recovery-verification-2026-11-22.md).
+
 배포 SHA `b9f88a6`에서 실제 OpenAI 추천 6개 → 제외 후 5개 → 새 추천 6개와 기기 간 공유를 확인했다. 성공 3회 뒤 네 번째 요청은 429이며 동일 UUID 재시도와 제외 되돌리기는 추가 차감하지 않았다. 테스트 계정과 추천 데이터는 정리했다.
 
 `2026-11-20` [PR #144](https://github.com/chawon/ott/pull/144)(`main` `7e9913d`, production run [`44708627801`](https://github.com/chawon/ott/actions/runs/44708627801))로 `gpt-6-luna` `reasoning.effort=none` 전환, 1차 후보 9개, 카탈로그 4초 마감, TMDB 타임아웃(3s/5s) 및 `[Recommendation]` 단계별 소요시간 로깅을 운영 반영했다. 운영 실요청에서 `llmMs=12405`, `enrichMs=715`, `totalMs=13230`(`selected=6, returned=6`)을 확인했다. 전 플랫폼 클라이언트 타임아웃·폴링 정합성은 [#142](https://github.com/chawon/ott/issues/142)에서 별도 추적한다.
