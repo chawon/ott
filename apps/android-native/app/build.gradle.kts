@@ -16,8 +16,8 @@ if (hasKeystore) {
     FileInputStream(keystorePropertiesFile).use { keystoreProperties.load(it) }
 }
 
-val releaseVersionCode = (project.findProperty("releaseVersionCode") as String?)?.toIntOrNull() ?: 28
-val releaseVersionName = (project.findProperty("releaseVersionName") as String?) ?: "2.0.4"
+val releaseVersionCode = (project.findProperty("releaseVersionCode") as String?)?.toIntOrNull() ?: 29
+val releaseVersionName = (project.findProperty("releaseVersionName") as String?) ?: "2.0.5"
 val debugApiBaseUrl = (project.findProperty("debugApiBaseUrl") as String?)
     ?: "https://unmellow-dimple-untouchably.ngrok-free.dev"
 val debugAppIdSuffix = (project.findProperty("debugAppIdSuffix") as String?) ?: ".dev"
