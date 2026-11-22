@@ -69,6 +69,16 @@ data class TimelineFilterState(
     val shelfFilter: String = "ALL"
 )
 
+@Serializable
+data class TogetherFilterState(
+    val query: String = "",
+    val contentType: String = "ALL", // "ALL" | "MOVIE" | "SERIES" | "BOOK"
+    val sortMode: String = "latest", // "latest" | "comments"
+    val selectedDiscussionId: String? = null,
+    val scrollIndex: Int = 0,
+    val scrollOffset: Int = 0
+)
+
 class OttlineMainViewModel(
     private val savedStateHandle: SavedStateHandle
 ) : ViewModel() {
@@ -85,6 +95,9 @@ class OttlineMainViewModel(
     private val _timelineFilter = MutableStateFlow(restoreTimelineFilter())
     val timelineFilter: StateFlow<TimelineFilterState> = _timelineFilter.asStateFlow()
 
+    private val _togetherFilter = MutableStateFlow(restoreTogetherFilter())
+    val togetherFilter: StateFlow<TogetherFilterState> = _togetherFilter.asStateFlow()
+
     private val _homeSelectedMonth = MutableStateFlow(
         savedStateHandle.get<String>(KEY_HOME_MONTH) ?: YearMonth.now().toString()
     )
@@ -99,6 +112,12 @@ class OttlineMainViewModel(
         val raw = savedStateHandle.get<String>(KEY_TIMELINE_FILTER_JSON) ?: return TimelineFilterState()
         return runCatching { json.decodeFromString<TimelineFilterState>(raw) }
             .getOrDefault(TimelineFilterState())
+    }
+
+    private fun restoreTogetherFilter(): TogetherFilterState {
+        val raw = savedStateHandle.get<String>(KEY_TOGETHER_FILTER_JSON) ?: return TogetherFilterState()
+        return runCatching { json.decodeFromString<TogetherFilterState>(raw) }
+            .getOrDefault(TogetherFilterState())
     }
 
     fun openQuickRecord(request: QuickRecordRequest) {
@@ -204,6 +223,17 @@ class OttlineMainViewModel(
         }
     }
 
+    fun updateTogetherFilter(transform: (TogetherFilterState) -> TogetherFilterState) {
+        val next = transform(_togetherFilter.value)
+        _togetherFilter.value = next
+        savedStateHandle[KEY_TOGETHER_FILTER_JSON] = json.encodeToString(next)
+    }
+
+    fun selectTogetherDiscussion(discussionId: String?) {
+        if (_togetherFilter.value.selectedDiscussionId == discussionId) return
+        updateTogetherFilter { it.copy(selectedDiscussionId = discussionId) }
+    }
+
     fun setHomeSelectedMonth(monthKey: String) {
         _homeSelectedMonth.value = monthKey
         savedStateHandle[KEY_HOME_MONTH] = monthKey
@@ -212,6 +242,7 @@ class OttlineMainViewModel(
     companion object {
         internal const val KEY_QUICK_RECORD_JSON = "ottline.quick_record_draft_json"
         internal const val KEY_TIMELINE_FILTER_JSON = "ottline.timeline_filter_json"
+        internal const val KEY_TOGETHER_FILTER_JSON = "ottline.together_filter_json"
         internal const val KEY_HOME_MONTH = "ottline.home_selected_month"
     }
 }

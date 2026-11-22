@@ -9,6 +9,7 @@ import app.ottline.BuildConfig
 import app.ottline.QuickLogWidgetProvider
 import app.ottline.model.PersonaKey
 import app.ottline.model.UserProfile
+import app.ottline.ui.layout.AdaptiveLayoutMetrics
 import java.util.Locale
 import java.util.UUID
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -65,6 +66,11 @@ class AppPreferences(context: Context) {
 
     val current: PreferencesSnapshot
         get() = _state.value
+
+    val isTabletDevice: Boolean
+        get() = AdaptiveLayoutMetrics.isTabletDevice(
+            appContext.resources.configuration.smallestScreenWidthDp
+        )
 
     val analyticsClientId: String
         get() {

@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <style name="Theme.Ottline" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:colorPrimary">@color/ott_navy</item>
+        <item name="android:colorPrimaryDark">@color/ott_navy</item>
+        <item name="android:colorAccent">@color/ott_navy</item>
         <item name="android:windowBackground">@color/ott_paper</item>
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
