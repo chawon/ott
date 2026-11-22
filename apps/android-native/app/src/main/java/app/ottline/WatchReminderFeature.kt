@@ -75,7 +75,7 @@ object WatchReminderTargets {
 }
 
 object WatchReminderUsageTracker {
-    const val MIN_FOREGROUND_MS = 5L * 60L * 1000L
+    const val MIN_FOREGROUND_MS = 20L * 60L * 1000L
     const val CANDIDATE_WINDOW_MS = 2L * 60L * 60L * 1000L
 
     data class State(

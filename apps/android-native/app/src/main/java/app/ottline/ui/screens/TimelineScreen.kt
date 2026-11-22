@@ -87,6 +87,7 @@ import app.ottline.ui.components.noSwipeNav
 import app.ottline.ui.i18n.LocalAppLocale
 import app.ottline.ui.i18n.OttlineStrings
 import app.ottline.ui.i18n.tr
+import app.ottline.ui.layout.LocalAdaptiveLayoutMetrics
 import app.ottline.ui.theme.LocalOttlinePalette
 import app.ottline.ui.util.CardExporter
 import java.time.LocalDate
@@ -113,6 +114,7 @@ fun TimelineScreen(
     val context = LocalContext.current
     val locale = LocalAppLocale.current
     val palette = LocalOttlinePalette.current
+    val metrics = LocalAdaptiveLayoutMetrics.current
     val scope = rememberCoroutineScope()
 
     val contentTypeTab = filterState.typeFilter
@@ -328,7 +330,7 @@ fun TimelineScreen(
     }
 
     LazyColumn(
-        contentPadding = PaddingValues(horizontal = 18.dp, vertical = 16.dp),
+        contentPadding = PaddingValues(horizontal = metrics.horizontalPadding, vertical = 16.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
         modifier = Modifier.fillMaxSize()
     ) {
@@ -451,14 +453,30 @@ fun TimelineScreen(
                             "VIDEO" to tr("영상", "Video"),
                             "BOOK" to tr("책", "Book")
                         ).forEach { (key, label) ->
+                            val tabSelected = contentTypeTab == key || (key == "VIDEO" && contentTypeTab in listOf("MOVIE", "SERIES"))
                             FilterChip(
-                                selected = contentTypeTab == key || (key == "VIDEO" && contentTypeTab in listOf("MOVIE", "SERIES")),
+                                selected = tabSelected,
                                 onClick = { onUpdateFilter { it.copy(typeFilter = key) } },
                                 shape = RoundedCornerShape(8.dp),
-                                label = { Text(label) },
+                                label = {
+                                    Text(
+                                        text = label,
+                                        fontWeight = if (tabSelected) FontWeight.SemiBold else FontWeight.Medium
+                                    )
+                                },
                                 colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = palette.brandNavy,
-                                    selectedLabelColor = palette.onBrandNavy
+                                    containerColor = palette.card,
+                                    labelColor = palette.mutedInk,
+                                    selectedContainerColor = palette.paperStrong,
+                                    selectedLabelColor = palette.brandNavy
+                                ),
+                                border = FilterChipDefaults.filterChipBorder(
+                                    enabled = true,
+                                    selected = tabSelected,
+                                    borderColor = palette.border,
+                                    selectedBorderColor = palette.brandNavy,
+                                    borderWidth = 1.dp,
+                                    selectedBorderWidth = 1.dp
                                 )
                             )
                         }

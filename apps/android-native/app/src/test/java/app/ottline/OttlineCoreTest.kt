@@ -229,7 +229,7 @@ class OttlineCoreTest {
     }
 
     @Test
-    fun watchReminderUsageTracker_requiresFiveMinDeltaAndExcludesBaseline() {
+    fun watchReminderUsageTracker_requiresTwentyMinDeltaAndExcludesBaseline() {
         val now = 1_000_000_000L
         val baseline = WatchReminderUsageTracker.observe(
             previous = null,
@@ -241,24 +241,24 @@ class OttlineCoreTest {
         // Baseline alone must never fire a notification
         assertFalse(baseline.isCandidate(now))
 
-        val afterThreeMin = WatchReminderUsageTracker.observe(
+        val afterFifteenMin = WatchReminderUsageTracker.observe(
             previous = baseline,
             intervalStartAt = baseline.intervalStartAt,
-            totalForegroundMs = baseline.totalForegroundMs + 3 * 60_000L,
-            lastTimeUsed = now + 180_000L,
-            now = now + 180_000L
+            totalForegroundMs = baseline.totalForegroundMs + 15 * 60_000L,
+            lastTimeUsed = now + 15 * 60_000L,
+            now = now + 15 * 60_000L
         )
-        assertFalse(afterThreeMin.isCandidate(now + 180_000L))
+        assertFalse(afterFifteenMin.isCandidate(now + 15 * 60_000L))
 
-        val afterSixMin = WatchReminderUsageTracker.observe(
-            previous = afterThreeMin,
+        val afterTwentyOneMin = WatchReminderUsageTracker.observe(
+            previous = afterFifteenMin,
             intervalStartAt = baseline.intervalStartAt,
-            totalForegroundMs = baseline.totalForegroundMs + 6 * 60_000L,
-            lastTimeUsed = now + 360_000L,
-            now = now + 360_000L
+            totalForegroundMs = baseline.totalForegroundMs + 21 * 60_000L,
+            lastTimeUsed = now + 21 * 60_000L,
+            now = now + 21 * 60_000L
         )
-        assertTrue(afterSixMin.isCandidate(now + 360_000L))
-        assertFalse(afterSixMin.consume().isCandidate(now + 360_000L))
+        assertTrue(afterTwentyOneMin.isCandidate(now + 21 * 60_000L))
+        assertFalse(afterTwentyOneMin.consume().isCandidate(now + 21 * 60_000L))
     }
 
     @Test
@@ -267,7 +267,7 @@ class OttlineCoreTest {
         val netflixPkg = "com.netflix.mediaclient"
         val launcherPkg = "com.sec.android.app.launcher"
 
-        // 1. User is 10 minutes into watching Netflix right now -> must HOLD (activePackages contains Netflix)
+        // 1. User is 25 minutes into watching Netflix right now -> must HOLD (activePackages contains Netflix)
         val whileWatching = WatchReminderEventAnalyzer.analyze(
             events = listOf(
                 WatchReminderEventAnalyzer.RawUsageEvent(
@@ -278,14 +278,35 @@ class OttlineCoreTest {
             ),
             baselineAfterMs = base,
             lastNotifiedEndByPkg = emptyMap(),
-            now = base + 11 * 60_000L
+            now = base + 26 * 60_000L
         )
         assertTrue(netflixPkg in whileWatching.activePackages)
         assertTrue(whileWatching.completedCandidates.isEmpty())
         assertTrue(whileWatching.hadRecentOttActivity)
 
-        // 2. User exits Netflix to Home screen after 12 minutes -> candidate becomes ready!
-        val exitTime = base + 13 * 60_000L
+        // 1b. Brief 12-minute browsing session must NOT fire a reminder (< 20 minutes)
+        val briefExit = WatchReminderEventAnalyzer.analyze(
+            events = listOf(
+                WatchReminderEventAnalyzer.RawUsageEvent(
+                    packageName = netflixPkg,
+                    eventType = WatchReminderEventAnalyzer.EVENT_RESUMED,
+                    timestamp = base + 60_000L
+                ),
+                WatchReminderEventAnalyzer.RawUsageEvent(
+                    packageName = netflixPkg,
+                    eventType = WatchReminderEventAnalyzer.EVENT_PAUSED,
+                    timestamp = base + 13 * 60_000L
+                )
+            ),
+            baselineAfterMs = base,
+            lastNotifiedEndByPkg = emptyMap(),
+            now = base + 14 * 60_000L
+        )
+        assertTrue(briefExit.activePackages.isEmpty())
+        assertTrue(briefExit.completedCandidates.isEmpty())
+
+        // 2. User exits Netflix to Home screen after 22 minutes -> candidate becomes ready!
+        val exitTime = base + 23 * 60_000L
         val afterExitEvents = listOf(
             WatchReminderEventAnalyzer.RawUsageEvent(
                 packageName = netflixPkg,
@@ -310,7 +331,7 @@ class OttlineCoreTest {
             now = exitTime + 60_000L
         )
         assertTrue(afterExit.activePackages.isEmpty())
-        assertEquals(12 * 60_000L, afterExit.completedCandidates[netflixPkg]?.totalDurationMs)
+        assertEquals(22 * 60_000L, afterExit.completedCandidates[netflixPkg]?.totalDurationMs)
 
         // 3. Once notified for exitTime, the same session is never notified again
         val afterNotified = WatchReminderEventAnalyzer.analyze(

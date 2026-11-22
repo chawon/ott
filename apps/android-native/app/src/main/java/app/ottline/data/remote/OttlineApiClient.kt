@@ -10,7 +10,6 @@ import app.ottline.model.CreateCommentRequest
 import app.ottline.model.CreateDiscussionRequest
 import app.ottline.model.CreateFeedbackMessageRequest
 import app.ottline.model.CreateFeedbackThreadRequest
-import app.ottline.model.CuratedContent
 import app.ottline.model.DeviceInfo
 import app.ottline.model.Discussion
 import app.ottline.model.DiscussionListItem
@@ -44,6 +43,7 @@ import app.ottline.model.UpdateUserProfileRequest
 import app.ottline.model.UserProfile
 import app.ottline.model.WatchLog
 import app.ottline.model.WatchLogHistory
+import app.ottline.ui.layout.AdaptiveLayoutMetrics
 import java.io.IOException
 import java.net.URLEncoder
 import java.util.concurrent.TimeUnit
@@ -89,7 +89,8 @@ class OttlineApiClient(
     private val prefs: AppPreferences,
     val httpClient: OkHttpClient = defaultOkHttpClient(),
     var onAuthRevoked: (() -> Unit)? = null,
-    val recommendationTimeouts: RecommendationTimeouts = RecommendationTimeouts()
+    val recommendationTimeouts: RecommendationTimeouts = RecommendationTimeouts(),
+    private val isTabletOverride: Boolean? = null
 ) {
     private val recommendationStateClient: OkHttpClient by lazy {
         httpClient.newBuilder()
@@ -134,7 +135,13 @@ class OttlineApiClient(
     private fun userAgent(): String {
         val release = Build.VERSION.RELEASE ?: "15"
         val model = Build.MODEL ?: "Android"
-        return "Mozilla/5.0 (Linux; Android $release; $model) Chrome/134.0.0.0 Mobile Safari/537.36 ottline-android/${BuildConfig.VERSION_NAME}"
+        val isTablet = isTabletOverride ?: prefs.isTabletDevice
+        return AdaptiveLayoutMetrics.buildAndroidUserAgent(
+            release = release,
+            model = model,
+            versionName = BuildConfig.VERSION_NAME,
+            isTablet = isTablet
+        )
     }
 
     private fun buildRequest(
@@ -419,11 +426,6 @@ class OttlineApiClient(
             bodyJson = json.encodeToString(ToggleReactionRequest(type)),
             includeAuth = true
         )
-
-    suspend fun getCuratedContents(limit: Int = 6): List<CuratedContent> =
-        runCatching {
-            executeJson<List<CuratedContent>>("/curated-contents?limit=$limit")
-        }.getOrDefault(emptyList())
 
     // --- Recommendations, Report, Feedback, Analytics ---
 

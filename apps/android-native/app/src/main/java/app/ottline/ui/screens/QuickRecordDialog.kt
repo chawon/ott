@@ -1185,10 +1185,10 @@ fun QuickRecordDialog(
                                                 enabled = !savingInitial && pendingStatus != null && watchedDateReady,
                                                 shape = RoundedCornerShape(8.dp),
                                                 colors = ButtonDefaults.buttonColors(
-                                                    containerColor = palette.brandNavy,
-                                                    contentColor = palette.onBrandNavy,
-                                                    disabledContainerColor = palette.brandNavy.copy(alpha = 0.5f),
-                                                    disabledContentColor = palette.onBrandNavy.copy(alpha = 0.7f)
+                                                    containerColor = palette.brandOrange,
+                                                    contentColor = palette.onBrandOrange,
+                                                    disabledContainerColor = palette.brandOrange.copy(alpha = 0.45f),
+                                                    disabledContentColor = palette.onBrandOrange.copy(alpha = 0.65f)
                                                 ),
                                                 contentPadding = PaddingValues(horizontal = 20.dp, vertical = 12.dp),
                                                 modifier = Modifier
@@ -1349,8 +1349,8 @@ fun QuickRecordDialog(
                                             onClick = onDismiss,
                                             shape = RoundedCornerShape(8.dp),
                                             colors = ButtonDefaults.buttonColors(
-                                                containerColor = palette.brandNavy,
-                                                contentColor = palette.onBrandNavy
+                                                containerColor = palette.brandOrange,
+                                                contentColor = palette.onBrandOrange
                                             ),
                                             contentPadding = PaddingValues(horizontal = 14.dp, vertical = 12.dp),
                                             modifier = Modifier
@@ -1874,8 +1874,8 @@ fun QuickRecordDialog(
                                                 enabled = !savingDetails,
                                                 shape = RoundedCornerShape(8.dp),
                                                 colors = ButtonDefaults.buttonColors(
-                                                    containerColor = palette.brandNavy,
-                                                    contentColor = palette.onBrandNavy
+                                                    containerColor = palette.brandOrange,
+                                                    contentColor = palette.onBrandOrange
                                                 ),
                                                 contentPadding = PaddingValues(horizontal = 14.dp, vertical = 12.dp),
                                                 modifier = Modifier
@@ -1886,7 +1886,7 @@ fun QuickRecordDialog(
                                                     CircularProgressIndicator(
                                                         modifier = Modifier.size(16.dp),
                                                         strokeWidth = 2.dp,
-                                                        color = palette.onBrandNavy
+                                                        color = palette.onBrandOrange
                                                     )
                                                     Spacer(Modifier.width(8.dp))
                                                     Text(

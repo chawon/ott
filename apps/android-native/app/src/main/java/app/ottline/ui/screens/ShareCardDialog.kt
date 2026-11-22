@@ -248,9 +248,10 @@ fun ShareCardDialog(
                             }
                         },
                         enabled = previewBitmap != null && !rendering,
+                        shape = RoundedCornerShape(8.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = palette.brandNavy,
-                            contentColor = palette.onBrandNavy
+                            containerColor = palette.brandOrange,
+                            contentColor = palette.onBrandOrange
                         ),
                         modifier = Modifier.weight(1f)
                     ) {
