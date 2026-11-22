@@ -13,6 +13,7 @@ assert.ok(
 );
 const scenario = process.env.FUTURE_QA_CASE ?? "quota";
 const locale = process.env.FUTURE_QA_LOCALE === "en" ? "en" : "ko";
+const withServiceWorker = process.env.FUTURE_QA_SERVICE_WORKER === "1";
 const copy = (ko, en) => (locale === "ko" ? ko : en);
 assert.ok(
   [
@@ -27,6 +28,10 @@ assert.ok(
     "catalog",
     "concurrent",
     "locale-pending",
+    "locale-existing-batch",
+    "pending-exclusion",
+    "poll-recovery",
+    "reconnect",
   ].includes(scenario),
 );
 const output =
@@ -87,6 +92,7 @@ const editions = [
 ];
 const calls = [],
   errors = [];
+let workerRuntime = null;
 const clone = (value) => structuredClone(value);
 function makeState(items = [title, series]) {
   return {
@@ -137,6 +143,8 @@ if (scenario === "empty") state.items = [];
 const completed = new Set();
 let generationAttempts = 0,
   readCount = 0;
+let exclusionAttempts = 0;
+let pollBlocked = false;
 let releaseFirst;
 const firstRead = new Promise((resolve) => {
   releaseFirst = resolve;
@@ -181,10 +189,24 @@ try {
       : { width: 1440, height: 1000 },
     locale: "ko-KR",
     timezoneId: "America/Los_Angeles",
-    serviceWorkers: "block",
+    serviceWorkers: withServiceWorker ? "allow" : "block",
   });
   await context.addInitScript(
     ({ firstUser, scenario, name }) => {
+      if (scenario === "poll-recovery") {
+        AbortSignal.any = undefined;
+        AbortSignal.timeout = undefined;
+        const setTimeout = window.setTimeout.bind(window);
+        window.setTimeout = (handler, delay, ...args) =>
+          setTimeout(
+            handler,
+            delay === 10_000 && window.__futureShortStateTimeout ? 750 : delay,
+            ...args,
+          );
+      } else if (scenario === "reconnect") {
+        const timeout = AbortSignal.timeout.bind(AbortSignal);
+        AbortSignal.timeout = (ms) => timeout(ms === 125_000 ? 300 : ms);
+      }
       if (!localStorage.getItem("watchlog.userId")) {
         localStorage.setItem("watchlog.userId", firstUser);
         localStorage.setItem(
@@ -229,11 +251,25 @@ try {
         await firstRead;
       if (scenario === "concurrent" && server.generating)
         finishGeneration(server, "60000000-0000-4000-8000-000000000071");
-      if (scenario === "locale-pending" && server.generating) {
+      if (
+        ["locale-pending", "locale-existing-batch"].includes(scenario) &&
+        server.generating
+      ) {
         server.generating = false;
         server.quota.used++;
         server.quota.remaining--;
-        // The concurrent success filled another language, so this locale still has no batch.
+        // The concurrent success filled another language and left this locale untouched.
+      }
+      if (scenario === "poll-recovery" && server.generating) {
+        if (!pollBlocked) {
+          pollBlocked = true;
+          return; // Leave the poll waiting until the browser deadline aborts it.
+        }
+        finishGeneration(
+          server,
+          calls.find((call) => call.path === "/api/recommendations/generate")
+            .data.requestId,
+        );
       }
       return reply(effective(server));
     }
@@ -244,12 +280,20 @@ try {
       if (scenario === "retry" && generationAttempts === 1)
         return reply({ message: "isolated provider failure" }, 503);
       if (
-        ["concurrent", "locale-pending"].includes(scenario) &&
+        [
+          "concurrent",
+          "locale-pending",
+          "locale-existing-batch",
+          "poll-recovery",
+        ].includes(scenario) &&
         generationAttempts === 1
       ) {
+        if (scenario === "poll-recovery")
+          await new Promise((resolve) => setTimeout(resolve, 1_000));
         server.generating = true;
         return reply(effective(server), 202);
       }
+      if (scenario === "reconnect" && generationAttempts === 1) return; // Lose the POST response without answering this request.
       finishGeneration(server, data.requestId);
       if (scenario === "retry" && generationAttempts === 2)
         return route.abort("failed");
@@ -259,6 +303,8 @@ try {
       url.pathname === "/api/recommendations/exclusions" &&
       method === "PUT"
     ) {
+      if (scenario === "pending-exclusion" && ++exclusionAttempts < 3)
+        return reply({ message: "Temporary exclusion sync failure" }, 503);
       const key = createHash("sha256")
         .update(`${data.type ?? "legacy"}:${data.providerId ?? data.name}`)
         .digest("hex");
@@ -311,6 +357,22 @@ try {
   await page.goto(new URL(`/${locale}/timeline`, base).href, {
     waitUntil: "domcontentloaded",
   });
+  if (withServiceWorker) {
+    await page.evaluate(async () => {
+      await navigator.serviceWorker.register("/sw.js", { scope: "/" });
+      await navigator.serviceWorker.ready;
+    });
+    await page.waitForFunction(() =>
+      Boolean(navigator.serviceWorker.controller),
+    );
+    workerRuntime = await page.evaluate(() => ({
+      controller: navigator.serviceWorker.controller.scriptURL,
+      displayMode: matchMedia("(display-mode: standalone)").matches
+        ? "standalone"
+        : "browser",
+    }));
+    assert.equal(workerRuntime.controller, new URL("/sw.js", base).href);
+  }
   await page
     .getByRole("button", {
       name: copy("내 미래는?", "What's my future?"),
@@ -328,6 +390,19 @@ try {
     });
   const titleButton = (name) =>
     region.getByRole("button", { name, exact: true });
+  const retry = () =>
+    region.getByRole("alert").getByRole("button", {
+      name: copy("다시 불러오기", "Try again"),
+      exact: true,
+    });
+  const pendingGenerationId = () =>
+    page.evaluate(
+      ({ firstUser, locale }) =>
+        JSON.parse(
+          localStorage.getItem(`watchlog.recommendations.sync.v1:${firstUser}`),
+        )?.generationRequestIds[locale],
+      { firstUser, locale },
+    );
   const ready = async () => {
     await region.waitFor();
     await page.waitForFunction(
@@ -410,6 +485,11 @@ try {
       "A failed or uncertain generation must reuse its original idempotency key",
     );
     assert.equal(state.quota.used, 1);
+    assert.equal(
+      generationAttempts,
+      2,
+      "Retry recovers a committed response using GET",
+    );
   } else if (scenario === "locale-pending") {
     await poll(() => generationAttempts === 1);
     await ready();
@@ -446,6 +526,111 @@ try {
       "Explicit retry must retain the joined request's UUID",
     );
     assert.equal(state.quota.used, 2);
+  } else if (scenario === "locale-existing-batch") {
+    await titleButton(title.name).waitFor();
+    await generate().click();
+    await region.getByRole("alert").waitFor();
+    await titleButton(title.name).waitFor();
+    const requestId = await pendingGenerationId();
+    assert.ok(
+      requestId,
+      "A quota change alone must not acknowledge the old batch",
+    );
+    assert.equal(state.quota.used, 2);
+    await focus();
+    assert.equal(await pendingGenerationId(), requestId);
+    assert.equal(generationAttempts, 1);
+    await retry().click();
+    await poll(() => state.quota.used === 3);
+    await ready();
+    assert.equal(state.generationId, requestId);
+    assert.equal(await pendingGenerationId(), undefined);
+  } else if (scenario === "pending-exclusion") {
+    await titleButton(title.name).waitFor();
+    await dismiss(title.name);
+    await poll(() => exclusionAttempts === 1);
+    await generate().click();
+    await region.getByRole("alert").waitFor();
+    const requestId = await pendingGenerationId();
+    assert.ok(
+      requestId,
+      "Remember the deliberate generation before flushing exclusions",
+    );
+    assert.equal(generationAttempts, 0);
+    await retry().click();
+    await poll(() => state.quota.used === 2);
+    await ready();
+    await titleButton(series.name).waitFor();
+    assert.equal(await titleButton(title.name).count(), 0);
+    assert.equal(state.generationId, requestId);
+    assert.equal(generationAttempts, 1);
+    assert.equal(await pendingGenerationId(), undefined);
+  } else if (scenario === "poll-recovery") {
+    await titleButton(title.name).waitFor();
+    await page.evaluate(() => {
+      window.__futureShortStateTimeout = true;
+    });
+    await generate().click();
+    await region.getByRole("alert").waitFor({ timeout: 8_000 });
+    await titleButton(title.name).waitFor();
+    const requestId = await pendingGenerationId();
+    assert.ok(requestId);
+    assert.ok(
+      pollBlocked,
+      "A slow POST must survive the shorter state timeout",
+    );
+    assert.equal(await generate().isDisabled(), true);
+    await page.evaluate(() => {
+      window.__futureShortStateTimeout = false;
+    });
+    await retry().click();
+    await poll(() => state.generationId === requestId);
+    await region.getByRole("alert").waitFor({ state: "hidden" });
+    await ready();
+    assert.equal(await region.getByRole("alert").count(), 0);
+    assert.equal(await pendingGenerationId(), undefined);
+    assert.equal(generationAttempts, 1);
+    assert.equal(state.quota.used, 2);
+  } else if (scenario === "reconnect") {
+    await titleButton(title.name).waitFor();
+    await generate().click();
+    await region.getByRole("alert").waitFor({ timeout: 8_000 });
+    const requestId = await pendingGenerationId();
+    assert.ok(requestId, "The timed-out POST must remain pending");
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await page
+      .getByRole("button", {
+        name: copy("내 미래는?", "What's my future?"),
+        exact: true,
+      })
+      .click();
+    await region.getByRole("alert").waitFor();
+    assert.equal(await pendingGenerationId(), requestId);
+    assert.equal(generationAttempts, 1);
+    await online(false);
+    finishGeneration(state, requestId);
+    const before = readCount;
+    await online(true);
+    await poll(() => readCount > before);
+    await ready();
+    assert.equal(await region.getByRole("alert").count(), 0);
+    assert.equal(await pendingGenerationId(), undefined);
+    assert.equal(
+      generationAttempts,
+      1,
+      "Reconnect observes completion without any POST",
+    );
+    assert.equal(state.quota.used, 2);
+
+    state.quota.used = 3;
+    state.quota.remaining = 0;
+    await generate().click();
+    await poll(() => generationAttempts === 2);
+    await ready();
+    await titleButton(title.name).waitFor();
+    assert.equal(await generate().isDisabled(), true);
+    assert.equal(await region.getByRole("alert").count(), 0);
+    assert.equal(await pendingGenerationId(), undefined);
   } else if (scenario === "empty") {
     await region
       .getByText("아직 펼쳐볼 작품이 없어요. 나중에 다시 만나요.", {
@@ -731,6 +916,7 @@ try {
       ),
       errors,
       actualApiWrites: 0,
+      workerRuntime,
     }),
   );
 } finally {
@@ -739,7 +925,14 @@ try {
   await writeFile(
     join(output, "result.json"),
     JSON.stringify(
-      { scenario, generationAttempts, calls, errors, actualApiWrites: 0 },
+      {
+        scenario,
+        generationAttempts,
+        calls,
+        errors,
+        actualApiWrites: 0,
+        workerRuntime,
+      },
       null,
       2,
     ),
