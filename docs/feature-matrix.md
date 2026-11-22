@@ -51,7 +51,7 @@
 
 | 항목 | 확인한 상태와 차이 판정 | 담당·다음 근거 |
 | --- | --- | --- |
-| 함께 큐레이터 종료 | 종료 이행 중. API [PR #150](https://github.com/chawon/ott/pull/150)은 GET 200 `[]`와 관리자 인증 후 쓰기 410을 구현한다. Android 제거는 [PR #148](https://github.com/chawon/ott/pull/148)로 main 병합됐지만 Play 반영은 별도 확인이다. Web·Apple·Windows의 반영은 각 카드에서 추적한다. | [공통 종료 카드](https://github.com/users/chawon/projects/1/views/2?pane=issue&itemId=313278873). API→실제 API 확인→동일 SHA Web과 각 네이티브 공개판 확인 |
+| 함께 큐레이터 종료 | 종료 이행 중. API [PR #150](https://github.com/chawon/ott/pull/150)은 GET 200 `[]`와 관리자 인증 후 쓰기 410을 구현한다. Android 제거는 [PR #148](https://github.com/chawon/ott/pull/148)로 main에 병합됐다. Android의 Play 제출·공개·설치판 근거는 [플랫폼 현황](platforms.md)과 담당 카드에서 확인한다. Web·Apple·Windows의 반영도 각 카드에서 추적한다. | [공통 종료 카드](https://github.com/users/chawon/projects/1/views/2?pane=issue&itemId=313278873). API→실제 API 확인→동일 SHA Web과 각 네이티브 공개판 확인 |
 | 큰 화면 함께 2단 | 화면 폭에 따른 배치는 허용된 차이, 나머지 대상의 지원 공백은 추가 반영 필요다. macOS·iPad는 참조 구현이며 Apple 출시는 사용자 확인을 받았다. Android 코드는 #148로 병합, Web·Windows와 iPad 정합성 확인은 후속 업무다. | [공통 2단 카드](https://github.com/users/chawon/projects/1/views/2?pane=issue&itemId=313284669). 전환 폭보다 선택·검색·댓글·기록·탐색 결과를 함께 대조 |
 | iPad·Android 태블릿 기기 표기 | 추가 반영 필요. [API #147](https://github.com/chawon/ott/issues/147)·[PR #152](https://github.com/chawon/ott/pull/152)에서 구분한다. iPad/태블릿 표시를 추가하면서 기존 플랫폼 헤더와 Android OS 계열 집계를 유지한다. | API 담당. 기존 기기 갱신과 새/구형 UA, 실제 배포 응답을 확인 |
 | macOS 서비스 안내 | 사용자 확인으로 앱은 출시됐고, Web 공개 안내 반영은 [PR #151](https://github.com/chawon/ott/pull/151)에 있다. 실제 Web 배포와 Mac 스토어 설치판 연결 검증은 확인이 남아 있다. | [Web 안내 카드](https://github.com/users/chawon/projects/1/views/2?pane=issue&itemId=313827749) · [Mac 설치판 카드](https://github.com/users/chawon/projects/1/views/2?pane=issue&itemId=313827720) |
