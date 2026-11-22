@@ -1,6 +1,6 @@
 # 공통 기능 기준과 플랫폼별 차이
 
-초기 기준일은 2026-11-22다. Web·API의 [운영 `c693fd8`](web-api-rollout-2026-11-22.md) 반영을 갱신했으며 네이티브·스토어는 각 근거를 유지한다. 이 문서는 목표 지원 범위와 확인된 차이를 관리한다. 앱 버전·공개 상태는 [플랫폼 현황](platforms.md), 세부 데이터 의미는 [공통 계약](product-contracts.md)을 따른다. 전체 플랫폼의 실제 기능 감사는 [첫 기획 업무](https://github.com/users/chawon/projects/1/views/2?pane=issue&itemId=313856052)에서 진행한다.
+초기 기준일은 2026-11-22다. Web·API의 [운영 `c693fd8`](web-api-rollout-2026-11-22.md) 반영을 갱신했으며 네이티브·스토어는 각 근거를 유지한다. 이 문서는 목표 지원 범위와 확인된 차이를 관리한다. 앱 버전·공개 상태는 [플랫폼 현황](platforms.md), 세부 데이터 의미는 [공통 계약](product-contracts.md)을 따른다. 전체 플랫폼의 실제 기능 감사는 Project V2 권한 없이 열 수 있는 [기획 이슈 #157](https://github.com/chawon/ott/issues/157)에서 진행한다.
 
 ## 기록 방식
 

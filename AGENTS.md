@@ -13,6 +13,7 @@ If present, read `./.omd/preferences.md` — pending corrections not yet folded 
 Codex와 Google Antigravity(`agy`)는 저장소 루트의 이 파일을 읽는다. Claude Code는 [CLAUDE.md](CLAUDE.md)에서 같은 파일을 불러온다. 세 도구에서 ottline 저장소 루트를 열어 작업한다.
 
 - 작업을 이어갈 때는 [v2 후속 작업](docs/changes/v2-follow-up.md)과 해당 변경안의 최신 브랜치·PR·검증 결과를 확인한다. 사용자가 요청한 작업과 플랫폼 범위에서 진행한다.
+- 새 업무의 원문은 저장소 GitHub Issue로 등록하고 Project V2에 연결한다. Project 접근 권한이 없는 담당자는 이슈 본문·댓글·연결 문서로 진행하며, 본부가 프로젝트 상태·담당·우선순위를 갱신한다. 기존 Draft 카드는 중복 이슈를 만들기 전에 본부가 확인하고 전환한다. 공개 이슈에는 비공개 통계·개인별 활동·접속 정보를 복제하지 않는다.
 - Wiki를 편집할 때는 [Wiki 지침](wiki/AGENTS.md)을 먼저 읽는다.
 - 다른 도구로 작업을 넘길 때는 해당 변경안에 작업 브랜치와 기준 커밋, 완료한 검증, 남은 실기기·출시 확인을 남긴다.
 
