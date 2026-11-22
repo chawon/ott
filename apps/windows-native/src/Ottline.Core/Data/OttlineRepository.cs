@@ -11,6 +11,7 @@ public sealed class OttlineRepository : IDisposable
 {
     private readonly OttlineDatabase _db;
     private readonly OttlineApiClient _api;
+    private readonly SemaphoreSlim _syncLock = new(1, 1);
     private readonly object _recFlightLock = new();
     private readonly Dictionary<string, Task<RecommendationLoadResult>> _inFlightRecommendationTasks = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, RecommendationStateSnapshot> _recommendationStateCache = new(StringComparer.OrdinalIgnoreCase);
@@ -48,7 +49,7 @@ public sealed class OttlineRepository : IDisposable
         var effectiveDeviceId = Guid.TryParse(s.DeviceId, out _)
             ? s.DeviceId
             : (Guid.TryParse(s.AuthToken, out _) ? s.AuthToken! : s.DeviceId);
-        _api.Configure(s.BaseUrl, s.AuthToken, effectiveDeviceId, s.Locale, s.UserId);
+        _api.Configure(s.BaseUrl, s.AuthToken, effectiveDeviceId, s.Locale, s.UserId, s.ClientId);
     }
 
     public void RefreshApi() => RefreshApiConfiguration();
@@ -97,7 +98,8 @@ public sealed class OttlineRepository : IDisposable
             HasCompletedBrowserHandoff: false,
             HasDismissedMigrationBanner: false,
             HasSeenIntroThisSession: currentSettings.HasSeenIntroThisSession,
-            HasAutoAttemptedUpgradeHandoff: currentSettings.HasAutoAttemptedUpgradeHandoff
+            HasAutoAttemptedUpgradeHandoff: currentSettings.HasAutoAttemptedUpgradeHandoff,
+            ClientId: Guid.NewGuid().ToString("D")
         );
         _db.SaveSettings(resetSettings);
         RefreshApiConfiguration(resetSettings);
@@ -810,6 +812,83 @@ public sealed class OttlineRepository : IDisposable
         return merged;
     }
 
+    private static TitleSummary MergeTitleMetadata(TitleSummary existing, TitleSummary incoming)
+    {
+        var existingProvider = SyncIdNormalizer.NormalizeServerProvider(existing.Provider);
+        var incomingProvider = SyncIdNormalizer.NormalizeServerProvider(incoming.Provider);
+        var keepExistingExternal = SyncIdNormalizer.IsExternalProvider(existingProvider) && !SyncIdNormalizer.IsExternalProvider(incomingProvider);
+
+        return existing with
+        {
+            Provider = keepExistingExternal ? existing.Provider : (string.IsNullOrWhiteSpace(incoming.Provider) ? existing.Provider : incoming.Provider),
+            ProviderId = keepExistingExternal ? existing.ProviderId : (string.IsNullOrWhiteSpace(incoming.ProviderId) ? existing.ProviderId : incoming.ProviderId),
+            Title = string.IsNullOrWhiteSpace(incoming.Title) ? existing.Title : incoming.Title,
+            OriginalTitle = incoming.OriginalTitle ?? existing.OriginalTitle,
+            Year = incoming.Year ?? existing.Year,
+            PosterUrl = incoming.PosterUrl ?? existing.PosterUrl,
+            Overview = incoming.Overview ?? existing.Overview,
+            Genres = incoming.SafeGenres.Count > 0 ? incoming.SafeGenres : existing.SafeGenres,
+            RuntimeMinutes = incoming.RuntimeMinutes ?? existing.RuntimeMinutes,
+            Authors = incoming.SafeAuthors.Count > 0 ? incoming.SafeAuthors : existing.SafeAuthors,
+            Publisher = incoming.Publisher ?? existing.Publisher,
+            Isbn10 = incoming.Isbn10 ?? existing.Isbn10,
+            Isbn13 = incoming.Isbn13 ?? existing.Isbn13,
+            Pubdate = incoming.Pubdate ?? existing.Pubdate,
+            PageCount = incoming.PageCount ?? existing.PageCount,
+            KdcCode = incoming.KdcCode ?? existing.KdcCode,
+            SeasonCount = incoming.SeasonCount ?? existing.SeasonCount,
+            EpisodeCount = incoming.EpisodeCount ?? existing.EpisodeCount
+        };
+    }
+
+    private TitleSummary ResolveCanonicalLocalTitle(TitleSummary incoming)
+    {
+        var matches = _db.FindMatchingTitles(incoming);
+        if (matches.Count == 0)
+        {
+            return incoming;
+        }
+
+        TitleSummary? preferred = null;
+        foreach (var candidate in matches)
+        {
+            var logs = _db.GetLogsByTitleId(candidate.Id);
+            if (logs.Any(l => string.Equals(l.SyncState, "synced", StringComparison.OrdinalIgnoreCase)))
+            {
+                preferred = candidate;
+                break;
+            }
+        }
+        preferred ??= matches.FirstOrDefault(m => _db.GetLogsByTitleId(m.Id).Count > 0);
+        preferred ??= matches.FirstOrDefault(m => string.Equals(m.Id, incoming.Id, StringComparison.OrdinalIgnoreCase));
+        preferred ??= matches[0];
+
+        return MergeTitleMetadata(preferred, incoming);
+    }
+
+    private static string SerializeLogOutboxPayload(WatchLog saved) =>
+        JsonSerializer.Serialize(new
+        {
+            logId = saved.Id,
+            titleId = saved.TitleId,
+            title = saved.Title,
+            status = saved.Status.ToWire(),
+            rating = saved.Rating,
+            reaction = saved.Reaction,
+            ott = saved.Ott,
+            place = saved.Place,
+            occasion = saved.Occasion,
+            seasonNumber = saved.SeasonNumber,
+            episodeNumber = saved.EpisodeNumber,
+            note = saved.Note,
+            spoiler = saved.Spoiler,
+            occurredAt = saved.OccurredAt,
+            watchedOn = saved.WatchedOn,
+            updatedAt = saved.UpdatedAt,
+            revision = saved.Revision,
+            origin = saved.Origin.ToWire()
+        });
+
     public WatchLog SaveLogLocalFirst(
         TitleSummary title,
         LogStatus status,
@@ -825,16 +904,18 @@ public sealed class OttlineRepository : IDisposable
         bool shareToTogether = false,
         LogOrigin origin = LogOrigin.LOG)
     {
-        var existing = _db.GetLogByTitleId(title.Id);
+        var hadActiveLogsBefore = _db.GetAllLogs().Count > 0;
+        var resolvedTitle = ResolveCanonicalLocalTitle(title);
+        var existing = _db.GetLogByTitleId(resolvedTitle.Id);
         var (rating, reaction) = RecordFeelings.ToPayloadValues(feeling);
         var normalizedDate = RecordDate.IsValidDateInput(watchedOnDate) ? watchedOnDate.Trim() : RecordDate.TodayDate();
         var occurredAt = RecordDate.ToNoonUtcIso(normalizedDate);
         var nowIso = DateTimeOffset.UtcNow.ToString("O", CultureInfo.InvariantCulture);
 
         var draft = new WatchLog(
-            Id: existing?.Id ?? $"local-log:{Guid.NewGuid():N}",
-            TitleId: title.Id,
-            Title: title,
+            Id: existing?.Id ?? Guid.NewGuid().ToString("D"),
+            TitleId: resolvedTitle.Id,
+            Title: resolvedTitle,
             Status: status,
             Rating: rating,
             Reaction: reaction,
@@ -857,27 +938,8 @@ public sealed class OttlineRepository : IDisposable
         var saved = _db.UpsertLog(draft, recordHistory: true);
 
         var outboxType = existing == null ? "UPSERT_LOG" : "UPDATE_LOG";
-        var payloadJson = JsonSerializer.Serialize(new
-        {
-            logId = saved.Id,
-            titleId = saved.TitleId,
-            title = saved.Title,
-            status = saved.Status.ToWire(),
-            rating = saved.Rating,
-            reaction = saved.Reaction,
-            ott = saved.Ott,
-            place = saved.Place,
-            occasion = saved.Occasion,
-            seasonNumber = saved.SeasonNumber,
-            episodeNumber = saved.EpisodeNumber,
-            note = saved.Note,
-            spoiler = saved.Spoiler,
-            occurredAt = saved.OccurredAt,
-            watchedOn = saved.WatchedOn,
-            revision = saved.Revision,
-            origin = saved.Origin.ToWire()
-        });
-        _db.EnqueueOutbox(outboxType, saved.Id, payloadJson);
+        var payloadJson = SerializeLogOutboxPayload(saved);
+        _db.UpsertLogOutbox(outboxType, saved.Id, payloadJson);
 
         if (shareToTogether && !string.IsNullOrWhiteSpace(saved.Note))
         {
@@ -891,23 +953,35 @@ public sealed class OttlineRepository : IDisposable
             _db.EnqueueOutbox("CREATE_DISCUSSION", saved.Id, discPayload);
         }
 
-        _ = _api.TrackAnalyticsEventAsync(existing == null ? "log_created" : "log_polished", new Dictionary<string, object?>
+        if (existing == null)
         {
-            ["titleType"] = saved.Title.Type.ToWire(),
-            ["status"] = saved.Status.ToWire(),
-            ["hasNote"] = !string.IsNullOrWhiteSpace(saved.Note),
-            ["hasPlace"] = !string.IsNullOrWhiteSpace(saved.Place),
-            ["hasOccasion"] = !string.IsNullOrWhiteSpace(saved.Occasion)
-        });
+            var eventProps = new Dictionary<string, object?>
+            {
+                ["contentType"] = saved.Title.Type.ToWire(),
+                ["titleType"] = saved.Title.Type.ToWire(),
+                ["status"] = saved.Status.ToWire(),
+                ["hasNote"] = !string.IsNullOrWhiteSpace(saved.Note),
+                ["hasPlace"] = !string.IsNullOrWhiteSpace(saved.Place),
+                ["hasOccasion"] = !string.IsNullOrWhiteSpace(saved.Occasion),
+                ["origin"] = saved.Origin.ToWire()
+            };
+            if (!hadActiveLogsBefore)
+            {
+                _ = _api.TrackAnalyticsEventAsync("first_log_create", eventProps);
+            }
+            _ = _api.TrackAnalyticsEventAsync("log_create", eventProps);
+        }
 
         return saved;
     }
 
     public WatchLog ApplyDiscussionReactionLocalFirst(
         DiscussionPost post,
-        DiscussionReactionType reactionType)
+        DiscussionReactionType reactionType,
+        bool enqueueRemoteReaction = true)
     {
-        var existing = _db.GetLogByTitleId(post.Title.Id);
+        var resolvedTitle = ResolveCanonicalLocalTitle(post.Title);
+        var existing = _db.GetLogByTitleId(resolvedTitle.Id);
         var mappedStatus = reactionType.ToLogStatus();
         // Preserve DONE status if user already finished the title
         if (existing?.Status == LogStatus.DONE && mappedStatus != LogStatus.DONE)
@@ -920,7 +994,7 @@ public sealed class OttlineRepository : IDisposable
             : null;
 
         var saved = SaveLogLocalFirst(
-            title: post.Title,
+            title: resolvedTitle,
             status: mappedStatus,
             feeling: existingFeeling,
             watchedOnDate: existing?.WatchedOn ?? RecordDate.TodayDate(),
@@ -935,110 +1009,541 @@ public sealed class OttlineRepository : IDisposable
             origin: LogOrigin.REACTION
         );
 
-        var reactionPayload = JsonSerializer.Serialize(new
+        if (enqueueRemoteReaction)
         {
-            discussionId = post.Id,
-            reactionType = reactionType.ToString()
-        });
-        _db.EnqueueOutbox("TOGGLE_REACTION", post.Id, reactionPayload);
+            EnqueueOfflineDiscussionReaction(post.Id, reactionType);
+        }
 
         return saved;
     }
 
-    public async Task<(bool Success, string Message)> SyncAllAsync(CancellationToken ct = default)
+    public void EnqueueOfflineDiscussionReaction(string discussionId, DiscussionReactionType reactionType)
     {
-        RefreshApiConfiguration();
-        var pending = _db.GetPendingOutbox();
-        var pushedCount = 0;
-
-        if (pending.Count > 0)
+        if (string.IsNullOrWhiteSpace(discussionId)) return;
+        var reactionPayload = JsonSerializer.Serialize(new
         {
-            var currentForPush = GetSettings();
-            if (string.IsNullOrWhiteSpace(currentForPush.UserId) || !Guid.TryParse(currentForPush.DeviceId, out _))
+            discussionId = discussionId.Trim(),
+            type = reactionType.ToString(),
+            reactionType = reactionType.ToString()
+        });
+        _db.EnqueueOutbox("TOGGLE_REACTION", discussionId.Trim(), reactionPayload);
+    }
+
+    private static string SyncPushV2RecoveryKey(string userId) =>
+        $"sync_push_v2_recovery_done:{userId.Trim().ToLowerInvariant()}";
+
+    private WatchLog EnsureValidSyncUuidsForLog(WatchLog log)
+    {
+        var currentTitleId = log.TitleId;
+        var currentLogId = log.Id;
+
+        if (!SyncIdNormalizer.IsValidUuid(currentTitleId))
+        {
+            var newTitleUuid = SyncIdNormalizer.EnsureUuid(currentTitleId);
+            _db.RemapTitleId(currentTitleId, newTitleUuid);
+            currentTitleId = newTitleUuid;
+        }
+
+        if (!SyncIdNormalizer.IsValidUuid(currentLogId))
+        {
+            var newLogUuid = SyncIdNormalizer.EnsureUuid(currentLogId);
+            _db.RemapLogId(currentLogId, newLogUuid, markSynced: false);
+            currentLogId = newLogUuid;
+        }
+
+        return _db.GetLog(currentLogId) ?? log with
+        {
+            Id = currentLogId,
+            TitleId = currentTitleId,
+            Title = log.Title with { Id = currentTitleId }
+        };
+    }
+
+    private static bool HasMeaningfulLogDifference(WatchLog local, WatchLog server)
+    {
+        static string Norm(string? s) => string.IsNullOrWhiteSpace(s) ? string.Empty : s.Trim();
+        if (local.Status != server.Status) return true;
+        if (local.Rating.HasValue != server.Rating.HasValue ||
+            (local.Rating.HasValue && Math.Abs(local.Rating.Value - server.Rating!.Value) > 0.05)) return true;
+        if (!string.Equals(Norm(local.Note), Norm(server.Note), StringComparison.Ordinal)) return true;
+        if (local.Spoiler != server.Spoiler) return true;
+        if (!string.Equals(Norm(local.Ott), Norm(server.Ott), StringComparison.OrdinalIgnoreCase)) return true;
+        if (!string.Equals(OttlinePresets.ToServerPlaceWire(local.Place) ?? "", OttlinePresets.ToServerPlaceWire(server.Place) ?? "", StringComparison.OrdinalIgnoreCase)) return true;
+        if (!string.Equals(OttlinePresets.ToServerOccasionWire(local.Occasion) ?? "", OttlinePresets.ToServerOccasionWire(server.Occasion) ?? "", StringComparison.OrdinalIgnoreCase)) return true;
+        if (local.SeasonNumber != server.SeasonNumber || local.EpisodeNumber != server.EpisodeNumber) return true;
+        if (!string.Equals(Norm(local.WatchedOn), Norm(server.WatchedOn), StringComparison.Ordinal)) return true;
+        return false;
+    }
+
+    private static WatchLog? FindMatchingServerLog(WatchLog local, IReadOnlyList<WatchLog> serverLogs)
+    {
+        var byLogId = serverLogs.FirstOrDefault(s => string.Equals(s.Id, local.Id, StringComparison.OrdinalIgnoreCase));
+        if (byLogId != null) return byLogId;
+
+        var byTitleId = serverLogs.FirstOrDefault(s => string.Equals(s.TitleId, local.TitleId, StringComparison.OrdinalIgnoreCase));
+        if (byTitleId != null) return byTitleId;
+
+        return serverLogs.FirstOrDefault(s => SyncIdNormalizer.AreTitlesEquivalent(local.Title, s.Title));
+    }
+
+    private async Task<(SyncPullResult? FullPull, bool EnqueuedAny)> RunOneTimeSyncPushV2RecoveryIfNeededAsync(
+        string userId,
+        CancellationToken ct)
+    {
+        var recoveryKey = SyncPushV2RecoveryKey(userId);
+        if (!string.IsNullOrWhiteSpace(_db.GetAppSetting(recoveryKey)))
+        {
+            return (null, false);
+        }
+
+        var localLogs = _db.GetAllLogs();
+        var syncedLocalCandidates = localLogs
+            .Where(l => string.Equals(l.SyncState, "synced", StringComparison.OrdinalIgnoreCase) && !_db.HasPendingLogOutbox(l.Id))
+            .ToList();
+
+        if (syncedLocalCandidates.Count == 0)
+        {
+            return (null, false);
+        }
+
+        var fullPull = await _api.PullSyncAsync(
+            sinceCursor: null,
+            ct: ct,
+            localTitleResolver: id => _db.GetTitle(id)
+        ).ConfigureAwait(false);
+
+        var enqueuedAny = false;
+        foreach (var local in syncedLocalCandidates)
+        {
+            var matchedServer = FindMatchingServerLog(local, fullPull.UpsertedLogs);
+            if (matchedServer == null)
             {
-                await EnsureRegisteredAsync(ct).ConfigureAwait(false);
-                RefreshApiConfiguration();
+                // Mis-marked "synced" in 2.0.0.0/2.0.1.0 and missing from server:
+                // normalize IDs to deterministic UUIDs, preserve original WatchedOn/OccurredAt/CreatedAt,
+                // and bump UpdatedAt to now so other paired devices receive it via incremental /api/sync/pull?since=...
+                var normalized = EnsureValidSyncUuidsForLog(local);
+                var recoveryUpdatedAt = DateTimeOffset.UtcNow.ToString("O", CultureInfo.InvariantCulture);
+                var pendingLog = normalized with
+                {
+                    UpdatedAt = recoveryUpdatedAt,
+                    SyncState = "pending"
+                };
+                _db.UpsertLog(pendingLog, recordHistory: false);
+                _db.UpsertLogOutbox("UPSERT_LOG", pendingLog.Id, SerializeLogOutboxPayload(pendingLog));
+                enqueuedAny = true;
+                continue;
             }
 
+            if (SyncIdNormalizer.TryParseUtc(local.UpdatedAt, out var localUtc) &&
+                SyncIdNormalizer.TryParseUtc(matchedServer.UpdatedAt, out var serverUtc) &&
+                localUtc > serverUtc.AddSeconds(1) &&
+                HasMeaningfulLogDifference(local, matchedServer))
+            {
+                // Local edit in 2.0.0.0/2.0.1.0 is strictly newer than server's copy:
+                // remap to canonical server IDs (avoiding duplicates) and bump UpdatedAt to now
+                // so incremental pulls on other paired devices pick up the recovered edit.
+                if (!string.Equals(local.TitleId, matchedServer.TitleId, StringComparison.OrdinalIgnoreCase))
+                {
+                    _db.RemapTitleId(local.TitleId, matchedServer.TitleId, MergeTitleMetadata(matchedServer.Title, local.Title));
+                }
+                if (!string.Equals(local.Id, matchedServer.Id, StringComparison.OrdinalIgnoreCase))
+                {
+                    _db.RemapLogId(local.Id, matchedServer.Id, markSynced: false);
+                }
+                var remapped = _db.GetLog(matchedServer.Id) ?? local with
+                {
+                    Id = matchedServer.Id,
+                    TitleId = matchedServer.TitleId,
+                    Title = matchedServer.Title
+                };
+                var recoveryUpdatedAt = DateTimeOffset.UtcNow.ToString("O", CultureInfo.InvariantCulture);
+                var pendingEdit = remapped with
+                {
+                    UpdatedAt = recoveryUpdatedAt,
+                    SyncState = "pending"
+                };
+                _db.UpsertLog(pendingEdit, recordHistory: false);
+                _db.UpsertLogOutbox("UPDATE_LOG", pendingEdit.Id, SerializeLogOutboxPayload(pendingEdit));
+                enqueuedAny = true;
+            }
+        }
+
+        return (fullPull, enqueuedAny);
+    }
+
+    private void ReconcilePulledChanges(SyncPullResult pullRes)
+    {
+        foreach (var serverTitle in pullRes.SafeUpsertedTitles)
+        {
+            var localMatches = _db.FindMatchingTitles(serverTitle);
+            foreach (var localTitle in localMatches)
+            {
+                if (!string.Equals(localTitle.Id, serverTitle.Id, StringComparison.OrdinalIgnoreCase))
+                {
+                    _db.RemapTitleId(localTitle.Id, serverTitle.Id, serverTitle);
+                }
+            }
+            _db.UpsertTitle(serverTitle);
+        }
+
+        foreach (var remoteLog in pullRes.UpsertedLogs)
+        {
+            var localTitleMatches = _db.FindMatchingTitles(remoteLog.Title);
+            foreach (var localTitle in localTitleMatches)
+            {
+                if (!string.Equals(localTitle.Id, remoteLog.TitleId, StringComparison.OrdinalIgnoreCase))
+                {
+                    _db.RemapTitleId(localTitle.Id, remoteLog.TitleId, remoteLog.Title);
+                }
+            }
+
+            var existingById = _db.GetLog(remoteLog.Id);
+            if (existingById != null && !string.Equals(existingById.TitleId, remoteLog.TitleId, StringComparison.OrdinalIgnoreCase))
+            {
+                _db.RemapTitleId(existingById.TitleId, remoteLog.TitleId, remoteLog.Title);
+            }
+
+            var existingForTitle = _db.GetLogsByTitleId(remoteLog.TitleId);
+            var primaryLocal = _db.GetLog(remoteLog.Id) ?? existingForTitle.FirstOrDefault();
+            var hasUnsyncedLocal = (primaryLocal != null && _db.HasPendingLogOutbox(primaryLocal.Id))
+                                   || _db.HasPendingLogOutbox(remoteLog.Id);
+
+            foreach (var prev in existingForTitle)
+            {
+                if (!string.Equals(prev.Id, remoteLog.Id, StringComparison.OrdinalIgnoreCase))
+                {
+                    _db.RemapLogId(prev.Id, remoteLog.Id, markSynced: !hasUnsyncedLocal);
+                }
+            }
+
+            if (hasUnsyncedLocal)
+            {
+                // Preserve unsynced local edits under canonical server IDs; next push will send them cleanly.
+                _db.UpsertTitle(remoteLog.Title);
+                continue;
+            }
+
+            _db.DeleteLogsByTitleExcept(remoteLog.TitleId, remoteLog.Id);
+            _db.UpsertLog(remoteLog with { SyncState = "synced" }, recordHistory: false);
+        }
+    }
+
+    private async Task<bool> ReplayNonLogOutboxEventsAsync(
+        IReadOnlyList<OutboxEvent> discussionEvents,
+        IReadOnlyList<OutboxEvent> reactionEvents,
+        CancellationToken ct)
+    {
+        var allSucceeded = true;
+
+        foreach (var evt in discussionEvents)
+        {
             try
             {
-                var pushRes = await _api.PushSyncAsync(pending, ct).ConfigureAwait(false);
-                foreach (var (oldTitleId, newTitleId) in pushRes.RemappedTitleIds)
+                using var doc = JsonDocument.Parse(evt.PayloadJson);
+                var root = doc.RootElement;
+                var body = root.TryGetProperty("body", out var bEl) && bEl.ValueKind == JsonValueKind.String
+                    ? bEl.GetString()
+                    : null;
+                var spoiler = root.TryGetProperty("spoiler", out var sEl) && sEl.ValueKind == JsonValueKind.True;
+
+                var log = _db.GetLog(evt.EntityId);
+                var title = log?.Title;
+                if (title == null && root.TryGetProperty("titleId", out var tidEl) && tidEl.ValueKind == JsonValueKind.String)
                 {
-                    _db.RemapTitleId(oldTitleId, newTitleId);
-                }
-                foreach (var (oldLogId, newLogId) in pushRes.RemappedLogIds)
-                {
-                    _db.RemapLogId(oldLogId, newLogId);
-                }
-                foreach (var evt in pending)
-                {
-                    _db.DeleteOutbox(evt.Id);
-                    if (evt.Type is "UPSERT_LOG" or "UPDATE_LOG")
+                    var tid = tidEl.GetString();
+                    if (!string.IsNullOrWhiteSpace(tid))
                     {
-                        var targetId = pushRes.RemappedLogIds.TryGetValue(evt.EntityId, out var mapped)
-                            ? mapped
-                            : evt.EntityId;
-                        _db.MarkLogSynced(targetId);
+                        title = _db.GetTitle(tid) ?? new TitleSummary(tid);
                     }
                 }
-                pushedCount = pushRes.AcceptedCount;
+
+                if (title == null || !Guid.TryParse(title.Id, out _) || string.IsNullOrWhiteSpace(body))
+                {
+                    _db.IncrementOutboxRetry(evt.Id, "Canonical server titleId unavailable for discussion");
+                    allSucceeded = false;
+                    continue;
+                }
+
+                var created = await _api.CreateDiscussionAsync(title, body, spoiler, ct).ConfigureAwait(false);
+                if (created != null)
+                {
+                    _db.DeleteOutboxIfExists(evt.Id);
+                }
+                else
+                {
+                    _db.IncrementOutboxRetry(evt.Id, "Failed to create discussion or comment");
+                    allSucceeded = false;
+                }
             }
             catch (Exception ex)
             {
-                foreach (var evt in pending)
-                {
-                    _db.IncrementOutboxRetry(evt.Id, ex.Message);
-                }
-                return (false, $"오프라인 보관 중 (대기 {pending.Count}건)");
+                _db.IncrementOutboxRetry(evt.Id, ex.Message);
+                allSucceeded = false;
             }
         }
 
-        try
+        foreach (var evt in reactionEvents)
         {
-            var settings = GetSettings();
-            var sinceCursor = _db.GetAllLogs().Count == 0 ? null : settings.LastSyncCursor;
-            var pullRes = await _api.PullSyncAsync(sinceCursor, ct).ConfigureAwait(false);
-            foreach (var remoteLog in pullRes.UpsertedLogs)
-            {
-                _db.UpsertLog(remoteLog with { SyncState = "synced" }, recordHistory: false);
-            }
-
-            AccountProfile? remoteProfile = null;
             try
             {
-                remoteProfile = await _api.FetchProfileAsync(ct).ConfigureAwait(false);
+                using var doc = JsonDocument.Parse(evt.PayloadJson);
+                var root = doc.RootElement;
+                var discussionId = root.TryGetProperty("discussionId", out var dEl) && dEl.ValueKind == JsonValueKind.String
+                    ? dEl.GetString()
+                    : evt.EntityId;
+                var rawType = root.TryGetProperty("type", out var tEl) && tEl.ValueKind == JsonValueKind.String
+                    ? tEl.GetString()
+                    : (root.TryGetProperty("reactionType", out var rtEl) && rtEl.ValueKind == JsonValueKind.String
+                        ? rtEl.GetString()
+                        : null);
+
+                var parsedType = DiscussionReactionTypeExtensions.FromWire(rawType);
+                if (string.IsNullOrWhiteSpace(discussionId) || !parsedType.HasValue)
+                {
+                    _db.DeleteOutboxIfExists(evt.Id);
+                    continue;
+                }
+
+                var result = await _api.ToggleReactionAsync(discussionId.Trim(), parsedType.Value, ct).ConfigureAwait(false);
+                if (result != null)
+                {
+                    _db.DeleteOutboxIfExists(evt.Id);
+                }
+                else
+                {
+                    _db.IncrementOutboxRetry(evt.Id, "Failed to sync discussion reaction");
+                    allSucceeded = false;
+                }
+            }
+            catch (Exception ex)
+            {
+                _db.IncrementOutboxRetry(evt.Id, ex.Message);
+                allSucceeded = false;
+            }
+        }
+
+        return allSucceeded;
+    }
+
+    public async Task<(bool Success, string Message)> SyncAllAsync(CancellationToken ct = default)
+    {
+        await _syncLock.WaitAsync(ct).ConfigureAwait(false);
+        try
+        {
+            RefreshApiConfiguration();
+            var initialPending = _db.GetPendingOutbox();
+            var settings = GetSettings();
+
+            if (initialPending.Count > 0 &&
+                (string.IsNullOrWhiteSpace(settings.UserId) || !Guid.TryParse(settings.DeviceId, out _)))
+            {
+                await EnsureRegisteredAsync(ct).ConfigureAwait(false);
+                RefreshApiConfiguration();
+                settings = GetSettings();
+            }
+
+            var effectiveDeviceId = Guid.TryParse(settings.DeviceId, out _)
+                ? settings.DeviceId
+                : (Guid.TryParse(settings.AuthToken, out _) ? settings.AuthToken : null);
+
+            if (!Guid.TryParse(settings.UserId, out _) || !Guid.TryParse(effectiveDeviceId, out _))
+            {
+                if (initialPending.Count > 0)
+                {
+                    return (false, $"오프라인 보관 중 (대기 {initialPending.Count}건)");
+                }
+                return (true, "로컬 우선 모드");
+            }
+
+            var userId = settings.UserId!;
+            SyncPullResult? initialRecoveryPull = null;
+            var recoveryEnqueuedAny = false;
+            try
+            {
+                (initialRecoveryPull, recoveryEnqueuedAny) = await RunOneTimeSyncPushV2RecoveryIfNeededAsync(userId, ct).ConfigureAwait(false);
             }
             catch
             {
-                // Profile sync is non-fatal during background log sync
+                return (false, "로컬 우선 모드 (네트워크 오프라인)");
             }
 
-            var nowIso = DateTimeOffset.UtcNow.ToString("O", CultureInfo.InvariantCulture);
-            UpdateSettings(s => s with
-            {
-                LastSyncCursor = pullRes.ServerCursor,
-                LastSyncedAt = nowIso,
-                DisplayName = remoteProfile != null && !string.IsNullOrWhiteSpace(remoteProfile.DisplayName)
-                    ? remoteProfile.DisplayName
-                    : s.DisplayName,
-                AvatarPreset = remoteProfile != null && !string.IsNullOrWhiteSpace(remoteProfile.AvatarPreset)
-                    ? remoteProfile.AvatarPreset
-                    : s.AvatarPreset,
-                RecoveryCode = remoteProfile != null && !string.IsNullOrWhiteSpace(remoteProfile.RecoveryCode)
-                    ? remoteProfile.RecoveryCode
-                    : s.RecoveryCode
-            });
+            var pending = _db.GetPendingOutbox();
+            var logEvents = pending.Where(e => e.Type is "UPSERT_LOG" or "UPDATE_LOG").ToList();
+            var discussionEvents = pending.Where(e => e.Type == "CREATE_DISCUSSION").ToList();
+            var reactionEvents = pending.Where(e => e.Type == "TOGGLE_REACTION").ToList();
 
-            return (true, $"동기화 완료 (반영 {pushedCount + pullRes.UpsertedLogs.Count}건)");
+            var pushedCount = 0;
+            var hadPushFailure = false;
+            var forceFullPull = false;
+
+            if (logEvents.Count > 0)
+            {
+                var pushPairs = new List<(OutboxEvent Event, WatchLog Log)>();
+                var titlesToPush = new List<TitleSummary>();
+                var seenLogIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+                foreach (var evt in logEvents)
+                {
+                    var localLog = _db.GetLog(evt.EntityId);
+                    if (localLog == null)
+                    {
+                        _db.DeleteOutboxIfExists(evt.Id);
+                        continue;
+                    }
+
+                    var normalizedLog = EnsureValidSyncUuidsForLog(localLog);
+                    if (!seenLogIds.Add(normalizedLog.Id))
+                    {
+                        // Duplicate stale outbox row for the same log: keep latest only
+                        _db.DeleteOutboxIfExists(evt.Id);
+                        continue;
+                    }
+
+                    pushPairs.Add((evt, normalizedLog));
+                    titlesToPush.Add(normalizedLog.Title);
+                }
+
+                if (pushPairs.Count > 0)
+                {
+                    try
+                    {
+                        var pushRes = await _api.PushSyncAsync(
+                            titlesToPush,
+                            pushPairs.Select(p => p.Log).ToList(),
+                            ct
+                        ).ConfigureAwait(false);
+
+                        var acceptedSet = new HashSet<string>(pushRes.AcceptedIds, StringComparer.OrdinalIgnoreCase);
+                        var rejectedMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                        foreach (var rej in pushRes.Rejected)
+                        {
+                            rejectedMap[rej.Id] = rej.Reason;
+                        }
+
+                        foreach (var (evt, normalizedLog) in pushPairs)
+                        {
+                            if (acceptedSet.Contains(normalizedLog.Id))
+                            {
+                                var deleted = _db.DeleteOutboxIfExists(evt.Id);
+                                if (deleted > 0 && !_db.HasPendingLogOutbox(normalizedLog.Id))
+                                {
+                                    _db.MarkLogSynced(normalizedLog.Id);
+                                }
+                                pushedCount++;
+                            }
+                            else if (rejectedMap.TryGetValue(normalizedLog.Id, out var reason))
+                            {
+                                if (string.Equals(reason, "stale", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    _db.DeleteOutboxIfExists(evt.Id);
+                                    forceFullPull = true;
+                                }
+                                else
+                                {
+                                    _db.IncrementOutboxRetry(evt.Id, $"Sync rejected: {reason}");
+                                    _db.UpdateLogSyncState(normalizedLog.Id, "failed");
+                                    hadPushFailure = true;
+                                }
+                            }
+                            else
+                            {
+                                _db.IncrementOutboxRetry(evt.Id, "Sync push did not acknowledge log ID");
+                                _db.UpdateLogSyncState(normalizedLog.Id, "failed");
+                                hadPushFailure = true;
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        foreach (var (evt, normalizedLog) in pushPairs)
+                        {
+                            _db.IncrementOutboxRetry(evt.Id, ex.Message);
+                            _db.UpdateLogSyncState(normalizedLog.Id, "failed");
+                        }
+                        return (false, $"오프라인 보관 중 (대기 {pushPairs.Count}건)");
+                    }
+                }
+            }
+
+            try
+            {
+                settings = GetSettings();
+                SyncPullResult pullRes;
+                if (initialRecoveryPull != null && logEvents.Count == 0 && !recoveryEnqueuedAny && !forceFullPull)
+                {
+                    pullRes = initialRecoveryPull;
+                }
+                else
+                {
+                    var sinceCursor = forceFullPull || _db.GetAllLogs().Count == 0
+                        ? null
+                        : settings.LastSyncCursor;
+                    pullRes = await _api.PullSyncAsync(
+                        sinceCursor,
+                        ct,
+                        localTitleResolver: id => _db.GetTitle(id)
+                    ).ConfigureAwait(false);
+                }
+
+                ReconcilePulledChanges(pullRes);
+
+                var nonLogOk = await ReplayNonLogOutboxEventsAsync(discussionEvents, reactionEvents, ct).ConfigureAwait(false);
+                if (!nonLogOk)
+                {
+                    hadPushFailure = true;
+                }
+
+                AccountProfile? remoteProfile = null;
+                try
+                {
+                    remoteProfile = await _api.FetchProfileAsync(ct).ConfigureAwait(false);
+                }
+                catch
+                {
+                    // Profile sync is non-fatal during background log sync
+                }
+
+                var nowIso = DateTimeOffset.UtcNow.ToString("O", CultureInfo.InvariantCulture);
+                UpdateSettings(s => s with
+                {
+                    LastSyncCursor = pullRes.ServerCursor,
+                    LastSyncedAt = nowIso,
+                    DisplayName = remoteProfile != null && !string.IsNullOrWhiteSpace(remoteProfile.DisplayName)
+                        ? remoteProfile.DisplayName
+                        : s.DisplayName,
+                    AvatarPreset = remoteProfile != null && !string.IsNullOrWhiteSpace(remoteProfile.AvatarPreset)
+                        ? remoteProfile.AvatarPreset
+                        : s.AvatarPreset,
+                    RecoveryCode = remoteProfile != null && !string.IsNullOrWhiteSpace(remoteProfile.RecoveryCode)
+                        ? remoteProfile.RecoveryCode
+                        : s.RecoveryCode
+                });
+
+                if (!hadPushFailure)
+                {
+                    var recoveryKey = SyncPushV2RecoveryKey(userId);
+                    if (string.IsNullOrWhiteSpace(_db.GetAppSetting(recoveryKey)))
+                    {
+                        _db.SetAppSetting(recoveryKey, nowIso);
+                    }
+                    return (true, $"동기화 완료 (반영 {pushedCount + pullRes.UpsertedLogs.Count}건)");
+                }
+
+                var remainingCount = _db.GetPendingOutbox().Count;
+                return (false, $"일부 기록 재시도 대기 중 (대기 {remainingCount}건)");
+            }
+            catch
+            {
+                if (pushedCount > 0 && !hadPushFailure)
+                {
+                    return (true, $"업로드 완료 ({pushedCount}건)");
+                }
+                return (false, "로컬 우선 모드 (네트워크 오프라인)");
+            }
         }
-        catch
+        finally
         {
-            if (pushedCount > 0)
-            {
-                return (true, $"업로드 완료 ({pushedCount}건)");
-            }
-            return (false, "로컬 우선 모드 (네트워크 오프라인)");
+            _syncLock.Release();
         }
     }
 
@@ -1257,6 +1762,7 @@ public sealed class OttlineRepository : IDisposable
 
     public void Dispose()
     {
+        _syncLock.Dispose();
         _db.Dispose();
         _api.Dispose();
     }

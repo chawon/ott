@@ -351,6 +351,20 @@ public static class OttlinePresets
         };
     }
 
+    public static string? ToServerPlaceWire(string? raw)
+    {
+        var wire = ToPlaceWire(raw);
+        if (string.IsNullOrWhiteSpace(wire)) return null;
+        foreach (var item in PlaceItems)
+        {
+            if (string.Equals(wire, item.Wire, StringComparison.OrdinalIgnoreCase))
+            {
+                return item.Wire;
+            }
+        }
+        return "ETC";
+    }
+
     public static string FormatPlace(string? raw, string locale = "ko")
     {
         if (string.IsNullOrWhiteSpace(raw)) return string.Empty;
@@ -389,6 +403,20 @@ public static class OttlinePresets
             "other" => "ETC",
             _ => v
         };
+    }
+
+    public static string? ToServerOccasionWire(string? raw)
+    {
+        var wire = ToOccasionWire(raw);
+        if (string.IsNullOrWhiteSpace(wire)) return null;
+        foreach (var item in OccasionItems)
+        {
+            if (string.Equals(wire, item.Wire, StringComparison.OrdinalIgnoreCase))
+            {
+                return item.Wire;
+            }
+        }
+        return "ETC";
     }
 
     public static string FormatOccasion(string? raw, string locale = "ko")
@@ -663,18 +691,29 @@ public sealed record PairCommitResult(
     string RecoveryCode
 );
 
-public sealed record SyncPushResult(
-    int AcceptedCount,
-    string ServerCursor,
-    IReadOnlyDictionary<string, string> RemappedTitleIds,
-    IReadOnlyDictionary<string, string> RemappedLogIds
+public sealed record SyncPushReject(
+    string Id,
+    string Reason
 );
+
+public sealed record SyncPushResult(
+    IReadOnlyList<string> AcceptedIds,
+    IReadOnlyList<SyncPushReject> Rejected,
+    string ServerCursor
+)
+{
+    public int AcceptedCount => AcceptedIds.Count;
+}
 
 public sealed record SyncPullResult(
     IReadOnlyList<WatchLog> UpsertedLogs,
     string ServerCursor,
-    bool HasMore
-);
+    bool HasMore,
+    IReadOnlyList<TitleSummary>? UpsertedTitles = null
+)
+{
+    public IReadOnlyList<TitleSummary> SafeUpsertedTitles => UpsertedTitles ?? Array.Empty<TitleSummary>();
+}
 
 public sealed record LogsPageResult(
     IReadOnlyList<WatchLog> Items,
@@ -712,7 +751,8 @@ public sealed record LocalSettings(
     bool HasCompletedBrowserHandoff = false,
     bool HasDismissedMigrationBanner = false,
     bool HasSeenIntroThisSession = false,
-    bool HasAutoAttemptedUpgradeHandoff = false
+    bool HasAutoAttemptedUpgradeHandoff = false,
+    string ClientId = ""
 );
 
 public sealed record WatchReminderCandidate(

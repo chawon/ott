@@ -1,4 +1,6 @@
+using System.Globalization;
 using System.Net.Http.Headers;
+using System.Reflection;
 using System.Text;
 using System.Text.Json;
 using Ottline.Core.Domain;
@@ -10,15 +12,49 @@ public sealed class OttlineApiClient : IDisposable
 {
     private readonly HttpClient _httpClient;
     private readonly bool _disposeClient;
+    private readonly string _sessionId = Guid.NewGuid().ToString("D");
+    private readonly string _fallbackClientId = Guid.NewGuid().ToString("D");
     private string _baseUrl = "https://ottline.app";
     private string? _authToken;
     private string? _userId;
     private string _deviceId = "windows-native";
+    private string? _clientId;
     private string _locale = "ko";
 
+    public string AppVersion { get; set; } = ResolveDefaultAppVersion();
+    public string SessionId => _sessionId;
     public TimeSpan DefaultRequestTimeout { get; set; } = TimeSpan.FromSeconds(15);
     public TimeSpan RecommendationStateTimeout { get; set; } = TimeSpan.FromSeconds(15);
     public TimeSpan RecommendationGenerateTimeout { get; set; } = TimeSpan.FromSeconds(60);
+
+    public static string ResolveDefaultAppVersion()
+    {
+        var entry = Assembly.GetEntryAssembly();
+        var candidateAssembly = entry != null &&
+                                entry.GetName().Name?.StartsWith("Ottline", StringComparison.OrdinalIgnoreCase) == true
+            ? entry
+            : typeof(OttlineApiClient).Assembly;
+
+        var infoVersion = candidateAssembly
+            .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
+            .InformationalVersion;
+        if (!string.IsNullOrWhiteSpace(infoVersion))
+        {
+            var clean = infoVersion.Split('+', 2)[0].Trim();
+            if (!string.IsNullOrWhiteSpace(clean))
+            {
+                return clean;
+            }
+        }
+
+        var assemblyVersion = candidateAssembly.GetName().Version;
+        if (assemblyVersion != null)
+        {
+            return assemblyVersion.ToString();
+        }
+
+        return "2.0.2.0";
+    }
 
     public OttlineApiClient(HttpClient? httpClient = null)
     {
@@ -61,14 +97,39 @@ public sealed class OttlineApiClient : IDisposable
 
     public string BaseUrl => _baseUrl;
 
-    public void Configure(string baseUrl, string? authToken, string deviceId, string locale, string? userId = null)
+    public void Configure(
+        string baseUrl,
+        string? authToken,
+        string deviceId,
+        string locale,
+        string? userId = null,
+        string? clientId = null)
     {
         _baseUrl = string.IsNullOrWhiteSpace(baseUrl) ? "https://ottline.app" : baseUrl.Trim().TrimEnd('/');
         _authToken = string.IsNullOrWhiteSpace(authToken) ? null : authToken.Trim();
         _userId = string.IsNullOrWhiteSpace(userId) ? null : userId.Trim();
         _deviceId = string.IsNullOrWhiteSpace(deviceId) ? "windows-native" : deviceId.Trim();
+        _clientId = string.IsNullOrWhiteSpace(clientId) ? _clientId : clientId.Trim();
         _locale = string.IsNullOrWhiteSpace(locale) ? "ko" : locale.Trim();
     }
+
+    private string ResolveEffectiveClientId()
+    {
+        if (Guid.TryParse(_clientId, out var parsedClient))
+        {
+            return parsedClient.ToString("D");
+        }
+        if (Guid.TryParse(_deviceId, out var parsedDevice))
+        {
+            return parsedDevice.ToString("D");
+        }
+        return _fallbackClientId;
+    }
+
+    private static string NormalizeLocaleCode(string? locale) =>
+        !string.IsNullOrWhiteSpace(locale) && locale.Trim().StartsWith("en", StringComparison.OrdinalIgnoreCase)
+            ? "en"
+            : "ko";
 
     private HttpRequestMessage CreateRequest(HttpMethod method, string relativePath, object? jsonBody = null)
     {
@@ -80,6 +141,7 @@ public sealed class OttlineApiClient : IDisposable
         req.Headers.TryAddWithoutValidation("X-Book-Search-Capability", "google_books_v1");
         req.Headers.TryAddWithoutValidation("X-Client-Platform", "windows_native");
         req.Headers.TryAddWithoutValidation("Accept-Language", _locale);
+        req.Headers.TryAddWithoutValidation("X-Client-Id", ResolveEffectiveClientId());
         if (Guid.TryParse(_deviceId, out _))
         {
             req.Headers.TryAddWithoutValidation("X-Device-Id", _deviceId);
@@ -89,7 +151,8 @@ public sealed class OttlineApiClient : IDisposable
         {
             req.Headers.TryAddWithoutValidation("X-User-Id", _userId);
         }
-        req.Headers.TryAddWithoutValidation("User-Agent", "OttlineWindowsNative/2.0.0.0");
+        var version = string.IsNullOrWhiteSpace(AppVersion) ? ResolveDefaultAppVersion() : AppVersion.Trim();
+        req.Headers.TryAddWithoutValidation("User-Agent", $"OttlineWindowsNative/{version}");
 
         if (!string.IsNullOrWhiteSpace(_authToken))
         {
@@ -297,21 +360,132 @@ public sealed class OttlineApiClient : IDisposable
         return new LogsPageResult(logs, nextCursor, hasMore);
     }
 
+    public async Task<TitleSummary?> FetchTitleByIdAsync(string titleId, CancellationToken ct = default)
+    {
+        if (!Guid.TryParse(titleId, out var parsedId)) return null;
+        try
+        {
+            using var req = CreateRequest(HttpMethod.Get, $"/api/titles/{parsedId:D}");
+            using var res = await SendWithTimeoutAsync(req, DefaultRequestTimeout, ct).ConfigureAwait(false);
+            if (!res.IsSuccessStatusCode) return null;
+            var body = await res.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
+            using var doc = JsonDocument.Parse(body);
+            return ParseTitleElement(doc.RootElement);
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
     public async Task<SyncPushResult> PushSyncAsync(
-        IReadOnlyList<OutboxEvent> events,
+        IReadOnlyList<TitleSummary> titles,
+        IReadOnlyList<WatchLog> logs,
         CancellationToken ct = default)
     {
+        var userUuid = Guid.TryParse(_userId, out var parsedUser) ? parsedUser.ToString("D") : null;
+        var titleUpdatedAtMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var log in logs)
+        {
+            var tUuid = SyncIdNormalizer.EnsureUuid(log.TitleId);
+            var logUpdatedAt = SyncIdNormalizer.NormalizeUtcIso(log.UpdatedAt, log.CreatedAt);
+            if (!titleUpdatedAtMap.TryGetValue(tUuid, out var existingTs) ||
+                string.CompareOrdinal(logUpdatedAt, existingTs) > 0)
+            {
+                titleUpdatedAtMap[tUuid] = logUpdatedAt;
+            }
+        }
+
+        var titleChanges = titles
+            .GroupBy(t => SyncIdNormalizer.EnsureUuid(t.Id), StringComparer.OrdinalIgnoreCase)
+            .Select(g =>
+            {
+                var t = g.First();
+                var titleUuid = g.Key;
+                var normalizedProvider = SyncIdNormalizer.NormalizeServerProvider(t.Provider);
+                var providerId = SyncIdNormalizer.IsExternalProvider(normalizedProvider) && !string.IsNullOrWhiteSpace(t.ProviderId)
+                    ? t.ProviderId.Trim()
+                    : null;
+                if (providerId == null && normalizedProvider != "LOCAL")
+                {
+                    normalizedProvider = "LOCAL";
+                }
+                var authorStr = t.SafeAuthors.Count > 0 ? string.Join(", ", t.SafeAuthors) : null;
+                var updatedAt = titleUpdatedAtMap.TryGetValue(titleUuid, out var ts)
+                    ? ts
+                    : DateTimeOffset.UtcNow.ToString("O", CultureInfo.InvariantCulture);
+                return new
+                {
+                    id = titleUuid,
+                    op = "upsert",
+                    updatedAt,
+                    payload = new
+                    {
+                        type = t.Type.ToWire(),
+                        name = string.IsNullOrWhiteSpace(t.Title) ? "Untitled" : t.Title.Trim(),
+                        year = t.Year,
+                        genres = t.SafeGenres.Count > 0 ? t.SafeGenres : null,
+                        directors = (IReadOnlyList<string>?)null,
+                        cast = (IReadOnlyList<string>?)null,
+                        overview = t.Overview,
+                        posterUrl = t.PosterUrl,
+                        author = authorStr,
+                        publisher = t.Publisher,
+                        isbn10 = t.Isbn10,
+                        isbn13 = t.Isbn13,
+                        pubdate = t.Pubdate,
+                        provider = normalizedProvider,
+                        providerId
+                    }
+                };
+            })
+            .ToList();
+
+        var logChanges = logs.Select(l =>
+        {
+            var logUuid = SyncIdNormalizer.EnsureUuid(l.Id);
+            var titleUuid = SyncIdNormalizer.EnsureUuid(l.TitleId);
+            var updatedAt = SyncIdNormalizer.NormalizeUtcIso(l.UpdatedAt, l.CreatedAt);
+            var watchedAt = SyncIdNormalizer.NormalizeUtcIso(l.OccurredAt, RecordDate.ToNoonUtcIso(l.WatchedOn));
+            return new
+            {
+                id = logUuid,
+                op = "upsert",
+                updatedAt,
+                payload = new
+                {
+                    titleId = titleUuid,
+                    status = l.Status.ToWire(),
+                    rating = l.Rating,
+                    note = l.Note,
+                    spoiler = l.Spoiler,
+                    ott = l.Ott,
+                    seasonNumber = l.SeasonNumber,
+                    episodeNumber = l.EpisodeNumber,
+                    seasonPosterUrl = (string?)null,
+                    seasonYear = (int?)null,
+                    origin = l.Origin.ToWire(),
+                    watchedAt,
+                    place = OttlinePresets.ToServerPlaceWire(l.Place),
+                    occasion = OttlinePresets.ToServerOccasionWire(l.Occasion)
+                }
+            };
+        }).ToList();
+
         var payload = new
         {
+            userId = userUuid,
             deviceId = _deviceId,
-            mutations = events.Select(e => new
+            clientTime = DateTimeOffset.UtcNow.ToString("O", CultureInfo.InvariantCulture),
+            changes = new
             {
-                id = e.Id,
-                type = e.Type,
-                entityId = e.EntityId,
-                createdAt = e.CreatedAt,
-                payload = TryParseJsonElement(e.PayloadJson)
-            }).ToList()
+                titles = titleChanges,
+                logs = logChanges
+            }
         };
 
         using var req = CreateRequest(HttpMethod.Post, "/api/sync/push", payload);
@@ -322,39 +496,48 @@ public sealed class OttlineApiClient : IDisposable
         using var doc = JsonDocument.Parse(body);
         var root = doc.RootElement;
 
-        var remappedTitles = new Dictionary<string, string>(StringComparer.Ordinal);
-        if (root.TryGetProperty("remappedTitleIds", out var rt) && rt.ValueKind == JsonValueKind.Object)
+        var acceptedIds = new List<string>();
+        if (root.TryGetProperty("accepted", out var accEl) && accEl.ValueKind == JsonValueKind.Array)
         {
-            foreach (var prop in rt.EnumerateObject())
+            foreach (var item in accEl.EnumerateArray())
             {
-                if (prop.Value.ValueKind == JsonValueKind.String)
-                    remappedTitles[prop.Name] = prop.Value.GetString()!;
+                if (item.ValueKind == JsonValueKind.String)
+                {
+                    var idStr = item.GetString();
+                    if (!string.IsNullOrWhiteSpace(idStr))
+                    {
+                        acceptedIds.Add(idStr.Trim());
+                    }
+                }
             }
         }
 
-        var remappedLogs = new Dictionary<string, string>(StringComparer.Ordinal);
-        if (root.TryGetProperty("remappedLogIds", out var rl) && rl.ValueKind == JsonValueKind.Object)
+        var rejected = new List<SyncPushReject>();
+        if (root.TryGetProperty("rejected", out var rejEl) && rejEl.ValueKind == JsonValueKind.Array)
         {
-            foreach (var prop in rl.EnumerateObject())
+            foreach (var item in rejEl.EnumerateArray())
             {
-                if (prop.Value.ValueKind == JsonValueKind.String)
-                    remappedLogs[prop.Name] = prop.Value.GetString()!;
+                if (item.ValueKind != JsonValueKind.Object) continue;
+                var idStr = GetNullableString(item, "id");
+                var reason = GetNullableString(item, "reason") ?? "rejected";
+                if (!string.IsNullOrWhiteSpace(idStr))
+                {
+                    rejected.Add(new SyncPushReject(idStr.Trim(), reason.Trim()));
+                }
             }
         }
 
-        var cursor = root.TryGetProperty("cursor", out var cEl) && cEl.ValueKind == JsonValueKind.String
-            ? cEl.GetString() ?? DateTimeOffset.UtcNow.ToString("O")
-            : DateTimeOffset.UtcNow.ToString("O");
-        var accepted = root.TryGetProperty("acceptedCount", out var acEl) && acEl.TryGetInt32(out var ac)
-            ? ac
-            : events.Count;
+        var cursor = GetNullableString(root, "serverTime")
+                     ?? GetNullableString(root, "cursor")
+                     ?? DateTimeOffset.UtcNow.ToString("O", CultureInfo.InvariantCulture);
 
-        return new SyncPushResult(accepted, cursor, remappedTitles, remappedLogs);
+        return new SyncPushResult(acceptedIds, rejected, cursor);
     }
 
     public async Task<SyncPullResult> PullSyncAsync(
         string? sinceCursor = null,
-        CancellationToken ct = default)
+        CancellationToken ct = default,
+        Func<string, TitleSummary?>? localTitleResolver = null)
     {
         var sinceParam = string.IsNullOrWhiteSpace(sinceCursor) ? "" : $"?since={Uri.EscapeDataString(sinceCursor)}";
         using var req = CreateRequest(HttpMethod.Get, $"/api/sync/pull{sinceParam}");
@@ -366,19 +549,24 @@ public sealed class OttlineApiClient : IDisposable
         var root = doc.RootElement;
 
         var titleMap = new Dictionary<string, TitleSummary>(StringComparer.OrdinalIgnoreCase);
+        var pulledTitles = new List<TitleSummary>();
         if (root.TryGetProperty("changes", out var changesEl) && changesEl.ValueKind == JsonValueKind.Object)
         {
             if (changesEl.TryGetProperty("titles", out var titlesEl) && titlesEl.ValueKind == JsonValueKind.Array)
             {
                 foreach (var tItem in titlesEl.EnumerateArray())
                 {
+                    if (GetNullableString(tItem, "deletedAt") != null) continue;
                     var t = ParseTitleElement(tItem);
-                    if (t != null) titleMap[t.Id] = t;
+                    if (t != null)
+                    {
+                        titleMap[t.Id] = t;
+                        pulledTitles.Add(t);
+                    }
                 }
             }
         }
 
-        var logs = new List<WatchLog>();
         var arrayProp = root.TryGetProperty("changes", out var chEl) &&
                         chEl.ValueKind == JsonValueKind.Object &&
                         chEl.TryGetProperty("logs", out var chLogsEl) &&
@@ -388,6 +576,40 @@ public sealed class OttlineApiClient : IDisposable
                 ? lEl
                 : (root.TryGetProperty("items", out var iEl) && iEl.ValueKind == JsonValueKind.Array ? iEl : default));
 
+        var missingTitleIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        if (arrayProp.ValueKind == JsonValueKind.Array)
+        {
+            foreach (var item in arrayProp.EnumerateArray())
+            {
+                if (GetNullableString(item, "deletedAt") != null) continue;
+                var hasInlineTitle = item.TryGetProperty("title", out var inlineTitle) && inlineTitle.ValueKind == JsonValueKind.Object;
+                if (hasInlineTitle) continue;
+                var tid = GetNullableString(item, "titleId");
+                if (string.IsNullOrWhiteSpace(tid) || titleMap.ContainsKey(tid)) continue;
+
+                var localTitle = localTitleResolver?.Invoke(tid);
+                if (localTitle != null)
+                {
+                    titleMap[tid] = localTitle;
+                }
+                else if (Guid.TryParse(tid, out _))
+                {
+                    missingTitleIds.Add(tid);
+                }
+            }
+        }
+
+        foreach (var missingTid in missingTitleIds)
+        {
+            var fetched = await FetchTitleByIdAsync(missingTid, ct).ConfigureAwait(false);
+            if (fetched != null)
+            {
+                titleMap[fetched.Id] = fetched;
+                pulledTitles.Add(fetched);
+            }
+        }
+
+        var logs = new List<WatchLog>();
         if (arrayProp.ValueKind == JsonValueKind.Array)
         {
             foreach (var item in arrayProp.EnumerateArray())
@@ -400,10 +622,10 @@ public sealed class OttlineApiClient : IDisposable
 
         var cursor = GetNullableString(root, "serverTime")
                      ?? GetNullableString(root, "cursor")
-                     ?? DateTimeOffset.UtcNow.ToString("O");
+                     ?? DateTimeOffset.UtcNow.ToString("O", CultureInfo.InvariantCulture);
         var hasMore = root.TryGetProperty("hasMore", out var hm) && hm.ValueKind == JsonValueKind.True;
 
-        return new SyncPullResult(logs, cursor, hasMore);
+        return new SyncPullResult(logs, cursor, hasMore, pulledTitles);
     }
 
     public async Task<IReadOnlyList<DiscussionPost>> FetchDiscussionsAsync(
@@ -528,25 +750,58 @@ public sealed class OttlineApiClient : IDisposable
         }
     }
 
+    public async Task<DiscussionPost?> EnsureDiscussionAsync(string titleId, CancellationToken ct = default)
+    {
+        if (!Guid.TryParse(titleId, out var parsedTitleId)) return null;
+        try
+        {
+            var payload = new { titleId = parsedTitleId.ToString("D") };
+            using var req = CreateRequest(HttpMethod.Post, "/api/discussions", payload);
+            using var res = await SendWithTimeoutAsync(req, DefaultRequestTimeout, ct).ConfigureAwait(false);
+            if (!res.IsSuccessStatusCode) return null;
+            var body = await res.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
+            using var doc = JsonDocument.Parse(body);
+            return ParseDiscussionPostElement(doc.RootElement, _locale);
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
     public async Task<DiscussionPost?> CreateDiscussionAsync(
         TitleSummary title,
         string bodyText,
         bool spoiler,
         CancellationToken ct = default)
     {
-        var payload = new
+        var post = await EnsureDiscussionAsync(title.Id, ct).ConfigureAwait(false);
+        if (post == null) return null;
+
+        if (!string.IsNullOrWhiteSpace(bodyText))
         {
-            titleId = title.Id,
-            title = title,
-            body = bodyText,
-            spoiler
-        };
-        using var req = CreateRequest(HttpMethod.Post, "/api/discussions", payload);
-        using var res = await SendWithTimeoutAsync(req, DefaultRequestTimeout, ct).ConfigureAwait(false);
-        if (!res.IsSuccessStatusCode) return null;
-        var body = await res.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
-        using var doc = JsonDocument.Parse(body);
-        return ParseDiscussionPostElement(doc.RootElement, _locale);
+            var comment = await CreateCommentAsync(
+                post.Id,
+                bodyText.Trim(),
+                spoiler,
+                Array.Empty<CommentMention>(),
+                syncLog: false,
+                ct: ct
+            ).ConfigureAwait(false);
+            if (comment == null) return null;
+            return post with
+            {
+                Body = comment.Body,
+                Spoiler = comment.Spoiler,
+                CommentCount = Math.Max(1, post.CommentCount + 1)
+            };
+        }
+
+        return post;
     }
 
     public async Task<DiscussionComment?> CreateCommentAsync(
@@ -1376,13 +1631,16 @@ public sealed class OttlineApiClient : IDisposable
     {
         try
         {
+            var version = string.IsNullOrWhiteSpace(AppVersion) ? ResolveDefaultAppVersion() : AppVersion.Trim();
+            var normalizedLocale = NormalizeLocaleCode(_locale);
             var mergedProps = new Dictionary<string, object?>
             {
                 ["osFamily"] = "windows",
                 ["deviceType"] = "desktop",
                 ["installState"] = "ms_store_native",
                 ["windowsRuntime"] = "native",
-                ["windowsAppVersion"] = "2.0.0.0",
+                ["windowsAppVersion"] = version,
+                ["locale"] = normalizedLocale,
                 ["architecture"] = System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture.ToString().ToLowerInvariant()
             };
             if (properties != null)
@@ -1395,10 +1653,12 @@ public sealed class OttlineApiClient : IDisposable
 
             var payload = new
             {
+                eventId = Guid.NewGuid().ToString("D"),
                 eventName,
                 platform = "pwa", // Matches backend DB constraint ^(web|pwa|twa|ios_native)$
-                deviceId = _deviceId,
-                occurredAt = DateTimeOffset.UtcNow.ToString("O"),
+                sessionId = _sessionId,
+                clientVersion = version,
+                occurredAt = DateTimeOffset.UtcNow.ToString("O", CultureInfo.InvariantCulture),
                 properties = mergedProps
             };
 

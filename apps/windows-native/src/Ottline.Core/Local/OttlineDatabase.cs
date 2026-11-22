@@ -236,6 +236,29 @@ public sealed class OttlineDatabase : IDisposable
         }
     }
 
+    public IReadOnlyList<TitleSummary> GetAllTitles()
+    {
+        lock (_syncRoot)
+        {
+            using var conn = OpenConnection();
+            using var cmd = conn.CreateCommand();
+            cmd.CommandText = "SELECT * FROM titles ORDER BY updated_at DESC;";
+            var list = new List<TitleSummary>();
+            using var reader = cmd.ExecuteReader();
+            while (reader.Read())
+            {
+                list.Add(ReadTitleFromReader(reader, string.Empty));
+            }
+            return list;
+        }
+    }
+
+    public IReadOnlyList<TitleSummary> FindMatchingTitles(TitleSummary candidate)
+    {
+        var all = GetAllTitles();
+        return all.Where(t => SyncIdNormalizer.AreTitlesEquivalent(t, candidate)).ToList();
+    }
+
     public IReadOnlyList<TitleSummary> SearchLocalTitles(string query, ContentFilter filter = ContentFilter.ALL, int limit = 20)
     {
         lock (_syncRoot)
@@ -280,7 +303,7 @@ public sealed class OttlineDatabase : IDisposable
             var watchedOn = RecordDate.OccurredAtToWatchedOnDate(log.OccurredAt, log.WatchedOn);
             var occurredAt = string.IsNullOrWhiteSpace(log.OccurredAt) ? RecordDate.ToNoonUtcIso(watchedOn) : log.OccurredAt;
 
-            var finalId = existing?.Id ?? (string.IsNullOrWhiteSpace(log.Id) ? $"local-log:{Guid.NewGuid():N}" : log.Id);
+            var finalId = existing?.Id ?? (string.IsNullOrWhiteSpace(log.Id) ? Guid.NewGuid().ToString("D") : log.Id);
             var finalCreatedAt = existing?.CreatedAt ?? (string.IsNullOrWhiteSpace(log.CreatedAt) ? nowIso : log.CreatedAt);
             var finalRevision = existing != null
                 ? Math.Max(existing.Revision + (recordHistory ? 1 : 0), log.Revision)
@@ -410,6 +433,25 @@ public sealed class OttlineDatabase : IDisposable
         }
     }
 
+    public IReadOnlyList<WatchLog> GetLogsByTitleId(string titleId)
+    {
+        if (string.IsNullOrWhiteSpace(titleId)) return Array.Empty<WatchLog>();
+        lock (_syncRoot)
+        {
+            using var conn = OpenConnection();
+            using var cmd = conn.CreateCommand();
+            cmd.CommandText = BaseLogJoinQuery + " WHERE l.title_id = $title_id ORDER BY l.updated_at DESC;";
+            cmd.Parameters.AddWithValue("$title_id", titleId);
+            var list = new List<WatchLog>();
+            using var reader = cmd.ExecuteReader();
+            while (reader.Read())
+            {
+                list.Add(ReadWatchLogFromJoinReader(reader));
+            }
+            return list;
+        }
+    }
+
     public IReadOnlyList<WatchLog> GetAllLogs()
     {
         lock (_syncRoot)
@@ -523,7 +565,7 @@ public sealed class OttlineDatabase : IDisposable
         }
     }
 
-    public void RemapLogId(string oldLogId, string newLogId)
+    public void RemapLogId(string oldLogId, string newLogId, bool markSynced = true)
     {
         if (string.IsNullOrWhiteSpace(oldLogId) || string.IsNullOrWhiteSpace(newLogId) || oldLogId == newLogId)
             return;
@@ -533,10 +575,12 @@ public sealed class OttlineDatabase : IDisposable
             using var conn = OpenConnection();
             using var tx = conn.BeginTransaction();
 
+            var targetAlreadyExists = GetLogInternal(conn, tx, newLogId) != null;
+
             using (var cmd = conn.CreateCommand())
             {
                 cmd.Transaction = tx;
-                cmd.CommandText = "UPDATE logs SET id = $newId, sync_state = 'synced' WHERE id = $oldId;";
+                cmd.CommandText = "UPDATE log_history SET log_id = $newId WHERE log_id = $oldId;";
                 cmd.Parameters.AddWithValue("$newId", newLogId);
                 cmd.Parameters.AddWithValue("$oldId", oldLogId);
                 cmd.ExecuteNonQuery();
@@ -545,7 +589,38 @@ public sealed class OttlineDatabase : IDisposable
             using (var cmd = conn.CreateCommand())
             {
                 cmd.Transaction = tx;
-                cmd.CommandText = "UPDATE log_history SET log_id = $newId WHERE log_id = $oldId;";
+                cmd.CommandText = "UPDATE outbox SET entity_id = $newId WHERE entity_id = $oldId;";
+                cmd.Parameters.AddWithValue("$newId", newLogId);
+                cmd.Parameters.AddWithValue("$oldId", oldLogId);
+                cmd.ExecuteNonQuery();
+            }
+
+            if (targetAlreadyExists)
+            {
+                using (var delOld = conn.CreateCommand())
+                {
+                    delOld.Transaction = tx;
+                    delOld.CommandText = "DELETE FROM logs WHERE id = $oldId;";
+                    delOld.Parameters.AddWithValue("$oldId", oldLogId);
+                    delOld.ExecuteNonQuery();
+                }
+
+                if (markSynced)
+                {
+                    using var markCmd = conn.CreateCommand();
+                    markCmd.Transaction = tx;
+                    markCmd.CommandText = "UPDATE logs SET sync_state = 'synced' WHERE id = $newId;";
+                    markCmd.Parameters.AddWithValue("$newId", newLogId);
+                    markCmd.ExecuteNonQuery();
+                }
+            }
+            else
+            {
+                using var cmd = conn.CreateCommand();
+                cmd.Transaction = tx;
+                cmd.CommandText = markSynced
+                    ? "UPDATE logs SET id = $newId, sync_state = 'synced' WHERE id = $oldId;"
+                    : "UPDATE logs SET id = $newId WHERE id = $oldId;";
                 cmd.Parameters.AddWithValue("$newId", newLogId);
                 cmd.Parameters.AddWithValue("$oldId", oldLogId);
                 cmd.ExecuteNonQuery();
@@ -557,13 +632,108 @@ public sealed class OttlineDatabase : IDisposable
 
     public void MarkLogSynced(string logId)
     {
+        UpdateLogSyncState(logId, "synced");
+    }
+
+    public void UpdateLogSyncState(string logId, string syncState)
+    {
+        if (string.IsNullOrWhiteSpace(logId)) return;
         lock (_syncRoot)
         {
             using var conn = OpenConnection();
             using var cmd = conn.CreateCommand();
-            cmd.CommandText = "UPDATE logs SET sync_state = 'synced' WHERE id = $id;";
+            cmd.CommandText = "UPDATE logs SET sync_state = $state WHERE id = $id;";
+            cmd.Parameters.AddWithValue("$state", syncState);
             cmd.Parameters.AddWithValue("$id", logId);
             cmd.ExecuteNonQuery();
+        }
+    }
+
+    public void DeleteLogsByTitleExcept(string titleId, string keepLogId)
+    {
+        if (string.IsNullOrWhiteSpace(titleId) || string.IsNullOrWhiteSpace(keepLogId)) return;
+        lock (_syncRoot)
+        {
+            using var conn = OpenConnection();
+            using var tx = conn.BeginTransaction();
+
+            using (var remapHist = conn.CreateCommand())
+            {
+                remapHist.Transaction = tx;
+                remapHist.CommandText = "UPDATE log_history SET log_id = $keepId WHERE title_id = $titleId AND log_id != $keepId;";
+                remapHist.Parameters.AddWithValue("$keepId", keepLogId);
+                remapHist.Parameters.AddWithValue("$titleId", titleId);
+                remapHist.ExecuteNonQuery();
+            }
+
+            using (var delLogs = conn.CreateCommand())
+            {
+                delLogs.Transaction = tx;
+                delLogs.CommandText = "DELETE FROM logs WHERE title_id = $titleId AND id != $keepId;";
+                delLogs.Parameters.AddWithValue("$titleId", titleId);
+                delLogs.Parameters.AddWithValue("$keepId", keepLogId);
+                delLogs.ExecuteNonQuery();
+            }
+
+            tx.Commit();
+        }
+    }
+
+    public OutboxEvent UpsertLogOutbox(string type, string logId, string payloadJson)
+    {
+        var evt = new OutboxEvent(
+            Id: $"outbox:{Guid.NewGuid():N}",
+            Type: type,
+            EntityId: logId,
+            PayloadJson: payloadJson,
+            CreatedAt: DateTimeOffset.UtcNow.ToString("O", CultureInfo.InvariantCulture)
+        );
+
+        lock (_syncRoot)
+        {
+            using var conn = OpenConnection();
+            using var tx = conn.BeginTransaction();
+
+            using (var delCmd = conn.CreateCommand())
+            {
+                delCmd.Transaction = tx;
+                delCmd.CommandText = "DELETE FROM outbox WHERE entity_id = $entity_id AND type IN ('UPSERT_LOG', 'UPDATE_LOG');";
+                delCmd.Parameters.AddWithValue("$entity_id", logId);
+                delCmd.ExecuteNonQuery();
+            }
+
+            using (var insCmd = conn.CreateCommand())
+            {
+                insCmd.Transaction = tx;
+                insCmd.CommandText = @"
+                    INSERT INTO outbox (id, type, entity_id, payload_json, created_at, retry_count, last_error)
+                    VALUES ($id, $type, $entity_id, $payload_json, $created_at, 0, NULL);
+                ";
+                insCmd.Parameters.AddWithValue("$id", evt.Id);
+                insCmd.Parameters.AddWithValue("$type", evt.Type);
+                insCmd.Parameters.AddWithValue("$entity_id", evt.EntityId);
+                insCmd.Parameters.AddWithValue("$payload_json", evt.PayloadJson);
+                insCmd.Parameters.AddWithValue("$created_at", evt.CreatedAt);
+                insCmd.ExecuteNonQuery();
+            }
+
+            tx.Commit();
+        }
+
+        return evt;
+    }
+
+    public bool HasPendingLogOutbox(string logId)
+    {
+        if (string.IsNullOrWhiteSpace(logId)) return false;
+        lock (_syncRoot)
+        {
+            using var conn = OpenConnection();
+            using var cmd = conn.CreateCommand();
+            cmd.CommandText = "SELECT COUNT(1) FROM outbox WHERE entity_id = $entity_id AND type IN ('UPSERT_LOG', 'UPDATE_LOG');";
+            cmd.Parameters.AddWithValue("$entity_id", logId);
+            var count = Convert.ToInt64(cmd.ExecuteScalar() ?? 0);
+            return count > 0;
         }
     }
 
@@ -623,13 +793,18 @@ public sealed class OttlineDatabase : IDisposable
 
     public void DeleteOutbox(string id)
     {
+        DeleteOutboxIfExists(id);
+    }
+
+    public int DeleteOutboxIfExists(string id)
+    {
         lock (_syncRoot)
         {
             using var conn = OpenConnection();
             using var cmd = conn.CreateCommand();
             cmd.CommandText = "DELETE FROM outbox WHERE id = $id;";
             cmd.Parameters.AddWithValue("$id", id);
-            cmd.ExecuteNonQuery();
+            return cmd.ExecuteNonQuery();
         }
     }
 
@@ -661,11 +836,17 @@ public sealed class OttlineDatabase : IDisposable
                     var loaded = JsonSerializer.Deserialize<LocalSettings>(raw);
                     if (loaded != null)
                     {
-                        var needsGuidNormalization = string.IsNullOrWhiteSpace(loaded.DeviceId)
-                                                     || (!Guid.TryParse(loaded.DeviceId, out _) && string.IsNullOrWhiteSpace(loaded.UserId));
-                        if (needsGuidNormalization)
+                        var needsDeviceNormalization = string.IsNullOrWhiteSpace(loaded.DeviceId)
+                                                       || (!Guid.TryParse(loaded.DeviceId, out _) && string.IsNullOrWhiteSpace(loaded.UserId));
+                        var needsClientNormalization = string.IsNullOrWhiteSpace(loaded.ClientId)
+                                                       || !Guid.TryParse(loaded.ClientId, out _);
+                        if (needsDeviceNormalization || needsClientNormalization)
                         {
-                            var normalized = loaded with { DeviceId = Guid.NewGuid().ToString("D") };
+                            var normalized = loaded with
+                            {
+                                DeviceId = needsDeviceNormalization ? Guid.NewGuid().ToString("D") : loaded.DeviceId,
+                                ClientId = needsClientNormalization ? Guid.NewGuid().ToString("D") : loaded.ClientId
+                            };
                             SaveSettingsInternal(conn, normalized);
                             return normalized;
                         }
@@ -680,7 +861,8 @@ public sealed class OttlineDatabase : IDisposable
 
             var defaults = new LocalSettings(
                 DeviceId: Guid.NewGuid().ToString("D"),
-                DeviceName: $"{Environment.MachineName} (Windows Native)"
+                DeviceName: $"{Environment.MachineName} (Windows Native)",
+                ClientId: Guid.NewGuid().ToString("D")
             );
             SaveSettingsInternal(conn, defaults);
             return defaults;
@@ -693,6 +875,44 @@ public sealed class OttlineDatabase : IDisposable
         {
             using var conn = OpenConnection();
             SaveSettingsInternal(conn, settings);
+        }
+    }
+
+    public string? GetAppSetting(string key)
+    {
+        if (string.IsNullOrWhiteSpace(key)) return null;
+        lock (_syncRoot)
+        {
+            using var conn = OpenConnection();
+            using var cmd = conn.CreateCommand();
+            cmd.CommandText = "SELECT value FROM app_settings WHERE key = $key LIMIT 1;";
+            cmd.Parameters.AddWithValue("$key", key);
+            return cmd.ExecuteScalar() as string;
+        }
+    }
+
+    public void SetAppSetting(string key, string? value)
+    {
+        if (string.IsNullOrWhiteSpace(key)) return;
+        lock (_syncRoot)
+        {
+            using var conn = OpenConnection();
+            using var cmd = conn.CreateCommand();
+            if (value == null)
+            {
+                cmd.CommandText = "DELETE FROM app_settings WHERE key = $key;";
+                cmd.Parameters.AddWithValue("$key", key);
+            }
+            else
+            {
+                cmd.CommandText = @"
+                    INSERT INTO app_settings (key, value) VALUES ($key, $val)
+                    ON CONFLICT(key) DO UPDATE SET value = excluded.value;
+                ";
+                cmd.Parameters.AddWithValue("$key", key);
+                cmd.Parameters.AddWithValue("$val", value);
+            }
+            cmd.ExecuteNonQuery();
         }
     }
 
