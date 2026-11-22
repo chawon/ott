@@ -706,11 +706,21 @@ try {
             await noOverflow(page);
           }
           await page.setViewportSize({ width: 390, height: 844 });
-          await page.locator(`[data-discussion-link="${ids[1]}"]`).click();
-          await ready(page, ids[1]);
+          await page
+            .locator(`[data-discussion-link="${stories.at(-1).id}"]`)
+            .click();
+          await ready(page, stories.at(-1).id);
           assert.equal(
             await page.getByTestId("together-list-pane").isVisible(),
             false,
+          );
+          const heading = await page
+            .getByTestId("discussion-detail")
+            .getByRole("heading", { level: 2 })
+            .boundingBox();
+          assert.ok(
+            heading && heading.y >= 0 && heading.y < 844,
+            "Opening a story from the bottom of a compact list shows its title",
           );
           await noOverflow(page);
         },
