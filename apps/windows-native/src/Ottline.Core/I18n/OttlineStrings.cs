@@ -182,9 +182,14 @@ public sealed record OttlineStrings(
         ? "What you watch and read, kept on your timeline."
         : "보고 읽은 순간을 나의 타임라인에.";
     public string FooterGuidesLink => IsEn ? "Recording guides" : "기록 가이드";
+    public string FooterAboutLink => IsEn ? "About Service" : "서비스 소개";
+    public string FooterFaqLink => IsEn ? "FAQ" : "자주 묻는 질문";
+    public string FooterPrivacyLink => IsEn ? "Privacy Policy" : "개인정보처리방침";
+    public string FooterFeedbackLink => IsEn ? "Contact" : "문의하기";
     public string FooterReportLink => IsEn ? "My Usage Report" : "내 이용 리포트";
     public string FooterBookshelfLink => IsEn ? "Open my bookshelf" : "서가 보기";
-    public string FooterFeedbackLink => IsEn ? "Contact" : "문의하기";
+    public string InfoBackButton => IsEn ? "← Back" : "← 돌아가기";
+    public string InfoCurrentPlatformBadge => IsEn ? "Current app" : "현재 앱";
 
     // Timeline View (app/[locale]/timeline/page.tsx + FiltersBar.tsx + LogCard.tsx)
     public string TimelineEyebrow => IsEn ? "THE STORIES YOU KEPT" : "남겨둔 이야기";

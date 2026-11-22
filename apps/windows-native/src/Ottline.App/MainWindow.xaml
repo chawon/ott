@@ -3,6 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:controls="clr-namespace:Ottline.App.Controls"
         mc:Ignorable="d"
         Title=""
         Icon="pack://application:,,,/Ottline.App;component/Resources/Icons/brand_mark.png"
@@ -1424,68 +1425,8 @@
                         </StackPanel>
                     </Border>
 
-                    <!-- Desktop Footer (AppFooter.tsx) -->
-                    <Border BorderBrush="{DynamicResource BorderBrush}"
-                            BorderThickness="0,1,0,0"
-                            Margin="0,48,0,0"
-                            Padding="0,28,0,0">
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="Auto" />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
-                            <StackPanel Grid.Column="0">
-                                <StackPanel Orientation="Horizontal">
-                                    <TextBlock Text="ottline"
-                                               FontSize="18"
-                                               FontWeight="Bold"
-                                               Foreground="{DynamicResource PrimaryBrush}" />
-                                    <TextBlock Text="ON THE TIMELINE"
-                                               FontSize="9"
-                                               FontWeight="Bold"
-                                               Foreground="{DynamicResource AccentBrush}"
-                                               VerticalAlignment="Center"
-                                               Margin="8,2,0,0" />
-                                </StackPanel>
-                                <TextBlock Text="{Binding Strings.FooterTagline}"
-                                           FontSize="13"
-                                           Foreground="{DynamicResource ForegroundSecondaryBrush}"
-                                           Margin="0,4,0,0" />
-                            </StackPanel>
-
-                            <StackPanel Grid.Column="1"
-                                        Orientation="Horizontal"
-                                        VerticalAlignment="Center"
-                                        Margin="0,0,36,0">
-                                <Button Style="{StaticResource GhostButtonStyle}"
-                                        Content="{Binding Strings.FooterGuidesLink}"
-                                        Click="OpenGuidesShortcut_Click"
-                                        Margin="0,0,8,0" />
-                                <Button Style="{StaticResource GhostButtonStyle}"
-                                        Content="{Binding Strings.FooterReportLink}"
-                                        Click="OpenReportShortcut_Click"
-                                        Margin="0,0,8,0" />
-                                <Button Style="{StaticResource GhostButtonStyle}"
-                                        Content="{Binding Strings.FooterBookshelfLink}"
-                                        Click="OpenBookshelfShortcut_Click"
-                                        Margin="0,0,8,0" />
-                                <Button Style="{StaticResource GhostButtonStyle}"
-                                        Content="{Binding Strings.FooterFeedbackLink}"
-                                        Click="OpenFeedbackShortcut_Click" />
-                            </StackPanel>
-
-                            <StackPanel Grid.Column="2" VerticalAlignment="Center" HorizontalAlignment="Right">
-                                <TextBlock Text="© 2026 ottline. All rights reserved."
-                                           FontSize="12"
-                                           Foreground="{DynamicResource ForegroundMutedBrush}" />
-                                <TextBlock Text="Microsoft Store Windows Native v2.0.0.0 · contact@ottline.app"
-                                           FontSize="11.5"
-                                           Foreground="{DynamicResource ForegroundMutedBrush}"
-                                           Margin="0,2,0,0" />
-                            </StackPanel>
-                        </Grid>
-                    </Border>
+                    <!-- Shared Desktop Footer (AppFooter.tsx 5 links) -->
+                    <controls:OttlineFooterControl />
                 </StackPanel>
             </ScrollViewer>
 
@@ -2107,6 +2048,9 @@
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
+
+                    <!-- Shared Desktop Footer -->
+                    <controls:OttlineFooterControl />
                 </StackPanel>
             </ScrollViewer>
 
@@ -2755,6 +2699,9 @@
                                         </StackPanel>
                                     </Border>
                                 </StackPanel>
+
+                                <!-- Shared Desktop Footer inside Together Reader -->
+                                <controls:OttlineFooterControl />
                             </StackPanel>
                         </ScrollViewer>
                     </Grid>
@@ -3108,7 +3055,19 @@
                                                     Margin="0,0,10,10" />
                                             <Button Style="{StaticResource SecondaryButtonStyle}"
                                                     Content="{Binding Strings.FooterGuidesLink}"
-                                                    Click="MySpaceGuides_Click"
+                                                    Click="OpenGuidesShortcut_Click"
+                                                    Margin="0,0,10,10" />
+                                            <Button Style="{StaticResource SecondaryButtonStyle}"
+                                                    Content="{Binding Strings.FooterAboutLink}"
+                                                    Click="OpenAboutShortcut_Click"
+                                                    Margin="0,0,10,10" />
+                                            <Button Style="{StaticResource SecondaryButtonStyle}"
+                                                    Content="{Binding Strings.FooterFaqLink}"
+                                                    Click="OpenFaqShortcut_Click"
+                                                    Margin="0,0,10,10" />
+                                            <Button Style="{StaticResource SecondaryButtonStyle}"
+                                                    Content="{Binding Strings.FooterPrivacyLink}"
+                                                    Click="OpenPrivacyShortcut_Click"
                                                     Margin="0,0,10,10" />
                                         </WrapPanel>
                                     </StackPanel>
@@ -3491,7 +3450,7 @@
 
                     <!-- 5) FEEDBACK SUB-VIEW (FeedbackInbox.tsx 1:1) -->
                     <StackPanel Visibility="{Binding IsMySpaceFeedback, Converter={StaticResource BoolToVis}}">
-                        <TextBlock Text="{Binding Strings.FeedbackHeadingTitle}" FontSize="24" FontWeight="Bold" />
+                        <TextBlock Text="{Binding Strings.FeedbackHeadingTitle}" FontSize="24" FontWeight="Bold" Foreground="{DynamicResource ForegroundBrush}" />
                         <TextBlock Text="{Binding Strings.FeedbackHeadingSubtitle}"
                                    FontSize="14"
                                    Foreground="{DynamicResource ForegroundSecondaryBrush}"
@@ -3772,16 +3731,30 @@
                             Padding="28"
                             Visibility="{Binding IsMySpaceGuides, Converter={StaticResource BoolToVis}}">
                         <StackPanel>
-                            <TextBlock Text="{Binding Strings.GuidesHeadingTitle}" FontSize="24" FontWeight="Bold" />
+                            <TextBlock Text="{Binding Strings.GuidesHeadingTitle}" FontSize="24" FontWeight="Bold" Foreground="{DynamicResource ForegroundBrush}" />
                             <TextBlock Text="{Binding Strings.GuidesBodyText}"
                                        FontSize="15"
                                        LineHeight="26"
                                        TextWrapping="Wrap"
-                                       Margin="0,12,0,0" />
+                                       Margin="0,12,0,16" />
+                            <Button Style="{StaticResource SecondaryButtonStyle}"
+                                    Content="{Binding AboutPage.BrowseAllGuidesLabel}"
+                                    Foreground="{DynamicResource PrimaryBrush}"
+                                    BorderBrush="{DynamicResource BrandNavyBrush}"
+                                    HorizontalAlignment="Left"
+                                    Click="OpenGuidesShortcut_Click" />
                         </StackPanel>
                     </Border>
+
+                    <!-- Shared Desktop Footer -->
+                    <controls:OttlineFooterControl />
                 </StackPanel>
             </ScrollViewer>
+
+            <!-- =========================================================================
+                 TAB 5: SHARED INFO PAGES (Guides, About, FAQ, Privacy — Web/macOS parity)
+                 ========================================================================= -->
+            <controls:OttlineInfoPagesView Visibility="{Binding IsInfoTab, Converter={StaticResource BoolToVis}}" />
 
             <!-- =========================================================================
                  MODAL OVERLAY 1: DESKTOP TITLE DETAIL (app/[locale]/title/[id]/page.tsx)

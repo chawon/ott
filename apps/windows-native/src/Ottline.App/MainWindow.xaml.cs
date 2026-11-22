@@ -435,6 +435,7 @@ public partial class MainWindow : Window
             if (_vm.IsQuickRecordOpen) { _vm.IsQuickRecordOpen = false; e.Handled = true; return; }
             if (_vm.IsTitleDetailOpen) { _vm.IsTitleDetailOpen = false; e.Handled = true; return; }
             if (_vm.IsWriteDiscussionOpen) { _vm.IsWriteDiscussionOpen = false; e.Handled = true; return; }
+            if (_vm.IsInfoTab) { _vm.CloseInfoPage(); e.Handled = true; return; }
             if (_vm.IsTogetherTab && _vm.ShowTogetherBackButton) { _vm.CloseNarrowTogetherDetail(); e.Handled = true; return; }
         }
 
@@ -640,18 +641,11 @@ public partial class MainWindow : Window
         _vm.CurrentMySpaceSection = MySpaceSection.BOOKSHELF;
     }
 
-    private void OpenGuidesShortcut_Click(object sender, RoutedEventArgs e)
-    {
-        _vm.CurrentTab = MainTab.MY_SPACE;
-        _vm.CurrentMySpaceSection = MySpaceSection.GUIDES;
-    }
-
-    private void OpenFeedbackShortcut_Click(object sender, RoutedEventArgs e)
-    {
-        _vm.CurrentTab = MainTab.MY_SPACE;
-        _vm.CurrentMySpaceSection = MySpaceSection.FEEDBACK;
-        _ = _vm.LoadFeedbackThreadsAsync();
-    }
+    private void OpenGuidesShortcut_Click(object sender, RoutedEventArgs e) => _vm.OpenInfoPage(InfoPageKind.GUIDES);
+    private void OpenAboutShortcut_Click(object sender, RoutedEventArgs e) => _vm.OpenInfoPage(InfoPageKind.ABOUT);
+    private void OpenFaqShortcut_Click(object sender, RoutedEventArgs e) => _vm.OpenInfoPage(InfoPageKind.FAQ);
+    private void OpenPrivacyShortcut_Click(object sender, RoutedEventArgs e) => _vm.OpenInfoPage(InfoPageKind.PRIVACY);
+    private void OpenFeedbackShortcut_Click(object sender, RoutedEventArgs e) => _vm.OpenFeedbackInbox();
 
     // ==================== TIMELINE EVENTS ====================
     private void FilterTimelineAll_Click(object sender, RoutedEventArgs e) => _vm.TimelineContentFilter = ContentFilter.ALL;
@@ -786,7 +780,7 @@ public partial class MainWindow : Window
         _vm.CurrentMySpaceSection = MySpaceSection.FEEDBACK;
         _ = _vm.LoadFeedbackThreadsAsync();
     }
-    private void MySpaceGuides_Click(object sender, RoutedEventArgs e) => _vm.CurrentMySpaceSection = MySpaceSection.GUIDES;
+    private void MySpaceGuides_Click(object sender, RoutedEventArgs e) => _vm.OpenInfoPage(InfoPageKind.GUIDES);
     private void MySpaceImportAdvanced_Click(object sender, RoutedEventArgs e) => _vm.CurrentMySpaceSection = MySpaceSection.IMPORT_ADVANCED;
 
     private void ToggleProfileEditor_Click(object sender, RoutedEventArgs e) =>

@@ -17,7 +17,8 @@ public enum MainTab
     HOME,
     TIMELINE,
     TOGETHER,
-    MY_SPACE
+    MY_SPACE,
+    INFO
 }
 
 public enum MySpaceSection
@@ -196,7 +197,12 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
     private LocalSettings _settings;
     private OttlineStrings _strings;
     private MainTab _currentTab = MainTab.HOME;
+    private MainTab _previousNonInfoTab = MainTab.HOME;
+    private InfoPageKind _currentInfoPage = InfoPageKind.GUIDES;
+    private string? _selectedGuideSlug;
     private MySpaceSection _currentMySpaceSection = MySpaceSection.PROFILE_SYNC;
+
+    public event Action? InfoPageScrollToTopRequested;
 
     private string _syncStatusText = "로컬 준비됨";
     private string _toastMessage = string.Empty;
@@ -401,12 +407,17 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
         set
         {
             if (_currentTab == value) return;
+            if (_currentTab != MainTab.INFO && value == MainTab.INFO)
+            {
+                _previousNonInfoTab = _currentTab;
+            }
             _currentTab = value;
             OnPropertyChanged();
             OnPropertyChanged(nameof(IsHomeTab));
             OnPropertyChanged(nameof(IsTimelineTab));
             OnPropertyChanged(nameof(IsTogetherTab));
             OnPropertyChanged(nameof(IsMySpaceTab));
+            OnPropertyChanged(nameof(IsInfoTab));
             if (value == MainTab.TIMELINE && TimelineMonthGroups.Count == 0)
             {
                 RefreshTimelineItems();
@@ -426,6 +437,76 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
     public bool IsTimelineTab => _currentTab == MainTab.TIMELINE;
     public bool IsTogetherTab => _currentTab == MainTab.TOGETHER;
     public bool IsMySpaceTab => _currentTab == MainTab.MY_SPACE;
+    public bool IsInfoTab => _currentTab == MainTab.INFO;
+
+    public InfoPageKind CurrentInfoPage
+    {
+        get => _currentInfoPage;
+        private set
+        {
+            if (_currentInfoPage == value) return;
+            _currentInfoPage = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(IsInfoGuides));
+            OnPropertyChanged(nameof(IsInfoAbout));
+            OnPropertyChanged(nameof(IsInfoFaq));
+            OnPropertyChanged(nameof(IsInfoPrivacy));
+        }
+    }
+
+    public bool IsInfoGuides => _currentInfoPage == InfoPageKind.GUIDES;
+    public bool IsInfoAbout => _currentInfoPage == InfoPageKind.ABOUT;
+    public bool IsInfoFaq => _currentInfoPage == InfoPageKind.FAQ;
+    public bool IsInfoPrivacy => _currentInfoPage == InfoPageKind.PRIVACY;
+
+    public GuideHubContent GuideHub => InfoPagesContent.GetGuideHub(_settings.Locale);
+    public AboutPageContent AboutPage => InfoPagesContent.GetAbout(_settings.Locale);
+    public FaqPageContent FaqPage => InfoPagesContent.GetFaq(_settings.Locale);
+    public PrivacyPageContent PrivacyPage => InfoPagesContent.GetPrivacy(_settings.Locale);
+
+    public GuideArticle? SelectedGuideArticle =>
+        string.IsNullOrWhiteSpace(_selectedGuideSlug)
+            ? null
+            : GuideHub.Guides.FirstOrDefault(g => string.Equals(g.Slug, _selectedGuideSlug, StringComparison.OrdinalIgnoreCase));
+
+    public bool IsGuideHubVisible => SelectedGuideArticle == null;
+    public bool IsGuideArticleVisible => SelectedGuideArticle != null;
+
+    public void OpenInfoPage(InfoPageKind kind, string? guideSlug = null)
+    {
+        if (_currentTab != MainTab.INFO)
+        {
+            _previousNonInfoTab = _currentTab;
+        }
+        CurrentInfoPage = kind;
+        _selectedGuideSlug = kind == InfoPageKind.GUIDES ? guideSlug : null;
+        OnPropertyChanged(nameof(SelectedGuideArticle));
+        OnPropertyChanged(nameof(IsGuideHubVisible));
+        OnPropertyChanged(nameof(IsGuideArticleVisible));
+        CurrentTab = MainTab.INFO;
+        InfoPageScrollToTopRequested?.Invoke();
+    }
+
+    public void SelectGuideArticle(string? slug)
+    {
+        _selectedGuideSlug = slug;
+        OnPropertyChanged(nameof(SelectedGuideArticle));
+        OnPropertyChanged(nameof(IsGuideHubVisible));
+        OnPropertyChanged(nameof(IsGuideArticleVisible));
+        InfoPageScrollToTopRequested?.Invoke();
+    }
+
+    public void CloseInfoPage()
+    {
+        CurrentTab = _previousNonInfoTab == MainTab.INFO ? MainTab.HOME : _previousNonInfoTab;
+    }
+
+    public void OpenFeedbackInbox()
+    {
+        CurrentTab = MainTab.MY_SPACE;
+        CurrentMySpaceSection = MySpaceSection.FEEDBACK;
+        _ = LoadFeedbackThreadsAsync();
+    }
 
     public MySpaceSection CurrentMySpaceSection
     {
@@ -1977,6 +2058,13 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
         OnPropertyChanged(nameof(TimelineOccasionComboIndex));
         OnPropertyChanged(nameof(ActiveTimelineFilterSummary));
         NotifyTogetherPropertiesChanged();
+        OnPropertyChanged(nameof(GuideHub));
+        OnPropertyChanged(nameof(AboutPage));
+        OnPropertyChanged(nameof(FaqPage));
+        OnPropertyChanged(nameof(PrivacyPage));
+        OnPropertyChanged(nameof(SelectedGuideArticle));
+        OnPropertyChanged(nameof(IsGuideHubVisible));
+        OnPropertyChanged(nameof(IsGuideArticleVisible));
         OnPropertyChanged(nameof(PersonalReport));
         OnPropertyChanged(nameof(PersonalReportRhythmDisplay));
         OnPropertyChanged(nameof(ShareSizeLabel));
