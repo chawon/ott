@@ -17,6 +17,10 @@ import app.ottline.model.TitleType
 import app.ottline.ui.OttlineMainViewModel
 import app.ottline.ui.layout.AdaptiveLayoutMetrics
 import app.ottline.ui.layout.AdaptiveWindowMode
+import app.ottline.ui.theme.DarkOttlinePalette
+import app.ottline.ui.theme.LightOttlinePalette
+import app.ottline.ui.theme.ottlineColorScheme
+import androidx.compose.ui.graphics.Color
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
@@ -399,5 +403,28 @@ class TogetherAndAdaptiveLayoutTest {
         assertEquals("disc-b", restored.selectedDiscussionId)
         assertEquals(4, restored.scrollIndex)
         assertEquals(120, restored.scrollOffset)
+    }
+
+    @Test
+    fun ottlineColorScheme_replacesAllMaterial3DefaultPurpleSlotsWithBrandTokens() {
+        val light = ottlineColorScheme(isDark = false)
+        assertEquals(LightOttlinePalette.brandNavy, light.primary)
+        assertEquals(LightOttlinePalette.brandOrange, light.tertiary)
+        assertEquals(Color.Transparent, light.surfaceTint)
+        assertEquals(Color(0xFFEBF1FA), light.primaryContainer)
+        assertEquals(Color(0xFFEBF1FA), light.secondaryContainer)
+        assertEquals(LightOttlinePalette.brandNavy, light.onSecondaryContainer)
+        assertEquals(LightOttlinePalette.card, light.surfaceContainerHigh)
+        assertEquals(LightOttlinePalette.paperStrong, light.surfaceContainerHighest)
+        assertEquals(LightOttlinePalette.border, light.outlineVariant)
+
+        val dark = ottlineColorScheme(isDark = true)
+        assertEquals(DarkOttlinePalette.brandNavy, dark.primary)
+        assertEquals(DarkOttlinePalette.brandOrange, dark.tertiary)
+        assertEquals(Color.Transparent, dark.surfaceTint)
+        assertEquals(Color(0xFF22344D), dark.primaryContainer)
+        assertEquals(Color(0xFF22344D), dark.secondaryContainer)
+        assertEquals(DarkOttlinePalette.paperStrong, dark.surfaceContainerHigh)
+        assertEquals(DarkOttlinePalette.border, dark.outlineVariant)
     }
 }
