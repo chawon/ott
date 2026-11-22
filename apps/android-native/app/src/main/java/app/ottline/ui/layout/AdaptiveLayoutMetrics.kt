@@ -27,6 +27,12 @@ data class AdaptiveLayoutMetrics(
     val isWide: Boolean
         get() = mode == AdaptiveWindowMode.TABLET_WIDE
 
+    val isWideThreeColumnHome: Boolean
+        get() = isSpread && viewportWidthDp >= HOME_THREE_COLUMN_MIN_WIDTH_DP
+
+    val homeTogetherColumns: Int
+        get() = if (isSpread) 2 else 1
+
     val maxContentWidth: Dp
         get() = if (isSpread) MAX_SPREAD_CONTENT_WIDTH_DP.dp else Dp.Unspecified
 
@@ -58,7 +64,9 @@ data class AdaptiveLayoutMetrics(
         get() = viewportWidthDp < HEADER_FULL_CTA_MIN_WIDTH_DP
 
     companion object {
+        const val TABLET_SMALLEST_WIDTH_DP = 600
         const val SPREAD_MIN_WIDTH_DP = 700
+        const val HOME_THREE_COLUMN_MIN_WIDTH_DP = 800
         const val WIDE_MIN_WIDTH_DP = 1000
         const val MAX_SPREAD_CONTENT_WIDTH_DP = 1180
         const val TOGETHER_TWO_PANE_MIN_WIDTH_DP = 700
@@ -75,6 +83,36 @@ data class AdaptiveLayoutMetrics(
                 else -> AdaptiveWindowMode.TABLET_WIDE
             }
             return AdaptiveLayoutMetrics(mode = mode, viewportWidthDp = safe)
+        }
+
+        fun isTabletDevice(smallestScreenWidthDp: Int): Boolean =
+            smallestScreenWidthDp >= TABLET_SMALLEST_WIDTH_DP
+
+        fun deviceLabel(isTablet: Boolean, locale: String): String =
+            if (locale == "en") {
+                if (isTablet) "Android tablet" else "Android phone"
+            } else {
+                if (isTablet) "안드로이드 태블릿" else "안드로이드 휴대폰"
+            }
+
+        /**
+         * Builds the Android native User-Agent.
+         * Follows Chrome-on-Android convention: phones include `Mobile`, while tablets (`sw600dp+`)
+         * omit `Mobile` and include an explicit `Tablet` token so `/auth/devices` can distinguish them.
+         */
+        fun buildAndroidUserAgent(
+            release: String,
+            model: String,
+            versionName: String,
+            isTablet: Boolean
+        ): String {
+            val safeRelease = release.ifBlank { "15" }
+            val safeModel = model.ifBlank { "Android" }
+            return if (isTablet) {
+                "Mozilla/5.0 (Linux; Android $safeRelease; $safeModel; Tablet) Chrome/134.0.0.0 Safari/537.36 ottline-android/$versionName"
+            } else {
+                "Mozilla/5.0 (Linux; Android $safeRelease; $safeModel) Chrome/134.0.0.0 Mobile Safari/537.36 ottline-android/$versionName"
+            }
         }
     }
 }

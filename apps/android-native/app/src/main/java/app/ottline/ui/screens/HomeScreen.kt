@@ -246,83 +246,170 @@ fun HomeScreen(
         ),
         modifier = Modifier.fillMaxSize()
     ) {
-        // 1. Editorial Header (`HomeTimelineView.tsx` lines 205–241 + `timeline.module.css` lines 835–875)
+        // 1. Editorial Header (`HomeTimelineView.tsx` compact vs spread parity)
         item {
-            Column(modifier = Modifier.padding(bottom = 16.dp)) {
-                Text(
-                    text = tr("나의 타임라인", "MY TIMELINE"),
-                    style = MaterialTheme.typography.labelSmall.copy(
-                        fontSize = 11.sp,
-                        lineHeight = 16.sp,
-                        letterSpacing = 0.88.sp
-                    ),
-                    color = palette.mutedInk
-                )
-                Spacer(Modifier.height(8.dp))
-                Text(
-                    text = if (logs.isNotEmpty()) {
-                        tr("내 시간 위에 쌓인 이야기", "Stories on your timeline")
-                    } else {
-                        tr("나의 타임라인에 첫 순간을 남겨요.", "Your timeline. Your first moment.")
-                    },
-                    style = MaterialTheme.typography.headlineLarge.copy(
-                        fontSize = 27.sp,
-                        lineHeight = 38.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        letterSpacing = (-1.0).sp
-                    ),
-                    color = palette.ink
-                )
+            if (metrics.isSpread) {
+                Column(modifier = Modifier.padding(bottom = 20.dp)) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(6.dp),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text(
+                                text = tr("나의 타임라인", "MY TIMELINE"),
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontSize = 11.sp,
+                                    lineHeight = 16.sp,
+                                    letterSpacing = 0.9.sp
+                                ),
+                                color = palette.mutedInk
+                            )
+                            Text(
+                                text = if (logs.isNotEmpty()) {
+                                    tr("내 시간 위에 쌓인 이야기", "Stories on your timeline")
+                                } else {
+                                    tr("나의 타임라인에 첫 순간을 남겨요.", "Your timeline. Your first moment.")
+                                },
+                                style = MaterialTheme.typography.headlineLarge.copy(
+                                    fontSize = 30.sp,
+                                    lineHeight = 40.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    letterSpacing = (-0.8).sp
+                                ),
+                                color = palette.ink
+                            )
+                        }
+                        if (logs.isNotEmpty()) {
+                            Spacer(Modifier.width(20.dp))
+                            Surface(
+                                onClick = { onOpenQuickRecord(QuickRecordRequest(autoFocusSearch = true)) },
+                                shape = RoundedCornerShape(8.dp),
+                                color = palette.card,
+                                border = BorderStroke(1.dp, palette.border),
+                                modifier = Modifier.heightIn(min = 48.dp)
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    modifier = Modifier.padding(horizontal = 18.dp, vertical = 12.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Outlined.Add,
+                                        contentDescription = null,
+                                        tint = primaryAccent,
+                                        modifier = Modifier.size(17.dp)
+                                    )
+                                    Text(
+                                        text = tr("오늘의 기록 남기기", "Keep today’s story"),
+                                        style = MaterialTheme.typography.labelLarge.copy(
+                                            fontSize = 15.sp,
+                                            fontWeight = FontWeight.SemiBold
+                                        ),
+                                        color = primaryAccent
+                                    )
+                                }
+                            }
+                        }
+                    }
 
-                Spacer(Modifier.height(12.dp))
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(1.dp)
-                        .background(palette.border)
-                )
-                Spacer(Modifier.height(12.dp))
-
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
+                    Spacer(Modifier.height(14.dp))
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(1.dp)
+                            .background(palette.border)
+                    )
+                    Spacer(Modifier.height(10.dp))
                     Text(
                         text = RecordDate.formatHomeToday(locale),
                         style = MaterialTheme.typography.bodySmall.copy(
-                            fontSize = 12.sp,
+                            fontSize = 12.5.sp,
                             lineHeight = 18.sp
                         ),
-                        color = palette.mutedInk,
-                        modifier = Modifier.weight(1f)
+                        color = palette.mutedInk
                     )
-                    if (logs.isNotEmpty()) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(5.dp),
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(palette.card)
-                                .border(1.dp, palette.border, RoundedCornerShape(8.dp))
-                                .clickable { onOpenQuickRecord(QuickRecordRequest(autoFocusSearch = true)) }
-                                .padding(horizontal = 11.dp, vertical = 7.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Outlined.Add,
-                                contentDescription = null,
-                                tint = primaryAccent,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Text(
-                                text = tr("기록 남기기", "Keep a story"),
-                                style = MaterialTheme.typography.labelLarge.copy(
-                                    fontSize = 13.sp,
-                                    lineHeight = 18.sp,
-                                    fontWeight = FontWeight.SemiBold
-                                ),
-                                color = primaryAccent
-                            )
+                }
+            } else {
+                Column(modifier = Modifier.padding(bottom = 16.dp)) {
+                    Text(
+                        text = tr("나의 타임라인", "MY TIMELINE"),
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontSize = 11.sp,
+                            lineHeight = 16.sp,
+                            letterSpacing = 0.88.sp
+                        ),
+                        color = palette.mutedInk
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        text = if (logs.isNotEmpty()) {
+                            tr("내 시간 위에 쌓인 이야기", "Stories on your timeline")
+                        } else {
+                            tr("나의 타임라인에 첫 순간을 남겨요.", "Your timeline. Your first moment.")
+                        },
+                        style = MaterialTheme.typography.headlineLarge.copy(
+                            fontSize = 27.sp,
+                            lineHeight = 38.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            letterSpacing = (-1.0).sp
+                        ),
+                        color = palette.ink
+                    )
+
+                    Spacer(Modifier.height(12.dp))
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(1.dp)
+                            .background(palette.border)
+                    )
+                    Spacer(Modifier.height(12.dp))
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = RecordDate.formatHomeToday(locale),
+                            style = MaterialTheme.typography.bodySmall.copy(
+                                fontSize = 12.sp,
+                                lineHeight = 18.sp
+                            ),
+                            color = palette.mutedInk,
+                            modifier = Modifier.weight(1f)
+                        )
+                        if (logs.isNotEmpty()) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(5.dp),
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(palette.card)
+                                    .border(1.dp, palette.border, RoundedCornerShape(8.dp))
+                                    .clickable { onOpenQuickRecord(QuickRecordRequest(autoFocusSearch = true)) }
+                                    .padding(horizontal = 11.dp, vertical = 7.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Outlined.Add,
+                                    contentDescription = null,
+                                    tint = primaryAccent,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Text(
+                                    text = tr("기록 남기기", "Keep a story"),
+                                    style = MaterialTheme.typography.labelLarge.copy(
+                                        fontSize = 13.sp,
+                                        lineHeight = 18.sp,
+                                        fontWeight = FontWeight.SemiBold
+                                    ),
+                                    color = primaryAccent
+                                )
+                            }
                         }
                     }
                 }
@@ -431,8 +518,8 @@ fun HomeScreen(
                         }
                         Text(
                             text = tr(
-                                "별도 회원가입 없이 쓰기 때문에, 휴대폰을 바꿀 때를 대비해 연결 코드 보관 카드를 한 번 저장해 두면 안심할 수 있어요.",
-                                "Save a private recovery card once so you never lose your timeline when switching phones."
+                                "별도 회원가입 없이 쓰기 때문에, 기기를 바꿀 때를 대비해 연결 코드 보관 카드를 한 번 저장해 두면 안심할 수 있어요.",
+                                "Save a private recovery card once so you never lose your timeline when switching devices."
                             ),
                             style = MaterialTheme.typography.bodySmall,
                             color = palette.mutedInk
@@ -466,80 +553,151 @@ fun HomeScreen(
         }
 
         if (logs.isEmpty()) {
-            // === 5A. EMPTY STATE: UNBOXED `.welcome` SECTION (`HomeTimelineView.tsx` lines 301–322 + `timeline.module.css` lines 400–415, 1018–1031) ===
+            // === 5A. EMPTY STATE: UNBOXED `.welcome` SECTION (compact vs web-desktop spread) ===
             item {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 8.dp, bottom = 20.dp)
-                ) {
-                    Text(
-                        text = tr(
-                            "영화, 시리즈, 책. 남겨두고 싶은 작품 하나부터.",
-                            "A film, a series, a book. Start with one you want to keep."
-                        ),
-                        style = MaterialTheme.typography.bodyLarge.copy(
-                            fontSize = 16.sp,
-                            lineHeight = 29.sp
-                        ),
-                        color = palette.mutedInk
-                    )
-
-                    Spacer(Modifier.height(24.dp))
-
+                if (metrics.isSpread) {
                     Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(10.dp),
-                        modifier = Modifier.fillMaxWidth()
+                        verticalArrangement = Arrangement.spacedBy(22.dp),
+                        modifier = Modifier
+                            .widthIn(max = 680.dp)
+                            .fillMaxWidth()
+                            .padding(top = 6.dp, bottom = 12.dp)
                     ) {
-                        Button(
-                            onClick = { onOpenQuickRecord(QuickRecordRequest(autoFocusSearch = true)) },
-                            shape = RoundedCornerShape(8.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = palette.brandOrange,
-                                contentColor = Color(0xFF0F0F0F)
+                        Text(
+                            text = tr(
+                                "영화, 시리즈, 책. 남겨두고 싶은 작품 하나부터.",
+                                "A film, a series, a book. Start with one you want to keep."
                             ),
-                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .heightIn(min = 44.dp)
+                            style = MaterialTheme.typography.bodyLarge.copy(
+                                fontSize = 18.sp,
+                                lineHeight = 30.sp
+                            ),
+                            color = palette.mutedInk
+                        )
+                        FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
-                            Icon(Icons.Outlined.Add, contentDescription = null, modifier = Modifier.size(17.dp))
-                            Spacer(Modifier.width(7.dp))
-                            Text(
-                                text = tr("첫 기록 남기기", "Leave your first record"),
-                                style = MaterialTheme.typography.labelLarge.copy(
-                                    fontSize = 14.sp,
-                                    fontWeight = FontWeight.SemiBold
-                                )
-                            )
-                        }
-
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.Center,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .heightIn(min = 48.dp)
-                                .clip(RoundedCornerShape(8.dp))
-                                .clickable(onClick = onOpenMySpacePairing)
-                                .padding(horizontal = 12.dp, vertical = 8.dp)
-                        ) {
-                            Text(
-                                text = tr("이미 남긴 기록 이어보기", "Bring my existing records"),
-                                style = MaterialTheme.typography.labelLarge.copy(
-                                    fontSize = 14.sp,
-                                    fontWeight = FontWeight.Medium
+                            Button(
+                                onClick = { onOpenQuickRecord(QuickRecordRequest(autoFocusSearch = true)) },
+                                shape = RoundedCornerShape(8.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = palette.brandOrange,
+                                    contentColor = Color(0xFF0F0F0F)
                                 ),
-                                color = primaryAccent
-                            )
-                            Spacer(Modifier.width(8.dp))
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Outlined.ArrowForward,
-                                contentDescription = null,
-                                tint = primaryAccent,
-                                modifier = Modifier.size(17.dp)
-                            )
+                                contentPadding = PaddingValues(horizontal = 20.dp, vertical = 12.dp),
+                                modifier = Modifier.heightIn(min = 48.dp)
+                            ) {
+                                Icon(Icons.Outlined.Add, contentDescription = null, modifier = Modifier.size(17.dp))
+                                Spacer(Modifier.width(8.dp))
+                                Text(
+                                    text = tr("첫 기록 남기기", "Leave your first record"),
+                                    style = MaterialTheme.typography.labelLarge.copy(
+                                        fontSize = 15.sp,
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+                                )
+                            }
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier
+                                    .heightIn(min = 48.dp)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .clickable(onClick = onOpenMySpacePairing)
+                                    .padding(horizontal = 10.dp, vertical = 8.dp)
+                            ) {
+                                Text(
+                                    text = tr("이미 남긴 기록 이어보기", "Bring my existing records"),
+                                    style = MaterialTheme.typography.labelLarge.copy(
+                                        fontSize = 14.5.sp,
+                                        fontWeight = FontWeight.SemiBold
+                                    ),
+                                    color = primaryAccent
+                                )
+                                Spacer(Modifier.width(6.dp))
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Outlined.ArrowForward,
+                                    contentDescription = null,
+                                    tint = primaryAccent,
+                                    modifier = Modifier.size(17.dp)
+                                )
+                            }
+                        }
+                    }
+                } else {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 8.dp, bottom = 20.dp)
+                    ) {
+                        Text(
+                            text = tr(
+                                "영화, 시리즈, 책. 남겨두고 싶은 작품 하나부터.",
+                                "A film, a series, a book. Start with one you want to keep."
+                            ),
+                            style = MaterialTheme.typography.bodyLarge.copy(
+                                fontSize = 16.sp,
+                                lineHeight = 29.sp
+                            ),
+                            color = palette.mutedInk
+                        )
+
+                        Spacer(Modifier.height(24.dp))
+
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(10.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Button(
+                                onClick = { onOpenQuickRecord(QuickRecordRequest(autoFocusSearch = true)) },
+                                shape = RoundedCornerShape(8.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = palette.brandOrange,
+                                    contentColor = Color(0xFF0F0F0F)
+                                ),
+                                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .heightIn(min = 44.dp)
+                            ) {
+                                Icon(Icons.Outlined.Add, contentDescription = null, modifier = Modifier.size(17.dp))
+                                Spacer(Modifier.width(7.dp))
+                                Text(
+                                    text = tr("첫 기록 남기기", "Leave your first record"),
+                                    style = MaterialTheme.typography.labelLarge.copy(
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+                                )
+                            }
+
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.Center,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .heightIn(min = 48.dp)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .clickable(onClick = onOpenMySpacePairing)
+                                    .padding(horizontal = 12.dp, vertical = 8.dp)
+                            ) {
+                                Text(
+                                    text = tr("이미 남긴 기록 이어보기", "Bring my existing records"),
+                                    style = MaterialTheme.typography.labelLarge.copy(
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.Medium
+                                    ),
+                                    color = primaryAccent
+                                )
+                                Spacer(Modifier.width(8.dp))
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Outlined.ArrowForward,
+                                    contentDescription = null,
+                                    tint = primaryAccent,
+                                    modifier = Modifier.size(17.dp)
+                                )
+                            }
                         }
                     }
                 }
@@ -604,8 +762,136 @@ fun HomeScreen(
                     }
                 }
             }
+        } else if (metrics.isSpread) {
+            // === 5C-SPREAD. LOGGED STATE ON TABLET/FOLDABLE: WEB DESKTOP & IPAD 3-COL / 2-COL SPREAD ===
+            if (!metrics.isWideThreeColumnHome && availableMonths.isNotEmpty()) {
+                item {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 2.dp, bottom = 16.dp)
+                            .noSwipeNav()
+                            .horizontalScroll(rememberScrollState())
+                    ) {
+                        availableMonths.forEach { mk ->
+                            val selected = mk == selectedMonth
+                            val yearPart = RecordDate.formatMonthYearPart(mk)
+                            val monthPart = RecordDate.formatMonthShortPart(mk, locale)
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(5.dp),
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(if (selected) palette.card else Color.Transparent)
+                                    .border(
+                                        width = 1.dp,
+                                        color = if (selected) primaryAccent else palette.border,
+                                        shape = RoundedCornerShape(8.dp)
+                                    )
+                                    .clickable { onSelectMonth(mk) }
+                                    .padding(horizontal = 11.dp, vertical = 6.dp)
+                            ) {
+                                if (yearPart.isNotEmpty()) {
+                                    Text(
+                                        text = yearPart,
+                                        style = MaterialTheme.typography.labelSmall.copy(
+                                            fontSize = 11.sp,
+                                            lineHeight = 14.sp
+                                        ),
+                                        color = palette.mutedInk
+                                    )
+                                }
+                                Text(
+                                    text = monthPart,
+                                    style = MaterialTheme.typography.titleSmall.copy(
+                                        fontSize = 13.5.sp,
+                                        lineHeight = 18.sp,
+                                        fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium
+                                    ),
+                                    color = if (selected) primaryAccent else palette.ink
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            item {
+                Row(
+                    verticalAlignment = Alignment.Top,
+                    horizontalArrangement = Arrangement.spacedBy(if (metrics.isWideThreeColumnHome) 28.dp else 22.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    // Col 1: Left vertical month rail (>= 800dp, web desktop `.months` rail)
+                    if (metrics.isWideThreeColumnHome && availableMonths.isNotEmpty()) {
+                        HomeSpreadMonthsVerticalRail(
+                            availableMonths = availableMonths,
+                            selectedMonth = selectedMonth,
+                            onSelectMonth = onSelectMonth,
+                            modifier = Modifier.width(88.dp)
+                        )
+                    }
+
+                    // Col 2: Center editorial main column (Featured hero + Moments this month + Revisit 2-col)
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(28.dp),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        if (featuredMemory != null) {
+                            SpreadFeaturedMemoryCard(
+                                log = featuredMemory,
+                                widePoster = metrics.isWideThreeColumnHome,
+                                noteMaxLines = if (metrics.isWideThreeColumnHome) 8 else 6,
+                                onOpenDetail = { onOpenTitleDetail(featuredMemory.title.id) },
+                                onOpenShareCard = { shareCardLog = featuredMemory }
+                            )
+                        } else {
+                            HomeEmptyCompletedMonthCard(onOpenTimeline = onOpenTimeline)
+                        }
+
+                        if (featuredMemory != null) {
+                            HomeMonthEntriesBlock(
+                                selectedMonth = selectedMonth,
+                                remainingMonthLogs = remainingMonthLogs,
+                                onOpenTimeline = onOpenTimeline,
+                                onOpenTitleDetail = onOpenTitleDetail
+                            )
+                        }
+
+                        if (frequentPlaces.isNotEmpty() || frequentOccasions.isNotEmpty()) {
+                            HomeMomentRevisitBlock(
+                                frequentPlaces = frequentPlaces,
+                                frequentOccasions = frequentOccasions,
+                                twoColumns = true,
+                                onOpenTimelineWithMoment = onOpenTimelineWithMoment
+                            )
+                        }
+
+                        if (!WatchReminderScheduler.isEnabled(context) && !watchPromptDismissed) {
+                            HomeWatchReminderCard(
+                                onOpenWatchReminderSettings = onOpenWatchReminderSettings,
+                                onDismiss = {
+                                    WatchReminderScheduler.dismissHomePromptFor14Days(context)
+                                    watchPromptDismissed = true
+                                }
+                            )
+                        }
+                    }
+
+                    // Col 3: Right side rail (`아직 못다 한 이야기` vertical list + shortcuts)
+                    HomeSpreadSideColumn(
+                        inProgressLogs = inProgressLogs,
+                        hasBookLogs = hasBookLogs,
+                        onOpenTitleDetail = onOpenTitleDetail,
+                        onOpenReport = onOpenReport,
+                        onOpenBookshelf = onOpenBookshelf,
+                        modifier = Modifier.width(224.dp)
+                    )
+                }
+            }
         } else {
-            // === 5C. LOGGED STATE: EXACT WEB MOBILE ORDER & AIRY UNBOXED PAPER LAYOUT (`timeline.module.css` lines 876–1017, 1167–1174) ===
+            // === 5C. LOGGED STATE (COMPACT MOBILE): EXACT WEB MOBILE ORDER & AIRY UNBOXED PAPER LAYOUT ===
 
             // Month Selector (`.months`, lines 881–911: `padding: 2px 2px 12px`, unselected transparent, selected `var(--card)` + `#1e4d8c` border)
             if (availableMonths.isNotEmpty()) {
@@ -1096,6 +1382,7 @@ fun HomeScreen(
                     trendingTitles = trendingTitles,
                     loading = discussionsLoading,
                     error = discussionsError,
+                    twoColumns = metrics.homeTogetherColumns == 2,
                     onOpenTogether = onOpenTogether,
                     onOpenTitleDetail = onOpenTitleDetail,
                     onTrendingSelect = { item ->
@@ -1609,6 +1896,862 @@ private fun ActivationPosterRail(
 }
 
 /**
+ * Left vertical month selector rail for Web Desktop / Tablet 3-column Home (`>= 800dp`).
+ */
+@Composable
+private fun HomeSpreadMonthsVerticalRail(
+    availableMonths: List<String>,
+    selectedMonth: String,
+    onSelectMonth: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val palette = LocalOttlinePalette.current
+    val locale = LocalAppLocale.current
+    val primaryAccent = if (palette.isDark) palette.ink else palette.brandNavy
+
+    Column(
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = modifier
+    ) {
+        Text(
+            text = tr("쌓아온 시간", "YOUR MONTHS"),
+            style = MaterialTheme.typography.labelSmall.copy(
+                fontSize = 11.sp,
+                lineHeight = 16.sp,
+                letterSpacing = 0.88.sp
+            ),
+            color = palette.mutedInk,
+            modifier = Modifier.padding(bottom = 4.dp)
+        )
+        availableMonths.forEach { mk ->
+            val selected = mk == selectedMonth
+            val yearPart = RecordDate.formatMonthYearPart(mk)
+            val monthPart = RecordDate.formatMonthShortPart(mk, locale)
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 72.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(if (selected) palette.card else Color.Transparent)
+                    .clickable { onSelectMonth(mk) }
+            ) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.CenterStart)
+                        .width(if (selected) 2.5.dp else 1.dp)
+                        .height(if (selected) 56.dp else 48.dp)
+                        .background(if (selected) primaryAccent else palette.border)
+                )
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                    modifier = Modifier.padding(start = 13.dp, end = 8.dp, top = 11.dp, bottom = 11.dp)
+                ) {
+                    if (yearPart.isNotEmpty()) {
+                        Text(
+                            text = yearPart,
+                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.5.sp),
+                            color = palette.mutedInk,
+                            maxLines = 1
+                        )
+                    }
+                    Text(
+                        text = monthPart,
+                        style = MaterialTheme.typography.titleLarge.copy(
+                            fontSize = 20.sp,
+                            lineHeight = 25.sp,
+                            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium
+                        ),
+                        color = if (selected) primaryAccent else palette.ink,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Large-screen Featured Memory Hero Card matching Web Desktop `.featured` & iPad `padFeaturedMemoryCard`.
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun SpreadFeaturedMemoryCard(
+    log: WatchLog,
+    widePoster: Boolean,
+    noteMaxLines: Int,
+    onOpenDetail: () -> Unit,
+    onOpenShareCard: () -> Unit
+) {
+    val palette = LocalOttlinePalette.current
+    val locale = LocalAppLocale.current
+    val primaryAccent = if (palette.isDark) palette.ink else palette.brandNavy
+    val featuredYear = log.seasonYear ?: log.title.year
+    val posterWidth = if (widePoster) 168.dp else 140.dp
+    val posterHeight = if (widePoster) 252.dp else 210.dp
+
+    Surface(
+        onClick = onOpenDetail,
+        shape = RoundedCornerShape(8.dp),
+        color = palette.card,
+        border = BorderStroke(1.dp, palette.border),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(modifier = Modifier.padding(22.dp)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 20.dp)
+            ) {
+                Text(
+                    text = tr("그날의 온기", "A moment kept"),
+                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 12.sp),
+                    color = palette.mutedInk
+                )
+                val formattedDate = RecordDate.formatFeaturedDate(log.watchedAt.ifBlank { log.createdAt }, locale)
+                if (formattedDate.isNotEmpty()) {
+                    Text(
+                        text = formattedDate,
+                        style = MaterialTheme.typography.titleSmall.copy(
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.SemiBold
+                        ),
+                        color = palette.ink
+                    )
+                }
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(1.dp)
+                        .background(palette.border)
+                )
+            }
+
+            Row(verticalAlignment = Alignment.Top) {
+                PosterImage(
+                    posterUrl = log.seasonPosterUrl ?: log.title.posterUrl,
+                    titleName = log.title.name,
+                    titleType = log.title.type,
+                    modifier = Modifier.size(width = posterWidth, height = posterHeight),
+                    widthBucket = "w500"
+                )
+                Spacer(Modifier.width(if (widePoster) 24.dp else 20.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    val eyebrow = buildString {
+                        append(OttlineStrings.titleTypeLabel(log.title.type, locale))
+                        if (featuredYear != null) append(" · $featuredYear")
+                    }
+                    Text(
+                        text = eyebrow,
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontSize = 11.5.sp,
+                            letterSpacing = 0.85.sp
+                        ),
+                        color = palette.mutedInk,
+                        modifier = Modifier.padding(bottom = 6.dp)
+                    )
+
+                    Text(
+                        text = log.title.name,
+                        style = MaterialTheme.typography.headlineMedium.copy(
+                            fontSize = 24.sp,
+                            lineHeight = 32.sp,
+                            fontWeight = FontWeight.SemiBold
+                        ),
+                        color = palette.ink,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+
+                    val creator = log.title.author ?: log.title.directors?.takeIf { it.isNotEmpty() }?.joinToString(", ")
+                    if (!creator.isNullOrBlank()) {
+                        Text(
+                            text = creator,
+                            style = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp),
+                            color = palette.mutedInk,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.padding(top = 6.dp)
+                        )
+                    }
+
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                        modifier = Modifier.padding(top = 12.dp)
+                    ) {
+                        Text(
+                            text = OttlineStrings.statusLabel(log.status, log.title.type, locale),
+                            style = MaterialTheme.typography.labelLarge.copy(
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.SemiBold
+                            ),
+                            color = primaryAccent,
+                            modifier = Modifier.align(Alignment.CenterVertically)
+                        )
+                        RecordFeelingBadge(
+                            rating = log.rating,
+                            titleType = log.title.type,
+                            iconSize = 15.dp,
+                            textStyle = MaterialTheme.typography.labelLarge.copy(
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Normal
+                            ),
+                            color = palette.ink,
+                            modifier = Modifier.align(Alignment.CenterVertically)
+                        )
+                    }
+
+                    val editionText = buildList {
+                        if (log.seasonNumber != null) add("S${log.seasonNumber}")
+                        if (log.episodeNumber != null) add("E${log.episodeNumber}")
+                    }.joinToString(" · ")
+                    if (editionText.isNotEmpty()) {
+                        Text(
+                            text = editionText,
+                            style = MaterialTheme.typography.bodySmall.copy(fontSize = 13.sp),
+                            color = palette.mutedInk,
+                            modifier = Modifier.padding(top = 6.dp)
+                        )
+                    }
+
+                    val hasMoment = !log.ott.isNullOrBlank() || log.place != null || log.occasion != null
+                    if (hasMoment) {
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(7.dp),
+                            modifier = Modifier.padding(top = 14.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(1.dp)
+                                    .background(palette.border)
+                            )
+                            Spacer(Modifier.height(4.dp))
+                            if (!log.ott.isNullOrBlank()) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(7.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Outlined.Tv,
+                                        contentDescription = null,
+                                        tint = palette.mutedInk,
+                                        modifier = Modifier.size(15.dp)
+                                    )
+                                    Text(
+                                        text = log.ott,
+                                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 13.5.sp),
+                                        color = palette.mutedInk
+                                    )
+                                }
+                            }
+                            log.place?.let { place ->
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(7.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Outlined.Place,
+                                        contentDescription = null,
+                                        tint = palette.mutedInk,
+                                        modifier = Modifier.size(15.dp)
+                                    )
+                                    Text(
+                                        text = OttlineStrings.placeLabel(place, locale),
+                                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 13.5.sp),
+                                        color = palette.mutedInk
+                                    )
+                                }
+                            }
+                            log.occasion?.let { occasion ->
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(7.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Outlined.Group,
+                                        contentDescription = null,
+                                        tint = palette.mutedInk,
+                                        modifier = Modifier.size(15.dp)
+                                    )
+                                    Text(
+                                        text = OttlineStrings.occasionLabel(occasion, locale),
+                                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 13.5.sp),
+                                        color = palette.mutedInk
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    if (!log.note.isNullOrBlank()) {
+                        val displayNote = if (log.spoiler) {
+                            tr("스포일러 포함 문장 · 눌러서 읽기", "Spoiler note · Tap to read")
+                        } else {
+                            log.note.trim()
+                        }
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 16.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .width(2.dp)
+                                    .heightIn(min = 24.dp)
+                                    .background(palette.border)
+                            )
+                            Spacer(Modifier.width(12.dp))
+                            Text(
+                                text = displayNote,
+                                style = MaterialTheme.typography.bodyLarge.copy(
+                                    fontSize = 15.5.sp,
+                                    lineHeight = 26.sp
+                                ),
+                                color = if (log.spoiler) palette.mutedInk else palette.ink,
+                                maxLines = noteMaxLines,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                    }
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 16.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.heightIn(min = 44.dp)
+                        ) {
+                            Text(
+                                text = tr("이 기록 펼치기", "Open this memory"),
+                                style = MaterialTheme.typography.labelLarge.copy(
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.SemiBold
+                                ),
+                                color = primaryAccent
+                            )
+                            Spacer(Modifier.width(6.dp))
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Outlined.ArrowForward,
+                                contentDescription = null,
+                                tint = primaryAccent,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                        Surface(
+                            onClick = onOpenShareCard,
+                            shape = RoundedCornerShape(8.dp),
+                            color = palette.paperStrong,
+                            border = BorderStroke(1.dp, palette.border),
+                            modifier = Modifier.size(44.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = Icons.Outlined.Share,
+                                    contentDescription = tr("공유 카드 만들기", "Create a share card"),
+                                    tint = palette.mutedInk,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun HomeEmptyCompletedMonthCard(
+    onOpenTimeline: () -> Unit
+) {
+    val palette = LocalOttlinePalette.current
+    val primaryAccent = if (palette.isDark) palette.ink else palette.brandNavy
+    Surface(
+        shape = RoundedCornerShape(8.dp),
+        color = palette.card,
+        border = BorderStroke(1.dp, palette.border),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(modifier = Modifier.padding(20.dp)) {
+            Text(
+                text = tr(
+                    "다 본·읽은 이야기는 이곳에 모아둘게요.",
+                    "Stories you finish watching or reading will gather here."
+                ),
+                style = MaterialTheme.typography.titleMedium.copy(
+                    fontSize = 18.sp,
+                    lineHeight = 27.sp,
+                    fontWeight = FontWeight.SemiBold
+                ),
+                color = palette.ink
+            )
+            Spacer(Modifier.height(14.dp))
+            Text(
+                text = tr(
+                    "이어가는 이야기와 아껴둔 작품은 타임라인에서 함께 볼 수 있어요.",
+                    "Your ongoing stories and saved titles are together on your timeline."
+                ),
+                style = MaterialTheme.typography.bodyMedium.copy(
+                    fontSize = 14.sp,
+                    lineHeight = 25.sp
+                ),
+                color = palette.mutedInk
+            )
+            Spacer(Modifier.height(8.dp))
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .heightIn(min = 48.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .clickable(onClick = onOpenTimeline)
+            ) {
+                Text(
+                    text = tr("내 타임라인 펼치기", "Open your timeline"),
+                    style = MaterialTheme.typography.labelLarge.copy(
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium
+                    ),
+                    color = primaryAccent
+                )
+                Spacer(Modifier.width(8.dp))
+                Icon(
+                    imageVector = Icons.AutoMirrored.Outlined.ArrowForward,
+                    contentDescription = null,
+                    tint = primaryAccent,
+                    modifier = Modifier.size(16.dp)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun HomeMonthEntriesBlock(
+    selectedMonth: String,
+    remainingMonthLogs: List<WatchLog>,
+    onOpenTimeline: () -> Unit,
+    onOpenTitleDetail: (String) -> Unit
+) {
+    val palette = LocalOttlinePalette.current
+    val locale = LocalAppLocale.current
+    val primaryAccent = if (palette.isDark) palette.ink else palette.brandNavy
+
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 14.dp)
+        ) {
+            Column {
+                Text(
+                    text = RecordDate.formatMonthLabel(selectedMonth, locale),
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontSize = 11.sp,
+                        lineHeight = 16.sp,
+                        letterSpacing = 0.88.sp
+                    ),
+                    color = palette.mutedInk,
+                    modifier = Modifier.padding(bottom = 5.dp)
+                )
+                Text(
+                    text = tr("이 달에 남긴 시간", "Moments this month"),
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontSize = 18.sp,
+                        lineHeight = 27.sp,
+                        fontWeight = FontWeight.SemiBold
+                    ),
+                    color = palette.ink
+                )
+            }
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .heightIn(min = 48.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .clickable(onClick = onOpenTimeline)
+                    .padding(horizontal = 4.dp)
+            ) {
+                Text(
+                    text = tr("타임라인", "Timeline"),
+                    style = MaterialTheme.typography.labelLarge.copy(
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium
+                    ),
+                    color = primaryAccent
+                )
+                Spacer(Modifier.width(8.dp))
+                Icon(
+                    imageVector = Icons.AutoMirrored.Outlined.ArrowForward,
+                    contentDescription = null,
+                    tint = primaryAccent,
+                    modifier = Modifier.size(16.dp)
+                )
+            }
+        }
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(1.dp)
+                .background(palette.border)
+        )
+
+        if (remainingMonthLogs.isNotEmpty()) {
+            remainingMonthLogs.forEach { log ->
+                HomeCompactLogRow(
+                    log = log,
+                    onClick = { onOpenTitleDetail(log.title.id) }
+                )
+            }
+        } else {
+            Text(
+                text = tr("이 달에 남겨둔 순간이에요.", "A moment you kept this month."),
+                style = MaterialTheme.typography.bodyMedium.copy(
+                    fontSize = 14.sp,
+                    lineHeight = 25.sp
+                ),
+                color = palette.mutedInk,
+                modifier = Modifier.padding(top = 18.dp)
+            )
+        }
+    }
+}
+
+@Composable
+private fun HomeMomentRevisitBlock(
+    frequentPlaces: List<TimelineMoments.MomentChip<Place>>,
+    frequentOccasions: List<TimelineMoments.MomentChip<Occasion>>,
+    twoColumns: Boolean,
+    onOpenTimelineWithMoment: (Place?, Occasion?) -> Unit
+) {
+    val palette = LocalOttlinePalette.current
+    val locale = LocalAppLocale.current
+
+    data class MomentEntry(
+        val isPlace: Boolean,
+        val label: String,
+        val countText: String,
+        val onClick: () -> Unit
+    )
+
+    val entries = buildList {
+        frequentPlaces.forEach { chip ->
+            add(
+                MomentEntry(
+                    isPlace = true,
+                    label = OttlineStrings.placeLabel(chip.value, locale),
+                    countText = tr("${chip.count}개", if (chip.count == 1) "1 record" else "${chip.count} records"),
+                    onClick = { onOpenTimelineWithMoment(chip.value, null) }
+                )
+            )
+        }
+        frequentOccasions.forEach { chip ->
+            add(
+                MomentEntry(
+                    isPlace = false,
+                    label = OttlineStrings.occasionLabel(chip.value, locale),
+                    countText = tr("${chip.count}개", if (chip.count == 1) "1 record" else "${chip.count} records"),
+                    onClick = { onOpenTimelineWithMoment(null, chip.value) }
+                )
+            )
+        }
+    }
+
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(1.dp)
+                .background(palette.border)
+        )
+        Spacer(Modifier.height(22.dp))
+        Text(
+            text = tr("다시 만나는 그날", "BACK TO A MOMENT"),
+            style = MaterialTheme.typography.labelSmall.copy(
+                fontSize = 11.sp,
+                lineHeight = 16.sp,
+                letterSpacing = 0.88.sp
+            ),
+            color = palette.mutedInk,
+            modifier = Modifier.padding(bottom = 5.dp)
+        )
+        Text(
+            text = tr("어떤 순간을 펼쳐볼까요?", "Which moments will you revisit?"),
+            style = MaterialTheme.typography.titleMedium.copy(
+                fontSize = 18.sp,
+                lineHeight = 27.sp,
+                fontWeight = FontWeight.SemiBold
+            ),
+            color = palette.ink,
+            modifier = Modifier.padding(bottom = 12.dp)
+        )
+        Text(
+            text = tr(
+                "이 기기에 모아둔 기록에서 그날의 순간을 다시 만나요.",
+                "Revisit moments from the records kept on this device."
+            ),
+            style = MaterialTheme.typography.bodyMedium.copy(
+                fontSize = 14.sp,
+                lineHeight = 24.sp
+            ),
+            color = palette.mutedInk,
+            modifier = Modifier.padding(bottom = 14.dp)
+        )
+
+        if (twoColumns) {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                entries.chunked(2).forEach { pair ->
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        pair.forEach { item ->
+                            MomentRevisitLinkRow(
+                                isPlace = item.isPlace,
+                                label = item.label,
+                                countText = item.countText,
+                                onClick = item.onClick,
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                        if (pair.size == 1) {
+                            Spacer(Modifier.weight(1f))
+                        }
+                    }
+                }
+            }
+        } else {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                entries.forEach { item ->
+                    MomentRevisitLinkRow(
+                        isPlace = item.isPlace,
+                        label = item.label,
+                        countText = item.countText,
+                        onClick = item.onClick
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun HomeWatchReminderCard(
+    onOpenWatchReminderSettings: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    val palette = LocalOttlinePalette.current
+    val primaryAccent = if (palette.isDark) palette.ink else palette.brandNavy
+    Surface(
+        shape = RoundedCornerShape(8.dp),
+        color = palette.paperStrong,
+        border = BorderStroke(1.dp, palette.border),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            verticalAlignment = Alignment.Top,
+            modifier = Modifier.padding(16.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Outlined.NotificationsActive,
+                contentDescription = null,
+                tint = palette.brandNavy,
+                modifier = Modifier
+                    .padding(top = 2.dp)
+                    .size(20.dp)
+            )
+            Spacer(Modifier.width(12.dp))
+            Column(
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(
+                    text = tr("Android 시청 기록 알림", "Android watch reminder"),
+                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
+                    color = palette.mutedInk
+                )
+                Text(
+                    text = tr("다 본 뒤, 기록할 타이밍을 알려드릴까요?", "Want a nudge when it is time to log?"),
+                    style = MaterialTheme.typography.titleSmall,
+                    color = palette.ink
+                )
+                Text(
+                    text = tr(
+                        "OTT 앱을 닫은 뒤 기록 화면으로 이어지는 알림을 받을 수 있어요.",
+                        "Get a reminder that opens the logging flow after you leave an OTT app."
+                    ),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = palette.mutedInk
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.padding(top = 4.dp)) {
+                    TextButton(
+                        onClick = onOpenWatchReminderSettings,
+                        contentPadding = PaddingValues(0.dp)
+                    ) {
+                        Text(
+                            text = tr("시청 기록 알림 켜기", "Turn on watch reminders"),
+                            color = primaryAccent,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                    TextButton(
+                        onClick = onDismiss,
+                        contentPadding = PaddingValues(0.dp)
+                    ) {
+                        Text(tr("나중에", "Maybe later"), color = palette.subtleInk)
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Right side column for Web Desktop / Tablet Home (`아직 못다 한 이야기` vertical list + shortcuts + quiet note).
+ */
+@Composable
+private fun HomeSpreadSideColumn(
+    inProgressLogs: List<WatchLog>,
+    hasBookLogs: Boolean,
+    onOpenTitleDetail: (String) -> Unit,
+    onOpenReport: () -> Unit,
+    onOpenBookshelf: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val palette = LocalOttlinePalette.current
+    val locale = LocalAppLocale.current
+    val primaryAccent = if (palette.isDark) palette.ink else palette.brandNavy
+
+    Column(
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        modifier = modifier
+    ) {
+        if (inProgressLogs.isNotEmpty()) {
+            Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                Text(
+                    text = tr("아직 못다 한 이야기", "Stories still unfolding"),
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontSize = 17.5.sp,
+                        lineHeight = 25.sp,
+                        fontWeight = FontWeight.SemiBold
+                    ),
+                    color = palette.ink
+                )
+                inProgressLogs.forEach { item ->
+                    Row(
+                        verticalAlignment = Alignment.Top,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(8.dp))
+                            .clickable { onOpenTitleDetail(item.title.id) }
+                            .padding(vertical = 2.dp)
+                    ) {
+                        PosterImage(
+                            posterUrl = item.seasonPosterUrl ?: item.title.posterUrl,
+                            titleName = item.title.name,
+                            titleType = item.title.type,
+                            modifier = Modifier.size(width = 52.dp, height = 78.dp),
+                            widthBucket = "w342"
+                        )
+                        Spacer(Modifier.width(12.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = OttlineStrings.statusLabel(item.status, item.title.type, locale),
+                                style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.5.sp),
+                                color = palette.mutedInk
+                            )
+                            Spacer(Modifier.height(3.dp))
+                            Text(
+                                text = item.title.name,
+                                style = MaterialTheme.typography.titleSmall.copy(
+                                    fontSize = 14.5.sp,
+                                    lineHeight = 20.sp,
+                                    fontWeight = FontWeight.SemiBold
+                                ),
+                                color = palette.ink,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            val progSub = buildList {
+                                if (item.seasonNumber != null) add("S${item.seasonNumber}")
+                                if (item.episodeNumber != null) add("E${item.episodeNumber}")
+                            }.joinToString(" · ")
+                            if (progSub.isNotEmpty()) {
+                                Text(
+                                    text = progSub,
+                                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
+                                    color = palette.mutedInk,
+                                    maxLines = 1,
+                                    modifier = Modifier.padding(top = 3.dp)
+                                )
+                            }
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.padding(top = 6.dp)
+                            ) {
+                                Text(
+                                    text = tr("이어 적기", "Keep going"),
+                                    style = MaterialTheme.typography.labelMedium.copy(
+                                        fontSize = 12.5.sp,
+                                        fontWeight = FontWeight.SemiBold
+                                    ),
+                                    color = primaryAccent
+                                )
+                                Spacer(Modifier.width(4.dp))
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Outlined.ArrowForward,
+                                    contentDescription = null,
+                                    tint = primaryAccent,
+                                    modifier = Modifier.size(14.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        Column {
+            HomeSideShortcutLink(
+                icon = Icons.Outlined.History,
+                label = tr("쌓아온 시간 돌아보기", "Look back on your time"),
+                onClick = onOpenReport
+            )
+            if (locale != "en" && hasBookLogs) {
+                HomeSideShortcutLink(
+                    icon = Icons.Outlined.AutoStories,
+                    label = "내 서가 펼치기",
+                    onClick = onOpenBookshelf
+                )
+            }
+        }
+
+        Text(
+            text = tr(
+                "서두르지 않아도 괜찮아요. 남기고 싶은 순간에 다시 만나요.",
+                "No need to keep up. Come back when there’s something to keep."
+            ),
+            style = MaterialTheme.typography.bodySmall.copy(
+                fontSize = 13.sp,
+                lineHeight = 20.sp
+            ),
+            color = palette.mutedInk
+        )
+    }
+}
+
+/**
  * Always-visible Home Together section (`page.tsx` lines 603–650 + `DiscussionList.tsx` + `timeline.module.css` `.publicSection`).
  */
 @Composable
@@ -1617,6 +2760,7 @@ private fun HomeTogetherSection(
     trendingTitles: List<TitleSearchItem>,
     loading: Boolean,
     error: Boolean,
+    twoColumns: Boolean = false,
     onOpenTogether: () -> Unit,
     onOpenTitleDetail: (String) -> Unit,
     onTrendingSelect: (TitleSearchItem) -> Unit,
@@ -1801,149 +2945,214 @@ private fun HomeTogetherSection(
             }
         } else {
             Surface(
-                shape = RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(if (twoColumns) 8.dp else 16.dp),
                 color = palette.card,
                 border = BorderStroke(1.dp, palette.border),
                 shadowElevation = 0.dp,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                    modifier = Modifier.padding(16.dp)
-                ) {
-                    discussions.forEach { d ->
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(12.dp))
-                                .clickable { onOpenTitleDetail(d.titleId) }
-                                .padding(horizontal = 8.dp, vertical = 8.dp)
-                        ) {
-                            PosterImage(
-                                posterUrl = d.posterUrl,
-                                titleName = d.titleName,
-                                titleType = d.titleType,
-                                modifier = Modifier.size(width = 48.dp, height = 64.dp),
-                                widthBucket = "w185"
-                            )
-                            Spacer(Modifier.width(16.dp))
-                            Column(
-                                verticalArrangement = Arrangement.spacedBy(2.dp),
-                                modifier = Modifier.weight(1f)
+                if (twoColumns) {
+                    val combined: List<Any> = discussions + trendingTitles
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                        modifier = Modifier.padding(16.dp)
+                    ) {
+                        combined.chunked(2).forEach { pair ->
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                                modifier = Modifier.fillMaxWidth()
                             ) {
-                                Text(
-                                    text = d.titleName,
-                                    style = MaterialTheme.typography.titleSmall.copy(
-                                        fontSize = 14.sp,
-                                        fontWeight = FontWeight.SemiBold
-                                    ),
-                                    color = palette.ink,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                                val meta = buildString {
-                                    append(OttlineStrings.titleTypeLabel(d.titleType, locale))
-                                    if (d.titleYear != null) append(" · ${d.titleYear}")
+                                pair.forEach { entry ->
+                                    when (entry) {
+                                        is DiscussionListItem -> HomeTogetherDiscussionRow(
+                                            d = entry,
+                                            locale = locale,
+                                            onClick = { onOpenTitleDetail(entry.titleId) },
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                        is TitleSearchItem -> HomeTogetherTrendingRow(
+                                            item = entry,
+                                            locale = locale,
+                                            onClick = { onTrendingSelect(entry) },
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                    }
                                 }
-                                Text(
-                                    text = meta,
-                                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
-                                    color = palette.mutedInk,
-                                    maxLines = 1
-                                )
-                            }
-                            Spacer(Modifier.width(12.dp))
-                            Column(horizontalAlignment = Alignment.End) {
-                                Text(
-                                    text = RecordDate.formatShortMonthDay(d.createdAt, locale),
-                                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 12.sp),
-                                    color = palette.mutedInk
-                                )
-                                Text(
-                                    text = tr("${d.commentCount}개의 이야기들", "${d.commentCount} comments"),
-                                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 12.sp),
-                                    color = palette.mutedInk
-                                )
+                                if (pair.size == 1) {
+                                    Spacer(Modifier.weight(1f))
+                                }
                             }
                         }
                     }
-
-                    trendingTitles.forEach { item ->
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(12.dp))
-                                .clickable { onTrendingSelect(item) }
-                                .padding(horizontal = 8.dp, vertical = 8.dp)
-                        ) {
-                            PosterImage(
-                                posterUrl = item.posterUrl,
-                                titleName = item.name,
-                                titleType = item.type,
-                                modifier = Modifier.size(width = 48.dp, height = 64.dp),
-                                widthBucket = "w185"
+                } else {
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                        modifier = Modifier.padding(16.dp)
+                    ) {
+                        discussions.forEach { d ->
+                            HomeTogetherDiscussionRow(
+                                d = d,
+                                locale = locale,
+                                onClick = { onOpenTitleDetail(d.titleId) },
+                                modifier = Modifier.fillMaxWidth()
                             )
-                            Spacer(Modifier.width(16.dp))
-                            Column(
-                                verticalArrangement = Arrangement.spacedBy(2.dp),
-                                modifier = Modifier.weight(1f)
-                            ) {
-                                Text(
-                                    text = item.name,
-                                    style = MaterialTheme.typography.titleSmall.copy(
-                                        fontSize = 14.sp,
-                                        fontWeight = FontWeight.SemiBold
-                                    ),
-                                    color = palette.ink,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                                val meta = buildString {
-                                    append(OttlineStrings.titleTypeLabel(item.type, locale))
-                                    if (item.year != null) append(" · ${item.year}")
-                                }
-                                Text(
-                                    text = meta,
-                                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
-                                    color = palette.mutedInk,
-                                    maxLines = 1
-                                )
-                            }
-                            Spacer(Modifier.width(12.dp))
-                            Column(
-                                horizontalAlignment = Alignment.End,
-                                verticalArrangement = Arrangement.spacedBy(4.dp)
-                            ) {
-                                Surface(
-                                    shape = RoundedCornerShape(999.dp),
-                                    color = palette.paperStrong,
-                                    border = BorderStroke(1.dp, palette.border)
-                                ) {
-                                    Text(
-                                        text = tr("인기 작품", "Popular pick"),
-                                        style = MaterialTheme.typography.labelSmall.copy(
-                                            fontSize = 10.sp,
-                                            fontWeight = FontWeight.SemiBold
-                                        ),
-                                        color = palette.mutedInk,
-                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                                    )
-                                }
-                                Text(
-                                    text = tr("기록하기", "Record it"),
-                                    style = MaterialTheme.typography.labelSmall.copy(
-                                        fontSize = 12.sp,
-                                        fontWeight = FontWeight.Medium
-                                    ),
-                                    color = palette.mutedInk
-                                )
-                            }
+                        }
+
+                        trendingTitles.forEach { item ->
+                            HomeTogetherTrendingRow(
+                                item = item,
+                                locale = locale,
+                                onClick = { onTrendingSelect(item) },
+                                modifier = Modifier.fillMaxWidth()
+                            )
                         }
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun HomeTogetherDiscussionRow(
+    d: DiscussionListItem,
+    locale: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val palette = LocalOttlinePalette.current
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = modifier
+            .clip(RoundedCornerShape(8.dp))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 8.dp, vertical = 8.dp)
+    ) {
+        PosterImage(
+            posterUrl = d.posterUrl,
+            titleName = d.titleName,
+            titleType = d.titleType,
+            modifier = Modifier.size(width = 48.dp, height = 64.dp),
+            widthBucket = "w185"
+        )
+        Spacer(Modifier.width(14.dp))
+        Column(
+            verticalArrangement = Arrangement.spacedBy(2.dp),
+            modifier = Modifier.weight(1f)
+        ) {
+            Text(
+                text = d.titleName,
+                style = MaterialTheme.typography.titleSmall.copy(
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold
+                ),
+                color = palette.ink,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            val meta = buildString {
+                append(OttlineStrings.titleTypeLabel(d.titleType, locale))
+                if (d.titleYear != null) append(" · ${d.titleYear}")
+            }
+            Text(
+                text = meta,
+                style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
+                color = palette.mutedInk,
+                maxLines = 1
+            )
+        }
+        Spacer(Modifier.width(10.dp))
+        Column(horizontalAlignment = Alignment.End) {
+            Text(
+                text = RecordDate.formatShortMonthDay(d.createdAt, locale),
+                style = MaterialTheme.typography.labelSmall.copy(fontSize = 12.sp),
+                color = palette.mutedInk
+            )
+            Text(
+                text = tr("${d.commentCount}개의 이야기들", "${d.commentCount} comments"),
+                style = MaterialTheme.typography.labelSmall.copy(fontSize = 12.sp),
+                color = palette.mutedInk
+            )
+        }
+    }
+}
+
+@Composable
+private fun HomeTogetherTrendingRow(
+    item: TitleSearchItem,
+    locale: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val palette = LocalOttlinePalette.current
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = modifier
+            .clip(RoundedCornerShape(8.dp))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 8.dp, vertical = 8.dp)
+    ) {
+        PosterImage(
+            posterUrl = item.posterUrl,
+            titleName = item.name,
+            titleType = item.type,
+            modifier = Modifier.size(width = 48.dp, height = 64.dp),
+            widthBucket = "w185"
+        )
+        Spacer(Modifier.width(14.dp))
+        Column(
+            verticalArrangement = Arrangement.spacedBy(2.dp),
+            modifier = Modifier.weight(1f)
+        ) {
+            Text(
+                text = item.name,
+                style = MaterialTheme.typography.titleSmall.copy(
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold
+                ),
+                color = palette.ink,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            val meta = buildString {
+                append(OttlineStrings.titleTypeLabel(item.type, locale))
+                if (item.year != null) append(" · ${item.year}")
+            }
+            Text(
+                text = meta,
+                style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
+                color = palette.mutedInk,
+                maxLines = 1
+            )
+        }
+        Spacer(Modifier.width(10.dp))
+        Column(
+            horizontalAlignment = Alignment.End,
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Surface(
+                shape = RoundedCornerShape(999.dp),
+                color = palette.paperStrong,
+                border = BorderStroke(1.dp, palette.border)
+            ) {
+                Text(
+                    text = tr("인기 작품", "Popular pick"),
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.SemiBold
+                    ),
+                    color = palette.mutedInk,
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                )
+            }
+            Text(
+                text = tr("기록하기", "Record it"),
+                style = MaterialTheme.typography.labelSmall.copy(
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Medium
+                ),
+                color = palette.mutedInk
+            )
         }
     }
 }
@@ -1956,7 +3165,8 @@ private fun MomentRevisitLinkRow(
     isPlace: Boolean,
     label: String,
     countText: String,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     val palette = LocalOttlinePalette.current
     Surface(
@@ -1964,7 +3174,7 @@ private fun MomentRevisitLinkRow(
         shape = RoundedCornerShape(8.dp),
         color = palette.card,
         border = BorderStroke(1.dp, palette.border),
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .heightIn(min = 48.dp)
     ) {

@@ -149,9 +149,57 @@ class TogetherAndAdaptiveLayoutTest {
         assertEquals(AdaptiveWindowMode.TABLET_WIDE, tabletLandscape.mode)
         assertTrue(tabletLandscape.isSpread)
         assertTrue(tabletLandscape.isWide)
+        assertTrue(tabletLandscape.isWideThreeColumnHome)
+        assertEquals(2, tabletLandscape.homeTogetherColumns)
         assertTrue(tabletLandscape.togetherTwoPane)
         assertTrue(tabletLandscape.bookshelfTwoColumn)
         assertEquals(356, tabletLandscape.togetherLeftPaneWidth.value.toInt())
+
+        assertFalse(phone.isWideThreeColumnHome)
+        assertEquals(1, phone.homeTogetherColumns)
+        assertFalse(foldableUnfolded.isWideThreeColumnHome)
+        assertEquals(2, foldableUnfolded.homeTogetherColumns)
+        assertTrue(AdaptiveLayoutMetrics.resolve(800).isWideThreeColumnHome)
+    }
+
+    @Test
+    fun androidUserAgent_distinguishesTabletFromPhone_andKeepsNativePlatformHeader() = runBlocking {
+        val phoneUa = AdaptiveLayoutMetrics.buildAndroidUserAgent("15", "SM-S928N", "2.0.4", isTablet = false)
+        assertTrue(phoneUa.contains("Mobile"))
+        assertFalse(phoneUa.contains("Tablet"))
+        assertTrue(phoneUa.contains("ottline-android/2.0.4"))
+
+        val tabletUa = AdaptiveLayoutMetrics.buildAndroidUserAgent("14", "Pixel Tablet", "2.0.4", isTablet = true)
+        assertFalse(tabletUa.contains("Mobile"))
+        assertTrue(tabletUa.contains("Tablet"))
+        assertTrue(tabletUa.contains("ottline-android/2.0.4"))
+
+        assertTrue(AdaptiveLayoutMetrics.isTabletDevice(600))
+        assertFalse(AdaptiveLayoutMetrics.isTabletDevice(411))
+        assertEquals("안드로이드 태블릿", AdaptiveLayoutMetrics.deviceLabel(isTablet = true, locale = "ko"))
+        assertEquals("Android tablet", AdaptiveLayoutMetrics.deviceLabel(isTablet = true, locale = "en"))
+
+        var capturedUa: String? = null
+        var capturedPlatform: String? = null
+        server.dispatcher = object : Dispatcher() {
+            override fun dispatch(request: RecordedRequest): MockResponse {
+                capturedUa = request.getHeader("User-Agent")
+                capturedPlatform = request.getHeader("X-Client-Platform")
+                return MockResponse().setResponseCode(200).setBody("[]")
+            }
+        }
+
+        val tabletApi = OttlineApiClient(prefs, isTabletOverride = true)
+        tabletApi.getDevices()
+        assertEquals("android_native", capturedPlatform)
+        assertTrue(capturedUa.orEmpty().contains("Tablet"))
+        assertFalse(capturedUa.orEmpty().contains("Mobile"))
+
+        val phoneApi = OttlineApiClient(prefs, isTabletOverride = false)
+        phoneApi.getDevices()
+        assertEquals("android_native", capturedPlatform)
+        assertTrue(capturedUa.orEmpty().contains("Mobile"))
+        assertFalse(capturedUa.orEmpty().contains("Tablet"))
     }
 
     @Test

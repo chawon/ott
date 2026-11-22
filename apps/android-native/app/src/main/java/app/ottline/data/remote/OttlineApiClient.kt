@@ -43,6 +43,7 @@ import app.ottline.model.UpdateUserProfileRequest
 import app.ottline.model.UserProfile
 import app.ottline.model.WatchLog
 import app.ottline.model.WatchLogHistory
+import app.ottline.ui.layout.AdaptiveLayoutMetrics
 import java.io.IOException
 import java.net.URLEncoder
 import java.util.concurrent.TimeUnit
@@ -88,7 +89,8 @@ class OttlineApiClient(
     private val prefs: AppPreferences,
     val httpClient: OkHttpClient = defaultOkHttpClient(),
     var onAuthRevoked: (() -> Unit)? = null,
-    val recommendationTimeouts: RecommendationTimeouts = RecommendationTimeouts()
+    val recommendationTimeouts: RecommendationTimeouts = RecommendationTimeouts(),
+    private val isTabletOverride: Boolean? = null
 ) {
     private val recommendationStateClient: OkHttpClient by lazy {
         httpClient.newBuilder()
@@ -133,7 +135,13 @@ class OttlineApiClient(
     private fun userAgent(): String {
         val release = Build.VERSION.RELEASE ?: "15"
         val model = Build.MODEL ?: "Android"
-        return "Mozilla/5.0 (Linux; Android $release; $model) Chrome/134.0.0.0 Mobile Safari/537.36 ottline-android/${BuildConfig.VERSION_NAME}"
+        val isTablet = isTabletOverride ?: prefs.isTabletDevice
+        return AdaptiveLayoutMetrics.buildAndroidUserAgent(
+            release = release,
+            model = model,
+            versionName = BuildConfig.VERSION_NAME,
+            isTablet = isTablet
+        )
     }
 
     private fun buildRequest(
