@@ -2,6 +2,8 @@
 
 기능을 바꿀 때는 [플랫폼 현황](platforms.md)에서 적용 대상을 찾고, [변경안 양식](changes/README.md)으로 공통 동작과 플랫폼별 검증을 정한다. 요청·응답, 저장과 동기화는 [공통 API와 데이터 계약](product-contracts.md)에서 시작한다.
 
+지속 개선의 역할과 흐름은 [제품 기획 운영](product-planning.md)을 따른다. 공통으로 유지할 기능, 허용할 플랫폼 차이와 추가 반영이 필요한 항목은 [기능 기준표](feature-matrix.md)에서 확인한다.
+
 ## 에이전트로 작업하기
 
 ottline 저장소 루트에서 새 세션을 연다. Codex와 Antigravity(`agy`)는 [AGENTS.md](../AGENTS.md)를 직접 읽고, Claude Code는 [CLAUDE.md](../CLAUDE.md)를 통해 같은 지침을 읽는다. 진행할 항목과 확인 기준은 [v2 후속 작업](changes/v2-follow-up.md)에서 찾는다.
@@ -10,6 +12,7 @@ ottline 저장소 루트에서 새 세션을 연다. Codex와 Antigravity(`agy`)
 
 | 주제 | 기준 문서 |
 | --- | --- |
+| 제품 기획·지속 개선 | [담당과 개선 흐름](product-planning.md) · [공통 기능과 플랫폼 차이](feature-matrix.md) · [프로젝트판](https://github.com/users/chawon/projects/1) |
 | 앱별 개발·출시 | [플랫폼 현황](platforms.md) · [채널별 Wiki](../wiki/index.md#플랫폼) |
 | v2 후속 채널 | [브라우저 확장·토스 인앱·ChatGPT 앱 개편 방향](changes/v2-channel-strategy.md) |
 | 시각·문구 | [DESIGN.md](../DESIGN.md) · [v2 브랜드 자산](ottline-ci-v2-integration.md) · [포인트 색상](accent-color-hierarchy.md) · [문구 가이드](../wiki/pages/processes/ux-copy.md) |

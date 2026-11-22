@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -623,6 +624,365 @@ fun OttlineTopBar(
                     .background(palette.border.copy(alpha = 0.75f))
             )
         }
+    }
+}
+
+/**
+ * Large-screen unified top navigation header matching web desktop & iPad `OttlinePadHeader`
+ * (`viewportWidthDp >= 700dp`). Replaces the mobile bottom bar on tablets and unfolded foldables.
+ */
+@Composable
+fun OttlineSpreadTopHeader(
+    currentTab: MainTab,
+    nickname: String?,
+    personaKey: PersonaKey?,
+    locale: String,
+    themeMode: ThemeMode,
+    syncState: SyncState,
+    outboxCount: Int,
+    showTabIcons: Boolean,
+    compactRecordCta: Boolean,
+    maxContentWidth: Dp,
+    horizontalPadding: Dp,
+    onSelectTab: (MainTab) -> Unit,
+    onQuickRecordClick: () -> Unit,
+    onSyncClick: () -> Unit,
+    onSelectLocale: (String) -> Unit,
+    onToggleTheme: () -> Unit,
+    onLogoClick: () -> Unit,
+    onProfileClick: () -> Unit
+) {
+    val palette = LocalOttlinePalette.current
+    val activeAccent = if (palette.isDark) palette.ink else palette.brandNavy
+    val showSyncChip = outboxCount > 0 ||
+        syncState.status == SyncStatus.SYNCING ||
+        syncState.status == SyncStatus.FAILED
+
+    Surface(
+        color = palette.background.copy(alpha = 0.96f),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .statusBarsPadding()
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(if (showTabIcons) 16.dp else 10.dp),
+                    modifier = Modifier
+                        .widthIn(max = maxContentWidth)
+                        .fillMaxWidth()
+                        .heightIn(min = 72.dp)
+                        .padding(horizontal = horizontalPadding, vertical = 10.dp)
+                ) {
+                    // Left: Brand logo
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .heightIn(min = 48.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .clickable(onClick = onLogoClick)
+                            .padding(vertical = 4.dp)
+                    ) {
+                        OttlineBrandMark(size = 34.dp)
+                        Spacer(Modifier.width(8.dp))
+                        Column {
+                            Text(
+                                text = "ottline",
+                                style = MaterialTheme.typography.titleLarge.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 25.sp,
+                                    lineHeight = 26.sp,
+                                    letterSpacing = (-0.7).sp
+                                ),
+                                color = palette.brandMarkStroke,
+                                maxLines = 1
+                            )
+                            Text(
+                                text = "ON THE TIMELINE",
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontWeight = FontWeight.SemiBold,
+                                    fontSize = 7.5.sp,
+                                    lineHeight = 9.sp,
+                                    letterSpacing = 0.8.sp
+                                ),
+                                color = palette.brandOrange,
+                                maxLines = 1
+                            )
+                        }
+                    }
+
+                    Spacer(Modifier.weight(1f))
+
+                    // Center: Top-level navigation links
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(if (showTabIcons) 20.dp else 12.dp)
+                    ) {
+                        SpreadHeaderNavLink(
+                            label = tr("홈", "Home"),
+                            icon = OttlineNavIcons.Home,
+                            selected = currentTab == MainTab.HOME,
+                            showIcon = showTabIcons,
+                            activeAccent = activeAccent,
+                            onClick = { onSelectTab(MainTab.HOME) }
+                        )
+                        SpreadHeaderNavLink(
+                            label = tr("타임라인", "Timeline"),
+                            icon = OttlineNavIcons.Clock,
+                            selected = currentTab == MainTab.TIMELINE,
+                            showIcon = showTabIcons,
+                            activeAccent = activeAccent,
+                            onClick = { onSelectTab(MainTab.TIMELINE) }
+                        )
+                        SpreadHeaderNavLink(
+                            label = tr("함께", "Together"),
+                            icon = OttlineNavIcons.MessageCircle,
+                            selected = currentTab == MainTab.TOGETHER,
+                            showIcon = showTabIcons,
+                            activeAccent = activeAccent,
+                            onClick = { onSelectTab(MainTab.TOGETHER) }
+                        )
+                        SpreadHeaderNavLink(
+                            label = tr("내 공간", "My space"),
+                            icon = OttlineNavIcons.UserRound,
+                            selected = currentTab == MainTab.MY_SPACE,
+                            showIcon = showTabIcons,
+                            activeAccent = activeAccent,
+                            onClick = { onSelectTab(MainTab.MY_SPACE) }
+                        )
+                    }
+
+                    Spacer(Modifier.weight(1f))
+
+                    // Right: Sync indicator (when active), locale, theme, primary Record CTA, avatar
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        if (showSyncChip) {
+                            Surface(
+                                onClick = onSyncClick,
+                                shape = RoundedCornerShape(999.dp),
+                                color = palette.paperStrong,
+                                border = BorderStroke(1.dp, palette.border)
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                    modifier = Modifier
+                                        .heightIn(min = 36.dp)
+                                        .padding(horizontal = 10.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Outlined.Refresh,
+                                        contentDescription = null,
+                                        tint = if (syncState.status == SyncStatus.FAILED) palette.danger else activeAccent,
+                                        modifier = Modifier.size(14.dp)
+                                    )
+                                    Text(
+                                        text = if (syncState.status == SyncStatus.SYNCING) {
+                                            tr("동기화 중", "Syncing")
+                                        } else {
+                                            tr("대기 $outboxCount", "Pending $outboxCount")
+                                        },
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = if (syncState.status == SyncStatus.FAILED) palette.danger else palette.mutedInk,
+                                        maxLines = 1
+                                    )
+                                }
+                            }
+                        }
+
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            listOf("ko" to "KO", "en" to "EN").forEach { (code, shortLabel) ->
+                                val active = locale == code
+                                Box(
+                                    contentAlignment = Alignment.Center,
+                                    modifier = Modifier
+                                        .widthIn(min = 28.dp)
+                                        .heightIn(min = 40.dp)
+                                        .clip(RoundedCornerShape(6.dp))
+                                        .clickable {
+                                            if (!active) onSelectLocale(code)
+                                        }
+                                ) {
+                                    Column(
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        verticalArrangement = Arrangement.Center
+                                    ) {
+                                        Text(
+                                            text = shortLabel,
+                                            style = MaterialTheme.typography.labelSmall.copy(
+                                                fontSize = 10.5.sp,
+                                                lineHeight = 12.sp,
+                                                fontWeight = FontWeight.SemiBold
+                                            ),
+                                            color = if (active) palette.ink else palette.mutedInk
+                                        )
+                                        Spacer(Modifier.height(3.dp))
+                                        Box(
+                                            modifier = Modifier
+                                                .width(14.dp)
+                                                .height(1.5.dp)
+                                                .background(if (active) palette.ink else Color.Transparent)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                        val themeIcon = when (themeMode) {
+                            ThemeMode.SYSTEM -> OttlineNavIcons.Monitor
+                            ThemeMode.DARK -> OttlineNavIcons.Moon
+                            ThemeMode.LIGHT -> OttlineNavIcons.Sun
+                        }
+                        val themeA11yLabel = when (themeMode) {
+                            ThemeMode.SYSTEM -> tr("테마 변경 (현재: 시스템)", "Change theme (current: System)")
+                            ThemeMode.DARK -> tr("테마 변경 (현재: 다크)", "Change theme (current: Dark)")
+                            ThemeMode.LIGHT -> tr("테마 변경 (현재: 라이트)", "Change theme (current: Light)")
+                        }
+                        Surface(
+                            onClick = onToggleTheme,
+                            shape = RoundedCornerShape(8.dp),
+                            color = palette.card,
+                            border = BorderStroke(1.dp, palette.border),
+                            modifier = Modifier
+                                .size(40.dp)
+                                .semantics {
+                                    role = Role.Button
+                                    contentDescription = themeA11yLabel
+                                }
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = themeIcon,
+                                    contentDescription = null,
+                                    tint = palette.ink,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                        }
+
+                        Surface(
+                            onClick = onQuickRecordClick,
+                            shape = RoundedCornerShape(8.dp),
+                            color = palette.brandOrange,
+                            modifier = Modifier.heightIn(min = 44.dp)
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(5.dp),
+                                modifier = Modifier.padding(
+                                    horizontal = if (compactRecordCta) 12.dp else 14.dp,
+                                    vertical = 10.dp
+                                )
+                            ) {
+                                Icon(
+                                    imageVector = OttlineNavIcons.Plus,
+                                    contentDescription = null,
+                                    tint = Color(0xFF0F0F0F),
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Text(
+                                    text = if (compactRecordCta) {
+                                        tr("기록", "Log")
+                                    } else {
+                                        tr("기록 남기기", "Leave a record")
+                                    },
+                                    style = MaterialTheme.typography.labelLarge.copy(
+                                        fontWeight = FontWeight.SemiBold,
+                                        fontSize = 13.5.sp
+                                    ),
+                                    color = Color(0xFF0F0F0F),
+                                    maxLines = 1
+                                )
+                            }
+                        }
+
+                        val profileA11yLabel = nickname?.takeIf { it.isNotBlank() } ?: tr("내 프로필", "My profile")
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier
+                                .size(42.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .clickable(onClick = onProfileClick)
+                                .semantics {
+                                    role = Role.Button
+                                    contentDescription = profileA11yLabel
+                                }
+                        ) {
+                            PersonaAvatar(
+                                personaKey = personaKey,
+                                nickname = profileA11yLabel,
+                                size = 38.dp,
+                                shape = RoundedCornerShape(8.dp)
+                            )
+                        }
+                    }
+                }
+            }
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(1.dp)
+                    .background(palette.border.copy(alpha = 0.85f))
+            )
+        }
+    }
+}
+
+@Composable
+private fun SpreadHeaderNavLink(
+    label: String,
+    icon: ImageVector,
+    selected: Boolean,
+    showIcon: Boolean,
+    activeAccent: Color,
+    onClick: () -> Unit
+) {
+    val palette = LocalOttlinePalette.current
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+        modifier = Modifier
+            .heightIn(min = 48.dp)
+            .clip(RoundedCornerShape(8.dp))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 6.dp, vertical = 4.dp)
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            if (showIcon) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = if (selected) activeAccent else palette.mutedInk,
+                    modifier = Modifier.size(16.dp)
+                )
+            }
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelLarge.copy(
+                    fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+                    fontSize = 14.5.sp
+                ),
+                color = if (selected) activeAccent else palette.mutedInk,
+                maxLines = 1
+            )
+        }
+        Spacer(Modifier.height(4.dp))
+        Box(
+            modifier = Modifier
+                .width(18.dp)
+                .height(2.dp)
+                .background(if (selected) palette.brandOrange else Color.Transparent)
+        )
     }
 }
 

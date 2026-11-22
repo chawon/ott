@@ -1,5 +1,28 @@
 # Wiki Log
 
+## [2026-11-22] release(android): 태블릿·디자인·네비게이션·추천 복구 PR #146·#148 병합 및 Google Play 2.0.5 (29) 배포 업로드
+
+- [PR #146](https://github.com/chawon/ott/pull/146) (`main` `1ebfe94`) 및 [PR #148](https://github.com/chawon/ott/pull/148) (`main` `37eda7f`) 순차 병합 완료.
+- 주요 변경: 미래의 타임라인 생성 요청 90초 타임아웃·언어별 `requestId` 복구(`#142`), `함께` 큐레이터 질문·조회·이벤트 제거, 태블릿·폴더블 상단 헤더(`>=700dp`)·3단 홈(`>=800dp`)·2단 함께(`>=700dp`)·2단 작품 상세(`>=860dp`)·4열 리포트·`sw600dp+` 태블릿 User-Agent, Material 3 기본 보라색 제거 및 웹 `DESIGN.md` 컬러(`#F8F6F2`/`#FEF9EE`/`#1E4D8C`/`#FF9933`)·Pretendard 폰트 정렬, 타임라인→상세 진입 시 탭 강조 유지 및 탭 전환 스택 수정, OTT 시청 후 기록 알림 최소 시청 시간 5분 → 20분 상향.
+- 검증·CI·Play 업로드: [`native-android-release.yml` Run #44981269777](https://github.com/chawon/ott/actions/runs/44981269777) 성공(`:app:testDebugUnitTest` 42/42, `:app:lintDebug`, `:app:bundleRelease`, `scripts/verify-release-aab.sh` R8 계약 검증, `app-release.aab` SHA-256 `62a30ccba00eb0b65a1c200e3a6331c3f45b06bca38a267aeaae6dd34034eb5f`, 아티팩트 `ottline-native-release-2.0.5-29`). `gplay release`로 `app.ottline` **`2.0.5 (versionCode=29)`**을 `production` 트랙(`status=completed`, `rollout=1.0`)에 업로드했다.
+- 남은 확인: Google Play `2.0.5 (29)` 심사 승인·공개 게시 확인, Play Console 태블릿 스크린샷(7"/10", `2560×1600` 한·영 각 5장 확보) 업로드, 공개 스토어 업데이트판 실기기 확인. [Android Wiki](pages/platforms/android-native.md) · [플랫폼 현황](../docs/platforms.md)
+
+## [2026-11-22] release(apple): macOS·iOS·iPadOS 출시 완료와 후속 업무 인계
+
+- 사용자가 세 플랫폼의 출시 완료를 확인했다. 제출 버전은 `2.0.0 (27)`, 코드 `2634fdc`([PR #137](https://github.com/chawon/ott/pull/137)), 동일 Apple ID `6780318110`이다. 11월 21일의 심사 제출 기록을 현재 출시 상태로 갱신했다.
+- [Apple 한국 공개 조회](https://itunes.apple.com/lookup?id=6780318110&country=kr&entity=software)의 iOS `2.0.0`, `iosUniversal`, 공개 시각 `2026-11-22 08:11 KST`를 대조했다. 이 조회는 macOS의 공개 상태나 빌드 번호를 독립적으로 증명하지 않으므로, 제출·공개·실기기 근거를 구분했다.
+- [iOS·iPadOS](pages/platforms/native.md), [macOS](pages/platforms/macos-native.md), [플랫폼 현황](../docs/platforms.md)과 루트 README의 현재 앱 소스·개발 시작점을 SwiftUI로 정정했다. Expo `1.0.4 (24)` 소스·배포 이력은 업데이트 데이터 이전을 위해 보존한다.
+- [출시 완료](https://github.com/users/chawon/projects/1/views/2?pane=issue&itemId=313827691), [Web 서비스 소개·가이드 반영](https://github.com/users/chawon/projects/1/views/2?pane=issue&itemId=313827749), [Mac 설치판 연결 검증](https://github.com/users/chawon/projects/1/views/2?pane=issue&itemId=313827720)을 담당별 카드로 연결했다. 기존 설치판 데이터 보존·추천 복구 검증과 후속 큐레이터 제거·iPad 함께 점검은 [Apple 후속 작업](../docs/changes/v2-follow-up.md#2-apple-v2-업데이트-검증)에서 추적한다.
+
+## [2026-11-21] release(apple): SwiftUI iOS·iPadOS & macOS v2.0.0 (27) App Store 심사 제출 및 PR #137 병합
+
+- [PR #137](https://github.com/chawon/ott/pull/137) `main` 병합 완료(`d0844fc`, 코드 HEAD `2634fdc`).
+- 공용 `OttlineCore`: `AppPreferences`·`OttlineRepository` 락 기반 상태 저장 + 메인 스레드 비동기 통합 발행(백그라운드 동기화 중 AB-BA 데드락 해소), 미래의 타임라인 90초 타임아웃·언어별 `requestId` 복구(`#142`), 2단계 포스터 캐시(`NSCache` + 디스크 LRU), 커스텀 드롭다운(`OttlineSelectDropdown`), `QuickRecordSheet` 초기 상태 즉시 반영 및 macOS 포커스 점프 방지.
+- iOS·iPadOS: 최소 지원 `iOS 16.0` 하향, 온디바이스 즉시 공유 카드, 도킹 하단 바, iPad `서가` 중복·iPhone 영어 `Together` 탭 수정. 실기기 iPhone X(`iOS 16.7.16`)·iPad 10세대 검증.
+- macOS: App Sandbox(`com.apple.security.app-sandbox`) 활성화·Release 권한 검증, 온디바이스 즉시 공유 카드(`1080×1920` / `1080×1350`), 전 메뉴 `1280px` 폭 통일·2컬럼 작품 상세, 인트로 스플래시, `함께` 내부 스크롤바 정리, 웹 기준 가이드·소개·FAQ·개인정보·문의함 5종 구현 및 실기기 검수.
+- 검증·CI: `OttlineTests` 18/18·`OttlineMacTests` 5/5 통과, `Native iOS v2 CI (SwiftUI)` Run [`44897582945`](https://github.com/chawon/ott/actions/runs/44897582945) · `Native macOS v2 CI (SwiftUI)` Run [`44897582916`](https://github.com/chawon/ott/actions/runs/44897582916) 모두 성공.
+- 스토어 제출: App Store Connect `app.ottline`(`id6780318110`)에 **iOS·iPadOS `2.0.0 (27)`**(iPhone 6.3"·iPad 13" 한·영 스크린샷) 및 신규 플랫폼 **macOS `2.0.0 (27)`**(`2560×1600` 한·영 스크린샷), ASO 앱 이름·부제 반영 후 두 플랫폼 모두 **App Store 심사 제출 완료**(공개 승인·실사용 최종 확인 대기). [iOS Wiki](pages/platforms/native.md) · [macOS Wiki](pages/platforms/macos-native.md) · [후속 작업](../docs/changes/v2-follow-up.md#2-apple-v2-업데이트-검증) · [플랫폼 현황](../docs/platforms.md)
+
 ## [2026-11-20] deploy(api): 미래의 타임라인 추천 생성 응답 지연 단축 및 단계별 계측 (#143, PR #144)
 
 - [PR #144](https://github.com/chawon/ott/pull/144) (`main` `7e9913d`, manifest `15112e0`, `Deploy API to Production` run [`44708627801`](https://github.com/chawon/ott/actions/runs/44708627801)).

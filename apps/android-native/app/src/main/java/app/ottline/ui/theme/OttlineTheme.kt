@@ -1,6 +1,14 @@
 package app.ottline.ui.theme
 
+import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
+import android.graphics.Color as AndroidColor
+import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
+import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
@@ -8,13 +16,16 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
+import androidx.core.view.WindowCompat
 import app.ottline.R
 import app.ottline.data.local.ThemeMode
 
@@ -42,6 +53,7 @@ data class OttlinePalette(
     val onBrandNavy: Color,
     val brandMarkStroke: Color,
     val brandOrange: Color,
+    val onBrandOrange: Color = Color(0xFF0F0F0F),
     val danger: Color,
     val success: Color
 )
@@ -87,6 +99,27 @@ val DarkOttlinePalette = OttlinePalette(
 val LocalOttlinePalette = staticCompositionLocalOf { LightOttlinePalette }
 
 private val OttlineTypography = Typography(
+    displayLarge = TextStyle(
+        fontFamily = PretendardFontFamily,
+        fontWeight = FontWeight.Bold,
+        fontSize = 36.sp,
+        lineHeight = 44.sp,
+        letterSpacing = (-0.8).sp
+    ),
+    displayMedium = TextStyle(
+        fontFamily = PretendardFontFamily,
+        fontWeight = FontWeight.Bold,
+        fontSize = 32.sp,
+        lineHeight = 40.sp,
+        letterSpacing = (-0.6).sp
+    ),
+    displaySmall = TextStyle(
+        fontFamily = PretendardFontFamily,
+        fontWeight = FontWeight.Bold,
+        fontSize = 28.sp,
+        lineHeight = 36.sp,
+        letterSpacing = (-0.5).sp
+    ),
     headlineLarge = TextStyle(
         fontFamily = PretendardFontFamily,
         fontWeight = FontWeight.Bold,
@@ -165,6 +198,89 @@ private val OttlineTypography = Typography(
     )
 )
 
+internal fun ottlineColorScheme(
+    isDark: Boolean,
+    palette: OttlinePalette = if (isDark) DarkOttlinePalette else LightOttlinePalette
+): ColorScheme = if (isDark) {
+    darkColorScheme(
+        primary = palette.brandNavy,
+        onPrimary = palette.onBrandNavy,
+        primaryContainer = palette.paperStrong,
+        onPrimaryContainer = palette.brandNavy,
+        inversePrimary = Color(0xFF1E4D8C),
+        secondary = palette.brandNavy,
+        onSecondary = palette.onBrandNavy,
+        secondaryContainer = palette.paperStrong,
+        onSecondaryContainer = palette.brandNavy,
+        tertiary = palette.brandOrange,
+        onTertiary = palette.onBrandOrange,
+        tertiaryContainer = palette.sageAccent,
+        onTertiaryContainer = palette.ink,
+        background = palette.background,
+        onBackground = palette.ink,
+        surface = palette.card,
+        onSurface = palette.ink,
+        surfaceVariant = palette.paperStrong,
+        onSurfaceVariant = palette.mutedInk,
+        surfaceTint = Color.Transparent,
+        inverseSurface = Color(0xFFF8F6F2),
+        inverseOnSurface = Color(0xFF15120F),
+        error = palette.danger,
+        onError = Color(0xFF15120F),
+        errorContainer = Color(0xFF3E1F1C),
+        onErrorContainer = Color(0xFFFFDAD6),
+        outline = palette.border,
+        outlineVariant = palette.border,
+        scrim = Color(0xFF000000),
+        surfaceBright = palette.paperStrong,
+        surfaceDim = palette.background,
+        surfaceContainerLowest = palette.background,
+        surfaceContainerLow = Color(0xFF1B1613),
+        surfaceContainer = palette.card,
+        surfaceContainerHigh = palette.paperStrong,
+        surfaceContainerHighest = Color(0xFF352C25)
+    )
+} else {
+    lightColorScheme(
+        primary = palette.brandNavy,
+        onPrimary = palette.onBrandNavy,
+        primaryContainer = palette.paperStrong,
+        onPrimaryContainer = palette.brandNavy,
+        inversePrimary = Color(0xFF8BB4EE),
+        secondary = palette.brandNavy,
+        onSecondary = palette.onBrandNavy,
+        secondaryContainer = palette.paperStrong,
+        onSecondaryContainer = palette.brandNavy,
+        tertiary = palette.brandOrange,
+        onTertiary = palette.onBrandOrange,
+        tertiaryContainer = palette.paperStrong,
+        onTertiaryContainer = palette.ink,
+        background = palette.background,
+        onBackground = palette.ink,
+        surface = palette.card,
+        onSurface = palette.ink,
+        surfaceVariant = palette.paperStrong,
+        onSurfaceVariant = palette.mutedInk,
+        surfaceTint = Color.Transparent,
+        inverseSurface = Color(0xFF211C18),
+        inverseOnSurface = Color(0xFFFFF8EF),
+        error = palette.danger,
+        onError = Color(0xFFFFFFFF),
+        errorContainer = Color(0xFFFFF2F0),
+        onErrorContainer = palette.danger,
+        outline = palette.border,
+        outlineVariant = palette.border,
+        scrim = Color(0xFF0F0F0F),
+        surfaceBright = palette.card,
+        surfaceDim = palette.mutedBg,
+        surfaceContainerLowest = palette.card,
+        surfaceContainerLow = palette.background,
+        surfaceContainer = palette.card,
+        surfaceContainerHigh = palette.card,
+        surfaceContainerHighest = palette.paperStrong
+    )
+}
+
 @Composable
 fun OttlineTheme(
     themeMode: ThemeMode,
@@ -176,41 +292,27 @@ fun OttlineTheme(
         ThemeMode.DARK -> true
     }
     val palette = if (isDark) DarkOttlinePalette else LightOttlinePalette
+    val colorScheme = ottlineColorScheme(isDark = isDark, palette = palette)
 
-    val colorScheme = if (isDark) {
-        darkColorScheme(
-            primary = palette.brandNavy,
-            onPrimary = palette.onBrandNavy,
-            secondary = palette.brandNavy,
-            onSecondary = palette.onBrandNavy,
-            tertiary = palette.brandOrange,
-            onTertiary = Color(0xFF0F0F0F),
-            background = palette.background,
-            onBackground = palette.ink,
-            surface = palette.card,
-            onSurface = palette.ink,
-            surfaceVariant = palette.paperStrong,
-            onSurfaceVariant = palette.mutedInk,
-            outline = palette.border,
-            error = palette.danger
-        )
-    } else {
-        lightColorScheme(
-            primary = palette.brandNavy,
-            onPrimary = palette.onBrandNavy,
-            secondary = palette.brandNavy,
-            onSecondary = palette.onBrandNavy,
-            tertiary = palette.brandOrange,
-            onTertiary = Color(0xFF0F0F0F),
-            background = palette.background,
-            onBackground = palette.ink,
-            surface = palette.card,
-            onSurface = palette.ink,
-            surfaceVariant = palette.paperStrong,
-            onSurfaceVariant = palette.mutedInk,
-            outline = palette.border,
-            error = palette.danger
-        )
+    val view = LocalView.current
+    if (!view.isInEditMode) {
+        SideEffect {
+            val activity = view.context.findActivity()
+            if (activity is ComponentActivity) {
+                val barStyle = if (isDark) {
+                    SystemBarStyle.dark(AndroidColor.TRANSPARENT)
+                } else {
+                    SystemBarStyle.light(AndroidColor.TRANSPARENT, AndroidColor.TRANSPARENT)
+                }
+                activity.enableEdgeToEdge(statusBarStyle = barStyle, navigationBarStyle = barStyle)
+            }
+            val window = activity?.window
+            if (window != null) {
+                val controller = WindowCompat.getInsetsController(window, view)
+                controller.isAppearanceLightStatusBars = !isDark
+                controller.isAppearanceLightNavigationBars = !isDark
+            }
+        }
     }
 
     CompositionLocalProvider(LocalOttlinePalette provides palette) {
@@ -220,4 +322,10 @@ fun OttlineTheme(
             content = content
         )
     }
+}
+
+private tailrec fun Context.findActivity(): Activity? = when (this) {
+    is Activity -> this
+    is ContextWrapper -> baseContext.findActivity()
+    else -> null
 }

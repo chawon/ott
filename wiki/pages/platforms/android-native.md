@@ -4,16 +4,16 @@ Kotlin · Jetpack Compose · Room · WorkManager 기반의 Google Play용 앱. `
 
 ## 운영 상태
 
-기준일 2026-11-20.
+기준일 2026-11-22.
 
 | 항목 | 확인 내용 |
 |---|---|
-| 최신 배포 기록 | `2.0.4` (`versionCode=28`), 2026-11-18 KST, 빌드와 Google Play 배포 단계 성공 |
+| 최신 배포 기록 | `2.0.5` (`versionCode=29`), 2026-11-22 KST, 빌드·R8 계약 검증과 Google Play `production` 트랙 업로드 성공 (Play 심사·공개 게시 대기) |
 | 앱 식별자 | `app.ottline`, Debug 기본 `app.ottline.dev` |
 | 지원 버전 | 최소 Android 7.0(API 24), `targetSdk=36`, `compileSdk=36` |
 | 소스와 검증 | [apps/android-native](../../../apps/android-native/), [Android 빌드·릴리스 워크플로](../../../.github/workflows/native-android-release.yml) |
 
-버전과 배포 결과의 근거는 [빌드·배포 실행 44111552653](https://github.com/chawon/ott/actions/runs/44111552653)이다. 로컬 빌드와 서명 절차는 [Android 개발 가이드](../../../apps/android-native/README.md)를 참고한다.
+버전과 배포 결과의 근거는 [빌드·배포 실행 44981269777](https://github.com/chawon/ott/actions/runs/44981269777) (`main` `37eda7f`, 아티팩트 `ottline-native-release-2.0.5-29`)이다. 로컬 빌드와 서명 절차는 [Android 개발 가이드](../../../apps/android-native/README.md)를 참고한다.
 
 ## 주요 진입점과 데이터
 
@@ -32,10 +32,11 @@ Kotlin · Jetpack Compose · Room · WorkManager 기반의 Google Play용 앱. `
 | `2.0.2 (26)` | Play 인앱 리뷰와 스토어 평가 진입점 | [43023168335](https://github.com/chawon/ott/actions/runs/43023168335) |
 | `2.0.3 (27)` | 웹 Play 유입, Install Referrer와 계정 핸드오프 | [43028828768](https://github.com/chawon/ott/actions/runs/43028828768) |
 | `2.0.4 (28)` | 빠른 기록의 중복 생성 방지와 기존 중복 정리 | [44111552653](https://github.com/chawon/ott/actions/runs/44111552653) |
+| `2.0.5 (29)` | 태블릿 3단 홈·2단 함께·상단 헤더, 큐레이터 제거, 웹 컬러 정렬, 미래의 타임라인 복구, 탭 포커스 수정, 시청 알림 20분 | [44981269777](https://github.com/chawon/ott/actions/runs/44981269777) |
 
 ## 연결된 기기 표시
 
-API는 기존 `2.0.4` 앱의 `ottline-android/` User-Agent를 인식해 웹에서도 연결 기기를 `Android App · Android`로 표시한다. `main`에는 Android 앱의 `X-Client-Platform: android_native` 전송과 기기 라벨 정렬도 추가됐다. Play에 배포된 `2.0.4`의 소스 SHA와 API 운영 SHA는 각각 `7b373d0`, `38112ca`다. [PR #136](https://github.com/chawon/ott/pull/136)
+API는 기존 `2.0.4` 앱의 `ottline-android/` User-Agent를 인식해 웹에서도 연결 기기를 `Android App · Android`로 표시한다. `2.0.5 (29)`(`main` `37eda7f`, [PR #136](https://github.com/chawon/ott/pull/136)·[PR #148](https://github.com/chawon/ott/pull/148))부터는 `X-Client-Platform: android_native` 헤더와 `sw600dp+` 태블릿 User-Agent(`Mobile` 제외, `Tablet` 표기)를 함께 전송한다. 운영 API의 태블릿 기기 라벨 구분 표기는 후속 API 작업으로 추적한다.
 
 ## 관련 문서
 

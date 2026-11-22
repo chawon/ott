@@ -10,6 +10,7 @@ import androidx.browser.customtabs.CustomTabsIntent
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -90,6 +91,7 @@ import app.ottline.ui.components.PosterImage
 import app.ottline.ui.i18n.LocalAppLocale
 import app.ottline.ui.i18n.OttlineStrings
 import app.ottline.ui.i18n.tr
+import app.ottline.ui.layout.LocalAdaptiveLayoutMetrics
 import app.ottline.ui.theme.LocalOttlinePalette
 import app.ottline.ui.util.CardExporter
 import app.ottline.ui.util.RecapCardKind
@@ -112,6 +114,7 @@ fun ReportScreen(
     val context = LocalContext.current
     val locale = LocalAppLocale.current
     val palette = LocalOttlinePalette.current
+    val metrics = LocalAdaptiveLayoutMetrics.current
     val scope = rememberCoroutineScope()
 
     val localReport = remember(allLogs) { PersonalReportBuilder.build(allLogs) }
@@ -168,7 +171,7 @@ fun ReportScreen(
     }
 
     LazyColumn(
-        contentPadding = PaddingValues(horizontal = 18.dp, vertical = 14.dp),
+        contentPadding = PaddingValues(horizontal = metrics.horizontalPadding, vertical = 14.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
         modifier = Modifier.fillMaxSize()
     ) {
@@ -188,10 +191,10 @@ fun ReportScreen(
             }
         }
 
-        // Core Metrics Grid
+        // Core Metrics Grid (4 columns on spread, 2x2 on compact)
         item {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+            if (metrics.reportMetricColumns >= 4) {
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
                     StatBox(
                         label = tr("전체 기록", "Total moments"),
                         value = "${report.totalLogs}",
@@ -202,8 +205,6 @@ fun ReportScreen(
                         value = "${report.thisMonthLogs}",
                         modifier = Modifier.weight(1f)
                     )
-                }
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
                     StatBox(
                         label = tr("완주 비율", "Completion"),
                         value = "${report.doneRatePct}%",
@@ -214,6 +215,33 @@ fun ReportScreen(
                         value = tr("${report.streakDays}일 (최장 ${report.longestStreakDays}일)", "${report.streakDays}d (best ${report.longestStreakDays}d)"),
                         modifier = Modifier.weight(1f)
                     )
+                }
+            } else {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+                        StatBox(
+                            label = tr("전체 기록", "Total moments"),
+                            value = "${report.totalLogs}",
+                            modifier = Modifier.weight(1f)
+                        )
+                        StatBox(
+                            label = tr("이번 달", "This month"),
+                            value = "${report.thisMonthLogs}",
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+                        StatBox(
+                            label = tr("완주 비율", "Completion"),
+                            value = "${report.doneRatePct}%",
+                            modifier = Modifier.weight(1f)
+                        )
+                        StatBox(
+                            label = tr("연속 기록", "Streak"),
+                            value = tr("${report.streakDays}일 (최장 ${report.longestStreakDays}일)", "${report.streakDays}d (best ${report.longestStreakDays}d)"),
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
                 }
             }
         }
@@ -311,10 +339,10 @@ fun ReportScreen(
                                     }
                                 },
                                 enabled = !exportingRecap,
-                                shape = RoundedCornerShape(10.dp),
+                                shape = RoundedCornerShape(8.dp),
                                 colors = ButtonDefaults.buttonColors(
-                                    containerColor = palette.brandNavy,
-                                    contentColor = palette.onBrandNavy
+                                    containerColor = palette.brandOrange,
+                                    contentColor = palette.onBrandOrange
                                 ),
                                 modifier = Modifier.weight(1f)
                             ) {
@@ -550,6 +578,7 @@ fun BookshelfScreen(
 ) {
     val locale = LocalAppLocale.current
     val palette = LocalOttlinePalette.current
+    val metrics = LocalAdaptiveLayoutMetrics.current
 
     LaunchedEffect(allLogs) {
         val bookTitles = allLogs.map { it.title }.filter { it.type == TitleType.BOOK }
@@ -563,7 +592,7 @@ fun BookshelfScreen(
     }
 
     LazyColumn(
-        contentPadding = PaddingValues(horizontal = 18.dp, vertical = 14.dp),
+        contentPadding = PaddingValues(horizontal = metrics.horizontalPadding, vertical = 14.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
         modifier = Modifier.fillMaxSize()
     ) {
@@ -621,23 +650,58 @@ fun BookshelfScreen(
                 }
             }
         } else {
-            shelf.groups.filter { it.books.isNotEmpty() }.forEach { group ->
-                item(key = "kdc_${group.major}") {
-                    BookshelfRowSection(
-                        title = "${OttlineStrings.kdcCategoryTitle(group.major, locale)} (${group.books.size})",
-                        books = group.books,
-                        onOpenTitleDetail = onOpenTitleDetail
+            val allShelfSections = buildList {
+                shelf.groups.filter { it.books.isNotEmpty() }.forEach { group ->
+                    add(
+                        Triple(
+                            "kdc_${group.major}",
+                            "${OttlineStrings.kdcCategoryTitle(group.major, locale)} (${group.books.size})",
+                            group.books
+                        )
+                    )
+                }
+                if (shelf.unclassifiedBooks.isNotEmpty()) {
+                    add(
+                        Triple(
+                            "kdc_unclassified",
+                            "${OttlineStrings.kdcCategoryTitle(-1, locale)} (${shelf.unclassifiedBooks.size})",
+                            shelf.unclassifiedBooks
+                        )
                     )
                 }
             }
 
-            if (shelf.unclassifiedBooks.isNotEmpty()) {
-                item(key = "kdc_unclassified") {
-                    BookshelfRowSection(
-                        title = "${OttlineStrings.kdcCategoryTitle(-1, locale)} (${shelf.unclassifiedBooks.size})",
-                        books = shelf.unclassifiedBooks,
-                        onOpenTitleDetail = onOpenTitleDetail
-                    )
+            if (metrics.bookshelfTwoColumn) {
+                allShelfSections.chunked(2).forEach { pair ->
+                    item(key = "row_${pair.joinToString("_") { it.first }}") {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(16.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            pair.forEach { (_, sectionTitle, books) ->
+                                Box(modifier = Modifier.weight(1f)) {
+                                    BookshelfRowSection(
+                                        title = sectionTitle,
+                                        books = books,
+                                        onOpenTitleDetail = onOpenTitleDetail
+                                    )
+                                }
+                            }
+                            if (pair.size == 1) {
+                                Spacer(modifier = Modifier.weight(1f))
+                            }
+                        }
+                    }
+                }
+            } else {
+                allShelfSections.forEach { (sectionKey, sectionTitle, books) ->
+                    item(key = sectionKey) {
+                        BookshelfRowSection(
+                            title = sectionTitle,
+                            books = books,
+                            onOpenTitleDetail = onOpenTitleDetail
+                        )
+                    }
                 }
             }
         }
@@ -817,9 +881,10 @@ fun FeedbackScreen(
                             }
                         },
                         enabled = replyBody.trim().isNotEmpty() && !submitting,
+                        shape = RoundedCornerShape(8.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = palette.brandNavy,
-                            contentColor = palette.onBrandNavy
+                            containerColor = palette.brandOrange,
+                            contentColor = palette.onBrandOrange
                         )
                     ) {
                         Icon(Icons.AutoMirrored.Outlined.Send, contentDescription = null)
@@ -885,9 +950,10 @@ fun FeedbackScreen(
                                 }
                             },
                             enabled = body.trim().isNotEmpty() && !submitting,
+                            shape = RoundedCornerShape(8.dp),
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = palette.brandNavy,
-                                contentColor = palette.onBrandNavy
+                                containerColor = palette.brandOrange,
+                                contentColor = palette.onBrandOrange
                             ),
                             modifier = Modifier.fillMaxWidth()
                         ) {
@@ -1023,8 +1089,8 @@ fun WatchReminderScreen(
                     )
                     Text(
                         text = tr(
-                            "넷플릭스, 티빙, 웨이브, 쿠팡플레이, 디즈니+, 왓챠, 프라임 비디오, 애플 TV 앱을 5분 이상 감상한 뒤 마치면 부드럽게 기록 알림을 보내드려요. 앱 사용 기록은 오직 기기 안에서만 확인하며 절대 서버로 전송되지 않아요.",
-                            "Detects 5+ minutes of viewing on Netflix, TVING, Wavve, Coupang Play, Disney+, Watcha, Prime Video, or Apple TV purely on-device (never sent to any server)."
+                            "넷플릭스, 티빙, 웨이브, 쿠팡플레이, 디즈니+, 왓챠, 프라임 비디오, 애플 TV 앱을 20분 이상 감상한 뒤 마치면 부드럽게 기록 알림을 보내드려요. 앱 사용 기록은 오직 기기 안에서만 확인하며 절대 서버로 전송되지 않아요.",
+                            "Detects 20+ minutes of viewing on Netflix, TVING, Wavve, Coupang Play, Disney+, Watcha, Prime Video, or Apple TV purely on-device (never sent to any server)."
                         ),
                         style = MaterialTheme.typography.bodySmall,
                         color = palette.mutedInk

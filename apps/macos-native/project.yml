@@ -1,0 +1,65 @@
+name: OttlineMac
+options:
+  bundleIdPrefix: app
+  deploymentTarget:
+    macOS: "14.0"
+  generateEmptyDirectories: true
+packages:
+  OttlineCore:
+    path: ../apple-core
+settings:
+  base:
+    MARKETING_VERSION: "2.0.0"
+    CURRENT_PROJECT_VERSION: "27"
+    SWIFT_VERSION: "5.0"
+    MACOSX_DEPLOYMENT_TARGET: "14.0"
+    ENABLE_USER_SCRIPT_SANDBOXING: NO
+targets:
+  OttlineMacApp:
+    type: application
+    platform: macOS
+    deploymentTarget: "14.0"
+    sources:
+      - path: Sources/OttlineMacApp
+        excludes:
+          - "Info.plist"
+          - "OttlineMacApp.entitlements"
+      - path: ../ios-native/Sources/OttlineApp/Resources/Fonts
+        buildPhase: resources
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: app.ottline
+        PRODUCT_NAME: ottline
+        PRODUCT_MODULE_NAME: OttlineMacApp
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        INFOPLIST_FILE: Sources/OttlineMacApp/Info.plist
+        CODE_SIGN_ENTITLEMENTS: Sources/OttlineMacApp/OttlineMacApp.entitlements
+    dependencies:
+      - package: OttlineCore
+      - sdk: libsqlite3.tbd
+
+  OttlineMacTests:
+    type: bundle.unit-test
+    platform: macOS
+    deploymentTarget: "14.0"
+    sources:
+      - path: Tests/OttlineMacTests
+    dependencies:
+      - package: OttlineCore
+      - target: OttlineMacApp
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: app.ottline.mac.tests
+        GENERATE_INFOPLIST_FILE: YES
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/ottline.app/Contents/MacOS/ottline"
+        BUNDLE_LOADER: "$(TEST_HOST)"
+
+schemes:
+  OttlineMacApp:
+    build:
+      targets:
+        OttlineMacApp: all
+        OttlineMacTests: [test]
+    test:
+      targets:
+        - OttlineMacTests

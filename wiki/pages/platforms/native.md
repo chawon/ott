@@ -1,31 +1,37 @@
-# iOS 앱
+# iOS·iPadOS 네이티브 v2
 
-기준일 2026-11-20. iOS는 App Store에서 Expo 기반 `1.0.4`를 배포 중이며 SwiftUI 기반 v2의 통합 PR이 열려 있다.
+기준일 2026-11-22. 사용자가 iOS·iPadOS·macOS 출시 완료를 확인했다. iPhone·iPad의 현재 App Store 공개판은 SwiftUI v2 `2.0.0`이며, 제출 빌드는 `27`이다. 기존 Expo `1.0.4 (24)`에서 공개 앱으로 업데이트할 때 데이터 보존을 확인하는 작업은 후속 추적한다.
 
 ## 운영 앱
 
 | 항목 | 확인 내용 |
-|---|---|
-| App Store | `1.0.4` build `24`. 공개 버전은 Apple 한국 스토어 조회, 빌드 번호는 제출 이력으로 확인 |
-| 소스 | `main`의 [apps/native](../../../apps/native/) |
+| --- | --- |
+| App Store | [iPhone·iPad 설치](https://apps.apple.com/app/id6780318110). iOS 공개 버전 `2.0.0`은 [Apple 한국 공개 조회](https://itunes.apple.com/lookup?id=6780318110&country=kr&entity=software), 제출 빌드 `27`은 제출 기록으로 확인 |
+| 소스 | [apps/ios-native](../../../apps/ios-native/)와 공용 [apps/apple-core](../../../apps/apple-core/) |
 | 앱 식별자 | Bundle ID `app.ottline`, Apple ID `6780318110` |
-| 기술 | Expo SDK 55, React Native `0.83.10`, Expo Router, SQLite, SecureStore |
-| 배포 | [Native iOS CI](../../../.github/workflows/native-ios-ci.yml), [Native iOS TestFlight](../../../.github/workflows/native-ios-testflight.yml), EAS, App Store Connect |
-| 도서 검색 | 공개 앱은 Kakao 검색과 이전 Naver 기록의 호환을 유지한다. `main` 소스의 Google Books capability는 다음에 해당 코드를 포함한 빌드에서 적용된다 |
+| 기술·지원 OS | SwiftUI, SwiftPM 공용 코어, SQLite·Outbox 동기화. iOS/iPadOS `16.0+` |
+| 검증·배포 | [SwiftUI iOS CI](../../../.github/workflows/native-ios-v2-ci.yml), [서명·TestFlight 워크플로우](../../../.github/workflows/native-ios-v2-release.yml), App Store Connect |
+| 개발 시작 | [SwiftUI 개발 및 배포 가이드](../../../apps/ios-native/DEVELOPMENT.md) |
 
-공개 버전과 빌드 근거는 [App Store](https://apps.apple.com/kr/app/ottline/id6780318110), [Apple 공개 조회](https://itunes.apple.com/lookup?id=6780318110&country=kr), [EAS 빌드 24](https://expo.dev/accounts/ergate23/projects/ottline/builds/057972ad-3c10-4a59-9e5b-ef051c1a160d)에서 확인할 수 있다. 실제 업데이트 설치 후 기록·수정과 운영 지표 확인은 [1.0 출시 체크리스트](../../../docs/archive/ios/ios-app-store-launch-checklist.md)에 남아 있다.
+공개 조회의 `currentVersionReleaseDate`는 `2026-11-21T23:11:02Z`(`2026-11-22 08:11 KST`), `features`는 `iosUniversal`이다. macOS 출시 여부는 이 iOS 조회로 추론하지 않으며, 사용자의 세 플랫폼 출시 확인과 [출시 완료 카드](https://github.com/users/chawon/projects/1/views/2?pane=issue&itemId=313827691)를 따른다.
 
-실행, 검증, 다음 EAS 빌드 번호 관리는 [iOS 개발 및 배포 가이드](../../../apps/native/DEVELOPMENT.md)를 따른다.
+## SwiftUI v2 전환과 검증 근거
 
-## SwiftUI v2 전환
+- [PR #137](https://github.com/chawon/ott/pull/137)(`main` `d0844fc`, 코드 `2634fdc`)으로 iOS·macOS·공통 SwiftPM 패키지가 main에 통합됐다.
+- Expo SecureStore·SQLite 이전, WidgetKit, 공유 확장, Siri 단축어, Handoff, iPad 2컬럼 레이아웃, 2단계 포스터 캐시, 온디바이스 공유 카드 생성, 미래의 타임라인 복구(`#142`), `ObservableObject` 메인 스레드 발행 안전화를 구현했다.
+- `2026-11-21` `OttlineTests` 18/18·[iOS SwiftUI CI](https://github.com/chawon/ott/actions/runs/44897582945) 통과 및 실기기(iPhone X `iOS 16.7.16`, iPad 10세대) 검증을 마쳤다. Release `2.0.0 (27)`(`OttlineWidgetExtension`·`OttlineShareExtension` 포함)과 한·영 스크린샷을 App Store Connect에 제출했다.
+- `2026-11-22` 사용자 출시 확인을 반영했다. 공개 스토어판의 기존 Expo 인플레이스 업데이트 시 계정·기록·미동기화 변경 보존은 [출시 후 검증](https://github.com/users/chawon/projects/1/views/2?pane=issue&itemId=312000240)에서 확인한다.
+- [Apple 큐레이터 제거](https://github.com/users/chawon/projects/1/views/2?pane=issue&itemId=313279211)와 [iPad 함께 2단 점검](https://github.com/users/chawon/projects/1/views/2?pane=issue&itemId=313285015)은 출시 선행 조건을 충족했으며 후속 `2.0.1` 대상이다. [담당 업무와 완료 조건](../../../docs/changes/v2-follow-up.md#2-apple-v2-업데이트-검증)
 
-- [PR #137](https://github.com/chawon/ott/pull/137)의 `feature/ios-native-v2` 브랜치가 iOS `apps/ios-native`, macOS `apps/macos-native`, 공통 SwiftPM 패키지 `apps/apple-core`를 함께 추가한다.
-- iOS v2에서 Expo SecureStore·SQLite 이전, WidgetKit, 공유 확장, Siri 단축어, Handoff, iPad 레이아웃을 구현했다. PR의 [iOS SwiftUI CI](https://github.com/chawon/ott/actions/runs/44558347502)와 [macOS SwiftUI CI](https://github.com/chawon/ott/actions/runs/44558347464)가 성공했다.
-- PR 병합, 실제 iPhone의 1.0.4 업데이트와 데이터 이전 검증, v2 TestFlight·App Store 배포는 확인이 남아 있다.
+## 이전 Expo 설치판
 
-## 관련 문서
+[apps/native](../../../apps/native/)는 이전 Expo React Native 앱의 소스다. `1.0.4 (24)`의 EAS 제출 기록과 데이터 이전 근거를 보존한다. 현재 SwiftUI 앱의 빌드·배포 시작점은 위 가이드를 따른다.
 
-- [카카오 도서 검색 및 iOS 1.0.4 배포 기록](../../../docs/native-kakao-books.md)
-- [영어 도서 검색](../../../docs/google-books-en-search.md)
-- [초기 Expo TestFlight 제출 이력](../../../docs/archive/ios/ios-testflight-review-notes.md)
+- [Expo 개발·배포 가이드](../../../apps/native/DEVELOPMENT.md) · [EAS 빌드 24](https://expo.dev/accounts/ergate23/projects/ottline/builds/057972ad-3c10-4a59-9e5b-ef051c1a160d)
+- [카카오 도서 검색 및 iOS 1.0.4 배포 기록](../../../docs/native-kakao-books.md) · [영어 도서 검색의 기존 앱 호환](../../../docs/google-books-en-search.md)
+- [1.0 출시 체크리스트](../../../docs/archive/ios/ios-app-store-launch-checklist.md) · [초기 Expo TestFlight 제출 이력](../../../docs/archive/ios/ios-testflight-review-notes.md)
+
+## 관련 플랫폼
+
+- [macOS 네이티브](macos-native.md)
 - [Android 네이티브](android-native.md)

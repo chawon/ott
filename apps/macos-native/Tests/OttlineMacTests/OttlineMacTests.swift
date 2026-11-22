@@ -1,0 +1,370 @@
+import AppKit
+import XCTest
+@testable import OttlineCore
+@testable import OttlineMacApp
+
+final class OttlineMacTests: XCTestCase {
+    func testMacCorePlatformPathsPreferencesAndShareDrain() async throws {
+        XCTAssertNotNil(NSImage(named: "menubar_icon"))
+        let suiteName = "ottline.mac.test.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+
+        let prefs = AppPreferences(
+            defaults: defaults,
+            groupDefaults: defaults,
+            keychainService: "app.ottline.mac.test.\(UUID().uuidString)"
+        )
+        XCTAssertTrue(prefs.snapshot.macosMenuBarEnabled)
+        prefs.setMacosMenuBarEnabled(false)
+        XCTAssertFalse(prefs.snapshot.macosMenuBarEnabled)
+
+        let db = OttlineDatabase()
+        XCTAssertTrue(db.databasePath.contains("app.ottline/OttlineDB/ottline_v2.db"))
+
+        let yt = ShareIntentParser.parse(sharedText: "인셉션 4K 리뷰 - YouTube https://youtu.be/xyz")
+        XCTAssertEqual(yt.query, "인셉션 4K 리뷰")
+        XCTAssertEqual(yt.suggestedPlatform, "YouTube")
+
+        let entry = SharedExtensionLogEntry(
+            id: "mac-shared-1",
+            title: Title(id: "t-mac-1", provider: .tmdb, providerId: "27205", type: .movie, name: "인셉션"),
+            status: .done,
+            rating: 5.0,
+            note: "맥 테스트 기록",
+            ott: "넷플릭스",
+            watchedAt: "2026-11-17T11:00:00Z",
+            createdAt: "2026-11-17T11:00:00Z"
+        )
+        prefs.enqueueSharedExtensionLog(entry)
+
+        let tempDbPath = FileManager.default.temporaryDirectory
+            .appendingPathComponent("mac_test_\(UUID().uuidString).db")
+            .path
+        let repo = OttlineRepository(db: OttlineDatabase(path: tempDbPath), prefs: prefs, api: OttlineApiClient(prefs: prefs))
+        let count = await repo.drainSharedExtensionQueue()
+        XCTAssertEqual(count, 1)
+        XCTAssertEqual(repo.logs.first?.id, "mac-shared-1")
+
+        // Verify on-device share card PNG generation (`1080x1920` Story & `1080x1350` Feed) & temporary file export
+        let sampleLog = repo.logs.first!
+        let storyImg = await MacImageExportHelper.renderShareCardImage(
+            log: sampleLog,
+            ratioKey: "9:16",
+            showRatingLabel: true,
+            includeNote: true,
+            includeSignature: true,
+            nickname: "밤산책",
+            personaKey: .cinemaKeeper,
+            locale: "ko"
+        )
+        let storyRep = try XCTUnwrap(storyImg.representations.compactMap { $0 as? NSBitmapImageRep }.first)
+        XCTAssertEqual(storyRep.pixelsWide, 1080)
+        XCTAssertEqual(storyRep.pixelsHigh, 1920)
+
+        let feedImg = await MacImageExportHelper.renderShareCardImage(
+            log: sampleLog,
+            ratioKey: "4:5",
+            showRatingLabel: true,
+            includeNote: true,
+            includeSignature: false,
+            locale: "en"
+        )
+        let feedRep = try XCTUnwrap(feedImg.representations.compactMap { $0 as? NSBitmapImageRep }.first)
+        XCTAssertEqual(feedRep.pixelsWide, 1080)
+        XCTAssertEqual(feedRep.pixelsHigh, 1350)
+
+        let cardImg = await MainActor.run {
+            MacImageExportHelper.renderFallbackShareCard(log: sampleLog, ratioKey: "9:16", locale: "ko")
+        }
+        XCTAssertGreaterThan(cardImg.size.width, 0)
+        guard let pngData = MacImageExportHelper.pngData(from: storyImg) else {
+            return XCTFail("Expected PNG data from on-device share card")
+        }
+        XCTAssertGreaterThan(pngData.count, 8)
+        XCTAssertEqual(Array(pngData.prefix(4)), [0x89, 0x50, 0x4E, 0x47])
+        guard let tempUrl = MacImageExportHelper.writeTempSharePng(data: pngData, titleName: "인셉션: 1부/2부") else {
+            return XCTFail("Expected temporary share PNG URL")
+        }
+        defer { try? FileManager.default.removeItem(at: tempUrl) }
+        XCTAssertTrue(FileManager.default.fileExists(atPath: tempUrl.path))
+        XCTAssertEqual(tempUrl.pathExtension.lowercased(), "png")
+    }
+
+    func testFeaturedPosterLayoutAndBookCoverResolution() {
+        let standard = MacFeaturedBodyLayout.metrics(forTotalWidth: 749)
+        XCTAssertEqual(standard.posterWidth, 332)
+        XCTAssertEqual(standard.posterHeight, 498)
+        XCTAssertEqual(standard.storyWidth, 391)
+
+        let wide = MacFeaturedBodyLayout.metrics(forTotalWidth: 809)
+        XCTAssertEqual(wide.posterWidth, 359)
+        XCTAssertEqual(wide.posterHeight, 539)
+        XCTAssertEqual(wide.storyWidth, 424)
+
+        let narrow = MacFeaturedBodyLayout.metrics(forTotalWidth: 280)
+        XCTAssertGreaterThanOrEqual(narrow.posterWidth, 135)
+        XCTAssertEqual(narrow.posterHeight, round(narrow.posterWidth * 1.5))
+
+        let kakaoThumb = "https://search1.kakaocdn.net/thumb/R120x174.q85/?fname=http%3A%2F%2Ft1.daumcdn.net%2Flbook%2Fimage%2F542617"
+        XCTAssertEqual(
+            MacFeaturedPosterView.originalBookCoverUrl(kakaoThumb),
+            "https://t1.daumcdn.net/lbook/image/542617"
+        )
+        XCTAssertNil(MacFeaturedPosterView.originalBookCoverUrl("https://example.com/thumb/R120x174/?fname=https://t1.daumcdn.net/lbook/image/542617"))
+        XCTAssertNil(MacFeaturedPosterView.originalBookCoverUrl("https://search1.kakaocdn.net/thumb/R120x174.q85/?fname=https://evil.example/lbook/image/542617"))
+
+        let movieCandidates = MacFeaturedPosterView.candidateUrls(
+            posterUrl: "https://image.tmdb.org/t/p/w342/abc.jpg",
+            titleType: .movie
+        )
+        XCTAssertEqual(movieCandidates.first?.absoluteString, "https://image.tmdb.org/t/p/w780/abc.jpg")
+    }
+
+    func testMacClientPlatformHeaderAndDeviceDisplayName() {
+        XCTAssertEqual(OttlineApiClient.defaultClientPlatform, "macos_native")
+        XCTAssertEqual(OttlineApiClient.defaultDeviceName, "Mac (ottline)")
+        XCTAssertEqual(
+            DeviceItem(id: "d1", os: "macOS", browser: "Unknown Browser").displayName,
+            "macOS"
+        )
+        XCTAssertEqual(
+            DeviceItem(id: "d2", os: "macOS", browser: "macOS App").displayName,
+            "macOS App · macOS"
+        )
+    }
+
+    func testUniversalQuickLinkAliasesAndBrowserHandoffMerge() async throws {
+        final class HandoffMockProtocol: URLProtocol {
+            static var seenClientPlatforms: [String] = []
+            static var seenPaths: [String] = []
+
+            override class func canInit(with request: URLRequest) -> Bool { true }
+            override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
+
+            override func startLoading() {
+                if let plat = request.value(forHTTPHeaderField: "X-Client-Platform") {
+                    Self.seenClientPlatforms.append(plat)
+                }
+                let path = request.url?.path ?? ""
+                Self.seenPaths.append(path)
+
+                let body: String
+                if path == "/api/auth/register" {
+                    body = #"{"userId":"u-temp","deviceId":"d-mac-temp","pairingCode":"TEMP0001"}"#
+                } else if path == "/api/sync/push" {
+                    body = #"{"results":[]}"#
+                } else if path == "/api/auth/pair" {
+                    body = #"{"userId":"u-web","deviceId":"d-mac-paired","pairingCode":"ABCD2345","mergedLogsCount":1}"#
+                } else if path == "/api/auth/profile" {
+                    body = #"{"userId":"u-web","nickname":"밤산책","personaKey":"book_drifter","pairingCode":"ABCD2345"}"#
+                } else if path == "/api/sync/pull" {
+                    body = #"{"serverTime":"2026-11-18T14:00:00Z","titles":[],"logs":[],"history":[]}"#
+                } else {
+                    body = "{}"
+                }
+
+                let response = HTTPURLResponse(
+                    url: request.url!,
+                    statusCode: 200,
+                    httpVersion: nil,
+                    headerFields: ["Content-Type": "application/json"]
+                )!
+                client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
+                client?.urlProtocol(self, didLoad: Data(body.utf8))
+                client?.urlProtocolDidFinishLoading(self)
+            }
+
+            override func stopLoading() {}
+        }
+
+        let suiteName = "ottline.mac.handoff.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+
+        let prefs = AppPreferences(
+            defaults: defaults,
+            groupDefaults: nil,
+            keychainService: "app.ottline.mac.handoff.\(UUID().uuidString)"
+        )
+        prefs.setLocale("ko")
+
+        let tempDbPath = FileManager.default.temporaryDirectory
+            .appendingPathComponent("mac_handoff_\(UUID().uuidString).db")
+            .path
+        defer { try? FileManager.default.removeItem(atPath: tempDbPath) }
+
+        HandoffMockProtocol.seenClientPlatforms = []
+        HandoffMockProtocol.seenPaths = []
+        let config = URLSessionConfiguration.ephemeral
+        config.protocolClasses = [HandoffMockProtocol.self]
+        let mockSession = URLSession(configuration: config)
+
+        let repo = OttlineRepository(
+            db: OttlineDatabase(path: tempDbPath),
+            prefs: prefs,
+            api: OttlineApiClient(prefs: prefs, session: mockSession)
+        )
+        let appState = OttlineMacAppState()
+
+        // 1. Standard `ottline://quick?quick=1&title=...&q=...&platform=...&type=video`
+        let quickUrl = URL(string: "ottline://quick?quick=1&title=%EB%8D%94%20%EB%B2%A0%EC%96%B4&q=%EB%8D%94%20%EB%B2%A0%EC%96%B4&platform=Netflix&type=video&source_url=https://netflix.com/watch/1")!
+        appState.handleIncomingUrl(quickUrl, repository: repo)
+        XCTAssertEqual(appState.quickRecordRequest?.initialQuery, "더 베어")
+        XCTAssertEqual(appState.quickRecordRequest?.initialTypeTab, "video")
+        XCTAssertEqual(appState.quickRecordRequest?.prefilledPlatform, "Netflix")
+
+        // 2. Alias parsing (`capture_title`, `capture_platform`, `capture_type`, `id`)
+        let aliasUrl = URL(string: "ottline://quick-record?capture_title=Dune&capture_platform=Apple%20Books&capture_type=book&id=t-99")!
+        XCTAssertEqual(
+            OttlineDeepLinkParser.parse(aliasUrl),
+            .quickRecord(ParsedQuickRecordLink(query: "Dune", typeTab: "book", platform: "Apple Books", titleId: "t-99"))
+        )
+
+        // 3. Handoff start URL & empty status guidance
+        let startUrl = try XCTUnwrap(repo.buildBrowserHandoffStartUrl())
+        XCTAssertTrue(startUrl.absoluteString.hasPrefix("https://ottline.app/ko?native_handoff=1&ts="))
+
+        let emptyOutcome = await repo.importBrowserHandoff(ParsedBrowserHandoff(status: "empty"))
+        XCTAssertFalse(emptyOutcome.success)
+        XCTAssertTrue(emptyOutcome.message.contains("8자리 연결 코드"))
+
+        // 4. Seed 1 offline local record, then receive `ottline://open?handoff=1&status=ok...` and verify lossless merge
+        _ = await repo.saveLogForTitle(
+            candidateTitle: Title(id: "local-t-1", provider: .tmdb, providerId: "155", type: .movie, name: "다크 나이트"),
+            draft: LogDraft(status: .done, watchedAt: "2026-11-18T10:00:00Z")
+        )
+        let okUrl = URL(string: "ottline://open?handoff=1&status=ok&user_id=u-web&device_id=d-web&pairing_code=abcd2345&nickname=%EB%B0%A4%EC%82%B0%EC%B1%85&persona_key=book_drifter")!
+        guard case .browserHandoff(let parsedOk) = OttlineDeepLinkParser.parse(okUrl) else {
+            return XCTFail("Expected browserHandoff parse result")
+        }
+        let okOutcome = await repo.importBrowserHandoff(parsedOk)
+        XCTAssertTrue(okOutcome.success)
+        XCTAssertTrue(HandoffMockProtocol.seenPaths.contains("/api/auth/register"))
+        XCTAssertTrue(HandoffMockProtocol.seenPaths.contains("/api/sync/push"))
+        XCTAssertTrue(HandoffMockProtocol.seenPaths.contains("/api/auth/pair"))
+        XCTAssertTrue(HandoffMockProtocol.seenPaths.contains("/api/sync/pull"))
+        XCTAssertTrue(HandoffMockProtocol.seenClientPlatforms.allSatisfy { $0 == "macos_native" })
+        XCTAssertEqual(prefs.snapshot.userId, "u-web")
+        XCTAssertEqual(prefs.snapshot.deviceId, "d-mac-paired")
+        XCTAssertNotEqual(prefs.snapshot.deviceId, "d-web")
+        XCTAssertEqual(prefs.snapshot.pairingCode, "ABCD2345")
+        XCTAssertEqual(prefs.snapshot.nickname, "밤산책")
+        XCTAssertEqual(prefs.snapshot.personaKey, .bookDrifter)
+    }
+
+    func testMacFutureTimeline202PollingDroppedRecoveryAndCrossLocaleIsolation() async {
+        final class MacMockRecTransport: RecommendationTransport, @unchecked Sendable {
+            private let lock = NSLock()
+            private var states: [Result<RecommendationState, Error>] = []
+            private var fallback: RecommendationState
+            private var onGenerate: ((String) async throws -> (Int, RecommendationState))?
+            private(set) var requestIds: [String] = []
+
+            init(initial: RecommendationState) { self.fallback = initial }
+            func setFallback(_ s: RecommendationState) { lock.withLock { fallback = s } }
+            func enqueue(_ list: [Result<RecommendationState, Error>]) { lock.withLock { states.append(contentsOf: list) } }
+            func setOnGenerate(_ fn: @escaping (String) async throws -> (Int, RecommendationState)) { lock.withLock { onGenerate = fn } }
+
+            func getRecommendationState() async throws -> RecommendationState {
+                let res: Result<RecommendationState, Error> = lock.withLock {
+                    states.isEmpty ? .success(fallback) : states.removeFirst()
+                }
+                return try res.get()
+            }
+
+            func generateRecommendations(requestId: String) async throws -> (statusCode: Int, state: RecommendationState) {
+                let fn = lock.withLock { () -> ((String) async throws -> (Int, RecommendationState))? in
+                    requestIds.append(requestId)
+                    return onGenerate
+                }
+                if let fn { return try await fn(requestId) }
+                return (200, lock.withLock { fallback })
+            }
+
+            func excludeRecommendation(_ item: RecommendationItem) async throws -> RecommendationExclusion {
+                RecommendationExclusion(key: "k-\(item.name)", name: item.name, type: item.type)
+            }
+
+            func restoreRecommendationExclusion(key: String) async throws {}
+        }
+
+        XCTAssertEqual(OttlineApiClient.recommendationGenerateTimeoutSeconds, 90)
+        XCTAssertTrue(OttlineApiClient.defaultUserAgent.contains("Macintosh; Mac OS X"))
+
+        let suiteName = "ottline.mac.future.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let prefs = AppPreferences(
+            defaults: defaults,
+            groupDefaults: nil,
+            keychainService: "app.ottline.mac.future.\(UUID().uuidString)"
+        )
+
+        func makeState(items: [RecommendationItem], used: Int, genId: String?, generating: Bool = false) -> RecommendationState {
+            RecommendationState(
+                items: items,
+                exclusions: [],
+                quota: RecommendationQuota(date: "2026-11-21", timezone: "Asia/Seoul", limit: 3, used: used, remaining: max(0, 3 - used), resetsAt: "2026-11-22T00:00:00+09:00"),
+                generatedAt: items.isEmpty ? nil : "2026-11-21T15:00:00+09:00",
+                generationId: genId,
+                generating: generating,
+                hasBatch: !items.isEmpty,
+                eligible: true
+            )
+        }
+
+        let prevItem = RecommendationItem(name: "맥 기존작", type: .movie, reason: "이전")
+        let doneItem = RecommendationItem(name: "맥 복구작", type: .series, reason: "202 폴링 복구")
+        let sInitial = makeState(items: [prevItem], used: 1, genId: "mac-gen-1")
+        let sRunning = makeState(items: [prevItem], used: 1, genId: "mac-gen-1", generating: true)
+        let sOtherLocaleDone = makeState(items: [prevItem], used: 2, genId: "mac-gen-1", generating: false)
+        let sCompleted = makeState(items: [doneItem], used: 3, genId: "mac-req-2", generating: false)
+
+        let transport = MacMockRecTransport(initial: sInitial)
+        var attempt = 0
+        transport.setOnGenerate { _ in
+            attempt += 1
+            if attempt == 1 {
+                return (202, sRunning)
+            }
+            // Retry drops response while server completes
+            transport.setFallback(sCompleted)
+            throw URLError(.timedOut)
+        }
+        transport.enqueue([
+            .success(sInitial),
+            .failure(URLError(.networkConnectionLost)),
+            .success(sOtherLocaleDone), // other locale finished -> NOT success for ko!
+            .success(sOtherLocaleDone), // retry pre-check `/state`
+            .success(sCompleted)        // post-drop recovery `/state`
+        ])
+
+        let coord = FutureTimelineCoordinator(
+            transport: transport,
+            attemptStore: prefs,
+            ensureUserId: { "mac-user-1" },
+            pollIntervalNanoseconds: 1_000_000,
+            maxPollAttempts: 8,
+            maxConsecutivePollErrors: 3,
+            uuidGenerator: { "mac-req-2" }
+        )
+
+        await coord.loadState(locale: "ko")
+        await coord.requestGeneration(locale: "ko")
+
+        // After 202 polling through transient error, other locale finished -> preserved previous batch + same requestId
+        XCTAssertEqual(coord.state.items.map(\.name), ["맥 기존작"])
+        XCTAssertTrue(coord.hasPendingAttempt)
+        XCTAssertNotNil(coord.errorMessage)
+        XCTAssertEqual(prefs.pendingRecommendationRequestId(userId: "mac-user-1", locale: "ko"), "mac-req-2")
+
+        // Retry uses exact same `mac-req-2`, drops response, and recovers completed batch from `/state`
+        await coord.requestGeneration(locale: "ko")
+        XCTAssertEqual(transport.requestIds, ["mac-req-2", "mac-req-2"])
+        XCTAssertEqual(coord.state.items.map(\.name), ["맥 복구작"])
+        XCTAssertEqual(coord.state.quota.used, 3)
+        XCTAssertFalse(coord.hasPendingAttempt)
+        XCTAssertNil(coord.errorMessage)
+    }
+}
