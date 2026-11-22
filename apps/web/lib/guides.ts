@@ -59,6 +59,9 @@ export type GuideHubDocument = {
   title: string;
   description: string;
   cardLabel: string;
+  connectionTitle: string;
+  connectionDescription: string;
+  connectionAction: string;
   closingTitle: string;
   closingDescription: string;
 };
@@ -74,6 +77,10 @@ const koHub: GuideHubDocument = {
   description:
     "방금 본 작품도, 오래 곁에 둔 책도 필요한 만큼만 적어두세요. 검색부터 타임라인까지, ottline의 기록 흐름을 차근차근 안내할게요.",
   cardLabel: "안내 보기",
+  connectionTitle: "Mac·iPhone·iPad에서도 이어서 기록해요",
+  connectionDescription:
+    "기록이 있는 기기의 ‘내 공간’에서 기록 연결 코드를 확인해 주세요. 새 기기의 ‘내 공간’에 같은 코드를 입력하면 웹과 앱에서 기록을 이어볼 수 있어요.",
+  connectionAction: "사용할 앱 살펴보기",
   closingTitle: "정답 없이, 내 방식대로 남겨요",
   closingDescription:
     "느낌이나 메모는 선택이에요. 제목과 상태만 남겨도 타임라인이 시작돼요.",
@@ -88,6 +95,10 @@ const enHub: GuideHubDocument = {
   description:
     "Save the details that matter now and leave the rest for later. These guides walk through the simple path from finding a title to seeing it on your timeline.",
   cardLabel: "Read the guide",
+  connectionTitle: "Keep your timeline with you",
+  connectionDescription:
+    "Find your record connection code in My space on a device that has your records. Enter it in My space on your Mac, iPhone, or iPad to continue the same timeline across the web and apps.",
+  connectionAction: "Explore the apps",
   closingTitle: "Your records can be as simple as you like",
   closingDescription:
     "A title and a status are enough. You can add a feeling or a note whenever you like.",

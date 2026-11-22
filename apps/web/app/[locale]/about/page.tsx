@@ -1,9 +1,9 @@
 import {
   Apple,
   ArrowRight,
-  Bot,
   ExternalLink,
   Globe,
+  Laptop,
   type LucideIcon,
   MonitorDown,
   Puzzle,
@@ -44,7 +44,6 @@ type PlatformItem = {
   description: string;
   icon: LucideIcon;
   links?: PlatformLink[];
-  status?: string;
 };
 
 export async function generateMetadata({
@@ -146,6 +145,19 @@ export default function AboutPage() {
       ],
     },
     {
+      title: tAbout("platformMacosTitle"),
+      description: tAbout("platformMacosDesc"),
+      icon: Laptop,
+      links: [
+        {
+          href: storeUrls.macAppStore,
+          label: tAbout("platformMacosLink"),
+          external: true,
+          icon: Store,
+        },
+      ],
+    },
+    {
       title: tAbout("platformWindowsTitle"),
       description: tAbout("platformWindowsDesc"),
       icon: MonitorDown,
@@ -176,12 +188,6 @@ export default function AboutPage() {
         },
       ],
     },
-    {
-      title: tAbout("platformChatGptTitle"),
-      description: tAbout("platformChatGptDesc"),
-      icon: Bot,
-      status: tAbout("platformPreparing"),
-    },
   ];
 
   return (
@@ -211,7 +217,7 @@ export default function AboutPage() {
           </p>
         </section>
 
-        <section className="space-y-6">
+        <section id="platforms" className="space-y-6">
           <div className="space-y-2">
             <h2 className="border-b border-border pb-2 text-xl font-semibold">
               {tAbout("platformsTitle")}
@@ -234,7 +240,7 @@ export default function AboutPage() {
                       {String(index + 1).padStart(2, "0")}
                     </div>
                     <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-border bg-background text-foreground">
-                      <PlatformIcon className="h-4 w-4" />
+                      <PlatformIcon aria-hidden="true" className="h-4 w-4" />
                     </div>
                   </div>
                   <h3 className="mt-3 font-medium">{platform.title}</h3>
@@ -247,10 +253,16 @@ export default function AboutPage() {
                         const LinkIcon = link.icon;
                         const content = (
                           <>
-                            <LinkIcon className="h-3.5 w-3.5" />
+                            <LinkIcon
+                              aria-hidden="true"
+                              className="h-3.5 w-3.5"
+                            />
                             <span>{link.label}</span>
                             {link.external ? (
-                              <ExternalLink className="h-3 w-3" />
+                              <ExternalLink
+                                aria-hidden="true"
+                                className="h-3 w-3"
+                              />
                             ) : null}
                           </>
                         );
@@ -285,11 +297,6 @@ export default function AboutPage() {
                           </IntlLink>
                         );
                       })}
-                    </div>
-                  ) : null}
-                  {platform.status ? (
-                    <div className="mt-4 inline-flex items-center rounded-full bg-amber-100 px-3 py-1.5 text-xs font-medium text-amber-900">
-                      {platform.status}
                     </div>
                   ) : null}
                 </article>
