@@ -1089,8 +1089,8 @@ fun WatchReminderScreen(
                     )
                     Text(
                         text = tr(
-                            "넷플릭스, 티빙, 웨이브, 쿠팡플레이, 디즈니+, 왓챠, 프라임 비디오, 애플 TV 앱을 5분 이상 감상한 뒤 마치면 부드럽게 기록 알림을 보내드려요. 앱 사용 기록은 오직 기기 안에서만 확인하며 절대 서버로 전송되지 않아요.",
-                            "Detects 5+ minutes of viewing on Netflix, TVING, Wavve, Coupang Play, Disney+, Watcha, Prime Video, or Apple TV purely on-device (never sent to any server)."
+                            "넷플릭스, 티빙, 웨이브, 쿠팡플레이, 디즈니+, 왓챠, 프라임 비디오, 애플 TV 앱을 20분 이상 감상한 뒤 마치면 부드럽게 기록 알림을 보내드려요. 앱 사용 기록은 오직 기기 안에서만 확인하며 절대 서버로 전송되지 않아요.",
+                            "Detects 20+ minutes of viewing on Netflix, TVING, Wavve, Coupang Play, Disney+, Watcha, Prime Video, or Apple TV purely on-device (never sent to any server)."
                         ),
                         style = MaterialTheme.typography.bodySmall,
                         color = palette.mutedInk
