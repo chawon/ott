@@ -10,7 +10,6 @@ import app.ottline.model.CreateCommentRequest
 import app.ottline.model.CreateDiscussionRequest
 import app.ottline.model.CreateFeedbackMessageRequest
 import app.ottline.model.CreateFeedbackThreadRequest
-import app.ottline.model.CuratedContent
 import app.ottline.model.DeviceInfo
 import app.ottline.model.Discussion
 import app.ottline.model.DiscussionListItem
@@ -21,7 +20,12 @@ import app.ottline.model.FeedbackCategory
 import app.ottline.model.FeedbackThreadDetail
 import app.ottline.model.FeedbackThreadSummary
 import app.ottline.model.PersonalReport
+import app.ottline.model.RecommendationExclusion
+import app.ottline.model.RecommendationExclusionItem
+import app.ottline.model.RecommendationGenerateRequest
+import app.ottline.model.RecommendationGenerateResult
 import app.ottline.model.RecommendationItem
+import app.ottline.model.RecommendationState
 import app.ottline.model.ResolveBookClassificationsRequest
 import app.ottline.model.ResolveBookClassificationsResponse
 import app.ottline.model.SeasonOption
@@ -39,31 +43,81 @@ import app.ottline.model.UpdateUserProfileRequest
 import app.ottline.model.UserProfile
 import app.ottline.model.WatchLog
 import app.ottline.model.WatchLogHistory
+import app.ottline.ui.layout.AdaptiveLayoutMetrics
 import java.io.IOException
 import java.net.URLEncoder
 import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import okhttp3.Call
+import okhttp3.Callback
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
+import okhttp3.Response
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
 
-class ApiException(
+open class ApiException(
     val statusCode: Int,
     override val message: String
 ) : IOException(message)
 
+class RecommendationApiException(
+    statusCode: Int,
+    message: String,
+    val state: RecommendationState? = null
+) : ApiException(statusCode, message)
+
+data class RecommendationTimeouts(
+    val stateReadTimeoutMs: Long = 10_000L,
+    val stateCallTimeoutMs: Long = 12_000L,
+    val generateReadTimeoutMs: Long = 125_000L,
+    val generateCallTimeoutMs: Long = 125_000L,
+    val exclusionReadTimeoutMs: Long = 20_000L,
+    val catalogReadTimeoutMs: Long = 20_000L
+)
+
 class OttlineApiClient(
     private val prefs: AppPreferences,
     val httpClient: OkHttpClient = defaultOkHttpClient(),
-    var onAuthRevoked: (() -> Unit)? = null
+    var onAuthRevoked: (() -> Unit)? = null,
+    val recommendationTimeouts: RecommendationTimeouts = RecommendationTimeouts(),
+    private val isTabletOverride: Boolean? = null
 ) {
+    private val recommendationStateClient: OkHttpClient by lazy {
+        httpClient.newBuilder()
+            .readTimeout(recommendationTimeouts.stateReadTimeoutMs, TimeUnit.MILLISECONDS)
+            .callTimeout(recommendationTimeouts.stateCallTimeoutMs, TimeUnit.MILLISECONDS)
+            .build()
+    }
+
+    private val recommendationGenerateClient: OkHttpClient by lazy {
+        httpClient.newBuilder()
+            .retryOnConnectionFailure(false)
+            .readTimeout(recommendationTimeouts.generateReadTimeoutMs, TimeUnit.MILLISECONDS)
+            .callTimeout(recommendationTimeouts.generateCallTimeoutMs, TimeUnit.MILLISECONDS)
+            .build()
+    }
+
+    private val recommendationExclusionClient: OkHttpClient by lazy {
+        httpClient.newBuilder()
+            .readTimeout(recommendationTimeouts.exclusionReadTimeoutMs, TimeUnit.MILLISECONDS)
+            .build()
+    }
+
+    private val recommendationCatalogClient: OkHttpClient by lazy {
+        httpClient.newBuilder()
+            .readTimeout(recommendationTimeouts.catalogReadTimeoutMs, TimeUnit.MILLISECONDS)
+            .build()
+    }
     val json = Json {
         ignoreUnknownKeys = true
         encodeDefaults = true
@@ -81,7 +135,13 @@ class OttlineApiClient(
     private fun userAgent(): String {
         val release = Build.VERSION.RELEASE ?: "15"
         val model = Build.MODEL ?: "Android"
-        return "Mozilla/5.0 (Linux; Android $release; $model) Chrome/134.0.0.0 Mobile Safari/537.36 ottline-android/${BuildConfig.VERSION_NAME}"
+        val isTablet = isTabletOverride ?: prefs.isTabletDevice
+        return AdaptiveLayoutMetrics.buildAndroidUserAgent(
+            release = release,
+            model = model,
+            versionName = BuildConfig.VERSION_NAME,
+            isTablet = isTablet
+        )
     }
 
     private fun buildRequest(
@@ -89,15 +149,19 @@ class OttlineApiClient(
         method: String = "GET",
         bodyJson: String? = null,
         includeAuth: Boolean = false,
-        extraHeaders: Map<String, String> = emptyMap()
+        extraHeaders: Map<String, String> = emptyMap(),
+        userIdOverride: String? = null,
+        deviceIdOverride: String? = null,
+        localeOverride: String? = null
     ): Request {
         val normalizedPath = if (path.startsWith("/")) path else "/$path"
         val fullUrl = "${apiRoot()}$normalizedPath"
         val snap = prefs.current
+        val effectiveLocale = localeOverride ?: snap.locale
         val builder = Request.Builder()
             .url(fullUrl)
             .header("Accept", "application/json")
-            .header("Accept-Language", snap.locale)
+            .header("Accept-Language", effectiveLocale)
             .header("X-Client-Platform", "android_native")
             .header("X-Book-Search-Capability", "google_books_v1")
             .header("User-Agent", userAgent())
@@ -108,8 +172,10 @@ class OttlineApiClient(
         }
 
         if (includeAuth) {
-            snap.userId?.let { builder.header("X-User-Id", it) }
-            snap.deviceId?.let { builder.header("X-Device-Id", it) }
+            val uid = userIdOverride ?: snap.userId
+            val did = deviceIdOverride ?: snap.deviceId
+            uid?.let { builder.header("X-User-Id", it) }
+            did?.let { builder.header("X-Device-Id", it) }
         }
 
         for ((k, v) in extraHeaders) {
@@ -361,13 +427,86 @@ class OttlineApiClient(
             includeAuth = true
         )
 
-    suspend fun getCuratedContents(limit: Int = 6): List<CuratedContent> =
-        runCatching {
-            executeJson<List<CuratedContent>>("/curated-contents?limit=$limit")
-        }.getOrDefault(emptyList())
-
     // --- Recommendations, Report, Feedback, Analytics ---
 
+    private fun parseRecommendationStateOrNull(raw: String): RecommendationState? {
+        if (raw.isBlank()) return null
+        return runCatching {
+            val obj = json.parseToJsonElement(raw).jsonObject
+            if (obj["quota"] != null && obj["items"] != null) {
+                json.decodeFromString<RecommendationState>(raw)
+            } else {
+                null
+            }
+        }.getOrNull()
+    }
+
+    private suspend fun Call.awaitResponse(): Response = suspendCancellableCoroutine { cont ->
+        cont.invokeOnCancellation {
+            runCatching { cancel() }
+        }
+        enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) {
+                if (!cont.isCancelled) {
+                    cont.resumeWithException(e)
+                }
+            }
+
+            override fun onResponse(call: Call, response: Response) {
+                if (cont.isCancelled) {
+                    response.close()
+                } else {
+                    cont.resume(response)
+                }
+            }
+        })
+    }
+
+    private suspend inline fun <reified T> executeRecommendationJson(
+        client: OkHttpClient,
+        path: String,
+        method: String = "GET",
+        bodyJson: String? = null,
+        userId: String,
+        deviceId: String,
+        locale: String
+    ): Pair<Int, T> = withContext(Dispatchers.IO) {
+        val request = buildRequest(
+            path = path,
+            method = method,
+            bodyJson = bodyJson,
+            includeAuth = true,
+            extraHeaders = mapOf("Cache-Control" to "no-store"),
+            userIdOverride = userId,
+            deviceIdOverride = deviceId,
+            localeOverride = locale
+        )
+        client.newCall(request).awaitResponse().use { response ->
+            val raw = response.body?.string().orEmpty()
+            if (!response.isSuccessful) {
+                if (response.code == 401 && prefs.current.userId == userId) {
+                    onAuthRevoked?.invoke()
+                }
+                val parsedState = parseRecommendationStateOrNull(raw)
+                val parsedMessage = runCatching {
+                    val obj = json.parseToJsonElement(raw).jsonObject
+                    obj["message"]?.jsonPrimitive?.content
+                        ?: obj["error"]?.jsonPrimitive?.content
+                }.getOrNull()
+                throw RecommendationApiException(
+                    statusCode = response.code,
+                    message = parsedMessage?.takeIf { it.isNotBlank() } ?: "HTTP ${response.code}",
+                    state = parsedState
+                )
+            }
+            if (T::class == Unit::class) {
+                return@withContext response.code to (Unit as T)
+            }
+            response.code to json.decodeFromString<T>(raw)
+        }
+    }
+
+    /** Legacy array endpoint kept for backward-compatibility verification with Android 2.0.4. */
     suspend fun getRecommendations(refresh: Boolean, excluded: Set<String>): List<RecommendationItem> {
         val params = buildList {
             if (refresh) add("refresh=true")
@@ -375,6 +514,100 @@ class OttlineApiClient(
         }.joinToString("&")
         val suffix = if (params.isNotEmpty()) "?$params" else ""
         return executeJson("/recommendations$suffix", includeAuth = true)
+    }
+
+    suspend fun getRecommendationState(
+        userId: String = prefs.current.userId.orEmpty(),
+        deviceId: String = prefs.current.deviceId.orEmpty(),
+        locale: String = prefs.current.locale
+    ): RecommendationState {
+        val (_, state) = executeRecommendationJson<RecommendationState>(
+            client = recommendationStateClient,
+            path = "/recommendations/state",
+            method = "GET",
+            userId = userId,
+            deviceId = deviceId,
+            locale = locale
+        )
+        return state
+    }
+
+    suspend fun generateRecommendations(
+        requestId: String,
+        userId: String = prefs.current.userId.orEmpty(),
+        deviceId: String = prefs.current.deviceId.orEmpty(),
+        locale: String = prefs.current.locale
+    ): RecommendationGenerateResult {
+        val (statusCode, state) = executeRecommendationJson<RecommendationState>(
+            client = recommendationGenerateClient,
+            path = "/recommendations/generate",
+            method = "POST",
+            bodyJson = json.encodeToString(RecommendationGenerateRequest(requestId = requestId)),
+            userId = userId,
+            deviceId = deviceId,
+            locale = locale
+        )
+        return RecommendationGenerateResult(statusCode = statusCode, state = state)
+    }
+
+    suspend fun putRecommendationExclusion(
+        item: RecommendationExclusionItem,
+        userId: String = prefs.current.userId.orEmpty(),
+        deviceId: String = prefs.current.deviceId.orEmpty(),
+        locale: String = prefs.current.locale
+    ): RecommendationExclusion {
+        val (_, exclusion) = executeRecommendationJson<RecommendationExclusion>(
+            client = recommendationExclusionClient,
+            path = "/recommendations/exclusions",
+            method = "PUT",
+            bodyJson = json.encodeToString(item),
+            userId = userId,
+            deviceId = deviceId,
+            locale = locale
+        )
+        return exclusion
+    }
+
+    suspend fun deleteRecommendationExclusion(
+        key: String,
+        userId: String = prefs.current.userId.orEmpty(),
+        deviceId: String = prefs.current.deviceId.orEmpty(),
+        locale: String = prefs.current.locale
+    ) {
+        executeRecommendationJson<Unit>(
+            client = recommendationExclusionClient,
+            path = "/recommendations/exclusions/${enc(key)}",
+            method = "DELETE",
+            userId = userId,
+            deviceId = deviceId,
+            locale = locale
+        )
+    }
+
+    suspend fun searchRecommendationCatalog(
+        name: String,
+        type: TitleType,
+        year: Int? = null,
+        author: String? = null,
+        userId: String = prefs.current.userId.orEmpty(),
+        deviceId: String = prefs.current.deviceId.orEmpty(),
+        locale: String = prefs.current.locale
+    ): List<TitleSearchItem> {
+        val params = buildList {
+            add("name=${enc(name.trim())}")
+            add("type=${enc(type.wireValue)}")
+            if (year != null) add("year=$year")
+            if (!author.isNullOrBlank()) add("author=${enc(author.trim())}")
+        }.joinToString("&")
+        val (_, items) = executeRecommendationJson<List<TitleSearchItem>>(
+            client = recommendationCatalogClient,
+            path = "/recommendations/catalog?$params",
+            method = "GET",
+            userId = userId,
+            deviceId = deviceId,
+            locale = locale
+        )
+        return items
     }
 
     suspend fun getMyReport(): PersonalReport =
