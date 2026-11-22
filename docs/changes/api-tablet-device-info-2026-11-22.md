@@ -20,7 +20,7 @@
 | 기존 Windows·macOS 네이티브 | 기존 OS | 기존 `Windows App`·`macOS App` |
 
 - 플랫폼 앞뒤 공백과 대소문자를 정규화하고, iPad·iPhone·Tablet·Mobile 토큰은 대소문자를 무시하되 단어 경계로 판별한다. `notipad`·`notatablet` 같은 문자열은 신호로 사용하지 않는다.
-- Android에서는 명시적 `Tablet`을 우선한다. 그 외에는 `Mozilla/`·`AppleWebKit/`와 Android 버전이 확인되고 `Mobile`·TV 신호가 없는 UA에 한해 태블릿으로 판단한다. 단순히 Mobile이 없다는 이유로 `okhttp`·`Dalvik`·앱 버전 문자열만 있는 새 기기를 태블릿으로 분류하지 않는다.
+- Android에서는 명시적 `Tablet`을 우선한다. 그 외에는 `Mozilla/`·Android 버전과 Chrome/Safari/AppleWebKit 브라우저 신호가 확인되고 `Mobile`·TV 신호가 없는 UA에 한해 태블릿으로 판단한다. 단순히 Mobile이 없다는 이유로 `okhttp`·`Dalvik`·앱 버전 문자열만 있는 새 기기를 태블릿으로 분류하지 않는다. 병합된 Android #148의 실제 Tablet UA 형태도 등록·페어링·갱신 회귀에 포함한다.
 - 헤더 없는 구 Android 네이티브는 기존 `ottline-android/` 신호의 범위 안에서 같은 판별을 한다. 일반 웹/PWA의 태블릿 UA는 기존 브라우저 분류를 사용한다.
 - 같은 기기의 기존 태블릿 표기는 빈/불명 UA로 덮어쓰지 않는다. 명시적 iPhone/Mobile 신호가 오면 표기를 정정할 수 있다. 헤더 없이 metadata-free touch를 호출하는 동기화·인증 흐름도 보존한다.
 - Android 태블릿의 OS는 실제 OS 계열인 `Android`를 유지하고 기기 종류를 `browser`에 표시한다. analytics 플랫폼 허용값·이벤트 바디·기존 OS 집계 계약을 변경하지 않는다.

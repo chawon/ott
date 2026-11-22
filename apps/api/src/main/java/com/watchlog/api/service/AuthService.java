@@ -267,7 +267,7 @@ public class AuthService {
         if (TABLET.matcher(ua).find()) return true;
         if (ANDROID_TV.matcher(ua).find() || MOBILE.matcher(ua).find()) return false;
         String lower = ua.toLowerCase(Locale.ROOT);
-        if (lower.startsWith("mozilla/") && lower.contains("applewebkit/")
+        if (lower.startsWith("mozilla/") && (lower.contains("applewebkit/") || lower.contains("chrome/") || lower.contains("safari/"))
                 && ANDROID_VERSION.matcher(ua).find()) return true;
         // Generic/absent metadata is not evidence that a previously identified tablet became a phone.
         return "Android".equals(device.getOs()) && "Android Tablet App".equals(device.getBrowser());
