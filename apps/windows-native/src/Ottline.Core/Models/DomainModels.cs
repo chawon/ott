@@ -709,10 +709,12 @@ public sealed record SyncPullResult(
     IReadOnlyList<WatchLog> UpsertedLogs,
     string ServerCursor,
     bool HasMore,
-    IReadOnlyList<TitleSummary>? UpsertedTitles = null
+    IReadOnlyList<TitleSummary>? UpsertedTitles = null,
+    IReadOnlyList<string>? DeletedLogIds = null
 )
 {
     public IReadOnlyList<TitleSummary> SafeUpsertedTitles => UpsertedTitles ?? Array.Empty<TitleSummary>();
+    public IReadOnlyList<string> SafeDeletedLogIds => DeletedLogIds ?? Array.Empty<string>();
 }
 
 public sealed record LogsPageResult(

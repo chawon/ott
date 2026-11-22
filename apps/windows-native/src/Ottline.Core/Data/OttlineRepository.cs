@@ -1032,6 +1032,44 @@ public sealed class OttlineRepository : IDisposable
     private static string SyncPushV2RecoveryKey(string userId) =>
         $"sync_push_v2_recovery_done:{userId.Trim().ToLowerInvariant()}";
 
+    private static string SyncForceFullPullKey(string userId) =>
+        $"sync_force_full_pull:{userId.Trim().ToLowerInvariant()}";
+
+    private static string SyncRecoveryTieConflictsKey(string userId) =>
+        $"sync_recovery_tie_conflicts:{userId.Trim().ToLowerInvariant()}";
+
+    private void RecordTieConflictAudit(string userId, string logId, string timestampIso, string? localNote, string? serverNote)
+    {
+        var key = SyncRecoveryTieConflictsKey(userId);
+        List<Dictionary<string, string?>> entries;
+        var existingRaw = _db.GetAppSetting(key);
+        if (!string.IsNullOrWhiteSpace(existingRaw))
+        {
+            try
+            {
+                entries = JsonSerializer.Deserialize<List<Dictionary<string, string?>>>(existingRaw) ?? new();
+            }
+            catch
+            {
+                entries = new();
+            }
+        }
+        else
+        {
+            entries = new();
+        }
+
+        entries.Add(new Dictionary<string, string?>
+        {
+            ["logId"] = logId,
+            ["timestamp"] = timestampIso,
+            ["localNote"] = localNote,
+            ["serverNote"] = serverNote,
+            ["recordedAt"] = DateTimeOffset.UtcNow.ToString("O", CultureInfo.InvariantCulture)
+        });
+        _db.SetAppSetting(key, JsonSerializer.Serialize(entries));
+    }
+
     private WatchLog EnsureValidSyncUuidsForLog(WatchLog log)
     {
         var currentTitleId = log.TitleId;
@@ -1086,6 +1124,17 @@ public sealed class OttlineRepository : IDisposable
         return serverLogs.FirstOrDefault(s => SyncIdNormalizer.AreTitlesEquivalent(local.Title, s.Title));
     }
 
+    private static bool IsStaleRecordConfirmedInFullPull(WatchLog staleLog, SyncPullResult fullPull)
+    {
+        if (FindMatchingServerLog(staleLog, fullPull.UpsertedLogs) != null)
+        {
+            return true;
+        }
+
+        return fullPull.SafeDeletedLogIds.Any(id =>
+            string.Equals(id, staleLog.Id, StringComparison.OrdinalIgnoreCase));
+    }
+
     private async Task<(SyncPullResult? FullPull, bool EnqueuedAny)> RunOneTimeSyncPushV2RecoveryIfNeededAsync(
         string userId,
         CancellationToken ct)
@@ -1119,29 +1168,29 @@ public sealed class OttlineRepository : IDisposable
             if (matchedServer == null)
             {
                 // Mis-marked "synced" in 2.0.0.0/2.0.1.0 and missing from server:
-                // normalize IDs to deterministic UUIDs, preserve original WatchedOn/OccurredAt/CreatedAt,
-                // and bump UpdatedAt to now so other paired devices receive it via incremental /api/sync/pull?since=...
+                // normalize IDs to deterministic UUIDs and preserve original local UpdatedAt (T2)
+                // so a concurrent write T3 > T2 on another device after full pull is NEVER overwritten.
                 var normalized = EnsureValidSyncUuidsForLog(local);
-                var recoveryUpdatedAt = DateTimeOffset.UtcNow.ToString("O", CultureInfo.InvariantCulture);
-                var pendingLog = normalized with
-                {
-                    UpdatedAt = recoveryUpdatedAt,
-                    SyncState = "pending"
-                };
-                _db.UpsertLog(pendingLog, recordHistory: false);
+                _db.EnsureHistorySnapshot(normalized);
+                _db.UpdateLogSyncState(normalized.Id, "pending");
+                var pendingLog = normalized with { SyncState = "pending" };
                 _db.UpsertLogOutbox("UPSERT_LOG", pendingLog.Id, SerializeLogOutboxPayload(pendingLog));
                 enqueuedAny = true;
                 continue;
             }
 
-            if (SyncIdNormalizer.TryParseUtc(local.UpdatedAt, out var localUtc) &&
-                SyncIdNormalizer.TryParseUtc(matchedServer.UpdatedAt, out var serverUtc) &&
-                localUtc > serverUtc.AddSeconds(1) &&
-                HasMeaningfulLogDifference(local, matchedServer))
+            if (!HasMeaningfulLogDifference(local, matchedServer))
             {
-                // Local edit in 2.0.0.0/2.0.1.0 is strictly newer than server's copy:
-                // remap to canonical server IDs (avoiding duplicates) and bump UpdatedAt to now
-                // so incremental pulls on other paired devices pick up the recovered edit.
+                continue;
+            }
+
+            var hasLocalUtc = SyncIdNormalizer.TryParseUtc(local.UpdatedAt, out var localUtc);
+            var hasServerUtc = SyncIdNormalizer.TryParseUtc(matchedServer.UpdatedAt, out var serverUtc);
+
+            if (hasLocalUtc && hasServerUtc && localUtc >= serverUtc)
+            {
+                // Strict comparison (no tolerance drop for sub-second newer edits) + exact-timestamp tie handling:
+                // preserve original local UpdatedAt (T2) so server LWW protects any concurrent edit T3 > T2.
                 if (!string.Equals(local.TitleId, matchedServer.TitleId, StringComparison.OrdinalIgnoreCase))
                 {
                     _db.RemapTitleId(local.TitleId, matchedServer.TitleId, MergeTitleMetadata(matchedServer.Title, local.Title));
@@ -1150,21 +1199,37 @@ public sealed class OttlineRepository : IDisposable
                 {
                     _db.RemapLogId(local.Id, matchedServer.Id, markSynced: false);
                 }
+
                 var remapped = _db.GetLog(matchedServer.Id) ?? local with
                 {
                     Id = matchedServer.Id,
                     TitleId = matchedServer.TitleId,
                     Title = matchedServer.Title
                 };
-                var recoveryUpdatedAt = DateTimeOffset.UtcNow.ToString("O", CultureInfo.InvariantCulture);
-                var pendingEdit = remapped with
+
+                if (localUtc == serverUtc)
                 {
-                    UpdatedAt = recoveryUpdatedAt,
-                    SyncState = "pending"
-                };
-                _db.UpsertLog(pendingEdit, recordHistory: false);
+                    // Exact timestamp tie with differing content: preserve BOTH server and local snapshots
+                    // in revision history + durable conflict audit record before submitting with exact T2.
+                    _db.EnsureHistorySnapshot(matchedServer with { Id = remapped.Id, TitleId = remapped.TitleId });
+                    _db.EnsureHistorySnapshot(remapped);
+                    RecordTieConflictAudit(userId, remapped.Id, remapped.UpdatedAt, remapped.Note, matchedServer.Note);
+                }
+                else
+                {
+                    _db.EnsureHistorySnapshot(remapped);
+                }
+
+                _db.UpdateLogSyncState(remapped.Id, "pending");
+                var pendingEdit = remapped with { SyncState = "pending" };
                 _db.UpsertLogOutbox("UPDATE_LOG", pendingEdit.Id, SerializeLogOutboxPayload(pendingEdit));
                 enqueuedAny = true;
+            }
+            else
+            {
+                // Server is strictly newer (or timestamps unparseable): preserve local differing copy
+                // in revision history before server winner reconciles the active row.
+                _db.EnsureHistorySnapshot(local);
             }
         }
 
@@ -1368,21 +1433,41 @@ public sealed class OttlineRepository : IDisposable
             }
 
             var pending = _db.GetPendingOutbox();
-            var logEvents = pending.Where(e => e.Type is "UPSERT_LOG" or "UPDATE_LOG").ToList();
+            var allLogEvents = pending.Where(e => e.Type is "UPSERT_LOG" or "UPDATE_LOG").ToList();
+            var activePushEvents = allLogEvents
+                .Where(e => !string.Equals(e.LastError, OttlineDatabase.StalePendingPullMarker, StringComparison.Ordinal))
+                .ToList();
+            var persistedStaleEvents = allLogEvents
+                .Where(e => string.Equals(e.LastError, OttlineDatabase.StalePendingPullMarker, StringComparison.Ordinal))
+                .ToList();
             var discussionEvents = pending.Where(e => e.Type == "CREATE_DISCUSSION").ToList();
             var reactionEvents = pending.Where(e => e.Type == "TOGGLE_REACTION").ToList();
 
+            var forceFullPullKey = SyncForceFullPullKey(userId);
+            var persistedForceFullPull = !string.IsNullOrWhiteSpace(_db.GetAppSetting(forceFullPullKey));
+
             var pushedCount = 0;
             var hadPushFailure = false;
-            var forceFullPull = false;
+            var stalePendingPullPairs = new List<(OutboxEvent Event, WatchLog Log)>();
 
-            if (logEvents.Count > 0)
+            foreach (var staleEvt in persistedStaleEvents)
+            {
+                var localLog = _db.GetLog(staleEvt.EntityId);
+                if (localLog == null)
+                {
+                    _db.DeleteOutboxIfExists(staleEvt.Id);
+                    continue;
+                }
+                stalePendingPullPairs.Add((staleEvt, localLog));
+            }
+
+            if (activePushEvents.Count > 0)
             {
                 var pushPairs = new List<(OutboxEvent Event, WatchLog Log)>();
                 var titlesToPush = new List<TitleSummary>();
                 var seenLogIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-                foreach (var evt in logEvents)
+                foreach (var evt in activePushEvents)
                 {
                     var localLog = _db.GetLog(evt.EntityId);
                     if (localLog == null)
@@ -1435,8 +1520,11 @@ public sealed class OttlineRepository : IDisposable
                             {
                                 if (string.Equals(reason, "stale", StringComparison.OrdinalIgnoreCase))
                                 {
-                                    _db.DeleteOutboxIfExists(evt.Id);
-                                    forceFullPull = true;
+                                    // Preserve stale outbox entry and durable force-full-pull flag until
+                                    // the full pull succeeds and positively confirms the server winner.
+                                    _db.MarkOutboxStalePendingPull(evt.Id);
+                                    _db.SetAppSetting(forceFullPullKey, "1");
+                                    stalePendingPullPairs.Add((evt, normalizedLog));
                                 }
                                 else
                                 {
@@ -1468,16 +1556,19 @@ public sealed class OttlineRepository : IDisposable
             try
             {
                 settings = GetSettings();
+                var requireFullPull = persistedForceFullPull
+                                      || stalePendingPullPairs.Count > 0
+                                      || (initialRecoveryPull != null && (activePushEvents.Count > 0 || recoveryEnqueuedAny))
+                                      || _db.GetAllLogs().Count == 0;
+
                 SyncPullResult pullRes;
-                if (initialRecoveryPull != null && logEvents.Count == 0 && !recoveryEnqueuedAny && !forceFullPull)
+                if (initialRecoveryPull != null && activePushEvents.Count == 0 && !recoveryEnqueuedAny && !requireFullPull)
                 {
                     pullRes = initialRecoveryPull;
                 }
                 else
                 {
-                    var sinceCursor = forceFullPull || _db.GetAllLogs().Count == 0
-                        ? null
-                        : settings.LastSyncCursor;
+                    var sinceCursor = requireFullPull ? null : settings.LastSyncCursor;
                     pullRes = await _api.PullSyncAsync(
                         sinceCursor,
                         ct,
@@ -1485,7 +1576,39 @@ public sealed class OttlineRepository : IDisposable
                     ).ConfigureAwait(false);
                 }
 
+                var hadUnresolvedStale = false;
+                foreach (var (staleEvt, staleLog) in stalePendingPullPairs)
+                {
+                    if (IsStaleRecordConfirmedInFullPull(staleLog, pullRes))
+                    {
+                        // Only remove the exact stale outbox entry after server state is confirmed.
+                        // If the user edited the log again concurrently, staleEvt.Id was already
+                        // replaced by a new outbox ID, so DeleteOutboxIfExists returns 0 and
+                        // ReconcilePulledChanges protects the newer concurrent edit.
+                        _db.EnsureHistorySnapshot(staleLog);
+                        _db.DeleteOutboxIfExists(staleEvt.Id);
+                    }
+                    else
+                    {
+                        // Server full pull did not return a confirming state for this conflicted record;
+                        // keep the stale outbox row and force-full-pull flag intact for next retry.
+                        _db.SetAppSetting(forceFullPullKey, "1");
+                        hadUnresolvedStale = true;
+                    }
+                }
+
                 ReconcilePulledChanges(pullRes);
+
+                if (hadUnresolvedStale)
+                {
+                    var unresolvedCount = _db.GetPendingOutbox().Count;
+                    return (false, $"충돌 기록 서버 확인 대기 중 (대기 {unresolvedCount}건)");
+                }
+
+                if (persistedForceFullPull || stalePendingPullPairs.Count > 0)
+                {
+                    _db.SetAppSetting(forceFullPullKey, null);
+                }
 
                 var nonLogOk = await ReplayNonLogOutboxEventsAsync(discussionEvents, reactionEvents, ct).ConfigureAwait(false);
                 if (!nonLogOk)
@@ -1534,6 +1657,10 @@ public sealed class OttlineRepository : IDisposable
             }
             catch
             {
+                if (stalePendingPullPairs.Count > 0 || persistedForceFullPull)
+                {
+                    return (false, $"충돌 해소 재시도 대기 중 (대기 {_db.GetPendingOutbox().Count}건)");
+                }
                 if (pushedCount > 0 && !hadPushFailure)
                 {
                     return (true, $"업로드 완료 ({pushedCount}건)");

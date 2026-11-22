@@ -610,11 +610,20 @@ public sealed class OttlineApiClient : IDisposable
         }
 
         var logs = new List<WatchLog>();
+        var deletedLogIds = new List<string>();
         if (arrayProp.ValueKind == JsonValueKind.Array)
         {
             foreach (var item in arrayProp.EnumerateArray())
             {
-                if (GetNullableString(item, "deletedAt") != null) continue;
+                if (GetNullableString(item, "deletedAt") != null)
+                {
+                    var delId = GetNullableString(item, "id");
+                    if (!string.IsNullOrWhiteSpace(delId))
+                    {
+                        deletedLogIds.Add(delId.Trim());
+                    }
+                    continue;
+                }
                 var parsed = ParseWatchLogElement(item, titleMap);
                 if (parsed != null) logs.Add(parsed);
             }
@@ -625,7 +634,7 @@ public sealed class OttlineApiClient : IDisposable
                      ?? DateTimeOffset.UtcNow.ToString("O", CultureInfo.InvariantCulture);
         var hasMore = root.TryGetProperty("hasMore", out var hm) && hm.ValueKind == JsonValueKind.True;
 
-        return new SyncPullResult(logs, cursor, hasMore, pulledTitles);
+        return new SyncPullResult(logs, cursor, hasMore, pulledTitles, deletedLogIds);
     }
 
     public async Task<IReadOnlyList<DiscussionPost>> FetchDiscussionsAsync(

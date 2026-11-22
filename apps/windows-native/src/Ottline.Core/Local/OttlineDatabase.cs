@@ -8,6 +8,8 @@ namespace Ottline.Core.Local;
 
 public sealed class OttlineDatabase : IDisposable
 {
+    public const string StalePendingPullMarker = "stale_pending_pull";
+
     private readonly string _connectionString;
     private readonly object _syncRoot = new();
 
@@ -808,6 +810,95 @@ public sealed class OttlineDatabase : IDisposable
         }
     }
 
+    public void EnsureHistorySnapshot(WatchLog log)
+    {
+        if (string.IsNullOrWhiteSpace(log.Id) || string.IsNullOrWhiteSpace(log.TitleId)) return;
+        lock (_syncRoot)
+        {
+            using var conn = OpenConnection();
+            using var checkCmd = conn.CreateCommand();
+            checkCmd.CommandText = @"
+                SELECT status, rating, note, spoiler, ott, place, occasion, season_number, episode_number, watched_on
+                FROM log_history
+                WHERE log_id = $log_id
+                ORDER BY revision DESC, recorded_at DESC
+                LIMIT 1;
+            ";
+            checkCmd.Parameters.AddWithValue("$log_id", log.Id);
+            using (var reader = checkCmd.ExecuteReader())
+            {
+                if (reader.Read())
+                {
+                    var hStatus = reader.GetString(0);
+                    var hRating = reader.IsDBNull(1) ? (double?)null : reader.GetDouble(1);
+                    var hNote = reader.IsDBNull(2) ? null : reader.GetString(2);
+                    var hSpoiler = reader.GetInt32(3) != 0;
+                    var hOtt = reader.IsDBNull(4) ? null : reader.GetString(4);
+                    var hPlace = reader.IsDBNull(5) ? null : reader.GetString(5);
+                    var hOccasion = reader.IsDBNull(6) ? null : reader.GetString(6);
+                    var hSeason = reader.IsDBNull(7) ? (int?)null : reader.GetInt32(7);
+                    var hEpisode = reader.IsDBNull(8) ? (int?)null : reader.GetInt32(8);
+                    var hWatchedOn = reader.GetString(9);
+
+                    static string Norm(string? v) => string.IsNullOrWhiteSpace(v) ? string.Empty : v.Trim();
+                    var sameRating = hRating.HasValue == log.Rating.HasValue &&
+                                     (!hRating.HasValue || Math.Abs(hRating.Value - log.Rating!.Value) <= 0.05);
+                    if (string.Equals(hStatus, log.Status.ToWire(), StringComparison.OrdinalIgnoreCase) &&
+                        sameRating &&
+                        string.Equals(Norm(hNote), Norm(log.Note), StringComparison.Ordinal) &&
+                        hSpoiler == log.Spoiler &&
+                        string.Equals(Norm(hOtt), Norm(log.Ott), StringComparison.OrdinalIgnoreCase) &&
+                        string.Equals(Norm(hPlace), Norm(log.Place), StringComparison.OrdinalIgnoreCase) &&
+                        string.Equals(Norm(hOccasion), Norm(log.Occasion), StringComparison.OrdinalIgnoreCase) &&
+                        hSeason == log.SeasonNumber &&
+                        hEpisode == log.EpisodeNumber &&
+                        string.Equals(Norm(hWatchedOn), Norm(log.WatchedOn), StringComparison.Ordinal))
+                    {
+                        return;
+                    }
+                }
+            }
+
+            var recordedAt = string.IsNullOrWhiteSpace(log.UpdatedAt)
+                ? DateTimeOffset.UtcNow.ToString("O", CultureInfo.InvariantCulture)
+                : log.UpdatedAt;
+            var watchedOn = RecordDate.OccurredAtToWatchedOnDate(log.OccurredAt, log.WatchedOn);
+            var occurredAt = string.IsNullOrWhiteSpace(log.OccurredAt) ? RecordDate.ToNoonUtcIso(watchedOn) : log.OccurredAt;
+
+            using var histCmd = conn.CreateCommand();
+            histCmd.CommandText = @"
+                INSERT INTO log_history (
+                    id, log_id, title_id, status, rating, reaction, ott, place, occasion,
+                    season_number, episode_number, note, spoiler, occurred_at, watched_on,
+                    revision, origin, recorded_at
+                ) VALUES (
+                    $id, $log_id, $title_id, $status, $rating, $reaction, $ott, $place, $occasion,
+                    $season_number, $episode_number, $note, $spoiler, $occurred_at, $watched_on,
+                    $revision, $origin, $recorded_at
+                );
+            ";
+            histCmd.Parameters.AddWithValue("$id", $"hist:{log.Id}:r{Math.Max(1, log.Revision)}:{Guid.NewGuid():N}");
+            histCmd.Parameters.AddWithValue("$log_id", log.Id);
+            histCmd.Parameters.AddWithValue("$title_id", log.TitleId);
+            histCmd.Parameters.AddWithValue("$status", log.Status.ToWire());
+            histCmd.Parameters.AddWithValue("$rating", (object?)log.Rating ?? DBNull.Value);
+            histCmd.Parameters.AddWithValue("$reaction", (object?)log.Reaction ?? DBNull.Value);
+            histCmd.Parameters.AddWithValue("$ott", (object?)log.Ott ?? DBNull.Value);
+            histCmd.Parameters.AddWithValue("$place", (object?)log.Place ?? DBNull.Value);
+            histCmd.Parameters.AddWithValue("$occasion", (object?)log.Occasion ?? DBNull.Value);
+            histCmd.Parameters.AddWithValue("$season_number", (object?)log.SeasonNumber ?? DBNull.Value);
+            histCmd.Parameters.AddWithValue("$episode_number", (object?)log.EpisodeNumber ?? DBNull.Value);
+            histCmd.Parameters.AddWithValue("$note", (object?)log.Note ?? DBNull.Value);
+            histCmd.Parameters.AddWithValue("$spoiler", log.Spoiler ? 1 : 0);
+            histCmd.Parameters.AddWithValue("$occurred_at", occurredAt);
+            histCmd.Parameters.AddWithValue("$watched_on", watchedOn);
+            histCmd.Parameters.AddWithValue("$revision", Math.Max(1, log.Revision));
+            histCmd.Parameters.AddWithValue("$origin", log.Origin.ToWire());
+            histCmd.Parameters.AddWithValue("$recorded_at", recordedAt);
+            histCmd.ExecuteNonQuery();
+        }
+    }
+
     public void IncrementOutboxRetry(string id, string error)
     {
         lock (_syncRoot)
@@ -816,6 +907,19 @@ public sealed class OttlineDatabase : IDisposable
             using var cmd = conn.CreateCommand();
             cmd.CommandText = "UPDATE outbox SET retry_count = retry_count + 1, last_error = $err WHERE id = $id;";
             cmd.Parameters.AddWithValue("$err", error);
+            cmd.Parameters.AddWithValue("$id", id);
+            cmd.ExecuteNonQuery();
+        }
+    }
+
+    public void MarkOutboxStalePendingPull(string id)
+    {
+        lock (_syncRoot)
+        {
+            using var conn = OpenConnection();
+            using var cmd = conn.CreateCommand();
+            cmd.CommandText = "UPDATE outbox SET last_error = $err WHERE id = $id;";
+            cmd.Parameters.AddWithValue("$err", StalePendingPullMarker);
             cmd.Parameters.AddWithValue("$id", id);
             cmd.ExecuteNonQuery();
         }

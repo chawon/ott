@@ -543,7 +543,6 @@ public sealed class SyncPushContractTests
             Assert.Empty(db.GetPendingOutbox());
 
             // 1st sync: recovers A (missing) and B (newer local edit remapped to canonical serverLogB), does NOT push C
-            var recoveryStartUtc = DateTimeOffset.UtcNow.AddSeconds(-2);
             var (ok1, _) = await repo.SyncAllAsync();
             Assert.True(ok1);
             Assert.Equal(1, pushCallCount);
@@ -556,11 +555,11 @@ public sealed class SyncPushContractTests
 
             Assert.Equal("Lost Windows log A", pushedLogNotes[expectedUuidA]);
             Assert.Equal("Newer Windows edit B", pushedLogNotes[serverLogB]);
-            // Original historical watchedAt is preserved while updatedAt advances so other devices' incremental pull sees it
+            // Original historical watchedAt AND original local UpdatedAt (T2) are strictly preserved (never fabricated as UtcNow)
             Assert.StartsWith("2026-11-17T12:00:00", pushedLogWatchedAts[expectedUuidA]);
             Assert.StartsWith("2026-11-18T12:00:00", pushedLogWatchedAts[serverLogB]);
-            Assert.True(SyncIdNormalizer.TryParseUtc(pushedLogUpdatedAts[expectedUuidA], out var updatedA) && updatedA >= recoveryStartUtc);
-            Assert.True(SyncIdNormalizer.TryParseUtc(pushedLogUpdatedAts[serverLogB], out var updatedB) && updatedB >= recoveryStartUtc);
+            Assert.StartsWith("2026-11-17T13:30:00", pushedLogUpdatedAts[expectedUuidA]);
+            Assert.StartsWith("2026-11-21T10:00:00", pushedLogUpdatedAts[serverLogB]);
 
             // Server's newer copy of C wins cleanly locally
             var localC = db.GetLog(serverLogC);
@@ -843,6 +842,620 @@ public sealed class SyncPushContractTests
             Assert.NotNull(reactionPutBody);
             using var reactDoc = JsonDocument.Parse(reactionPutBody!);
             Assert.Equal("DONE", reactDoc.RootElement.GetProperty("type").GetString());
+        }
+        finally
+        {
+            repo.Dispose();
+            CleanupDb(dbPath);
+        }
+    }
+
+    [Fact]
+    public async Task StaleConflict_FullPull503_PersistsAcrossRestartAndIgnoresEmptyIncrementalUntilFullPullConfirmsWinner()
+    {
+        var userId = "11111111-2222-3333-4444-555555555555";
+        var deviceId = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee";
+        var titleUuid = "aaaaaaaa-1111-2222-3333-444444444444";
+        var logUuid = "bbbbbbbb-1111-2222-3333-444444444444";
+        var initialCursor = "2026-11-22T08:00:00Z";
+
+        var failFullPull = true;
+        var pullPaths = new List<string>();
+        var pushCount = 0;
+
+        var handler = new CapturingHttpMessageHandler((req, _) =>
+        {
+            if (req.Method == HttpMethod.Post && req.PathAndQuery == "/api/sync/push")
+            {
+                pushCount++;
+                return Task.FromResult(JsonResponse(new
+                {
+                    accepted = Array.Empty<string>(),
+                    rejected = new[] { new { id = logUuid, reason = "stale" } }
+                }));
+            }
+            if (req.Method == HttpMethod.Get && req.PathAndQuery.StartsWith("/api/sync/pull", StringComparison.Ordinal))
+            {
+                pullPaths.Add(req.PathAndQuery);
+                // If client ever mistakenly sends ?since=... (incremental pull), server returns empty!
+                if (req.PathAndQuery.Contains("since=", StringComparison.Ordinal))
+                {
+                    return Task.FromResult(JsonResponse(new
+                    {
+                        serverTime = "2026-11-22T10:05:00Z",
+                        changes = new { titles = Array.Empty<object>(), logs = Array.Empty<object>() }
+                    }));
+                }
+                if (failFullPull)
+                {
+                    return Task.FromResult(new HttpResponseMessage(HttpStatusCode.ServiceUnavailable));
+                }
+                return Task.FromResult(JsonResponse(new
+                {
+                    serverTime = "2026-11-22T10:10:00Z",
+                    changes = new
+                    {
+                        titles = new[]
+                        {
+                            new { id = titleUuid, type = "movie", name = "파묘", year = 2024, provider = "TMDB", providerId = "838209" }
+                        },
+                        logs = new[]
+                        {
+                            new
+                            {
+                                id = logUuid,
+                                titleId = titleUuid,
+                                status = "DONE",
+                                rating = 4.5,
+                                note = "서버 정식 승자 감상",
+                                spoiler = false,
+                                ott = "Netflix",
+                                origin = "LOG",
+                                watchedAt = "2026-11-21T12:00:00Z",
+                                place = "HOME",
+                                occasion = "ALONE",
+                                createdAt = "2026-11-20T12:00:00Z",
+                                updatedAt = "2026-11-22T09:59:00Z"
+                            }
+                        }
+                    }
+                }));
+            }
+            return Task.FromResult(JsonResponse(new { ok = true }));
+        });
+
+        var dbPath = Path.Combine(Path.GetTempPath(), $"ottline_stale_503_{Guid.NewGuid():N}.db");
+        try
+        {
+            // Session 1: push gets stale, then full pull returns 503
+            using (var db1 = new OttlineDatabase(dbPath))
+            using (var api1 = new OttlineApiClient(new HttpClient(handler)))
+            using (var repo1 = new OttlineRepository(db1, api1))
+            {
+                db1.SaveSettings(db1.LoadSettings() with
+                {
+                    BaseUrl = "https://mock.ottline.test",
+                    UserId = userId,
+                    DeviceId = deviceId,
+                    LastSyncCursor = initialCursor
+                });
+                db1.SetAppSetting($"sync_push_v2_recovery_done:{userId}", "2026-11-20T00:00:00Z");
+
+                var title = new TitleSummary(titleUuid, "tmdb", "838209", TitleType.movie, "파묘", Year: 2024);
+                db1.UpsertLog(new WatchLog(
+                    Id: logUuid,
+                    TitleId: titleUuid,
+                    Title: title,
+                    Status: LogStatus.IN_PROGRESS,
+                    Note: "로컬 stale 수정",
+                    OccurredAt: "2026-11-20T12:00:00Z",
+                    WatchedOn: "2026-11-20",
+                    CreatedAt: "2026-11-20T12:00:00Z",
+                    UpdatedAt: "2026-11-21T08:00:00Z",
+                    SyncState: "pending"
+                ), recordHistory: true);
+                db1.UpsertLogOutbox("UPDATE_LOG", logUuid, "{}");
+
+                var (ok1, _) = await repo1.SyncAllAsync();
+                Assert.False(ok1);
+                Assert.Single(db1.GetPendingOutbox());
+                Assert.Equal(OttlineDatabase.StalePendingPullMarker, db1.GetPendingOutbox()[0].LastError);
+                Assert.Equal("1", db1.GetAppSetting($"sync_force_full_pull:{userId}"));
+                Assert.Equal(initialCursor, repo1.GetSettings().LastSyncCursor);
+                Assert.Equal("로컬 stale 수정", db1.GetLog(logUuid)!.Note);
+            }
+
+            // Simulate app restart with fresh DB/Repository instances; full pull now succeeds
+            failFullPull = false;
+            using (var db2 = new OttlineDatabase(dbPath))
+            using (var api2 = new OttlineApiClient(new HttpClient(handler)))
+            using (var repo2 = new OttlineRepository(db2, api2))
+            {
+                var (ok2, _) = await repo2.SyncAllAsync();
+                Assert.True(ok2);
+                Assert.Equal(1, pushCount); // Did NOT wastefully re-push stale entry; went straight to forced full pull!
+                Assert.All(pullPaths, p => Assert.Equal("/api/sync/pull", p)); // Never fell back to empty incremental ?since=
+                Assert.Empty(db2.GetPendingOutbox());
+                Assert.Null(db2.GetAppSetting($"sync_force_full_pull:{userId}"));
+
+                var converged = db2.GetLog(logUuid);
+                Assert.NotNull(converged);
+                Assert.Equal("synced", converged!.SyncState);
+                Assert.Equal("서버 정식 승자 감상", converged.Note);
+                Assert.Equal(LogStatus.DONE, converged.Status);
+                // Local stale edit snapshot remains preserved in revision history
+                Assert.Contains(repo2.GetHistoryForTitle(titleUuid), h => h.Note == "로컬 stale 수정");
+            }
+        }
+        finally
+        {
+            CleanupDb(dbPath);
+        }
+    }
+
+    [Fact]
+    public async Task StaleConflict_FullPull503_ThenUserAdditionalEdit_PreservesNewerEditWithoutLoss()
+    {
+        var userId = "11111111-2222-3333-4444-555555555555";
+        var deviceId = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee";
+        var titleUuid = "aaaaaaaa-1111-2222-3333-444444444444";
+        var logUuid = "bbbbbbbb-1111-2222-3333-444444444444";
+
+        var phase = 1;
+        string? secondPushNote = null;
+
+        var handler = new CapturingHttpMessageHandler((req, _) =>
+        {
+            if (req.Method == HttpMethod.Post && req.PathAndQuery == "/api/sync/push")
+            {
+                using var doc = JsonDocument.Parse(req.Body!);
+                var logEl = doc.RootElement.GetProperty("changes").GetProperty("logs")[0];
+                if (phase == 1)
+                {
+                    return Task.FromResult(JsonResponse(new
+                    {
+                        accepted = Array.Empty<string>(),
+                        rejected = new[] { new { id = logUuid, reason = "stale" } }
+                    }));
+                }
+                secondPushNote = logEl.GetProperty("payload").GetProperty("note").GetString();
+                return Task.FromResult(JsonResponse(new
+                {
+                    accepted = new[] { logUuid },
+                    rejected = Array.Empty<object>()
+                }));
+            }
+            if (req.Method == HttpMethod.Get && req.PathAndQuery.StartsWith("/api/sync/pull", StringComparison.Ordinal))
+            {
+                if (phase == 1)
+                {
+                    return Task.FromResult(new HttpResponseMessage(HttpStatusCode.ServiceUnavailable));
+                }
+                return Task.FromResult(JsonResponse(new
+                {
+                    serverTime = "2026-11-22T11:00:00Z",
+                    changes = new
+                    {
+                        titles = new[]
+                        {
+                            new { id = titleUuid, type = "movie", name = "파묘", year = 2024, provider = "TMDB", providerId = "838209" }
+                        },
+                        logs = new[]
+                        {
+                            new
+                            {
+                                id = logUuid,
+                                titleId = titleUuid,
+                                status = "DONE",
+                                rating = 4.5,
+                                note = secondPushNote ?? "서버 정식 승자 감상",
+                                spoiler = false,
+                                origin = "LOG",
+                                watchedAt = "2026-11-22T12:00:00Z",
+                                createdAt = "2026-11-20T12:00:00Z",
+                                updatedAt = "2026-11-22T10:59:00Z"
+                            }
+                        }
+                    }
+                }));
+            }
+            return Task.FromResult(JsonResponse(new { ok = true }));
+        });
+
+        var dbPath = Path.Combine(Path.GetTempPath(), $"ottline_stale_edit_{Guid.NewGuid():N}.db");
+        try
+        {
+            var title = new TitleSummary(titleUuid, "tmdb", "838209", TitleType.movie, "파묘", Year: 2024);
+
+            // Session 1: stale -> 503 full pull failure
+            using (var db1 = new OttlineDatabase(dbPath))
+            using (var api1 = new OttlineApiClient(new HttpClient(handler)))
+            using (var repo1 = new OttlineRepository(db1, api1))
+            {
+                db1.SaveSettings(db1.LoadSettings() with
+                {
+                    BaseUrl = "https://mock.ottline.test",
+                    UserId = userId,
+                    DeviceId = deviceId,
+                    LastSyncCursor = "2026-11-22T08:00:00Z"
+                });
+                db1.SetAppSetting($"sync_push_v2_recovery_done:{userId}", "2026-11-20T00:00:00Z");
+
+                db1.UpsertLog(new WatchLog(
+                    Id: logUuid,
+                    TitleId: titleUuid,
+                    Title: title,
+                    Status: LogStatus.IN_PROGRESS,
+                    Note: "1차 stale 수정",
+                    OccurredAt: "2026-11-20T12:00:00Z",
+                    WatchedOn: "2026-11-20",
+                    CreatedAt: "2026-11-20T12:00:00Z",
+                    UpdatedAt: "2026-11-21T08:00:00Z",
+                    SyncState: "pending"
+                ), recordHistory: true);
+                db1.UpsertLogOutbox("UPDATE_LOG", logUuid, "{}");
+
+                var (ok1, _) = await repo1.SyncAllAsync();
+                Assert.False(ok1);
+                Assert.Single(db1.GetPendingOutbox());
+            }
+
+            // Session 2 (after restart): user edits the same record BEFORE retry sync -> newer edit must NOT be lost!
+            phase = 2;
+            using (var db2 = new OttlineDatabase(dbPath))
+            using (var api2 = new OttlineApiClient(new HttpClient(handler)))
+            using (var repo2 = new OttlineRepository(db2, api2))
+            {
+                repo2.SaveLogLocalFirst(title, LogStatus.DONE, RecordFeeling.SATISFIED, "2026-11-22", note: "재시작 후 추가 수정본");
+                Assert.Single(db2.GetPendingOutbox());
+                Assert.Null(db2.GetPendingOutbox()[0].LastError); // Replaced stale marker with fresh active mutation
+
+                var (ok2, _) = await repo2.SyncAllAsync();
+                Assert.True(ok2);
+                Assert.Equal("재시작 후 추가 수정본", secondPushNote);
+                Assert.Empty(db2.GetPendingOutbox());
+                Assert.Equal("재시작 후 추가 수정본", db2.GetLog(logUuid)!.Note);
+                Assert.Equal("synced", db2.GetLog(logUuid)!.SyncState);
+            }
+        }
+        finally
+        {
+            CleanupDb(dbPath);
+        }
+    }
+
+    [Fact]
+    public async Task StaleConflict_UnconfirmedEmptyFullPull_RetainsStaleOutboxAndDoesNotAdvanceCursor()
+    {
+        var userId = "11111111-2222-3333-4444-555555555555";
+        var titleUuid = "aaaaaaaa-1111-2222-3333-444444444444";
+        var logUuid = "bbbbbbbb-1111-2222-3333-444444444444";
+        var initialCursor = "2026-11-22T08:00:00Z";
+
+        var handler = new CapturingHttpMessageHandler((req, _) =>
+        {
+            if (req.Method == HttpMethod.Post && req.PathAndQuery == "/api/sync/push")
+            {
+                return Task.FromResult(JsonResponse(new
+                {
+                    accepted = Array.Empty<string>(),
+                    rejected = new[] { new { id = logUuid, reason = "stale" } }
+                }));
+            }
+            if (req.Method == HttpMethod.Get && req.PathAndQuery.StartsWith("/api/sync/pull", StringComparison.Ordinal))
+            {
+                // Anomalous 200 empty full pull missing the conflicted log
+                return Task.FromResult(JsonResponse(new
+                {
+                    serverTime = "2026-11-22T12:00:00Z",
+                    changes = new { titles = Array.Empty<object>(), logs = Array.Empty<object>() }
+                }));
+            }
+            return Task.FromResult(JsonResponse(new { ok = true }));
+        });
+
+        var (repo, db, _, dbPath) = CreateTempRepo(handler, userId);
+        try
+        {
+            db.SetAppSetting($"sync_push_v2_recovery_done:{userId}", "2026-11-20T00:00:00Z");
+            repo.UpdateSettings(s => s with { LastSyncCursor = initialCursor });
+
+            var title = new TitleSummary(titleUuid, "tmdb", "838209", TitleType.movie, "파묘", Year: 2024);
+            db.UpsertLog(new WatchLog(
+                Id: logUuid,
+                TitleId: titleUuid,
+                Title: title,
+                Status: LogStatus.IN_PROGRESS,
+                Note: "미확인 충돌 로컬 수정",
+                OccurredAt: "2026-11-20T12:00:00Z",
+                WatchedOn: "2026-11-20",
+                CreatedAt: "2026-11-20T12:00:00Z",
+                UpdatedAt: "2026-11-21T08:00:00Z",
+                SyncState: "pending"
+            ), recordHistory: true);
+            db.UpsertLogOutbox("UPDATE_LOG", logUuid, "{}");
+
+            var (ok, _) = await repo.SyncAllAsync();
+
+            Assert.False(ok);
+            Assert.Single(db.GetPendingOutbox());
+            Assert.Equal(OttlineDatabase.StalePendingPullMarker, db.GetPendingOutbox()[0].LastError);
+            Assert.Equal("1", db.GetAppSetting($"sync_force_full_pull:{userId}"));
+            Assert.Equal(initialCursor, repo.GetSettings().LastSyncCursor);
+        }
+        finally
+        {
+            repo.Dispose();
+            CleanupDb(dbPath);
+        }
+    }
+
+    [Fact]
+    public async Task LegacyRecovery_SubSecondNewerLocalEdits_AndExactTimestampTie_ArePreservedWithoutSilentOverwrite()
+    {
+        var userId = "11111111-2222-3333-4444-555555555555";
+        var titleHalfSec = "10000000-0000-0000-0000-000000000001";
+        var logHalfSec = "20000000-0000-0000-0000-000000000001";
+        var titleOneSec = "10000000-0000-0000-0000-000000000002";
+        var logOneSec = "20000000-0000-0000-0000-000000000002";
+        var titleTie = "10000000-0000-0000-0000-000000000003";
+        var logTie = "20000000-0000-0000-0000-000000000003";
+
+        var serverNotes = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            [logHalfSec] = "Server old (0.5s behind)",
+            [logOneSec] = "Server old (1.0s behind)",
+            [logTie] = "Server tie note"
+        };
+        var pushedById = new Dictionary<string, (string Note, string UpdatedAt)>(StringComparer.OrdinalIgnoreCase);
+
+        var handler = new CapturingHttpMessageHandler((req, _) =>
+        {
+            if (req.Method == HttpMethod.Post && req.PathAndQuery == "/api/sync/push")
+            {
+                using var doc = JsonDocument.Parse(req.Body!);
+                var accepted = new List<string>();
+                foreach (var l in doc.RootElement.GetProperty("changes").GetProperty("logs").EnumerateArray())
+                {
+                    var id = l.GetProperty("id").GetString()!;
+                    var note = l.GetProperty("payload").GetProperty("note").GetString()!;
+                    var updatedAt = l.GetProperty("updatedAt").GetString()!;
+                    pushedById[id] = (note, updatedAt);
+                    serverNotes[id] = note;
+                    accepted.Add(id);
+                }
+                return Task.FromResult(JsonResponse(new { accepted, rejected = Array.Empty<object>() }));
+            }
+            if (req.Method == HttpMethod.Get && req.PathAndQuery.StartsWith("/api/sync/pull", StringComparison.Ordinal))
+            {
+                return Task.FromResult(JsonResponse(new
+                {
+                    serverTime = "2026-11-22T12:00:00Z",
+                    changes = new
+                    {
+                        titles = new object[]
+                        {
+                            new { id = titleHalfSec, type = "movie", name = "작품 0.5초", year = 2024, provider = "LOCAL" },
+                            new { id = titleOneSec, type = "movie", name = "작품 1.0초", year = 2024, provider = "LOCAL" },
+                            new { id = titleTie, type = "movie", name = "작품 동시각", year = 2024, provider = "LOCAL" }
+                        },
+                        logs = new object[]
+                        {
+                            new { id = logHalfSec, titleId = titleHalfSec, status = "DONE", note = serverNotes[logHalfSec], spoiler = false, origin = "LOG", watchedAt = "2026-11-20T12:00:00Z", createdAt = "2026-11-20T12:00:00Z", updatedAt = "2026-11-21T10:00:00.000Z" },
+                            new { id = logOneSec, titleId = titleOneSec, status = "DONE", note = serverNotes[logOneSec], spoiler = false, origin = "LOG", watchedAt = "2026-11-20T12:00:00Z", createdAt = "2026-11-20T12:00:00Z", updatedAt = "2026-11-21T10:00:00.000Z" },
+                            new { id = logTie, titleId = titleTie, status = "DONE", note = serverNotes[logTie], spoiler = false, origin = "LOG", watchedAt = "2026-11-20T12:00:00Z", createdAt = "2026-11-20T12:00:00Z", updatedAt = "2026-11-21T10:00:00.000Z" }
+                        }
+                    }
+                }));
+            }
+            return Task.FromResult(JsonResponse(new { ok = true }));
+        });
+
+        var (repo, db, _, dbPath) = CreateTempRepo(handler, userId);
+        try
+        {
+            // Seed 3 mis-marked "synced" local records with +0.5s, +1.0s, and exact 0.0s tie timestamps
+            db.UpsertLog(new WatchLog(
+                Id: logHalfSec, TitleId: titleHalfSec,
+                Title: new TitleSummary(titleHalfSec, "local", "", TitleType.movie, "작품 0.5초", Year: 2024),
+                Status: LogStatus.DONE, Note: "Local newer +0.5s",
+                OccurredAt: "2026-11-20T12:00:00Z", WatchedOn: "2026-11-20",
+                CreatedAt: "2026-11-20T12:00:00Z", UpdatedAt: "2026-11-21T10:00:00.500Z", SyncState: "synced"
+            ), recordHistory: false);
+
+            db.UpsertLog(new WatchLog(
+                Id: logOneSec, TitleId: titleOneSec,
+                Title: new TitleSummary(titleOneSec, "local", "", TitleType.movie, "작품 1.0초", Year: 2024),
+                Status: LogStatus.DONE, Note: "Local newer +1.0s",
+                OccurredAt: "2026-11-20T12:00:00Z", WatchedOn: "2026-11-20",
+                CreatedAt: "2026-11-20T12:00:00Z", UpdatedAt: "2026-11-21T10:00:01.000Z", SyncState: "synced"
+            ), recordHistory: false);
+
+            db.UpsertLog(new WatchLog(
+                Id: logTie, TitleId: titleTie,
+                Title: new TitleSummary(titleTie, "local", "", TitleType.movie, "작품 동시각", Year: 2024),
+                Status: LogStatus.DONE, Note: "Local tie note",
+                OccurredAt: "2026-11-20T12:00:00Z", WatchedOn: "2026-11-20",
+                CreatedAt: "2026-11-20T12:00:00Z", UpdatedAt: "2026-11-21T10:00:00.000Z", SyncState: "synced"
+            ), recordHistory: false);
+
+            var (ok, _) = await repo.SyncAllAsync();
+            Assert.True(ok);
+
+            // All three (+0.5s, +1.0s, and exact tie) must be recovered with their EXACT original timestamps!
+            Assert.Equal(3, pushedById.Count);
+            Assert.Equal("Local newer +0.5s", pushedById[logHalfSec].Note);
+            Assert.StartsWith("2026-11-21T10:00:00.500", pushedById[logHalfSec].UpdatedAt);
+            Assert.Equal("Local newer +1.0s", pushedById[logOneSec].Note);
+            Assert.StartsWith("2026-11-21T10:00:01.000", pushedById[logOneSec].UpdatedAt);
+            Assert.Equal("Local tie note", pushedById[logTie].Note);
+            Assert.StartsWith("2026-11-21T10:00:00.000", pushedById[logTie].UpdatedAt);
+
+            // Exact timestamp tie preserves BOTH server and local snapshots in history + durable conflict audit record
+            var tieHistory = repo.GetHistoryForTitle(titleTie);
+            Assert.Contains(tieHistory, h => h.Note == "Server tie note");
+            Assert.Contains(tieHistory, h => h.Note == "Local tie note");
+            var tieAudit = db.GetAppSetting($"sync_recovery_tie_conflicts:{userId}");
+            Assert.False(string.IsNullOrWhiteSpace(tieAudit));
+            Assert.Contains(logTie, tieAudit!);
+        }
+        finally
+        {
+            repo.Dispose();
+            CleanupDb(dbPath);
+        }
+    }
+
+    [Fact]
+    public async Task LegacyRecovery_ConcurrentOtherDeviceWriteAfterFullPull_DoesNotOverwriteNewerT3InBothExistingAndMissingCases()
+    {
+        var userId = "11111111-2222-3333-4444-555555555555";
+        var existingTitleId = "30000000-0000-0000-0000-000000000001";
+        var existingLogId = "40000000-0000-0000-0000-000000000001";
+        var missingTitleServerId = "30000000-0000-0000-0000-000000000002";
+        var missingLogServerId = "40000000-0000-0000-0000-000000000002";
+
+        // T0 < T2 (Windows local) < T3 (other device concurrent write arriving AFTER T1 full pull!)
+        var t0 = DateTimeOffset.Parse("2026-11-20T10:00:00Z");
+        var t2 = DateTimeOffset.Parse("2026-11-21T10:00:00Z");
+        var t3 = DateTimeOffset.Parse("2026-11-22T09:00:00Z");
+
+        var pullNumber = 0;
+        var serverStore = new Dictionary<string, (string TitleId, string Note, DateTimeOffset UpdatedAt)>(StringComparer.OrdinalIgnoreCase)
+        {
+            [existingLogId] = (existingTitleId, "Server T0", t0)
+        };
+        var rejectedIdsObserved = new List<string>();
+
+        var handler = new CapturingHttpMessageHandler((req, _) =>
+        {
+            if (req.Method == HttpMethod.Get && req.PathAndQuery.StartsWith("/api/sync/pull", StringComparison.Ordinal))
+            {
+                pullNumber++;
+                if (pullNumber == 1)
+                {
+                    // T1 full pull: returns existingLogId at T0, and missingTitleServerId does NOT exist yet!
+                    // Immediately after T1 returns, simulate another device writing T3 (> T2) for BOTH titles!
+                    var response = JsonResponse(new
+                    {
+                        serverTime = "2026-11-22T08:59:00Z",
+                        changes = new
+                        {
+                            titles = new[]
+                            {
+                                new { id = existingTitleId, type = "movie", name = "기존 작품", year = 2024, provider = "TMDB", providerId = "1001" }
+                            },
+                            logs = new[]
+                            {
+                                new { id = existingLogId, titleId = existingTitleId, status = "IN_PROGRESS", note = "Server T0", spoiler = false, origin = "LOG", watchedAt = "2026-11-20T12:00:00Z", createdAt = "2026-11-20T12:00:00Z", updatedAt = t0.ToString("O") }
+                            }
+                        }
+                    });
+                    serverStore[existingLogId] = (existingTitleId, "Other device T3 existing", t3);
+                    serverStore[missingLogServerId] = (missingTitleServerId, "Other device T3 missing-at-T1", t3);
+                    return Task.FromResult(response);
+                }
+
+                // Subsequent pull returns current server state (T3 winners!)
+                return Task.FromResult(JsonResponse(new
+                {
+                    serverTime = "2026-11-22T09:01:00Z",
+                    changes = new
+                    {
+                        titles = new object[]
+                        {
+                            new { id = existingTitleId, type = "movie", name = "기존 작품", year = 2024, provider = "TMDB", providerId = "1001" },
+                            new { id = missingTitleServerId, type = "movie", name = "동시 생성 작품", year = 2024, provider = "TMDB", providerId = "2002" }
+                        },
+                        logs = new object[]
+                        {
+                            new { id = existingLogId, titleId = existingTitleId, status = "DONE", note = serverStore[existingLogId].Note, spoiler = false, origin = "LOG", watchedAt = "2026-11-22T12:00:00Z", createdAt = "2026-11-20T12:00:00Z", updatedAt = serverStore[existingLogId].UpdatedAt.ToString("O") },
+                            new { id = missingLogServerId, titleId = missingTitleServerId, status = "DONE", note = serverStore[missingLogServerId].Note, spoiler = false, origin = "LOG", watchedAt = "2026-11-22T12:00:00Z", createdAt = "2026-11-22T09:00:00Z", updatedAt = serverStore[missingLogServerId].UpdatedAt.ToString("O") }
+                        }
+                    }
+                }));
+            }
+
+            if (req.Method == HttpMethod.Post && req.PathAndQuery == "/api/sync/push")
+            {
+                // Faithful simulation of SyncService.isStale(server.updatedAt, null, incoming.updatedAt)
+                using var doc = JsonDocument.Parse(req.Body!);
+                var titles = doc.RootElement.GetProperty("changes").GetProperty("titles")
+                    .EnumerateArray()
+                    .ToDictionary(
+                        t => t.GetProperty("id").GetString()!,
+                        t => t.GetProperty("payload").GetProperty("providerId").GetString(),
+                        StringComparer.OrdinalIgnoreCase);
+
+                var accepted = new List<string>();
+                var rejected = new List<object>();
+
+                foreach (var l in doc.RootElement.GetProperty("changes").GetProperty("logs").EnumerateArray())
+                {
+                    var id = l.GetProperty("id").GetString()!;
+                    var titleId = l.GetProperty("payload").GetProperty("titleId").GetString()!;
+                    var incomingUpdatedAt = DateTimeOffset.Parse(l.GetProperty("updatedAt").GetString()!);
+                    var providerId = titles.TryGetValue(titleId, out var pid) ? pid : null;
+
+                    var targetServerLogId = string.Equals(id, existingLogId, StringComparison.OrdinalIgnoreCase) || providerId == "1001"
+                        ? existingLogId
+                        : (providerId == "2002" ? missingLogServerId : id);
+
+                    if (serverStore.TryGetValue(targetServerLogId, out var current) && current.UpdatedAt > incomingUpdatedAt)
+                    {
+                        rejected.Add(new { id, reason = "stale" });
+                        rejectedIdsObserved.Add(id);
+                    }
+                    else
+                    {
+                        serverStore[targetServerLogId] = (current.TitleId ?? titleId, l.GetProperty("payload").GetProperty("note").GetString()!, incomingUpdatedAt);
+                        accepted.Add(id);
+                    }
+                }
+                return Task.FromResult(JsonResponse(new { accepted, rejected }));
+            }
+
+            return Task.FromResult(JsonResponse(new { ok = true }));
+        });
+
+        var (repo, db, _, dbPath) = CreateTempRepo(handler, userId);
+        try
+        {
+            // Seed both legacy "synced" logs at T2 (< T3)
+            db.UpsertLog(new WatchLog(
+                Id: existingLogId, TitleId: existingTitleId,
+                Title: new TitleSummary(existingTitleId, "tmdb", "1001", TitleType.movie, "기존 작품", Year: 2024),
+                Status: LogStatus.DONE, Note: "Windows recovery T2 existing",
+                OccurredAt: "2026-11-21T12:00:00Z", WatchedOn: "2026-11-21",
+                CreatedAt: "2026-11-20T12:00:00Z", UpdatedAt: t2.ToString("O"), SyncState: "synced"
+            ), recordHistory: false);
+
+            var missingLocalTitle = new TitleSummary("tmdb:movie:2002", "tmdb", "2002", TitleType.movie, "동시 생성 작품", Year: 2024);
+            db.UpsertLog(new WatchLog(
+                Id: "local-log:99998888777766665555444433332222", TitleId: missingLocalTitle.Id,
+                Title: missingLocalTitle,
+                Status: LogStatus.DONE, Note: "Windows recovery T2 missing-at-T1",
+                OccurredAt: "2026-11-21T12:00:00Z", WatchedOn: "2026-11-21",
+                CreatedAt: "2026-11-21T12:00:00Z", UpdatedAt: t2.ToString("O"), SyncState: "synced"
+            ), recordHistory: false);
+
+            var (ok, _) = await repo.SyncAllAsync();
+
+            Assert.True(ok);
+            Assert.Equal(2, rejectedIdsObserved.Count); // Both T2 recovery pushes were rejected stale by T3!
+            Assert.Empty(db.GetPendingOutbox());
+
+            // T3 MUST be 100% preserved on the server for BOTH existing and missing-at-T1 cases!
+            Assert.Equal("Other device T3 existing", serverStore[existingLogId].Note);
+            Assert.Equal("Other device T3 missing-at-T1", serverStore[missingLogServerId].Note);
+
+            // And Windows local DB converges cleanly to T3 (with zero duplicates and T2 preserved in local history!)
+            var allLogs = repo.GetAllLogs();
+            Assert.Equal(2, allLogs.Count);
+            Assert.Equal("Other device T3 existing", db.GetLog(existingLogId)!.Note);
+            Assert.Equal("Other device T3 missing-at-T1", db.GetLog(missingLogServerId)!.Note);
+            Assert.Contains(repo.GetHistoryForTitle(existingTitleId), h => h.Note == "Windows recovery T2 existing");
+            Assert.Contains(repo.GetHistoryForTitle(missingTitleServerId), h => h.Note == "Windows recovery T2 missing-at-T1");
         }
         finally
         {
