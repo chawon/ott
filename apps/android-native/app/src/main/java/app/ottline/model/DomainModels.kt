@@ -532,7 +532,139 @@ data class RecommendationItem(
     val type: TitleType = TitleType.MOVIE,
     val reason: String = "",
     val genres: List<String> = emptyList(),
-    val posterUrl: String? = null
+    val posterUrl: String? = null,
+    val provider: Provider? = null,
+    val providerId: String? = null,
+    val year: Int? = null,
+    val alternateNames: List<String> = emptyList(),
+    val author: String? = null,
+    val isbn10: String? = null,
+    val isbn13: String? = null,
+    val originalName: String? = null,
+    val catalogTitle: TitleSearchItem? = null
+) {
+    fun toExclusionItem(): RecommendationExclusionItem = RecommendationExclusionItem(
+        name = name,
+        type = type,
+        reason = reason.takeIf { it.isNotBlank() },
+        genres = genres.takeIf { it.isNotEmpty() },
+        posterUrl = posterUrl,
+        provider = provider,
+        providerId = providerId,
+        year = year,
+        alternateNames = alternateNames,
+        author = author,
+        isbn10 = isbn10,
+        isbn13 = isbn13,
+        originalName = originalName,
+        catalogTitle = catalogTitle
+    )
+}
+
+@Serializable
+data class RecommendationExclusionItem(
+    val name: String,
+    val type: TitleType? = null,
+    val reason: String? = null,
+    val genres: List<String>? = null,
+    val posterUrl: String? = null,
+    val provider: Provider? = null,
+    val providerId: String? = null,
+    val year: Int? = null,
+    val alternateNames: List<String> = emptyList(),
+    val author: String? = null,
+    val isbn10: String? = null,
+    val isbn13: String? = null,
+    val originalName: String? = null,
+    val catalogTitle: TitleSearchItem? = null
+) {
+    fun toRecommendationItemOrNull(): RecommendationItem? {
+        val resolvedType = type ?: return null
+        return RecommendationItem(
+            name = name,
+            type = resolvedType,
+            reason = reason.orEmpty(),
+            genres = genres.orEmpty(),
+            posterUrl = posterUrl,
+            provider = provider,
+            providerId = providerId,
+            year = year,
+            alternateNames = alternateNames,
+            author = author,
+            isbn10 = isbn10,
+            isbn13 = isbn13,
+            originalName = originalName,
+            catalogTitle = catalogTitle
+        )
+    }
+}
+
+@Serializable
+data class RecommendationExclusion(
+    val key: String,
+    val name: String,
+    val type: TitleType? = null,
+    val reason: String? = null,
+    val genres: List<String>? = null,
+    val posterUrl: String? = null,
+    val provider: Provider? = null,
+    val providerId: String? = null,
+    val year: Int? = null,
+    val alternateNames: List<String> = emptyList(),
+    val author: String? = null,
+    val isbn10: String? = null,
+    val isbn13: String? = null,
+    val originalName: String? = null,
+    val catalogTitle: TitleSearchItem? = null
+) {
+    fun toExclusionItem(): RecommendationExclusionItem = RecommendationExclusionItem(
+        name = name,
+        type = type,
+        reason = reason,
+        genres = genres,
+        posterUrl = posterUrl,
+        provider = provider,
+        providerId = providerId,
+        year = year,
+        alternateNames = alternateNames,
+        author = author,
+        isbn10 = isbn10,
+        isbn13 = isbn13,
+        originalName = originalName,
+        catalogTitle = catalogTitle
+    )
+}
+
+@Serializable
+data class RecommendationQuota(
+    val date: String = "",
+    val timezone: String = "Asia/Seoul",
+    val limit: Int = 3,
+    val used: Int = 0,
+    val remaining: Int = 0,
+    val resetsAt: String = ""
+)
+
+@Serializable
+data class RecommendationState(
+    val items: List<RecommendationItem> = emptyList(),
+    val exclusions: List<RecommendationExclusion> = emptyList(),
+    val quota: RecommendationQuota = RecommendationQuota(),
+    val generatedAt: String? = null,
+    val generationId: String? = null,
+    val generating: Boolean = false,
+    val hasBatch: Boolean = false,
+    val eligible: Boolean = false
+)
+
+@Serializable
+data class RecommendationGenerateRequest(
+    val requestId: String
+)
+
+data class RecommendationGenerateResult(
+    val statusCode: Int,
+    val state: RecommendationState
 )
 
 @Serializable

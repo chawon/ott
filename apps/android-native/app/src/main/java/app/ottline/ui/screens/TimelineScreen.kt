@@ -1,5 +1,8 @@
 package app.ottline.ui.screens
 
+import android.content.Context
+import android.net.ConnectivityManager
+import android.net.Network
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -29,12 +32,10 @@ import androidx.compose.material.icons.outlined.BarChart
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Download
 import androidx.compose.material.icons.outlined.FilterList
-import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
@@ -46,7 +47,9 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -61,6 +64,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import app.ottline.data.OttlineRepository
 import app.ottline.data.local.PreferencesSnapshot
 import app.ottline.domain.BookshelfBuilder
@@ -71,6 +77,7 @@ import app.ottline.model.LogStatus
 import app.ottline.model.Occasion
 import app.ottline.model.Place
 import app.ottline.model.RecommendationItem
+import app.ottline.model.TitleSearchItem
 import app.ottline.model.TitleType
 import app.ottline.model.WatchLog
 import app.ottline.ui.TimelineFilterState
@@ -85,6 +92,8 @@ import app.ottline.ui.util.CardExporter
 import java.time.LocalDate
 import java.time.format.TextStyle
 import java.util.Locale
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -123,11 +132,77 @@ fun TimelineScreen(
     var loadingMore by remember { mutableStateOf(false) }
     var loadMoreError by remember { mutableStateOf(false) }
 
-    // Future Timeline ("내 미래는?") state
+    // Future Timeline ("내 미래는?") state backed by account+locale-scoped RecommendationCoordinator
+    val lifecycleOwner = LocalLifecycleOwner.current
     var futureMode by rememberSaveable { mutableStateOf(false) }
-    var futureItems by remember { mutableStateOf<List<RecommendationItem>>(emptyList()) }
-    var futureLoading by remember { mutableStateOf(false) }
-    var futureError by remember { mutableStateOf<String?>(null) }
+    val futureUiState by repository.recommendations.uiState.collectAsState()
+    var catalogTarget by remember { mutableStateOf<RecommendationItem?>(null) }
+    var catalogCandidates by remember { mutableStateOf<List<TitleSearchItem>>(emptyList()) }
+    var catalogLoading by remember { mutableStateOf(false) }
+    var catalogError by remember { mutableStateOf(false) }
+    var catalogJob by remember { mutableStateOf<Job?>(null) }
+
+    LaunchedEffect(futureMode, prefsSnapshot.userId, prefsSnapshot.deviceId, prefsSnapshot.locale) {
+        repository.recommendations.syncScope(
+            userId = prefsSnapshot.userId,
+            deviceId = prefsSnapshot.deviceId,
+            locale = prefsSnapshot.locale,
+            active = futureMode
+        )
+    }
+
+    DisposableEffect(lifecycleOwner, futureMode) {
+        if (!futureMode) {
+            onDispose { }
+        } else {
+            val observer = LifecycleEventObserver { _, event ->
+                if (event == Lifecycle.Event.ON_RESUME) {
+                    repository.recommendations.reconcileOnResumeOrReconnect()
+                }
+            }
+            lifecycleOwner.lifecycle.addObserver(observer)
+            onDispose {
+                lifecycleOwner.lifecycle.removeObserver(observer)
+            }
+        }
+    }
+
+    DisposableEffect(context, futureMode) {
+        if (!futureMode) {
+            onDispose { }
+        } else {
+            val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
+            var skipInitialOnlineCallback = repository.isNetworkOnline()
+            val callback = object : ConnectivityManager.NetworkCallback() {
+                override fun onAvailable(network: Network) {
+                    if (skipInitialOnlineCallback) {
+                        skipInitialOnlineCallback = false
+                    } else {
+                        repository.recommendations.reconcileOnResumeOrReconnect()
+                    }
+                }
+
+                override fun onLost(network: Network) {
+                    skipInitialOnlineCallback = false
+                }
+            }
+            val registered = runCatching {
+                cm?.registerDefaultNetworkCallback(callback)
+                cm != null
+            }.getOrDefault(false)
+            onDispose {
+                if (registered) {
+                    runCatching { cm?.unregisterNetworkCallback(callback) }
+                }
+            }
+        }
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            catalogJob?.cancel()
+        }
+    }
 
     LaunchedEffect(
         prefsSnapshot.userId,
@@ -211,23 +286,44 @@ fun TimelineScreen(
         classifications.associateBy { it.isbn13 }
     }
 
-    fun loadFutureRecommendations(refresh: Boolean) {
-        if (prefsSnapshot.userId.isNullOrBlank()) return
-        scope.launch {
-            futureLoading = true
-            futureError = null
-            runCatching {
-                repository.api.getRecommendations(
-                    refresh = refresh,
-                    excluded = prefsSnapshot.dismissedRecommendations
-                )
-            }.onSuccess {
-                futureItems = it
-                futureLoading = false
-            }.onFailure { err ->
-                futureError = err.message
-                futureLoading = false
+    val visibleFutureItems = remember(futureUiState, allLogs) {
+        futureUiState.visibleItems(allLogs)
+    }
+
+    fun startCatalogLookup(item: RecommendationItem) {
+        catalogJob?.cancel()
+        catalogTarget = item
+        catalogCandidates = emptyList()
+        catalogLoading = true
+        catalogError = false
+        catalogJob = scope.launch {
+            try {
+                val results = repository.recommendations.searchCatalog(item)
+                catalogCandidates = results
+                catalogLoading = false
+            } catch (_: CancellationException) {
+                // Scope or dialog dismissed
+            } catch (_: Exception) {
+                catalogError = true
+                catalogLoading = false
             }
+        }
+    }
+
+    fun openRecommendationItem(item: RecommendationItem) {
+        val prefilledCatalog = item.catalogTitle?.takeIf { it.type == item.type }
+        if (item.type != TitleType.BOOK && prefilledCatalog != null) {
+            onOpenQuickRecord(
+                QuickRecordRequest(
+                    initialTypeTab = item.type.wireValue,
+                    preselectedSearchItem = prefilledCatalog,
+                    preferredStatus = LogStatus.WISHLIST,
+                    selectSource = "recommendation",
+                    autoFocusSearch = false
+                )
+            )
+        } else {
+            startCatalogLookup(item)
         }
     }
 
@@ -246,7 +342,7 @@ fun TimelineScreen(
                 )
                 Text(
                     text = if (futureMode) {
-                        tr("다가올 타임라인", "Your Future Timeline")
+                        tr("미래의 타임라인", "Future timeline")
                     } else if (!prefsSnapshot.nickname.isNullOrBlank()) {
                         tr("${prefsSnapshot.nickname}님의 타임라인", "${prefsSnapshot.nickname}'s Timeline")
                     } else {
@@ -277,16 +373,16 @@ fun TimelineScreen(
                     if (!prefsSnapshot.userId.isNullOrBlank()) {
                         AssistChip(
                             onClick = {
-                                futureMode = !futureMode
-                                if (futureMode && futureItems.isEmpty()) {
+                                val nextFuture = !futureMode
+                                futureMode = nextFuture
+                                if (nextFuture) {
                                     repository.trackEvent("recommendation_open")
-                                    loadFutureRecommendations(false)
                                 }
                             },
                             shape = RoundedCornerShape(8.dp),
                             leadingIcon = { Icon(Icons.Outlined.AutoAwesome, contentDescription = null, modifier = Modifier.size(16.dp)) },
                             label = {
-                                Text(if (futureMode) tr("타임라인으로 돌아가기", "Back to timeline") else tr("내 미래는?", "What's next?"))
+                                Text(if (futureMode) tr("타임라인으로 돌아가기", "Back to timeline") else tr("내 미래는?", "What's my future?"))
                             }
                         )
                     }
@@ -314,100 +410,16 @@ fun TimelineScreen(
         }
 
         if (futureMode) {
-            item {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(
-                        text = tr("남겨둔 취향을 바탕으로 고른 다음 이야기예요.", "Picked from the stories you loved."),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = palette.mutedInk,
-                        modifier = Modifier.weight(1f)
-                    )
-                    TextButton(onClick = { loadFutureRecommendations(true) }, enabled = !futureLoading) {
-                        Icon(Icons.Outlined.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(Modifier.width(4.dp))
-                        Text(tr("새로고침", "Refresh"))
-                    }
-                }
-            }
-
-            if (futureLoading) {
-                item {
-                    Row(
-                        horizontalArrangement = Arrangement.Center,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(24.dp)
-                    ) {
-                        CircularProgressIndicator(color = palette.brandNavy)
-                    }
-                }
-            } else if (futureError != null) {
-                item {
-                    Text(futureError!!, color = palette.danger, style = MaterialTheme.typography.bodySmall)
-                }
-            } else {
-                items(futureItems, key = { it.name }) { rec ->
-                    Surface(
-                        shape = RoundedCornerShape(10.dp),
-                        color = palette.card,
-                        border = BorderStroke(1.dp, palette.border),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Row(modifier = Modifier.padding(14.dp)) {
-                            PosterImage(
-                                posterUrl = rec.posterUrl,
-                                titleName = rec.name,
-                                titleType = rec.type,
-                                modifier = Modifier.size(width = 60.dp, height = 86.dp),
-                                widthBucket = "w342"
-                            )
-                            Spacer(Modifier.width(12.dp))
-                            Column(
-                                verticalArrangement = Arrangement.spacedBy(6.dp),
-                                modifier = Modifier.weight(1f)
-                            ) {
-                                Text(rec.name, style = MaterialTheme.typography.titleSmall, color = palette.ink)
-                                if (rec.genres.isNotEmpty()) {
-                                    Text(
-                                        rec.genres.joinToString(" · "),
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = palette.brandNavy
-                                    )
-                                }
-                                Text(rec.reason, style = MaterialTheme.typography.bodySmall, color = palette.mutedInk)
-                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    OutlinedButton(
-                                        onClick = {
-                                            onOpenQuickRecord(
-                                                QuickRecordRequest(
-                                                    initialQuery = rec.name,
-                                                    initialTypeTab = rec.type.wireValue
-                                                )
-                                            )
-                                        },
-                                        shape = RoundedCornerShape(8.dp),
-                                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)
-                                    ) {
-                                        Text(tr("기록하기", "Log this"))
-                                    }
-                                    TextButton(
-                                        onClick = {
-                                            repository.prefs.addDismissedRecommendation(rec.name)
-                                            futureItems = futureItems.filterNot { it.name == rec.name }
-                                        }
-                                    ) {
-                                        Text(tr("관심 없음", "Dismiss"), color = palette.subtleInk)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+            futureTimelineItems(
+                state = futureUiState,
+                visibleItems = visibleFutureItems,
+                onGenerate = { repository.recommendations.generate() },
+                onRetry = { repository.recommendations.retry() },
+                onSyncRetry = { repository.recommendations.reload(retryPending = false) },
+                onOpenItem = { openRecommendationItem(it) },
+                onDismissItem = { repository.recommendations.dismiss(it) },
+                onUndoDismiss = { repository.recommendations.undoDismiss() }
+            )
         } else {
             // Search + Content Tabs + Foldable "그날의 순간으로 찾기"
             item {
@@ -724,6 +736,46 @@ fun TimelineScreen(
                 }
             }
         }
+    }
+
+    catalogTarget?.let { target ->
+        FutureCatalogPickerDialog(
+            targetItem = target,
+            candidates = catalogCandidates,
+            loading = catalogLoading,
+            error = catalogError,
+            onRetry = { startCatalogLookup(target) },
+            onSelectCandidate = { chosen ->
+                catalogJob?.cancel()
+                catalogTarget = null
+                onOpenQuickRecord(
+                    QuickRecordRequest(
+                        initialTypeTab = target.type.wireValue,
+                        preselectedSearchItem = chosen,
+                        preferredStatus = LogStatus.WISHLIST,
+                        selectSource = "recommendation",
+                        autoFocusSearch = false
+                    )
+                )
+            },
+            onSearchManually = {
+                catalogJob?.cancel()
+                catalogTarget = null
+                onOpenQuickRecord(
+                    QuickRecordRequest(
+                        initialQuery = target.name,
+                        initialTypeTab = target.type.wireValue,
+                        preferredStatus = LogStatus.WISHLIST,
+                        selectSource = "recommendation",
+                        autoFocusSearch = true
+                    )
+                )
+            },
+            onDismiss = {
+                catalogJob?.cancel()
+                catalogTarget = null
+            }
+        )
     }
 }
 
