@@ -501,8 +501,7 @@ public sealed record PublicAuthorProfile(
     string DisplayName = "익명 기록자",
     string? Handle = null,
     string? AvatarPreset = "cinema_keeper",
-    string? Bio = null,
-    bool IsAiOperator = false
+    string? Bio = null
 );
 
 public sealed record DiscussionReactionSummary(
@@ -527,8 +526,7 @@ public sealed record DiscussionPost(
     PublicAuthorProfile Author = default!,
     DiscussionReactionSummary Reactions = default!,
     int CommentCount = 0,
-    bool IsMine = false,
-    bool IsPromptSeed = false
+    bool IsMine = false
 );
 
 public sealed record CommentMention(
@@ -554,18 +552,6 @@ public sealed record DiscussionComment(
 public sealed record DiscussionDetail(
     DiscussionPost Post,
     IReadOnlyList<DiscussionComment> Comments
-);
-
-public sealed record DailyPromptPayload(
-    string Id,
-    string DateKey,
-    string QuestionKo,
-    string QuestionEn,
-    string SubtitleKo,
-    string SubtitleEn,
-    TitleSummary? FeaturedTitle = null,
-    string? SeedDiscussionId = null,
-    bool IsAiCurated = true
 );
 
 public sealed record RecommendationItem(

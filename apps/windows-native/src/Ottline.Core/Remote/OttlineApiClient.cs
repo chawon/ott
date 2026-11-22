@@ -406,77 +406,6 @@ public sealed class OttlineApiClient : IDisposable
         return new SyncPullResult(logs, cursor, hasMore);
     }
 
-    public async Task<DailyPromptPayload?> FetchDailyPromptAsync(CancellationToken ct = default)
-    {
-        try
-        {
-            using var req = CreateRequest(HttpMethod.Get, "/api/curated-contents?limit=6");
-            using var res = await SendWithTimeoutAsync(req, DefaultRequestTimeout, ct).ConfigureAwait(false);
-            if (!res.IsSuccessStatusCode) return null;
-
-            var body = await res.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
-            using var doc = JsonDocument.Parse(body);
-            var root = doc.RootElement;
-            JsonElement firstItem = default;
-            if (root.ValueKind == JsonValueKind.Array)
-            {
-                foreach (var item in root.EnumerateArray())
-                {
-                    firstItem = item;
-                    break;
-                }
-            }
-            else if (root.ValueKind == JsonValueKind.Object)
-            {
-                firstItem = root;
-            }
-
-            if (firstItem.ValueKind != JsonValueKind.Object) return null;
-
-            var id = GetStringOrDefault(firstItem, "id", $"curated-{RecordDate.TodayDate()}");
-            var publishedAt = GetStringOrDefault(firstItem, "publishedAt", RecordDate.TodayDate());
-            var titleName = GetStringOrDefault(firstItem, "titleName", "");
-            var titleId = GetStringOrDefault(firstItem, "titleId", id);
-            var titleType = TitleTypeExtensions.FromWire(GetNullableString(firstItem, "titleType"));
-            var titleYear = GetNullableInt(firstItem, "titleYear");
-            var posterUrl = GetNullableString(firstItem, "posterUrl");
-            var promptBody = GetStringOrDefault(firstItem, "body", "");
-            var actorName = GetStringOrDefault(firstItem, "actorDisplayName", "ottline 큐레이터");
-            var disclosure = GetStringOrDefault(firstItem, "disclosure", "AI 운영 계정");
-            if (string.IsNullOrWhiteSpace(promptBody)) return null;
-
-            var featured = new TitleSummary(
-                Id: titleId,
-                Provider: "tmdb",
-                ProviderId: titleId,
-                Type: titleType,
-                Title: titleName,
-                Year: titleYear,
-                PosterUrl: posterUrl
-            );
-
-            var sub = string.IsNullOrWhiteSpace(titleName)
-                ? $"{actorName} · {disclosure}"
-                : $"{titleName}{(titleYear.HasValue ? $" ({titleYear.Value})" : "")} · {actorName} ({disclosure})";
-
-            return new DailyPromptPayload(
-                Id: id,
-                DateKey: publishedAt.Length >= 10 ? publishedAt[..10] : publishedAt,
-                QuestionKo: promptBody,
-                QuestionEn: promptBody,
-                SubtitleKo: sub,
-                SubtitleEn: sub,
-                FeaturedTitle: featured,
-                SeedDiscussionId: null,
-                IsAiCurated: true
-            );
-        }
-        catch
-        {
-            return null;
-        }
-    }
-
     public async Task<IReadOnlyList<DiscussionPost>> FetchDiscussionsAsync(
         string? query = null,
         DiscussionSort sort = DiscussionSort.LATEST,
@@ -1575,8 +1504,7 @@ public sealed class OttlineApiClient : IDisposable
                 DisplayName: GetStringOrDefault(aEl, "displayName", createdDateDisplay),
                 Handle: GetNullableString(aEl, "handle"),
                 AvatarPreset: GetStringOrDefault(aEl, "avatarPreset", "cinema_keeper"),
-                Bio: GetNullableString(aEl, "bio"),
-                IsAiOperator: GetNullableBool(aEl, "isAiOperator") ?? false
+                Bio: GetNullableString(aEl, "bio")
             );
         }
 
@@ -1636,8 +1564,7 @@ public sealed class OttlineApiClient : IDisposable
             Author: author,
             Reactions: reactions,
             CommentCount: commentCount,
-            IsMine: GetNullableBool(el, "isMine") ?? false,
-            IsPromptSeed: GetNullableBool(el, "isPromptSeed") ?? false
+            IsMine: GetNullableBool(el, "isMine") ?? false
         );
     }
 
@@ -1655,8 +1582,7 @@ public sealed class OttlineApiClient : IDisposable
                 DisplayName: GetStringOrDefault(aEl, "displayName", authorName),
                 Handle: GetNullableString(aEl, "handle"),
                 AvatarPreset: GetStringOrDefault(aEl, "avatarPreset", "book_drifter"),
-                Bio: GetNullableString(aEl, "bio"),
-                IsAiOperator: GetNullableBool(aEl, "isAiOperator") ?? false
+                Bio: GetNullableString(aEl, "bio")
             );
         }
 

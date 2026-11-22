@@ -78,8 +78,6 @@ public sealed record OttlineStrings(
     // Together Screen
     string TogetherTitle,
     string TogetherSubtitle,
-    string AiPromptBadge,
-    string AiOperatorDisclosure,
     string WriteTogetherButton,
     string ReactionDoneLabel,
     string ReactionCuriousLabel,
@@ -265,18 +263,13 @@ public sealed record OttlineStrings(
         : "남겨둔 기록이 아직 없어요. 방금 본 작품 하나부터 차근차근 쌓아보세요.";
     public string TimelineEmptyAction => IsEn ? "Leave a new record →" : "새로운 기록 남기기 →";
 
-    // Together View (app/[locale]/public/page.tsx + PublicDiscussionsClient.tsx + CuratedContentList.tsx)
+    // Together View (app/[locale]/public/page.tsx + PublicDiscussionsClient.tsx)
     public string TogetherEyebrow => IsEn ? "STORIES, SHARED" : "함께 나누는 이야기";
     public string TogetherHeadingTitle => IsEn ? "Same story, different feelings" : "같은 이야기, 다른 마음";
     public string TogetherHeadingSubtitle => IsEn
         ? "Share the scenes and thoughts that stayed with you."
         : "같은 작품에서 만난 장면과 생각을 함께 나눠요.";
     public string TogetherNewPostButton => IsEn ? "+ Leave a thought" : "+ 의견 남기기";
-    public string TogetherPromptBadge => IsEn ? "Questions from the ottline curator" : "ottline 큐레이터의 질문";
-    public string TogetherPromptCurationLabel => IsEn
-        ? "AI-operated account · Today's conversation starters, kept separate from people's records."
-        : "AI 운영 계정 · 사람의 기록과는 구분된, 오늘의 대화 소재예요.";
-    public string TogetherPromptReplyButton => IsEn ? "Leave a thought" : "의견 남기기";
     public string TogetherSortLatest => IsEn ? "Latest" : "최신";
     public string TogetherSortReactions => IsEn ? "Reactions" : "공감";
     public string TogetherSortComments => IsEn ? "Most comments" : "댓글 많은 순";
@@ -570,8 +563,6 @@ public sealed record OttlineStrings(
         SavedCelebrationSubtitle: "더 남기고 싶을 때 그날의 순간과 메모를 더해요.",
         TogetherTitle: "함께 하는 발자취",
         TogetherSubtitle: "다른 사람들은 요즘 무엇을 보고 읽을까요?",
-        AiPromptBadge: "ottline 큐레이터의 질문",
-        AiOperatorDisclosure: "AI 운영 계정 · 사람의 기록과는 구분된, 오늘의 대화 소재예요.",
         WriteTogetherButton: "의견 남기기",
         ReactionDoneLabel: "나도 봤어요",
         ReactionCuriousLabel: "궁금해요",
@@ -675,8 +666,6 @@ public sealed record OttlineStrings(
         SavedCelebrationSubtitle: "Add the moment and a note whenever you want.",
         TogetherTitle: "Shared Footprints",
         TogetherSubtitle: "What are others watching and reading lately?",
-        AiPromptBadge: "Questions from the ottline curator",
-        AiOperatorDisclosure: "AI-operated account · Today's conversation starters, kept separate from people's records.",
         WriteTogetherButton: "Leave a thought",
         ReactionDoneLabel: "Watched it too",
         ReactionCuriousLabel: "Curious",

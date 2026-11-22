@@ -157,7 +157,6 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
     private string _manualIsbnInput = string.Empty;
 
     // Together state
-    private DailyPromptPayload? _dailyPrompt;
     private string _togetherSearchQuery = string.Empty;
     private DiscussionSort _togetherSort = DiscussionSort.LATEST;
     private DiscussionDetail? _selectedDiscussionDetail;
@@ -1292,24 +1291,6 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
     }
 
     // Together properties
-    public DailyPromptPayload? DailyPrompt
-    {
-        get => _dailyPrompt;
-        private set
-        {
-            _dailyPrompt = value;
-            OnPropertyChanged();
-            OnPropertyChanged(nameof(DailyPromptQuestionDisplay));
-            OnPropertyChanged(nameof(DailyPromptSubtitleDisplay));
-        }
-    }
-
-    public string DailyPromptQuestionDisplay =>
-        IsEnglishLocale ? (_dailyPrompt?.QuestionEn ?? string.Empty) : (_dailyPrompt?.QuestionKo ?? string.Empty);
-
-    public string DailyPromptSubtitleDisplay =>
-        IsEnglishLocale ? (_dailyPrompt?.SubtitleEn ?? string.Empty) : (_dailyPrompt?.SubtitleKo ?? string.Empty);
-
     public string TogetherSearchQuery
     {
         get => _togetherSearchQuery;
@@ -1749,8 +1730,6 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
         OnPropertyChanged(nameof(TimelineOccasionComboOptions));
         OnPropertyChanged(nameof(TimelineOccasionComboIndex));
         OnPropertyChanged(nameof(ActiveTimelineFilterSummary));
-        OnPropertyChanged(nameof(DailyPromptQuestionDisplay));
-        OnPropertyChanged(nameof(DailyPromptSubtitleDisplay));
         OnPropertyChanged(nameof(PersonalReport));
         OnPropertyChanged(nameof(PersonalReportRhythmDisplay));
         OnPropertyChanged(nameof(ShareSizeLabel));
@@ -2481,24 +2460,13 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
     public async Task LoadTogetherAsync()
     {
         _repo.RefreshApi();
-        DailyPrompt = await _repo.Api.FetchDailyPromptAsync() ?? new DailyPromptPayload(
-            Id: $"prompt-{RecordDate.TodayDate()}",
-            DateKey: RecordDate.TodayDate(),
-            QuestionKo: "오랜 시간이 지나도 문득 그날의 공기까지 떠오르는 영화나 책이 있나요?",
-            QuestionEn: "Is there a film or book that still brings back the exact air of the day you experienced it?",
-            SubtitleKo: "별점 대신 그때 머물렀던 장소와 순간을 함께 나눠주세요.",
-            SubtitleEn: "Share the place and moment rather than a numeric score.",
-            FeaturedTitle: null,
-            IsAiCurated: true
-        );
 
         var remotePosts = await _repo.Api.FetchDiscussionsAsync(_togetherSearchQuery, _togetherSort);
         var popularTitles = await _repo.Api.FetchPopularTitlesAsync(8);
 
         await UrlToImageSourceConverter.PrefetchUrlsAsync(
             popularTitles.Take(8).Select(t => t.PosterUrl)
-                .Concat(remotePosts.Take(16).Select(p => p.Title.PosterUrl))
-                .Append(DailyPrompt?.FeaturedTitle?.PosterUrl),
+                .Concat(remotePosts.Take(16).Select(p => p.Title.PosterUrl)),
             isHero: false
         );
 
