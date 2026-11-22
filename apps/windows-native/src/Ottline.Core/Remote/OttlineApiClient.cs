@@ -432,24 +432,34 @@ public sealed class OttlineApiClient : IDisposable
                 if (post != null) list.Add(post);
             }
 
-            if (!string.IsNullOrWhiteSpace(query))
-            {
-                var q = query.Trim();
-                list = list.Where(p =>
-                    p.Title.Title.Contains(q, StringComparison.OrdinalIgnoreCase) ||
-                    p.Body.Contains(q, StringComparison.OrdinalIgnoreCase)).ToList();
-            }
-
-            return sort switch
-            {
-                DiscussionSort.COMMENTS => list.OrderByDescending(p => p.CommentCount).ThenByDescending(p => p.CreatedAt).ToList(),
-                DiscussionSort.REACTIONS => list.OrderByDescending(p => p.Reactions.TotalCount).ThenByDescending(p => p.CreatedAt).ToList(),
-                _ => list.OrderByDescending(p => p.CreatedAt).ToList()
-            };
+            return TogetherSpreadCoordinator.FilterAndSort(list, query, sort);
         }
         catch
         {
             return Array.Empty<DiscussionPost>();
+        }
+    }
+
+    public async Task<DiscussionPost?> FetchDiscussionByIdAsync(string discussionId, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(discussionId)) return null;
+        try
+        {
+            using var req = CreateRequest(HttpMethod.Get, $"/api/discussions/{Uri.EscapeDataString(discussionId.Trim())}");
+            using var res = await SendWithTimeoutAsync(req, DefaultRequestTimeout, ct).ConfigureAwait(false);
+            if (!res.IsSuccessStatusCode) return null;
+
+            var body = await res.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
+            using var doc = JsonDocument.Parse(body);
+            return ParseDiscussionPostElement(doc.RootElement, _locale);
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch
+        {
+            return null;
         }
     }
 
@@ -461,7 +471,7 @@ public sealed class OttlineApiClient : IDisposable
             using var res = await SendWithTimeoutAsync(req, DefaultRequestTimeout, ct).ConfigureAwait(false);
             if (!res.IsSuccessStatusCode)
             {
-                return fallbackPost != null ? new DiscussionDetail(fallbackPost, Array.Empty<DiscussionComment>()) : null;
+                return null;
             }
 
             var body = await res.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
@@ -473,7 +483,7 @@ public sealed class OttlineApiClient : IDisposable
             {
                 foreach (var item in root.EnumerateArray())
                 {
-                    var c = ParseDiscussionCommentElement(item, discussionId);
+                    var c = ParseDiscussionCommentElement(item, discussionId, _locale);
                     if (c != null) comments.Add(c);
                 }
             }
@@ -483,13 +493,13 @@ public sealed class OttlineApiClient : IDisposable
                 {
                     foreach (var item in cEl.EnumerateArray())
                     {
-                        var c = ParseDiscussionCommentElement(item, discussionId);
+                        var c = ParseDiscussionCommentElement(item, discussionId, _locale);
                         if (c != null) comments.Add(c);
                     }
                 }
                 else
                 {
-                    var single = ParseDiscussionCommentElement(root, discussionId);
+                    var single = ParseDiscussionCommentElement(root, discussionId, _locale);
                     if (single != null) comments.Add(single);
                 }
             }
@@ -508,9 +518,13 @@ public sealed class OttlineApiClient : IDisposable
 
             return new DiscussionDetail(post, comments);
         }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
+        }
         catch
         {
-            return fallbackPost != null ? new DiscussionDetail(fallbackPost, Array.Empty<DiscussionComment>()) : null;
+            return null;
         }
     }
 
@@ -532,7 +546,7 @@ public sealed class OttlineApiClient : IDisposable
         if (!res.IsSuccessStatusCode) return null;
         var body = await res.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
         using var doc = JsonDocument.Parse(body);
-        return ParseDiscussionPostElement(doc.RootElement);
+        return ParseDiscussionPostElement(doc.RootElement, _locale);
     }
 
     public async Task<DiscussionComment?> CreateCommentAsync(
@@ -540,12 +554,14 @@ public sealed class OttlineApiClient : IDisposable
         string bodyText,
         bool spoiler,
         IReadOnlyList<CommentMention> mentions,
+        bool syncLog = true,
         CancellationToken ct = default)
     {
         var payload = new
         {
             body = bodyText,
             spoiler,
+            syncLog,
             mentions = mentions.Select(m => new { titleId = m.TitleId, titleName = m.TitleName, type = m.Type.ToWire() }).ToList()
         };
         using var req = CreateRequest(HttpMethod.Post, $"/api/discussions/{Uri.EscapeDataString(discussionId)}/comments", payload);
@@ -553,18 +569,68 @@ public sealed class OttlineApiClient : IDisposable
         if (!res.IsSuccessStatusCode) return null;
         var body = await res.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
         using var doc = JsonDocument.Parse(body);
-        return ParseDiscussionCommentElement(doc.RootElement, discussionId);
+        return ParseDiscussionCommentElement(doc.RootElement, discussionId, _locale);
     }
 
-    public async Task<bool> ToggleReactionAsync(
+    public async Task<DiscussionReactionState?> FetchMyDiscussionReactionsAsync(
+        string discussionId,
+        CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(discussionId) || !Guid.TryParse(_userId, out _) || !Guid.TryParse(_deviceId, out _))
+        {
+            return null;
+        }
+
+        try
+        {
+            using var req = CreateRequest(HttpMethod.Get, $"/api/discussions/{Uri.EscapeDataString(discussionId)}/reactions/me");
+            using var res = await SendWithTimeoutAsync(req, DefaultRequestTimeout, ct).ConfigureAwait(false);
+            if (!res.IsSuccessStatusCode) return null;
+
+            var body = await res.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
+            using var doc = JsonDocument.Parse(body);
+            return ParseDiscussionReactionStateElement(doc.RootElement);
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    public async Task<DiscussionReactionState?> ToggleReactionAsync(
         string discussionId,
         DiscussionReactionType reactionType,
         CancellationToken ct = default)
     {
-        var payload = new { reactionType = reactionType.ToString() };
-        using var req = CreateRequest(HttpMethod.Post, $"/api/discussions/{Uri.EscapeDataString(discussionId)}/reactions", payload);
-        using var res = await SendWithTimeoutAsync(req, DefaultRequestTimeout, ct).ConfigureAwait(false);
-        return res.IsSuccessStatusCode;
+        if (string.IsNullOrWhiteSpace(discussionId) || !Guid.TryParse(_userId, out _) || !Guid.TryParse(_deviceId, out _))
+        {
+            return null;
+        }
+
+        try
+        {
+            var payload = new { type = reactionType.ToString() };
+            using var req = CreateRequest(HttpMethod.Put, $"/api/discussions/{Uri.EscapeDataString(discussionId)}/reactions", payload);
+            using var res = await SendWithTimeoutAsync(req, DefaultRequestTimeout, ct).ConfigureAwait(false);
+            if (!res.IsSuccessStatusCode) return null;
+
+            var body = await res.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
+            if (string.IsNullOrWhiteSpace(body)) return null;
+            using var doc = JsonDocument.Parse(body);
+            return ParseDiscussionReactionStateElement(doc.RootElement);
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch
+        {
+            return null;
+        }
     }
 
     public async Task<RecommendationApiResponse> FetchRecommendationStateAsync(CancellationToken ct = default)
@@ -1564,15 +1630,55 @@ public sealed class OttlineApiClient : IDisposable
             Author: author,
             Reactions: reactions,
             CommentCount: commentCount,
-            IsMine: GetNullableBool(el, "isMine") ?? false
+            IsMine: GetNullableBool(el, "isMine") ?? false,
+            RawCreatedAt: createdAtRaw
         );
     }
 
-    private static DiscussionComment? ParseDiscussionCommentElement(JsonElement el, string discussionId)
+    private static DiscussionReactionState? ParseDiscussionReactionStateElement(JsonElement el)
+    {
+        if (el.ValueKind != JsonValueKind.Object) return null;
+
+        var summary = new DiscussionReactionSummary();
+        if (el.TryGetProperty("summary", out var sEl) && sEl.ValueKind == JsonValueKind.Object)
+        {
+            summary = new DiscussionReactionSummary(
+                DoneCount: GetNullableInt(sEl, "done") ?? GetNullableInt(sEl, "doneCount") ?? 0,
+                CuriousCount: GetNullableInt(sEl, "curious") ?? GetNullableInt(sEl, "curiousCount") ?? 0,
+                SaveCount: GetNullableInt(sEl, "save") ?? GetNullableInt(sEl, "saveCount") ?? 0
+            );
+        }
+
+        var selectedTypes = new List<DiscussionReactionType>();
+        if (el.TryGetProperty("selectedTypes", out var stEl) && stEl.ValueKind == JsonValueKind.Array)
+        {
+            foreach (var item in stEl.EnumerateArray())
+            {
+                if (item.ValueKind == JsonValueKind.String)
+                {
+                    var rt = DiscussionReactionTypeExtensions.FromWire(item.GetString());
+                    if (rt.HasValue && !selectedTypes.Contains(rt.Value))
+                    {
+                        selectedTypes.Add(rt.Value);
+                    }
+                }
+            }
+        }
+
+        var selected = GetNullableBool(el, "selected") ?? (selectedTypes.Count > 0);
+        return new DiscussionReactionState(
+            Summary: summary with { ViewerReactions = selectedTypes },
+            SelectedTypes: selectedTypes,
+            Selected: selected
+        );
+    }
+
+    private static DiscussionComment? ParseDiscussionCommentElement(JsonElement el, string discussionId, string locale = "ko")
     {
         if (el.ValueKind != JsonValueKind.Object) return null;
         var id = GetStringOrDefault(el, "id", Guid.NewGuid().ToString("N"));
-        var authorName = GetNullableString(el, "authorName") ?? "익명 기록자";
+        var defaultAuthor = string.Equals(locale, "en", StringComparison.OrdinalIgnoreCase) ? "Anonymous reader" : "익명 기록자";
+        var authorName = GetNullableString(el, "authorName") ?? defaultAuthor;
         var userId = GetNullableString(el, "userId");
         var author = new PublicAuthorProfile(UserId: userId, DisplayName: authorName, AvatarPreset: "book_drifter");
         if (el.TryGetProperty("author", out var aEl) && aEl.ValueKind == JsonValueKind.Object)
@@ -1600,7 +1706,7 @@ public sealed class OttlineApiClient : IDisposable
         }
 
         var rawCreatedAt = GetStringOrDefault(el, "createdAt", RecordDate.TodayDate());
-        var formattedDate = RecordDate.FormatDisplayDate(null, rawCreatedAt, "ko");
+        var formattedDate = RecordDate.FormatDisplayDate(null, rawCreatedAt, locale);
 
         return new DiscussionComment(
             Id: id,

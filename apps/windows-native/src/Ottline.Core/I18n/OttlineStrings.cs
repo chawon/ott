@@ -274,9 +274,33 @@ public sealed record OttlineStrings(
     public string TogetherSortReactions => IsEn ? "Reactions" : "공감";
     public string TogetherSortComments => IsEn ? "Most comments" : "댓글 많은 순";
     public string TogetherReactDone => IsEn ? "✓ Watched it too" : "✓ 나도 봤어요";
+    public string TogetherReactDoneBook => IsEn ? "✓ Read it too" : "✓ 나도 읽었어요";
     public string TogetherReactCurious => IsEn ? "👀 Curious" : "👀 궁금해요";
     public string TogetherReactSave => IsEn ? "🔖 Save for later" : "🔖 저장해둘래요";
     public string TogetherOpenComments => IsEn ? "Together →" : "함께 기록 →";
+    public string TogetherSearchPlaceholder => IsEn ? "Filter by title or note" : "작품 제목이나 내용으로 찾기";
+    public string TogetherClearSearchButton => IsEn ? "Clear search" : "검색 지우기";
+    public string TogetherRefreshButton => IsEn ? "Refresh" : "새로고침";
+    public string TogetherListLoading => IsEn ? "Loading shared stories…" : "함께 나눈 이야기를 불러오고 있어요…";
+    public string TogetherEmptyListTitle => IsEn ? "No shared stories yet." : "아직 함께 나눈 이야기가 없어요.";
+    public string TogetherEmptySearchTitle => IsEn ? "No stories match that search yet." : "찾는 조건에 맞는 이야기가 아직 없어요.";
+    public string TogetherSelectPromptTitle => IsEn ? "Select a conversation from the left list." : "왼쪽에서 이야기를 선택해 읽어보세요.";
+    public string TogetherSelectPromptBody => IsEn
+        ? "Pick a title to read reactions and comments, or add it straight to your timeline."
+        : "작품을 고르면 공감과 댓글, 내 타임라인 기록까지 한 번에 이어서 볼 수 있어요.";
+    public string TogetherBackToList => IsEn ? "← Back to list" : "← 목록으로";
+    public string TogetherLogThisTitle => IsEn ? "Log this title" : "이 작품 기록하기";
+    public string TogetherOpenMyRecord => IsEn ? "Open my record" : "내 기록 펼치기";
+    public string TogetherCommentsHeading => IsEn ? "Shared thoughts" : "함께 나눈 이야기";
+    public string TogetherCommentsLoading => IsEn ? "Loading thoughts…" : "이야기를 불러오고 있어요…";
+    public string TogetherCommentsLoadError => IsEn
+        ? "Could not load comments. Please try again in a little while."
+        : "이야기를 불러오지 못했어요. 잠시 뒤 다시 확인해 주세요.";
+    public string TogetherCommentsRetry => IsEn ? "Try again" : "다시 불러오기";
+    public string TogetherCommentsEmpty => IsEn
+        ? "No thoughts here yet. Leave the first line."
+        : "아직 남겨진 이야기가 없어요. 첫 한 줄을 남겨보세요.";
+    public string TogetherSyncLogCheckbox => IsEn ? "Also keep on my timeline" : "내 타임라인에도 함께 남기기";
 
     // My Space View (app/[locale]/account/page.tsx + ProfileEditor.tsx)
     public string MySpaceEyebrow => IsEn ? "MY SPACE" : "나의 공간";

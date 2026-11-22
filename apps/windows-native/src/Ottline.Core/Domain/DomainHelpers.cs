@@ -575,7 +575,8 @@ public sealed record ParsedShareIntent(
     string? HandoffUserId = null,
     string? HandoffDeviceId = null,
     string? HandoffNickname = null,
-    string? HandoffPersonaKey = null
+    string? HandoffPersonaKey = null,
+    string? OpenDiscussionId = null
 );
 
 public static class ShareIntentParser
@@ -621,20 +622,68 @@ public static class ShareIntentParser
                 queryParams.TryGetValue("title", out var titleParam);
                 queryParams.TryGetValue("platform", out var platform);
                 queryParams.TryGetValue("type", out var typeParam);
-                if (!queryParams.TryGetValue("title_id", out var openTitleId))
+                var isTogetherHost = string.Equals(uri.Host, "together", StringComparison.OrdinalIgnoreCase)
+                                     || string.Equals(uri.Host, "discussion", StringComparison.OrdinalIgnoreCase)
+                                     || string.Equals(uri.Host, "public", StringComparison.OrdinalIgnoreCase);
+
+                var pathSegments = uri.AbsolutePath
+                    .Split('/', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+                string? openDiscussionId = null;
+                if (queryParams.TryGetValue("discussion_id", out var discIdParam) && !string.IsNullOrWhiteSpace(discIdParam))
                 {
-                    queryParams.TryGetValue("id", out openTitleId);
+                    openDiscussionId = discIdParam.Trim();
+                }
+                else if (queryParams.TryGetValue("discussionId", out var discIdCamel) && !string.IsNullOrWhiteSpace(discIdCamel))
+                {
+                    openDiscussionId = discIdCamel.Trim();
+                }
+                else if (isTogetherHost)
+                {
+                    if (queryParams.TryGetValue("id", out var idParam) && !string.IsNullOrWhiteSpace(idParam))
+                    {
+                        openDiscussionId = idParam.Trim();
+                    }
+                    else if (pathSegments.Length > 0)
+                    {
+                        openDiscussionId = pathSegments[^1];
+                    }
+                }
+
+                string? openTitleId = null;
+                if (!isTogetherHost)
+                {
+                    if (!queryParams.TryGetValue("title_id", out openTitleId))
+                    {
+                        queryParams.TryGetValue("id", out openTitleId);
+                    }
+                }
+                else if (queryParams.TryGetValue("title_id", out var explicitTitleId))
+                {
+                    openTitleId = explicitTitleId;
                 }
 
                 var openQuick = string.Equals(uri.Host, "quick", StringComparison.OrdinalIgnoreCase)
                                 || (queryParams.TryGetValue("quick", out var qFlag)
                                     && (qFlag == "1" || string.Equals(qFlag, "true", StringComparison.OrdinalIgnoreCase)));
 
-                var openRoute = string.Equals(uri.Host, "timeline", StringComparison.OrdinalIgnoreCase)
-                                || (queryParams.TryGetValue("route", out var routeVal)
-                                    && string.Equals(routeVal, "timeline", StringComparison.OrdinalIgnoreCase))
-                    ? "timeline"
-                    : null;
+                string? openRoute = null;
+                if (isTogetherHost || !string.IsNullOrWhiteSpace(openDiscussionId))
+                {
+                    openRoute = "together";
+                }
+                else if (string.Equals(uri.Host, "timeline", StringComparison.OrdinalIgnoreCase)
+                         || (queryParams.TryGetValue("route", out var routeVal)
+                             && string.Equals(routeVal, "timeline", StringComparison.OrdinalIgnoreCase)))
+                {
+                    openRoute = "timeline";
+                }
+                else if (queryParams.TryGetValue("route", out var explicitRoute)
+                         && (string.Equals(explicitRoute, "together", StringComparison.OrdinalIgnoreCase)
+                             || string.Equals(explicitRoute, "public", StringComparison.OrdinalIgnoreCase)))
+                {
+                    openRoute = "together";
+                }
 
                 var filter = string.Equals(typeParam, "book", StringComparison.OrdinalIgnoreCase)
                     ? ContentFilter.BOOK
@@ -657,11 +706,29 @@ public static class ShareIntentParser
                     HandoffUserId: string.IsNullOrWhiteSpace(handoffUserId) ? null : handoffUserId.Trim(),
                     HandoffDeviceId: string.IsNullOrWhiteSpace(handoffDeviceId) ? null : handoffDeviceId.Trim(),
                     HandoffNickname: string.IsNullOrWhiteSpace(handoffNickname) ? null : handoffNickname.Trim(),
-                    HandoffPersonaKey: string.IsNullOrWhiteSpace(handoffPersonaKey) ? null : handoffPersonaKey.Trim()
+                    HandoffPersonaKey: string.IsNullOrWhiteSpace(handoffPersonaKey) ? null : handoffPersonaKey.Trim(),
+                    OpenDiscussionId: openDiscussionId
                 );
             }
 
             var host = uri.Host.ToLowerInvariant();
+            if (host.EndsWith("ottline.app", StringComparison.OrdinalIgnoreCase))
+            {
+                var segments = uri.AbsolutePath
+                    .Split('/', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                var startIdx = segments.Length > 0 && (string.Equals(segments[0], "ko", StringComparison.OrdinalIgnoreCase)
+                                                       || string.Equals(segments[0], "en", StringComparison.OrdinalIgnoreCase))
+                    ? 1
+                    : 0;
+                if (segments.Length > startIdx && string.Equals(segments[startIdx], "public", StringComparison.OrdinalIgnoreCase))
+                {
+                    var discId = segments.Length > startIdx + 1 ? segments[startIdx + 1] : null;
+                    return new ParsedShareIntent(
+                        OpenRoute: "together",
+                        OpenDiscussionId: string.IsNullOrWhiteSpace(discId) ? null : discId.Trim()
+                    );
+                }
+            }
             if (host.Contains("netflix.com")) return new ParsedShareIntent(InferredPlatform: "Netflix", InferredFilter: ContentFilter.VIDEO);
             if (host.Contains("tving.com")) return new ParsedShareIntent(InferredPlatform: "TVING", InferredFilter: ContentFilter.VIDEO);
             if (host.Contains("wavve.com")) return new ParsedShareIntent(InferredPlatform: "Wavve", InferredFilter: ContentFilter.VIDEO);

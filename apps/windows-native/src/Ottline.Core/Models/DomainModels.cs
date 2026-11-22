@@ -515,6 +515,22 @@ public sealed record DiscussionReactionSummary(
     public int TotalCount => DoneCount + CuriousCount + SaveCount;
 }
 
+public sealed record DiscussionReactionState(
+    DiscussionReactionSummary Summary,
+    IReadOnlyList<DiscussionReactionType> SelectedTypes,
+    bool Selected = false
+)
+{
+    public static DiscussionReactionState Empty { get; } = new(
+        new DiscussionReactionSummary(),
+        Array.Empty<DiscussionReactionType>(),
+        false
+    );
+
+    public IReadOnlyList<DiscussionReactionType> SafeSelectedTypes => SelectedTypes ?? Array.Empty<DiscussionReactionType>();
+    public bool HasReaction(DiscussionReactionType type) => SafeSelectedTypes.Contains(type);
+}
+
 public sealed record DiscussionPost(
     string Id,
     string TitleId,
@@ -526,7 +542,8 @@ public sealed record DiscussionPost(
     PublicAuthorProfile Author = default!,
     DiscussionReactionSummary Reactions = default!,
     int CommentCount = 0,
-    bool IsMine = false
+    bool IsMine = false,
+    string RawCreatedAt = ""
 );
 
 public sealed record CommentMention(
