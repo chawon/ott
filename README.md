@@ -4,6 +4,7 @@ ottline은 영상과 책을 기록하고 돌아보는 서비스입니다. 이 �
 
 - [문서 지도](docs/README.md)에서 기능 계약, 구현 근거, 출시 기록을 찾습니다.
 - [플랫폼 현황](docs/platforms.md)에서 소스 위치와 현재 출시·개발 상태를 확인합니다.
+- [제품 기획 운영](docs/product-planning.md)과 [기능 기준표](docs/feature-matrix.md)에서 개선 과제·공통 동작·플랫폼 차이를 관리합니다.
 - [변경안을 작성합니다](docs/changes/README.md). 영향을 받는 앱, 데이터 호환성, 검증과 출시 순서를 기록합니다.
 - [Wiki](wiki/index.md)는 제품·플랫폼별 현재 동작을 찾는 데 사용합니다. 이전 운영 자료는 [문서 아카이브](docs/archive/README.md)와 [Wiki 아카이브](wiki/archive/README.md)에 있습니다.
 
