@@ -19,7 +19,7 @@
 | [apps/browser-extension](../apps/browser-extension) | Chrome·Edge·Whale에서 빠른 기록으로 연결하는 확장 |
 | [shared](../shared) | Web과 Expo iOS에서 사용하는 도서 플랫폼 데이터 |
 | [deploy/oke](../deploy/oke) | 운영 Web/API의 GitOps 설정 |
-| [archive](../archive) | 구형 Android TWA 소스와 초기 v2 디자인 시안 |
+| [archive](../archive) | 구형 Android TWA 소스·종료된 Actions와 초기 v2 디자인 시안 |
 
 ## 개발 시작
 
@@ -32,3 +32,5 @@
 | macOS | [SwiftUI 개발 가이드](../apps/macos-native/DEVELOPMENT.md) |
 | Windows | [빌드와 패키징 가이드](../apps/windows-native/README.md) |
 | 브라우저 확장 | [배포 Wiki](../wiki/pages/platforms/browser-extension.md)와 [패키지 워크플로우](../.github/workflows/browser-extension-package.yml) |
+
+자동 검증과 수동 배포의 전체 경로는 [GitHub Actions 운영](github-actions.md)을 따른다. 이전 Expo iOS CI·TestFlight와 Flutter Android 디버그 빌드는 종료해 [보관함](../archive/github-actions/README.md)으로 옮겼다.
