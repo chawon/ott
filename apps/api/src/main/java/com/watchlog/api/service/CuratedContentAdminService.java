@@ -8,133 +8,52 @@ import com.watchlog.api.dto.CreateCuratedDraftRequest;
 import com.watchlog.api.dto.CuratedContentAdminDto;
 import com.watchlog.api.dto.CuratedTitleOptionDto;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
-import java.util.HexFormat;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
 @Service
 public class CuratedContentAdminService {
-
-    private static final UUID CURATOR_ACTOR_ID = UUID.fromString("00000000-0000-4000-8000-000000000001");
     private final JdbcTemplate jdbcTemplate;
     private final ObjectMapper objectMapper;
-    private final CuratedPromptGenerator promptGenerator;
     private final String adminToken;
 
-    @Autowired
     public CuratedContentAdminService(
             JdbcTemplate jdbcTemplate,
             ObjectMapper objectMapper,
-            CuratedPromptGenerator promptGenerator,
             @Value("${admin.curated-content.token:${admin.analytics.token:}}") String adminToken
     ) {
         this.jdbcTemplate = jdbcTemplate;
         this.objectMapper = objectMapper;
-        this.promptGenerator = promptGenerator;
         this.adminToken = adminToken;
     }
 
-    public CuratedContentAdminService(JdbcTemplate jdbcTemplate, ObjectMapper objectMapper, String adminToken) {
-        this(jdbcTemplate, objectMapper, new CuratedPromptGenerator(), adminToken);
-    }
-
-    @Transactional
     public CuratedContentAdminDto createDraft(String token, CreateCuratedDraftRequest request) {
         verifyAdminToken(token);
-        if (request == null || request.titleId() == null) {
-            throw new IllegalArgumentException("titleId is required");
-        }
-
-        String locale = normalizeLocale(request.locale());
-        TitleSnapshot title = findTitle(request.titleId());
-        if (title == null) {
-            throw new IllegalArgumentException("Title not found: " + request.titleId());
-        }
-
-        boolean manual = request.body() != null && !request.body().isBlank();
-        String body = normalizeBody(manual
-                ? request.body()
-                : promptGenerator.generate(title.name(), title.type(), locale));
-        String contentHash = sha256(locale + "\nPROMPT\n" + body);
-        Integer existing = jdbcTemplate.queryForObject(
-                "select count(*) from curated_contents where actor_id = ? and title_id = ? and locale = ? and kind = 'PROMPT' and content_hash = ?",
-                Integer.class, CURATOR_ACTOR_ID, title.id(), locale, contentHash);
-        if (existing != null && existing > 0) {
-            throw new IllegalArgumentException("Curated content with the same hash already exists");
-        }
-
-        Map<String, Object> source = new LinkedHashMap<>();
-        source.put("generator", manual ? "manual" : "template-v1");
-        source.put("titleName", title.name());
-        source.put("titleType", title.type().name());
-        source.put("locale", locale);
-        String sourceJson = toJson(source);
-        UUID id = UUID.randomUUID();
-        jdbcTemplate.update("""
-                insert into curated_contents
-                    (id, actor_id, title_id, locale, kind, body, status, model, prompt_version, source_json, content_hash)
-                values (?, ?, ?, ?, 'PROMPT', ?, 'DRAFT', null, ?, ?::jsonb, ?)
-                """, id, CURATOR_ACTOR_ID, title.id(), locale, body,
-                manual ? "manual-v1" : "template-v1", sourceJson, contentHash);
-        return get(token, id);
+        throw retired();
     }
 
-    @Transactional
     public CuratedContentAdminDto publish(String token, UUID id) {
         verifyAdminToken(token);
-        CuratedContentAdminDto content = get(token, id);
-        if ("PUBLISHED".equals(content.status())) return content;
-        if (!"DRAFT".equals(content.status())) {
-            throw new IllegalArgumentException("Only draft content can be published");
-        }
-        Integer existing = jdbcTemplate.queryForObject("""
-                select count(*)
-                from curated_contents
-                where actor_id = (select actor_id from curated_contents where id = ?)
-                  and title_id = ?
-                  and locale = ?
-                  and kind = ?
-                  and status = 'PUBLISHED'
-                  and id <> ?
-                """, Integer.class, id, content.titleId(), content.locale(), content.kind(), id);
-        if (existing != null && existing > 0) {
-            throw new IllegalArgumentException("Title already has a published prompt for this locale");
-        }
-        int updated = jdbcTemplate.update("""
-                update curated_contents
-                   set status = 'PUBLISHED', published_at = now(), updated_at = now()
-                 where id = ? and status = 'DRAFT'
-                """, id);
-        if (updated == 0) throw new IllegalArgumentException("Draft content not found: " + id);
-        return get(token, id);
+        throw retired();
     }
 
-    @Transactional
     public CuratedContentAdminDto disable(String token, UUID id) {
         verifyAdminToken(token);
-        int updated = jdbcTemplate.update("""
-                update curated_contents
-                   set status = 'DISABLED', updated_at = now()
-                 where id = ? and status <> 'DISABLED'
-                """, id);
-        if (updated == 0) {
-            // Keep the operation idempotent for an already disabled card, but still return a useful 404.
-            if (!exists(id)) throw new IllegalArgumentException("Curated content not found: " + id);
-        }
-        return get(token, id);
+        throw retired();
+    }
+
+    private ResponseStatusException retired() {
+        return new ResponseStatusException(HttpStatus.GONE, "Curator publishing has been retired");
     }
 
     @Transactional(readOnly = true)
@@ -235,27 +154,6 @@ public class CuratedContentAdminService {
         );
     }
 
-    private TitleSnapshot findTitle(UUID id) {
-        try {
-            return jdbcTemplate.queryForObject("""
-                    select id, name, type
-                    from titles
-                    where id = ? and deleted_at is null
-                    """, (rs, rowNum) -> new TitleSnapshot(
-                    rs.getObject("id", UUID.class),
-                    rs.getString("name"),
-                    TitleType.valueOf(rs.getString("type"))
-            ), id);
-        } catch (EmptyResultDataAccessException e) {
-            return null;
-        }
-    }
-
-    private boolean exists(UUID id) {
-        Integer count = jdbcTemplate.queryForObject("select count(*) from curated_contents where id = ?", Integer.class, id);
-        return count != null && count > 0;
-    }
-
     private void verifyAdminToken(String token) {
         if (adminToken == null || adminToken.isBlank()) throw new IllegalArgumentException("Admin token is not configured");
         if (!adminToken.equals(token)) throw new IllegalArgumentException("Invalid admin token");
@@ -270,21 +168,6 @@ public class CuratedContentAdminService {
         return normalized;
     }
 
-    private String normalizeBody(String body) {
-        String trimmed = body == null ? "" : body.trim();
-        if (trimmed.isEmpty()) throw new IllegalArgumentException("body is required");
-        if (trimmed.length() > 2000) throw new IllegalArgumentException("body must be 2000 characters or fewer");
-        return trimmed;
-    }
-
-    private String toJson(Map<String, Object> source) {
-        try {
-            return objectMapper.writeValueAsString(source);
-        } catch (JacksonException e) {
-            throw new IllegalArgumentException("Could not serialize source metadata", e);
-        }
-    }
-
     private Map<String, Object> parseJson(String sourceJson) {
         try {
             return objectMapper.readValue(sourceJson, new TypeReference<>() {});
@@ -293,14 +176,4 @@ public class CuratedContentAdminService {
         }
     }
 
-    private String sha256(String value) {
-        try {
-            return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256")
-                    .digest(value.getBytes(StandardCharsets.UTF_8)));
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException("SHA-256 is unavailable", e);
-        }
-    }
-
-    private record TitleSnapshot(UUID id, String name, TitleType type) {}
 }
