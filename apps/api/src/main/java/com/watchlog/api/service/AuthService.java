@@ -19,6 +19,7 @@ import java.security.SecureRandom;
 import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
+import java.util.regex.Pattern;
 
 import static org.springframework.http.HttpStatus.UNAUTHORIZED;
 
@@ -28,6 +29,12 @@ public class AuthService {
     private static final String CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
     private static final int CODE_LENGTH = 8;
     private static final int MAX_NICKNAME_LENGTH = 32;
+    private static final Pattern IPAD = Pattern.compile("\\bipad(?:os)?\\b", Pattern.CASE_INSENSITIVE);
+    private static final Pattern IPHONE = Pattern.compile("\\biphone\\b", Pattern.CASE_INSENSITIVE);
+    private static final Pattern TABLET = Pattern.compile("\\btablet\\b", Pattern.CASE_INSENSITIVE);
+    private static final Pattern MOBILE = Pattern.compile("\\bmobile\\b", Pattern.CASE_INSENSITIVE);
+    private static final Pattern ANDROID_VERSION = Pattern.compile("\\bandroid\\s+[0-9]", Pattern.CASE_INSENSITIVE);
+    private static final Pattern ANDROID_TV = Pattern.compile("\\b(?:android[ -]?tv|tv|bravia|aft\\w*)\\b", Pattern.CASE_INSENSITIVE);
     private static final Set<String> PERSONA_KEYS = Set.of(
             "cinema_keeper",
             "book_drifter",
@@ -215,11 +222,18 @@ public class AuthService {
     }
 
     private void applyAgentInfo(UserDeviceEntity device, String userAgent, String clientPlatform) {
-        String nativeOs = nativeClientOs(clientPlatform, userAgent);
+        String nativeOs = nativeClientOs(device, clientPlatform, userAgent);
         if (nativeOs != null) {
+            String nativeBrowser = switch (nativeOs) {
+                case "iPadOS" -> "iPad App";
+                case "Android" -> isAndroidTablet(device, userAgent) ? "Android Tablet App" : "Android App";
+                default -> nativeOs + " App";
+            };
+            if ((userAgent == null || userAgent.isBlank())
+                    && nativeOs.equals(device.getOs()) && nativeBrowser.equals(device.getBrowser())) return;
             device.setUserAgent(normalizeMetadata(userAgent, clientPlatform));
             device.setOs(nativeOs);
-            device.setBrowser(nativeOs + " App");
+            device.setBrowser(nativeBrowser);
             return;
         }
         if (userAgent == null || userAgent.isBlank()) return;
@@ -228,10 +242,14 @@ public class AuthService {
         device.setBrowser(parseBrowser(userAgent));
     }
 
-    private String nativeClientOs(String clientPlatform, String userAgent) {
+    private String nativeClientOs(UserDeviceEntity device, String clientPlatform, String userAgent) {
+        String ua = userAgent == null ? "" : userAgent;
         if (clientPlatform != null && !clientPlatform.isBlank()) {
             return switch (clientPlatform.trim().toLowerCase(Locale.ROOT)) {
-                case "ios_native" -> "iOS";
+                case "ios_native" -> {
+                    boolean knownIpad = "iPadOS".equals(device.getOs()) && "iPad App".equals(device.getBrowser());
+                    yield IPAD.matcher(ua).find() || (knownIpad && !IPHONE.matcher(ua).find()) ? "iPadOS" : "iOS";
+                }
                 case "android_native" -> "Android";
                 case "windows_native" -> "Windows";
                 case "macos_native" -> "macOS";
@@ -242,6 +260,17 @@ public class AuthService {
             return "Android";
         }
         return null;
+    }
+
+    private boolean isAndroidTablet(UserDeviceEntity device, String userAgent) {
+        String ua = userAgent == null ? "" : userAgent;
+        if (TABLET.matcher(ua).find()) return true;
+        if (ANDROID_TV.matcher(ua).find() || MOBILE.matcher(ua).find()) return false;
+        String lower = ua.toLowerCase(Locale.ROOT);
+        if (lower.startsWith("mozilla/") && lower.contains("applewebkit/")
+                && ANDROID_VERSION.matcher(ua).find()) return true;
+        // Generic/absent metadata is not evidence that a previously identified tablet became a phone.
+        return "Android".equals(device.getOs()) && "Android Tablet App".equals(device.getBrowser());
     }
 
     private String normalizeMetadata(String userAgent, String fallback) {

@@ -88,6 +88,7 @@
 2. `POST /api/auth/pair`
 3. `GET /api/auth/devices`
    1. 연결 기기 메타데이터는 `X-Client-Platform`의 `ios_native`·`android_native`·`windows_native`·`macos_native`(및 헤더 없는 Android 네이티브 `ottline-android/` User-Agent)를 각각 `iOS App`·`Android App`·`Windows App`·`macOS App`으로 분류한다. 등록·코드 연결과 해당 기기의 목록 조회 시 갱신하며, 기존 기기 ID·계정 연결을 보존한다. analytics 플랫폼 허용값과는 별도 계약이다. 상세는 [native-desktop-device-info.md](native-desktop-device-info.md)를 따른다.
+   2. `2026-11-22` 태블릿 표시 개발 후보는 같은 네이티브 플랫폼 값을 유지하면서 iPad를 `browser=iPad App`·`os=iPadOS`, Android 태블릿을 `browser=Android Tablet App`·`os=Android`로 구분한다. 명시적 기기 신호를 사용하고 빈/불명 UA로 기존 태블릿 표기를 지우지 않는다. 판별 규칙·호환성과 배포 상태는 [태블릿 표시 변경안](changes/api-tablet-device-info-2026-11-22.md)을 따른다.
 4. `DELETE /api/auth/devices/{id}`
 5. `DELETE /api/auth/devices/all`
 6. `DELETE /api/auth/account`

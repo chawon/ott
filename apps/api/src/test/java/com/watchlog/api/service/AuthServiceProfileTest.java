@@ -315,6 +315,111 @@ class AuthServiceProfileTest {
         }
     }
 
+    static Stream<Arguments> nativeMobileDevices() {
+        return Stream.of(
+                Arguments.of("ios_native", "ottline-ios/2.0.0 (iPhone; iOS)", "iOS", "iOS App"),
+                Arguments.of("ios_native", "ottline-ios/2.0.0 (iPad; iPadOS)", "iPadOS", "iPad App"),
+                Arguments.of(" IOS_NATIVE ", "ottline-ios/2.0.0 (IPADOS 17.0)", "iPadOS", "iPad App"),
+                Arguments.of("android_native", "Mozilla/5.0 (Linux; Android 15; Pixel 9) AppleWebKit/537.36 Chrome/134.0 Mobile Safari/537.36 ottline-android/2.0.5", "Android", "Android App"),
+                Arguments.of("android_native", "Mozilla/5.0 (Linux; Android 15; Tablet) AppleWebKit/537.36 Chrome/134.0 Safari/537.36 ottline-android/2.0.5", "Android", "Android Tablet App"),
+                Arguments.of("ANDROID_NATIVE", "Mozilla/5.0 (Linux; Android 15; SM-X810) AppleWebKit/537.36 Chrome/134.0 Safari/537.36 ottline-android/2.0.5", "Android", "Android Tablet App"),
+                Arguments.of(null, "Mozilla/5.0 (Linux; Android 15; Tablet) AppleWebKit/537.36 Chrome/134.0 Safari/537.36 ottline-android/2.0.5", "Android", "Android Tablet App"),
+                Arguments.of("android_native", "ottline-android/2.0.4", "Android", "Android App"),
+                Arguments.of("android_native", "okhttp/4.12.0", "Android", "Android App"),
+                Arguments.of("android_native", "Dalvik/2.1.0 (Linux; U; Android 15)", "Android", "Android App"),
+                Arguments.of("android_native", "Mozilla/5.0 (Linux; Android 12; Android TV) AppleWebKit/537.36 Chrome/134.0 Safari/537.36", "Android", "Android App"),
+                Arguments.of("android_native", "ottline-android/2.0.5 (notatablet)", "Android", "Android App"),
+                Arguments.of("ios_native", "ottline-ios/2.0.0 (notipad)", "iOS", "iOS App"),
+                Arguments.of("android_native", "ottline-android/2.0.5 (Tablet; Mobile)", "Android", "Android Tablet App")
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("nativeMobileDevices")
+    void nativeMobileDevicesAreIdentifiedOnRegistrationAndPairing(String platform, String ua, String os, String browser) {
+        authService.register(ua, platform);
+        assertThat(lastSavedDevice.getOs()).isEqualTo(os);
+        assertThat(DeviceDto.from(lastSavedDevice).browser()).isEqualTo(browser);
+
+        var user = new UserEntity(UUID.randomUUID(), "ABCDEFGH");
+        users.put(user.getId(), user);
+        authService.pair("ABCDEFGH", null, ua, platform);
+        assertThat(lastSavedDevice.getOs()).isEqualTo(os);
+        assertThat(DeviceDto.from(lastSavedDevice).browser()).isEqualTo(browser);
+    }
+
+    @ParameterizedTest
+    @MethodSource("nativeMobileDevices")
+    void nativeMobileMetadataRefreshesTheExistingDeviceWithoutRelinking(String platform, String ua, String os, String browser) {
+        var user = new UserEntity(UUID.randomUUID(), "ABCDEFGH");
+        var device = new UserDeviceEntity(UUID.randomUUID(), user);
+        device.setOs("Unknown OS");
+        device.setBrowser("Unknown Browser");
+        devices.put(device.getId(), device);
+        var createdAt = device.getCreatedAt();
+
+        authService.touchDevice(user.getId(), device.getId(), ua, platform);
+        authService.touchDevice(user.getId(), device.getId());
+        var response = authService.listDevices(user.getId()).stream().map(DeviceDto::from).toList();
+
+        assertThat(response).hasSize(1);
+        assertThat(response.getFirst().id()).isEqualTo(device.getId());
+        assertThat(response.getFirst().createdAt()).isEqualTo(createdAt);
+        assertThat(response.getFirst().os()).isEqualTo(os);
+        assertThat(response.getFirst().browser()).isEqualTo(browser);
+        assertThat(device.getUser()).isSameAs(user);
+    }
+
+    @Test
+    void missingOrGenericUserAgentDoesNotEraseKnownTabletMetadata() {
+        for (String platform : new String[]{"ios_native", "android_native"}) {
+            String os = platform.equals("ios_native") ? "iPadOS" : "Android";
+            String browser = platform.equals("ios_native") ? "iPad App" : "Android Tablet App";
+            var user = new UserEntity(UUID.randomUUID(), "ABCDEFGH");
+            var device = new UserDeviceEntity(UUID.randomUUID(), user);
+            device.setOs(os);
+            device.setBrowser(browser);
+            device.setUserAgent("known tablet metadata");
+            devices.put(device.getId(), device);
+
+            for (String ua : new String[]{null, "", " ", "okhttp/4.12.0", "ottline-android/2.0.5"}) {
+                authService.touchDevice(user.getId(), device.getId(), ua, platform);
+                assertThat(device.getOs()).isEqualTo(os);
+                assertThat(device.getBrowser()).isEqualTo(browser);
+            }
+        }
+    }
+
+    @Test
+    void tabletBrowserWithoutNativePlatformRemainsAWebBrowser() {
+        for (String platform : new String[]{null, "", "web", "android_native_extra"}) {
+            authService.register("Mozilla/5.0 (Linux; Android 15; Tablet) AppleWebKit/537.36 Chrome/134.0 Safari/537.36", platform);
+            assertThat(lastSavedDevice.getOs()).isEqualTo("Android");
+            assertThat(lastSavedDevice.getBrowser()).isEqualTo("Chrome");
+        }
+    }
+
+    @Test
+    void explicitPhoneMetadataCanCorrectAnEarlierTabletLabel() {
+        for (String platform : new String[]{"ios_native", "android_native"}) {
+            boolean ios = platform.equals("ios_native");
+            var user = new UserEntity(UUID.randomUUID(), "ABCDEFGH");
+            var device = new UserDeviceEntity(UUID.randomUUID(), user);
+            device.setOs(ios ? "iPadOS" : "Android");
+            device.setBrowser(ios ? "iPad App" : "Android Tablet App");
+            devices.put(device.getId(), device);
+            String ua = ios ? "ottline-ios/2.0.0 (iPhone; iOS)"
+                    : "Mozilla/5.0 (Linux; Android 15; Pixel 9) AppleWebKit/537.36 Chrome/134.0 Mobile Safari/537.36";
+
+            authService.touchDevice(user.getId(), device.getId(), ua, platform);
+            authService.touchDevice(user.getId(), device.getId(), null, platform);
+
+            assertThat(device.getOs()).isEqualTo(ios ? "iOS" : "Android");
+            assertThat(device.getBrowser()).isEqualTo(ios ? "iOS App" : "Android App");
+            assertThat(device.getUserAgent()).isEqualTo(ua);
+        }
+    }
+
     private Object handleUserRepository(Object proxy, Method method, Object[] args) {
         return switch (method.getName()) {
             case "findById" -> Optional.ofNullable(users.get((UUID) args[0]));
