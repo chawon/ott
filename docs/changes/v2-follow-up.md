@@ -29,6 +29,22 @@ Windows의 서버 계정 삭제에서 요청 경로와 실패 처리의 불일�
   - Microsoft Store `v2.0.1.0` 심사 승인 및 공개 게시(`Published`) 확인
   - 스토어 설치판(`2.0.1.0`) 업데이트 후 테스트 계정으로 서버 계정 삭제 성공 및 실패 보존 실기기 확인
 
+### Windows 후속 기능 통합 반영 (`2026-11-22`, 차기 `v2.0.2.0` 후보)
+
+- **PR / 병합 커밋**: [PR #156](https://github.com/chawon/ott/pull/156) 병합 완료 (`main` `b6baa17`, 순차 커밋 `38deac2` · `2800702` · `c50b6c5` · `ce860a9`)
+- **반영 내용**:
+  - **내 미래는? 15초 제한·복구 (`#142` · 카드 `312248008`)**: 요청별 타임아웃(기본 15s / `/state` 15s / `/generate` 60s), 계정·언어별 `(RequestId, BaselineGenerationId)` 영속 복구, 더블탭 병합, `202`/일시 네트워크 장애 폴링, 기존 추천 보존 및 한/영 상태 안내.
+  - **함께 큐레이터 제거 (카드 `313279209`)**: 큐레이터 배너, `/api/curated-contents` 조회, 하드코딩 기본 질문 fallback 전면 제거.
+  - **함께 2단 목록·상세 (카드 `313285008`)**: `TogetherSpreadCoordinator` 기반 `>= 980px` 2단 독립 스크롤 / `< 980px`(`MinWidth=800`) 단일 전환(선택·검색·정렬 유지), 빠른 A→B 선택 시퀀스·취소 가드, `GET /api/discussions/{id}` · `GET /reactions/me` · `PUT /reactions` · `POST /comments`(`syncLog`) 서버 계약 정합성 보강 및 딥링크 지원.
+  - **공통 5종 풋터 및 앱 내 안내 화면**: 전 탭 공통 풋터(`기록 가이드 · 서비스 소개 · 자주 묻는 질문 · 개인정보처리방침 · 문의하기`) 및 앱 내 4종 안내 화면(+ 내 문의함) 구현.
+- **완료한 검증**:
+  - **단위·모의 API (`Ottline.Tests`, Release)**: **43/43 통과** (`0 warnings, 0 errors`).
+  - **GitHub Actions (`Native Windows CI`)**: PR #156 Run [`44999550244`](https://github.com/chawon/ott/actions/runs/44999550244) 및 `main` (`b6baa17`) Run [`45000851496`](https://github.com/chawon/ott/actions/runs/45000851496) 모두 통과.
+  - **운영 API(`https://ottline.app`) 임시 계정 실측**: 추천 생성 `quota.used 0→1` (`9995ms`), 응답 유실+재시작 복구 `1→2` (`8550ms`, 중복 차감 0), 동일 `requestId` 멱등성 `3→3`, 함께 46건 조회(`/api/curated-contents` 0호출)·`PUT /reactions` ON→OFF 확인 후 `DeleteServerAccountAsync()` (`HTTP 200`)로 임시 계정 정리 완료.
+  - **패키지·실행 검증**: `x64`+`arm64` MSIXBundle(`159.02 MB`, SHA-256 `1D3697AB30C8A83FA9128FBF7E39A2B162D479FD10DFCC7A9CD9FC52099B45B2`) 무결성 검증 및 `win-arm64` 실앱 실행 사용자 검수 통과.
+- **남은 확인**:
+  - 현재 `Certification` 심사 중인 `v2.0.1.0` (`1152921505702457337`) 공개 게시 후 `main` `b6baa17` 기준 **`v2.0.2.0`** 스토어 제출 및 스토어 설치판 실기기 확인.
+
 ## 2. Apple v2 업데이트 검증
 
 [PR #137](https://github.com/chawon/ott/pull/137) 병합 완료 (`main` `d0844fc`, 코드 HEAD `2634fdc`). `2026-11-22` 사용자가 **macOS·iOS·iPadOS 출시 완료**를 확인했다. 제출 버전은 모두 **`2.0.0 (27)`**이며, 기존 설치판 업데이트·스토어 설치판 연결 검증과 가이드 반영은 아래 담당 업무에서 이어간다.

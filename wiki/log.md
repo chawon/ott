@@ -1,5 +1,16 @@
 # Wiki Log
 
+## [2026-11-22] feat(windows): 추천 복구·큐레이터 제거·함께 2단·공통 풋터/안내 5종 PR #156 병합 (차기 v2.0.2.0 후보)
+
+- [PR #156](https://github.com/chawon/ott/pull/156) `main` 병합 완료(`b6baa17`, 순차 커밋 `38deac2` · `2800702` · `c50b6c5` · `ce860a9`).
+- 주요 변경:
+  - **내 미래는? 복구 (`#142` · 카드 `312248008`)**: 공용 15초 타임아웃을 요청별 타임아웃(기본 15s / `/state` 15s / `/generate` 60s)으로 분리하고 언어별 `requestId` 영속 복구·더블탭 병합·`202`/일시 장애 폴링·기존 추천 보존·타 언어 쿼터 격리 반영.
+  - **함께 큐레이터 제거 (카드 `313279209`)**: 큐레이터 배너, `/api/curated-contents` 호출, 하드코딩 기본 질문 fallback 및 미사용 모델·문구 전면 제거.
+  - **함께 반응형 2단 목록·상세 (카드 `313285008`)**: `TogetherSpreadCoordinator` 신설(`>= 980px` 2단 독립 스크롤 / `< 980px` `MinWidth=800` 단일 전환 및 선택·검색·정렬 유지), 빠른 A→B 선택 취소/시퀀스 가드, `GET /api/discussions/{id}`·`GET /reactions/me`·`PUT /reactions`·`POST /comments`(`syncLog`) 서버 계약 정합성 및 딥링크 지원.
+  - **공통 5종 풋터·앱 내 안내 화면**: 전 탭 공통 풋터(`OttlineFooterControl`)와 앱 내 4종 안내 화면(`기록 가이드` 3편·`서비스 소개` 6개 플랫폼·`FAQ`·`개인정보처리방침` + `내 문의함`) 구현.
+- 검증·CI: `Ottline.Tests` 43/43 통과, `Native Windows CI` PR Run [`44999550244`](https://github.com/chawon/ott/actions/runs/44999550244) 및 `main` Run [`45000851496`](https://github.com/chawon/ott/actions/runs/45000851496) 통과, 로컬 `x64`+`arm64` MSIXBundle(`159.02 MB`, SHA-256 `1D3697AB30C8A83FA9128FBF7E39A2B162D479FD10DFCC7A9CD9FC52099B45B2`) 검증, 운영 API(`https://ottline.app`) 임시 계정 실측(`quota.used 0→1→2→3` 복구·멱등성, `/api/curated-contents` 0호출, `PUT /reactions` 원복 후 `HTTP 200` 계정 삭제 정리), `win-arm64` 실앱 실행 사용자 검수 통과.
+- 남은 확인: 현재 `Certification` 심사 중인 `v2.0.1.0` (`1152921505702457337`) 공개 게시 후 `v2.0.2.0` 제출 및 스토어 설치판 최종 확인. [Windows Wiki](pages/platforms/windows-native.md) · [후속 작업](../docs/changes/v2-follow-up.md#windows-후속-기능-통합-반영-2026-11-22-차기-v2020-후보) · [플랫폼 현황](../docs/platforms.md)
+
 ## [2026-11-22] release(web/api): 본부 검토 후 5개 PR 통합·동일 SHA 운영 반영
 
 - PR [#145](https://github.com/chawon/ott/pull/145)·[#150](https://github.com/chawon/ott/pull/150)·[#151](https://github.com/chawon/ott/pull/151)·[#152](https://github.com/chawon/ott/pull/152)·[#153](https://github.com/chawon/ott/pull/153)을 main `c693fd86f49d5433350ad7e61b2ec53fd9bab055`로 병합했다. 가상 통합과 실제 main tree가 일치했다.
