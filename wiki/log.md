@@ -1,5 +1,12 @@
 # Wiki Log
 
+## [2026-11-22] release(apple): macOS·iOS·iPadOS 출시 완료와 후속 업무 인계
+
+- 사용자가 세 플랫폼의 출시 완료를 확인했다. 제출 버전은 `2.0.0 (27)`, 코드 `2634fdc`([PR #137](https://github.com/chawon/ott/pull/137)), 동일 Apple ID `6780318110`이다. 11월 21일의 심사 제출 기록을 현재 출시 상태로 갱신했다.
+- [Apple 한국 공개 조회](https://itunes.apple.com/lookup?id=6780318110&country=kr&entity=software)의 iOS `2.0.0`, `iosUniversal`, 공개 시각 `2026-11-22 08:11 KST`를 대조했다. 이 조회는 macOS의 공개 상태나 빌드 번호를 독립적으로 증명하지 않으므로, 제출·공개·실기기 근거를 구분했다.
+- [iOS·iPadOS](pages/platforms/native.md), [macOS](pages/platforms/macos-native.md), [플랫폼 현황](../docs/platforms.md)과 루트 README의 현재 앱 소스·개발 시작점을 SwiftUI로 정정했다. Expo `1.0.4 (24)` 소스·배포 이력은 업데이트 데이터 이전을 위해 보존한다.
+- [출시 완료](https://github.com/users/chawon/projects/1/views/2?pane=issue&itemId=313827691), [Web 서비스 소개·가이드 반영](https://github.com/users/chawon/projects/1/views/2?pane=issue&itemId=313827749), [Mac 설치판 연결 검증](https://github.com/users/chawon/projects/1/views/2?pane=issue&itemId=313827720)을 담당별 카드로 연결했다. 기존 설치판 데이터 보존·추천 복구 검증과 후속 큐레이터 제거·iPad 함께 점검은 [Apple 후속 작업](../docs/changes/v2-follow-up.md#2-apple-v2-업데이트-검증)에서 추적한다.
+
 ## [2026-11-21] release(apple): SwiftUI iOS·iPadOS & macOS v2.0.0 (27) App Store 심사 제출 및 PR #137 병합
 
 - [PR #137](https://github.com/chawon/ott/pull/137) `main` 병합 완료(`d0844fc`, 코드 HEAD `2634fdc`).

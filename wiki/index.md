@@ -8,9 +8,9 @@
 | --- | --- |
 | [Web/PWA](pages/platforms/pwa.md) | 브라우저 설치, 서비스워커와 오프라인 안내 |
 | [Android](pages/platforms/android-native.md) | Kotlin/Compose 네이티브 앱과 기존 TWA 계정·기록 복구 |
-| [iOS](pages/platforms/native.md) | 공개 Expo React Native 앱과 개발 중인 SwiftUI 앱 |
+| [iOS·iPadOS](pages/platforms/native.md) | 출시된 SwiftUI v2와 이전 Expo 설치판의 업데이트 검증 |
 | [Windows](pages/platforms/windows-native.md) · [Microsoft Store](pages/platforms/ms-store.md) | WPF 앱, 스토어 업데이트 및 이전 PWA 이어받기 |
-| [macOS](pages/platforms/macos-native.md) | SwiftUI 개발 브랜치와 웹 연결 조건 |
+| [macOS](pages/platforms/macos-native.md) | 출시된 Mac App Store 앱과 설치판·웹 연결 검증 |
 | [브라우저 확장](pages/platforms/browser-extension.md) | Chrome·Edge·Whale에서 Web과 Windows 빠른 기록 연결 |
 | [토스 인앱](pages/platforms/toss-inapp.md) | 별도 브랜치에서 빌드하는 앱인토스 미니앱 |
 | [ChatGPT 앱](../docs/changes/v2-channel-strategy.md#chatgpt-앱) | 읽기 전용 타임라인 연결의 재제출 준비 |

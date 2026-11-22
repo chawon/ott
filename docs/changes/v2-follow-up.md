@@ -27,7 +27,22 @@ Windows의 서버 계정 삭제에서 요청 경로와 실패 처리의 불일�
 
 ## 2. Apple v2 업데이트 검증
 
-[PR #137](https://github.com/chawon/ott/pull/137) 병합 완료 (`main` `d0844fc`, 코드 HEAD `2634fdc`). iOS·iPadOS와 macOS SwiftUI v2 모두 **`2.0.0 (27)`**으로 App Store Connect 심사 제출을 마쳤다.
+[PR #137](https://github.com/chawon/ott/pull/137) 병합 완료 (`main` `d0844fc`, 코드 HEAD `2634fdc`). `2026-11-22` 사용자가 **macOS·iOS·iPadOS 출시 완료**를 확인했다. 제출 버전은 모두 **`2.0.0 (27)`**이며, 기존 설치판 업데이트·스토어 설치판 연결 검증과 가이드 반영은 아래 담당 업무에서 이어간다.
+
+### 출시 완료와 후속 담당 업무 (`2026-11-22`)
+
+- [출시 완료 카드](https://github.com/users/chawon/projects/1/views/2?pane=issue&itemId=313827691)는 완료로 기록한다. [Apple 한국 공개 조회](https://itunes.apple.com/lookup?id=6780318110&country=kr&entity=software)에서도 iOS `2.0.0`, `iosUniversal`, 공개 시각 `2026-11-22 08:11 KST`를 확인했다. 공개 조회에 없는 빌드 번호와 macOS 출시 여부는 제출 기록과 사용자 확인을 각각 근거로 삼는다.
+- 설치 링크는 [iPhone·iPad App Store](https://apps.apple.com/app/id6780318110)와 [Mac App Store](https://apps.apple.com/app/id6780318110?platform=mac)다. 동일 Apple ID `6780318110`이며 최소 지원은 iOS/iPadOS `16.0`, macOS `14.0`이다.
+
+| 담당 역할 | 남은 업무와 완료 조건 | 프로젝트 카드 |
+| --- | --- | --- |
+| Web/PWA 담당 | 한국어·영어 서비스 소개(`/about`)와 관련 가이드에 macOS·iPhone·iPad, 스토어 링크와 연결 코드로 기록 이어쓰기 안내를 반영한다. Web의 macOS 열기·설치 분기는 스토어 설치판 인수 검증과 맞춘다. PR·CI·공개 Web 배포 확인을 남긴다. | [서비스 소개·가이드 반영](https://github.com/users/chawon/projects/1/views/2?pane=issue&itemId=313827749) |
+| Apple 공통 담당 | 기존 Expo `1.0.4`에서 공개 SwiftUI 앱으로 업데이트할 때 계정·기록·미동기화 변경을 보존하는지 iPhone·iPad에서 확인하고 macOS 결과를 취합한다. | [출시 후 업데이트·데이터 보존 검증](https://github.com/users/chawon/projects/1/views/2?pane=issue&itemId=312000240) |
+| macOS 담당 | Mac App Store 설치판에서 Safari·Chrome 이어받기(`?native_handoff=1` → `ottline://open?handoff=1`), `ottline://quick`과 제목·플랫폼 전달을 검증한다. 실제 설치 출처·빌드·OS·브라우저 결과를 남긴다. | [Mac 설치판 연결 검증](https://github.com/users/chawon/projects/1/views/2?pane=issue&itemId=313827720) |
+| 브라우저 확장 담당 | Chrome·Edge·Whale의 기존 스토어 설치판에서 Web → Windows 및 macOS 빠른 기록 전달과 게시 버전을 확인한다. | [확장 연결·스토어 갱신](https://github.com/users/chawon/projects/1/views/2?pane=issue&itemId=312000267) |
+| Apple 공통 담당·iOS 담당 | 출시 선행 조건이 충족된 `2.0.1` 후속 작업을 main 기준으로 착수한다. 실제 착수 시 진행 상태로 바꾸고 iPhone·iPad·Mac 회귀 검증과 추가 제출 결과를 남긴다. | [Apple 큐레이터 제거](https://github.com/users/chawon/projects/1/views/2?pane=issue&itemId=313279211) · [iPad 함께 2단 점검](https://github.com/users/chawon/projects/1/views/2?pane=issue&itemId=313285015) |
+
+공개 서비스 가이드 변경은 Web/PWA 담당에게 배정한 상태다. 이 문서 갱신으로 해당 UI의 배포 완료나 스토어 설치판의 데이터 보존 검증을 완료 처리하지 않는다. 미래의 타임라인 응답 유실·지연 복구와 `quota.used` 실측은 [Apple 추천 복구 카드](https://github.com/users/chawon/projects/1/views/2?pane=issue&itemId=312248018)에서 계속 추적한다.
 
 ### iOS / iPadOS · macOS 진행 현황 (`2026-11-21`)
 
@@ -43,10 +58,8 @@ Windows의 서버 계정 삭제에서 요청 경로와 실패 처리의 불일�
   - **App Store 제출 (`2.0.0`, build `27`)**:
     - **iOS / iPadOS**: `app.ottline` `2.0.0 (27)`(`MinimumOSVersion 16.0`, Widget·Share 익스텐션 포함) 업로드 및 한·영 스크린샷(iPhone 6.3" / iPad 13")·ASO 제목/부제 반영 후 **심사 제출 완료**
     - **macOS**: `app.ottline` (`id6780318110` macOS 플랫폼 신규 추가) `2.0.0 (27)`(`LSMinimumSystemVersion 14.0`, App Sandbox Release 권한 검증) 업로드 및 한·영 스크린샷(`2560×1600` 각 5장)·심사 메모 입력 후 **최초 심사 제출 완료**
-- **남은 확인**:
-  - App Store iOS·iPadOS `2.0.0 (27)` 심사 승인·공개 게시 확인 및 공개 스토어판에서 기존 Expo `1.0.4` 인플레이스 업데이트 최종 확인
-  - Mac App Store `2.0.0 (27)` 심사 승인·공개 게시 확인, 공개 스토어 설치판에서 Safari·Chrome 핸드오프(`?native_handoff=1` → `ottline://open?handoff=1`)·`ottline://quick` 확인 및 웹·브라우저 확장 macOS 분기 활성화 ([macOS 플랫폼 상태](../../wiki/pages/platforms/macos-native.md))
-  - *(후속 v2.0.1 검토)* macOS 데스크톱 WidgetKit 익스텐션 추가 및 macOS 전용 App Group 연결
+- **당시 남은 확인의 인계**: 심사·공개 대기는 `2026-11-22` 사용자 출시 확인으로 갱신했다. 공개 스토어판 업데이트·macOS 연결·웹/확장 활성화는 위 출시 후 담당 업무에서 추적한다. [macOS 플랫폼 상태](../../wiki/pages/platforms/macos-native.md)
+- *(별도 후속 검토)* macOS 데스크톱 WidgetKit 익스텐션과 전용 App Group은 기능 제안이며 현재 출시 검증의 완료 조건에 포함하지 않는다.
 
 ## 3. 브라우저 확장·토스·ChatGPT 앱
 
