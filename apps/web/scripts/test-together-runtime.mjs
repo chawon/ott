@@ -288,6 +288,7 @@ try {
         ...process.env,
         BACKEND_URL: backendOrigin,
         APP_VERSION: "isolated-together-qa",
+        TZ: "UTC",
       },
       stdio: ["ignore", "pipe", "pipe"],
     },
@@ -335,6 +336,14 @@ try {
             1,
             "Human listing is server rendered",
           );
+          assert.equal(
+            await page.locator("time").last().textContent(),
+            new Date(stories.at(-1).createdAt).toLocaleDateString(
+              locale === "ko" ? "ko-KR" : "en-US",
+              { month: "short", day: "numeric", timeZone: "UTC" },
+            ),
+            "Server-rendered public dates use a deterministic zone",
+          );
         } finally {
           await context.close();
         }
@@ -363,6 +372,15 @@ try {
           await ready(page, id);
         }
         await noOverflow(page);
+        const localDate = new Date(stories.at(-1).createdAt).toLocaleDateString(
+          locale === "ko" ? "ko-KR" : "en-US",
+          { month: "short", day: "numeric", timeZone: "Asia/Seoul" },
+        );
+        await poll(
+          "Hydrated public dates retain the reader's local zone",
+          () => page.locator("time").last().textContent(),
+          (text) => text === localDate,
+        );
       });
       await check(
         `${locale}: keyboard navigation, selected URL, two panes`,

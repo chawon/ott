@@ -1,16 +1,18 @@
 "use client";
 
 import { useLocale, useTranslations } from "next-intl";
+import { useEffect, useState } from "react";
 import DiscussionReactionChips from "@/components/DiscussionReactionChips";
 import { Link } from "@/i18n/routing";
 import type { DiscussionListItem, TitleSearchItem } from "@/lib/types";
 import { cn, tmdbResize } from "@/lib/utils";
 
-function formatShortDate(iso: string, locale: string) {
+function formatShortDate(iso: string, locale: string, timeZone: string) {
   const d = new Date(iso);
   return d.toLocaleDateString(locale === "ko" ? "ko-KR" : "en-US", {
     month: "short",
     day: "numeric",
+    timeZone,
   });
 }
 
@@ -35,6 +37,11 @@ export default function DiscussionList({
 }) {
   const tList = useTranslations("DiscussionList");
   const locale = useLocale();
+  // Server HTML and first hydration agree, then retain the reader's local date.
+  const [timeZone, setTimeZone] = useState("UTC");
+  useEffect(() => {
+    setTimeZone(Intl.DateTimeFormat().resolvedOptions().timeZone);
+  }, []);
   const shouldShowReactions = showReactions ?? linkMode === "discussion";
 
   if (items.length === 0 && trendingItems.length === 0) {
@@ -101,7 +108,9 @@ export default function DiscussionList({
                 </div>
               </div>
               <div className="text-right text-xs text-muted-foreground">
-                <div>{formatShortDate(d.createdAt, locale)}</div>
+                <time dateTime={d.createdAt}>
+                  {formatShortDate(d.createdAt, locale, timeZone)}
+                </time>
                 <div>
                   {tList("commentCountModern", { count: d.commentCount })}
                 </div>
