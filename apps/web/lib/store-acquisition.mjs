@@ -18,6 +18,8 @@ import {
 export const GOOGLE_PLAY_URL =
   "https://play.google.com/store/apps/details?id=app.ottline";
 export const APP_STORE_URL = "https://apps.apple.com/app/ottline/id6780318110";
+export const MAC_APP_STORE_URL =
+  "https://apps.apple.com/app/id6780318110?platform=mac";
 export const MICROSOFT_STORE_URL =
   "https://apps.microsoft.com/detail/9nsvnzgdmgf5";
 
@@ -34,6 +36,9 @@ export function localizedStoreUrls(locale) {
     appStore: english
       ? APP_STORE_URL
       : "https://apps.apple.com/kr/app/ottline/id6780318110",
+    macAppStore: english
+      ? MAC_APP_STORE_URL
+      : "https://apps.apple.com/kr/app/id6780318110?platform=mac",
     microsoftStore: `${MICROSOFT_STORE_URL}${english ? "?hl=en-us&gl=US" : "?hl=ko-kr&gl=KR"}`,
   };
 }

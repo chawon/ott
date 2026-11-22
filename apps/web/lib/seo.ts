@@ -4,6 +4,7 @@ import {
   APP_STORE_URL,
   GOOGLE_PLAY_URL,
   localizedStoreUrls,
+  MAC_APP_STORE_URL,
   MICROSOFT_STORE_URL,
 } from "./store-acquisition.mjs";
 
@@ -11,6 +12,7 @@ export {
   APP_STORE_URL,
   GOOGLE_PLAY_URL,
   localizedStoreUrls,
+  MAC_APP_STORE_URL,
   MICROSOFT_STORE_URL,
 } from "./store-acquisition.mjs";
 
@@ -79,11 +81,17 @@ export function buildSoftwareApplicationSchema({
     inLanguage: isEnglish ? "en-US" : "ko-KR",
     applicationCategory: "LifestyleApplication",
     applicationSubCategory: "Entertainment",
-    operatingSystem: ["Web", "Android", "iOS", "Windows"],
-    sameAs: [GOOGLE_PLAY_URL, APP_STORE_URL, MICROSOFT_STORE_URL],
+    operatingSystem: ["Web", "Android", "iOS", "iPadOS", "macOS", "Windows"],
+    sameAs: [
+      GOOGLE_PLAY_URL,
+      APP_STORE_URL,
+      MAC_APP_STORE_URL,
+      MICROSOFT_STORE_URL,
+    ],
     installUrl: [
       storeUrls.googlePlay,
       storeUrls.appStore,
+      storeUrls.macAppStore,
       storeUrls.microsoftStore,
     ],
     image: absoluteUrl("/brand/v2/app-icon-512.png"),

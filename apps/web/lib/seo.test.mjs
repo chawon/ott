@@ -14,6 +14,7 @@ import {
   localizedPath,
   localizedStoreUrls,
   localizedUrl,
+  MAC_APP_STORE_URL,
   MICROSOFT_STORE_URL,
   WHALE_STORE_URL,
 } from "./seo.ts";
@@ -68,11 +69,13 @@ test("links the software entity to localized official install pages", () => {
   assert.deepEqual(localizedStoreUrls("ko"), {
     googlePlay: `${GOOGLE_PLAY_URL}&hl=ko&gl=KR`,
     appStore: "https://apps.apple.com/kr/app/ottline/id6780318110",
+    macAppStore: "https://apps.apple.com/kr/app/id6780318110?platform=mac",
     microsoftStore: `${MICROSOFT_STORE_URL}?hl=ko-kr&gl=KR`,
   });
   assert.deepEqual(localizedStoreUrls("en"), {
     googlePlay: `${GOOGLE_PLAY_URL}&hl=en`,
     appStore: APP_STORE_URL,
+    macAppStore: MAC_APP_STORE_URL,
     microsoftStore: `${MICROSOFT_STORE_URL}?hl=en-us&gl=US`,
   });
 
@@ -86,16 +89,20 @@ test("links the software entity to localized official install pages", () => {
     "Web",
     "Android",
     "iOS",
+    "iPadOS",
+    "macOS",
     "Windows",
   ]);
   assert.deepEqual(schema.sameAs, [
     GOOGLE_PLAY_URL,
     APP_STORE_URL,
+    MAC_APP_STORE_URL,
     MICROSOFT_STORE_URL,
   ]);
   assert.deepEqual(schema.installUrl, [
     `${GOOGLE_PLAY_URL}&hl=ko&gl=KR`,
     "https://apps.apple.com/kr/app/ottline/id6780318110",
+    "https://apps.apple.com/kr/app/id6780318110?platform=mac",
     `${MICROSOFT_STORE_URL}?hl=ko-kr&gl=KR`,
   ]);
 });

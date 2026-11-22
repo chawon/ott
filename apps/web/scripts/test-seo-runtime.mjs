@@ -189,7 +189,6 @@ for (const entry of entries) {
       companionSection,
       `${pathname}: a separate companion tools section`,
     );
-    assert.match(companionSection, /Mac App Store/);
     for (const label of ["Chrome Web Store", "Edge Add-ons", "Whale Store"]) {
       assert.ok(companionSection.includes(label), `${pathname}: ${label} link`);
     }
@@ -199,7 +198,7 @@ for (const entry of entries) {
     );
     assert.equal(
       Date.parse(entry.lastmod),
-      Date.parse("2026-11-18T00:00:00+09:00"),
+      Date.parse("2026-11-22T00:00:00+09:00"),
     );
     const appStore = tags(html, "a").find((tag) =>
       tag.href?.startsWith("https://apps.apple.com/"),
@@ -207,8 +206,19 @@ for (const entry of entries) {
     assert.equal(
       new URL(appStore.href).search,
       "",
-      "Windows-only change retains iOS link",
+      "iPhone/iPad listing remains a direct store link",
     );
+    const macAppStore = tags(html, "a").find((tag) => {
+      if (!tag.href?.startsWith("https://apps.apple.com/")) return false;
+      return new URL(tag.href).searchParams.get("platform") === "mac";
+    });
+    assert.ok(macAppStore, `${pathname}: server-rendered Mac App Store link`);
+    const macStoreUrl = new URL(macAppStore.href);
+    assert.match(macStoreUrl.pathname, /\/id6780318110$/);
+    assert.deepEqual([...macStoreUrl.searchParams.keys()], ["platform"]);
+    assert.match(html, /iPhone/);
+    assert.match(html, /iPad/);
+    assert.match(html, /macOS/);
     assert.equal(
       meta("apple-itunes-app"),
       undefined,

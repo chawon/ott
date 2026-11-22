@@ -117,6 +117,20 @@ export default async function GuideHubPage({
         })}
       </section>
 
+      <section className="rounded-lg border border-border bg-card p-6 sm:p-8">
+        <h2 className="text-xl font-semibold">{hub.connectionTitle}</h2>
+        <p className="mt-2 max-w-2xl text-base leading-7 text-muted-foreground">
+          {hub.connectionDescription}
+        </p>
+        <Link
+          href="/about#platforms"
+          className="mt-4 inline-flex min-h-12 items-center gap-2 rounded-lg text-sm font-semibold text-brand-navy underline-offset-4 hover:underline dark:text-foreground"
+        >
+          <span>{hub.connectionAction}</span>
+          <ArrowRight aria-hidden="true" className="h-4 w-4" />
+        </Link>
+      </section>
+
       <section className="rounded-lg border border-border bg-ott-paper-strong p-6 sm:p-8">
         <h2 className="text-xl font-semibold">{hub.closingTitle}</h2>
         <p className="mt-2 max-w-2xl text-base leading-7 text-muted-foreground">
