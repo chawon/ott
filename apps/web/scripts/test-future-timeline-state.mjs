@@ -13,6 +13,7 @@ assert.ok(
 );
 const scenario = process.env.FUTURE_QA_CASE ?? "quota";
 const locale = process.env.FUTURE_QA_LOCALE === "en" ? "en" : "ko";
+const withServiceWorker = process.env.FUTURE_QA_SERVICE_WORKER === "1";
 const copy = (ko, en) => (locale === "ko" ? ko : en);
 assert.ok(
   [
@@ -91,6 +92,7 @@ const editions = [
 ];
 const calls = [],
   errors = [];
+let workerRuntime = null;
 const clone = (value) => structuredClone(value);
 function makeState(items = [title, series]) {
   return {
@@ -187,7 +189,7 @@ try {
       : { width: 1440, height: 1000 },
     locale: "ko-KR",
     timezoneId: "America/Los_Angeles",
-    serviceWorkers: "block",
+    serviceWorkers: withServiceWorker ? "allow" : "block",
   });
   await context.addInitScript(
     ({ firstUser, scenario, name }) => {
@@ -355,6 +357,22 @@ try {
   await page.goto(new URL(`/${locale}/timeline`, base).href, {
     waitUntil: "domcontentloaded",
   });
+  if (withServiceWorker) {
+    await page.evaluate(async () => {
+      await navigator.serviceWorker.register("/sw.js", { scope: "/" });
+      await navigator.serviceWorker.ready;
+    });
+    await page.waitForFunction(() =>
+      Boolean(navigator.serviceWorker.controller),
+    );
+    workerRuntime = await page.evaluate(() => ({
+      controller: navigator.serviceWorker.controller.scriptURL,
+      displayMode: matchMedia("(display-mode: standalone)").matches
+        ? "standalone"
+        : "browser",
+    }));
+    assert.equal(workerRuntime.controller, new URL("/sw.js", base).href);
+  }
   await page
     .getByRole("button", {
       name: copy("내 미래는?", "What's my future?"),
@@ -567,6 +585,7 @@ try {
     });
     await retry().click();
     await poll(() => state.generationId === requestId);
+    await region.getByRole("alert").waitFor({ state: "hidden" });
     await ready();
     assert.equal(await region.getByRole("alert").count(), 0);
     assert.equal(await pendingGenerationId(), undefined);
@@ -897,6 +916,7 @@ try {
       ),
       errors,
       actualApiWrites: 0,
+      workerRuntime,
     }),
   );
 } finally {
@@ -905,7 +925,14 @@ try {
   await writeFile(
     join(output, "result.json"),
     JSON.stringify(
-      { scenario, generationAttempts, calls, errors, actualApiWrites: 0 },
+      {
+        scenario,
+        generationAttempts,
+        calls,
+        errors,
+        actualApiWrites: 0,
+        workerRuntime,
+      },
       null,
       2,
     ),
