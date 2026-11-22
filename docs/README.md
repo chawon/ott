@@ -16,7 +16,7 @@ ottline 저장소 루트에서 새 세션을 연다. Codex와 Antigravity(`agy`)
 
 | 주제 | 기준 문서 |
 | --- | --- |
-| 제품 기획·지속 개선 | [담당과 개선 흐름](product-planning.md) · [공통 기능과 플랫폼 차이](feature-matrix.md) · [프로젝트판](https://github.com/users/chawon/projects/1) |
+| 제품 기획·지속 개선 | [담당과 개선 흐름](product-planning.md) · [공통 기능과 플랫폼 차이](feature-matrix.md) · [경쟁·인접 제품 리서치](research/competitor-landscape-2026-11.md) · [다음 사이클 제안](changes/next-cycle-proposal-2026-11-22.md) · [프로젝트판](https://github.com/users/chawon/projects/1) |
 | 마케팅·유입 개선 | [담당과 성과 기준](marketing-operations.md) · [기존 유입 계측](seo-acquisition-foundation-2026-07-19.md) · [웹→스토어 검토 자료](web-acquisition-funnel-plan-2026-11-17.md) |
 | 앱별 개발·출시 | [플랫폼 현황](platforms.md) · [채널별 Wiki](../wiki/index.md#플랫폼) |
 | v2 후속 채널 | [브라우저 확장·토스 인앱·ChatGPT 앱 개편 방향](changes/v2-channel-strategy.md) |
