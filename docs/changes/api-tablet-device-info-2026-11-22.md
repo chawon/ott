@@ -4,7 +4,7 @@
 
 같은 계정에 연결한 iPad와 iPhone, Android 태블릿과 폰이 같은 이름으로 표시된다. 기존 연결을 유지한 채 해당 앱이 보내는 표시용 메타데이터로 구분한다. [API #147](https://github.com/chawon/ott/issues/147) · [프로젝트 업무](https://github.com/users/chawon/projects/1/views/2?pane=issue&itemId=313150426)
 
-기준 `main 4664791`, branch `fix/api-tablet-device-labels-20261122`의 구현 후보다. 운영 배포·스토어 바이너리를 변경하지 않았다. 큐레이터 종료 PR과 독립된 API 변경이며 해당 자동화·배포 설정을 포함하지 않는다.
+개발 기준 `main 4664791`, branch `fix/api-tablet-device-labels-20261122`의 구현 후보다. Android #146·#148이 반영된 `main 37eda7f`를 통합 기준으로 갱신했다. 운영 배포·스토어 바이너리를 변경하지 않았다. 큐레이터 종료 PR과 독립된 API 변경이며 해당 자동화·배포 설정을 포함하지 않는다.
 
 ## API와 판별 결정
 
@@ -33,7 +33,7 @@
 | --- | --- |
 | API | 후보 API를 배포한 뒤 실제 `/api/auth/devices`의 기존 행 갱신·신규 등록·페어링을 확인한다 |
 | iPhone·iPad | 출시 SwiftUI 앱이 보내는 `(iPhone; iOS)`·`(iPad; iPadOS)` UA로 각 기기에서 목록을 연다. 같은 기존 기기 ID가 유지되는지 확인한다 |
-| Android | 새 Tablet UA는 [PR #148](https://github.com/chawon/ott/pull/148)의 후속 바이너리가 필요하다. Mobile만 보내는 기존 Play 앱을 서버가 실제 태블릿으로 확정할 수는 없다 |
+| Android | 새 Tablet UA는 main에 병합된 [PR #148](https://github.com/chawon/ott/pull/148)의 후속 바이너리가 필요하다. 실제 Play 공개·설치 버전은 별도 확인한다. Mobile만 보내는 기존 앱을 서버가 실제 태블릿으로 확정할 수는 없다 |
 | Web/PWA·macOS·Windows | 현재 모델이 `os`·`browser`를 문자열로 받는 것을 확인했다. 실제 배포 뒤 연결 기기 화면에서 새 라벨 표시를 대조한다 |
 
 Web `DeviceSummary`, Android `DeviceInfo`, Apple `DeviceItem`은 nullable 문자열을 받으며, Windows API 클라이언트도 두 문자열을 읽어 표시 이름을 만든다. 이 확인은 소스 호환 확인이며 모든 플랫폼 실기기 검증을 대체하지 않는다.
