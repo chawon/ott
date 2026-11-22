@@ -21,6 +21,8 @@ export default function DiscussionList({
   linkMode = "title",
   showReactions,
   onTrendingSelect,
+  selectedId,
+  gridClassName,
 }: {
   items: DiscussionListItem[];
   trendingItems?: TitleSearchItem[];
@@ -28,6 +30,8 @@ export default function DiscussionList({
   linkMode?: "title" | "discussion";
   showReactions?: boolean;
   onTrendingSelect?: (item: TitleSearchItem) => void;
+  selectedId?: string;
+  gridClassName?: string;
 }) {
   const tList = useTranslations("DiscussionList");
   const locale = useLocale();
@@ -48,13 +52,19 @@ export default function DiscussionList({
   return (
     <div className="rounded-2xl border border-border bg-card/85 p-4 text-card-foreground shadow-sm">
       <div
-        className="grid grid-cols-1 gap-3 md:grid-cols-2"
+        className={cn(
+          "grid gap-3",
+          gridClassName ?? "grid-cols-1 md:grid-cols-2",
+        )}
         data-testid="discussion-grid"
       >
         {items.map((d) => (
           <article
             key={d.id}
-            className="rounded-xl px-2 py-2 transition hover:bg-ott-paper-strong/80"
+            className={cn(
+              "rounded-lg border border-transparent px-2 py-2 transition hover:bg-ott-paper-strong/80",
+              selectedId === d.id && "border-brand-navy/40 bg-ott-paper-strong",
+            )}
           >
             <Link
               href={
@@ -62,7 +72,10 @@ export default function DiscussionList({
                   ? `/public/${d.id}`
                   : `/title/${d.titleId}`
               }
+              scroll={linkMode === "discussion" ? false : undefined}
               className="flex items-center gap-4"
+              aria-current={selectedId === d.id ? "page" : undefined}
+              data-discussion-link={d.id}
             >
               <div className="h-16 w-12 shrink-0 overflow-hidden rounded-lg border border-border bg-muted">
                 {d.posterUrl ? (
@@ -95,7 +108,7 @@ export default function DiscussionList({
               </div>
             </Link>
             {shouldShowReactions ? (
-              <div className="mt-3 pl-16">
+              <div className="mt-3 pl-16" data-discussion-reactions>
                 <DiscussionReactionChips
                   discussionId={d.id}
                   title={{

@@ -8,6 +8,16 @@ import { getDeviceId, getUserId, resetLocalState } from "./localStore";
 
 let authRevocationInProgress = false;
 
+export class ApiError extends Error {
+  constructor(
+    readonly status: number,
+    message: string,
+  ) {
+    super(`API ${status}: ${message}`);
+    this.name = "ApiError";
+  }
+}
+
 function shouldReloadAfterAuthReset() {
   if (typeof window === "undefined") return false;
   const now = Date.now();
@@ -89,7 +99,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
       const text = await res.text().catch(() => "");
       if (text) msg = text;
     }
-    throw new Error(`API ${res.status}: ${msg}`);
+    throw new ApiError(res.status, msg);
   }
   const text = await res.text();
   if (!text) return null as T;

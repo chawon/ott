@@ -103,6 +103,10 @@ async function forward(
   const target = endpoint(method, path, new URL(request.url));
   if (!target) return privateResponse("Not found", 404);
 
+  // Preserve authenticated history reads, but never forward retired writes.
+  if (method === "POST")
+    return privateResponse("Curator publishing has ended", 410);
+
   const backendUrl = process.env.BACKEND_URL?.replace(/\/$/, "");
   const adminToken =
     process.env.ADMIN_CURATED_CONTENT_TOKEN?.trim() ||
@@ -111,21 +115,11 @@ async function forward(
     return privateResponse("Admin backend is not configured", 503);
   }
 
-  let body: string | undefined;
-  if (method === "POST") {
-    body = await request.text();
-    if (new TextEncoder().encode(body).byteLength > 16_384) {
-      return privateResponse("Request body is too large", 413);
-    }
-  }
-
   try {
     const response = await fetch(`${backendUrl}${target}`, {
       method,
-      body,
       headers: {
         Accept: "application/json",
-        ...(method === "POST" ? { "Content-Type": "application/json" } : {}),
         "X-Admin-Token": adminToken,
       },
       cache: "no-store",

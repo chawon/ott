@@ -49,10 +49,13 @@ test("feedback browser code calls the admin BFF without an admin token", () => {
   assert.doesNotMatch(bffSource, /return `\/api\/admin/);
 });
 
-test("curated content browser code calls a Cloudflare-protected admin BFF", () => {
-  const consoleSource = read("components", "AdminCuratedContentConsole.tsx");
-  assert.match(consoleSource, /fetch\(`\/admin\/api\/curated-contents/);
-  assert.doesNotMatch(consoleSource, /X-Admin-Token/);
+test("retired curator UI redirects while its history BFF stays private", () => {
+  const page = read("app", "admin", "curated-contents", "page.tsx");
+  assert.match(page, /redirect\("\/admin"\)/);
+  assert.doesNotMatch(
+    read("app", "admin", "layout.tsx"),
+    /href="\/admin\/curated-contents"/,
+  );
 
   const bffSource = read(
     "app",
@@ -65,6 +68,10 @@ test("curated content browser code calls a Cloudflare-protected admin BFF", () =
   assert.match(bffSource, /verifyCloudflareAccessRequest/);
   assert.match(bffSource, /"X-Admin-Token": adminToken/);
   assert.match(bffSource, /validateAdminMutationRequest\(request\)/);
+  assert.match(
+    bffSource,
+    /privateResponse\("Curator publishing has ended", 410\)/,
+  );
   assert.match(bffSource, /\/internal\/admin\/curated-contents/);
   assert.doesNotMatch(bffSource, /return `\/api\/admin/);
 });
@@ -76,7 +83,7 @@ test("admin server pages use internal backend routes and acquisition contract", 
   assert.match(analytics, /\/internal\/admin\/analytics\/overview/);
   assert.match(analytics, /\/internal\/admin\/analytics\/events/);
   assert.match(analytics, /\/internal\/admin\/analytics\/acquisition/);
-  assert.match(analytics, /\/internal\/admin\/analytics\/curated/);
+  assert.doesNotMatch(analytics, /\/internal\/admin\/analytics\/curated/);
   for (const field of [
     "engagedSessions",
     "firstLogSessions",
