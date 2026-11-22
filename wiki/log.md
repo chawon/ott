@@ -5,7 +5,8 @@
 - [PR #146](https://github.com/chawon/ott/pull/146) (`main` `1ebfe94`) 및 [PR #148](https://github.com/chawon/ott/pull/148) (`main` `37eda7f`) 순차 병합 완료.
 - 주요 변경: 미래의 타임라인 생성 요청 90초 타임아웃·언어별 `requestId` 복구(`#142`), `함께` 큐레이터 질문·조회·이벤트 제거, 태블릿·폴더블 상단 헤더(`>=700dp`)·3단 홈(`>=800dp`)·2단 함께(`>=700dp`)·2단 작품 상세(`>=860dp`)·4열 리포트·`sw600dp+` 태블릿 User-Agent, Material 3 기본 보라색 제거 및 웹 `DESIGN.md` 컬러(`#F8F6F2`/`#FEF9EE`/`#1E4D8C`/`#FF9933`)·Pretendard 폰트 정렬, 타임라인→상세 진입 시 탭 강조 유지 및 탭 전환 스택 수정, OTT 시청 후 기록 알림 최소 시청 시간 5분 → 20분 상향.
 - 검증·CI·Play 업로드: [`native-android-release.yml` Run #44981269777](https://github.com/chawon/ott/actions/runs/44981269777) 성공(`:app:testDebugUnitTest` 42/42, `:app:lintDebug`, `:app:bundleRelease`, `scripts/verify-release-aab.sh` R8 계약 검증, `app-release.aab` SHA-256 `62a30ccba00eb0b65a1c200e3a6331c3f45b06bca38a267aeaae6dd34034eb5f`, 아티팩트 `ottline-native-release-2.0.5-29`). `gplay release`로 `app.ottline` **`2.0.5 (versionCode=29)`**을 `production` 트랙(`status=completed`, `rollout=1.0`)에 업로드했다.
-- 남은 확인: Google Play `2.0.5 (29)` 심사 승인·공개 게시 확인, Play Console 태블릿 스크린샷(7"/10", `2560×1600` 한·영 각 5장 확보) 업로드, 공개 스토어 업데이트판 실기기 확인. [Android Wiki](pages/platforms/android-native.md) · [플랫폼 현황](../docs/platforms.md)
+- Play Console 조치(`2026-11-22`): 구 TWA 비공개 테스트(`13 / 1.0.9`) 중지로 API 36 경고 원인 정리, 7"·10" 태블릿 스크린샷(`2560×1600`, 한·영 각 5장) 기본 스토어 등록정보 업로드 및 검토 제출 완료.
+- 남은 확인: Google Play `2.0.5 (29)` 심사 승인·공개 게시 확인 및 공개 스토어 업데이트판 실기기 확인. [Android Wiki](pages/platforms/android-native.md) · [플랫폼 현황](../docs/platforms.md)
 
 ## [2026-11-22] release(apple): macOS·iOS·iPadOS 출시 완료와 후속 업무 인계
 
