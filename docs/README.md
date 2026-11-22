@@ -27,7 +27,7 @@ ottline 저장소 루트에서 새 세션을 연다. Codex와 Antigravity(`agy`)
 | 관리자·유입 | [문의함](../wiki/pages/features/feedback.md) · [분석](../wiki/pages/features/analytics.md) · [SEO v2](seo-v2-refresh-2026-11-11.md) · [웹→스토어 유입 계획](web-acquisition-funnel-plan-2026-11-17.md) |
 | Web/PWA | [v2 구현 기록](ottline-ux-v2-web.md) · [오프라인 안내·접근성](web-offline-accessibility-2026-11-12.md) |
 | 이전 설치에서 업그레이드 | [Android 전환 및 TWA 복구](android-native-v2-transition.md) · [Windows 전환 및 PWA 복구](windows-native-v2-transition.md) · [데스크톱 프로토콜과 확장](desktop-protocol-and-extension-bridge-plan-2026-11-18.md) |
-| 서버 배포·보안 | [Web/API 배포 운영](staging-environment-plan.md) · [GitOps](GitOps_Guide.md) · [보안 사고 대응](security-incident-checklist.md) |
+| 서버 배포·보안 | [GitHub Actions 운영](github-actions.md) · [Web/API 배포 운영](staging-environment-plan.md) · [GitOps](GitOps_Guide.md) · [보안 사고 대응](security-incident-checklist.md) |
 
 ## 변경 이력
 
