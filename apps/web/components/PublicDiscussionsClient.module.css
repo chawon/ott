@@ -1,0 +1,69 @@
+.container {
+  container: together / inline-size;
+  min-inline-size: 0;
+}
+
+.workspace {
+  min-inline-size: 0;
+  margin-block-start: 1rem;
+}
+
+.listPane,
+.detailPane {
+  min-inline-size: 0;
+}
+
+.filters {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) max-content;
+  gap: 0.75rem;
+  margin-block-end: 1rem;
+}
+
+.navigationGrid {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.workspace[data-has-selection="false"] .detailPane,
+.workspace[data-has-selection="true"] .listPane {
+  display: none;
+}
+
+.emptySelection {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--card);
+  padding: 2rem;
+}
+
+@container together (min-width: 44rem) and (max-width: 51.999rem) {
+  .navigationGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@container together (min-width: 52rem) {
+  .workspace {
+    display: grid;
+    grid-template-columns: minmax(18rem, 22rem) minmax(0, 1fr);
+    align-items: start;
+    gap: 1.5rem;
+  }
+
+  .workspace[data-has-selection] .listPane,
+  .workspace[data-has-selection] .detailPane {
+    display: block;
+    max-block-size: max(28rem, calc(100dvh - 20rem));
+    overflow-y: auto;
+    scrollbar-gutter: stable;
+    overscroll-behavior: contain;
+  }
+
+  .filters {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .listPane :global([data-discussion-reactions]) {
+    display: none;
+  }
+}

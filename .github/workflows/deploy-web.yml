@@ -89,6 +89,9 @@ jobs:
       - name: Install browser for locale verification
         run: npx playwright install --with-deps chromium
 
+      - name: Verify together navigation and curator retirement with an isolated API
+        run: npm run test:together-runtime --workspace ott
+
       - name: Verify web container runtime
         run: |
           docker run --detach --name ott-web-verify --publish 127.0.0.1:3000:3000 \

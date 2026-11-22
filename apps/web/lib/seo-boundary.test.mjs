@@ -13,14 +13,16 @@ const read = (...segments) =>
 
 test("public listing keeps server-rendered HTML and refreshes after hydration", () => {
   const page = read("app", "[locale]", "public", "page.tsx");
+  const layout = read("app", "[locale]", "public", "layout.tsx");
   const client = read("components", "PublicDiscussionsClient.tsx");
 
   assert.doesNotMatch(page, /^\s*["']use client["']/);
   assert.match(page, /export const dynamic = ["']force-dynamic["']/);
   assert.doesNotMatch(page, /export const revalidate/);
-  assert.match(page, /BACKEND_URL/);
-  assert.match(page, /cache: ["']no-store["']/);
-  assert.match(page, /initialItems=\{items\}/);
+  assert.doesNotMatch(layout, /^\s*["']use client["']/);
+  assert.match(layout, /BACKEND_URL/);
+  assert.match(layout, /cache: ["']no-store["']/);
+  assert.match(layout, /initialItems=\{items\}/);
   assert.match(client, /useEffect/);
   assert.match(client, /\/discussions\/all\?limit=100/);
   assert.match(client, /setSourceItems\(freshItems\)/);

@@ -62,12 +62,6 @@ export default function AdminLayout({
                 </a>
                 <a
                   className="text-muted-foreground hover:text-foreground"
-                  href="/admin/curated-contents"
-                >
-                  큐레이터
-                </a>
-                <a
-                  className="text-muted-foreground hover:text-foreground"
                   href="/admin/logout"
                 >
                   로그아웃

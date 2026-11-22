@@ -1,5 +1,5 @@
-import AdminCuratedContentConsole from "@/components/AdminCuratedContentConsole";
+import { redirect } from "next/navigation";
 
 export default function AdminCuratedContentsPage() {
-  return <AdminCuratedContentConsole />;
+  redirect("/admin");
 }
