@@ -501,8 +501,7 @@ public sealed record PublicAuthorProfile(
     string DisplayName = "익명 기록자",
     string? Handle = null,
     string? AvatarPreset = "cinema_keeper",
-    string? Bio = null,
-    bool IsAiOperator = false
+    string? Bio = null
 );
 
 public sealed record DiscussionReactionSummary(
@@ -514,6 +513,22 @@ public sealed record DiscussionReactionSummary(
 {
     public IReadOnlyList<DiscussionReactionType> SafeViewerReactions => ViewerReactions ?? Array.Empty<DiscussionReactionType>();
     public int TotalCount => DoneCount + CuriousCount + SaveCount;
+}
+
+public sealed record DiscussionReactionState(
+    DiscussionReactionSummary Summary,
+    IReadOnlyList<DiscussionReactionType> SelectedTypes,
+    bool Selected = false
+)
+{
+    public static DiscussionReactionState Empty { get; } = new(
+        new DiscussionReactionSummary(),
+        Array.Empty<DiscussionReactionType>(),
+        false
+    );
+
+    public IReadOnlyList<DiscussionReactionType> SafeSelectedTypes => SelectedTypes ?? Array.Empty<DiscussionReactionType>();
+    public bool HasReaction(DiscussionReactionType type) => SafeSelectedTypes.Contains(type);
 }
 
 public sealed record DiscussionPost(
@@ -528,7 +543,7 @@ public sealed record DiscussionPost(
     DiscussionReactionSummary Reactions = default!,
     int CommentCount = 0,
     bool IsMine = false,
-    bool IsPromptSeed = false
+    string RawCreatedAt = ""
 );
 
 public sealed record CommentMention(
@@ -554,18 +569,6 @@ public sealed record DiscussionComment(
 public sealed record DiscussionDetail(
     DiscussionPost Post,
     IReadOnlyList<DiscussionComment> Comments
-);
-
-public sealed record DailyPromptPayload(
-    string Id,
-    string DateKey,
-    string QuestionKo,
-    string QuestionEn,
-    string SubtitleKo,
-    string SubtitleEn,
-    TitleSummary? FeaturedTitle = null,
-    string? SeedDiscussionId = null,
-    bool IsAiCurated = true
 );
 
 public sealed record RecommendationItem(
@@ -734,3 +737,62 @@ public sealed record ServerAccountDeleteResult(
 {
     public bool IsSuccess => Outcome == ServerAccountDeleteOutcome.Deleted;
 }
+
+public sealed record RecommendationQuota(
+    string Date = "",
+    string Timezone = "Asia/Seoul",
+    int Limit = 3,
+    int Used = 0,
+    int Remaining = 3,
+    string? ResetsAt = null
+);
+
+public sealed record RecommendationStateSnapshot(
+    IReadOnlyList<RecommendationItem> Items,
+    RecommendationQuota Quota,
+    string? GeneratedAt = null,
+    string? GenerationId = null,
+    bool Generating = false,
+    bool HasBatch = false,
+    bool Eligible = false,
+    string Locale = "ko"
+);
+
+public enum RecommendationErrorKind
+{
+    None,
+    NotConnected,
+    LoadFailed,
+    GenerateFailed,
+    LimitReached,
+    StillGenerating
+}
+
+public sealed record RecommendationApiResponse(
+    bool IsSuccess,
+    int? StatusCode,
+    RecommendationStateSnapshot? State,
+    bool IsNetworkError = false,
+    string? ErrorMessage = null
+);
+
+public sealed record RecommendationLoadResult(
+    RecommendationStateSnapshot? State,
+    RecommendationErrorKind ErrorKind = RecommendationErrorKind.None,
+    bool UsedExistingFallback = false,
+    bool GeneratedNewBatch = false,
+    string? PendingRequestId = null,
+    string? ErrorMessage = null
+)
+{
+    public bool HasError => ErrorKind is RecommendationErrorKind.NotConnected
+        or RecommendationErrorKind.LoadFailed
+        or RecommendationErrorKind.GenerateFailed
+        or RecommendationErrorKind.StillGenerating;
+}
+
+public sealed record PendingRecommendationAttempt(
+    string RequestId,
+    string? BaselineGenerationId = null,
+    string? CreatedAt = null
+);

@@ -11,6 +11,15 @@ public sealed class OttlineRepository : IDisposable
 {
     private readonly OttlineDatabase _db;
     private readonly OttlineApiClient _api;
+    private readonly object _recFlightLock = new();
+    private readonly Dictionary<string, Task<RecommendationLoadResult>> _inFlightRecommendationTasks = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, RecommendationStateSnapshot> _recommendationStateCache = new(StringComparer.OrdinalIgnoreCase);
+    private readonly HashSet<string> _recommendationAutoAttemptedDates = new(StringComparer.OrdinalIgnoreCase);
+
+    public TimeSpan RecommendationPollInterval { get; set; } = TimeSpan.FromMilliseconds(1500);
+    public int RecommendationMaxPollAttempts { get; set; } = 80;
+    public int RecommendationMaxConsecutivePollFailures { get; set; } = 5;
+    public bool EnableRecommendationPosterEnrichment { get; set; } = true;
 
     public OttlineRepository(OttlineDatabase? db = null, OttlineApiClient? api = null)
     {
@@ -92,7 +101,630 @@ public sealed class OttlineRepository : IDisposable
         );
         _db.SaveSettings(resetSettings);
         RefreshApiConfiguration(resetSettings);
+        ClearCachedRecommendations();
         return result;
+    }
+
+    private static string RecommendationScopeKey(string userId, string language) =>
+        $"{userId.Trim().ToLowerInvariant()}:{OttlineDatabase.NormalizeRecommendationLanguage(language)}";
+
+    private static (string? UserId, string? DeviceId, string Language) ResolveRecommendationScope(LocalSettings settings)
+    {
+        var effectiveDeviceId = Guid.TryParse(settings.DeviceId, out _)
+            ? settings.DeviceId.Trim()
+            : (Guid.TryParse(settings.AuthToken, out _) ? settings.AuthToken!.Trim() : null);
+        var userId = Guid.TryParse(settings.UserId, out _) ? settings.UserId!.Trim() : null;
+        var language = OttlineDatabase.NormalizeRecommendationLanguage(settings.Locale);
+        return (userId, effectiveDeviceId, language);
+    }
+
+    public RecommendationStateSnapshot? GetCachedRecommendationState(string? localeOverride = null)
+    {
+        var settings = _db.LoadSettings();
+        var (userId, _, lang) = ResolveRecommendationScope(settings);
+        if (string.IsNullOrWhiteSpace(userId)) return null;
+        var effectiveLang = string.IsNullOrWhiteSpace(localeOverride)
+            ? lang
+            : OttlineDatabase.NormalizeRecommendationLanguage(localeOverride);
+        var scopeKey = RecommendationScopeKey(userId, effectiveLang);
+        lock (_recFlightLock)
+        {
+            return _recommendationStateCache.TryGetValue(scopeKey, out var cached) ? cached : null;
+        }
+    }
+
+    public PendingRecommendationAttempt? GetPendingRecommendationAttempt(string? localeOverride = null)
+    {
+        var settings = _db.LoadSettings();
+        var (userId, _, lang) = ResolveRecommendationScope(settings);
+        if (string.IsNullOrWhiteSpace(userId)) return null;
+        var effectiveLang = string.IsNullOrWhiteSpace(localeOverride)
+            ? lang
+            : OttlineDatabase.NormalizeRecommendationLanguage(localeOverride);
+        return _db.GetPendingRecommendationAttempt(userId, effectiveLang);
+    }
+
+    public void ClearCachedRecommendations()
+    {
+        lock (_recFlightLock)
+        {
+            _recommendationStateCache.Clear();
+            _recommendationAutoAttemptedDates.Clear();
+        }
+    }
+
+    public void RemoveRecommendationItemFromCache(RecommendationItem item)
+    {
+        var settings = _db.LoadSettings();
+        var (userId, _, lang) = ResolveRecommendationScope(settings);
+        if (string.IsNullOrWhiteSpace(userId)) return;
+        var scopeKey = RecommendationScopeKey(userId, lang);
+        lock (_recFlightLock)
+        {
+            if (_recommendationStateCache.TryGetValue(scopeKey, out var cached))
+            {
+                var remaining = cached.Items
+                    .Where(x => !string.Equals(x.Title.Id, item.Title.Id, StringComparison.OrdinalIgnoreCase)
+                                && !string.Equals(x.Title.Title, item.Title.Title, StringComparison.OrdinalIgnoreCase))
+                    .ToList();
+                _recommendationStateCache[scopeKey] = cached with { Items = remaining };
+            }
+        }
+    }
+
+    public Task<RecommendationLoadResult> LoadRecommendationsAsync(
+        bool allowAutoGenerate = true,
+        CancellationToken ct = default)
+    {
+        return RunCoalescedRecommendationTaskAsync(
+            (userId, lang, scopeKey, innerCt) => LoadRecommendationsCoreAsync(userId, lang, scopeKey, allowAutoGenerate, innerCt),
+            ct
+        );
+    }
+
+    public Task<RecommendationLoadResult> GenerateRecommendationsAsync(CancellationToken ct = default)
+    {
+        return RunCoalescedRecommendationTaskAsync(
+            (userId, lang, scopeKey, innerCt) => GenerateRecommendationsCoreAsync(userId, lang, scopeKey, innerCt),
+            ct
+        );
+    }
+
+    private Task<RecommendationLoadResult> RunCoalescedRecommendationTaskAsync(
+        Func<string, string, string, CancellationToken, Task<RecommendationLoadResult>> operation,
+        CancellationToken ct)
+    {
+        var settings = _db.LoadSettings();
+        RefreshApiConfiguration(settings);
+        var (userId, deviceId, lang) = ResolveRecommendationScope(settings);
+        if (string.IsNullOrWhiteSpace(userId) || string.IsNullOrWhiteSpace(deviceId))
+        {
+            return Task.FromResult(new RecommendationLoadResult(
+                State: null,
+                ErrorKind: RecommendationErrorKind.NotConnected
+            ));
+        }
+
+        var scopeKey = RecommendationScopeKey(userId, lang);
+        Task<RecommendationLoadResult> task;
+        lock (_recFlightLock)
+        {
+            if (_inFlightRecommendationTasks.TryGetValue(scopeKey, out var existing) && !existing.IsCompleted)
+            {
+                task = existing;
+            }
+            else
+            {
+                task = ExecuteAndCleanAsync(scopeKey, () => operation(userId, lang, scopeKey, ct));
+                _inFlightRecommendationTasks[scopeKey] = task;
+            }
+        }
+
+        return ct.CanBeCanceled ? task.WaitAsync(ct) : task;
+    }
+
+    private async Task<RecommendationLoadResult> ExecuteAndCleanAsync(
+        string scopeKey,
+        Func<Task<RecommendationLoadResult>> runner)
+    {
+        try
+        {
+            return await runner().ConfigureAwait(false);
+        }
+        finally
+        {
+            lock (_recFlightLock)
+            {
+                if (_inFlightRecommendationTasks.TryGetValue(scopeKey, out var current) && current.IsCompleted)
+                {
+                    _inFlightRecommendationTasks.Remove(scopeKey);
+                }
+            }
+        }
+    }
+
+    private RecommendationStateSnapshot? ReadCachedState(string scopeKey)
+    {
+        lock (_recFlightLock)
+        {
+            return _recommendationStateCache.TryGetValue(scopeKey, out var cached) ? cached : null;
+        }
+    }
+
+    private void SaveCachedState(string scopeKey, RecommendationStateSnapshot state)
+    {
+        lock (_recFlightLock)
+        {
+            _recommendationStateCache[scopeKey] = state;
+        }
+    }
+
+    private static bool IsConfirmedCompleted(
+        RecommendationStateSnapshot state,
+        PendingRecommendationAttempt pending)
+    {
+        if (!state.HasBatch) return false;
+        if (string.IsNullOrWhiteSpace(state.GenerationId)) return false;
+        if (string.Equals(state.GenerationId, pending.RequestId, StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        // Concurrent same-language 202 completion: generationId changed in THIS language from our baseline.
+        // Crucially, another language completing only increments quota.used while leaving this language's
+        // generationId equal to BaselineGenerationId (or null), so it will NEVER satisfy this check.
+        return !string.Equals(state.GenerationId, pending.BaselineGenerationId, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private async Task<RecommendationStateSnapshot> EnrichStatePostersIfNeededAsync(
+        RecommendationStateSnapshot state,
+        CancellationToken ct)
+    {
+        if (!EnableRecommendationPosterEnrichment || state.Items.Count == 0)
+        {
+            return state;
+        }
+
+        var enriched = await _api.EnrichMissingRecommendationPostersAsync(state.Items, ct).ConfigureAwait(false);
+        return state with { Items = enriched };
+    }
+
+    private async Task<(bool Settled, RecommendationStateSnapshot State, bool NetworkFailed)> PollRecommendationStateUntilSettledAsync(
+        string scopeKey,
+        RecommendationStateSnapshot initial,
+        CancellationToken ct)
+    {
+        var current = initial;
+        var consecutiveFailures = 0;
+
+        for (var attempt = 0; current.Generating && attempt < RecommendationMaxPollAttempts; attempt++)
+        {
+            if (RecommendationPollInterval > TimeSpan.Zero)
+            {
+                await Task.Delay(RecommendationPollInterval, ct).ConfigureAwait(false);
+            }
+
+            var pollRes = await _api.FetchRecommendationStateAsync(ct).ConfigureAwait(false);
+            if (pollRes.IsSuccess && pollRes.State != null)
+            {
+                consecutiveFailures = 0;
+                current = pollRes.State;
+                SaveCachedState(scopeKey, current);
+            }
+            else
+            {
+                consecutiveFailures++;
+                if (consecutiveFailures >= RecommendationMaxConsecutivePollFailures)
+                {
+                    return (false, current, true);
+                }
+            }
+        }
+
+        return (!current.Generating, current, false);
+    }
+
+    private async Task<RecommendationLoadResult> LoadRecommendationsCoreAsync(
+        string userId,
+        string language,
+        string scopeKey,
+        bool allowAutoGenerate,
+        CancellationToken ct)
+    {
+        var fallback = ReadCachedState(scopeKey);
+        var stateRes = await _api.FetchRecommendationStateAsync(ct).ConfigureAwait(false);
+        if (!stateRes.IsSuccess || stateRes.State == null)
+        {
+            var pendingOnErr = _db.GetPendingRecommendationAttempt(userId, language);
+            return new RecommendationLoadResult(
+                State: fallback,
+                ErrorKind: RecommendationErrorKind.LoadFailed,
+                UsedExistingFallback: fallback != null,
+                PendingRequestId: pendingOnErr?.RequestId,
+                ErrorMessage: stateRes.ErrorMessage
+            );
+        }
+
+        var current = await EnrichStatePostersIfNeededAsync(stateRes.State, ct).ConfigureAwait(false);
+        SaveCachedState(scopeKey, current);
+        var pending = _db.GetPendingRecommendationAttempt(userId, language);
+
+        if (current.Generating)
+        {
+            MarkAutoAttempted(scopeKey, current.Quota.Date);
+            var (settled, polledState, networkFailed) = await PollRecommendationStateUntilSettledAsync(scopeKey, current, ct).ConfigureAwait(false);
+            polledState = await EnrichStatePostersIfNeededAsync(polledState, ct).ConfigureAwait(false);
+            SaveCachedState(scopeKey, polledState);
+
+            if (!settled)
+            {
+                return new RecommendationLoadResult(
+                    State: polledState,
+                    ErrorKind: networkFailed ? RecommendationErrorKind.GenerateFailed : RecommendationErrorKind.StillGenerating,
+                    UsedExistingFallback: polledState.Items.Count > 0,
+                    PendingRequestId: pending?.RequestId
+                );
+            }
+
+            if (pending != null)
+            {
+                if (IsConfirmedCompleted(polledState, pending))
+                {
+                    _db.SetPendingRecommendationAttempt(userId, language, null);
+                    return new RecommendationLoadResult(polledState, RecommendationErrorKind.None, GeneratedNewBatch: true);
+                }
+
+                if (polledState.Quota.Remaining <= 0)
+                {
+                    _db.SetPendingRecommendationAttempt(userId, language, null);
+                    return new RecommendationLoadResult(
+                        polledState,
+                        RecommendationErrorKind.LimitReached,
+                        UsedExistingFallback: polledState.Items.Count > 0
+                    );
+                }
+
+                return new RecommendationLoadResult(
+                    polledState,
+                    RecommendationErrorKind.GenerateFailed,
+                    UsedExistingFallback: polledState.Items.Count > 0,
+                    PendingRequestId: pending.RequestId
+                );
+            }
+
+            if (polledState.HasBatch)
+            {
+                return new RecommendationLoadResult(polledState, RecommendationErrorKind.None);
+            }
+
+            if (polledState.Quota.Remaining <= 0)
+            {
+                return new RecommendationLoadResult(
+                    polledState,
+                    RecommendationErrorKind.LimitReached,
+                    UsedExistingFallback: polledState.Items.Count > 0
+                );
+            }
+
+            return new RecommendationLoadResult(
+                polledState,
+                RecommendationErrorKind.GenerateFailed,
+                UsedExistingFallback: polledState.Items.Count > 0
+            );
+        }
+
+        if (pending != null)
+        {
+            if (IsConfirmedCompleted(current, pending))
+            {
+                _db.SetPendingRecommendationAttempt(userId, language, null);
+                return new RecommendationLoadResult(current, RecommendationErrorKind.None, GeneratedNewBatch: true);
+            }
+
+            if (!current.Eligible)
+            {
+                _db.SetPendingRecommendationAttempt(userId, language, null);
+                return new RecommendationLoadResult(current, RecommendationErrorKind.None);
+            }
+
+            if (current.Quota.Remaining <= 0)
+            {
+                _db.SetPendingRecommendationAttempt(userId, language, null);
+                return new RecommendationLoadResult(
+                    current,
+                    RecommendationErrorKind.LimitReached,
+                    UsedExistingFallback: current.Items.Count > 0
+                );
+            }
+
+            return new RecommendationLoadResult(
+                current,
+                RecommendationErrorKind.GenerateFailed,
+                UsedExistingFallback: current.Items.Count > 0,
+                PendingRequestId: pending.RequestId
+            );
+        }
+
+        if (allowAutoGenerate
+            && current.Eligible
+            && !current.HasBatch
+            && current.Quota.Remaining > 0
+            && !HasAutoAttempted(scopeKey, current.Quota.Date))
+        {
+            MarkAutoAttempted(scopeKey, current.Quota.Date);
+            return await ExecuteGenerateAttemptAsync(userId, language, scopeKey, current, existingPending: null, ct).ConfigureAwait(false);
+        }
+
+        return new RecommendationLoadResult(
+            current,
+            current.Eligible && !current.HasBatch && current.Quota.Remaining <= 0
+                ? RecommendationErrorKind.LimitReached
+                : RecommendationErrorKind.None
+        );
+    }
+
+    private async Task<RecommendationLoadResult> GenerateRecommendationsCoreAsync(
+        string userId,
+        string language,
+        string scopeKey,
+        CancellationToken ct)
+    {
+        var current = ReadCachedState(scopeKey);
+        var pending = _db.GetPendingRecommendationAttempt(userId, language);
+
+        // Always consult /state first when recovering a pending attempt or when we have no cached snapshot yet.
+        if (pending != null || current == null)
+        {
+            var stateRes = await _api.FetchRecommendationStateAsync(ct).ConfigureAwait(false);
+            if (stateRes.IsSuccess && stateRes.State != null)
+            {
+                current = await EnrichStatePostersIfNeededAsync(stateRes.State, ct).ConfigureAwait(false);
+                SaveCachedState(scopeKey, current);
+
+                if (current.Generating)
+                {
+                    var (settled, polledState, networkFailed) = await PollRecommendationStateUntilSettledAsync(scopeKey, current, ct).ConfigureAwait(false);
+                    polledState = await EnrichStatePostersIfNeededAsync(polledState, ct).ConfigureAwait(false);
+                    SaveCachedState(scopeKey, polledState);
+                    current = polledState;
+
+                    if (!settled)
+                    {
+                        return new RecommendationLoadResult(
+                            polledState,
+                            networkFailed ? RecommendationErrorKind.GenerateFailed : RecommendationErrorKind.StillGenerating,
+                            UsedExistingFallback: polledState.Items.Count > 0,
+                            PendingRequestId: pending?.RequestId
+                        );
+                    }
+
+                    if (pending != null && IsConfirmedCompleted(polledState, pending))
+                    {
+                        _db.SetPendingRecommendationAttempt(userId, language, null);
+                        return new RecommendationLoadResult(polledState, RecommendationErrorKind.None, GeneratedNewBatch: true);
+                    }
+
+                    if (pending == null && polledState.HasBatch)
+                    {
+                        return new RecommendationLoadResult(polledState, RecommendationErrorKind.None);
+                    }
+                }
+                else if (pending != null && IsConfirmedCompleted(current, pending))
+                {
+                    _db.SetPendingRecommendationAttempt(userId, language, null);
+                    return new RecommendationLoadResult(current, RecommendationErrorKind.None, GeneratedNewBatch: true);
+                }
+
+                if (!current.Eligible)
+                {
+                    if (pending != null) _db.SetPendingRecommendationAttempt(userId, language, null);
+                    return new RecommendationLoadResult(current, RecommendationErrorKind.None);
+                }
+
+                if (current.Quota.Remaining <= 0)
+                {
+                    if (pending != null) _db.SetPendingRecommendationAttempt(userId, language, null);
+                    return new RecommendationLoadResult(
+                        current,
+                        RecommendationErrorKind.LimitReached,
+                        UsedExistingFallback: current.Items.Count > 0
+                    );
+                }
+            }
+            else if (pending == null)
+            {
+                return new RecommendationLoadResult(
+                    State: current,
+                    ErrorKind: RecommendationErrorKind.LoadFailed,
+                    UsedExistingFallback: current != null && current.Items.Count > 0,
+                    ErrorMessage: stateRes.ErrorMessage
+                );
+            }
+        }
+
+        if (current != null && !current.Eligible)
+        {
+            if (pending != null) _db.SetPendingRecommendationAttempt(userId, language, null);
+            return new RecommendationLoadResult(current, RecommendationErrorKind.None);
+        }
+
+        if (current != null && current.Quota.Remaining <= 0 && pending == null)
+        {
+            return new RecommendationLoadResult(
+                current,
+                RecommendationErrorKind.LimitReached,
+                UsedExistingFallback: current.Items.Count > 0
+            );
+        }
+
+        return await ExecuteGenerateAttemptAsync(userId, language, scopeKey, current, pending, ct).ConfigureAwait(false);
+    }
+
+    private async Task<RecommendationLoadResult> ExecuteGenerateAttemptAsync(
+        string userId,
+        string language,
+        string scopeKey,
+        RecommendationStateSnapshot? fallbackState,
+        PendingRecommendationAttempt? existingPending,
+        CancellationToken ct)
+    {
+        var pending = existingPending ?? new PendingRecommendationAttempt(
+            RequestId: Guid.NewGuid().ToString("D"),
+            BaselineGenerationId: fallbackState?.GenerationId,
+            CreatedAt: DateTimeOffset.UtcNow.ToString("O", CultureInfo.InvariantCulture)
+        );
+
+        _db.SetPendingRecommendationAttempt(userId, language, pending);
+
+        var genRes = await _api.GenerateRecommendationsAsync(pending.RequestId, ct).ConfigureAwait(false);
+
+        if (genRes.StatusCode == 429)
+        {
+            var limitState = genRes.State != null
+                ? await EnrichStatePostersIfNeededAsync(genRes.State, ct).ConfigureAwait(false)
+                : fallbackState;
+            if (limitState != null) SaveCachedState(scopeKey, limitState);
+            _db.SetPendingRecommendationAttempt(userId, language, null);
+            return new RecommendationLoadResult(
+                State: limitState,
+                ErrorKind: RecommendationErrorKind.LimitReached,
+                UsedExistingFallback: limitState != null && limitState.Items.Count > 0,
+                ErrorMessage: genRes.ErrorMessage
+            );
+        }
+
+        if (genRes.IsSuccess && genRes.State != null)
+        {
+            var state = await EnrichStatePostersIfNeededAsync(genRes.State, ct).ConfigureAwait(false);
+            SaveCachedState(scopeKey, state);
+
+            if (genRes.StatusCode == 202 || state.Generating)
+            {
+                var (settled, polledState, networkFailed) = await PollRecommendationStateUntilSettledAsync(scopeKey, state, ct).ConfigureAwait(false);
+                polledState = await EnrichStatePostersIfNeededAsync(polledState, ct).ConfigureAwait(false);
+                SaveCachedState(scopeKey, polledState);
+
+                if (!settled)
+                {
+                    return new RecommendationLoadResult(
+                        State: polledState,
+                        ErrorKind: networkFailed ? RecommendationErrorKind.GenerateFailed : RecommendationErrorKind.StillGenerating,
+                        UsedExistingFallback: polledState.Items.Count > 0,
+                        PendingRequestId: pending.RequestId
+                    );
+                }
+
+                state = polledState;
+            }
+
+            if (!state.Eligible)
+            {
+                _db.SetPendingRecommendationAttempt(userId, language, null);
+                return new RecommendationLoadResult(state, RecommendationErrorKind.None);
+            }
+
+            if (IsConfirmedCompleted(state, pending))
+            {
+                _db.SetPendingRecommendationAttempt(userId, language, null);
+                return new RecommendationLoadResult(state, RecommendationErrorKind.None, GeneratedNewBatch: true);
+            }
+
+            if (state.Quota.Remaining <= 0)
+            {
+                _db.SetPendingRecommendationAttempt(userId, language, null);
+                return new RecommendationLoadResult(
+                    state,
+                    RecommendationErrorKind.LimitReached,
+                    UsedExistingFallback: state.Items.Count > 0
+                );
+            }
+
+            // Concurrent generation belonged to another language or did not produce a new batch for THIS language.
+            return new RecommendationLoadResult(
+                State: state,
+                ErrorKind: RecommendationErrorKind.GenerateFailed,
+                UsedExistingFallback: state.Items.Count > 0,
+                PendingRequestId: pending.RequestId
+            );
+        }
+
+        // Timeout, dropped connection, or 5xx on /generate: immediately attempt /state recovery + polling.
+        var recoveryRes = await _api.FetchRecommendationStateAsync(ct).ConfigureAwait(false);
+        if (recoveryRes.IsSuccess && recoveryRes.State != null)
+        {
+            var recovered = await EnrichStatePostersIfNeededAsync(recoveryRes.State, ct).ConfigureAwait(false);
+            SaveCachedState(scopeKey, recovered);
+
+            if (recovered.Generating)
+            {
+                var (settled, polledState, networkFailed) = await PollRecommendationStateUntilSettledAsync(scopeKey, recovered, ct).ConfigureAwait(false);
+                polledState = await EnrichStatePostersIfNeededAsync(polledState, ct).ConfigureAwait(false);
+                SaveCachedState(scopeKey, polledState);
+
+                if (!settled)
+                {
+                    return new RecommendationLoadResult(
+                        State: polledState,
+                        ErrorKind: networkFailed ? RecommendationErrorKind.GenerateFailed : RecommendationErrorKind.StillGenerating,
+                        UsedExistingFallback: polledState.Items.Count > 0,
+                        PendingRequestId: pending.RequestId
+                    );
+                }
+
+                recovered = polledState;
+            }
+
+            if (IsConfirmedCompleted(recovered, pending))
+            {
+                _db.SetPendingRecommendationAttempt(userId, language, null);
+                return new RecommendationLoadResult(recovered, RecommendationErrorKind.None, GeneratedNewBatch: true);
+            }
+
+            if (recovered.Quota.Remaining <= 0)
+            {
+                _db.SetPendingRecommendationAttempt(userId, language, null);
+                return new RecommendationLoadResult(
+                    recovered,
+                    RecommendationErrorKind.LimitReached,
+                    UsedExistingFallback: recovered.Items.Count > 0
+                );
+            }
+
+            return new RecommendationLoadResult(
+                State: recovered,
+                ErrorKind: RecommendationErrorKind.GenerateFailed,
+                UsedExistingFallback: recovered.Items.Count > 0,
+                PendingRequestId: pending.RequestId,
+                ErrorMessage: genRes.ErrorMessage
+            );
+        }
+
+        // Neither /generate nor /state succeeded: preserve existing fallback items AND persisted pending requestId for retry.
+        return new RecommendationLoadResult(
+            State: fallbackState,
+            ErrorKind: RecommendationErrorKind.GenerateFailed,
+            UsedExistingFallback: fallbackState != null && fallbackState.Items.Count > 0,
+            PendingRequestId: pending.RequestId,
+            ErrorMessage: genRes.ErrorMessage ?? recoveryRes.ErrorMessage
+        );
+    }
+
+    private bool HasAutoAttempted(string scopeKey, string quotaDate)
+    {
+        if (string.IsNullOrWhiteSpace(quotaDate)) return false;
+        lock (_recFlightLock)
+        {
+            return _recommendationAutoAttemptedDates.Contains($"{scopeKey}:{quotaDate}");
+        }
+    }
+
+    private void MarkAutoAttempted(string scopeKey, string quotaDate)
+    {
+        if (string.IsNullOrWhiteSpace(quotaDate)) return;
+        lock (_recFlightLock)
+        {
+            _recommendationAutoAttemptedDates.Add($"{scopeKey}:{quotaDate}");
+        }
     }
 
     public async Task EnsureRegisteredAsync(CancellationToken ct = default)

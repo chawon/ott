@@ -696,6 +696,125 @@ public sealed class OttlineDatabase : IDisposable
         }
     }
 
+    public static string NormalizeRecommendationLanguage(string? language)
+    {
+        if (string.IsNullOrWhiteSpace(language)) return "ko";
+        return language.Trim().StartsWith("ko", StringComparison.OrdinalIgnoreCase) ? "ko" : "en";
+    }
+
+    private static string PendingRecommendationKey(string userId) =>
+        $"recommendation_pending_requests:{userId.Trim().ToLowerInvariant()}";
+
+    public PendingRecommendationAttempt? GetPendingRecommendationAttempt(string? userId, string? language)
+    {
+        if (string.IsNullOrWhiteSpace(userId)) return null;
+        var lang = NormalizeRecommendationLanguage(language);
+        var key = PendingRecommendationKey(userId);
+        lock (_syncRoot)
+        {
+            using var conn = OpenConnection();
+            var map = LoadPendingRecommendationMapInternal(conn, key);
+            if (!map.TryGetValue(lang, out var attempt)) return null;
+            return Guid.TryParse(attempt.RequestId, out _) ? attempt : null;
+        }
+    }
+
+    public void SetPendingRecommendationAttempt(string? userId, string? language, PendingRecommendationAttempt? attempt)
+    {
+        if (string.IsNullOrWhiteSpace(userId)) return;
+        var lang = NormalizeRecommendationLanguage(language);
+        var key = PendingRecommendationKey(userId);
+        lock (_syncRoot)
+        {
+            using var conn = OpenConnection();
+            var map = LoadPendingRecommendationMapInternal(conn, key);
+            if (attempt == null || !Guid.TryParse(attempt.RequestId, out _))
+            {
+                map.Remove(lang);
+            }
+            else
+            {
+                map[lang] = attempt with
+                {
+                    RequestId = attempt.RequestId.Trim(),
+                    BaselineGenerationId = string.IsNullOrWhiteSpace(attempt.BaselineGenerationId)
+                        ? null
+                        : attempt.BaselineGenerationId.Trim()
+                };
+            }
+
+            using var cmd = conn.CreateCommand();
+            if (map.Count == 0)
+            {
+                cmd.CommandText = "DELETE FROM app_settings WHERE key = $key;";
+                cmd.Parameters.AddWithValue("$key", key);
+            }
+            else
+            {
+                cmd.CommandText = @"
+                    INSERT INTO app_settings (key, value) VALUES ($key, $val)
+                    ON CONFLICT(key) DO UPDATE SET value = excluded.value;
+                ";
+                cmd.Parameters.AddWithValue("$key", key);
+                cmd.Parameters.AddWithValue("$val", JsonSerializer.Serialize(map));
+            }
+            cmd.ExecuteNonQuery();
+        }
+    }
+
+    public void ClearPendingRecommendationAttempts(string? userId = null)
+    {
+        lock (_syncRoot)
+        {
+            using var conn = OpenConnection();
+            using var cmd = conn.CreateCommand();
+            if (string.IsNullOrWhiteSpace(userId))
+            {
+                cmd.CommandText = "DELETE FROM app_settings WHERE key LIKE 'recommendation_pending_requests:%';";
+            }
+            else
+            {
+                cmd.CommandText = "DELETE FROM app_settings WHERE key = $key;";
+                cmd.Parameters.AddWithValue("$key", PendingRecommendationKey(userId));
+            }
+            cmd.ExecuteNonQuery();
+        }
+    }
+
+    private static Dictionary<string, PendingRecommendationAttempt> LoadPendingRecommendationMapInternal(SqliteConnection conn, string key)
+    {
+        using var cmd = conn.CreateCommand();
+        cmd.CommandText = "SELECT value FROM app_settings WHERE key = $key LIMIT 1;";
+        cmd.Parameters.AddWithValue("$key", key);
+        var raw = cmd.ExecuteScalar() as string;
+        if (string.IsNullOrWhiteSpace(raw))
+        {
+            return new Dictionary<string, PendingRecommendationAttempt>(StringComparer.OrdinalIgnoreCase);
+        }
+
+        try
+        {
+            var parsed = JsonSerializer.Deserialize<Dictionary<string, PendingRecommendationAttempt>>(raw);
+            if (parsed == null)
+            {
+                return new Dictionary<string, PendingRecommendationAttempt>(StringComparer.OrdinalIgnoreCase);
+            }
+            var filtered = new Dictionary<string, PendingRecommendationAttempt>(StringComparer.OrdinalIgnoreCase);
+            foreach (var (langKey, attempt) in parsed)
+            {
+                if ((langKey is "ko" or "en") && attempt != null && Guid.TryParse(attempt.RequestId, out _))
+                {
+                    filtered[langKey] = attempt;
+                }
+            }
+            return filtered;
+        }
+        catch
+        {
+            return new Dictionary<string, PendingRecommendationAttempt>(StringComparer.OrdinalIgnoreCase);
+        }
+    }
+
     private static void SaveSettingsInternal(SqliteConnection conn, LocalSettings settings)
     {
         using var cmd = conn.CreateCommand();

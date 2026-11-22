@@ -1,0 +1,880 @@
+<UserControl x:Class="Ottline.App.Controls.OttlineInfoPagesView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="clr-namespace:Ottline.App.Controls">
+    <ScrollViewer x:Name="InfoScrollViewer"
+                  VerticalScrollBarVisibility="Auto"
+                  HorizontalScrollBarVisibility="Disabled">
+        <StackPanel MaxWidth="1280" Margin="32,24,32,48">
+
+            <!-- Top Back & 5-Page Switcher Bar -->
+            <Grid Margin="0,0,0,22">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <Button Grid.Column="0"
+                        Style="{StaticResource SecondaryButtonStyle}"
+                        Content="{Binding Strings.InfoBackButton}"
+                        Foreground="{DynamicResource PrimaryBrush}"
+                        Click="Back_Click"
+                        Margin="0,0,16,0"
+                        VerticalAlignment="Center" />
+
+                <WrapPanel Grid.Column="1" VerticalAlignment="Center">
+                    <Button Content="{Binding Strings.FooterGuidesLink}"
+                            Click="SwitchGuides_Click"
+                            Padding="13,7"
+                            Margin="0,0,8,4">
+                        <Button.Style>
+                            <Style TargetType="Button" BasedOn="{StaticResource SecondaryButtonStyle}">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsInfoGuides}" Value="True">
+                                        <Setter Property="Background" Value="{DynamicResource BrandNavySoftBrush}" />
+                                        <Setter Property="BorderBrush" Value="{DynamicResource BrandNavyBrush}" />
+                                        <Setter Property="Foreground" Value="{DynamicResource PrimaryBrush}" />
+                                        <Setter Property="FontWeight" Value="SemiBold" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+                    <Button Content="{Binding Strings.FooterAboutLink}"
+                            Click="SwitchAbout_Click"
+                            Padding="13,7"
+                            Margin="0,0,8,4">
+                        <Button.Style>
+                            <Style TargetType="Button" BasedOn="{StaticResource SecondaryButtonStyle}">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsInfoAbout}" Value="True">
+                                        <Setter Property="Background" Value="{DynamicResource BrandNavySoftBrush}" />
+                                        <Setter Property="BorderBrush" Value="{DynamicResource BrandNavyBrush}" />
+                                        <Setter Property="Foreground" Value="{DynamicResource PrimaryBrush}" />
+                                        <Setter Property="FontWeight" Value="SemiBold" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+                    <Button Content="{Binding Strings.FooterFaqLink}"
+                            Click="SwitchFaq_Click"
+                            Padding="13,7"
+                            Margin="0,0,8,4">
+                        <Button.Style>
+                            <Style TargetType="Button" BasedOn="{StaticResource SecondaryButtonStyle}">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsInfoFaq}" Value="True">
+                                        <Setter Property="Background" Value="{DynamicResource BrandNavySoftBrush}" />
+                                        <Setter Property="BorderBrush" Value="{DynamicResource BrandNavyBrush}" />
+                                        <Setter Property="Foreground" Value="{DynamicResource PrimaryBrush}" />
+                                        <Setter Property="FontWeight" Value="SemiBold" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+                    <Button Content="{Binding Strings.FooterPrivacyLink}"
+                            Click="SwitchPrivacy_Click"
+                            Padding="13,7"
+                            Margin="0,0,8,4">
+                        <Button.Style>
+                            <Style TargetType="Button" BasedOn="{StaticResource SecondaryButtonStyle}">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsInfoPrivacy}" Value="True">
+                                        <Setter Property="Background" Value="{DynamicResource BrandNavySoftBrush}" />
+                                        <Setter Property="BorderBrush" Value="{DynamicResource BrandNavyBrush}" />
+                                        <Setter Property="Foreground" Value="{DynamicResource PrimaryBrush}" />
+                                        <Setter Property="FontWeight" Value="SemiBold" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+                    <Button Style="{StaticResource SecondaryButtonStyle}"
+                            Content="{Binding Strings.FooterFeedbackLink}"
+                            Padding="13,7"
+                            Margin="0,0,0,4"
+                            Click="OpenFeedback_Click" />
+                </WrapPanel>
+            </Grid>
+
+            <!-- =================================================================
+                 1) RECORDING GUIDES (Hub + 3 Full Guide Articles)
+                 ================================================================= -->
+            <StackPanel Visibility="{Binding IsInfoGuides, Converter={StaticResource BoolToVis}}">
+
+                <!-- Guide Hub -->
+                <StackPanel Visibility="{Binding IsGuideHubVisible, Converter={StaticResource BoolToVis}}">
+                    <TextBlock Text="{Binding GuideHub.Eyebrow}"
+                               FontSize="11.5"
+                               FontWeight="SemiBold"
+                               Foreground="{DynamicResource ForegroundMutedBrush}" />
+                    <TextBlock Text="{Binding GuideHub.Title}"
+                               FontSize="28"
+                               FontWeight="Bold"
+                               Foreground="{DynamicResource ForegroundBrush}"
+                               TextWrapping="Wrap"
+                               Margin="0,4,0,0" />
+                    <TextBlock Text="{Binding GuideHub.Description}"
+                               FontSize="15"
+                               LineHeight="24"
+                               Foreground="{DynamicResource ForegroundSecondaryBrush}"
+                               TextWrapping="Wrap"
+                               Margin="0,8,0,22" />
+
+                    <ItemsControl ItemsSource="{Binding GuideHub.Guides}" Margin="0,0,0,18">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <UniformGrid Columns="3" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Style="{StaticResource CardBorderStyle}"
+                                        Margin="0,0,14,14"
+                                        Padding="22,20">
+                                    <Grid>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="*" />
+                                            <RowDefinition Height="Auto" />
+                                        </Grid.RowDefinitions>
+                                        <StackPanel Grid.Row="0">
+                                            <TextBlock Text="{Binding Eyebrow}"
+                                                       FontSize="11.5"
+                                                       FontWeight="SemiBold"
+                                                       Foreground="{DynamicResource PrimaryBrush}" />
+                                            <TextBlock Text="{Binding CardTitle}"
+                                                       FontSize="17"
+                                                       FontWeight="Bold"
+                                                       Foreground="{DynamicResource ForegroundBrush}"
+                                                       TextWrapping="Wrap"
+                                                       Margin="0,6,0,8" />
+                                            <TextBlock Text="{Binding CardDescription}"
+                                                       FontSize="13.5"
+                                                       LineHeight="21"
+                                                       Foreground="{DynamicResource ForegroundSecondaryBrush}"
+                                                       TextWrapping="Wrap" />
+                                        </StackPanel>
+                                        <Button Grid.Row="1"
+                                                Style="{StaticResource SecondaryButtonStyle}"
+                                                Content="{Binding CardAction}"
+                                                Foreground="{DynamicResource PrimaryBrush}"
+                                                BorderBrush="{DynamicResource BrandNavyBrush}"
+                                                HorizontalAlignment="Left"
+                                                Margin="0,16,0,0"
+                                                Tag="{Binding Slug}"
+                                                Click="OpenGuideArticle_Click" />
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <!-- Cross-device connection card -->
+                    <Border Background="{DynamicResource CardElevatedBrush}"
+                            BorderBrush="{DynamicResource BorderBrush}"
+                            BorderThickness="1"
+                            CornerRadius="8"
+                            Padding="24,20"
+                            Margin="0,0,0,16">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0" Margin="0,0,16,0">
+                                <TextBlock Text="{Binding GuideHub.ConnectionTitle}"
+                                           FontSize="17.5"
+                                           FontWeight="SemiBold"
+                                           Foreground="{DynamicResource PrimaryBrush}" />
+                                <TextBlock Text="{Binding GuideHub.ConnectionDescription}"
+                                           FontSize="14"
+                                           LineHeight="22"
+                                           Foreground="{DynamicResource ForegroundSecondaryBrush}"
+                                           TextWrapping="Wrap"
+                                           Margin="0,6,0,0" />
+                            </StackPanel>
+                            <Button Grid.Column="1"
+                                    Style="{StaticResource SecondaryButtonStyle}"
+                                    Content="{Binding GuideHub.ConnectionAction}"
+                                    Foreground="{DynamicResource PrimaryBrush}"
+                                    BorderBrush="{DynamicResource BrandNavyBrush}"
+                                    VerticalAlignment="Center"
+                                    Click="OpenMySpace_Click" />
+                        </Grid>
+                    </Border>
+
+                    <!-- Closing note -->
+                    <Border Style="{StaticResource CardBorderStyle}" Padding="24,20">
+                        <StackPanel>
+                            <TextBlock Text="{Binding GuideHub.ClosingTitle}"
+                                       FontSize="17"
+                                       FontWeight="SemiBold"
+                                       Foreground="{DynamicResource ForegroundBrush}" />
+                            <TextBlock Text="{Binding GuideHub.ClosingDescription}"
+                                       FontSize="14"
+                                       Foreground="{DynamicResource ForegroundSecondaryBrush}"
+                                       TextWrapping="Wrap"
+                                       Margin="0,5,0,0" />
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+
+                <!-- Guide Article Detail -->
+                <StackPanel Visibility="{Binding IsGuideArticleVisible, Converter={StaticResource BoolToVis}}">
+                    <Button Style="{StaticResource GhostButtonStyle}"
+                            Content="{Binding GuideHub.BackToHubLabel}"
+                            HorizontalAlignment="Left"
+                            Margin="0,0,0,14"
+                            Click="BackToGuideHub_Click" />
+
+                    <TextBlock Text="{Binding SelectedGuideArticle.Eyebrow}"
+                               FontSize="12"
+                               FontWeight="SemiBold"
+                               Foreground="{DynamicResource PrimaryBrush}" />
+                    <TextBlock Text="{Binding SelectedGuideArticle.Title}"
+                               FontSize="28"
+                               FontWeight="Bold"
+                               Foreground="{DynamicResource ForegroundBrush}"
+                               TextWrapping="Wrap"
+                               Margin="0,4,0,0" />
+                    <TextBlock Text="{Binding SelectedGuideArticle.UpdatedLabel}"
+                               FontSize="12.5"
+                               Foreground="{DynamicResource ForegroundMutedBrush}"
+                               Margin="0,4,0,0" />
+                    <TextBlock Text="{Binding SelectedGuideArticle.Summary}"
+                               FontSize="15"
+                               LineHeight="24"
+                               Foreground="{DynamicResource ForegroundSecondaryBrush}"
+                               TextWrapping="Wrap"
+                               Margin="0,10,0,20" />
+
+                    <ItemsControl ItemsSource="{Binding SelectedGuideArticle.Sections}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Style="{StaticResource CardBorderStyle}"
+                                        Padding="24,20"
+                                        Margin="0,0,0,16">
+                                    <StackPanel>
+                                        <TextBlock Text="{Binding Title}"
+                                                   FontSize="18"
+                                                   FontWeight="SemiBold"
+                                                   Foreground="{DynamicResource ForegroundBrush}"
+                                                   Margin="0,0,0,10" />
+                                        <ItemsControl ItemsSource="{Binding Paragraphs}">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <TextBlock Text="{Binding}"
+                                                               FontSize="14.5"
+                                                               LineHeight="23"
+                                                               Foreground="{DynamicResource ForegroundSecondaryBrush}"
+                                                               TextWrapping="Wrap"
+                                                               Margin="0,0,0,8" />
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                        <ItemsControl ItemsSource="{Binding Items}"
+                                                      Visibility="{Binding HasItems, Converter={StaticResource BoolToVis}}"
+                                                      Margin="0,8,0,0">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Grid Margin="0,0,0,12">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="32" />
+                                                            <ColumnDefinition Width="10" />
+                                                            <ColumnDefinition Width="*" />
+                                                        </Grid.ColumnDefinitions>
+                                                        <Border Grid.Column="0"
+                                                                Width="28"
+                                                                Height="28"
+                                                                CornerRadius="14"
+                                                                VerticalAlignment="Top"
+                                                                Background="{DynamicResource BrandNavySoftBrush}"
+                                                                BorderBrush="{DynamicResource BrandNavyBrush}"
+                                                                BorderThickness="1">
+                                                            <TextBlock Text="{Binding Badge}"
+                                                                       FontSize="12.5"
+                                                                       FontWeight="Bold"
+                                                                       Foreground="{DynamicResource PrimaryBrush}"
+                                                                       HorizontalAlignment="Center"
+                                                                       VerticalAlignment="Center" />
+                                                        </Border>
+                                                        <StackPanel Grid.Column="2">
+                                                            <TextBlock Text="{Binding Title}"
+                                                                       FontSize="14.5"
+                                                                       FontWeight="SemiBold"
+                                                                       Foreground="{DynamicResource ForegroundBrush}" />
+                                                            <TextBlock Text="{Binding Description}"
+                                                                       FontSize="13.5"
+                                                                       LineHeight="21"
+                                                                       Foreground="{DynamicResource ForegroundSecondaryBrush}"
+                                                                       TextWrapping="Wrap"
+                                                                       Margin="0,3,0,0" />
+                                                        </StackPanel>
+                                                    </Grid>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <!-- Guide Recording CTA -->
+                    <Border Background="{DynamicResource CardElevatedBrush}"
+                            BorderBrush="{DynamicResource BorderBrush}"
+                            BorderThickness="1"
+                            CornerRadius="8"
+                            Padding="24,20">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0" Margin="0,0,16,0">
+                                <TextBlock Text="{Binding SelectedGuideArticle.CtaTitle}"
+                                           FontSize="18"
+                                           FontWeight="SemiBold"
+                                           Foreground="{DynamicResource ForegroundBrush}" />
+                                <TextBlock Text="{Binding SelectedGuideArticle.CtaDescription}"
+                                           FontSize="14"
+                                           Foreground="{DynamicResource ForegroundSecondaryBrush}"
+                                           TextWrapping="Wrap"
+                                           Margin="0,5,0,0" />
+                            </StackPanel>
+                            <Button Grid.Column="1"
+                                    Style="{StaticResource PrimaryActionButtonStyle}"
+                                    Content="{Binding SelectedGuideArticle.CtaLabel}"
+                                    VerticalAlignment="Center"
+                                    Click="StartGuideQuickRecord_Click" />
+                        </Grid>
+                    </Border>
+                </StackPanel>
+            </StackPanel>
+
+            <!-- =================================================================
+                 2) ABOUT SERVICE (about/page.tsx parity)
+                 ================================================================= -->
+            <StackPanel Visibility="{Binding IsInfoAbout, Converter={StaticResource BoolToVis}}">
+                <TextBlock Text="{Binding AboutPage.Title}"
+                           FontSize="28"
+                           FontWeight="Bold"
+                           Foreground="{DynamicResource ForegroundBrush}"
+                           TextWrapping="Wrap" />
+                <TextBlock Text="{Binding AboutPage.Description}"
+                           FontSize="15"
+                           LineHeight="24"
+                           Foreground="{DynamicResource ForegroundSecondaryBrush}"
+                           TextWrapping="Wrap"
+                           Margin="0,8,0,20" />
+
+                <!-- Pairing Highlight -->
+                <Border Background="{DynamicResource CardElevatedBrush}"
+                        BorderBrush="{DynamicResource BrandNavyBrush}"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        Padding="24,20"
+                        Margin="0,0,0,26">
+                    <StackPanel>
+                        <TextBlock Text="{Binding AboutPage.PairingTitle}"
+                                   FontSize="18"
+                                   FontWeight="SemiBold"
+                                   Foreground="{DynamicResource PrimaryBrush}" />
+                        <TextBlock Text="{Binding AboutPage.PairingDescription}"
+                                   FontSize="14.5"
+                                   LineHeight="23"
+                                   Foreground="{DynamicResource ForegroundSecondaryBrush}"
+                                   TextWrapping="Wrap"
+                                   Margin="0,6,0,0" />
+                    </StackPanel>
+                </Border>
+
+                <!-- Supported Platforms -->
+                <TextBlock Text="{Binding AboutPage.PlatformsTitle}"
+                           FontSize="20"
+                           FontWeight="SemiBold"
+                           Foreground="{DynamicResource ForegroundBrush}" />
+                <TextBlock Text="{Binding AboutPage.PlatformsDescription}"
+                           FontSize="14"
+                           Foreground="{DynamicResource ForegroundSecondaryBrush}"
+                           Margin="0,4,0,14" />
+
+                <ItemsControl ItemsSource="{Binding AboutPage.Platforms}" Margin="0,0,0,24">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <UniformGrid Columns="2" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border Style="{StaticResource CardBorderStyle}"
+                                    Margin="0,0,14,14"
+                                    Padding="20,18">
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="*" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
+                                    <StackPanel Grid.Row="0">
+                                        <Grid Margin="0,0,0,8">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Text="{Binding Number}"
+                                                       FontSize="12"
+                                                       FontWeight="SemiBold"
+                                                       Foreground="{DynamicResource ForegroundMutedBrush}" />
+                                            <Border Grid.Column="1"
+                                                    Background="{DynamicResource BrandNavySoftBrush}"
+                                                    CornerRadius="6"
+                                                    Padding="8,2"
+                                                    Visibility="{Binding IsCurrentPlatform, Converter={StaticResource BoolToVis}}">
+                                                <TextBlock Text="{Binding DataContext.Strings.InfoCurrentPlatformBadge, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                           FontSize="11"
+                                                           FontWeight="SemiBold"
+                                                           Foreground="{DynamicResource PrimaryBrush}" />
+                                            </Border>
+                                        </Grid>
+                                        <TextBlock Text="{Binding Title}"
+                                                   FontSize="16"
+                                                   FontWeight="SemiBold"
+                                                   Foreground="{DynamicResource ForegroundBrush}" />
+                                        <TextBlock Text="{Binding Description}"
+                                                   FontSize="13.5"
+                                                   LineHeight="21"
+                                                   Foreground="{DynamicResource ForegroundSecondaryBrush}"
+                                                   TextWrapping="Wrap"
+                                                   Margin="0,6,0,0" />
+                                    </StackPanel>
+                                    <Button Grid.Row="1"
+                                            Style="{StaticResource SecondaryButtonStyle}"
+                                            Content="{Binding LinkLabel}"
+                                            Foreground="{DynamicResource PrimaryBrush}"
+                                            HorizontalAlignment="Left"
+                                            Padding="12,6"
+                                            Margin="0,14,0,0"
+                                            Tag="{Binding Url}"
+                                            Click="OpenExternalUrl_Click" />
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <!-- Companion Tools (Browser Extension) -->
+                <TextBlock Text="{Binding AboutPage.CompanionToolsTitle}"
+                           FontSize="19"
+                           FontWeight="SemiBold"
+                           Foreground="{DynamicResource ForegroundBrush}"
+                           Margin="0,0,0,12" />
+                <Border Style="{StaticResource CardBorderStyle}" Padding="22,18" Margin="0,0,0,24">
+                    <StackPanel>
+                        <TextBlock Text="{Binding AboutPage.ExtensionTitle}"
+                                   FontSize="16"
+                                   FontWeight="SemiBold"
+                                   Foreground="{DynamicResource ForegroundBrush}" />
+                        <TextBlock Text="{Binding AboutPage.ExtensionDescription}"
+                                   FontSize="14"
+                                   LineHeight="22"
+                                   Foreground="{DynamicResource ForegroundSecondaryBrush}"
+                                   TextWrapping="Wrap"
+                                   Margin="0,6,0,12" />
+                        <ItemsControl ItemsSource="{Binding AboutPage.ExtensionLinks}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <WrapPanel />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Button Style="{StaticResource SecondaryButtonStyle}"
+                                            Content="{Binding Label}"
+                                            Foreground="{DynamicResource PrimaryBrush}"
+                                            Padding="12,6"
+                                            Margin="0,0,10,6"
+                                            Tag="{Binding Target}"
+                                            Click="OpenExternalUrl_Click" />
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </Border>
+
+                <!-- How to Use + Good to Know (2-Column Grid) -->
+                <Grid Margin="0,0,0,24">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="18" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <Border Grid.Column="0" Style="{StaticResource CardBorderStyle}" Padding="22,20">
+                        <StackPanel>
+                            <TextBlock Text="{Binding AboutPage.HowToUseTitle}"
+                                       FontSize="18"
+                                       FontWeight="SemiBold"
+                                       Foreground="{DynamicResource ForegroundBrush}"
+                                       Margin="0,0,0,14" />
+                            <ItemsControl ItemsSource="{Binding AboutPage.Steps}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid Margin="0,0,0,14">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="30" />
+                                                <ColumnDefinition Width="10" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+                                            <Border Grid.Column="0"
+                                                    Width="26"
+                                                    Height="26"
+                                                    CornerRadius="13"
+                                                    VerticalAlignment="Top"
+                                                    Background="{DynamicResource BrandNavySoftBrush}"
+                                                    BorderBrush="{DynamicResource BrandNavyBrush}"
+                                                    BorderThickness="1">
+                                                <TextBlock Text="{Binding Badge}"
+                                                           FontSize="12"
+                                                           FontWeight="Bold"
+                                                           Foreground="{DynamicResource PrimaryBrush}"
+                                                           HorizontalAlignment="Center"
+                                                           VerticalAlignment="Center" />
+                                            </Border>
+                                            <StackPanel Grid.Column="2">
+                                                <TextBlock Text="{Binding Title}"
+                                                           FontSize="14.5"
+                                                           FontWeight="SemiBold"
+                                                           Foreground="{DynamicResource ForegroundBrush}" />
+                                                <TextBlock Text="{Binding Description}"
+                                                           FontSize="13.5"
+                                                           LineHeight="21"
+                                                           Foreground="{DynamicResource ForegroundSecondaryBrush}"
+                                                           TextWrapping="Wrap"
+                                                           Margin="0,3,0,0" />
+                                            </StackPanel>
+                                        </Grid>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Grid.Column="2" Style="{StaticResource CardBorderStyle}" Padding="22,20">
+                        <StackPanel>
+                            <TextBlock Text="{Binding AboutPage.MoreTipsTitle}"
+                                       FontSize="18"
+                                       FontWeight="SemiBold"
+                                       Foreground="{DynamicResource ForegroundBrush}"
+                                       Margin="0,0,0,14" />
+                            <ItemsControl ItemsSource="{Binding AboutPage.Tips}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid Margin="0,0,0,14">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="30" />
+                                                <ColumnDefinition Width="10" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+                                            <Border Grid.Column="0"
+                                                    Width="26"
+                                                    Height="26"
+                                                    CornerRadius="13"
+                                                    VerticalAlignment="Top"
+                                                    Background="{DynamicResource BrandNavySoftBrush}"
+                                                    BorderBrush="{DynamicResource BrandNavyBrush}"
+                                                    BorderThickness="1">
+                                                <TextBlock Text="{Binding Badge}"
+                                                           FontSize="12"
+                                                           FontWeight="Bold"
+                                                           Foreground="{DynamicResource PrimaryBrush}"
+                                                           HorizontalAlignment="Center"
+                                                           VerticalAlignment="Center" />
+                                            </Border>
+                                            <StackPanel Grid.Column="2">
+                                                <TextBlock Text="{Binding Title}"
+                                                           FontSize="14.5"
+                                                           FontWeight="SemiBold"
+                                                           Foreground="{DynamicResource ForegroundBrush}" />
+                                                <TextBlock Text="{Binding Description}"
+                                                           FontSize="13.5"
+                                                           LineHeight="21"
+                                                           Foreground="{DynamicResource ForegroundSecondaryBrush}"
+                                                           TextWrapping="Wrap"
+                                                           Margin="0,3,0,0" />
+                                            </StackPanel>
+                                        </Grid>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+
+                <!-- Guide Shortcuts Card -->
+                <Border Style="{StaticResource CardBorderStyle}" Padding="24,20" Margin="0,0,0,18">
+                    <StackPanel>
+                        <TextBlock Text="{Binding AboutPage.GuideSectionTitle}"
+                                   FontSize="19"
+                                   FontWeight="SemiBold"
+                                   Foreground="{DynamicResource ForegroundBrush}" />
+                        <TextBlock Text="{Binding AboutPage.GuideSectionDescription}"
+                                   FontSize="14"
+                                   Foreground="{DynamicResource ForegroundSecondaryBrush}"
+                                   Margin="0,5,0,14" />
+                        <ItemsControl ItemsSource="{Binding AboutPage.GuideLinks}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Button Style="{StaticResource SecondaryButtonStyle}"
+                                            Content="{Binding Label}"
+                                            Foreground="{DynamicResource PrimaryBrush}"
+                                            HorizontalContentAlignment="Left"
+                                            Padding="14,10"
+                                            Margin="0,0,0,8"
+                                            Tag="{Binding Target}"
+                                            Click="OpenGuideArticle_Click" />
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <Button Style="{StaticResource GhostButtonStyle}"
+                                Content="{Binding AboutPage.BrowseAllGuidesLabel}"
+                                Foreground="{DynamicResource PrimaryBrush}"
+                                HorizontalAlignment="Left"
+                                Margin="0,6,0,0"
+                                Click="SwitchGuides_Click" />
+                    </StackPanel>
+                </Border>
+
+                <!-- Closing Quote -->
+                <Border Background="{DynamicResource CardElevatedBrush}"
+                        BorderBrush="{DynamicResource BorderBrush}"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        Padding="24,20">
+                    <TextBlock Text="{Binding AboutPage.ClosingQuote}"
+                               FontSize="15.5"
+                               FontStyle="Italic"
+                               Foreground="{DynamicResource ForegroundSecondaryBrush}"
+                               TextWrapping="Wrap" />
+                </Border>
+            </StackPanel>
+
+            <!-- =================================================================
+                 3) FAQ (faq/page.tsx parity)
+                 ================================================================= -->
+            <StackPanel Visibility="{Binding IsInfoFaq, Converter={StaticResource BoolToVis}}">
+                <TextBlock Text="{Binding FaqPage.Title}"
+                           FontSize="28"
+                           FontWeight="Bold"
+                           Foreground="{DynamicResource ForegroundBrush}" />
+                <TextBlock Text="{Binding FaqPage.Description}"
+                           FontSize="15"
+                           Foreground="{DynamicResource ForegroundSecondaryBrush}"
+                           Margin="0,6,0,22" />
+
+                <ItemsControl ItemsSource="{Binding FaqPage.Items}" Margin="0,0,0,14">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <UniformGrid Columns="2" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border Style="{StaticResource CardBorderStyle}"
+                                    Margin="0,0,14,14"
+                                    Padding="22,20">
+                                <StackPanel>
+                                    <TextBlock Text="{Binding Question}"
+                                               FontSize="16"
+                                               FontWeight="Bold"
+                                               Foreground="{DynamicResource ForegroundBrush}"
+                                               TextWrapping="Wrap" />
+                                    <TextBlock Text="{Binding Answer}"
+                                               FontSize="14"
+                                               LineHeight="22"
+                                               Foreground="{DynamicResource ForegroundSecondaryBrush}"
+                                               TextWrapping="Wrap"
+                                               Margin="0,10,0,0" />
+                                </StackPanel>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <Border Style="{StaticResource CardBorderStyle}" Padding="24,20">
+                    <StackPanel>
+                        <TextBlock Text="{Binding FaqPage.GuideTitle}"
+                                   FontSize="18"
+                                   FontWeight="SemiBold"
+                                   Foreground="{DynamicResource ForegroundBrush}" />
+                        <TextBlock Text="{Binding FaqPage.GuideDescription}"
+                                   FontSize="14"
+                                   Foreground="{DynamicResource ForegroundSecondaryBrush}"
+                                   TextWrapping="Wrap"
+                                   Margin="0,6,0,12" />
+                        <Button Style="{StaticResource SecondaryButtonStyle}"
+                                Content="{Binding FaqPage.GuideAction}"
+                                Foreground="{DynamicResource PrimaryBrush}"
+                                BorderBrush="{DynamicResource BrandNavyBrush}"
+                                HorizontalAlignment="Left"
+                                Click="SwitchGuides_Click" />
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+
+            <!-- =================================================================
+                 4) PRIVACY POLICY (privacy/page.tsx parity)
+                 ================================================================= -->
+            <StackPanel Visibility="{Binding IsInfoPrivacy, Converter={StaticResource BoolToVis}}">
+                <TextBlock Text="{Binding PrivacyPage.Title}"
+                           FontSize="28"
+                           FontWeight="Bold"
+                           Foreground="{DynamicResource ForegroundBrush}" />
+                <TextBlock Text="{Binding PrivacyPage.LastUpdated}"
+                           FontSize="13"
+                           Foreground="{DynamicResource ForegroundMutedBrush}"
+                           Margin="0,4,0,0" />
+                <TextBlock Text="{Binding PrivacyPage.Intro}"
+                           FontSize="15"
+                           LineHeight="24"
+                           Foreground="{DynamicResource ForegroundSecondaryBrush}"
+                           TextWrapping="Wrap"
+                           Margin="0,10,0,22" />
+
+                <ItemsControl ItemsSource="{Binding PrivacyPage.Sections}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border Style="{StaticResource CardBorderStyle}"
+                                    Padding="22,18"
+                                    Margin="0,0,0,16">
+                                <StackPanel>
+                                    <TextBlock Text="{Binding Title}"
+                                               FontSize="17.5"
+                                               FontWeight="SemiBold"
+                                               Foreground="{DynamicResource ForegroundBrush}"
+                                               Margin="0,0,0,10" />
+                                    <ItemsControl ItemsSource="{Binding Bullets}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Grid Margin="0,0,0,6">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="14" />
+                                                        <ColumnDefinition Width="*" />
+                                                    </Grid.ColumnDefinitions>
+                                                    <TextBlock Grid.Column="0"
+                                                               Text="•"
+                                                               FontSize="14"
+                                                               Foreground="{DynamicResource ForegroundMutedBrush}" />
+                                                    <TextBlock Grid.Column="1"
+                                                               Text="{Binding}"
+                                                               FontSize="14"
+                                                               LineHeight="22"
+                                                               Foreground="{DynamicResource ForegroundSecondaryBrush}"
+                                                               TextWrapping="Wrap" />
+                                                </Grid>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <!-- Section 4: Third-party & OpenAI Future Timeline -->
+                <Border Style="{StaticResource CardBorderStyle}" Padding="22,18" Margin="0,0,0,16">
+                    <StackPanel>
+                        <TextBlock Text="{Binding PrivacyPage.Section4Title}"
+                                   FontSize="17.5"
+                                   FontWeight="SemiBold"
+                                   Foreground="{DynamicResource ForegroundBrush}"
+                                   Margin="0,0,0,8" />
+                        <TextBlock Text="{Binding PrivacyPage.Section4Description}"
+                                   FontSize="14"
+                                   LineHeight="22"
+                                   Foreground="{DynamicResource ForegroundSecondaryBrush}"
+                                   TextWrapping="Wrap"
+                                   Margin="0,0,0,14" />
+
+                        <Border Background="{DynamicResource CardElevatedBrush}"
+                                BorderBrush="{DynamicResource BorderBrush}"
+                                BorderThickness="1"
+                                CornerRadius="8"
+                                Padding="18,16">
+                            <StackPanel>
+                                <TextBlock Text="{Binding PrivacyPage.RecommendationTitle}"
+                                           FontSize="15"
+                                           FontWeight="SemiBold"
+                                           Foreground="{DynamicResource PrimaryBrush}" />
+                                <TextBlock Text="{Binding PrivacyPage.RecommendationDescription}"
+                                           FontSize="13.5"
+                                           LineHeight="21"
+                                           Foreground="{DynamicResource ForegroundSecondaryBrush}"
+                                           TextWrapping="Wrap"
+                                           Margin="0,6,0,8" />
+                                <TextBlock Text="{Binding PrivacyPage.RecommendationStorage}"
+                                           FontSize="13.5"
+                                           LineHeight="21"
+                                           Foreground="{DynamicResource ForegroundSecondaryBrush}"
+                                           TextWrapping="Wrap" />
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </Border>
+
+                <!-- Section 5 & 6 Side-by-Side -->
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="16" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <Border Grid.Column="0" Style="{StaticResource CardBorderStyle}" Padding="22,18">
+                        <StackPanel>
+                            <TextBlock Text="{Binding PrivacyPage.Section5Title}"
+                                       FontSize="17"
+                                       FontWeight="SemiBold"
+                                       Foreground="{DynamicResource ForegroundBrush}" />
+                            <TextBlock Text="{Binding PrivacyPage.Section5Description}"
+                                       FontSize="14"
+                                       LineHeight="22"
+                                       Foreground="{DynamicResource ForegroundSecondaryBrush}"
+                                       TextWrapping="Wrap"
+                                       Margin="0,8,0,14" />
+                            <Button Style="{StaticResource SecondaryButtonStyle}"
+                                    Content="{Binding PrivacyPage.OpenMySpaceLabel}"
+                                    Foreground="{DynamicResource PrimaryBrush}"
+                                    HorizontalAlignment="Left"
+                                    Click="OpenMySpace_Click" />
+                        </StackPanel>
+                    </Border>
+
+                    <Border Grid.Column="2" Style="{StaticResource CardBorderStyle}" Padding="22,18">
+                        <StackPanel>
+                            <TextBlock Text="{Binding PrivacyPage.Section6Title}"
+                                       FontSize="17"
+                                       FontWeight="SemiBold"
+                                       Foreground="{DynamicResource ForegroundBrush}" />
+                            <TextBlock Text="{Binding PrivacyPage.Section6Description}"
+                                       FontSize="14"
+                                       LineHeight="22"
+                                       Foreground="{DynamicResource ForegroundSecondaryBrush}"
+                                       TextWrapping="Wrap"
+                                       Margin="0,8,0,14" />
+                            <Button Style="{StaticResource SecondaryButtonStyle}"
+                                    Content="{Binding PrivacyPage.OpenFeedbackLabel}"
+                                    Foreground="{DynamicResource PrimaryBrush}"
+                                    HorizontalAlignment="Left"
+                                    Click="OpenFeedback_Click" />
+                        </StackPanel>
+                    </Border>
+                </Grid>
+            </StackPanel>
+
+            <!-- Shared Footer at bottom of Info Pages -->
+            <controls:OttlineFooterControl />
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

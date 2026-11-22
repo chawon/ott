@@ -16,13 +16,17 @@ public sealed class OttlineApiClient : IDisposable
     private string _deviceId = "windows-native";
     private string _locale = "ko";
 
+    public TimeSpan DefaultRequestTimeout { get; set; } = TimeSpan.FromSeconds(15);
+    public TimeSpan RecommendationStateTimeout { get; set; } = TimeSpan.FromSeconds(15);
+    public TimeSpan RecommendationGenerateTimeout { get; set; } = TimeSpan.FromSeconds(60);
+
     public OttlineApiClient(HttpClient? httpClient = null)
     {
         if (httpClient == null)
         {
             _httpClient = new HttpClient
             {
-                Timeout = TimeSpan.FromSeconds(15)
+                Timeout = Timeout.InfiniteTimeSpan
             };
             _disposeClient = true;
         }
@@ -30,6 +34,28 @@ public sealed class OttlineApiClient : IDisposable
         {
             _httpClient = httpClient;
             _disposeClient = false;
+        }
+    }
+
+    private async Task<HttpResponseMessage> SendWithTimeoutAsync(
+        HttpRequestMessage req,
+        TimeSpan timeout,
+        CancellationToken ct)
+    {
+        if (timeout == Timeout.InfiniteTimeSpan || timeout <= TimeSpan.Zero)
+        {
+            return await _httpClient.SendAsync(req, ct).ConfigureAwait(false);
+        }
+
+        using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        timeoutCts.CancelAfter(timeout);
+        try
+        {
+            return await _httpClient.SendAsync(req, timeoutCts.Token).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (!ct.IsCancellationRequested && timeoutCts.IsCancellationRequested)
+        {
+            throw new TimeoutException($"Request timed out after {timeout.TotalSeconds:0.#}s.");
         }
     }
 
@@ -84,7 +110,7 @@ public sealed class OttlineApiClient : IDisposable
         try
         {
             using var req = CreateRequest(HttpMethod.Get, $"/api/titles/popular?limit={limit}");
-            using var res = await _httpClient.SendAsync(req, ct).ConfigureAwait(false);
+            using var res = await SendWithTimeoutAsync(req, DefaultRequestTimeout, ct).ConfigureAwait(false);
             if (!res.IsSuccessStatusCode) return Array.Empty<TitleSummary>();
 
             var body = await res.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
@@ -120,7 +146,7 @@ public sealed class OttlineApiClient : IDisposable
         try
         {
             using var req = CreateRequest(HttpMethod.Get, $"/api/discussions/latest?limit={limit}&days=14");
-            using var res = await _httpClient.SendAsync(req, ct).ConfigureAwait(false);
+            using var res = await SendWithTimeoutAsync(req, DefaultRequestTimeout, ct).ConfigureAwait(false);
             if (res.IsSuccessStatusCode)
             {
                 var body = await res.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
@@ -211,7 +237,7 @@ public sealed class OttlineApiClient : IDisposable
         };
         var path = $"/api/titles/search?q={Uri.EscapeDataString(cleanQuery)}{typeParam}";
         using var req = CreateRequest(HttpMethod.Get, path);
-        using var res = await _httpClient.SendAsync(req, ct).ConfigureAwait(false);
+        using var res = await SendWithTimeoutAsync(req, DefaultRequestTimeout, ct).ConfigureAwait(false);
         if (!res.IsSuccessStatusCode) return Array.Empty<TitleSummary>();
 
         var body = await res.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
@@ -245,7 +271,7 @@ public sealed class OttlineApiClient : IDisposable
     {
         var cursorParam = string.IsNullOrWhiteSpace(cursor) ? "" : $"&cursor={Uri.EscapeDataString(cursor)}";
         using var req = CreateRequest(HttpMethod.Get, $"/api/logs/page?limit={limit}{cursorParam}");
-        using var res = await _httpClient.SendAsync(req, ct).ConfigureAwait(false);
+        using var res = await SendWithTimeoutAsync(req, DefaultRequestTimeout, ct).ConfigureAwait(false);
         if (!res.IsSuccessStatusCode)
         {
             return new LogsPageResult(Array.Empty<WatchLog>(), null, false);
@@ -289,7 +315,7 @@ public sealed class OttlineApiClient : IDisposable
         };
 
         using var req = CreateRequest(HttpMethod.Post, "/api/sync/push", payload);
-        using var res = await _httpClient.SendAsync(req, ct).ConfigureAwait(false);
+        using var res = await SendWithTimeoutAsync(req, DefaultRequestTimeout, ct).ConfigureAwait(false);
         res.EnsureSuccessStatusCode();
 
         var body = await res.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
@@ -332,7 +358,7 @@ public sealed class OttlineApiClient : IDisposable
     {
         var sinceParam = string.IsNullOrWhiteSpace(sinceCursor) ? "" : $"?since={Uri.EscapeDataString(sinceCursor)}";
         using var req = CreateRequest(HttpMethod.Get, $"/api/sync/pull{sinceParam}");
-        using var res = await _httpClient.SendAsync(req, ct).ConfigureAwait(false);
+        using var res = await SendWithTimeoutAsync(req, DefaultRequestTimeout, ct).ConfigureAwait(false);
         res.EnsureSuccessStatusCode();
 
         var body = await res.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
@@ -380,77 +406,6 @@ public sealed class OttlineApiClient : IDisposable
         return new SyncPullResult(logs, cursor, hasMore);
     }
 
-    public async Task<DailyPromptPayload?> FetchDailyPromptAsync(CancellationToken ct = default)
-    {
-        try
-        {
-            using var req = CreateRequest(HttpMethod.Get, "/api/curated-contents?limit=6");
-            using var res = await _httpClient.SendAsync(req, ct).ConfigureAwait(false);
-            if (!res.IsSuccessStatusCode) return null;
-
-            var body = await res.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
-            using var doc = JsonDocument.Parse(body);
-            var root = doc.RootElement;
-            JsonElement firstItem = default;
-            if (root.ValueKind == JsonValueKind.Array)
-            {
-                foreach (var item in root.EnumerateArray())
-                {
-                    firstItem = item;
-                    break;
-                }
-            }
-            else if (root.ValueKind == JsonValueKind.Object)
-            {
-                firstItem = root;
-            }
-
-            if (firstItem.ValueKind != JsonValueKind.Object) return null;
-
-            var id = GetStringOrDefault(firstItem, "id", $"curated-{RecordDate.TodayDate()}");
-            var publishedAt = GetStringOrDefault(firstItem, "publishedAt", RecordDate.TodayDate());
-            var titleName = GetStringOrDefault(firstItem, "titleName", "");
-            var titleId = GetStringOrDefault(firstItem, "titleId", id);
-            var titleType = TitleTypeExtensions.FromWire(GetNullableString(firstItem, "titleType"));
-            var titleYear = GetNullableInt(firstItem, "titleYear");
-            var posterUrl = GetNullableString(firstItem, "posterUrl");
-            var promptBody = GetStringOrDefault(firstItem, "body", "");
-            var actorName = GetStringOrDefault(firstItem, "actorDisplayName", "ottline 큐레이터");
-            var disclosure = GetStringOrDefault(firstItem, "disclosure", "AI 운영 계정");
-            if (string.IsNullOrWhiteSpace(promptBody)) return null;
-
-            var featured = new TitleSummary(
-                Id: titleId,
-                Provider: "tmdb",
-                ProviderId: titleId,
-                Type: titleType,
-                Title: titleName,
-                Year: titleYear,
-                PosterUrl: posterUrl
-            );
-
-            var sub = string.IsNullOrWhiteSpace(titleName)
-                ? $"{actorName} · {disclosure}"
-                : $"{titleName}{(titleYear.HasValue ? $" ({titleYear.Value})" : "")} · {actorName} ({disclosure})";
-
-            return new DailyPromptPayload(
-                Id: id,
-                DateKey: publishedAt.Length >= 10 ? publishedAt[..10] : publishedAt,
-                QuestionKo: promptBody,
-                QuestionEn: promptBody,
-                SubtitleKo: sub,
-                SubtitleEn: sub,
-                FeaturedTitle: featured,
-                SeedDiscussionId: null,
-                IsAiCurated: true
-            );
-        }
-        catch
-        {
-            return null;
-        }
-    }
-
     public async Task<IReadOnlyList<DiscussionPost>> FetchDiscussionsAsync(
         string? query = null,
         DiscussionSort sort = DiscussionSort.LATEST,
@@ -459,7 +414,7 @@ public sealed class OttlineApiClient : IDisposable
         try
         {
             using var req = CreateRequest(HttpMethod.Get, "/api/discussions/all?limit=100");
-            using var res = await _httpClient.SendAsync(req, ct).ConfigureAwait(false);
+            using var res = await SendWithTimeoutAsync(req, DefaultRequestTimeout, ct).ConfigureAwait(false);
             if (!res.IsSuccessStatusCode) return Array.Empty<DiscussionPost>();
 
             var body = await res.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
@@ -477,24 +432,34 @@ public sealed class OttlineApiClient : IDisposable
                 if (post != null) list.Add(post);
             }
 
-            if (!string.IsNullOrWhiteSpace(query))
-            {
-                var q = query.Trim();
-                list = list.Where(p =>
-                    p.Title.Title.Contains(q, StringComparison.OrdinalIgnoreCase) ||
-                    p.Body.Contains(q, StringComparison.OrdinalIgnoreCase)).ToList();
-            }
-
-            return sort switch
-            {
-                DiscussionSort.COMMENTS => list.OrderByDescending(p => p.CommentCount).ThenByDescending(p => p.CreatedAt).ToList(),
-                DiscussionSort.REACTIONS => list.OrderByDescending(p => p.Reactions.TotalCount).ThenByDescending(p => p.CreatedAt).ToList(),
-                _ => list.OrderByDescending(p => p.CreatedAt).ToList()
-            };
+            return TogetherSpreadCoordinator.FilterAndSort(list, query, sort);
         }
         catch
         {
             return Array.Empty<DiscussionPost>();
+        }
+    }
+
+    public async Task<DiscussionPost?> FetchDiscussionByIdAsync(string discussionId, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(discussionId)) return null;
+        try
+        {
+            using var req = CreateRequest(HttpMethod.Get, $"/api/discussions/{Uri.EscapeDataString(discussionId.Trim())}");
+            using var res = await SendWithTimeoutAsync(req, DefaultRequestTimeout, ct).ConfigureAwait(false);
+            if (!res.IsSuccessStatusCode) return null;
+
+            var body = await res.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
+            using var doc = JsonDocument.Parse(body);
+            return ParseDiscussionPostElement(doc.RootElement, _locale);
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch
+        {
+            return null;
         }
     }
 
@@ -503,10 +468,10 @@ public sealed class OttlineApiClient : IDisposable
         try
         {
             using var req = CreateRequest(HttpMethod.Get, $"/api/discussions/{Uri.EscapeDataString(discussionId)}/comments?limit=200");
-            using var res = await _httpClient.SendAsync(req, ct).ConfigureAwait(false);
+            using var res = await SendWithTimeoutAsync(req, DefaultRequestTimeout, ct).ConfigureAwait(false);
             if (!res.IsSuccessStatusCode)
             {
-                return fallbackPost != null ? new DiscussionDetail(fallbackPost, Array.Empty<DiscussionComment>()) : null;
+                return null;
             }
 
             var body = await res.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
@@ -518,7 +483,7 @@ public sealed class OttlineApiClient : IDisposable
             {
                 foreach (var item in root.EnumerateArray())
                 {
-                    var c = ParseDiscussionCommentElement(item, discussionId);
+                    var c = ParseDiscussionCommentElement(item, discussionId, _locale);
                     if (c != null) comments.Add(c);
                 }
             }
@@ -528,13 +493,13 @@ public sealed class OttlineApiClient : IDisposable
                 {
                     foreach (var item in cEl.EnumerateArray())
                     {
-                        var c = ParseDiscussionCommentElement(item, discussionId);
+                        var c = ParseDiscussionCommentElement(item, discussionId, _locale);
                         if (c != null) comments.Add(c);
                     }
                 }
                 else
                 {
-                    var single = ParseDiscussionCommentElement(root, discussionId);
+                    var single = ParseDiscussionCommentElement(root, discussionId, _locale);
                     if (single != null) comments.Add(single);
                 }
             }
@@ -553,9 +518,13 @@ public sealed class OttlineApiClient : IDisposable
 
             return new DiscussionDetail(post, comments);
         }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
+        }
         catch
         {
-            return fallbackPost != null ? new DiscussionDetail(fallbackPost, Array.Empty<DiscussionComment>()) : null;
+            return null;
         }
     }
 
@@ -573,11 +542,11 @@ public sealed class OttlineApiClient : IDisposable
             spoiler
         };
         using var req = CreateRequest(HttpMethod.Post, "/api/discussions", payload);
-        using var res = await _httpClient.SendAsync(req, ct).ConfigureAwait(false);
+        using var res = await SendWithTimeoutAsync(req, DefaultRequestTimeout, ct).ConfigureAwait(false);
         if (!res.IsSuccessStatusCode) return null;
         var body = await res.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
         using var doc = JsonDocument.Parse(body);
-        return ParseDiscussionPostElement(doc.RootElement);
+        return ParseDiscussionPostElement(doc.RootElement, _locale);
     }
 
     public async Task<DiscussionComment?> CreateCommentAsync(
@@ -585,219 +554,46 @@ public sealed class OttlineApiClient : IDisposable
         string bodyText,
         bool spoiler,
         IReadOnlyList<CommentMention> mentions,
+        bool syncLog = true,
         CancellationToken ct = default)
     {
         var payload = new
         {
             body = bodyText,
             spoiler,
+            syncLog,
             mentions = mentions.Select(m => new { titleId = m.TitleId, titleName = m.TitleName, type = m.Type.ToWire() }).ToList()
         };
         using var req = CreateRequest(HttpMethod.Post, $"/api/discussions/{Uri.EscapeDataString(discussionId)}/comments", payload);
-        using var res = await _httpClient.SendAsync(req, ct).ConfigureAwait(false);
+        using var res = await SendWithTimeoutAsync(req, DefaultRequestTimeout, ct).ConfigureAwait(false);
         if (!res.IsSuccessStatusCode) return null;
         var body = await res.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
         using var doc = JsonDocument.Parse(body);
-        return ParseDiscussionCommentElement(doc.RootElement, discussionId);
+        return ParseDiscussionCommentElement(doc.RootElement, discussionId, _locale);
     }
 
-    public async Task<bool> ToggleReactionAsync(
+    public async Task<DiscussionReactionState?> FetchMyDiscussionReactionsAsync(
         string discussionId,
-        DiscussionReactionType reactionType,
         CancellationToken ct = default)
     {
-        var payload = new { reactionType = reactionType.ToString() };
-        using var req = CreateRequest(HttpMethod.Post, $"/api/discussions/{Uri.EscapeDataString(discussionId)}/reactions", payload);
-        using var res = await _httpClient.SendAsync(req, ct).ConfigureAwait(false);
-        return res.IsSuccessStatusCode;
-    }
+        if (string.IsNullOrWhiteSpace(discussionId) || !Guid.TryParse(_userId, out _) || !Guid.TryParse(_deviceId, out _))
+        {
+            return null;
+        }
 
-    public async Task<IReadOnlyList<RecommendationItem>> FetchRecommendationsAsync(
-        ContentFilter filter = ContentFilter.ALL,
-        bool forceRefresh = false,
-        CancellationToken ct = default)
-    {
         try
         {
-            if (forceRefresh)
-            {
-                try
-                {
-                    using var genReq = CreateRequest(HttpMethod.Post, "/api/recommendations/generate", new { requestId = Guid.NewGuid().ToString() });
-                    using var _ = await _httpClient.SendAsync(genReq, ct).ConfigureAwait(false);
-                }
-                catch
-                {
-                    // Continue to state check
-                }
-            }
-
-            JsonDocument? stateDoc = await FetchRecommendationStateDocAsync(ct).ConfigureAwait(false);
-            if (stateDoc == null) return Array.Empty<RecommendationItem>();
-
-            try
-            {
-                var root = stateDoc.RootElement;
-                var hasItems = root.TryGetProperty("items", out var initItems) &&
-                               initItems.ValueKind == JsonValueKind.Array &&
-                               initItems.GetArrayLength() > 0;
-                var hasBatch = GetNullableBool(root, "hasBatch") ?? hasItems;
-                var eligible = GetNullableBool(root, "eligible") ?? false;
-                var generating = GetNullableBool(root, "generating") ?? false;
-                var remaining = root.TryGetProperty("quota", out var qEl) && qEl.ValueKind == JsonValueKind.Object
-                    ? (GetNullableInt(qEl, "remaining") ?? 0)
-                    : 0;
-
-                if (!hasItems && !hasBatch && eligible && remaining > 0 && !generating)
-                {
-                    try
-                    {
-                        using var genReq = CreateRequest(HttpMethod.Post, "/api/recommendations/generate", new { requestId = Guid.NewGuid().ToString() });
-                        using var genRes = await _httpClient.SendAsync(genReq, ct).ConfigureAwait(false);
-                        if (genRes.IsSuccessStatusCode)
-                        {
-                            stateDoc.Dispose();
-                            var genBody = await genRes.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
-                            stateDoc = JsonDocument.Parse(genBody);
-                            generating = GetNullableBool(stateDoc.RootElement, "generating") ?? false;
-                        }
-                    }
-                    catch
-                    {
-                        // Ignore generation trigger failure
-                    }
-                }
-
-                var pollAttempts = 0;
-                while (generating && pollAttempts < 10 && !ct.IsCancellationRequested)
-                {
-                    pollAttempts++;
-                    await Task.Delay(1200, ct).ConfigureAwait(false);
-                    var nextDoc = await FetchRecommendationStateDocAsync(ct).ConfigureAwait(false);
-                    if (nextDoc == null) break;
-                    stateDoc.Dispose();
-                    stateDoc = nextDoc;
-                    generating = GetNullableBool(stateDoc.RootElement, "generating") ?? false;
-                }
-
-                root = stateDoc.RootElement;
-                var arr = root.ValueKind == JsonValueKind.Array
-                    ? root
-                    : (root.TryGetProperty("items", out var iEl) && iEl.ValueKind == JsonValueKind.Array ? iEl : default);
-
-                if (arr.ValueKind != JsonValueKind.Array) return Array.Empty<RecommendationItem>();
-
-                var list = new List<RecommendationItem>();
-                foreach (var el in arr.EnumerateArray())
-                {
-                    TitleSummary? title = null;
-                    if (el.TryGetProperty("catalogTitle", out var catEl) && catEl.ValueKind == JsonValueKind.Object)
-                    {
-                        title = ParseTitleElement(catEl);
-                    }
-                    if (title == null && el.TryGetProperty("title", out var tEl) && tEl.ValueKind == JsonValueKind.Object)
-                    {
-                        title = ParseTitleElement(tEl);
-                    }
-                    if (title == null)
-                    {
-                        title = ParseTitleElement(el);
-                    }
-                    if (title == null) continue;
-
-                    // Merge top-level fields if catalogTitle omitted them
-                    var topAuthor = GetNullableString(el, "author");
-                    if (title.SafeAuthors.Count == 0 && !string.IsNullOrWhiteSpace(topAuthor))
-                    {
-                        title = title with
-                        {
-                            Authors = topAuthor.Split(new[] { ',', '^', '|' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList()
-                        };
-                    }
-                    var topYear = GetNullableInt(el, "year");
-                    if (!title.Year.HasValue && topYear.HasValue)
-                    {
-                        title = title with { Year = topYear };
-                    }
-                    var topPoster = GetNullableString(el, "posterUrl");
-                    if (string.IsNullOrWhiteSpace(title.PosterUrl) && !string.IsNullOrWhiteSpace(topPoster))
-                    {
-                        title = title with { PosterUrl = topPoster };
-                    }
-
-                    if (filter == ContentFilter.VIDEO && !title.Type.IsVideo()) continue;
-                    if (filter == ContentFilter.BOOK && !title.Type.IsBook()) continue;
-
-                    var reason = GetStringOrDefault(el, "reason", "");
-                    list.Add(new RecommendationItem(
-                        Title: title,
-                        ReasonKo: GetStringOrDefault(el, "reasonKo", reason),
-                        ReasonEn: GetStringOrDefault(el, "reasonEn", reason),
-                        MatchedFromTitle: GetNullableString(el, "matchedFromTitle"),
-                        Score: GetNullableDouble(el, "score") ?? 0.9,
-                        Locale: _locale
-                    ));
-                }
-
-                // Enrich missing posters in parallel so every recommendation card has a cover/poster
-                var enrichTasks = list.Select(async item =>
-                {
-                    if (!string.IsNullOrWhiteSpace(item.Title.PosterUrl)) return item;
-                    try
-                    {
-                        var scope = item.Title.Type.IsBook() ? ContentFilter.BOOK : ContentFilter.VIDEO;
-                        var searchResults = await SearchTitlesSingleScopeAsync(item.Title.Title, scope, ct).ConfigureAwait(false);
-                        var match = searchResults.FirstOrDefault(r => !string.IsNullOrWhiteSpace(r.PosterUrl));
-                        if (match != null)
-                        {
-                            return item with
-                            {
-                                Title = item.Title with
-                                {
-                                    Id = string.IsNullOrWhiteSpace(item.Title.ProviderId) || item.Title.Id.Contains(":book:") || item.Title.Id.Length > 28
-                                        ? match.Id
-                                        : item.Title.Id,
-                                    Provider = match.Provider,
-                                    ProviderId = match.ProviderId,
-                                    PosterUrl = match.PosterUrl,
-                                    Year = item.Title.Year ?? match.Year,
-                                    Authors = item.Title.SafeAuthors.Count > 0 ? item.Title.Authors : match.Authors,
-                                    Publisher = item.Title.Publisher ?? match.Publisher,
-                                    Isbn13 = item.Title.Isbn13 ?? match.Isbn13,
-                                    KdcCode = item.Title.KdcCode ?? match.KdcCode
-                                }
-                            };
-                        }
-                    }
-                    catch
-                    {
-                        // Ignore enrichment error
-                    }
-                    return item;
-                });
-
-                return (await Task.WhenAll(enrichTasks).ConfigureAwait(false)).ToList();
-            }
-            finally
-            {
-                stateDoc.Dispose();
-            }
-        }
-        catch
-        {
-            return Array.Empty<RecommendationItem>();
-        }
-    }
-
-    private async Task<JsonDocument?> FetchRecommendationStateDocAsync(CancellationToken ct)
-    {
-        try
-        {
-            using var req = CreateRequest(HttpMethod.Get, "/api/recommendations/state");
-            using var res = await _httpClient.SendAsync(req, ct).ConfigureAwait(false);
+            using var req = CreateRequest(HttpMethod.Get, $"/api/discussions/{Uri.EscapeDataString(discussionId)}/reactions/me");
+            using var res = await SendWithTimeoutAsync(req, DefaultRequestTimeout, ct).ConfigureAwait(false);
             if (!res.IsSuccessStatusCode) return null;
+
             var body = await res.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
-            return JsonDocument.Parse(body);
+            using var doc = JsonDocument.Parse(body);
+            return ParseDiscussionReactionStateElement(doc.RootElement);
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
         }
         catch
         {
@@ -805,23 +601,321 @@ public sealed class OttlineApiClient : IDisposable
         }
     }
 
+    public async Task<DiscussionReactionState?> ToggleReactionAsync(
+        string discussionId,
+        DiscussionReactionType reactionType,
+        CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(discussionId) || !Guid.TryParse(_userId, out _) || !Guid.TryParse(_deviceId, out _))
+        {
+            return null;
+        }
+
+        try
+        {
+            var payload = new { type = reactionType.ToString() };
+            using var req = CreateRequest(HttpMethod.Put, $"/api/discussions/{Uri.EscapeDataString(discussionId)}/reactions", payload);
+            using var res = await SendWithTimeoutAsync(req, DefaultRequestTimeout, ct).ConfigureAwait(false);
+            if (!res.IsSuccessStatusCode) return null;
+
+            var body = await res.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
+            if (string.IsNullOrWhiteSpace(body)) return null;
+            using var doc = JsonDocument.Parse(body);
+            return ParseDiscussionReactionStateElement(doc.RootElement);
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    public async Task<RecommendationApiResponse> FetchRecommendationStateAsync(CancellationToken ct = default)
+    {
+        if (!Guid.TryParse(_userId, out _) || !Guid.TryParse(_deviceId, out _))
+        {
+            return new RecommendationApiResponse(false, null, null, IsNetworkError: false, ErrorMessage: "Not connected");
+        }
+
+        try
+        {
+            using var req = CreateRequest(HttpMethod.Get, "/api/recommendations/state");
+            using var res = await SendWithTimeoutAsync(req, RecommendationStateTimeout, ct).ConfigureAwait(false);
+            var body = await res.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
+            var parsed = TryParseRecommendationStateBody(body, _locale);
+            return new RecommendationApiResponse(
+                IsSuccess: res.IsSuccessStatusCode && parsed != null,
+                StatusCode: (int)res.StatusCode,
+                State: parsed,
+                IsNetworkError: false,
+                ErrorMessage: res.IsSuccessStatusCode ? null : res.ReasonPhrase
+            );
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            return new RecommendationApiResponse(
+                IsSuccess: false,
+                StatusCode: null,
+                State: null,
+                IsNetworkError: true,
+                ErrorMessage: ex.Message
+            );
+        }
+    }
+
+    public async Task<RecommendationApiResponse> GenerateRecommendationsAsync(string requestId, CancellationToken ct = default)
+    {
+        if (!Guid.TryParse(_userId, out _) || !Guid.TryParse(_deviceId, out _))
+        {
+            return new RecommendationApiResponse(false, null, null, IsNetworkError: false, ErrorMessage: "Not connected");
+        }
+
+        try
+        {
+            using var req = CreateRequest(HttpMethod.Post, "/api/recommendations/generate", new { requestId });
+            using var res = await SendWithTimeoutAsync(req, RecommendationGenerateTimeout, ct).ConfigureAwait(false);
+            var body = await res.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
+            var parsed = TryParseRecommendationStateBody(body, _locale);
+            return new RecommendationApiResponse(
+                IsSuccess: res.IsSuccessStatusCode,
+                StatusCode: (int)res.StatusCode,
+                State: parsed,
+                IsNetworkError: false,
+                ErrorMessage: res.IsSuccessStatusCode ? null : res.ReasonPhrase
+            );
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            return new RecommendationApiResponse(
+                IsSuccess: false,
+                StatusCode: null,
+                State: null,
+                IsNetworkError: true,
+                ErrorMessage: ex.Message
+            );
+        }
+    }
+
+    public async Task<IReadOnlyList<RecommendationItem>> EnrichMissingRecommendationPostersAsync(
+        IReadOnlyList<RecommendationItem> items,
+        CancellationToken ct = default)
+    {
+        if (items.Count == 0 || items.All(i => !string.IsNullOrWhiteSpace(i.Title.PosterUrl)))
+        {
+            return items;
+        }
+
+        var enrichTasks = items.Select(async item =>
+        {
+            if (!string.IsNullOrWhiteSpace(item.Title.PosterUrl)) return item;
+            try
+            {
+                var scope = item.Title.Type.IsBook() ? ContentFilter.BOOK : ContentFilter.VIDEO;
+                var searchResults = await SearchTitlesSingleScopeAsync(item.Title.Title, scope, ct).ConfigureAwait(false);
+                var match = searchResults.FirstOrDefault(r => !string.IsNullOrWhiteSpace(r.PosterUrl));
+                if (match != null)
+                {
+                    return item with
+                    {
+                        Title = item.Title with
+                        {
+                            Id = string.IsNullOrWhiteSpace(item.Title.ProviderId) || item.Title.Id.Contains(":book:") || item.Title.Id.Length > 28
+                                ? match.Id
+                                : item.Title.Id,
+                            Provider = match.Provider,
+                            ProviderId = match.ProviderId,
+                            PosterUrl = match.PosterUrl,
+                            Year = item.Title.Year ?? match.Year,
+                            Authors = item.Title.SafeAuthors.Count > 0 ? item.Title.Authors : match.Authors,
+                            Publisher = item.Title.Publisher ?? match.Publisher,
+                            Isbn13 = item.Title.Isbn13 ?? match.Isbn13,
+                            KdcCode = item.Title.KdcCode ?? match.KdcCode
+                        }
+                    };
+                }
+            }
+            catch (OperationCanceledException) when (ct.IsCancellationRequested)
+            {
+                throw;
+            }
+            catch
+            {
+                // Ignore enrichment error; recommendation card still renders cleanly
+            }
+            return item;
+        });
+
+        return (await Task.WhenAll(enrichTasks).ConfigureAwait(false)).ToList();
+    }
+
+    public static RecommendationStateSnapshot? TryParseRecommendationStateBody(string? body, string locale = "ko")
+    {
+        if (string.IsNullOrWhiteSpace(body)) return null;
+        try
+        {
+            using var doc = JsonDocument.Parse(body);
+            return ParseRecommendationState(doc.RootElement, locale);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    public static RecommendationStateSnapshot? ParseRecommendationState(JsonElement root, string locale = "ko")
+    {
+        var normalizedLocale = string.IsNullOrWhiteSpace(locale)
+            ? "ko"
+            : (locale.Trim().StartsWith("ko", StringComparison.OrdinalIgnoreCase) ? "ko" : "en");
+
+        if (root.ValueKind != JsonValueKind.Object && root.ValueKind != JsonValueKind.Array)
+        {
+            return null;
+        }
+
+        var arr = root.ValueKind == JsonValueKind.Array
+            ? root
+            : (root.TryGetProperty("items", out var iEl) && iEl.ValueKind == JsonValueKind.Array ? iEl : default);
+
+        var list = new List<RecommendationItem>();
+        if (arr.ValueKind == JsonValueKind.Array)
+        {
+            foreach (var el in arr.EnumerateArray())
+            {
+                TitleSummary? title = null;
+                if (el.TryGetProperty("catalogTitle", out var catEl) && catEl.ValueKind == JsonValueKind.Object)
+                {
+                    title = ParseTitleElement(catEl);
+                }
+                if (title == null && el.TryGetProperty("title", out var tEl) && tEl.ValueKind == JsonValueKind.Object)
+                {
+                    title = ParseTitleElement(tEl);
+                }
+                if (title == null)
+                {
+                    title = ParseTitleElement(el);
+                }
+                if (title == null) continue;
+
+                var topAuthor = GetNullableString(el, "author");
+                if (title.SafeAuthors.Count == 0 && !string.IsNullOrWhiteSpace(topAuthor))
+                {
+                    title = title with
+                    {
+                        Authors = topAuthor.Split(new[] { ',', '^', '|' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList()
+                    };
+                }
+                var topYear = GetNullableInt(el, "year");
+                if (!title.Year.HasValue && topYear.HasValue)
+                {
+                    title = title with { Year = topYear };
+                }
+                var topPoster = GetNullableString(el, "posterUrl");
+                if (string.IsNullOrWhiteSpace(title.PosterUrl) && !string.IsNullOrWhiteSpace(topPoster))
+                {
+                    title = title with { PosterUrl = topPoster };
+                }
+
+                var reason = GetStringOrDefault(el, "reason", "");
+                list.Add(new RecommendationItem(
+                    Title: title,
+                    ReasonKo: GetStringOrDefault(el, "reasonKo", reason),
+                    ReasonEn: GetStringOrDefault(el, "reasonEn", reason),
+                    MatchedFromTitle: GetNullableString(el, "matchedFromTitle"),
+                    Score: GetNullableDouble(el, "score") ?? 0.9,
+                    Locale: normalizedLocale
+                ));
+            }
+        }
+
+        if (root.ValueKind == JsonValueKind.Array)
+        {
+            return new RecommendationStateSnapshot(
+                Items: list,
+                Quota: new RecommendationQuota(),
+                HasBatch: list.Count > 0,
+                Eligible: true,
+                Locale: normalizedLocale
+            );
+        }
+
+        var quota = new RecommendationQuota();
+        if (root.TryGetProperty("quota", out var qEl) && qEl.ValueKind == JsonValueKind.Object)
+        {
+            var limit = GetNullableInt(qEl, "limit") ?? 3;
+            var used = GetNullableInt(qEl, "used") ?? 0;
+            var remaining = GetNullableInt(qEl, "remaining") ?? Math.Max(0, limit - used);
+            quota = new RecommendationQuota(
+                Date: GetStringOrDefault(qEl, "date", ""),
+                Timezone: GetStringOrDefault(qEl, "timezone", "Asia/Seoul"),
+                Limit: limit,
+                Used: used,
+                Remaining: remaining,
+                ResetsAt: GetNullableString(qEl, "resetsAt")
+            );
+        }
+
+        return new RecommendationStateSnapshot(
+            Items: list,
+            Quota: quota,
+            GeneratedAt: GetNullableString(root, "generatedAt"),
+            GenerationId: GetNullableString(root, "generationId"),
+            Generating: GetNullableBool(root, "generating") ?? false,
+            HasBatch: GetNullableBool(root, "hasBatch") ?? (list.Count > 0),
+            Eligible: GetNullableBool(root, "eligible") ?? false,
+            Locale: normalizedLocale
+        );
+    }
+
+    private static string? NormalizeExclusionProvider(string? raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw)) return null;
+        return raw.Trim().ToUpperInvariant() switch
+        {
+            "TMDB" => "TMDB",
+            "KAKAO" or "KAKAO_BOOKS" => "KAKAO",
+            "NAVER" => "NAVER",
+            "GOOGLE_BOOKS" => "GOOGLE_BOOKS",
+            "LOCAL" => "LOCAL",
+            _ => null
+        };
+    }
+
     public async Task<bool> ExcludeRecommendationAsync(RecommendationItem item, CancellationToken ct = default)
     {
         try
         {
+            var normalizedProvider = NormalizeExclusionProvider(item.Title.Provider);
             var payload = new
             {
                 name = item.Title.Title,
                 type = item.Title.Type.ToWire(),
                 year = item.Title.Year,
-                provider = item.Title.Provider,
-                providerId = item.Title.ProviderId,
+                provider = normalizedProvider,
+                providerId = normalizedProvider != null && !string.IsNullOrWhiteSpace(item.Title.ProviderId)
+                    ? item.Title.ProviderId
+                    : null,
                 posterUrl = item.Title.PosterUrl,
                 reason = item.ReasonDisplay
             };
             using var req = CreateRequest(HttpMethod.Put, "/api/recommendations/exclusions", payload);
-            using var res = await _httpClient.SendAsync(req, ct).ConfigureAwait(false);
+            using var res = await SendWithTimeoutAsync(req, DefaultRequestTimeout, ct).ConfigureAwait(false);
             return res.IsSuccessStatusCode;
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
         }
         catch
         {
@@ -833,9 +927,13 @@ public sealed class OttlineApiClient : IDisposable
     {
         try
         {
-            using var req = CreateRequest(HttpMethod.Put, "/api/recommendations/exclusions", new { name = titleId, type = "movie", providerId = titleId });
-            using var res = await _httpClient.SendAsync(req, ct).ConfigureAwait(false);
+            using var req = CreateRequest(HttpMethod.Put, "/api/recommendations/exclusions", new { name = titleId, type = "movie" });
+            using var res = await SendWithTimeoutAsync(req, DefaultRequestTimeout, ct).ConfigureAwait(false);
             return res.IsSuccessStatusCode;
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
         }
         catch
         {
@@ -848,7 +946,7 @@ public sealed class OttlineApiClient : IDisposable
         try
         {
             using var req = CreateRequest(HttpMethod.Get, "/api/auth/profile");
-            using var res = await _httpClient.SendAsync(req, ct).ConfigureAwait(false);
+            using var res = await SendWithTimeoutAsync(req, DefaultRequestTimeout, ct).ConfigureAwait(false);
             if (!res.IsSuccessStatusCode) return null;
 
             var body = await res.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
@@ -887,7 +985,7 @@ public sealed class OttlineApiClient : IDisposable
                 personaKey = profile.AvatarPreset
             };
             using var req = CreateRequest(HttpMethod.Patch, "/api/auth/profile", payload);
-            using var res = await _httpClient.SendAsync(req, ct).ConfigureAwait(false);
+            using var res = await SendWithTimeoutAsync(req, DefaultRequestTimeout, ct).ConfigureAwait(false);
             if (!res.IsSuccessStatusCode) return null;
 
             var body = await res.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
@@ -909,7 +1007,7 @@ public sealed class OttlineApiClient : IDisposable
         try
         {
             using var req = CreateRequest(HttpMethod.Post, "/api/auth/register", new { });
-            using var res = await _httpClient.SendAsync(req, ct).ConfigureAwait(false);
+            using var res = await SendWithTimeoutAsync(req, DefaultRequestTimeout, ct).ConfigureAwait(false);
             if (!res.IsSuccessStatusCode) return null;
 
             var body = await res.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
@@ -963,7 +1061,7 @@ public sealed class OttlineApiClient : IDisposable
                 oldUserId = Guid.TryParse(_userId, out _) ? _userId : null
             };
             using var req = CreateRequest(HttpMethod.Post, "/api/auth/pair", payload);
-            using var res = await _httpClient.SendAsync(req, ct).ConfigureAwait(false);
+            using var res = await SendWithTimeoutAsync(req, DefaultRequestTimeout, ct).ConfigureAwait(false);
             if (!res.IsSuccessStatusCode) return null;
 
             var body = await res.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
@@ -992,7 +1090,7 @@ public sealed class OttlineApiClient : IDisposable
         try
         {
             using var req = CreateRequest(HttpMethod.Get, "/api/auth/devices");
-            using var res = await _httpClient.SendAsync(req, ct).ConfigureAwait(false);
+            using var res = await SendWithTimeoutAsync(req, DefaultRequestTimeout, ct).ConfigureAwait(false);
             if (!res.IsSuccessStatusCode) return Array.Empty<LinkedDevice>();
 
             var body = await res.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
@@ -1040,7 +1138,7 @@ public sealed class OttlineApiClient : IDisposable
         try
         {
             using var req = CreateRequest(HttpMethod.Delete, $"/api/auth/devices/{Uri.EscapeDataString(targetDeviceId.Trim())}");
-            using var res = await _httpClient.SendAsync(req, ct).ConfigureAwait(false);
+            using var res = await SendWithTimeoutAsync(req, DefaultRequestTimeout, ct).ConfigureAwait(false);
             return res.IsSuccessStatusCode;
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
@@ -1058,7 +1156,7 @@ public sealed class OttlineApiClient : IDisposable
         try
         {
             using var req = CreateRequest(HttpMethod.Get, "/api/feedback/threads");
-            using var res = await _httpClient.SendAsync(req, ct).ConfigureAwait(false);
+            using var res = await SendWithTimeoutAsync(req, DefaultRequestTimeout, ct).ConfigureAwait(false);
             if (!res.IsSuccessStatusCode) return Array.Empty<FeedbackThread>();
 
             var body = await res.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
@@ -1098,7 +1196,7 @@ public sealed class OttlineApiClient : IDisposable
         try
         {
             using var req = CreateRequest(HttpMethod.Get, $"/api/feedback/threads/{Uri.EscapeDataString(threadId)}");
-            using var res = await _httpClient.SendAsync(req, ct).ConfigureAwait(false);
+            using var res = await SendWithTimeoutAsync(req, DefaultRequestTimeout, ct).ConfigureAwait(false);
             if (!res.IsSuccessStatusCode) return null;
 
             var body = await res.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
@@ -1129,7 +1227,7 @@ public sealed class OttlineApiClient : IDisposable
                 body = messageBody.Trim()
             };
             using var req = CreateRequest(HttpMethod.Post, "/api/feedback/threads", payload);
-            using var res = await _httpClient.SendAsync(req, ct).ConfigureAwait(false);
+            using var res = await SendWithTimeoutAsync(req, DefaultRequestTimeout, ct).ConfigureAwait(false);
             return res.IsSuccessStatusCode;
         }
         catch
@@ -1238,7 +1336,7 @@ public sealed class OttlineApiClient : IDisposable
         try
         {
             using var req = CreateRequest(HttpMethod.Delete, "/api/auth/account");
-            using var res = await _httpClient.SendAsync(req, ct).ConfigureAwait(false);
+            using var res = await SendWithTimeoutAsync(req, DefaultRequestTimeout, ct).ConfigureAwait(false);
             if (res.IsSuccessStatusCode)
             {
                 return new ServerAccountDeleteResult(
@@ -1305,7 +1403,7 @@ public sealed class OttlineApiClient : IDisposable
             };
 
             using var req = CreateRequest(HttpMethod.Post, "/api/nalytic/events", payload);
-            using var _ = await _httpClient.SendAsync(req, ct).ConfigureAwait(false);
+            using var _ = await SendWithTimeoutAsync(req, DefaultRequestTimeout, ct).ConfigureAwait(false);
         }
         catch
         {
@@ -1472,8 +1570,7 @@ public sealed class OttlineApiClient : IDisposable
                 DisplayName: GetStringOrDefault(aEl, "displayName", createdDateDisplay),
                 Handle: GetNullableString(aEl, "handle"),
                 AvatarPreset: GetStringOrDefault(aEl, "avatarPreset", "cinema_keeper"),
-                Bio: GetNullableString(aEl, "bio"),
-                IsAiOperator: GetNullableBool(aEl, "isAiOperator") ?? false
+                Bio: GetNullableString(aEl, "bio")
             );
         }
 
@@ -1534,15 +1631,54 @@ public sealed class OttlineApiClient : IDisposable
             Reactions: reactions,
             CommentCount: commentCount,
             IsMine: GetNullableBool(el, "isMine") ?? false,
-            IsPromptSeed: GetNullableBool(el, "isPromptSeed") ?? false
+            RawCreatedAt: createdAtRaw
         );
     }
 
-    private static DiscussionComment? ParseDiscussionCommentElement(JsonElement el, string discussionId)
+    private static DiscussionReactionState? ParseDiscussionReactionStateElement(JsonElement el)
+    {
+        if (el.ValueKind != JsonValueKind.Object) return null;
+
+        var summary = new DiscussionReactionSummary();
+        if (el.TryGetProperty("summary", out var sEl) && sEl.ValueKind == JsonValueKind.Object)
+        {
+            summary = new DiscussionReactionSummary(
+                DoneCount: GetNullableInt(sEl, "done") ?? GetNullableInt(sEl, "doneCount") ?? 0,
+                CuriousCount: GetNullableInt(sEl, "curious") ?? GetNullableInt(sEl, "curiousCount") ?? 0,
+                SaveCount: GetNullableInt(sEl, "save") ?? GetNullableInt(sEl, "saveCount") ?? 0
+            );
+        }
+
+        var selectedTypes = new List<DiscussionReactionType>();
+        if (el.TryGetProperty("selectedTypes", out var stEl) && stEl.ValueKind == JsonValueKind.Array)
+        {
+            foreach (var item in stEl.EnumerateArray())
+            {
+                if (item.ValueKind == JsonValueKind.String)
+                {
+                    var rt = DiscussionReactionTypeExtensions.FromWire(item.GetString());
+                    if (rt.HasValue && !selectedTypes.Contains(rt.Value))
+                    {
+                        selectedTypes.Add(rt.Value);
+                    }
+                }
+            }
+        }
+
+        var selected = GetNullableBool(el, "selected") ?? (selectedTypes.Count > 0);
+        return new DiscussionReactionState(
+            Summary: summary with { ViewerReactions = selectedTypes },
+            SelectedTypes: selectedTypes,
+            Selected: selected
+        );
+    }
+
+    private static DiscussionComment? ParseDiscussionCommentElement(JsonElement el, string discussionId, string locale = "ko")
     {
         if (el.ValueKind != JsonValueKind.Object) return null;
         var id = GetStringOrDefault(el, "id", Guid.NewGuid().ToString("N"));
-        var authorName = GetNullableString(el, "authorName") ?? "익명 기록자";
+        var defaultAuthor = string.Equals(locale, "en", StringComparison.OrdinalIgnoreCase) ? "Anonymous reader" : "익명 기록자";
+        var authorName = GetNullableString(el, "authorName") ?? defaultAuthor;
         var userId = GetNullableString(el, "userId");
         var author = new PublicAuthorProfile(UserId: userId, DisplayName: authorName, AvatarPreset: "book_drifter");
         if (el.TryGetProperty("author", out var aEl) && aEl.ValueKind == JsonValueKind.Object)
@@ -1552,8 +1688,7 @@ public sealed class OttlineApiClient : IDisposable
                 DisplayName: GetStringOrDefault(aEl, "displayName", authorName),
                 Handle: GetNullableString(aEl, "handle"),
                 AvatarPreset: GetStringOrDefault(aEl, "avatarPreset", "book_drifter"),
-                Bio: GetNullableString(aEl, "bio"),
-                IsAiOperator: GetNullableBool(aEl, "isAiOperator") ?? false
+                Bio: GetNullableString(aEl, "bio")
             );
         }
 
@@ -1571,7 +1706,7 @@ public sealed class OttlineApiClient : IDisposable
         }
 
         var rawCreatedAt = GetStringOrDefault(el, "createdAt", RecordDate.TodayDate());
-        var formattedDate = RecordDate.FormatDisplayDate(null, rawCreatedAt, "ko");
+        var formattedDate = RecordDate.FormatDisplayDate(null, rawCreatedAt, locale);
 
         return new DiscussionComment(
             Id: id,

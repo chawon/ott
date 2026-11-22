@@ -17,7 +17,8 @@ public enum MainTab
     HOME,
     TIMELINE,
     TOGETHER,
-    MY_SPACE
+    MY_SPACE,
+    INFO
 }
 
 public enum MySpaceSection
@@ -92,6 +93,102 @@ public sealed record TimelineMonthGroupItem(
     ObservableCollection<WatchLogDisplayItem> Items
 );
 
+public sealed class TogetherListItem : INotifyPropertyChanged
+{
+    private DiscussionPost _post;
+    private string _metaLine;
+    private string _snippet;
+    private bool _hasSnippet;
+    private string _reactionSummaryText;
+    private bool _hasReactions;
+    private bool _isSelected;
+
+    public TogetherListItem(
+        DiscussionPost post,
+        string metaLine,
+        string snippet,
+        bool hasSnippet,
+        string reactionSummaryText,
+        bool hasReactions,
+        bool isSelected)
+    {
+        _post = post;
+        _metaLine = metaLine;
+        _snippet = snippet;
+        _hasSnippet = hasSnippet;
+        _reactionSummaryText = reactionSummaryText;
+        _hasReactions = hasReactions;
+        _isSelected = isSelected;
+    }
+
+    public string Id => _post.Id;
+    public TitleSummary Title => _post.Title;
+
+    public DiscussionPost Post
+    {
+        get => _post;
+        private set { _post = value; OnPropertyChanged(); OnPropertyChanged(nameof(Title)); }
+    }
+
+    public string MetaLine
+    {
+        get => _metaLine;
+        private set { if (_metaLine == value) return; _metaLine = value; OnPropertyChanged(); }
+    }
+
+    public string Snippet
+    {
+        get => _snippet;
+        private set { if (_snippet == value) return; _snippet = value; OnPropertyChanged(); }
+    }
+
+    public bool HasSnippet
+    {
+        get => _hasSnippet;
+        private set { if (_hasSnippet == value) return; _hasSnippet = value; OnPropertyChanged(); }
+    }
+
+    public string ReactionSummaryText
+    {
+        get => _reactionSummaryText;
+        private set { if (_reactionSummaryText == value) return; _reactionSummaryText = value; OnPropertyChanged(); }
+    }
+
+    public bool HasReactions
+    {
+        get => _hasReactions;
+        private set { if (_hasReactions == value) return; _hasReactions = value; OnPropertyChanged(); }
+    }
+
+    public bool IsSelected
+    {
+        get => _isSelected;
+        private set { if (_isSelected == value) return; _isSelected = value; OnPropertyChanged(); }
+    }
+
+    public void Update(
+        DiscussionPost post,
+        string metaLine,
+        string snippet,
+        bool hasSnippet,
+        string reactionSummaryText,
+        bool hasReactions,
+        bool isSelected)
+    {
+        Post = post;
+        MetaLine = metaLine;
+        Snippet = snippet;
+        HasSnippet = hasSnippet;
+        ReactionSummaryText = reactionSummaryText;
+        HasReactions = hasReactions;
+        IsSelected = isSelected;
+    }
+
+    public event PropertyChangedEventHandler? PropertyChanged;
+    private void OnPropertyChanged([CallerMemberName] string? propertyName = null) =>
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+}
+
 public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
 {
     private readonly OttlineRepository _repo;
@@ -100,7 +197,12 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
     private LocalSettings _settings;
     private OttlineStrings _strings;
     private MainTab _currentTab = MainTab.HOME;
+    private MainTab _previousNonInfoTab = MainTab.HOME;
+    private InfoPageKind _currentInfoPage = InfoPageKind.GUIDES;
+    private string? _selectedGuideSlug;
     private MySpaceSection _currentMySpaceSection = MySpaceSection.PROFILE_SYNC;
+
+    public event Action? InfoPageScrollToTopRequested;
 
     private string _syncStatusText = "로컬 준비됨";
     private string _toastMessage = string.Empty;
@@ -123,6 +225,11 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
     private string? _timelinePlatformFilter;
     private string _timelineOriginFilter = "ALL";
     private bool _isRecommendationsOpen;
+    private bool _isRecommendationsLoading;
+    private RecommendationStateSnapshot? _recommendationState;
+    private RecommendationErrorKind _recommendationErrorKind = RecommendationErrorKind.None;
+    private string? _recommendationScopeKey;
+    private CancellationTokenSource? _recommendationsCts;
 
     // Title Detail state
     private bool _isTitleDetailOpen;
@@ -152,13 +259,14 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
     private string _manualIsbnInput = string.Empty;
 
     // Together state
-    private DailyPromptPayload? _dailyPrompt;
-    private string _togetherSearchQuery = string.Empty;
-    private DiscussionSort _togetherSort = DiscussionSort.LATEST;
-    private DiscussionDetail? _selectedDiscussionDetail;
-    private bool _isDiscussionDetailOpen;
+    private readonly TogetherSpreadCoordinator _together = new();
+    private bool _isSyncingTogetherList;
+    private bool _isTogetherListLoading;
+    private bool _isTogetherReactionBusy;
+    private bool _isSubmittingComment;
+    private TogetherListItem? _selectedDiscussionListItem;
     private string _newCommentBody = string.Empty;
-    private bool _newCommentSpoiler;
+    private bool _newCommentSyncLog = true;
     private bool _isWriteDiscussionOpen;
     private string _newDiscussionTitleQuery = string.Empty;
     private TitleSummary? _newDiscussionTitle = null;
@@ -195,6 +303,7 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
         _editAvatarKey = _settings.AvatarPreset;
 
         _personalReport = PersonalReportBuilder.BuildReport(Array.Empty<WatchLog>());
+        _together.StateChanged += OnTogetherCoordinatorStateChanged;
 
         OttlineThemeManager.ApplyTheme(_settings.ThemeMode);
 
@@ -284,6 +393,7 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
     public ObservableCollection<string> QuickOccasionOptions { get; } = new();
 
     public ObservableCollection<DiscussionPost> Discussions { get; } = new();
+    public ObservableCollection<TogetherListItem> DiscussionItems { get; } = new();
     public ObservableCollection<DiscussionComment> SelectedDiscussionComments { get; } = new();
 
     public ObservableCollection<AvatarOptionItem> AvatarOptions { get; } = new();
@@ -297,12 +407,17 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
         set
         {
             if (_currentTab == value) return;
+            if (_currentTab != MainTab.INFO && value == MainTab.INFO)
+            {
+                _previousNonInfoTab = _currentTab;
+            }
             _currentTab = value;
             OnPropertyChanged();
             OnPropertyChanged(nameof(IsHomeTab));
             OnPropertyChanged(nameof(IsTimelineTab));
             OnPropertyChanged(nameof(IsTogetherTab));
             OnPropertyChanged(nameof(IsMySpaceTab));
+            OnPropertyChanged(nameof(IsInfoTab));
             if (value == MainTab.TIMELINE && TimelineMonthGroups.Count == 0)
             {
                 RefreshTimelineItems();
@@ -322,6 +437,76 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
     public bool IsTimelineTab => _currentTab == MainTab.TIMELINE;
     public bool IsTogetherTab => _currentTab == MainTab.TOGETHER;
     public bool IsMySpaceTab => _currentTab == MainTab.MY_SPACE;
+    public bool IsInfoTab => _currentTab == MainTab.INFO;
+
+    public InfoPageKind CurrentInfoPage
+    {
+        get => _currentInfoPage;
+        private set
+        {
+            if (_currentInfoPage == value) return;
+            _currentInfoPage = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(IsInfoGuides));
+            OnPropertyChanged(nameof(IsInfoAbout));
+            OnPropertyChanged(nameof(IsInfoFaq));
+            OnPropertyChanged(nameof(IsInfoPrivacy));
+        }
+    }
+
+    public bool IsInfoGuides => _currentInfoPage == InfoPageKind.GUIDES;
+    public bool IsInfoAbout => _currentInfoPage == InfoPageKind.ABOUT;
+    public bool IsInfoFaq => _currentInfoPage == InfoPageKind.FAQ;
+    public bool IsInfoPrivacy => _currentInfoPage == InfoPageKind.PRIVACY;
+
+    public GuideHubContent GuideHub => InfoPagesContent.GetGuideHub(_settings.Locale);
+    public AboutPageContent AboutPage => InfoPagesContent.GetAbout(_settings.Locale);
+    public FaqPageContent FaqPage => InfoPagesContent.GetFaq(_settings.Locale);
+    public PrivacyPageContent PrivacyPage => InfoPagesContent.GetPrivacy(_settings.Locale);
+
+    public GuideArticle? SelectedGuideArticle =>
+        string.IsNullOrWhiteSpace(_selectedGuideSlug)
+            ? null
+            : GuideHub.Guides.FirstOrDefault(g => string.Equals(g.Slug, _selectedGuideSlug, StringComparison.OrdinalIgnoreCase));
+
+    public bool IsGuideHubVisible => SelectedGuideArticle == null;
+    public bool IsGuideArticleVisible => SelectedGuideArticle != null;
+
+    public void OpenInfoPage(InfoPageKind kind, string? guideSlug = null)
+    {
+        if (_currentTab != MainTab.INFO)
+        {
+            _previousNonInfoTab = _currentTab;
+        }
+        CurrentInfoPage = kind;
+        _selectedGuideSlug = kind == InfoPageKind.GUIDES ? guideSlug : null;
+        OnPropertyChanged(nameof(SelectedGuideArticle));
+        OnPropertyChanged(nameof(IsGuideHubVisible));
+        OnPropertyChanged(nameof(IsGuideArticleVisible));
+        CurrentTab = MainTab.INFO;
+        InfoPageScrollToTopRequested?.Invoke();
+    }
+
+    public void SelectGuideArticle(string? slug)
+    {
+        _selectedGuideSlug = slug;
+        OnPropertyChanged(nameof(SelectedGuideArticle));
+        OnPropertyChanged(nameof(IsGuideHubVisible));
+        OnPropertyChanged(nameof(IsGuideArticleVisible));
+        InfoPageScrollToTopRequested?.Invoke();
+    }
+
+    public void CloseInfoPage()
+    {
+        CurrentTab = _previousNonInfoTab == MainTab.INFO ? MainTab.HOME : _previousNonInfoTab;
+    }
+
+    public void OpenFeedbackInbox()
+    {
+        CurrentTab = MainTab.MY_SPACE;
+        CurrentMySpaceSection = MySpaceSection.FEEDBACK;
+        _ = LoadFeedbackThreadsAsync();
+    }
 
     public MySpaceSection CurrentMySpaceSection
     {
@@ -519,6 +704,7 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
             OnPropertyChanged(nameof(IsTimelineFilterVideo));
             OnPropertyChanged(nameof(IsTimelineFilterBook));
             RefreshTimelineItems();
+            RebuildVisibleRecommendations();
         }
     }
 
@@ -668,12 +854,118 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
         get => _isRecommendationsOpen;
         set
         {
+            if (_isRecommendationsOpen == value) return;
             _isRecommendationsOpen = value;
             OnPropertyChanged();
-            if (value && Recommendations.Count == 0)
+            if (value)
             {
-                _ = LoadRecommendationsAsync();
+                _ = LoadRecommendationsAsync(forceRefresh: false);
             }
+        }
+    }
+
+    public bool IsRecommendationsLoading
+    {
+        get => _isRecommendationsLoading;
+        private set
+        {
+            if (_isRecommendationsLoading == value) return;
+            _isRecommendationsLoading = value;
+            NotifyRecommendationPropertiesChanged();
+        }
+    }
+
+    public bool HasRecommendations => Recommendations.Count > 0;
+
+    public bool HasRecommendationError =>
+        _recommendationErrorKind is RecommendationErrorKind.NotConnected
+            or RecommendationErrorKind.LoadFailed
+            or RecommendationErrorKind.GenerateFailed
+            or RecommendationErrorKind.StillGenerating;
+
+    public bool IsRecommendationQuotaExhausted =>
+        _recommendationErrorKind == RecommendationErrorKind.LimitReached
+        || (_recommendationState != null
+            && _recommendationState.Eligible
+            && _recommendationState.Quota.Remaining <= 0
+            && !_recommendationState.Generating);
+
+    public bool IsRecommendationsIneligible =>
+        !_isRecommendationsLoading
+        && !HasRecommendationError
+        && _recommendationState != null
+        && !_recommendationState.Eligible;
+
+    public bool IsRecommendationsEmptyFiltered =>
+        !_isRecommendationsLoading
+        && !HasRecommendationError
+        && _recommendationState != null
+        && _recommendationState.Eligible
+        && _recommendationState.HasBatch
+        && Recommendations.Count == 0;
+
+    public string RecommendationQuotaText
+    {
+        get
+        {
+            if (_recommendationState == null)
+            {
+                return _recommendationErrorKind == RecommendationErrorKind.LimitReached
+                    ? _strings.TimelineRecsQuotaExhausted
+                    : string.Empty;
+            }
+            if (!_recommendationState.Eligible) return string.Empty;
+            if (_recommendationState.Quota.Remaining <= 0 || _recommendationErrorKind == RecommendationErrorKind.LimitReached)
+            {
+                return _strings.TimelineRecsQuotaExhausted;
+            }
+            return _strings.FormatRecommendationQuotaRemaining(_recommendationState.Quota.Remaining);
+        }
+    }
+
+    public bool HasRecommendationQuotaText => !string.IsNullOrWhiteSpace(RecommendationQuotaText);
+
+    public string RecommendationLoadingMessage => HasRecommendations
+        ? _strings.TimelineRecsRefreshingKeepExisting
+        : _strings.TimelineRecsLoading;
+
+    public string RecommendationErrorMessage => _recommendationErrorKind switch
+    {
+        RecommendationErrorKind.NotConnected => _strings.TimelineRecsNotConnected,
+        RecommendationErrorKind.LoadFailed => _strings.TimelineRecsLoadError,
+        RecommendationErrorKind.StillGenerating => _strings.TimelineRecsStillGenerating,
+        RecommendationErrorKind.GenerateFailed => HasRecommendations
+            ? _strings.TimelineRecsGenerateErrorKeepExisting
+            : _strings.TimelineRecsGenerateError,
+        _ => string.Empty
+    };
+
+    public bool CanRetryRecommendations =>
+        !_isRecommendationsLoading
+        && _recommendationErrorKind is RecommendationErrorKind.LoadFailed
+            or RecommendationErrorKind.GenerateFailed
+            or RecommendationErrorKind.StillGenerating;
+
+    public bool CanRefreshRecommendations =>
+        !_isRecommendationsLoading
+        && _recommendationErrorKind != RecommendationErrorKind.NotConnected
+        && !IsRecommendationQuotaExhausted
+        && (_recommendationState == null
+            || (_recommendationState.Eligible
+                && !_recommendationState.Generating
+                && (_recommendationState.Quota.Remaining > 0
+                    || _repo.GetPendingRecommendationAttempt() != null)));
+
+    public bool CanClickRecommendationAction =>
+        !_isRecommendationsLoading && (CanRetryRecommendations || CanRefreshRecommendations);
+
+    public string RecommendationActionButtonLabel
+    {
+        get
+        {
+            if (_isRecommendationsLoading) return _strings.TimelineRecsFindingButton;
+            if (CanRetryRecommendations) return _strings.TimelineRecsRetryButton;
+            return _strings.TimelineRecsRefresh;
         }
     }
 
@@ -1180,71 +1472,199 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
     }
 
     // Together properties
-    public DailyPromptPayload? DailyPrompt
-    {
-        get => _dailyPrompt;
-        private set
-        {
-            _dailyPrompt = value;
-            OnPropertyChanged();
-            OnPropertyChanged(nameof(DailyPromptQuestionDisplay));
-            OnPropertyChanged(nameof(DailyPromptSubtitleDisplay));
-        }
-    }
-
-    public string DailyPromptQuestionDisplay =>
-        IsEnglishLocale ? (_dailyPrompt?.QuestionEn ?? string.Empty) : (_dailyPrompt?.QuestionKo ?? string.Empty);
-
-    public string DailyPromptSubtitleDisplay =>
-        IsEnglishLocale ? (_dailyPrompt?.SubtitleEn ?? string.Empty) : (_dailyPrompt?.SubtitleKo ?? string.Empty);
-
     public string TogetherSearchQuery
     {
-        get => _togetherSearchQuery;
+        get => _together.SearchQuery;
         set
         {
-            if (_togetherSearchQuery == value) return;
-            _togetherSearchQuery = value;
+            var normalized = value ?? string.Empty;
+            if (string.Equals(_together.SearchQuery, normalized, StringComparison.Ordinal)) return;
+            _together.SetSearchQuery(normalized);
             OnPropertyChanged();
-            _ = LoadTogetherAsync();
+            OnPropertyChanged(nameof(HasTogetherSearchQuery));
         }
     }
+
+    public bool HasTogetherSearchQuery => !string.IsNullOrWhiteSpace(_together.SearchQuery);
 
     public DiscussionSort TogetherSort
     {
-        get => _togetherSort;
+        get => _together.Sort;
         set
         {
-            if (_togetherSort == value) return;
-            _togetherSort = value;
+            if (_together.Sort == value) return;
+            _together.SetSort(value);
             OnPropertyChanged();
-            _ = LoadTogetherAsync();
+            OnPropertyChanged(nameof(IsTogetherSortLatest));
+            OnPropertyChanged(nameof(IsTogetherSortReactions));
+            OnPropertyChanged(nameof(IsTogetherSortComments));
         }
     }
 
-    public bool IsDiscussionDetailOpen
+    public bool IsTogetherSortLatest => _together.Sort == DiscussionSort.LATEST;
+    public bool IsTogetherSortReactions => _together.Sort == DiscussionSort.REACTIONS;
+    public bool IsTogetherSortComments => _together.Sort == DiscussionSort.COMMENTS;
+
+    public bool IsTogetherTwoPane => _together.IsTwoPane;
+    public bool ShowTogetherListPane => _together.ShowListPane;
+    public bool ShowTogetherDetailPane => _together.ShowDetailPane;
+    public bool ShowTogetherBackButton => !_together.IsTwoPane && _together.IsNarrowDetailOpen;
+
+    public System.Windows.GridLength TogetherListColumnWidth => _together.IsTwoPane
+        ? new System.Windows.GridLength(360)
+        : (_together.ShowListPane ? new System.Windows.GridLength(1, System.Windows.GridUnitType.Star) : new System.Windows.GridLength(0));
+
+    public System.Windows.GridLength TogetherGapColumnWidth => _together.IsTwoPane
+        ? new System.Windows.GridLength(24)
+        : new System.Windows.GridLength(0);
+
+    public System.Windows.GridLength TogetherDetailColumnWidth => _together.IsTwoPane || _together.ShowDetailPane
+        ? new System.Windows.GridLength(1, System.Windows.GridUnitType.Star)
+        : new System.Windows.GridLength(0);
+
+    public bool IsTogetherListLoading
     {
-        get => _isDiscussionDetailOpen;
-        set { _isDiscussionDetailOpen = value; OnPropertyChanged(); }
+        get => _isTogetherListLoading;
+        private set
+        {
+            if (_isTogetherListLoading == value) return;
+            _isTogetherListLoading = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(ShowTogetherListLoading));
+            OnPropertyChanged(nameof(ShowTogetherEmptyState));
+        }
     }
 
-    public DiscussionDetail? SelectedDiscussionDetail
+    public bool HasTogetherDiscussions => DiscussionItems.Count > 0;
+    public bool ShowTogetherListLoading => _isTogetherListLoading && DiscussionItems.Count == 0;
+    public bool ShowTogetherEmptyState => !_isTogetherListLoading && DiscussionItems.Count == 0;
+    public string TogetherEmptyStateMessage => HasTogetherSearchQuery
+        ? _strings.TogetherEmptySearchTitle
+        : _strings.TogetherEmptyListTitle;
+
+    public TogetherListItem? SelectedDiscussionListItem
     {
-        get => _selectedDiscussionDetail;
-        private set { _selectedDiscussionDetail = value; OnPropertyChanged(); }
+        get => _selectedDiscussionListItem;
+        set
+        {
+            if (_isSyncingTogetherList) return;
+            if (value == null) return;
+            if (ReferenceEquals(_selectedDiscussionListItem, value) &&
+                string.Equals(_together.SelectedPost?.Id, value.Id, StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+            _selectedDiscussionListItem = value;
+            OnPropertyChanged();
+            _ = SelectDiscussionAsync(value.Post, openNarrowDetail: true, isExplicit: true);
+        }
+    }
+
+    public DiscussionPost? SelectedDiscussionPost => _together.SelectedPost;
+    public DiscussionDetail? SelectedDiscussionDetail => _together.SelectedDetail;
+    public bool HasSelectedDiscussion => _together.SelectedPost != null;
+    public bool ShowTogetherSelectPlaceholder => _together.SelectedPost == null;
+    public bool IsSelectedDiscussionDetailLoading => _together.IsDetailLoading;
+    public bool HasSelectedDiscussionDetailError => _together.HasDetailError && !_together.IsDetailLoading;
+    public bool IsSelectedDiscussionCommentsEmpty =>
+        HasSelectedDiscussion && !_together.IsDetailLoading && !_together.HasDetailError && SelectedDiscussionComments.Count == 0;
+
+    public string SelectedDiscussionTypeAndYear
+    {
+        get
+        {
+            var post = _together.SelectedPost;
+            if (post == null) return string.Empty;
+            var typeLabel = FormatTitleTypeLabel(post.Title.Type);
+            var parts = new List<string> { typeLabel };
+            if (post.Title.Year.HasValue) parts.Add(post.Title.Year.Value.ToString());
+            if (!string.IsNullOrWhiteSpace(post.CreatedAt)) parts.Add(post.CreatedAt);
+            return string.Join(" · ", parts);
+        }
+    }
+
+    public string SelectedDiscussionBody
+    {
+        get
+        {
+            var post = _together.SelectedPost;
+            if (post == null) return string.Empty;
+            return IsAutoGeneratedDiscussionSummary(post) ? string.Empty : post.Body.Trim();
+        }
+    }
+
+    public bool HasSelectedDiscussionBody => !string.IsNullOrWhiteSpace(SelectedDiscussionBody);
+
+    public bool SelectedDiscussionHasLocalLog =>
+        _together.SelectedPost != null && _repo.GetLogByTitleId(_together.SelectedPost.Title.Id) != null;
+
+    public string SelectedDiscussionCommentCountLabel =>
+        IsEnglishLocale
+            ? $"{SelectedDiscussionComments.Count}"
+            : $"{SelectedDiscussionComments.Count}";
+
+    public bool IsSelectedReactionDone => _together.ReactionState.HasReaction(DiscussionReactionType.DONE);
+    public bool IsSelectedReactionCurious => _together.ReactionState.HasReaction(DiscussionReactionType.CURIOUS);
+    public bool IsSelectedReactionSave => _together.ReactionState.HasReaction(DiscussionReactionType.SAVE);
+    public bool CanToggleTogetherReaction => HasSelectedDiscussion && !_isTogetherReactionBusy;
+
+    public string SelectedReactionDoneLabel
+    {
+        get
+        {
+            var isBook = _together.SelectedPost?.Title.Type.IsBook() == true;
+            var baseLabel = isBook ? _strings.TogetherReactDoneBook : _strings.TogetherReactDone;
+            var count = _together.ReactionState.Summary.DoneCount;
+            return count > 0 ? $"{baseLabel} {count}" : baseLabel;
+        }
+    }
+
+    public string SelectedReactionCuriousLabel
+    {
+        get
+        {
+            var count = _together.ReactionState.Summary.CuriousCount;
+            return count > 0 ? $"{_strings.TogetherReactCurious} {count}" : _strings.TogetherReactCurious;
+        }
+    }
+
+    public string SelectedReactionSaveLabel
+    {
+        get
+        {
+            var count = _together.ReactionState.Summary.SaveCount;
+            return count > 0 ? $"{_strings.TogetherReactSave} {count}" : _strings.TogetherReactSave;
+        }
     }
 
     public string NewCommentBody
     {
         get => _newCommentBody;
-        set { _newCommentBody = value; OnPropertyChanged(); }
+        set
+        {
+            if (_newCommentBody == value) return;
+            _newCommentBody = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(HasNewCommentBody));
+            OnPropertyChanged(nameof(CanSubmitComment));
+        }
     }
 
-    public bool NewCommentSpoiler
+    public bool HasNewCommentBody => !string.IsNullOrWhiteSpace(_newCommentBody);
+
+    public bool NewCommentSyncLog
     {
-        get => _newCommentSpoiler;
-        set { _newCommentSpoiler = value; OnPropertyChanged(); }
+        get => _newCommentSyncLog;
+        set
+        {
+            if (_newCommentSyncLog == value) return;
+            _newCommentSyncLog = value;
+            OnPropertyChanged();
+        }
     }
+
+    public bool CanSubmitComment =>
+        HasSelectedDiscussion && !string.IsNullOrWhiteSpace(_newCommentBody) && !_isSubmittingComment;
 
     public bool IsWriteDiscussionOpen
     {
@@ -1470,6 +1890,11 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
     {
         _settings = _repo.GetSettings();
         _strings = OttlineStrings.ForLocale(_settings.Locale);
+        if (!string.IsNullOrWhiteSpace(_recommendationScopeKey)
+            && !string.Equals(_recommendationScopeKey, CurrentRecommendationScopeKey(), StringComparison.OrdinalIgnoreCase))
+        {
+            ResetRecommendationsForScopeChange();
+        }
         if (!_isProfileEditorOpen)
         {
             _editDisplayName = _settings.DisplayName;
@@ -1625,14 +2050,21 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
         OnPropertyChanged(nameof(HasBookLogs));
         OnPropertyChanged(nameof(TimelineHeadingTitle));
         OnPropertyChanged(nameof(FutureButtonLabel));
+        NotifyRecommendationPropertiesChanged();
         OnPropertyChanged(nameof(TimelinePlatformComboOptions));
         OnPropertyChanged(nameof(TimelinePlaceComboOptions));
         OnPropertyChanged(nameof(TimelinePlaceComboIndex));
         OnPropertyChanged(nameof(TimelineOccasionComboOptions));
         OnPropertyChanged(nameof(TimelineOccasionComboIndex));
         OnPropertyChanged(nameof(ActiveTimelineFilterSummary));
-        OnPropertyChanged(nameof(DailyPromptQuestionDisplay));
-        OnPropertyChanged(nameof(DailyPromptSubtitleDisplay));
+        NotifyTogetherPropertiesChanged();
+        OnPropertyChanged(nameof(GuideHub));
+        OnPropertyChanged(nameof(AboutPage));
+        OnPropertyChanged(nameof(FaqPage));
+        OnPropertyChanged(nameof(PrivacyPage));
+        OnPropertyChanged(nameof(SelectedGuideArticle));
+        OnPropertyChanged(nameof(IsGuideHubVisible));
+        OnPropertyChanged(nameof(IsGuideArticleVisible));
         OnPropertyChanged(nameof(PersonalReport));
         OnPropertyChanged(nameof(PersonalReportRhythmDisplay));
         OnPropertyChanged(nameof(ShareSizeLabel));
@@ -2067,6 +2499,18 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
             return;
         }
 
+        if (!string.IsNullOrWhiteSpace(parsed.OpenDiscussionId))
+        {
+            await OpenDiscussionByIdAsync(parsed.OpenDiscussionId);
+            return;
+        }
+
+        if (string.Equals(parsed.OpenRoute, "together", StringComparison.OrdinalIgnoreCase))
+        {
+            CurrentTab = MainTab.TOGETHER;
+            return;
+        }
+
         if (string.Equals(parsed.OpenRoute, "timeline", StringComparison.OrdinalIgnoreCase))
         {
             CurrentTab = MainTab.TIMELINE;
@@ -2173,13 +2617,10 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
         _repo.UpdateSettings(s => s with { Locale = locale });
         RefreshLocalState();
         _ = LoadTogetherAsync();
+        ResetRecommendationsForScopeChange();
         if (_isRecommendationsOpen)
         {
-            _ = LoadRecommendationsAsync();
-        }
-        else
-        {
-            Recommendations.Clear();
+            _ = LoadRecommendationsAsync(forceRefresh: false);
         }
         if (_isQuickRecordOpen)
         {
@@ -2197,24 +2638,165 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
         SetLocale(next);
     }
 
+    private string CurrentRecommendationScopeKey()
+    {
+        var userId = string.IsNullOrWhiteSpace(_settings.UserId) ? "anon" : _settings.UserId.Trim().ToLowerInvariant();
+        var lang = Ottline.Core.Local.OttlineDatabase.NormalizeRecommendationLanguage(_settings.Locale);
+        return $"{userId}:{lang}";
+    }
+
+    private void NotifyRecommendationPropertiesChanged()
+    {
+        OnPropertyChanged(nameof(IsRecommendationsLoading));
+        OnPropertyChanged(nameof(HasRecommendations));
+        OnPropertyChanged(nameof(HasRecommendationError));
+        OnPropertyChanged(nameof(IsRecommendationQuotaExhausted));
+        OnPropertyChanged(nameof(IsRecommendationsIneligible));
+        OnPropertyChanged(nameof(IsRecommendationsEmptyFiltered));
+        OnPropertyChanged(nameof(RecommendationQuotaText));
+        OnPropertyChanged(nameof(HasRecommendationQuotaText));
+        OnPropertyChanged(nameof(RecommendationLoadingMessage));
+        OnPropertyChanged(nameof(RecommendationErrorMessage));
+        OnPropertyChanged(nameof(CanRetryRecommendations));
+        OnPropertyChanged(nameof(CanRefreshRecommendations));
+        OnPropertyChanged(nameof(CanClickRecommendationAction));
+        OnPropertyChanged(nameof(RecommendationActionButtonLabel));
+    }
+
+    private void RebuildVisibleRecommendations()
+    {
+        Recommendations.Clear();
+        if (_recommendationState != null)
+        {
+            foreach (var item in _recommendationState.Items)
+            {
+                if (_timelineContentFilter == ContentFilter.VIDEO && !item.Title.Type.IsVideo()) continue;
+                if (_timelineContentFilter == ContentFilter.BOOK && !item.Title.Type.IsBook()) continue;
+                Recommendations.Add(item);
+            }
+        }
+        NotifyRecommendationPropertiesChanged();
+    }
+
+    private void ResetRecommendationsForScopeChange()
+    {
+        _recommendationsCts?.Cancel();
+        _recommendationsCts?.Dispose();
+        _recommendationsCts = null;
+        _isRecommendationsLoading = false;
+        _recommendationState = null;
+        _recommendationErrorKind = RecommendationErrorKind.None;
+        _recommendationScopeKey = CurrentRecommendationScopeKey();
+        Recommendations.Clear();
+        NotifyRecommendationPropertiesChanged();
+    }
+
+    public Task HandleRecommendationActionAsync()
+    {
+        if (CanRetryRecommendations)
+        {
+            return RetryRecommendationsAsync();
+        }
+        return LoadRecommendationsAsync(forceRefresh: true);
+    }
+
+    public Task RetryRecommendationsAsync()
+    {
+        if (_recommendationErrorKind == RecommendationErrorKind.LoadFailed)
+        {
+            return LoadRecommendationsAsync(forceRefresh: false);
+        }
+        return LoadRecommendationsAsync(forceRefresh: true);
+    }
+
     public async Task LoadRecommendationsAsync(bool forceRefresh = false)
     {
         _repo.RefreshApi();
-        Recommendations.Clear();
-        var remote = await _repo.Api.FetchRecommendationsAsync(_timelineContentFilter, forceRefresh);
-        if (remote.Count > 0)
+        var expectedScope = CurrentRecommendationScopeKey();
+        if (!string.Equals(_recommendationScopeKey, expectedScope, StringComparison.OrdinalIgnoreCase))
         {
-            await UrlToImageSourceConverter.PrefetchUrlsAsync(
-                remote.Select(r => r.Title.PosterUrl),
-                isHero: false
-            );
-            foreach (var r in remote) Recommendations.Add(r);
+            ResetRecommendationsForScopeChange();
+        }
+
+        if (_isRecommendationsLoading) return;
+
+        _recommendationsCts?.Cancel();
+        _recommendationsCts?.Dispose();
+        var cts = new CancellationTokenSource();
+        _recommendationsCts = cts;
+        _recommendationScopeKey = expectedScope;
+        _recommendationErrorKind = RecommendationErrorKind.None;
+        IsRecommendationsLoading = true;
+
+        try
+        {
+            var result = forceRefresh
+                ? await _repo.GenerateRecommendationsAsync(cts.Token)
+                : await _repo.LoadRecommendationsAsync(allowAutoGenerate: true, cts.Token);
+
+            if (cts.IsCancellationRequested || !string.Equals(CurrentRecommendationScopeKey(), expectedScope, StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+
+            if (result.State != null)
+            {
+                _recommendationState = result.State;
+                if (result.State.Items.Count > 0)
+                {
+                    await UrlToImageSourceConverter.PrefetchUrlsAsync(
+                        result.State.Items.Select(r => r.Title.PosterUrl),
+                        isHero: false
+                    );
+                }
+
+                if (cts.IsCancellationRequested || !string.Equals(CurrentRecommendationScopeKey(), expectedScope, StringComparison.OrdinalIgnoreCase))
+                {
+                    return;
+                }
+
+                RebuildVisibleRecommendations();
+            }
+
+            _recommendationErrorKind = result.ErrorKind;
+            NotifyRecommendationPropertiesChanged();
+        }
+        catch (OperationCanceledException)
+        {
+            // Scope changed or superseded by a newer request.
+        }
+        catch
+        {
+            if (!cts.IsCancellationRequested && string.Equals(CurrentRecommendationScopeKey(), expectedScope, StringComparison.OrdinalIgnoreCase))
+            {
+                _recommendationErrorKind = forceRefresh
+                    ? RecommendationErrorKind.GenerateFailed
+                    : RecommendationErrorKind.LoadFailed;
+                NotifyRecommendationPropertiesChanged();
+            }
+        }
+        finally
+        {
+            if (ReferenceEquals(_recommendationsCts, cts))
+            {
+                IsRecommendationsLoading = false;
+            }
         }
     }
 
     public async Task ExcludeRecommendationAsync(RecommendationItem item)
     {
         Recommendations.Remove(item);
+        _repo.RemoveRecommendationItemFromCache(item);
+        if (_recommendationState != null)
+        {
+            var filtered = _recommendationState.Items
+                .Where(x => !string.Equals(x.Title.Id, item.Title.Id, StringComparison.OrdinalIgnoreCase)
+                            && !string.Equals(x.Title.Title, item.Title.Title, StringComparison.OrdinalIgnoreCase))
+                .ToList();
+            _recommendationState = _recommendationState with { Items = filtered };
+        }
+        NotifyRecommendationPropertiesChanged();
         _repo.RefreshApi();
         await _repo.Api.ExcludeRecommendationAsync(item);
         ShowToast(IsEnglishLocale
@@ -2222,73 +2804,438 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
             : "이 작품은 추천에서 빼두었어요.");
     }
 
-    public async Task LoadTogetherAsync()
+    private void OnTogetherCoordinatorStateChanged()
+    {
+        var dispatcher = System.Windows.Application.Current?.Dispatcher;
+        if (dispatcher != null && !dispatcher.CheckAccess())
+        {
+            _ = dispatcher.BeginInvoke(SyncTogetherUiState);
+            return;
+        }
+        SyncTogetherUiState();
+    }
+
+    private string FormatTitleTypeLabel(TitleType type) => type switch
+    {
+        TitleType.book => IsEnglishLocale ? "Book" : "책",
+        TitleType.series => IsEnglishLocale ? "Series" : "시리즈",
+        _ => IsEnglishLocale ? "Movie" : "영화"
+    };
+
+    private static bool IsAutoGeneratedDiscussionSummary(DiscussionPost post)
+    {
+        if (string.IsNullOrWhiteSpace(post.Body)) return true;
+        var body = post.Body.Trim();
+        return (body.Contains("댓글 ", StringComparison.Ordinal) || body.Contains(" comments", StringComparison.OrdinalIgnoreCase))
+               && body.Contains(" · ", StringComparison.Ordinal);
+    }
+
+    private (string MetaLine, string Snippet, bool HasSnippet, string ReactionText, bool HasReactions) BuildTogetherListDisplay(DiscussionPost post)
+    {
+        var parts = new List<string> { FormatTitleTypeLabel(post.Title.Type) };
+        if (post.Title.Year.HasValue) parts.Add(post.Title.Year.Value.ToString());
+        parts.Add(IsEnglishLocale
+            ? (post.CommentCount == 1 ? "1 comment" : $"{post.CommentCount} comments")
+            : $"이야기 {post.CommentCount}");
+        var metaLine = string.Join(" · ", parts);
+
+        var snippet = IsAutoGeneratedDiscussionSummary(post) ? string.Empty : post.Body.Trim();
+        var hasSnippet = !string.IsNullOrWhiteSpace(snippet);
+
+        var totalReactions = post.Reactions?.TotalCount ?? 0;
+        var reactionText = totalReactions > 0
+            ? (IsEnglishLocale
+                ? (totalReactions == 1 ? "1 reaction" : $"{totalReactions} reactions")
+                : $"공감 {totalReactions}")
+            : string.Empty;
+
+        return (metaLine, snippet, hasSnippet, reactionText, totalReactions > 0);
+    }
+
+    private void SyncTogetherUiState()
+    {
+        var visible = _together.VisiblePosts;
+        var selectedId = _together.SelectedPost?.Id;
+
+        _isSyncingTogetherList = true;
+        try
+        {
+            var sameOrder = DiscussionItems.Count == visible.Count;
+            if (sameOrder)
+            {
+                for (var i = 0; i < visible.Count; i++)
+                {
+                    if (!string.Equals(DiscussionItems[i].Id, visible[i].Id, StringComparison.OrdinalIgnoreCase))
+                    {
+                        sameOrder = false;
+                        break;
+                    }
+                }
+            }
+
+            if (sameOrder)
+            {
+                for (var i = 0; i < visible.Count; i++)
+                {
+                    var post = visible[i];
+                    var disp = BuildTogetherListDisplay(post);
+                    var isSel = string.Equals(post.Id, selectedId, StringComparison.OrdinalIgnoreCase);
+                    DiscussionItems[i].Update(post, disp.MetaLine, disp.Snippet, disp.HasSnippet, disp.ReactionText, disp.HasReactions, isSel);
+                }
+            }
+            else
+            {
+                DiscussionItems.Clear();
+                foreach (var post in visible)
+                {
+                    var disp = BuildTogetherListDisplay(post);
+                    var isSel = string.Equals(post.Id, selectedId, StringComparison.OrdinalIgnoreCase);
+                    DiscussionItems.Add(new TogetherListItem(
+                        post,
+                        disp.MetaLine,
+                        disp.Snippet,
+                        disp.HasSnippet,
+                        disp.ReactionText,
+                        disp.HasReactions,
+                        isSel
+                    ));
+                }
+            }
+
+            Discussions.Clear();
+            foreach (var post in visible)
+            {
+                Discussions.Add(post);
+            }
+
+            _selectedDiscussionListItem = string.IsNullOrWhiteSpace(selectedId)
+                ? null
+                : DiscussionItems.FirstOrDefault(x => string.Equals(x.Id, selectedId, StringComparison.OrdinalIgnoreCase));
+
+            SelectedDiscussionComments.Clear();
+            if (_together.SelectedDetail != null)
+            {
+                foreach (var c in _together.SelectedDetail.Comments)
+                {
+                    SelectedDiscussionComments.Add(c);
+                }
+            }
+        }
+        finally
+        {
+            _isSyncingTogetherList = false;
+        }
+
+        NotifyTogetherPropertiesChanged();
+    }
+
+    private void NotifyTogetherPropertiesChanged()
+    {
+        OnPropertyChanged(nameof(TogetherSearchQuery));
+        OnPropertyChanged(nameof(HasTogetherSearchQuery));
+        OnPropertyChanged(nameof(TogetherSort));
+        OnPropertyChanged(nameof(IsTogetherSortLatest));
+        OnPropertyChanged(nameof(IsTogetherSortReactions));
+        OnPropertyChanged(nameof(IsTogetherSortComments));
+        OnPropertyChanged(nameof(IsTogetherTwoPane));
+        OnPropertyChanged(nameof(ShowTogetherListPane));
+        OnPropertyChanged(nameof(ShowTogetherDetailPane));
+        OnPropertyChanged(nameof(ShowTogetherBackButton));
+        OnPropertyChanged(nameof(TogetherListColumnWidth));
+        OnPropertyChanged(nameof(TogetherGapColumnWidth));
+        OnPropertyChanged(nameof(TogetherDetailColumnWidth));
+        OnPropertyChanged(nameof(HasTogetherDiscussions));
+        OnPropertyChanged(nameof(ShowTogetherListLoading));
+        OnPropertyChanged(nameof(ShowTogetherEmptyState));
+        OnPropertyChanged(nameof(TogetherEmptyStateMessage));
+        OnPropertyChanged(nameof(SelectedDiscussionListItem));
+        OnPropertyChanged(nameof(SelectedDiscussionPost));
+        OnPropertyChanged(nameof(SelectedDiscussionDetail));
+        OnPropertyChanged(nameof(HasSelectedDiscussion));
+        OnPropertyChanged(nameof(ShowTogetherSelectPlaceholder));
+        OnPropertyChanged(nameof(IsSelectedDiscussionDetailLoading));
+        OnPropertyChanged(nameof(HasSelectedDiscussionDetailError));
+        OnPropertyChanged(nameof(IsSelectedDiscussionCommentsEmpty));
+        OnPropertyChanged(nameof(SelectedDiscussionTypeAndYear));
+        OnPropertyChanged(nameof(SelectedDiscussionBody));
+        OnPropertyChanged(nameof(HasSelectedDiscussionBody));
+        OnPropertyChanged(nameof(SelectedDiscussionHasLocalLog));
+        OnPropertyChanged(nameof(SelectedDiscussionCommentCountLabel));
+        OnPropertyChanged(nameof(IsSelectedReactionDone));
+        OnPropertyChanged(nameof(IsSelectedReactionCurious));
+        OnPropertyChanged(nameof(IsSelectedReactionSave));
+        OnPropertyChanged(nameof(CanToggleTogetherReaction));
+        OnPropertyChanged(nameof(SelectedReactionDoneLabel));
+        OnPropertyChanged(nameof(SelectedReactionCuriousLabel));
+        OnPropertyChanged(nameof(SelectedReactionSaveLabel));
+        OnPropertyChanged(nameof(CanSubmitComment));
+    }
+
+    public void UpdateWindowWidth(double width)
+    {
+        var autoLoad = _together.UpdateViewportWidth(width);
+        if (autoLoad != null)
+        {
+            _ = SelectDiscussionAsync(autoLoad, openNarrowDetail: false, isExplicit: false);
+        }
+    }
+
+    public void ClearTogetherSearch()
+    {
+        TogetherSearchQuery = string.Empty;
+    }
+
+    public void CloseNarrowTogetherDetail()
+    {
+        _together.CloseNarrowDetail();
+    }
+
+    public void OpenDiscussionFromListItem(TogetherListItem item)
+    {
+        if (string.Equals(_together.SelectedPost?.Id, item.Id, StringComparison.OrdinalIgnoreCase))
+        {
+            _together.ReopenNarrowDetailForCurrentSelection();
+            return;
+        }
+        _ = SelectDiscussionAsync(item.Post, openNarrowDetail: true, isExplicit: true);
+    }
+
+    public async Task LoadTogetherAsync(string? preferredDiscussionId = null)
     {
         _repo.RefreshApi();
-        DailyPrompt = await _repo.Api.FetchDailyPromptAsync() ?? new DailyPromptPayload(
-            Id: $"prompt-{RecordDate.TodayDate()}",
-            DateKey: RecordDate.TodayDate(),
-            QuestionKo: "오랜 시간이 지나도 문득 그날의 공기까지 떠오르는 영화나 책이 있나요?",
-            QuestionEn: "Is there a film or book that still brings back the exact air of the day you experienced it?",
-            SubtitleKo: "별점 대신 그때 머물렀던 장소와 순간을 함께 나눠주세요.",
-            SubtitleEn: "Share the place and moment rather than a numeric score.",
-            FeaturedTitle: null,
-            IsAiCurated: true
-        );
-
-        var remotePosts = await _repo.Api.FetchDiscussionsAsync(_togetherSearchQuery, _togetherSort);
-        var popularTitles = await _repo.Api.FetchPopularTitlesAsync(8);
-
-        await UrlToImageSourceConverter.PrefetchUrlsAsync(
-            popularTitles.Take(8).Select(t => t.PosterUrl)
-                .Concat(remotePosts.Take(16).Select(p => p.Title.PosterUrl))
-                .Append(DailyPrompt?.FeaturedTitle?.PosterUrl),
-            isHero: false
-        );
-
-        Discussions.Clear();
-        foreach (var p in remotePosts)
+        IsTogetherListLoading = true;
+        try
         {
-            Discussions.Add(p);
+            var remotePosts = await _repo.Api.FetchDiscussionsAsync(query: null, sort: DiscussionSort.LATEST);
+            var popularTitles = await _repo.Api.FetchPopularTitlesAsync(8);
+
+            await UrlToImageSourceConverter.PrefetchUrlsAsync(
+                popularTitles.Take(8).Select(t => t.PosterUrl)
+                    .Concat(remotePosts.Take(16).Select(p => p.Title.PosterUrl)),
+                isHero: false
+            );
+
+            void UpdateHomeCollections()
+            {
+                HomePopularTitles.Clear();
+                foreach (var t in popularTitles.Take(8))
+                {
+                    HomePopularTitles.Add(t);
+                }
+
+                HomeDiscussionsPreview.Clear();
+                foreach (var d in remotePosts.Take(4))
+                {
+                    HomeDiscussionsPreview.Add(d);
+                }
+            }
+
+            var dispatcher = System.Windows.Application.Current?.Dispatcher;
+            if (dispatcher != null && !dispatcher.CheckAccess())
+            {
+                _ = dispatcher.BeginInvoke(UpdateHomeCollections);
+            }
+            else
+            {
+                UpdateHomeCollections();
+            }
+
+            var postToLoad = _together.ApplyFeed(remotePosts, preferredDiscussionId);
+            if (postToLoad != null)
+            {
+                var isPreferred = !string.IsNullOrWhiteSpace(preferredDiscussionId)
+                                  && string.Equals(postToLoad.Id, preferredDiscussionId, StringComparison.OrdinalIgnoreCase);
+                await SelectDiscussionAsync(
+                    postToLoad,
+                    openNarrowDetail: isPreferred,
+                    isExplicit: isPreferred
+                );
+            }
         }
-
-        HomePopularTitles.Clear();
-        foreach (var t in popularTitles.Take(8))
+        finally
         {
-            HomePopularTitles.Add(t);
-        }
-
-        HomeDiscussionsPreview.Clear();
-        foreach (var d in Discussions.Take(4))
-        {
-            HomeDiscussionsPreview.Add(d);
+            IsTogetherListLoading = false;
         }
     }
 
-    public void ReactToDiscussion(DiscussionPost post, DiscussionReactionType reactionType)
+    public Task SelectDiscussionAsync(DiscussionPost post, bool openNarrowDetail = true, bool isExplicit = true)
     {
-        _repo.ApplyDiscussionReactionLocalFirst(post, reactionType);
-        RefreshLocalState();
-        ShowToast($"'{post.Title.Title}' 작품이 내 타임라인에 '{reactionType.ToLogStatus().ToWire()}' 상태로 반영되었습니다.");
-        _ = _repo.Api.ToggleReactionAsync(post.Id, reactionType);
+        _repo.RefreshApi();
+        return _together.SelectPostAsync(
+            post,
+            (id, fallback, ct) => _repo.Api.FetchDiscussionDetailAsync(id, ct, fallback),
+            (id, ct) => _repo.Api.FetchMyDiscussionReactionsAsync(id, ct),
+            openNarrowDetail: openNarrowDetail,
+            isExplicit: isExplicit
+        );
     }
 
-    public async Task OpenDiscussionDetailAsync(DiscussionPost post)
+    public async Task OpenDiscussionFromExternalAsync(DiscussionPost post)
     {
-        var detail = await _repo.Api.FetchDiscussionDetailAsync(post.Id, default, post)
-                     ?? new DiscussionDetail(post, Array.Empty<DiscussionComment>());
-        SelectedDiscussionDetail = detail;
-        SelectedDiscussionComments.Clear();
-        foreach (var c in detail.Comments) SelectedDiscussionComments.Add(c);
-        IsDiscussionDetailOpen = true;
+        CurrentTab = MainTab.TOGETHER;
+        if (_together.AllPosts.Count == 0)
+        {
+            await LoadTogetherAsync(preferredDiscussionId: post.Id);
+            if (_together.SelectedPost == null || !string.Equals(_together.SelectedPost.Id, post.Id, StringComparison.OrdinalIgnoreCase))
+            {
+                _together.PrependPost(post);
+                await SelectDiscussionAsync(post, openNarrowDetail: true, isExplicit: true);
+            }
+            return;
+        }
+
+        if (!_together.AllPosts.Any(p => string.Equals(p.Id, post.Id, StringComparison.OrdinalIgnoreCase)))
+        {
+            _together.PrependPost(post);
+        }
+        await SelectDiscussionAsync(post, openNarrowDetail: true, isExplicit: true);
+    }
+
+    public async Task OpenDiscussionByIdAsync(string discussionId)
+    {
+        if (string.IsNullOrWhiteSpace(discussionId)) return;
+        CurrentTab = MainTab.TOGETHER;
+        _repo.RefreshApi();
+
+        if (_together.AllPosts.Count == 0)
+        {
+            await LoadTogetherAsync(preferredDiscussionId: discussionId);
+            if (_together.SelectedPost != null && string.Equals(_together.SelectedPost.Id, discussionId, StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+        }
+
+        var opened = await _together.OpenDiscussionByIdAsync(
+            discussionId,
+            (id, ct) => _repo.Api.FetchDiscussionByIdAsync(id, ct),
+            (id, fallback, ct) => _repo.Api.FetchDiscussionDetailAsync(id, ct, fallback),
+            (id, ct) => _repo.Api.FetchMyDiscussionReactionsAsync(id, ct)
+        );
+        if (!opened)
+        {
+            ShowToast(IsEnglishLocale
+                ? "Could not find that conversation."
+                : "해당 이야기를 찾지 못했어요.");
+        }
+    }
+
+    public Task RetrySelectedDiscussionDetailAsync()
+    {
+        var post = _together.SelectedPost;
+        if (post == null) return Task.CompletedTask;
+        return SelectDiscussionAsync(post, openNarrowDetail: !_together.IsTwoPane, isExplicit: true);
+    }
+
+    public void OpenQuickRecordForSelectedDiscussion()
+    {
+        var post = _together.SelectedPost;
+        if (post == null) return;
+        var existing = _repo.GetLogByTitleId(post.Title.Id);
+        if (existing != null)
+        {
+            OpenQuickRecordModal(existingLogToEdit: existing);
+        }
+        else
+        {
+            OpenQuickRecordModal(preselectedTitle: post.Title);
+        }
+    }
+
+    public void OpenLocalRecordForSelectedDiscussion()
+    {
+        var post = _together.SelectedPost;
+        if (post == null) return;
+        var existing = _repo.GetLogByTitleId(post.Title.Id);
+        if (existing != null)
+        {
+            OpenTitleDetail(existing);
+        }
+        else
+        {
+            OpenQuickRecordModal(preselectedTitle: post.Title);
+        }
+    }
+
+    public async Task ReactToSelectedDiscussionAsync(DiscussionReactionType reactionType)
+    {
+        var post = _together.SelectedPost;
+        if (post == null || _isTogetherReactionBusy) return;
+
+        _isTogetherReactionBusy = true;
+        OnPropertyChanged(nameof(CanToggleTogetherReaction));
+        try
+        {
+            var wasSelected = _together.ReactionState.HasReaction(reactionType);
+            if (!wasSelected)
+            {
+                _repo.ApplyDiscussionReactionLocalFirst(post, reactionType);
+                RefreshLocalState();
+            }
+
+            await _repo.EnsureRegisteredAsync();
+            _repo.RefreshApi();
+            var updated = await _repo.Api.ToggleReactionAsync(post.Id, reactionType);
+            if (updated != null)
+            {
+                _together.ApplyReactionUpdate(post.Id, updated);
+            }
+            else
+            {
+                // Optimistic fallback when offline
+                var currentSelected = _together.ReactionState.SafeSelectedTypes.ToList();
+                var summary = _together.ReactionState.Summary;
+                if (wasSelected)
+                {
+                    currentSelected.Remove(reactionType);
+                    summary = reactionType switch
+                    {
+                        DiscussionReactionType.DONE => summary with { DoneCount = Math.Max(0, summary.DoneCount - 1) },
+                        DiscussionReactionType.CURIOUS => summary with { CuriousCount = Math.Max(0, summary.CuriousCount - 1) },
+                        _ => summary with { SaveCount = Math.Max(0, summary.SaveCount - 1) }
+                    };
+                }
+                else
+                {
+                    currentSelected.Add(reactionType);
+                    summary = reactionType switch
+                    {
+                        DiscussionReactionType.DONE => summary with { DoneCount = summary.DoneCount + 1 },
+                        DiscussionReactionType.CURIOUS => summary with { CuriousCount = summary.CuriousCount + 1 },
+                        _ => summary with { SaveCount = summary.SaveCount + 1 }
+                    };
+                }
+                _together.ApplyReactionUpdate(post.Id, new DiscussionReactionState(summary, currentSelected, currentSelected.Count > 0));
+            }
+
+            if (!wasSelected)
+            {
+                var statusLabel = reactionType.ToLogStatus() switch
+                {
+                    LogStatus.DONE => IsEnglishLocale ? (post.Title.Type.IsBook() ? "Read" : "Watched") : (post.Title.Type.IsBook() ? "읽었어요" : "봤어요"),
+                    _ => IsEnglishLocale ? (post.Title.Type.IsBook() ? "Want to read" : "Want to watch") : (post.Title.Type.IsBook() ? "읽고 싶어요" : "보고 싶어요")
+                };
+                ShowToast(IsEnglishLocale
+                    ? $"Added '{post.Title.Title}' to your timeline ({statusLabel})."
+                    : $"'{post.Title.Title}' 작품이 내 타임라인에 '{statusLabel}' 상태로 남았어요.");
+            }
+        }
+        finally
+        {
+            _isTogetherReactionBusy = false;
+            OnPropertyChanged(nameof(CanToggleTogetherReaction));
+        }
     }
 
     public async Task SubmitDiscussionCommentAsync()
     {
-        if (SelectedDiscussionDetail == null || string.IsNullOrWhiteSpace(NewCommentBody)) return;
+        var post = _together.SelectedPost;
+        if (post == null || string.IsNullOrWhiteSpace(NewCommentBody) || _isSubmittingComment) return;
 
+        var bodyToSend = NewCommentBody.Trim();
+        var syncLogToSend = NewCommentSyncLog;
         var mentions = new List<CommentMention>();
-        foreach (var word in NewCommentBody.Split(' ', StringSplitOptions.RemoveEmptyEntries))
+        foreach (var word in bodyToSend.Split(' ', StringSplitOptions.RemoveEmptyEntries))
         {
             if (word.StartsWith('@') && word.Length > 1)
             {
@@ -2301,30 +3248,51 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
             }
         }
 
-        var localComment = new DiscussionComment(
-            Id: $"c-{Guid.NewGuid():N}",
-            DiscussionId: SelectedDiscussionDetail.Post.Id,
-            Body: NewCommentBody.Trim(),
-            Spoiler: NewCommentSpoiler,
-            CreatedAt: RecordDate.TodayDate(),
-            Author: new PublicAuthorProfile(_settings.UserId, _settings.DisplayName, _settings.Handle, _settings.AvatarPreset),
-            Mentions: mentions,
-            IsMine: true
-        );
-        SelectedDiscussionComments.Add(localComment);
-        var bodyToSend = NewCommentBody.Trim();
-        var spoilerToSend = NewCommentSpoiler;
-        NewCommentBody = string.Empty;
-        NewCommentSpoiler = false;
+        _isSubmittingComment = true;
+        OnPropertyChanged(nameof(CanSubmitComment));
+        try
+        {
+            await _repo.EnsureRegisteredAsync();
+            _repo.RefreshApi();
+            var created = await _repo.Api.CreateCommentAsync(
+                post.Id,
+                bodyToSend,
+                spoiler: false,
+                mentions: mentions,
+                syncLog: syncLogToSend
+            );
 
-        await _repo.Api.CreateCommentAsync(SelectedDiscussionDetail.Post.Id, bodyToSend, spoilerToSend, mentions);
+            var commentToShow = created ?? new DiscussionComment(
+                Id: $"c-{Guid.NewGuid():N}",
+                DiscussionId: post.Id,
+                Body: bodyToSend,
+                Spoiler: false,
+                CreatedAt: RecordDate.FormatDisplayDate(RecordDate.TodayDate(), null, _settings.Locale),
+                Author: new PublicAuthorProfile(_settings.UserId, _settings.DisplayName, _settings.Handle, _settings.AvatarPreset),
+                Mentions: mentions,
+                IsMine: true
+            );
+
+            _together.AppendComment(post.Id, commentToShow);
+            NewCommentBody = string.Empty;
+
+            if (syncLogToSend)
+            {
+                _ = SyncNowAsync(silent: true);
+            }
+        }
+        finally
+        {
+            _isSubmittingComment = false;
+            OnPropertyChanged(nameof(CanSubmitComment));
+        }
     }
 
     public async Task SubmitNewDiscussionAsync()
     {
         if (string.IsNullOrWhiteSpace(NewDiscussionBody))
         {
-            ShowToast("이야기 본문을 입력해주세요.");
+            ShowToast(IsEnglishLocale ? "Please enter your thoughts first." : "이야기 본문을 입력해주세요.");
             return;
         }
 
@@ -2336,32 +3304,42 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
                     ?? TitleFallback.BuildManualVideoMetadata(q);
         }
 
-        var post = new DiscussionPost(
+        var draftBody = NewDiscussionBody.Trim();
+        var draftSpoiler = NewDiscussionSpoiler;
+
+        IsWriteDiscussionOpen = false;
+        NewDiscussionBody = string.Empty;
+        NewDiscussionTitleQuery = string.Empty;
+        NewDiscussionSpoiler = false;
+
+        await _repo.EnsureRegisteredAsync();
+        _repo.RefreshApi();
+        var created = await _repo.Api.CreateDiscussionAsync(title, draftBody, draftSpoiler);
+
+        var post = created ?? new DiscussionPost(
             Id: $"disc-{Guid.NewGuid():N}",
             TitleId: title.Id,
             Title: title,
-            Body: NewDiscussionBody.Trim(),
-            Spoiler: NewDiscussionSpoiler,
-            CreatedAt: RecordDate.TodayDate(),
+            Body: draftBody,
+            Spoiler: draftSpoiler,
+            CreatedAt: RecordDate.FormatDisplayDate(RecordDate.TodayDate(), null, _settings.Locale),
             UpdatedAt: RecordDate.TodayDate(),
             Author: new PublicAuthorProfile(_settings.UserId, _settings.DisplayName, _settings.Handle, _settings.AvatarPreset),
             Reactions: new DiscussionReactionSummary(1, 0, 0, new[] { DiscussionReactionType.DONE }),
             CommentCount: 0,
-            IsMine: true
+            IsMine: true,
+            RawCreatedAt: DateTimeOffset.UtcNow.ToString("O")
         );
-        Discussions.Insert(0, post);
+
+        _together.PrependPost(post);
         HomeDiscussionsPreview.Insert(0, post);
         while (HomeDiscussionsPreview.Count > 4)
         {
             HomeDiscussionsPreview.RemoveAt(HomeDiscussionsPreview.Count - 1);
         }
 
-        IsWriteDiscussionOpen = false;
-        NewDiscussionBody = string.Empty;
-        NewDiscussionTitleQuery = string.Empty;
-        ShowToast("함께 광장에 이야기를 남겼습니다.");
-
-        await _repo.Api.CreateDiscussionAsync(title, post.Body, post.Spoiler);
+        await SelectDiscussionAsync(post, openNarrowDetail: true, isExplicit: true);
+        ShowToast(IsEnglishLocale ? "Shared your thought to Together." : "함께 이야기에 남겼어요.");
     }
 
     public async Task SaveProfileAsync()
@@ -2579,7 +3557,7 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
             LinkedDevices.Clear();
             FeedbackThreads.Clear();
             SelectedFeedbackThread = null;
-            Recommendations.Clear();
+            ResetRecommendationsForScopeChange();
             OnPropertyChanged(nameof(IsFeedbackThreadsEmpty));
 
             RefreshLocalState();
@@ -2794,8 +3772,12 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
 
     public void Dispose()
     {
+        _together.StateChanged -= OnTogetherCoordinatorStateChanged;
+        _together.Dispose();
         _searchDebounceCts?.Cancel();
         _searchDebounceCts?.Dispose();
+        _recommendationsCts?.Cancel();
+        _recommendationsCts?.Dispose();
         _repo.Dispose();
     }
 

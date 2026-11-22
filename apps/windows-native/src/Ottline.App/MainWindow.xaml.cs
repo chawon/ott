@@ -86,6 +86,7 @@ public partial class MainWindow : Window
         };
 
         ApplySavedWindowBounds();
+        _vm.UpdateWindowWidth(Width);
 
         SourceInitialized += (_, _) =>
         {
@@ -103,6 +104,7 @@ public partial class MainWindow : Window
 
         Loaded += async (_, _) =>
         {
+            _vm.UpdateWindowWidth(ActualWidth > 0 ? ActualWidth : Width);
             OttlineThemeManager.ApplyWindowTitleBarTheme(this, OttlineThemeManager.IsDarkActive);
             _desktop.Initialize(this);
             if (_shouldShowIntroSplash)
@@ -170,7 +172,7 @@ public partial class MainWindow : Window
     {
         var saved = DesktopIntegrationService.LoadWindowPlacement();
         if (saved == null) return;
-        if (saved.Width >= 960 && saved.Height >= 640)
+        if (saved.Width >= 800 && saved.Height >= 640)
         {
             Width = saved.Width;
             Height = saved.Height;
@@ -181,6 +183,11 @@ public partial class MainWindow : Window
         {
             WindowState = WindowState.Maximized;
         }
+    }
+
+    private void Window_SizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        _vm.UpdateWindowWidth(e.NewSize.Width);
     }
 
     private void BuildSplashTagline()
@@ -427,8 +434,9 @@ public partial class MainWindow : Window
             if (_vm.IsShareSheetOpen) { _vm.IsShareSheetOpen = false; e.Handled = true; return; }
             if (_vm.IsQuickRecordOpen) { _vm.IsQuickRecordOpen = false; e.Handled = true; return; }
             if (_vm.IsTitleDetailOpen) { _vm.IsTitleDetailOpen = false; e.Handled = true; return; }
-            if (_vm.IsDiscussionDetailOpen) { _vm.IsDiscussionDetailOpen = false; e.Handled = true; return; }
             if (_vm.IsWriteDiscussionOpen) { _vm.IsWriteDiscussionOpen = false; e.Handled = true; return; }
+            if (_vm.IsInfoTab) { _vm.CloseInfoPage(); e.Handled = true; return; }
+            if (_vm.IsTogetherTab && _vm.ShowTogetherBackButton) { _vm.CloseNarrowTogetherDetail(); e.Handled = true; return; }
         }
 
         if ((Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control &&
@@ -633,18 +641,11 @@ public partial class MainWindow : Window
         _vm.CurrentMySpaceSection = MySpaceSection.BOOKSHELF;
     }
 
-    private void OpenGuidesShortcut_Click(object sender, RoutedEventArgs e)
-    {
-        _vm.CurrentTab = MainTab.MY_SPACE;
-        _vm.CurrentMySpaceSection = MySpaceSection.GUIDES;
-    }
-
-    private void OpenFeedbackShortcut_Click(object sender, RoutedEventArgs e)
-    {
-        _vm.CurrentTab = MainTab.MY_SPACE;
-        _vm.CurrentMySpaceSection = MySpaceSection.FEEDBACK;
-        _ = _vm.LoadFeedbackThreadsAsync();
-    }
+    private void OpenGuidesShortcut_Click(object sender, RoutedEventArgs e) => _vm.OpenInfoPage(InfoPageKind.GUIDES);
+    private void OpenAboutShortcut_Click(object sender, RoutedEventArgs e) => _vm.OpenInfoPage(InfoPageKind.ABOUT);
+    private void OpenFaqShortcut_Click(object sender, RoutedEventArgs e) => _vm.OpenInfoPage(InfoPageKind.FAQ);
+    private void OpenPrivacyShortcut_Click(object sender, RoutedEventArgs e) => _vm.OpenInfoPage(InfoPageKind.PRIVACY);
+    private void OpenFeedbackShortcut_Click(object sender, RoutedEventArgs e) => _vm.OpenFeedbackInbox();
 
     // ==================== TIMELINE EVENTS ====================
     private void FilterTimelineAll_Click(object sender, RoutedEventArgs e) => _vm.TimelineContentFilter = ContentFilter.ALL;
@@ -659,7 +660,8 @@ public partial class MainWindow : Window
     private void FilterStatusDone_Click(object sender, RoutedEventArgs e) => _vm.ApplyMomentQuickFilter(status: LogStatus.DONE);
     private void FilterStatusInProgress_Click(object sender, RoutedEventArgs e) => _vm.ApplyMomentQuickFilter(status: LogStatus.IN_PROGRESS);
     private void FilterStatusWishlist_Click(object sender, RoutedEventArgs e) => _vm.ApplyMomentQuickFilter(status: LogStatus.WISHLIST);
-    private void RefreshRecommendations_Click(object sender, RoutedEventArgs e) => _ = _vm.LoadRecommendationsAsync(forceRefresh: true);
+    private void RefreshRecommendations_Click(object sender, RoutedEventArgs e) => _ = _vm.HandleRecommendationActionAsync();
+    private void RetryRecommendations_Click(object sender, RoutedEventArgs e) => _ = _vm.RetryRecommendationsAsync();
 
     private void RecommendationLog_Click(object sender, RoutedEventArgs e)
     {
@@ -717,36 +719,55 @@ public partial class MainWindow : Window
     private void SortTogetherLatest_Click(object sender, RoutedEventArgs e) => _vm.TogetherSort = DiscussionSort.LATEST;
     private void SortTogetherReactions_Click(object sender, RoutedEventArgs e) => _vm.TogetherSort = DiscussionSort.REACTIONS;
     private void SortTogetherComments_Click(object sender, RoutedEventArgs e) => _vm.TogetherSort = DiscussionSort.COMMENTS;
+    private void ClearTogetherSearch_Click(object sender, RoutedEventArgs e) => _vm.ClearTogetherSearch();
+    private void RefreshTogether_Click(object sender, RoutedEventArgs e) => _ = _vm.LoadTogetherAsync();
+    private void CloseNarrowTogetherDetail_Click(object sender, RoutedEventArgs e) => _vm.CloseNarrowTogetherDetail();
     private void OpenWriteDiscussion_Click(object sender, RoutedEventArgs e) => _vm.IsWriteDiscussionOpen = true;
     private void CloseWriteDiscussion_Click(object sender, RoutedEventArgs e) => _vm.IsWriteDiscussionOpen = false;
     private void SubmitNewDiscussion_Click(object sender, RoutedEventArgs e) => _ = _vm.SubmitNewDiscussionAsync();
-    private void CloseDiscussionDetail_Click(object sender, RoutedEventArgs e) => _vm.IsDiscussionDetailOpen = false;
     private void SubmitComment_Click(object sender, RoutedEventArgs e) => _ = _vm.SubmitDiscussionCommentAsync();
+    private void RetryDiscussionDetail_Click(object sender, RoutedEventArgs e) => _ = _vm.RetrySelectedDiscussionDetailAsync();
+    private void LogSelectedDiscussionTitle_Click(object sender, RoutedEventArgs e) => _vm.OpenQuickRecordForSelectedDiscussion();
+    private void OpenSelectedDiscussionRecord_Click(object sender, RoutedEventArgs e) => _vm.OpenLocalRecordForSelectedDiscussion();
+    private void ReactSelectedDone_Click(object sender, RoutedEventArgs e) => _ = _vm.ReactToSelectedDiscussionAsync(DiscussionReactionType.DONE);
+    private void ReactSelectedCurious_Click(object sender, RoutedEventArgs e) => _ = _vm.ReactToSelectedDiscussionAsync(DiscussionReactionType.CURIOUS);
+    private void ReactSelectedSave_Click(object sender, RoutedEventArgs e) => _ = _vm.ReactToSelectedDiscussionAsync(DiscussionReactionType.SAVE);
+
+    private void CommentInput_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+    {
+        if (e.Key == Key.Enter && _vm.CanSubmitComment)
+        {
+            e.Handled = true;
+            _ = _vm.SubmitDiscussionCommentAsync();
+        }
+    }
+
+    private void TogetherListItem_MouseUp(object sender, MouseButtonEventArgs e)
+    {
+        if (sender is System.Windows.Controls.ListBoxItem lbi && lbi.DataContext is TogetherListItem item)
+        {
+            _vm.OpenDiscussionFromListItem(item);
+            TogetherDetailScrollViewer?.ScrollToTop();
+        }
+    }
+
+    private void TogetherList_PreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+    {
+        if (e.Key == Key.Enter && TogetherDiscussionListBox.SelectedItem is TogetherListItem item)
+        {
+            _vm.OpenDiscussionFromListItem(item);
+            TogetherDetailScrollViewer?.ScrollToTop();
+            e.Handled = true;
+        }
+    }
 
     private void OpenDiscussionDetail_Click(object sender, RoutedEventArgs e)
     {
         if (sender is FrameworkElement fe && fe.Tag is DiscussionPost post)
         {
-            _ = _vm.OpenDiscussionDetailAsync(post);
+            _ = _vm.OpenDiscussionFromExternalAsync(post);
+            TogetherDetailScrollViewer?.ScrollToTop();
         }
-    }
-
-    private void ReactDone_Click(object sender, RoutedEventArgs e)
-    {
-        if (sender is FrameworkElement fe && fe.Tag is DiscussionPost post)
-            _vm.ReactToDiscussion(post, DiscussionReactionType.DONE);
-    }
-
-    private void ReactCurious_Click(object sender, RoutedEventArgs e)
-    {
-        if (sender is FrameworkElement fe && fe.Tag is DiscussionPost post)
-            _vm.ReactToDiscussion(post, DiscussionReactionType.CURIOUS);
-    }
-
-    private void ReactSave_Click(object sender, RoutedEventArgs e)
-    {
-        if (sender is FrameworkElement fe && fe.Tag is DiscussionPost post)
-            _vm.ReactToDiscussion(post, DiscussionReactionType.SAVE);
     }
 
     // ==================== MY SPACE EVENTS ====================
@@ -759,7 +780,7 @@ public partial class MainWindow : Window
         _vm.CurrentMySpaceSection = MySpaceSection.FEEDBACK;
         _ = _vm.LoadFeedbackThreadsAsync();
     }
-    private void MySpaceGuides_Click(object sender, RoutedEventArgs e) => _vm.CurrentMySpaceSection = MySpaceSection.GUIDES;
+    private void MySpaceGuides_Click(object sender, RoutedEventArgs e) => _vm.OpenInfoPage(InfoPageKind.GUIDES);
     private void MySpaceImportAdvanced_Click(object sender, RoutedEventArgs e) => _vm.CurrentMySpaceSection = MySpaceSection.IMPORT_ADVANCED;
 
     private void ToggleProfileEditor_Click(object sender, RoutedEventArgs e) =>
