@@ -29,7 +29,6 @@
 | Edge 확장 | 배포 중 | [Edge Add-ons](https://microsoftedge.microsoft.com/addons/detail/egghbkekjopgknhggoeiekgdooofihbo) |
 | Whale 확장 | 배포 중 | [Whale Store](https://store.whale.naver.com/detail/fdifiinpckjcafdndikchfhmkejhdfhc) |
 | 토스 미니앱 | 출시 · 표시명 `내 OTT 타임라인` | [토스에서 열기](https://minion.toss.im/XYvjpUB2) |
-| ChatGPT 앱 | 현재 미운영 | — |
 
 브라우저 확장은 지원하는 OTT 페이지에서 작품 제목을 가져와 ottline의 기록 창을 여는 보조 도구예요.
 
