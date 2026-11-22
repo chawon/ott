@@ -72,6 +72,15 @@
 11. `DiscussionListItem`/`DiscussionDto` 응답에는 `reactionSummary(done, curious, save)`가 포함된다
 12. `GET /api/discussions/connection?titleId=`: 기존 활성 기기 헤더로 실제 다른 사용자의 내용 있는 공개 댓글 존재를 확인하고 `{discussionId, titleId}` 또는 `null`을 반환한다. 기존 익명 댓글도 포함하며 누적 `commentSeq`나 200개 목록 제한에 의존하지 않는다. `Cache-Control: private, no-store`인 읽기 전용 조회로 신규 계정·이야기·댓글을 만들지 않는다. 저장 완료 뒤 같은 작품 연결에만 사용하며 실패는 기록 저장에 영향을 주지 않는다. 상세는 [saved-discussion-connection.md](saved-discussion-connection.md)를 따른다.
 
+### Curated contents · 종료 호환 계약
+
+`2026-11-22` 개발 후보의 계약이다. 운영 반영·검증 상태는 [큐레이터 종료 변경안](changes/api-curator-retirement-2026-11-22.md)을 따른다.
+
+1. `GET /api/curated-contents?limit=`는 한국어·영어 및 기존 설치 앱에 **HTTP 200 빈 배열 `[]`**을 반환하며 `Cache-Control: no-store`를 사용한다. 기존 게시 자료가 DB에 남아 있어도 공개하지 않는다.
+2. 인증된 관리자의 `POST /internal/admin/curated-contents/drafts`, `POST /internal/admin/curated-contents/{id}/publish`, `POST /internal/admin/curated-contents/{id}/disable`는 **410 Gone**을 반환하며 데이터를 변경하지 않는다. 기존 관리자 토큰 검증은 유지한다.
+3. 관리자 목록·작품 검색과 내부 이력 조회는 읽기 전용으로 보존한다. 자동 초안 생성·Telegram 승인 수신·게시·재전송 작업은 제공하지 않는다. 문의 알림·데일리 리포트의 일반 Telegram 전송과 스케줄러는 유지한다.
+4. 기존 큐레이터·승인·감사 자료, 개인 기록·공개 대화·댓글·반응은 삭제하거나 상태를 일괄 변경하지 않는다.
+
 ### Recommendations
 1. 모든 경로는 `X-User-Id`·`X-Device-Id` 활성 기기를 검사하고 캐시하지 않는다.
 2. `GET /api/recommendations/state`: 읽기 전용. 후보·계정 제외·서버 횟수·생성 상태·완료 기록 5개 자격 여부를 반환한다.

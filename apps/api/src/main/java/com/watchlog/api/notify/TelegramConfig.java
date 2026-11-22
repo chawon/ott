@@ -8,21 +8,13 @@ import org.springframework.http.MediaType;
 import org.springframework.web.client.RestClient;
 
 @Configuration
-@EnableConfigurationProperties({TelegramProperties.class, CuratorAutomationProperties.class})
+@EnableConfigurationProperties(TelegramProperties.class)
 public class TelegramConfig {
 
     @Bean
     org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler taskScheduler() {
         // Preserve the existing single-thread scheduler for reports and other application jobs.
         return new org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler();
-    }
-
-    @Bean
-    org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler curatorTaskScheduler() {
-        var scheduler = new org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler();
-        scheduler.setPoolSize(2);
-        scheduler.setThreadNamePrefix("curator-");
-        return scheduler;
     }
 
     @Bean

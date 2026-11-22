@@ -13,7 +13,7 @@ class CuratedContentAdminContextTest {
             .withConfiguration(AutoConfigurations.of(JacksonAutoConfiguration.class))
             .withPropertyValues("admin.curated-content.token=test-admin-token")
             .withBean(JdbcTemplate.class, () -> new JdbcTemplate(new DriverManagerDataSource()))
-            .withUserConfiguration(CuratedPromptGenerator.class, CuratedContentAdminService.class);
+            .withUserConfiguration(CuratedContentAdminService.class);
 
     @Test
     void curatorAdminServiceUsesTheSpringBoot4JacksonBean() {
