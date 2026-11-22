@@ -6,6 +6,8 @@
 
 ## 에이전트로 작업하기
 
+소스 구조와 플랫폼별 로컬 실행·검증 명령은 [개발 시작과 소스 구조](development.md)에서 확인한다.
+
 ottline 저장소 루트에서 새 세션을 연다. Codex와 Antigravity(`agy`)는 [AGENTS.md](../AGENTS.md)를 직접 읽고, Claude Code는 [CLAUDE.md](../CLAUDE.md)를 통해 같은 지침을 읽는다. 진행할 항목과 확인 기준은 [v2 후속 작업](changes/v2-follow-up.md)에서 찾는다.
 
 ## 설계와 운영

@@ -1,40 +1,42 @@
-# ottline 개발 지휘부
+# ottline
 
-ottline은 영상과 책을 기록하고 돌아보는 서비스입니다. 이 저장소에서 플랫폼 공통 정책과 API를 관리하고, 기능 변경을 각 앱에 어떻게 적용할지 문서로 남깁니다.
+영화·드라마·책을 기록하고 돌아보는 나만의 타임라인.
 
-- [문서 지도](docs/README.md)에서 기능 계약, 구현 근거, 출시 기록을 찾습니다.
-- [플랫폼 현황](docs/platforms.md)에서 소스 위치와 현재 출시·개발 상태를 확인합니다.
-- [제품 기획 운영](docs/product-planning.md)과 [기능 기준표](docs/feature-matrix.md)에서 개선 과제·공통 동작·플랫폼 차이를 관리합니다.
-- [변경안을 작성합니다](docs/changes/README.md). 영향을 받는 앱, 데이터 호환성, 검증과 출시 순서를 기록합니다.
-- [Wiki](wiki/index.md)는 제품·플랫폼별 현재 동작을 찾는 데 사용합니다. 이전 운영 자료는 [문서 아카이브](docs/archive/README.md)와 [Wiki 아카이브](wiki/archive/README.md)에 있습니다.
+다 본 작품, 읽고 있는 책, 나중에 보고 싶은 이야기를 한곳에 남겨요. 가입 절차 없이 시작하고, 기록 연결 코드로 여러 기기에서 같은 타임라인을 이어갈 수 있어요.
 
-## 소스 구조
+[웹에서 시작하기](https://ottline.app) · [서비스 소개](https://ottline.app/about) · [English](https://ottline.app/en)
 
-| 경로 | 역할 |
-| --- | --- |
-| [apps/api](apps/api) | 공통 API, PostgreSQL·Flyway, 인증·동기화·카탈로그 |
-| [apps/web](apps/web) | Next.js Web/PWA 및 관리자 화면 |
-| [apps/android-native](apps/android-native) | Kotlin·Jetpack Compose Android 앱 |
-| [apps/ios-native](apps/ios-native) | App Store에 출시된 SwiftUI iPhone·iPad 앱 |
-| [apps/macos-native](apps/macos-native) | Mac App Store에 출시된 SwiftUI macOS 앱 |
-| [apps/apple-core](apps/apple-core) | iOS·iPadOS·macOS 공용 저장·동기화·API 패키지 |
-| [apps/native](apps/native) | 이전 Expo React Native iOS 앱과 v2 업데이트 시 데이터 이전 참고 소스 |
-| [apps/windows-native](apps/windows-native) | .NET WPF Windows 앱 |
-| [apps/browser-extension](apps/browser-extension) | Chrome·Edge·Whale에서 빠른 기록으로 연결하는 확장 |
-| [shared](shared) | Web과 Expo iOS에서 사용하는 도서 플랫폼 데이터 |
-| [deploy/oke](deploy/oke) | 운영 Web/API의 GitOps 설정 |
-| [archive](archive) | 구형 Android TWA 소스와 초기 v2 디자인 시안 |
+## 이렇게 써요
 
-2026-11-22 사용자 확인 기준 macOS·iOS·iPadOS v2 출시가 완료됐습니다. 설치 링크와 출시 후 확인은 [플랫폼 현황](docs/platforms.md)과 [Apple 후속 작업](docs/changes/v2-follow-up.md#2-apple-v2-업데이트-검증)에서 확인합니다. 토스 인앱의 별도 출시 소스도 플랫폼 현황에서 연결합니다.
+- **영상과 책을 함께** — 영화·시리즈·책을 검색하고 감상 상태를 남겨요.
+- **그날의 순간** — 날짜·장소·함께한 사람·한 줄 메모를 원할 때 덧붙여요.
+- **타임라인으로 돌아보기** — 쌓아온 기록에서 지난 감상을 다시 꺼내 봐요.
+- **기기를 바꿔도 이어 쓰기** — 기록 연결 코드로 휴대폰·태블릿·컴퓨터의 기록을 연결해요.
+- **공유 카드와 작품 이야기** — 기록은 공유 카드로 나누고, 작품 이야기에는 댓글과 반응을 남겨요.
 
-## 개발 시작
+## 출시 현황
 
-| 대상 | 시작점 |
-| --- | --- |
-| Web | 루트에서 `npm ci` 후 `npm run dev`. Web v2 로직 검사는 `npm run test:timeline-v2 --workspace ott`. |
-| API | `apps/api`에서 `./gradlew test`. 개발 DB 구성은 [Docker Compose 설정](apps/api/docker-compose.yml)을 참고합니다. |
-| Android | [빌드와 테스트 가이드](apps/android-native/README.md) |
-| iOS·iPadOS | [SwiftUI 개발 및 배포 가이드](apps/ios-native/DEVELOPMENT.md) |
-| macOS | [SwiftUI 개발 가이드](apps/macos-native/DEVELOPMENT.md) |
-| Windows | [빌드와 패키징 가이드](apps/windows-native/README.md) |
-| 브라우저 확장 | [배포 Wiki](wiki/pages/platforms/browser-extension.md)와 [패키지 워크플로우](.github/workflows/browser-extension-package.yml) |
+2026년 11월 22일 기준 플랫폼별 출시·운영 상태예요.
+
+| 플랫폼 | 공개 상태 | 이용·설치 |
+| --- | --- | --- |
+| 웹·설치형 웹앱(PWA) | 이용 가능 | [ottline.app](https://ottline.app) |
+| Android | Google Play 출시 | [Google Play](https://play.google.com/store/apps/details?id=app.ottline) |
+| iPhone·iPad | App Store 출시 | [App Store](https://apps.apple.com/app/id6780318110) |
+| macOS | Mac App Store 출시 | [Mac App Store](https://apps.apple.com/app/id6780318110?platform=mac) |
+| Windows | Microsoft Store 출시 | [Microsoft Store](https://apps.microsoft.com/detail/9nsvnzgdmgf5) |
+| Chrome 확장 | 배포 중 | [Chrome Web Store](https://chromewebstore.google.com/detail/achangjgnpbideilpolbohbkmmkmojpo) |
+| Edge 확장 | 배포 중 | [Edge Add-ons](https://microsoftedge.microsoft.com/addons/detail/egghbkekjopgknhggoeiekgdooofihbo) |
+| Whale 확장 | 배포 중 | [Whale Store](https://store.whale.naver.com/detail/fdifiinpckjcafdndikchfhmkejhdfhc) |
+| 토스 미니앱 | 출시 · 표시명 `내 OTT 타임라인` | [토스에서 열기](https://minion.toss.im/XYvjpUB2) |
+| ChatGPT 앱 | 현재 미운영 | — |
+
+브라우저 확장은 지원하는 OTT 페이지에서 작품 제목을 가져와 ottline의 기록 창을 여는 보조 도구예요.
+
+## 첫 기록 남기기
+
+1. 웹이나 앱에서 영화·시리즈·책 제목을 검색해 골라요.
+2. 감상 상태를 고르고 기록을 남겨요. 메모와 느낌은 나중에 더해도 괜찮아요.
+3. 다른 기기에서도 쓰려면 **내 공간의 기록 연결 코드**로 같은 타임라인을 이어가요.
+
+[OTT 시청 기록 가이드](https://ottline.app/guide/ott-watch-log) · [영화·시리즈 기록 가이드](https://ottline.app/guide/movie-series-log) · [책·독서 기록 가이드](https://ottline.app/guide/book-log)
