@@ -256,6 +256,28 @@ class OttlineApiClient(
     suspend fun getProfile(): UserProfile =
         executeJson("/auth/profile", includeAuth = true)
 
+    /**
+     * Fetches the profile (including `pairingCode`) for explicit credentials without mutating
+     * current `prefs` or triggering `onAuthRevoked` for the active account.
+     */
+    suspend fun getProfileForCredentials(userId: String, deviceId: String): UserProfile =
+        withContext(Dispatchers.IO) {
+            val request = buildRequest(
+                path = "/auth/profile",
+                method = "GET",
+                includeAuth = true,
+                userIdOverride = userId,
+                deviceIdOverride = deviceId
+            )
+            httpClient.newCall(request).execute().use { response ->
+                val raw = response.body?.string().orEmpty()
+                if (!response.isSuccessful) {
+                    throw ApiException(response.code, "HTTP ${response.code}")
+                }
+                json.decodeFromString<UserProfile>(raw)
+            }
+        }
+
     suspend fun updateProfile(req: UpdateUserProfileRequest): UserProfile =
         executeJson(
             "/auth/profile",

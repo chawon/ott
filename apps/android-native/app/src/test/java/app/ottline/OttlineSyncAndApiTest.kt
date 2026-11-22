@@ -914,7 +914,7 @@ class OttlineSyncAndApiTest {
 /**
  * Multi-architecture (including Windows ARM64) JDBC-backed SQLiteDriver for Room 2.7 JVM tests.
  */
-private class JdbcSqliteDriver : SQLiteDriver {
+internal class JdbcSqliteDriver : SQLiteDriver {
     override fun open(fileName: String): SQLiteConnection {
         Class.forName("org.sqlite.JDBC")
         val url = if (fileName == ":memory:" || fileName.isBlank()) {

@@ -74,6 +74,7 @@ import app.ottline.BuildConfig
 import app.ottline.RevisitReminderScheduler
 import app.ottline.data.OttlineRepository
 import app.ottline.data.local.AppPreferences
+import app.ottline.data.local.BrowserHandoffState
 import app.ottline.data.local.PreferencesSnapshot
 import app.ottline.data.local.TwaBrowserBridge
 import app.ottline.domain.CsvExporter
@@ -522,11 +523,19 @@ fun MySpaceScreen(
 
                     OutlinedButton(
                         onClick = {
-                            TwaBrowserBridge.launchTwaHandoff(
+                            val launched = TwaBrowserBridge.launchManagedHandoff(
                                 context = context,
-                                locale = locale,
-                                apiBaseUrl = prefsSnapshot.apiBaseUrl
+                                prefs = repository.prefs,
+                                isAutomatic = false
                             )
+                            if (!launched) {
+                                val msg = if (locale == "en") {
+                                    "Couldn’t open a browser. You can enter your connection code above."
+                                } else {
+                                    "브라우저를 열지 못했어요. 위의 연결 코드 입력으로 이어받을 수 있어요."
+                                }
+                                Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
+                            }
                         },
                         shape = RoundedCornerShape(8.dp),
                         modifier = Modifier
@@ -536,6 +545,33 @@ fun MySpaceScreen(
                         Icon(Icons.Outlined.Refresh, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(Modifier.width(6.dp))
                         Text(tr("기존 앱(브라우저) 기록 자동 연결", "Auto-connect from previous app / browser"))
+                    }
+
+                    val handoffInlineStatus = when (prefsSnapshot.browserHandoffState) {
+                        BrowserHandoffState.INCOMPLETE_RETURN -> tr(
+                            "이전 브라우저 연결이 완료되지 않았어요. 위 버튼으로 다시 시도하거나 연결 코드를 입력해 주세요.",
+                            "The previous browser connection didn’t finish. Try the button above again or enter your connection code."
+                        )
+                        BrowserHandoffState.LAUNCH_FAILED -> tr(
+                            "브라우저를 열지 못했어요. 다시 시도하거나 연결 코드를 입력해 주세요.",
+                            "Couldn’t open a browser. Try again or enter your connection code."
+                        )
+                        BrowserHandoffState.EMPTY_SESSION -> tr(
+                            "이 브라우저에서 저장된 기록을 찾지 못했어요. 다른 브라우저를 쓰셨다면 연결 코드로 이어받을 수 있어요.",
+                            "No saved records were found in this browser. If you used another browser, enter your connection code."
+                        )
+                        BrowserHandoffState.FAILED -> tr(
+                            "이전 연결을 마무리하지 못했어요. 이 기기의 기록은 그대로 보관돼 있으니 다시 시도해 주세요.",
+                            "Couldn’t finish the previous connection. Your device records are safe—please try again."
+                        )
+                        else -> null
+                    }
+                    if (handoffInlineStatus != null) {
+                        Text(
+                            text = handoffInlineStatus,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = palette.mutedInk
+                        )
                     }
 
                     // Collapsible "Lost your code?" helper

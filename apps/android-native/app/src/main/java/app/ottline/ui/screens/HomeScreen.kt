@@ -1,6 +1,7 @@
 package app.ottline.ui.screens
 
 import android.net.Uri
+import android.widget.Toast
 import androidx.browser.customtabs.CustomTabsIntent
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -74,6 +75,8 @@ import app.ottline.WatchReminderScheduler
 import app.ottline.data.OttlineRepository
 import app.ottline.data.SyncState
 import app.ottline.data.local.AndroidInstallToken
+import app.ottline.data.local.BrowserHandoffPolicy
+import app.ottline.data.local.BrowserHandoffState
 import app.ottline.data.local.PreferencesSnapshot
 import app.ottline.data.local.TwaBrowserBridge
 import app.ottline.domain.RecordDate
@@ -173,10 +176,23 @@ fun HomeScreen(
     }
     var shareCardLog by remember { mutableStateOf<WatchLog?>(null) }
 
-    val showTwaMigrationCard = remember(prefsSnapshot.userId, prefsSnapshot.twaMigrationBannerDismissed, logs.size) {
-        !prefsSnapshot.twaMigrationBannerDismissed &&
-            logs.isEmpty() &&
-            TwaBrowserBridge.hasTwaOrUpgradeFootprint(context)
+    val hasTwaFootprint = remember(context) {
+        TwaBrowserBridge.hasTwaOrUpgradeFootprint(context)
+    }
+    val showTwaMigrationCard = remember(
+        prefsSnapshot.userId,
+        prefsSnapshot.twaMigrationBannerDismissed,
+        prefsSnapshot.twaBrowserHandoffCompleted,
+        prefsSnapshot.browserHandoffState,
+        prefsSnapshot.installReferrerRaw,
+        logs.size,
+        hasTwaFootprint
+    ) {
+        BrowserHandoffPolicy.shouldShowHomeHandoffCard(
+            prefs = prefsSnapshot,
+            activeLogCount = logs.size,
+            hasTwaFootprint = hasTwaFootprint
+        )
     }
 
     LaunchedEffect(reloadNonce, logs.size) {
@@ -429,9 +445,60 @@ fun HomeScreen(
             }
         }
 
-        // 3. Seamless TWA -> Native Upgrade Continuity Helper
+        // 3. Seamless TWA / Web -> Native Upgrade Continuity & Retry Helper
         if (showTwaMigrationCard) {
             item {
+                val handoffTitle = when (prefsSnapshot.browserHandoffState) {
+                    BrowserHandoffState.INCOMPLETE_RETURN -> tr(
+                        "브라우저 연결이 아직 완료되지 않았어요",
+                        "Browser connection didn’t finish yet"
+                    )
+                    BrowserHandoffState.LAUNCH_FAILED -> tr(
+                        "브라우저를 열지 못했어요",
+                        "Couldn’t open your browser"
+                    )
+                    BrowserHandoffState.EMPTY_SESSION -> tr(
+                        "이 브라우저에서 기존 기록을 찾지 못했어요",
+                        "No saved records found in this browser"
+                    )
+                    BrowserHandoffState.FAILED -> tr(
+                        "기존 기록 연결을 마무리하지 못했어요",
+                        "Couldn’t finish connecting your records"
+                    )
+                    else -> tr(
+                        "이전 버전에서 남긴 기록을 이어받을까요?",
+                        "Restore records from the previous app?"
+                    )
+                }
+                val handoffBody = when (prefsSnapshot.browserHandoffState) {
+                    BrowserHandoffState.INCOMPLETE_RETURN -> tr(
+                        "잠시 연결이 끊겼거나 브라우저가 닫혔을 수 있어요. 다시 연결하거나 연결 코드로 바로 이어받을 수 있어요.",
+                        "The browser may have closed or timed out before returning. Try again or link with your connection code."
+                    )
+                    BrowserHandoffState.LAUNCH_FAILED -> tr(
+                        "이 기기에서 호환 브라우저를 열지 못했어요. 다시 시도하거나 웹의 연결 코드를 직접 입력해 주세요.",
+                        "We couldn’t launch a browser on this device. Try again or enter your connection code from the web."
+                    )
+                    BrowserHandoffState.EMPTY_SESSION -> tr(
+                        "다른 브라우저에서 ottline을 쓰셨다면 연결 코드를 입력해 기존 기록을 이어받을 수 있어요.",
+                        "If you used ottline in another browser, enter your connection code to bring those records over."
+                    )
+                    BrowserHandoffState.FAILED -> tr(
+                        "이 기기의 기록은 그대로 보관되어 있어요. 네트워크를 확인한 뒤 다시 연결하거나 코드로 이어받아 주세요.",
+                        "Your records on this device are safe. Check your connection and try again, or link with a code."
+                    )
+                    else -> tr(
+                        "ottline 2.0 네이티브 앱으로 새로워졌어요. 기존 앱(브라우저)에서 쓰던 기록을 버튼 한 번으로 바로 연결할 수 있어요.",
+                        "ottline is now a native app! Connect your previous app/browser records automatically with one tap."
+                    )
+                }
+                val handoffPrimaryLabel = when (prefsSnapshot.browserHandoffState) {
+                    BrowserHandoffState.INCOMPLETE_RETURN,
+                    BrowserHandoffState.LAUNCH_FAILED,
+                    BrowserHandoffState.FAILED -> tr("다시 연결하기", "Try again")
+                    BrowserHandoffState.EMPTY_SESSION -> tr("다시 확인하기", "Check again")
+                    else -> tr("기존 기록 자동 연결", "Auto-connect records")
+                }
                 Surface(
                     shape = RoundedCornerShape(8.dp),
                     color = palette.paperStrong,
@@ -445,15 +512,12 @@ fun HomeScreen(
                         modifier = Modifier.padding(16.dp)
                     ) {
                         Text(
-                            text = tr("이전 버전에서 남긴 기록을 이어받을까요?", "Restore records from the previous app?"),
+                            text = handoffTitle,
                             style = MaterialTheme.typography.titleMedium,
                             color = palette.ink
                         )
                         Text(
-                            text = tr(
-                                "ottline 2.0 네이티브 앱으로 새로워졌어요. 기존 앱(브라우저)에서 쓰던 기록을 버튼 한 번으로 바로 연결할 수 있어요.",
-                                "ottline is now a native app! Connect your previous app/browser records automatically with one tap."
-                            ),
+                            text = handoffBody,
                             style = MaterialTheme.typography.bodySmall,
                             color = palette.mutedInk
                         )
@@ -463,11 +527,19 @@ fun HomeScreen(
                         ) {
                             Button(
                                 onClick = {
-                                    TwaBrowserBridge.launchTwaHandoff(
+                                    val launched = TwaBrowserBridge.launchManagedHandoff(
                                         context = context,
-                                        locale = locale,
-                                        apiBaseUrl = prefsSnapshot.apiBaseUrl
+                                        prefs = repository.prefs,
+                                        isAutomatic = false
                                     )
+                                    if (!launched) {
+                                        val msg = if (locale == "en") {
+                                            "Couldn’t open a browser. You can link with your connection code."
+                                        } else {
+                                            "브라우저를 열지 못했어요. 연결 코드로 바로 이어받을 수 있어요."
+                                        }
+                                        Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
+                                    }
                                 },
                                 shape = RoundedCornerShape(8.dp),
                                 colors = ButtonDefaults.buttonColors(
@@ -475,7 +547,7 @@ fun HomeScreen(
                                     contentColor = palette.onBrandOrange
                                 )
                             ) {
-                                Text(tr("기존 기록 자동 연결", "Auto-connect records"), fontWeight = FontWeight.Bold)
+                                Text(handoffPrimaryLabel, fontWeight = FontWeight.Bold)
                             }
                             OutlinedButton(
                                 onClick = onOpenMySpacePairing,

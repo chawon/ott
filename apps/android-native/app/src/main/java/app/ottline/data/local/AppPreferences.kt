@@ -37,7 +37,10 @@ data class PreferencesSnapshot(
     val customBookPlatforms: List<String>,
     val singleDeviceCodeReminderShown: Boolean,
     val twaMigrationBannerDismissed: Boolean,
+    val twaAutoHandoffAttempted: Boolean = false,
     val twaBrowserHandoffCompleted: Boolean,
+    val browserHandoffState: BrowserHandoffState = BrowserHandoffState.IDLE,
+    val browserHandoffPendingSinceMillis: Long = 0L,
     val dismissedRecommendations: Set<String>,
     val nativeLogSavesCount: Int = 0,
     val lastInAppReviewPromptAtMillis: Long = 0L,
@@ -105,8 +108,20 @@ class AppPreferences(context: Context) {
             BuildConfig.DEFAULT_API_BASE_URL.trimEnd('/')
         }
 
+        val storedUserId = prefs.getString(KEY_USER_ID, null)?.takeIf { it.isNotBlank() }
+        val legacyCompleted = prefs.getBoolean(KEY_TWA_BROWSER_HANDOFF_COMPLETED, false)
+        val autoAttempted = if (prefs.contains(KEY_TWA_AUTO_HANDOFF_ATTEMPTED)) {
+            prefs.getBoolean(KEY_TWA_AUTO_HANDOFF_ATTEMPTED, false)
+        } else {
+            // Preserve non-looping behavior for installs upgraded from <=2.0.5
+            legacyCompleted
+        }
+        val storedHandoffState = prefs.getString(KEY_BROWSER_HANDOFF_STATE, null)
+            ?.let { raw -> runCatching { BrowserHandoffState.valueOf(raw) }.getOrNull() }
+            ?: if (legacyCompleted && storedUserId != null) BrowserHandoffState.COMPLETED else BrowserHandoffState.IDLE
+
         return PreferencesSnapshot(
-            userId = prefs.getString(KEY_USER_ID, null)?.takeIf { it.isNotBlank() },
+            userId = storedUserId,
             deviceId = prefs.getString(KEY_DEVICE_ID, null)?.takeIf { it.isNotBlank() },
             pairingCode = prefs.getString(KEY_PAIRING_CODE, null)?.takeIf { it.isNotBlank() },
             lastSyncAt = prefs.getString(KEY_LAST_SYNC_AT, null)?.takeIf { it.isNotBlank() },
@@ -118,7 +133,10 @@ class AppPreferences(context: Context) {
             customBookPlatforms = bookCustom,
             singleDeviceCodeReminderShown = prefs.getBoolean(KEY_SINGLE_DEVICE_REMINDER_SHOWN, false),
             twaMigrationBannerDismissed = prefs.getBoolean(KEY_TWA_MIGRATION_DISMISSED, false),
-            twaBrowserHandoffCompleted = prefs.getBoolean(KEY_TWA_BROWSER_HANDOFF_COMPLETED, false),
+            twaAutoHandoffAttempted = autoAttempted,
+            twaBrowserHandoffCompleted = legacyCompleted,
+            browserHandoffState = storedHandoffState,
+            browserHandoffPendingSinceMillis = prefs.getLong(KEY_BROWSER_HANDOFF_PENDING_SINCE, 0L),
             dismissedRecommendations = dismissedRecs,
             nativeLogSavesCount = prefs.getInt(KEY_NATIVE_LOG_SAVES_COUNT, 0),
             lastInAppReviewPromptAtMillis = prefs.getLong(KEY_LAST_IN_APP_REVIEW_PROMPT_AT, 0L),
@@ -209,8 +227,66 @@ class AppPreferences(context: Context) {
         refresh()
     }
 
+    /**
+     * Suppresses repeated automatic browser launches on future app starts without falsely
+     * claiming that record transfer succeeded.
+     */
+    fun markAutoHandoffAttempted() {
+        prefs.edit().putBoolean(KEY_TWA_AUTO_HANDOFF_ATTEMPTED, true).apply()
+        refresh()
+    }
+
+    fun markBrowserHandoffPending(nowMillis: Long = System.currentTimeMillis()) {
+        prefs.edit()
+            .putString(KEY_BROWSER_HANDOFF_STATE, BrowserHandoffState.PENDING.name)
+            .putLong(KEY_BROWSER_HANDOFF_PENDING_SINCE, nowMillis)
+            .apply()
+        refresh()
+    }
+
+    fun markBrowserHandoffIncompleteReturn() {
+        if (current.browserHandoffState != BrowserHandoffState.PENDING) return
+        prefs.edit()
+            .putString(KEY_BROWSER_HANDOFF_STATE, BrowserHandoffState.INCOMPLETE_RETURN.name)
+            .remove(KEY_BROWSER_HANDOFF_PENDING_SINCE)
+            .apply()
+        refresh()
+    }
+
+    fun markBrowserHandoffLaunchFailed() {
+        prefs.edit()
+            .putString(KEY_BROWSER_HANDOFF_STATE, BrowserHandoffState.LAUNCH_FAILED.name)
+            .remove(KEY_BROWSER_HANDOFF_PENDING_SINCE)
+            .apply()
+        refresh()
+    }
+
+    fun markBrowserHandoffEmptySession() {
+        prefs.edit()
+            .putString(KEY_BROWSER_HANDOFF_STATE, BrowserHandoffState.EMPTY_SESSION.name)
+            .remove(KEY_BROWSER_HANDOFF_PENDING_SINCE)
+            .apply()
+        refresh()
+    }
+
+    fun markBrowserHandoffFailed() {
+        prefs.edit()
+            .putString(KEY_BROWSER_HANDOFF_STATE, BrowserHandoffState.FAILED.name)
+            .remove(KEY_BROWSER_HANDOFF_PENDING_SINCE)
+            .apply()
+        refresh()
+    }
+
+    /**
+     * Records confirmed handoff completion (valid `ok` callback or non-empty install-token restore).
+     */
     fun markTwaBrowserHandoffCompleted() {
-        prefs.edit().putBoolean(KEY_TWA_BROWSER_HANDOFF_COMPLETED, true).apply()
+        prefs.edit()
+            .putBoolean(KEY_TWA_BROWSER_HANDOFF_COMPLETED, true)
+            .putBoolean(KEY_TWA_AUTO_HANDOFF_ATTEMPTED, true)
+            .putString(KEY_BROWSER_HANDOFF_STATE, BrowserHandoffState.COMPLETED.name)
+            .remove(KEY_BROWSER_HANDOFF_PENDING_SINCE)
+            .apply()
         refresh()
     }
 
@@ -266,7 +342,10 @@ class AppPreferences(context: Context) {
         private const val KEY_CUSTOM_BOOK_PLATFORMS = "watchlog.customBookPlatforms"
         private const val KEY_SINGLE_DEVICE_REMINDER_SHOWN = "watchlog.singleDeviceCodeReminderShown"
         private const val KEY_TWA_MIGRATION_DISMISSED = "watchlog.twaMigrationDismissed"
+        private const val KEY_TWA_AUTO_HANDOFF_ATTEMPTED = "watchlog.twaAutoHandoffAttempted"
         private const val KEY_TWA_BROWSER_HANDOFF_COMPLETED = "watchlog.twaBrowserHandoffCompleted"
+        private const val KEY_BROWSER_HANDOFF_STATE = "watchlog.twaBrowserHandoffState"
+        private const val KEY_BROWSER_HANDOFF_PENDING_SINCE = "watchlog.twaBrowserHandoffPendingSince"
         private const val KEY_DISMISSED_RECOMMENDATIONS = "watchlog.dismissedRecommendations"
         private const val KEY_NATIVE_LOG_SAVES_COUNT = "watchlog.nativeLogSavesCount"
         private const val KEY_LAST_IN_APP_REVIEW_PROMPT_AT = "watchlog.lastInAppReviewPromptAt"

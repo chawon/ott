@@ -16,9 +16,11 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -29,7 +31,11 @@ import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import kotlin.math.abs
+import kotlinx.coroutines.delay
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavType
@@ -39,6 +45,9 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import app.ottline.data.OttlineRepository
+import app.ottline.data.local.AutoHandoffDecision
+import app.ottline.data.local.BrowserHandoffPolicy
+import app.ottline.data.local.BrowserHandoffState
 import app.ottline.data.local.PlayInstallReferrerManager
 import app.ottline.data.local.ThemeMode
 import app.ottline.data.local.TwaBrowserBridge
@@ -184,6 +193,66 @@ fun OttlineAppRoot(
         }
     }
 
+    val lifecycleOwner = LocalLifecycleOwner.current
+    var sawPauseWhileHandoffPending by remember { mutableStateOf(false) }
+    var resumeSignal by remember { mutableIntStateOf(0) }
+
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_PAUSE -> {
+                    if (repository.prefs.current.browserHandoffState == BrowserHandoffState.PENDING) {
+                        sawPauseWhileHandoffPending = true
+                    }
+                }
+                Lifecycle.Event.ON_RESUME -> {
+                    resumeSignal++
+                }
+                else -> Unit
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+
+    // Detect return from Custom Tab without `ottline://open?handoff=1...` callback
+    // (e.g., Cloudflare 522, network error, or user closing the browser / pressing Back).
+    LaunchedEffect(resumeSignal, pendingCommand) {
+        if (pendingCommand is LaunchCommand.CompleteTwaHandoff) {
+            sawPauseWhileHandoffPending = false
+            return@LaunchedEffect
+        }
+        if (!BrowserHandoffPolicy.shouldMarkIncompleteOnResume(
+                prefs = repository.prefs.current,
+                sawPauseWhilePending = sawPauseWhileHandoffPending,
+                hasPendingHandoffCallback = false
+            )
+        ) {
+            return@LaunchedEffect
+        }
+        // Grace window so any concurrent onNewIntent callback settles first
+        delay(350)
+        if (pendingCommand is LaunchCommand.CompleteTwaHandoff) {
+            sawPauseWhileHandoffPending = false
+            return@LaunchedEffect
+        }
+        if (BrowserHandoffPolicy.shouldMarkIncompleteOnResume(
+                prefs = repository.prefs.current,
+                sawPauseWhilePending = sawPauseWhileHandoffPending,
+                hasPendingHandoffCallback = false
+            )
+        ) {
+            sawPauseWhileHandoffPending = false
+            repository.prefs.markBrowserHandoffIncompleteReturn()
+            val msg = if (repository.prefs.current.locale == "en") {
+                "Browser connection didn't finish. You can try again or link with a code."
+            } else {
+                "브라우저에서 연결이 완료되지 않았어요. 다시 시도하거나 연결 코드로 이어받을 수 있어요."
+            }
+            Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
+        }
+    }
+
     // Track session-deduplicated `app_open` once per app session (F08) + Install Referrer + automatic TWA/Web handoff
     LaunchedEffect(Unit) {
         repository.deduplicateLocalRecordsIfNeeded()
@@ -197,47 +266,66 @@ fun OttlineAppRoot(
             extraAttribution = firstInstallReferrer?.toAppOpenAttributionProps().orEmpty()
         )
 
-        if (pendingCommand !is LaunchCommand.CompleteTwaHandoff &&
-            !repository.prefs.current.twaBrowserHandoffCompleted &&
-            TwaBrowserBridge.hasTwaOrUpgradeFootprint(context)
-        ) {
-            val restoredByToken = if (repository.prefs.current.userId.isNullOrBlank()) {
-                repository.tryRestoreFromTwaInstallToken()
-            } else {
-                false
+        val decision = BrowserHandoffPolicy.decideAutoHandoffOnStart(
+            prefs = repository.prefs.current,
+            hasPendingHandoffCallback = pendingCommand is LaunchCommand.CompleteTwaHandoff,
+            hasTwaFootprint = TwaBrowserBridge.hasTwaOrUpgradeFootprint(context),
+            referrerWebHandoff = firstInstallReferrer?.webHandoff == true
+        )
+
+        when (decision) {
+            AutoHandoffDecision.MARK_INCOMPLETE_RETURN -> {
+                repository.prefs.markBrowserHandoffIncompleteReturn()
             }
-            if (restoredByToken) {
-                val msg = if (repository.prefs.current.locale == "en") {
-                    "Connected your previous records."
+            AutoHandoffDecision.TRY_TOKEN_THEN_BROWSER -> {
+                val restoredByToken = if (repository.prefs.current.userId.isNullOrBlank()) {
+                    repository.tryRestoreFromTwaInstallToken()
                 } else {
-                    "기존 기록을 자동으로 연결했어요."
+                    false
                 }
-                Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
-            } else if (!repository.prefs.current.twaBrowserHandoffCompleted) {
-                repository.prefs.markTwaBrowserHandoffCompleted()
-                val snap = repository.prefs.current
-                TwaBrowserBridge.launchTwaHandoff(
-                    context = context,
-                    locale = snap.locale,
-                    apiBaseUrl = snap.apiBaseUrl
-                )
+                if (restoredByToken) {
+                    val msg = if (repository.prefs.current.locale == "en") {
+                        "Connected your previous records."
+                    } else {
+                        "기존 기록을 자동으로 연결했어요."
+                    }
+                    Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+                } else if (!repository.prefs.current.twaBrowserHandoffCompleted) {
+                    val launched = TwaBrowserBridge.launchManagedHandoff(
+                        context = context,
+                        prefs = repository.prefs,
+                        isAutomatic = true
+                    )
+                    if (!launched) {
+                        val msg = if (repository.prefs.current.locale == "en") {
+                            "Couldn't open a browser. You can link with your connection code."
+                        } else {
+                            "브라우저를 열지 못했어요. 연결 코드로 바로 이어받을 수 있어요."
+                        }
+                        Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
+                    }
+                }
             }
-        } else if (pendingCommand !is LaunchCommand.CompleteTwaHandoff &&
-            firstInstallReferrer?.webHandoff == true &&
-            repository.prefs.current.userId.isNullOrBlank() &&
-            !repository.prefs.current.twaBrowserHandoffCompleted
-        ) {
-            repository.prefs.markTwaBrowserHandoffCompleted()
-            repository.trackEvent(
-                "web_to_app_handoff_start",
-                mapOf("campaign" to (firstInstallReferrer.utmCampaign ?: "unknown"))
-            )
-            val snap = repository.prefs.current
-            TwaBrowserBridge.launchTwaHandoff(
-                context = context,
-                locale = snap.locale,
-                apiBaseUrl = snap.apiBaseUrl
-            )
+            AutoHandoffDecision.LAUNCH_REFERRER_BROWSER -> {
+                repository.trackEvent(
+                    "web_to_app_handoff_start",
+                    mapOf("campaign" to (firstInstallReferrer?.utmCampaign ?: "unknown"))
+                )
+                val launched = TwaBrowserBridge.launchManagedHandoff(
+                    context = context,
+                    prefs = repository.prefs,
+                    isAutomatic = true
+                )
+                if (!launched) {
+                    val msg = if (repository.prefs.current.locale == "en") {
+                        "Couldn't open a browser. You can link with your connection code."
+                    } else {
+                        "브라우저를 열지 못했어요. 연결 코드로 바로 이어받을 수 있어요."
+                    }
+                    Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
+                }
+            }
+            AutoHandoffDecision.NONE -> Unit
         }
     }
 
@@ -310,7 +398,8 @@ fun OttlineAppRoot(
                 TwaBrowserBridge.launchInExternalCustomTab(context, cmd.url)
             }
             is LaunchCommand.CompleteTwaHandoff -> {
-                val connected = repository.completeTwaHandoff(
+                sawPauseWhileHandoffPending = false
+                val outcome = repository.completeTwaHandoffWithOutcome(
                     status = cmd.status,
                     userId = cmd.userId,
                     deviceId = cmd.deviceId,
@@ -318,14 +407,34 @@ fun OttlineAppRoot(
                     nickname = cmd.nickname,
                     personaKey = cmd.personaKey
                 )
-                if (connected) {
-                    val msg = if (repository.prefs.current.locale == "en") {
-                        "Connected your previous records."
-                    } else {
-                        "기존 기록을 성공적으로 연결했어요."
+                val isEn = repository.prefs.current.locale == "en"
+                when (outcome) {
+                    OttlineRepository.HandoffOutcome.CONNECTED -> {
+                        val msg = if (isEn) {
+                            "Connected your previous records."
+                        } else {
+                            "기존 기록을 성공적으로 연결했어요."
+                        }
+                        Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+                        navigateTopTab(MainTab.HOME)
                     }
-                    Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
-                    navigateTopTab(MainTab.HOME)
+                    OttlineRepository.HandoffOutcome.EMPTY_SESSION -> {
+                        val msg = if (isEn) {
+                            "No saved records were found in this browser. Try linking with your code if you used another browser."
+                        } else {
+                            "이 브라우저에서 저장된 기록을 찾지 못했어요. 다른 브라우저를 쓰셨다면 연결 코드로 이어받을 수 있어요."
+                        }
+                        Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
+                    }
+                    OttlineRepository.HandoffOutcome.INVALID_CALLBACK,
+                    OttlineRepository.HandoffOutcome.MERGE_FAILED -> {
+                        val msg = if (isEn) {
+                            "Couldn't finish connecting your records. Your device records are safe—please try again."
+                        } else {
+                            "기존 기록 연결을 완료하지 못했어요. 이 기기의 기록은 그대로 보관돼 있으니 다시 시도해 주세요."
+                        }
+                        Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
+                    }
                 }
             }
         }
