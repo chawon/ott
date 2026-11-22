@@ -3,18 +3,20 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:controls="clr-namespace:Ottline.App.Controls"
         mc:Ignorable="d"
         Title=""
         Icon="pack://application:,,,/Ottline.App;component/Resources/Icons/brand_mark.png"
         Width="1360"
         Height="880"
-        MinWidth="1020"
-        MinHeight="680"
+        MinWidth="800"
+        MinHeight="640"
         WindowStartupLocation="CenterScreen"
         Background="{DynamicResource BackgroundBrush}"
         Foreground="{DynamicResource ForegroundBrush}"
         FontFamily="{StaticResource OttlineFontFamily}"
         PreviewKeyDown="Window_PreviewKeyDown"
+        SizeChanged="Window_SizeChanged"
         Closing="Window_Closing">
 
     <Grid Background="{DynamicResource BackgroundBrush}">
@@ -29,7 +31,7 @@
               MouseLeftButtonDown="HeaderBar_MouseLeftButtonDown">
             <Border MaxWidth="1280"
                     MinHeight="72"
-                    Margin="32,0"
+                    Margin="24,0"
                     Padding="0,2,0,18"
                     HorizontalAlignment="Stretch"
                     BorderBrush="{DynamicResource BorderBrush}"
@@ -74,19 +76,19 @@
                         </StackPanel>
                     </StackPanel>
 
-                    <!-- Center-Right Top Navigation (.topNav: margin-left auto, gap 28px, icon 18px + 7px gap + 14px text, centered 18x2 #FF9933 active bar) -->
+                    <!-- Center-Right Top Navigation (.topNav: margin-left auto, gap 20px, icon 18px + 7px gap + 14px text, centered 18x2 #FF9933 active bar) -->
                     <StackPanel Grid.Column="1"
                                 Orientation="Horizontal"
                                 HorizontalAlignment="Right"
                                 VerticalAlignment="Center"
-                                Margin="0,0,32,0">
+                                Margin="0,0,20,0">
                         <!-- 홈 (Home) -->
                         <Button Click="NavHome_Click"
                                 Background="Transparent"
                                 BorderThickness="0"
                                 Cursor="Hand"
                                 Padding="0"
-                                Margin="0,0,28,0">
+                                Margin="0,0,20,0">
                             <Button.Template>
                                 <ControlTemplate TargetType="Button">
                                     <Grid MinHeight="48" Background="Transparent">
@@ -138,7 +140,7 @@
                                 BorderThickness="0"
                                 Cursor="Hand"
                                 Padding="0"
-                                Margin="0,0,28,0">
+                                Margin="0,0,20,0">
                             <Button.Template>
                                 <ControlTemplate TargetType="Button">
                                     <Grid MinHeight="48" Background="Transparent">
@@ -190,7 +192,7 @@
                                 BorderThickness="0"
                                 Cursor="Hand"
                                 Padding="0"
-                                Margin="0,0,28,0">
+                                Margin="0,0,20,0">
                             <Button.Template>
                                 <ControlTemplate TargetType="Button">
                                     <Grid MinHeight="48" Background="Transparent">
@@ -1423,68 +1425,8 @@
                         </StackPanel>
                     </Border>
 
-                    <!-- Desktop Footer (AppFooter.tsx) -->
-                    <Border BorderBrush="{DynamicResource BorderBrush}"
-                            BorderThickness="0,1,0,0"
-                            Margin="0,48,0,0"
-                            Padding="0,28,0,0">
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="Auto" />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
-                            <StackPanel Grid.Column="0">
-                                <StackPanel Orientation="Horizontal">
-                                    <TextBlock Text="ottline"
-                                               FontSize="18"
-                                               FontWeight="Bold"
-                                               Foreground="{DynamicResource PrimaryBrush}" />
-                                    <TextBlock Text="ON THE TIMELINE"
-                                               FontSize="9"
-                                               FontWeight="Bold"
-                                               Foreground="{DynamicResource AccentBrush}"
-                                               VerticalAlignment="Center"
-                                               Margin="8,2,0,0" />
-                                </StackPanel>
-                                <TextBlock Text="{Binding Strings.FooterTagline}"
-                                           FontSize="13"
-                                           Foreground="{DynamicResource ForegroundSecondaryBrush}"
-                                           Margin="0,4,0,0" />
-                            </StackPanel>
-
-                            <StackPanel Grid.Column="1"
-                                        Orientation="Horizontal"
-                                        VerticalAlignment="Center"
-                                        Margin="0,0,36,0">
-                                <Button Style="{StaticResource GhostButtonStyle}"
-                                        Content="{Binding Strings.FooterGuidesLink}"
-                                        Click="OpenGuidesShortcut_Click"
-                                        Margin="0,0,8,0" />
-                                <Button Style="{StaticResource GhostButtonStyle}"
-                                        Content="{Binding Strings.FooterReportLink}"
-                                        Click="OpenReportShortcut_Click"
-                                        Margin="0,0,8,0" />
-                                <Button Style="{StaticResource GhostButtonStyle}"
-                                        Content="{Binding Strings.FooterBookshelfLink}"
-                                        Click="OpenBookshelfShortcut_Click"
-                                        Margin="0,0,8,0" />
-                                <Button Style="{StaticResource GhostButtonStyle}"
-                                        Content="{Binding Strings.FooterFeedbackLink}"
-                                        Click="OpenFeedbackShortcut_Click" />
-                            </StackPanel>
-
-                            <StackPanel Grid.Column="2" VerticalAlignment="Center" HorizontalAlignment="Right">
-                                <TextBlock Text="© 2026 ottline. All rights reserved."
-                                           FontSize="12"
-                                           Foreground="{DynamicResource ForegroundMutedBrush}" />
-                                <TextBlock Text="Microsoft Store Windows Native v2.0.0.0 · contact@ottline.app"
-                                           FontSize="11.5"
-                                           Foreground="{DynamicResource ForegroundMutedBrush}"
-                                           Margin="0,2,0,0" />
-                            </StackPanel>
-                        </Grid>
-                    </Border>
+                    <!-- Shared Desktop Footer (AppFooter.tsx 5 links) -->
+                    <controls:OttlineFooterControl />
                 </StackPanel>
             </ScrollViewer>
 
@@ -1578,12 +1520,89 @@
                                                FontSize="17"
                                                FontWeight="Bold"
                                                Margin="0,2,0,0" />
+                                    <TextBlock Text="{Binding RecommendationQuotaText}"
+                                               FontSize="12.5"
+                                               Foreground="{DynamicResource ForegroundSecondaryBrush}"
+                                               TextWrapping="Wrap"
+                                               Margin="0,4,0,0"
+                                               Visibility="{Binding HasRecommendationQuotaText, Converter={StaticResource BoolToVis}}" />
                                 </StackPanel>
                                 <Button Grid.Column="1"
                                         Style="{StaticResource SecondaryButtonStyle}"
-                                        Content="{Binding Strings.TimelineRecsRefresh}"
+                                        Content="{Binding RecommendationActionButtonLabel}"
+                                        IsEnabled="{Binding CanClickRecommendationAction}"
+                                        VerticalAlignment="Top"
                                         Click="RefreshRecommendations_Click" />
                             </Grid>
+
+                            <!-- Progress notice (keeps existing recommendation cards visible below) -->
+                            <Border Background="{DynamicResource BgCardBrush}"
+                                    BorderBrush="{DynamicResource BorderHairlineBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="8"
+                                    Padding="14,10"
+                                    Margin="0,0,0,12"
+                                    Visibility="{Binding IsRecommendationsLoading, Converter={StaticResource BoolToVis}}">
+                                <TextBlock Text="{Binding RecommendationLoadingMessage}"
+                                           FontSize="13"
+                                           Foreground="{DynamicResource ForegroundSecondaryBrush}"
+                                           TextWrapping="Wrap" />
+                            </Border>
+
+                            <!-- Gentle error notice + Retry (preserves existing cards below) -->
+                            <Border Background="{DynamicResource BgCardBrush}"
+                                    BorderBrush="{DynamicResource AccentOrangeBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="8"
+                                    Padding="14,10"
+                                    Margin="0,0,0,12"
+                                    Visibility="{Binding HasRecommendationError, Converter={StaticResource BoolToVis}}">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="{Binding RecommendationErrorMessage}"
+                                               FontSize="13"
+                                               Foreground="{DynamicResource ForegroundBrush}"
+                                               TextWrapping="Wrap"
+                                               VerticalAlignment="Center"
+                                               Margin="0,0,12,0" />
+                                    <Button Grid.Column="1"
+                                            Style="{StaticResource SecondaryButtonStyle}"
+                                            Content="{Binding Strings.TimelineRecsRetryButton}"
+                                            Visibility="{Binding CanRetryRecommendations, Converter={StaticResource BoolToVis}}"
+                                            Click="RetryRecommendations_Click" />
+                                </Grid>
+                            </Border>
+
+                            <!-- Ineligible (< 5 records) notice -->
+                            <Border Background="{DynamicResource BgCardBrush}"
+                                    BorderBrush="{DynamicResource BorderHairlineBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="8"
+                                    Padding="14,10"
+                                    Margin="0,0,0,12"
+                                    Visibility="{Binding IsRecommendationsIneligible, Converter={StaticResource BoolToVis}}">
+                                <TextBlock Text="{Binding Strings.TimelineRecsNeedMoreLogs}"
+                                           FontSize="13"
+                                           Foreground="{DynamicResource ForegroundSecondaryBrush}"
+                                           TextWrapping="Wrap" />
+                            </Border>
+
+                            <!-- Empty filtered state -->
+                            <Border Background="{DynamicResource BgCardBrush}"
+                                    BorderBrush="{DynamicResource BorderHairlineBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="8"
+                                    Padding="14,10"
+                                    Margin="0,0,0,12"
+                                    Visibility="{Binding IsRecommendationsEmptyFiltered, Converter={StaticResource BoolToVis}}">
+                                <TextBlock Text="{Binding Strings.TimelineRecsEmptyFiltered}"
+                                           FontSize="13"
+                                           Foreground="{DynamicResource ForegroundSecondaryBrush}"
+                                           TextWrapping="Wrap" />
+                            </Border>
 
                             <ItemsControl ItemsSource="{Binding Recommendations}">
                                 <ItemsControl.ItemsPanel>
@@ -2029,19 +2048,54 @@
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
+
+                    <!-- Shared Desktop Footer -->
+                    <controls:OttlineFooterControl />
                 </StackPanel>
             </ScrollViewer>
 
             <!-- =========================================================================
-                 TAB 3: DESKTOP TOGETHER VIEW (PublicDiscussionsClient.tsx)
-                 Layout: .pageHeading + Daily Curator Prompt + Search/Sort + 2-Column Discussion Grid
+                 TAB 3: TOGETHER 2-PANE SPLIT READER (Responsive: 2-pane >= 980px, single-pane < 980px)
                  ========================================================================= -->
-            <ScrollViewer VerticalScrollBarVisibility="Auto"
-                          HorizontalScrollBarVisibility="Disabled"
-                          Visibility="{Binding IsTogetherTab, Converter={StaticResource BoolToVis}}">
-                <StackPanel MaxWidth="1280" Margin="32,28,32,56">
+            <Grid Visibility="{Binding IsTogetherTab, Converter={StaticResource BoolToVis}}">
+                <Grid.Resources>
+                    <Style TargetType="ScrollBar">
+                        <Setter Property="Width" Value="8" />
+                        <Setter Property="MinWidth" Value="8" />
+                        <Setter Property="Background" Value="Transparent" />
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="ScrollBar">
+                                    <Grid Background="Transparent" Margin="2,2,0,2">
+                                        <Track x:Name="PART_Track" IsDirectionReversed="True">
+                                            <Track.Thumb>
+                                                <Thumb>
+                                                    <Thumb.Template>
+                                                        <ControlTemplate TargetType="Thumb">
+                                                            <Border Background="{DynamicResource BorderStrongBrush}"
+                                                                    CornerRadius="4"
+                                                                    Opacity="0.65" />
+                                                        </ControlTemplate>
+                                                    </Thumb.Template>
+                                                </Thumb>
+                                            </Track.Thumb>
+                                        </Track>
+                                    </Grid>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                    </Style>
+                </Grid.Resources>
+                <Grid MaxWidth="1280"
+                      Margin="32,24,32,20"
+                      HorizontalAlignment="Stretch">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
 
-                    <Grid Margin="0,0,0,22">
+                    <!-- Together Header -->
+                    <Grid Grid.Row="0" Margin="0,0,0,18">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
@@ -2052,195 +2106,607 @@
                                        FontWeight="SemiBold"
                                        Foreground="{DynamicResource ForegroundMutedBrush}" />
                             <TextBlock Text="{Binding Strings.TogetherHeadingTitle}"
-                                       FontSize="32"
+                                       FontSize="28"
                                        FontWeight="SemiBold"
-                                       Margin="0,4,0,0" />
+                                       Foreground="{DynamicResource ForegroundBrush}"
+                                       Margin="0,3,0,0" />
                             <TextBlock Text="{Binding Strings.TogetherHeadingSubtitle}"
-                                       FontSize="14.5"
+                                       FontSize="14"
                                        Foreground="{DynamicResource ForegroundSecondaryBrush}"
-                                       Margin="0,6,0,0" />
+                                       Margin="0,4,0,0" />
                         </StackPanel>
-                        <Button Grid.Column="1"
-                                Style="{StaticResource PrimaryActionButtonStyle}"
-                                Content="{Binding Strings.TogetherNewPostButton}"
-                                VerticalAlignment="Bottom"
-                                Click="OpenWriteDiscussion_Click" />
-                    </Grid>
-
-                    <!-- Daily Prompt Banner -->
-                    <Border Background="{DynamicResource CardElevatedBrush}"
-                            BorderBrush="{DynamicResource BorderBrush}"
-                            BorderThickness="1"
-                            CornerRadius="8"
-                            Padding="24,20"
-                            Margin="0,0,0,24">
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="56" />
-                                <ColumnDefinition Width="18" />
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
-                            <Border Grid.Column="0"
-                                    Width="56"
-                                    Height="84"
-                                    VerticalAlignment="Top"
-                                    CornerRadius="6"
-                                    ClipToBounds="True"
-                                    Background="{DynamicResource BgSecondaryBrush}"
-                                    BorderBrush="{DynamicResource BorderBrush}"
-                                    BorderThickness="1">
-                                <Image Source="{Binding DailyPrompt.FeaturedTitle.PosterUrl, Converter={StaticResource PosterConverter}}"
-                                       Stretch="UniformToFill"
-                                       RenderOptions.BitmapScalingMode="HighQuality" />
-                            </Border>
-                            <StackPanel Grid.Column="2" VerticalAlignment="Center">
-                                <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
-                                    <Border Background="{DynamicResource BrandNavyBrush}"
-                                            CornerRadius="4"
-                                            Padding="7,2"
-                                            Margin="0,0,8,0">
-                                        <TextBlock Text="{Binding Strings.TogetherPromptBadge}"
-                                                   FontSize="10"
-                                                   FontWeight="Bold"
-                                                   Foreground="#F8F6F2" />
-                                    </Border>
-                                    <TextBlock Text="{Binding Strings.TogetherPromptCurationLabel}"
-                                               FontSize="11.5"
-                                               Foreground="{DynamicResource ForegroundMutedBrush}"
-                                               VerticalAlignment="Center" />
-                                </StackPanel>
-                                <TextBlock Text="{Binding DailyPromptQuestionDisplay}"
-                                           FontSize="18"
-                                           FontWeight="Bold"
-                                           TextWrapping="Wrap" />
-                                <TextBlock Text="{Binding DailyPromptSubtitleDisplay}"
-                                           FontSize="13.5"
-                                           Foreground="{DynamicResource ForegroundSecondaryBrush}"
-                                           Margin="0,4,0,0" />
-                            </StackPanel>
-                            <Button Grid.Column="3"
-                                    Style="{StaticResource SecondaryButtonStyle}"
-                                    Content="{Binding Strings.TogetherPromptReplyButton}"
-                                    VerticalAlignment="Center"
-                                    Margin="16,0,0,0"
+                        <StackPanel Grid.Column="1"
+                                    Orientation="Horizontal"
+                                    VerticalAlignment="Bottom">
+                            <Button Style="{StaticResource GhostButtonStyle}"
+                                    Content="{Binding Strings.TogetherRefreshButton}"
+                                    Margin="0,0,8,0"
+                                    Click="RefreshTogether_Click" />
+                            <Button Style="{StaticResource SecondaryButtonStyle}"
+                                    Content="{Binding Strings.TogetherNewPostButton}"
+                                    Foreground="{DynamicResource PrimaryBrush}"
+                                    BorderBrush="{DynamicResource BrandNavyBrush}"
                                     Click="OpenWriteDiscussion_Click" />
-                        </Grid>
-                    </Border>
-
-                    <!-- Search & Sort Bar -->
-                    <Grid Margin="0,0,0,20">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="360" />
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
-                        <TextBox Grid.Column="0"
-                                 Style="{StaticResource OttlineTextBoxStyle}"
-                                 Text="{Binding TogetherSearchQuery, UpdateSourceTrigger=PropertyChanged}" />
-                        <StackPanel Grid.Column="2" Orientation="Horizontal">
-                            <Button Style="{StaticResource SecondaryButtonStyle}"
-                                    Content="{Binding Strings.TogetherSortLatest}"
-                                    Click="SortTogetherLatest_Click"
-                                    Margin="0,0,8,0" />
-                            <Button Style="{StaticResource SecondaryButtonStyle}"
-                                    Content="{Binding Strings.TogetherSortReactions}"
-                                    Click="SortTogetherReactions_Click"
-                                    Margin="0,0,8,0" />
-                            <Button Style="{StaticResource SecondaryButtonStyle}"
-                                    Content="{Binding Strings.TogetherSortComments}"
-                                    Click="SortTogetherComments_Click" />
                         </StackPanel>
                     </Grid>
 
-                    <!-- 2-Column Desktop Discussion Grid -->
-                    <ItemsControl ItemsSource="{Binding Discussions}">
-                        <ItemsControl.ItemsPanel>
-                            <ItemsPanelTemplate>
-                                <UniformGrid Columns="2" />
-                            </ItemsPanelTemplate>
-                        </ItemsControl.ItemsPanel>
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate>
-                                <Border Style="{StaticResource CardBorderStyle}"
-                                        Margin="0,0,16,16"
-                                        Padding="20,18">
-                                    <Grid>
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="56" />
-                                            <ColumnDefinition Width="16" />
-                                            <ColumnDefinition Width="*" />
-                                        </Grid.ColumnDefinitions>
-                                        <Border Grid.Column="0"
-                                                Width="56"
-                                                Height="84"
-                                                VerticalAlignment="Top"
-                                                CornerRadius="6"
-                                                ClipToBounds="True"
-                                                Background="{DynamicResource BgSecondaryBrush}"
-                                                BorderBrush="{DynamicResource BorderBrush}"
-                                                BorderThickness="1">
-                                            <Image Source="{Binding Title.PosterUrl, Converter={StaticResource PosterConverter}}"
-                                                   Stretch="UniformToFill"
-                                                   RenderOptions.BitmapScalingMode="HighQuality" />
-                                        </Border>
-                                        <StackPanel Grid.Column="2" VerticalAlignment="Center">
-                                            <Grid Margin="0,0,0,8">
+                    <!-- Responsive Split Container -->
+                    <Grid Grid.Row="1">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="{Binding TogetherListColumnWidth}" />
+                            <ColumnDefinition Width="{Binding TogetherGapColumnWidth}" />
+                            <ColumnDefinition Width="{Binding TogetherDetailColumnWidth}" />
+                        </Grid.ColumnDefinitions>
+
+                        <!-- LEFT PANE: Search, Sort & Independently Scrollable List -->
+                        <Grid Grid.Column="0"
+                              Visibility="{Binding ShowTogetherListPane, Converter={StaticResource BoolToVis}}">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="*" />
+                            </Grid.RowDefinitions>
+
+                            <!-- Search Input -->
+                            <Grid Grid.Row="0">
+                                <TextBox x:Name="TogetherSearchTextBox"
+                                         Style="{StaticResource OttlineTextBoxStyle}"
+                                         Padding="12,9,36,9"
+                                         Text="{Binding TogetherSearchQuery, UpdateSourceTrigger=PropertyChanged}" />
+                                <TextBlock Text="{Binding Strings.TogetherSearchPlaceholder}"
+                                           FontSize="13.5"
+                                           Foreground="{DynamicResource ForegroundMutedBrush}"
+                                           Margin="15,0,36,0"
+                                           VerticalAlignment="Center"
+                                           IsHitTestVisible="False">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Visibility" Value="Collapsed" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding HasTogetherSearchQuery}" Value="False">
+                                                    <Setter Property="Visibility" Value="Visible" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                                <Button HorizontalAlignment="Right"
+                                        VerticalAlignment="Center"
+                                        Margin="0,0,6,0"
+                                        Padding="8,4"
+                                        Background="Transparent"
+                                        BorderThickness="0"
+                                        Cursor="Hand"
+                                        Foreground="{DynamicResource ForegroundMutedBrush}"
+                                        Content="✕"
+                                        Visibility="{Binding HasTogetherSearchQuery, Converter={StaticResource BoolToVis}}"
+                                        Click="ClearTogetherSearch_Click" />
+                            </Grid>
+
+                            <!-- Sort Controls -->
+                            <WrapPanel Grid.Row="1" Margin="0,10,0,12">
+                                <Button Content="{Binding Strings.TogetherSortLatest}"
+                                        Click="SortTogetherLatest_Click"
+                                        Padding="12,6"
+                                        Margin="0,0,8,0">
+                                    <Button.Style>
+                                        <Style TargetType="Button" BasedOn="{StaticResource SecondaryButtonStyle}">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsTogetherSortLatest}" Value="True">
+                                                    <Setter Property="Background" Value="{DynamicResource BrandNavySoftBrush}" />
+                                                    <Setter Property="BorderBrush" Value="{DynamicResource BrandNavyBrush}" />
+                                                    <Setter Property="Foreground" Value="{DynamicResource PrimaryBrush}" />
+                                                    <Setter Property="FontWeight" Value="SemiBold" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Button.Style>
+                                </Button>
+                                <Button Content="{Binding Strings.TogetherSortReactions}"
+                                        Click="SortTogetherReactions_Click"
+                                        Padding="12,6"
+                                        Margin="0,0,8,0">
+                                    <Button.Style>
+                                        <Style TargetType="Button" BasedOn="{StaticResource SecondaryButtonStyle}">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsTogetherSortReactions}" Value="True">
+                                                    <Setter Property="Background" Value="{DynamicResource BrandNavySoftBrush}" />
+                                                    <Setter Property="BorderBrush" Value="{DynamicResource BrandNavyBrush}" />
+                                                    <Setter Property="Foreground" Value="{DynamicResource PrimaryBrush}" />
+                                                    <Setter Property="FontWeight" Value="SemiBold" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Button.Style>
+                                </Button>
+                                <Button Content="{Binding Strings.TogetherSortComments}"
+                                        Click="SortTogetherComments_Click"
+                                        Padding="12,6">
+                                    <Button.Style>
+                                        <Style TargetType="Button" BasedOn="{StaticResource SecondaryButtonStyle}">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsTogetherSortComments}" Value="True">
+                                                    <Setter Property="Background" Value="{DynamicResource BrandNavySoftBrush}" />
+                                                    <Setter Property="BorderBrush" Value="{DynamicResource BrandNavyBrush}" />
+                                                    <Setter Property="Foreground" Value="{DynamicResource PrimaryBrush}" />
+                                                    <Setter Property="FontWeight" Value="SemiBold" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Button.Style>
+                                </Button>
+                            </WrapPanel>
+
+                            <!-- List Area (Loading / Empty / Scrollable ListBox) -->
+                            <Grid Grid.Row="2">
+                                <Border Background="{DynamicResource CardElevatedBrush}"
+                                        BorderBrush="{DynamicResource BorderBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="8"
+                                        Padding="20,24"
+                                        VerticalAlignment="Top"
+                                        Visibility="{Binding ShowTogetherListLoading, Converter={StaticResource BoolToVis}}">
+                                    <TextBlock Text="{Binding Strings.TogetherListLoading}"
+                                               FontSize="13.5"
+                                               Foreground="{DynamicResource ForegroundSecondaryBrush}"
+                                               TextWrapping="Wrap" />
+                                </Border>
+
+                                <Border Background="{DynamicResource CardElevatedBrush}"
+                                        BorderBrush="{DynamicResource BorderBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="8"
+                                        Padding="20,24"
+                                        VerticalAlignment="Top"
+                                        Visibility="{Binding ShowTogetherEmptyState, Converter={StaticResource BoolToVis}}">
+                                    <StackPanel>
+                                        <TextBlock Text="{Binding TogetherEmptyStateMessage}"
+                                                   FontSize="14"
+                                                   Foreground="{DynamicResource ForegroundSecondaryBrush}"
+                                                   TextWrapping="Wrap" />
+                                        <Button Style="{StaticResource SecondaryButtonStyle}"
+                                                Content="{Binding Strings.TogetherClearSearchButton}"
+                                                HorizontalAlignment="Left"
+                                                Margin="0,12,0,0"
+                                                Visibility="{Binding HasTogetherSearchQuery, Converter={StaticResource BoolToVis}}"
+                                                Click="ClearTogetherSearch_Click" />
+                                    </StackPanel>
+                                </Border>
+
+                                <ListBox x:Name="TogetherDiscussionListBox"
+                                         ItemsSource="{Binding DiscussionItems}"
+                                         SelectedItem="{Binding SelectedDiscussionListItem, Mode=TwoWay}"
+                                         SelectionMode="Single"
+                                         Background="Transparent"
+                                         BorderThickness="0"
+                                         Padding="0"
+                                         HorizontalContentAlignment="Stretch"
+                                         ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                         ScrollViewer.CanContentScroll="False"
+                                         Visibility="{Binding HasTogetherDiscussions, Converter={StaticResource BoolToVis}}"
+                                         PreviewKeyDown="TogetherList_PreviewKeyDown">
+                                    <ListBox.ItemContainerStyle>
+                                        <Style TargetType="ListBoxItem">
+                                            <Setter Property="Padding" Value="0" />
+                                            <Setter Property="Margin" Value="0,0,6,10" />
+                                            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                                            <Setter Property="Background" Value="Transparent" />
+                                            <Setter Property="BorderThickness" Value="0" />
+                                            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+                                            <Setter Property="Cursor" Value="Hand" />
+                                            <EventSetter Event="PreviewMouseLeftButtonUp" Handler="TogetherListItem_MouseUp" />
+                                            <Setter Property="Template">
+                                                <Setter.Value>
+                                                    <ControlTemplate TargetType="ListBoxItem">
+                                                        <ContentPresenter />
+                                                    </ControlTemplate>
+                                                </Setter.Value>
+                                            </Setter>
+                                        </Style>
+                                    </ListBox.ItemContainerStyle>
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border CornerRadius="8" Padding="12,11">
+                                                <Border.Style>
+                                                    <Style TargetType="Border">
+                                                        <Setter Property="Background" Value="{DynamicResource CardBrush}" />
+                                                        <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+                                                        <Setter Property="BorderThickness" Value="1" />
+                                                        <Style.Triggers>
+                                                            <Trigger Property="IsMouseOver" Value="True">
+                                                                <Setter Property="BorderBrush" Value="{DynamicResource BorderStrongBrush}" />
+                                                            </Trigger>
+                                                            <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                                                <Setter Property="Background" Value="{DynamicResource CardElevatedBrush}" />
+                                                                <Setter Property="BorderBrush" Value="{DynamicResource BrandNavyBrush}" />
+                                                                <Setter Property="BorderThickness" Value="1.5" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Border.Style>
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="44" />
+                                                        <ColumnDefinition Width="12" />
+                                                        <ColumnDefinition Width="*" />
+                                                    </Grid.ColumnDefinitions>
+                                                    <Border Grid.Column="0"
+                                                            Width="44"
+                                                            Height="64"
+                                                            VerticalAlignment="Top"
+                                                            CornerRadius="6"
+                                                            ClipToBounds="True"
+                                                            Background="{DynamicResource BgSecondaryBrush}"
+                                                            BorderBrush="{DynamicResource BorderBrush}"
+                                                            BorderThickness="1">
+                                                        <Image Source="{Binding Title.PosterUrl, Converter={StaticResource PosterConverter}}"
+                                                               Stretch="UniformToFill"
+                                                               RenderOptions.BitmapScalingMode="HighQuality" />
+                                                    </Border>
+                                                    <StackPanel Grid.Column="2" VerticalAlignment="Center">
+                                                        <TextBlock Text="{Binding Title.Title}"
+                                                                   FontSize="14.5"
+                                                                   FontWeight="SemiBold"
+                                                                   Foreground="{DynamicResource ForegroundBrush}"
+                                                                   TextTrimming="CharacterEllipsis" />
+                                                        <TextBlock Text="{Binding MetaLine}"
+                                                                   FontSize="12"
+                                                                   Margin="0,3,0,0"
+                                                                   TextTrimming="CharacterEllipsis">
+                                                            <TextBlock.Style>
+                                                                <Style TargetType="TextBlock">
+                                                                    <Setter Property="Foreground" Value="{DynamicResource ForegroundMutedBrush}" />
+                                                                    <Style.Triggers>
+                                                                        <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                                                            <Setter Property="Foreground" Value="{DynamicResource PrimaryBrush}" />
+                                                                            <Setter Property="FontWeight" Value="Medium" />
+                                                                        </DataTrigger>
+                                                                    </Style.Triggers>
+                                                                </Style>
+                                                            </TextBlock.Style>
+                                                        </TextBlock>
+                                                        <TextBlock Text="{Binding ReactionSummaryText}"
+                                                                   FontSize="11.5"
+                                                                   Foreground="{DynamicResource ForegroundMutedBrush}"
+                                                                   Margin="0,2,0,0"
+                                                                   Visibility="{Binding HasReactions, Converter={StaticResource BoolToVis}}" />
+                                                        <TextBlock Text="{Binding Snippet}"
+                                                                   FontSize="12.5"
+                                                                   Foreground="{DynamicResource ForegroundSecondaryBrush}"
+                                                                   TextTrimming="CharacterEllipsis"
+                                                                   Margin="0,4,0,0"
+                                                                   Visibility="{Binding HasSnippet, Converter={StaticResource BoolToVis}}" />
+                                                    </StackPanel>
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+                            </Grid>
+                        </Grid>
+
+                        <!-- RIGHT PANE: Independently Scrollable Selected Title & Comments Reader -->
+                        <ScrollViewer x:Name="TogetherDetailScrollViewer"
+                                      Grid.Column="2"
+                                      VerticalScrollBarVisibility="Auto"
+                                      HorizontalScrollBarVisibility="Disabled"
+                                      Visibility="{Binding ShowTogetherDetailPane, Converter={StaticResource BoolToVis}}">
+                            <StackPanel Margin="0,0,6,28">
+                                <!-- Narrow-mode Back to List Bar -->
+                                <Button Style="{StaticResource SecondaryButtonStyle}"
+                                        Content="{Binding Strings.TogetherBackToList}"
+                                        HorizontalAlignment="Left"
+                                        Margin="0,0,0,14"
+                                        Visibility="{Binding ShowTogetherBackButton, Converter={StaticResource BoolToVis}}"
+                                        Click="CloseNarrowTogetherDetail_Click" />
+
+                                <!-- Empty Selection Placeholder (2-Pane only) -->
+                                <Border Background="{DynamicResource CardElevatedBrush}"
+                                        BorderBrush="{DynamicResource BorderBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="8"
+                                        Padding="32,48"
+                                        Visibility="{Binding ShowTogetherSelectPlaceholder, Converter={StaticResource BoolToVis}}">
+                                    <StackPanel HorizontalAlignment="Center">
+                                        <TextBlock Text="{Binding Strings.TogetherSelectPromptTitle}"
+                                                   FontSize="16"
+                                                   FontWeight="SemiBold"
+                                                   Foreground="{DynamicResource ForegroundBrush}"
+                                                   HorizontalAlignment="Center" />
+                                        <TextBlock Text="{Binding Strings.TogetherSelectPromptBody}"
+                                                   FontSize="13.5"
+                                                   Foreground="{DynamicResource ForegroundSecondaryBrush}"
+                                                   HorizontalAlignment="Center"
+                                                   TextAlignment="Center"
+                                                   TextWrapping="Wrap"
+                                                   Margin="0,6,0,0" />
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- Active Selected Discussion Reader -->
+                                <StackPanel Visibility="{Binding HasSelectedDiscussion, Converter={StaticResource BoolToVis}}">
+                                    <!-- Title & Reactions Header Card -->
+                                    <Border Style="{StaticResource CardBorderStyle}"
+                                            Padding="22,20"
+                                            Margin="0,0,0,16">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="96" />
+                                                <ColumnDefinition Width="20" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+
+                                            <Border Grid.Column="0"
+                                                    Width="96"
+                                                    Height="144"
+                                                    VerticalAlignment="Top"
+                                                    CornerRadius="8"
+                                                    ClipToBounds="True"
+                                                    Background="{DynamicResource BgSecondaryBrush}"
+                                                    BorderBrush="{DynamicResource BorderBrush}"
+                                                    BorderThickness="1">
+                                                <Image Source="{Binding SelectedDiscussionPost.Title.PosterUrl, Converter={StaticResource PosterConverter}}"
+                                                       Stretch="UniformToFill"
+                                                       RenderOptions.BitmapScalingMode="HighQuality" />
+                                            </Border>
+
+                                            <StackPanel Grid.Column="2">
+                                                <TextBlock Text="{Binding SelectedDiscussionTypeAndYear}"
+                                                           FontSize="12.5"
+                                                           FontWeight="Medium"
+                                                           Foreground="{DynamicResource ForegroundMutedBrush}" />
+                                                <TextBlock Text="{Binding SelectedDiscussionPost.Title.Title}"
+                                                           FontSize="23"
+                                                           FontWeight="Bold"
+                                                           Foreground="{DynamicResource ForegroundBrush}"
+                                                           TextWrapping="Wrap"
+                                                           Margin="0,4,0,10" />
+                                                <TextBlock Text="{Binding SelectedDiscussionBody}"
+                                                           FontSize="14.5"
+                                                           LineHeight="23"
+                                                           Foreground="{DynamicResource ForegroundSecondaryBrush}"
+                                                           TextWrapping="Wrap"
+                                                           Margin="0,0,0,14"
+                                                           Visibility="{Binding HasSelectedDiscussionBody, Converter={StaticResource BoolToVis}}" />
+
+                                                <!-- Reaction Chips -->
+                                                <WrapPanel Margin="0,0,0,14">
+                                                    <Button Content="{Binding SelectedReactionDoneLabel}"
+                                                            IsEnabled="{Binding CanToggleTogetherReaction}"
+                                                            Padding="12,7"
+                                                            Margin="0,0,8,8"
+                                                            Click="ReactSelectedDone_Click">
+                                                        <Button.Style>
+                                                            <Style TargetType="Button" BasedOn="{StaticResource SecondaryButtonStyle}">
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding IsSelectedReactionDone}" Value="True">
+                                                                        <Setter Property="Background" Value="{DynamicResource BrandNavySoftBrush}" />
+                                                                        <Setter Property="BorderBrush" Value="{DynamicResource BrandNavyBrush}" />
+                                                                        <Setter Property="Foreground" Value="{DynamicResource PrimaryBrush}" />
+                                                                        <Setter Property="FontWeight" Value="SemiBold" />
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </Button.Style>
+                                                    </Button>
+                                                    <Button Content="{Binding SelectedReactionCuriousLabel}"
+                                                            IsEnabled="{Binding CanToggleTogetherReaction}"
+                                                            Padding="12,7"
+                                                            Margin="0,0,8,8"
+                                                            Click="ReactSelectedCurious_Click">
+                                                        <Button.Style>
+                                                            <Style TargetType="Button" BasedOn="{StaticResource SecondaryButtonStyle}">
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding IsSelectedReactionCurious}" Value="True">
+                                                                        <Setter Property="Background" Value="{DynamicResource BrandNavySoftBrush}" />
+                                                                        <Setter Property="BorderBrush" Value="{DynamicResource BrandNavyBrush}" />
+                                                                        <Setter Property="Foreground" Value="{DynamicResource PrimaryBrush}" />
+                                                                        <Setter Property="FontWeight" Value="SemiBold" />
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </Button.Style>
+                                                    </Button>
+                                                    <Button Content="{Binding SelectedReactionSaveLabel}"
+                                                            IsEnabled="{Binding CanToggleTogetherReaction}"
+                                                            Padding="12,7"
+                                                            Margin="0,0,0,8"
+                                                            Click="ReactSelectedSave_Click">
+                                                        <Button.Style>
+                                                            <Style TargetType="Button" BasedOn="{StaticResource SecondaryButtonStyle}">
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding IsSelectedReactionSave}" Value="True">
+                                                                        <Setter Property="Background" Value="{DynamicResource BrandNavySoftBrush}" />
+                                                                        <Setter Property="BorderBrush" Value="{DynamicResource BrandNavyBrush}" />
+                                                                        <Setter Property="Foreground" Value="{DynamicResource PrimaryBrush}" />
+                                                                        <Setter Property="FontWeight" Value="SemiBold" />
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </Button.Style>
+                                                    </Button>
+                                                </WrapPanel>
+
+                                                <!-- Local Record Linkage Actions -->
+                                                <WrapPanel>
+                                                    <Button Style="{StaticResource PrimaryActionButtonStyle}"
+                                                            Content="{Binding Strings.TogetherLogThisTitle}"
+                                                            Padding="16,9"
+                                                            Margin="0,0,10,0"
+                                                            Click="LogSelectedDiscussionTitle_Click" />
+                                                    <Button Style="{StaticResource SecondaryButtonStyle}"
+                                                            Content="{Binding Strings.TogetherOpenMyRecord}"
+                                                            Foreground="{DynamicResource PrimaryBrush}"
+                                                            BorderBrush="{DynamicResource BrandNavyBrush}"
+                                                            Padding="14,9"
+                                                            Visibility="{Binding SelectedDiscussionHasLocalLog, Converter={StaticResource BoolToVis}}"
+                                                            Click="OpenSelectedDiscussionRecord_Click" />
+                                                </WrapPanel>
+                                            </StackPanel>
+                                        </Grid>
+                                    </Border>
+
+                                    <!-- Comments Card -->
+                                    <Border Style="{StaticResource CardBorderStyle}" Padding="22,20">
+                                        <StackPanel>
+                                            <Grid Margin="0,0,0,14">
                                                 <Grid.ColumnDefinitions>
                                                     <ColumnDefinition Width="*" />
                                                     <ColumnDefinition Width="Auto" />
                                                 </Grid.ColumnDefinitions>
-                                                <TextBlock Text="{Binding Title.Title}"
-                                                           FontSize="16.5"
-                                                           FontWeight="Bold"
-                                                           Foreground="{DynamicResource PrimaryBrush}"
-                                                           TextTrimming="CharacterEllipsis" />
+                                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                    <TextBlock Text="{Binding Strings.TogetherCommentsHeading}"
+                                                               FontSize="17"
+                                                               FontWeight="SemiBold"
+                                                               Foreground="{DynamicResource ForegroundBrush}" />
+                                                    <Border Background="{DynamicResource BgSecondaryBrush}"
+                                                            CornerRadius="8"
+                                                            Padding="8,2"
+                                                            Margin="8,0,0,0"
+                                                            VerticalAlignment="Center">
+                                                        <TextBlock Text="{Binding SelectedDiscussionCommentCountLabel}"
+                                                                   FontSize="12"
+                                                                   FontWeight="SemiBold"
+                                                                   Foreground="{DynamicResource ForegroundSecondaryBrush}" />
+                                                    </Border>
+                                                </StackPanel>
                                                 <TextBlock Grid.Column="1"
-                                                           Text="{Binding Author.DisplayName}"
-                                                           FontSize="12"
+                                                           Text="{Binding Strings.TogetherCommentsLoading}"
+                                                           FontSize="12.5"
                                                            Foreground="{DynamicResource ForegroundMutedBrush}"
-                                                           Margin="8,0,0,0" />
+                                                           VerticalAlignment="Center"
+                                                           Visibility="{Binding IsSelectedDiscussionDetailLoading, Converter={StaticResource BoolToVis}}" />
                                             </Grid>
 
-                                            <TextBlock Text="{Binding Body}"
-                                                       FontSize="14"
-                                                       LineHeight="22"
-                                                       TextWrapping="Wrap"
-                                                       Margin="0,0,0,14" />
+                                            <!-- Comment Composer -->
+                                            <Border Background="{DynamicResource CardElevatedBrush}"
+                                                    BorderBrush="{DynamicResource BorderBrush}"
+                                                    BorderThickness="1"
+                                                    CornerRadius="8"
+                                                    Padding="14"
+                                                    Margin="0,0,0,16">
+                                                <StackPanel>
+                                                    <Grid>
+                                                        <TextBox Style="{StaticResource OttlineTextBoxStyle}"
+                                                                 Text="{Binding NewCommentBody, UpdateSourceTrigger=PropertyChanged}"
+                                                                 KeyDown="CommentInput_KeyDown" />
+                                                        <TextBlock Text="{Binding Strings.CommentPlaceholder}"
+                                                                   FontSize="13.5"
+                                                                   Foreground="{DynamicResource ForegroundMutedBrush}"
+                                                                   Margin="15,0,12,0"
+                                                                   VerticalAlignment="Center"
+                                                                   IsHitTestVisible="False">
+                                                            <TextBlock.Style>
+                                                                <Style TargetType="TextBlock">
+                                                                    <Setter Property="Visibility" Value="Collapsed" />
+                                                                    <Style.Triggers>
+                                                                        <DataTrigger Binding="{Binding HasNewCommentBody}" Value="False">
+                                                                            <Setter Property="Visibility" Value="Visible" />
+                                                                        </DataTrigger>
+                                                                    </Style.Triggers>
+                                                                </Style>
+                                                            </TextBlock.Style>
+                                                        </TextBlock>
+                                                    </Grid>
+                                                    <Grid Margin="0,10,0,0">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="*" />
+                                                            <ColumnDefinition Width="Auto" />
+                                                        </Grid.ColumnDefinitions>
+                                                        <CheckBox Grid.Column="0"
+                                                                  IsChecked="{Binding NewCommentSyncLog}"
+                                                                  Content="{Binding Strings.TogetherSyncLogCheckbox}"
+                                                                  Foreground="{DynamicResource ForegroundSecondaryBrush}"
+                                                                  FontSize="12.5"
+                                                                  VerticalAlignment="Center" />
+                                                        <Button Grid.Column="1"
+                                                                Style="{StaticResource PrimaryActionButtonStyle}"
+                                                                Content="{Binding Strings.DiscussionSendCommentBtn}"
+                                                                IsEnabled="{Binding CanSubmitComment}"
+                                                                Padding="16,8"
+                                                                Click="SubmitComment_Click" />
+                                                    </Grid>
+                                                </StackPanel>
+                                            </Border>
 
-                                            <StackPanel Orientation="Horizontal">
-                                                <Button Style="{StaticResource SecondaryButtonStyle}"
-                                                        Padding="10,5"
-                                                        Margin="0,0,8,0"
-                                                        Tag="{Binding}"
-                                                        Click="ReactDone_Click"
-                                                        Content="{Binding DataContext.Strings.TogetherReactDone, RelativeSource={RelativeSource AncestorType=ScrollViewer}}" />
-                                                <Button Style="{StaticResource SecondaryButtonStyle}"
-                                                        Padding="10,5"
-                                                        Margin="0,0,8,0"
-                                                        Tag="{Binding}"
-                                                        Click="ReactCurious_Click"
-                                                        Content="{Binding DataContext.Strings.TogetherReactCurious, RelativeSource={RelativeSource AncestorType=ScrollViewer}}" />
-                                                <Button Style="{StaticResource SecondaryButtonStyle}"
-                                                        Padding="10,5"
-                                                        Margin="0,0,12,0"
-                                                        Tag="{Binding}"
-                                                        Click="ReactSave_Click"
-                                                        Content="{Binding DataContext.Strings.TogetherReactSave, RelativeSource={RelativeSource AncestorType=ScrollViewer}}" />
-                                                <Button Style="{StaticResource GhostButtonStyle}"
-                                                        Padding="8,5"
-                                                        Tag="{Binding}"
-                                                        Click="OpenDiscussionDetail_Click"
-                                                        Content="{Binding DataContext.Strings.TogetherOpenComments, RelativeSource={RelativeSource AncestorType=ScrollViewer}}" />
-                                            </StackPanel>
+                                            <!-- Error Notice -->
+                                            <Border Background="{DynamicResource CardElevatedBrush}"
+                                                    BorderBrush="{DynamicResource BorderBrush}"
+                                                    BorderThickness="1"
+                                                    CornerRadius="8"
+                                                    Padding="16,14"
+                                                    Margin="0,0,0,12"
+                                                    Visibility="{Binding HasSelectedDiscussionDetailError, Converter={StaticResource BoolToVis}}">
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*" />
+                                                        <ColumnDefinition Width="Auto" />
+                                                    </Grid.ColumnDefinitions>
+                                                    <TextBlock Text="{Binding Strings.TogetherCommentsLoadError}"
+                                                               FontSize="13.5"
+                                                               Foreground="{DynamicResource ForegroundSecondaryBrush}"
+                                                               VerticalAlignment="Center"
+                                                               TextWrapping="Wrap" />
+                                                    <Button Grid.Column="1"
+                                                            Style="{StaticResource SecondaryButtonStyle}"
+                                                            Content="{Binding Strings.TogetherCommentsRetry}"
+                                                            Margin="12,0,0,0"
+                                                            Click="RetryDiscussionDetail_Click" />
+                                                </Grid>
+                                            </Border>
+
+                                            <!-- Empty Comments Notice -->
+                                            <TextBlock Text="{Binding Strings.TogetherCommentsEmpty}"
+                                                       FontSize="13.5"
+                                                       Foreground="{DynamicResource ForegroundMutedBrush}"
+                                                       Margin="2,8,2,8"
+                                                       Visibility="{Binding IsSelectedDiscussionCommentsEmpty, Converter={StaticResource BoolToVis}}" />
+
+                                            <!-- Comments List -->
+                                            <ItemsControl ItemsSource="{Binding SelectedDiscussionComments}">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <Border BorderBrush="{DynamicResource BorderBrush}"
+                                                                BorderThickness="0,0,0,1"
+                                                                Padding="2,12">
+                                                            <StackPanel>
+                                                                <Grid>
+                                                                    <Grid.ColumnDefinitions>
+                                                                        <ColumnDefinition Width="*" />
+                                                                        <ColumnDefinition Width="Auto" />
+                                                                    </Grid.ColumnDefinitions>
+                                                                    <TextBlock Text="{Binding Author.DisplayName}"
+                                                                               FontSize="13"
+                                                                               FontWeight="SemiBold"
+                                                                               Foreground="{DynamicResource ForegroundBrush}" />
+                                                                    <TextBlock Grid.Column="1"
+                                                                               Text="{Binding CreatedAt}"
+                                                                               FontSize="11.5"
+                                                                               Foreground="{DynamicResource ForegroundMutedBrush}" />
+                                                                </Grid>
+                                                                <TextBlock Text="{Binding Body}"
+                                                                           FontSize="14.5"
+                                                                           LineHeight="22"
+                                                                           Foreground="{DynamicResource ForegroundSecondaryBrush}"
+                                                                           TextWrapping="Wrap"
+                                                                           Margin="0,5,0,0" />
+                                                            </StackPanel>
+                                                        </Border>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
                                         </StackPanel>
-                                    </Grid>
-                                </Border>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                </StackPanel>
-            </ScrollViewer>
+                                    </Border>
+                                </StackPanel>
+
+                                <!-- Shared Desktop Footer inside Together Reader -->
+                                <controls:OttlineFooterControl />
+                            </StackPanel>
+                        </ScrollViewer>
+                    </Grid>
+                </Grid>
+            </Grid>
 
             <!-- =========================================================================
                  TAB 4: DESKTOP MY SPACE VIEW (app/[locale]/account/page.tsx + AccountSpace.module.css)
@@ -2589,7 +3055,19 @@
                                                     Margin="0,0,10,10" />
                                             <Button Style="{StaticResource SecondaryButtonStyle}"
                                                     Content="{Binding Strings.FooterGuidesLink}"
-                                                    Click="MySpaceGuides_Click"
+                                                    Click="OpenGuidesShortcut_Click"
+                                                    Margin="0,0,10,10" />
+                                            <Button Style="{StaticResource SecondaryButtonStyle}"
+                                                    Content="{Binding Strings.FooterAboutLink}"
+                                                    Click="OpenAboutShortcut_Click"
+                                                    Margin="0,0,10,10" />
+                                            <Button Style="{StaticResource SecondaryButtonStyle}"
+                                                    Content="{Binding Strings.FooterFaqLink}"
+                                                    Click="OpenFaqShortcut_Click"
+                                                    Margin="0,0,10,10" />
+                                            <Button Style="{StaticResource SecondaryButtonStyle}"
+                                                    Content="{Binding Strings.FooterPrivacyLink}"
+                                                    Click="OpenPrivacyShortcut_Click"
                                                     Margin="0,0,10,10" />
                                         </WrapPanel>
                                     </StackPanel>
@@ -2972,7 +3450,7 @@
 
                     <!-- 5) FEEDBACK SUB-VIEW (FeedbackInbox.tsx 1:1) -->
                     <StackPanel Visibility="{Binding IsMySpaceFeedback, Converter={StaticResource BoolToVis}}">
-                        <TextBlock Text="{Binding Strings.FeedbackHeadingTitle}" FontSize="24" FontWeight="Bold" />
+                        <TextBlock Text="{Binding Strings.FeedbackHeadingTitle}" FontSize="24" FontWeight="Bold" Foreground="{DynamicResource ForegroundBrush}" />
                         <TextBlock Text="{Binding Strings.FeedbackHeadingSubtitle}"
                                    FontSize="14"
                                    Foreground="{DynamicResource ForegroundSecondaryBrush}"
@@ -3253,16 +3731,30 @@
                             Padding="28"
                             Visibility="{Binding IsMySpaceGuides, Converter={StaticResource BoolToVis}}">
                         <StackPanel>
-                            <TextBlock Text="{Binding Strings.GuidesHeadingTitle}" FontSize="24" FontWeight="Bold" />
+                            <TextBlock Text="{Binding Strings.GuidesHeadingTitle}" FontSize="24" FontWeight="Bold" Foreground="{DynamicResource ForegroundBrush}" />
                             <TextBlock Text="{Binding Strings.GuidesBodyText}"
                                        FontSize="15"
                                        LineHeight="26"
                                        TextWrapping="Wrap"
-                                       Margin="0,12,0,0" />
+                                       Margin="0,12,0,16" />
+                            <Button Style="{StaticResource SecondaryButtonStyle}"
+                                    Content="{Binding AboutPage.BrowseAllGuidesLabel}"
+                                    Foreground="{DynamicResource PrimaryBrush}"
+                                    BorderBrush="{DynamicResource BrandNavyBrush}"
+                                    HorizontalAlignment="Left"
+                                    Click="OpenGuidesShortcut_Click" />
                         </StackPanel>
                     </Border>
+
+                    <!-- Shared Desktop Footer -->
+                    <controls:OttlineFooterControl />
                 </StackPanel>
             </ScrollViewer>
+
+            <!-- =========================================================================
+                 TAB 5: SHARED INFO PAGES (Guides, About, FAQ, Privacy — Web/macOS parity)
+                 ========================================================================= -->
+            <controls:OttlineInfoPagesView Visibility="{Binding IsInfoTab, Converter={StaticResource BoolToVis}}" />
 
             <!-- =========================================================================
                  MODAL OVERLAY 1: DESKTOP TITLE DETAIL (app/[locale]/title/[id]/page.tsx)
@@ -3697,56 +4189,8 @@
             </Border>
 
             <!-- =========================================================================
-                 MODAL OVERLAY 3: TOGETHER DISCUSSION DETAIL & WRITE MODALS
+                 MODAL OVERLAY 3: WRITE NEW TOGETHER DISCUSSION MODAL
                  ========================================================================= -->
-            <Border Background="{DynamicResource OverlayScrimBrush}"
-                    Visibility="{Binding IsDiscussionDetailOpen, Converter={StaticResource BoolToVis}}">
-                <Border Style="{StaticResource CardBorderStyle}"
-                        Width="680"
-                        MaxHeight="740"
-                        Padding="28"
-                        VerticalAlignment="Center"
-                        HorizontalAlignment="Center">
-                    <StackPanel>
-                        <Grid Margin="0,0,0,14">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
-                            <TextBlock Text="{Binding SelectedDiscussionDetail.Post.Title.Title}" FontSize="20" FontWeight="Bold" />
-                            <Button Grid.Column="1" Style="{StaticResource GhostButtonStyle}" Content="{Binding Strings.CommonCloseWithX}" Click="CloseDiscussionDetail_Click" />
-                        </Grid>
-                        <TextBlock Text="{Binding SelectedDiscussionDetail.Post.Body}" FontSize="15" LineHeight="24" TextWrapping="Wrap" Margin="0,0,0,18" />
-                        <ItemsControl ItemsSource="{Binding SelectedDiscussionComments}" MaxHeight="260" Margin="0,0,0,14">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate>
-                                    <Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1" Padding="0,8">
-                                        <StackPanel>
-                                            <TextBlock Text="{Binding Author.DisplayName}" FontSize="12" FontWeight="SemiBold" />
-                                            <TextBlock Text="{Binding Body}" FontSize="13.5" TextWrapping="Wrap" Margin="0,2,0,0" />
-                                        </StackPanel>
-                                    </Border>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
-                            <TextBox Grid.Column="0"
-                                     Style="{StaticResource OttlineTextBoxStyle}"
-                                     Text="{Binding NewCommentBody, UpdateSourceTrigger=PropertyChanged}"
-                                     Margin="0,0,10,0" />
-                            <Button Grid.Column="1"
-                                    Style="{StaticResource PrimaryActionButtonStyle}"
-                                    Content="{Binding Strings.DiscussionSendCommentBtn}"
-                                    Click="SubmitComment_Click" />
-                        </Grid>
-                    </StackPanel>
-                </Border>
-            </Border>
-
             <Border Background="{DynamicResource OverlayScrimBrush}"
                     Visibility="{Binding IsWriteDiscussionOpen, Converter={StaticResource BoolToVis}}">
                 <Border Style="{StaticResource CardBorderStyle}"

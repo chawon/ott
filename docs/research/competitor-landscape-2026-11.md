@@ -1,108 +1,110 @@
 # 경쟁·인접 제품 리서치 및 ottline 시사점 (2026-11)
 
-- **기준일**: `2026-11-22`
+- **기준일 / 최종 확인일**: `2026-11-22` (본부 검토 반영 보완판)
 - **작성 역할**: 제품 기획 담당 ([이슈 #159](https://github.com/chawon/ott/issues/159))
 - **연결 업무**: [#157 플랫폼별 핵심 흐름·기능 차이 1차 감사](https://github.com/chawon/ott/issues/157) · [#158 다음 개선 사이클 우선순위 제안](https://github.com/chawon/ott/issues/158)
-- **목적**: v2 멀티 플랫폼 전환 직후, 국내·글로벌 감상/독서 기록 시장의 2026년 최신 지형과 검증된 UX 패턴을 분석해 ottline이 **가져올 것**과 **지켜야 할 차별점(배제할 것)**을 분리한다.
+- **목적**: 국내·글로벌 감상/독서 기록 시장의 공개 관찰 사실을 정리하고, 이를 바탕으로 **검증할 ottline 적용 가설**과 **지켜야 할 차별점(배제 원칙)**을 분리한다.
 
-> 이 문서는 공개 자료·스토어 설명·사용자 리뷰·보도 자료를 기준으로 작성했으며, 내부 추정 수치나 미확인 점유율을 사실로 기재하지 않는다.
-
----
-
-## 1. 2026년 시장 지형 변화 요약 (ottline에 열리는 3가지 창)
-
-1. **TV/OTT 기록 시장의 구조적 공백 (글로벌)**
-   - **TV Time이 2026년 7월 15일 서비스를 영구 종료**했다(앱 스토어 삭제, 웹사이트 중단, 계정 데이터 영구 삭제). 수년간 기록을 쌓아둔 이용자들이 "광고가 적고, 데이터가 안전하며, 내보내기/가져오기가 되는" 대안으로 이동하는 흐름이 발생했다. ([Buck The Critics, 2026-07](https://buckthecritics.com/blog/tv-time-serializd-alternative/), [Refract, 2026-11](https://getrefract.app/tv-time-alternative))
-   - 글로벌 영화 기록 1위인 **Letterboxd**는 2024년 TV 시리즈 지원 예고 이후에도 **2026년 11월 현재까지 TV 시리즈/에피소드 추적을 정식 출시하지 않았다**. 이용자들은 영화(Letterboxd) + TV(Serializd/Trakt) + 책(Goodreads/StoryGraph)으로 앱이 파편화돼 있다. ([Refract, 2026-11](https://getrefract.app/letterboxd-for-tv-shows))
-2. **국내 콘텐츠 기록 시장의 재편과 '올인원 기록' 수요 (한국)**
-   - **키노라이츠가 왓챠/왓챠피디아 인수를 추진**(2026년 8월 보도)하며 국내 대표 영상 평가 플랫폼이 재편 국면에 들어섰다. ([테크M, 2026-08](https://www.techm.kr/news/articleView.html?idxno=154434))
-   - 국내에서는 **레포브(repov)**처럼 영화·책·일상·장소 등 다카테고리를 한곳에 기록하는 앱이 빠르게 성장했으며, 2025년 7월 **왓챠피디아·북적북적·북모리·키노라이츠·Goodreads·Letterboxd 6개 플랫폼 데이터 가져오기**를 도입해 전환 장벽을 낮췄다. ([레포브 공지, 2025-07](https://page.repov.me/n8pw9x2zw94g6mg7yrqv))
-3. **통합 미디어 트래커의 플랫폼 편중**
-   - 글로벌에서 영화+시리즈+책을 함께 다루는 **Sofa**, **Sequel**, **Omniphile** 등은 대부분 **Apple 전용(iOS/iPadOS/macOS)**이며 Android·Windows·Web을 동시에 지원하지 않는다. ([Omniphile 비교, 2026-11](https://www.omniphile.app/blog/best-media-tracker-app))
-   - 반면 **ottline은 Web/PWA + Android(폰·태블릿) + iPhone + iPad + macOS + Windows + 브라우저 확장**을 하나의 로컬 우선 모델로 연결하고 있으며, **무로그인·광고 없음·영상+책 통합**이라는 드문 조합을 이미 갖추고 있다.
+> **근거 기록 원칙**: 이 문서는 공개 자료(공식 FAQ·공지·스토어 설명·언론 보도·사용자 리뷰)로 확인한 **관찰 사실**과 ottline에 대한 **적용 가설·검증 계획**을 명확히 구분한다. 경쟁사가 특정 기능을 제공한다는 사실만으로 성장 원인이나 유지율 개선 효과를 단정하지 않는다.
 
 ---
 
-## 2. 제품군별 비교표
+## 1. 2026년 시장 관찰 사실 (출처 · 확인일 · 근거 유형)
+
+| 관찰 항목 | 확인된 사실 | 출처 · 확인일 (`2026-11-22`) | 근거 유형 |
+| --- | --- | --- | --- |
+| **TV Time 서비스 종료** | TV Time은 **2026년 7월 15일 서비스를 종료**했다(앱·웹 중단 및 계정 데이터 삭제, 종료 전 데이터 내보내기 안내). | 공식 종료 안내 · JustWatch 공지 · [Buck The Critics (2026-07)](https://buckthecritics.com/blog/tv-time-serializd-alternative/) · [Refract (2026-11)](https://getrefract.app/tv-time-alternative) | 공식 공지·대안 서비스 안내 |
+| **Letterboxd의 TV 지원 범위** | Letterboxd는 **반복 편성 TV 시리즈(에피소드 단위 추적)를 지원하지 않으며**, 단 **미니시리즈·TV 영화·스탠드업 스페셜 등 일부 예외**만 카탈로그에 포함한다. | [Letterboxd 공식 FAQ](https://support.letterboxd.com/hc/en-us/articles/15269096507407-Do-you-support-TV-shows) · [Refract (2026-11)](https://getrefract.app/letterboxd-for-tv-shows) | 공식 FAQ |
+| **국내 영상 평가 시장 재편 보도** | 키노라이츠가 왓챠 인수를 추진 중이라는 보도가 2026년 8월 공개됐다. | [테크M 보도 (2026-08-19)](https://www.techm.kr/news/articleView.html?idxno=154434) | 언론 보도 |
+| **국내 기록 앱의 데이터 가져오기 제공** | 레포브(repov)는 2025년 7월 `1.2.2` 업데이트로 **왓챠피디아·북적북적·북모리·키노라이츠·Goodreads·Letterboxd 6개 플랫폼 데이터 가져오기** 기능을 출시했다. *(단, 이 기능이 성장의 핵심 원인이라는 인과는 공개 자료로 입증되지 않음.)* | [레포브 공식 공지 (2025-07-24)](https://page.repov.me/n8pw9x2zw94g6mg7yrqv) | 공식 공지 |
+| **통합 미디어 트래커의 플랫폼 편중** | 영화·시리즈·책을 함께 다루는 글로벌 통합 앱 **Sofa**, **Sequel**, **Omniphile**은 2026년 11월 기준 **Apple 생태계 전용**(iOS/iPadOS/macOS 등)이며 Android·Windows·Web 동시 지원을 제공하지 않는다. | [App Store Sequel](https://apps.apple.com/us/app/sequel-media-tracker/id1630746993) · [Omniphile 비교 (2026-11-01)](https://www.omniphile.app/blog/best-media-tracker-app) | 스토어 설명·비교 글 |
+
+---
+
+## 2. 제품군별 관찰 비교표 (확인일 `2026-11-22`)
 
 ### A. 영상·OTT 기록 전문
 
-| 제품 | 권역/주 플랫폼 | 핵심 강점 | 알려진 약점·사용자 불만 | ottline과의 관계 |
+| 제품 | 권역/주 플랫폼 | 공개 확인 기능·특징 (관찰 사실) | 공개 확인 제한·사용자 불만 | ottline 관점 참고 포인트 |
 | --- | --- | --- | --- | --- |
-| **Letterboxd** | 글로벌 / Web·iOS·Android | 영화 다이어리, `Four Favorites`(4개 취향 대표작), 연간 통계·공유, 알고리즘/DM 없는 저압박 영화 커뮤니티 | **TV 시리즈 미지원(2026-11 기준)**, 신규 온보딩이 설명 위주이고 가입 없이 기록 불가, 프로 기능 유료 | **벤치마크**: 다이어리·회고·대표작 정체성, 저압박 소셜 |
-| **Serializd** | 글로벌 / Web·iOS·Android | TV 전용 "Letterboxd", 시즌/에피소드 단위 별점·리뷰, 광고 없음 | TV 전용(영화·책 별도), 에피소드 자동 스크로블링 약함 | **참고**: 시리즈 시즌/에피소드 기록 UX |
-| **Trakt** | 글로벌 / Web·iOS·Android | Plex/Kodi/OTT 자동 스크로블링, 에피소드 단위 진행률, Year in Review | 일반 사용자에게 UI 복잡, 무료 광고 및 VIP 구독 부담 | **차별점**: 자동 추적 대신 저부담 수동 회상 기록 |
-| **키노라이츠** | 한국 / iOS·Android·Web | 국내 OTT별 시청 가능 플랫폼 통합 검색, 신호등 평점, 평가 내역 가져오기 | 기록·회상 UX보다 OTT 탐색/커뮤니티 성격이 강함 | **차별점**: 탐색 포털이 아닌 개인 기록장 |
-| **왓챠피디아** | 한국 / iOS·Android·Web | 방대한 국내 영화·드라마·책·웹툰 DB와 평가 데이터 | 인수 추진 등 서비스 불확실성, 평가/별점 중심·소셜 피로 | **전환 기회**: 기존 평가/기록 보유자의 이탈·이전 수요 |
+| **Letterboxd** | 글로벌 / Web·iOS·Android | 영화 다이어리, `Four Favorites`, 연간 통계·공유, 알고리즘 피드/DM 없는 영화 커뮤니티 | 반복 편성 TV 시리즈 미지원(미니시리즈·TV 영화 예외, [공식 FAQ](https://support.letterboxd.com/hc/en-us/articles/15269096507407-Do-you-support-TV-shows)), 기록 작성 시 회원가입 필요 | 저압박 커뮤니티 톤, 다이어리·회고 경험 |
+| **Serializd** | 글로벌 / Web·iOS·Android | TV 전용 시즌/에피소드 단위 별점·리뷰, 광고 없음 ([공식 사이트](https://serializd.com/)) | TV 전용(영화·책 별도 앱 필요) | 시리즈 시즌/에피소드 단위 기록 흐름 |
+| **Trakt** | 글로벌 / Web·iOS·Android | 에피소드 진행률 추적, Plex 등 외부 연동, Year in Review ([Achriom, 2026-11](https://www.achriom.com/blog/trakt-year-in-review/)) | 무료 구간 광고, 유료 VIP 구독 | 자동 스크로블링 대신 저부담 수동 기록과 대비 |
+| **키노라이츠** | 한국 / iOS·Android·Web | 국내 OTT별 시청 가능 플랫폼 통합 검색, 콘텐츠 추천·평가 ([Google Play](https://play.google.com/store/apps/details?id=com.kinolights.kinolights&hl=ko)) | OTT 탐색/추천 포털 중심, 개인 기록장 성격과 결이 다름 | 탐색 포털과 개인 기록장의 경계 |
+| **왓챠피디아** | 한국 / iOS·Android·Web | 영화·드라마·책·웹툰 평가 DB | 인수 추진 보도 등 서비스 변화 국면([테크M, 2026-08](https://www.techm.kr/news/articleView.html?idxno=154434)) | 기존 기록 보유자의 백업·이전 수요 관찰 대상 |
 
 ### B. 도서·독서 기록 전문
 
-| 제품 | 권역/주 플랫폼 | 핵심 강점 | 알려진 약점·사용자 불만 | ottline과의 관계 |
+| 제품 | 권역/주 플랫폼 | 공개 확인 기능·특징 (관찰 사실) | 공개 확인 제한·사용자 불만 | ottline 관점 참고 포인트 |
 | --- | --- | --- | --- | --- |
-| **북모리 (Bookmory)** | 한국·글로벌 / iOS·Android·iPad | **달력(캘린더) 뷰**, 독서 타이머, 메모/OCR 문장 추출, 통계, 오프라인 기록 | **광고 증가 불만**, 데스크톱/웹 중심성 약함, 영상 미지원 | **벤치마크**: 월간 달력 뷰·오프라인 친화·감성 독서 노트 |
-| **북적북적** | 한국 / iOS·Android | 읽은 책을 **물리적 높이(cm)로 쌓는 직관적 시각화**("100권 대신 100cm"), 귀여운 캐릭터 회상 | 영상 미지원, 책 외 확장성 제한, 로그인/기기 전환 이슈 리뷰 존재 | **벤치마크**: 숫자 통계가 아닌 감성적 누적 시각화(ottline의 KDC 내 서가와 맞닿음) |
-| **The StoryGraph** | 글로벌 / Web·iOS·Android | **무드·페이스 태그**, 세밀한 차트, **취향 기반 AI 추천**, `DNF(읽다 멈춤)/일시정지` 상태, **Goodreads CSV 가져오기**, 독립 서비스 신뢰 | 비영어권 도서 DB 빈약, 소셜 기능은 Goodreads 대비 약함 | **핵심 벤치마크**: AI 추천·감성 차트·이탈 없는 가져오기·독립성 신뢰 |
-| **Goodreads** | 글로벌 / Web·iOS·Android | 세계 최대 도서 DB·리뷰·TBR(읽을 책) 목록 | 구형 UI, 아마존 종속·스폰서 노출, 별점 테러/소셜 피로 | **반면교사**: 무거운 소셜/광고 중심 구조 |
-| **Fable** | 글로벌 / iOS·Android | **책 + TV 시리즈 통합 추적**, 월간/연간 목표, 북클럽/TV클럽 소셜 토론 | "기록 도구보다 SNS에 가깝다"는 평가, 동영상·SNS화 피로감 | **비교 대상**: 책+TV 통합은 유사하나 ottline은 개인 기록장 우선 |
+| **북모리 (Bookmory)** | 한국·글로벌 / iOS·Android·iPad | 독서 달력, 독서 타이머, 메모/OCR, 통계, 오프라인 기록 ([공식 사이트](https://bookmory.net/ko/), [App Store](https://apps.apple.com/kr/app/id1515533482)) | 앱 스토어 리뷰에 광고 증가 불만 존재, 영상 미지원 | 월간 달력 뷰·오프라인 친화 기록 노트 |
+| **북적북적** | 한국 / iOS·Android | 읽은 책을 물리적 높이(cm)로 쌓는 시각화([App Store](https://apps.apple.com/kr/app/id1472538417)) | 영상 미지원, 일부 리뷰에 기기 전환/로그아웃 불편 언급 | 숫자 통계 외 감성적 누적 표현(KDC 내 서가와 비교) |
+| **The StoryGraph** | 글로벌 / Web·iOS·Android | 무드·페이스 기반 통계 차트, 취향 기반 추천, `DNF`/일시정지 상태, Goodreads 데이터 가져오기 ([Google Play](https://play.google.com/store/apps/details?id=com.thestorygraph.thestorygraph&hl=ko)) | 비영어권 도서 DB 빈약 리뷰([App Store](https://apps.apple.com/fr/app/id1570489264)) | 취향 차트·데이터 가져오기 UX·독립 서비스 포지셔닝 |
+| **Goodreads** | 글로벌 / Web·iOS·Android | 대규모 도서 DB·리뷰·읽을 책 목록 ([Google Play](https://play.google.com/store/apps/details/Goodreads_Find_Track_Books?id=com.goodreads&hl=ko)) | 구형 UI·스폰서 노출·리뷰 피로 지적([Old Town Books, 2025-01](https://www.blog.oldtownbooks.com/blog/making-the-switch-why-otb-staff-are-leaving-goodreads-in-2025)) | 광고/대형 소셜 중심 구조와의 차별점 |
+| **Fable** | 글로벌 / iOS·Android | 책 + TV 시리즈 추적, 독서/시청 클럽 커뮤니티 ([Google Play](https://play.google.com/store/apps/details?id=co.fable.fable&hl=en)) | Reddit 사용자 의견 중 "기록 도구보다 SNS 성격이 강하다"는 피로 언급([r/books](https://www.reddit.com/r/books/comments/1fj4udh/book_tracking_apps_thinking_of_switching_to_fable/)) | 개인 기록 우선 vs SNS화 경계 참고 |
 
 ### C. 통합 미디어·아카이브 & 저부담 습관 레퍼런스
 
-| 제품 | 권역/주 플랫폼 | 핵심 강점 | 알려진 약점·사용자 불만 | ottline과의 관계 |
+| 제품 | 권역/주 플랫폼 | 공개 확인 기능·특징 (관찰 사실) | 공개 확인 제한 | ottline 관점 참고 포인트 |
 | --- | --- | --- | --- | --- |
-| **레포브 (repov)** | 한국·일본 / iOS·Android | 영화·책·장소·일상 등 40개 카테고리, 캘린더·지도 뷰, **타 앱 6종 데이터 가져오기** | 다카테고리 범용 미니 블로그 성격(영상·책 전문 메타/서가/시즌 구조 얕음), 웹/데스크톱 앱 부재 | **국내 직접 참고**: 데이터 가져오기 전략, 캘린더 회상 UX |
-| **Sofa / Sequel / Omniphile** | 글로벌 / **Apple 전용** | 깔끔한 네이티브 UI, 위시리스트/진행률, iCloud 동기화, 위젯 | **Android·Windows·Web 미지원**, Sofa는 진행률 유료(Super Sofa), Sequel은 통계/독서 진행률 제한 | **ottline 우위**: 5대 OS 크로스플랫폼 + 무료 로컬 우선 동기화 |
-| **Cookpad** ([DESIGN.md](../../DESIGN.md) 원형) | 글로벌·일본 | 따뜻하고 압박 없는 일상의 반복 기록, 사진 중심 카드, 낮은 진입 문턱 | (도메인 상이) | **톤 기준**: "생산성 대시보드"가 아니라 "손때 묻은 기억의 서가" |
-| **Day One** | 글로벌 / 멀티 OS | **"On This Day(과거의 오늘)" 회상 트리거**, 프라이버시/암호화 신뢰, 멀티 기기 동기화 | 유료 구독 장벽 | **벤치마크**: 기록을 다시 열게 만드는 시간 기반 회상 트리거 |
+| **레포브 (repov)** | 한국·일본 / iOS·Android | 영화·책·장소 등 40개 카테고리, 캘린더·지도 뷰, 타 앱 6종 데이터 가져오기 ([Google Play](https://play.google.com/store/apps/details?id=com.kilo.repov&hl=ko), [공지](https://page.repov.me/n8pw9x2zw94g6mg7yrqv)) | 범용 미니 블로그 성격(영상·책 전문 메타/서가 깊이 차이), 데스크톱/웹 앱 부재 | 캘린더 회상 뷰·가져오기 포맷 구성 참고 |
+| **Sofa / Sequel / Omniphile** | 글로벌 / Apple 전용 | 영화·시리즈·책 등 통합 관리, 위젯, iCloud 동기화 ([Omniphile 비교, 2026-11](https://www.omniphile.app/blog/best-media-tracker-app)) | Android·Windows·Web 미지원, 일부 진행률/동기화 유료 | ottline의 5대 OS 크로스플랫폼·무료 로컬 우선 우위 |
+| **Cookpad** ([DESIGN.md](../../DESIGN.md) 원형) | 글로벌·일본 | 따뜻하고 압박 없는 일상의 반복 기록, 사진 중심 카드 | (도메인 상이) | "생산성 대시보드"가 아닌 "손때 묻은 기억의 서가" 톤 |
+| **Day One** | 글로벌 / 멀티 OS | 시간 기반 과거 기록 회상("On This Day"), 프라이버시/암호화 강조 | 유료 구독 | 압박 없는 시간 기반 회상 트리거 참고 |
 
 ---
 
-## 3. 5가지 기획 렌즈별 핵심 인사이트 (`#158` 직결)
+## 3. 5가지 기획 렌즈별 분석 (관찰 사실 · 적용 가설 · 검증 계획 분리)
 
-### 렌즈 1. 첫 기록 완료 (가입·입력 마찰 & 이전 장벽)
-- **가입 앞단 마찰이 가장 큰 이탈 원인**: Letterboxd 등의 UX 분석에서 "가입을 먼저 강제하고 빈 대시보드로 떨어뜨리는 흐름"이 초기 이탈의 주원인으로 지적된다. ottline은 이미 **무로그인 + 로컬 우선 + First Log Activation 패널**([first-log-activation-panel.md](../first-log-activation-panel.md))이라는 구조적 강점을 갖고 있다.
-- **기존 기록을 버리고 옮기기 어렵다 (전환 장벽)**: StoryGraph의 폭발적 성장 핵심은 **Goodreads CSV 가져오기**, 레포브의 핵심 성장 장치는 **6개 앱(왓챠피디아·북모리·북적북적·키노라이츠·Goodreads·Letterboxd) 가져오기**, TV Time 종료 후 대안 앱(Refract 등)의 1순위 소구점도 **기존 기록 가져오기(Import)**다.
-- **ottline 시사점**:
-  1. 1차 코드 감사(`#157`) 기준 `FirstLogActivationPanel`은 Web·Android·iOS/iPadOS·macOS·Windows 5개 플랫폼 모두에 이미 구현돼 있다. 따라서 다음 과제는 패널 자체의 이식이 아니라 **실제 유입 대비 첫 기록 도달(`firstLogCreateActors`) 병목 확인과 첫 기록 이후 안심 연결·재방문 연결**이다.
-  2. 현재 [timeline-export.md](../timeline-export.md)는 CSV 내보내기 중심이며, 외부 기록 가져오기는 Windows의 Netflix CSV 가져오기만 존재한다. 단기적으로는 멀티 기기 동기화 신뢰성과 전 플랫폼 내보내기 일관화로 데이터 소유 신뢰를 굳히고, 중기적으로 **외부 기록 가져오기(왓챠피디아·Letterboxd·Goodreads·CSV)**를 검토할 가치가 크다(특히 TV Time 종료·왓챠피디아 재편 국면에서 마케팅 유입과 직결).
+### 렌즈 1. 첫 기록 완료 & 외부 기록 이전
+- **관찰 사실**:
+  - Letterboxd·Goodreads 등 주요 서비스는 기록 작성 전 회원가입을 요구한다. 반면 ottline은 무로그인·로컬 우선 구조와 `FirstLogActivationPanel`을 Web·Android·iOS/iPadOS·macOS·Windows 5개 플랫폼 모두에 이미 구현했다([#157 감사](../feature-matrix.md)).
+  - StoryGraph(Goodreads 가져오기), 레포브(6개 앱 가져오기), TV Time 종료 후 대안 앱(Refract 등)은 모두 외부 기록 가져오기 기능을 제공한다(공식 안내·스토어 설명 기준).
+- **ottline 적용 가설**:
+  - *가설 1A*: 외부 기록 가져오기(CSV·Letterboxd·Goodreads·왓챠피디아 등)를 제공하면 기존 타 앱 기록을 보유한 방문자의 ottline 전환 장벽이 낮아지고 초기 정착률(14일 내 추가 기록)이 높아질 것이다.
+- **검증 계획**:
+  - 본부로부터 현재 첫 기록 도달 기준선(`firstLogCreateActors`, `qualifiedActors`)을 확보한 뒤, [#164 외부 기록 가져오기 기획](https://github.com/chawon/ott/issues/164)에서 1차 지원 포맷·중복/판본 매칭 정책을 정의하고 Web/PWA 우선 도입 후 가져오기 사용 계정의 2~4주차 재기록률을 관찰한다.
 
-### 렌즈 2. 여러 주 반복 기록 (기록을 다시 열게 만드는 회상 루프)
-- **성공한 기록 앱은 '입력'이 아니라 '돌아보기(회상)'로 재방문을 만든다**:
-  - **북모리·레포브**: 포스터/표지가 날짜 칸에 채워지는 **월간 캘린더(달력) 뷰**가 가장 강력한 재방문·공유 동기다. ("이번 달 달력 채우기"는 스트릭처럼 죄책감을 주지 않으면서 시각적 보상을 준다.)
-  - **북적북적**: 단순 권수 숫자 대신 **시각적 누적(쌓임)**으로 성취감을 준다. ottline은 이미 책에 대해 **KDC 내 서가**를 갖고 있으나, 영상+책을 아우르는 시간축 시각화는 리스트 중심이다.
-  - **StoryGraph / Letterboxd / Trakt**: **월간·연간 Wrap-Up(회고 리포트)**과 **취향 패턴(무드/장르/TPO)**이 연말·월말 재방문과 자발적 SNS 공유를 만든다. ottline의 **주간 공유 카드**([weekly-report-share-card-posters.md](../weekly-report-share-card-posters.md))와 **TPO(장소·상황)** 데이터는 타 앱에 없는 고유 재료다.
-  - **Day One**: 과거 기록을 꺼내 보여주는 **"과거의 이맘때(On This Day / 1년 전 오늘)"** 회상 카드가 압박 없는 재방문 트리거로 작동한다.
-- **ottline 시사점**:
-  - 기록을 남긴 사용자가 다음 주에 앱을 다시 여는 이유를 **"새로 쓰기"에서 "내 타임라인·월간 포스터 달력·지난 기록 회상 보기"로 확장**해야 한다.
-  - ottline 고유의 **TPO(장소·상황) + 수정 이력(재감상/상태 변화)** + **영상·책 통합 타임라인**은 단순 별점 앱이 흉내 낼 수 없는 "기억의 맥락" 자산이다.
+### 렌즈 2. 여러 주 반복 기록 (회상 루프)
+- **관찰 사실**:
+  - 북모리·레포브는 포스터/표지 기반 월간 달력 뷰를, 북적북적은 누적 높이 시각화를, Day One은 과거 기록 회상 기능을 제공한다.
+  - `#157` 코드 감사 기준 ottline은 타임라인 리스트·주간 리포트 공유 카드([weekly-report-share-card-posters.md](../weekly-report-share-card-posters.md))·KDC 내 서가를 제공하지만, **전 플랫폼에 월간 달력 뷰는 없다**.
+- **ottline 적용 가설**:
+  - *가설 2A*: 영상·책 포스터/표지가 함께 채워지는 월간 기록 달력과 과거 기록 회상 카드를 제공하면, "새로 입력할 때만 여는 앱"에서 "돌아보기 위해 여는 앱"으로 사용 맥락이 확장되어 2~4주차 반복 기록 비율이 개선될 것이다.
+- **검증 계획**:
+  - 본부의 주간 반복 기록 기준선을 먼저 확보한다. 도입 시 단순 조회자/비조회자 비교(자기 선택 편향)로 인과를 단정하지 않고, **도입 전후 코호트 비교 또는 노출 실험**과 탐색 지표(`calendar_open`, 월간 공유 카드 생성)로 분리 측정한다.
 
-### 렌즈 3. 다중 기기·빠른 진입 (크로스플랫폼의 실제 가치 증명)
-- **데스크톱·웹·확장은 "볼 때 바로 기록", 모바일은 "읽을 때·이동 중 회상/빠른 기록"으로 역할이 갈린다**:
-  - Apple 전용 앱(Sofa/Sequel/Omniphile)이 못 잡는 **Windows PC + Android + iPhone/iPad + macOS + Web** 조합은 ottline의 가장 큰 구조적 해자다.
-  - 하지만 사용자가 두 번째 기기를 연결하는 시점은 "앱을 처음 켰을 때"가 아니라 **"첫 기록 1~3개를 남긴 직후, 이 기록을 잃고 싶지 않거나 다른 기기에서도 보고 싶을 때"**다.
-- **ottline 시사점**:
-  - 무로그인(페어링/복구 코드)은 프라이버시 강점이지만, 반대로 **"기기 바꾸면 기록 날아가는 거 아니야?"라는 불안**을 해소해 주어야 한다(TV Time 종료·북적북적 로그아웃 리뷰에서 데이터 유실 공포가 매우 크게 나타남).
-  - 특히 `#157` 감사에서 확인된 **Windows 동기화 Push 계약 불일치 및 Web `stale` outbox 잔류**는 다중 기기 신뢰의 근간을 흔들므로 최우선 복구 대상이다.
+### 렌즈 3. 다중 기기·데이터 안심 연결
+- **관찰 사실**:
+  - TV Time 종료 공지 및 일부 기록 앱 리뷰(북적북적 등)에서 기기 교체·서비스 변경 시 기록 유실에 대한 사용자 우려가 반복적으로 나타난다.
+  - `#157` 감사에서 Windows 동기화 push 누락(`#161`), Web `stale` outbox 미해소(`#162`), Apple 계정 삭제 실패 UI 오표시(`#163`)가 확인됐다.
+- **ottline 적용 가설**:
+  - *가설 3A*: 멀티 기기 동기화·삭제 안전성 결함을 먼저 복구해 데이터 신뢰를 확보한 뒤, 초기 기록을 몇 건 남긴 사용자에게 복구 카드 보관 및 QR 코드 기기 연결([#165](https://github.com/chawon/ott/issues/165))을 자연스럽게 안내하면 2번째 기기 연결률과 다중 기기 실사용이 늘어날 것이다. *(초기 안내 노출 시점 — 예: 1~3건 — 은 확정 사실이 아닌 테스트할 가설이다.)*
+- **검증 계획**:
+  - 먼저 `#161`·`#162`·`#163` 복구 완료를 검증한다. 이후 운영·API 담당과 다중 기기 귀속/계측 정의를 확정한 뒤 안내 시점별 연결 시도·완료율을 측정한다.
 
 ### 렌즈 4. 개인 기록 ↔ 공개 대화 (`함께`의 큐레이터 종료 이후)
-- **Letterboxd의 교훈**: 알고리즘 피드나 DM 없이도, **"작품 단위 리뷰/코멘트 + 가벼운 반응 + 내 대표작(Four Favorites)"**만으로 건강한 취향 커뮤니티가 굴러간다.
-- **Fable의 경고**: 커뮤니티가 과도하게 SNS화(피드·영상·팔로우 경쟁)되면 "그냥 조용히 기록하고 싶던 사용자"가 피로감을 느끼고 이탈한다.
-- **ottline 시사점**:
-  - 큐레이터 질문 종료(`#150`, `#153`)는 올바른 정리였으며, 이제 `함께`의 자생 동력은 **실제 사용자 기록 → 공개 대화로의 저마찰 연결**에 달려 있다.
-  - ottline이 이미 Web·Apple에 만든 **저장 뒤 같은 작품 공개 이야기 연결(`GET /api/discussions/connection`)**([saved-discussion-connection.md](../saved-discussion-connection.md))은 "내 기록을 강제로 공개하지 않으면서도 다른 사람의 이야기로 자연스럽게 연결하는" 모범 패턴이다. Android(`/discussions?titleId=` 호출)·Windows(미구현)의 공백을 메우고, `함께`에서 1탭으로 내 기록에 담는 양방향 루프를 정합화해야 한다.
+- **관찰 사실**:
+  - Letterboxd는 알고리즘 피드·DM 없이 작품별 기록·반응 중심으로 운영되며, Fable 관련 사용자 의견에서는 과도한 SNS화에 대한 피로가 언급된다.
+  - ottline은 큐레이터 종료를 진행 중이며, Web·Apple에는 저장 완료 직후 같은 작품의 공개 이야기로 이어주는 `SavedDiscussionLink`([saved-discussion-connection.md](../saved-discussion-connection.md))가 구현돼 있으나 Android·Windows에는 동일 계약이 미반영 상태다([#157 감사](../feature-matrix.md)).
+- **ottline 적용 가설**:
+  - *가설 4A*: 내 기록을 강제로 공개하지 않으면서 저장 직후 같은 작품 공개 이야기로 이어주는 경로를 전 플랫폼으로 일관화하면, 큐레이터 종료 이후에도 저부담으로 `함께` 열람·반응·댓글이 이어질 것이다.
+- **검증 계획**:
+  - 저장 뒤 연결 링크 노출 대비 클릭·상세 열람·반응/댓글 전환을 계측해 큐레이터 종료 후 `함께` 활성 추이를 관찰한다.
 
-### 렌즈 5. ottline이 절대 따라 하지 말아야 할 것 (배제 원칙)
+### 렌즈 5. ottline 제품 원칙상 배제할 패턴
+
 | 경쟁사 패턴 | 배제 이유 (ottline 제품 원칙 충돌) |
 | --- | --- |
-| **강제 회원가입 / 이메일·SNS 로그인 선행** | 무로그인·로컬 우선·저부담 기록장 정체성 훼손, 첫 기록 전환 급락 |
+| **강제 회원가입 / 이메일·SNS 로그인 선행** | 무로그인·로컬 우선·저부담 기록장 정체성 훼손 |
 | **팔로워 수·공개 평점 랭킹·알고리즘 SNS 피드** | 평가 압박·SNS 피로 유발, 개인 프로필 비노출 원칙([AGENTS.md](../../AGENTS.md)) 충돌 |
 | **죄책감 주는 일일 스트릭(Streak) / 공격적 푸시 알림** | "따뜻하고 압박 없는 기록장"([DESIGN.md](../../DESIGN.md)) 톤 훼손 |
 | **40개 범용 카테고리 확장(맛집·일상·쇼핑 등)** | 영상·책 전문 메타데이터(TMDB·시즌/에피소드·ISBN·KDC 서가) 깊이 희석 |
-| **핵심 기록/진행률 기능의 유료 페이월·광고 삽입** | 무료·광고 없음·로컬 우선 신뢰(Bookmory·Trakt·Sofa 대비 강점) 훼손 |
+| **핵심 기록/진행률 기능의 유료 페이월·광고 삽입** | 무료·광고 없음·로컬 우선 신뢰 훼손 |
 
 ---
 
-## 4. `#157`·`#158` 교차 결론 (다음 개선 사이클 입력)
+## 4. `#157`·`#158` 연계 요약
 
-1. **신뢰 우선 (1순위)**: 5대 OS 크로스플랫폼이 ottline의 최대 해자이지만, `#157` 감사에서 Windows `POST /api/sync/push` 무음 누락·반응 계약 불일치·큐레이터 fallback 잔존, Web `stale` outbox 잔류, Apple 삭제 실패 성공 토스트가 확인됐다. 신규 기능보다 **다중 기기 동기화·계정 안전성·큐레이터 종료 마무리**가 최우선이다.
-2. **회상·재방문 루프 (2순위)**: 전 플랫폼에 월간 포스터/표지 달력 뷰가 없으며 리스트 중심이다. 북모리·레포브·Day One에서 검증된 **월간 포스터 달력 + 과거 기록 회상 카드**는 API 스키마 변경 없이 로컬 `watchedAt`·`posterUrl`로 시작할 수 있어 반복 기록 코호트와 공유 시너지가 가장 높다.
-3. **안심 연결·자생 `함께` + 중기 Import (3순위)**: 첫 기록 1~3건 시점의 **복구/다중 기기 연결 안내 + `GET /api/discussions/connection` 전 플랫폼 일관화 + macOS 확장 연결 활성화**로 다중 기기 실사용과 `함께` 자생력을 묶어 개선한다. TV Time 종료·왓챠피디아 재편에 대응하는 **외부 기록 가져오기(Import)**는 사용자 방향 판단을 거쳐 후속 사이클로 검토한다.
+1. **즉시 확정(1순위)**: `#157` 코드 감사에서 확인된 데이터 신뢰·계정 안전성 결함(`#161` Windows 동기화 복구, `#162` Web `stale` 해소, `#163` Apple 삭제 실패 안내)은 외부 가설과 무관하게 최우선 해결 대상이다.
+2. **가설 검증 대기(2·3순위 및 후속 기획)**: 월간 포스터 달력(2순위 가설), 안심 연결·`SavedDiscussionLink`·`#165` QR 기기 연결(3순위 가설), `#164` 외부 기록 가져오기(사용자 방향 확인된 후속 기획)는 모두 **본부 기준선 확보 및 별도 변경안 검토를 거쳐 확정**한다.

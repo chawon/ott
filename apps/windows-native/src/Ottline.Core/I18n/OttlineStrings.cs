@@ -78,8 +78,6 @@ public sealed record OttlineStrings(
     // Together Screen
     string TogetherTitle,
     string TogetherSubtitle,
-    string AiPromptBadge,
-    string AiOperatorDisclosure,
     string WriteTogetherButton,
     string ReactionDoneLabel,
     string ReactionCuriousLabel,
@@ -184,9 +182,14 @@ public sealed record OttlineStrings(
         ? "What you watch and read, kept on your timeline."
         : "보고 읽은 순간을 나의 타임라인에.";
     public string FooterGuidesLink => IsEn ? "Recording guides" : "기록 가이드";
+    public string FooterAboutLink => IsEn ? "About Service" : "서비스 소개";
+    public string FooterFaqLink => IsEn ? "FAQ" : "자주 묻는 질문";
+    public string FooterPrivacyLink => IsEn ? "Privacy Policy" : "개인정보처리방침";
+    public string FooterFeedbackLink => IsEn ? "Contact" : "문의하기";
     public string FooterReportLink => IsEn ? "My Usage Report" : "내 이용 리포트";
     public string FooterBookshelfLink => IsEn ? "Open my bookshelf" : "서가 보기";
-    public string FooterFeedbackLink => IsEn ? "Contact" : "문의하기";
+    public string InfoBackButton => IsEn ? "← Back" : "← 돌아가기";
+    public string InfoCurrentPlatformBadge => IsEn ? "Current app" : "현재 앱";
 
     // Timeline View (app/[locale]/timeline/page.tsx + FiltersBar.tsx + LogCard.tsx)
     public string TimelineEyebrow => IsEn ? "THE STORIES YOU KEPT" : "남겨둔 이야기";
@@ -200,6 +203,41 @@ public sealed record OttlineStrings(
         ? "Future timeline"
         : "미래의 타임라인";
     public string TimelineRecsRefresh => IsEn ? "See another set" : "다른 이야기 펼쳐보기";
+    public string TimelineRecsFindingButton => IsEn ? "Finding stories…" : "이야기를 고르고 있어요…";
+    public string TimelineRecsRetryButton => IsEn ? "Try again" : "다시 시도";
+    public string TimelineRecsLoading => IsEn
+        ? "Finding a few stories through the records you kept…"
+        : "남겨둔 이야기에서 다음에 만날 작품을 고르고 있어요…";
+    public string TimelineRecsRefreshingKeepExisting => IsEn
+        ? "Finding a new set of stories… Your current picks stay here until it’s ready."
+        : "새로운 이야기를 고르고 있어요… 새 추천이 준비될 때까지 기존 추천을 그대로 볼 수 있어요.";
+    public string TimelineRecsNeedMoreLogs => IsEn
+        ? "With five records, you can explore a few stories to meet next."
+        : "기록이 5개 모이면 다음에 만날 이야기도 펼쳐볼 수 있어요.";
+    public string TimelineRecsNotConnected => IsEn
+        ? "Sync your first record or connect your account to open your future timeline."
+        : "첫 기록을 동기화하거나 계정을 연결하면 미래의 타임라인을 펼쳐볼 수 있어요.";
+    public string TimelineRecsEmptyFiltered => IsEn
+        ? "No stories to open for this filter yet."
+        : "지금 고른 조건에 맞는 추천 작품이 아직 없어요.";
+    public string TimelineRecsLoadError => IsEn
+        ? "Could not bring in the next stories. Please try again in a little while."
+        : "다음 이야기를 불러오지 못했어요. 잠시 뒤 다시 확인해 주세요.";
+    public string TimelineRecsGenerateError => IsEn
+        ? "Could not finish finding new stories. Try again to check or continue the request."
+        : "새 이야기를 다 불러오지 못했어요. 다시 시도하면 진행 상태부터 이어서 확인할게요.";
+    public string TimelineRecsGenerateErrorKeepExisting => IsEn
+        ? "Could not finish finding new stories. Your current picks are safe—try again to continue."
+        : "새 이야기를 다 불러오지 못했어요. 기존 추천은 그대로 두고, 다시 시도하면 이어서 확인할게요.";
+    public string TimelineRecsStillGenerating => IsEn
+        ? "Still putting your next stories together. Try again in a moment to check the result."
+        : "아직 다음 이야기를 고르고 있어요. 잠시 뒤 다시 확인해 주세요.";
+    public string TimelineRecsQuotaExhausted => IsEn
+        ? "You’ve explored three times today. You can explore again at midnight (Korea time)."
+        : "오늘은 세 번의 이야기를 모두 펼쳐봤어요. 한국 시간 자정에 다시 펼쳐볼 수 있어요.";
+    public string FormatRecommendationQuotaRemaining(int remaining) => IsEn
+        ? $"You can explore {remaining} more {(remaining == 1 ? "time" : "times")} today."
+        : $"오늘 {remaining}번 더 펼쳐볼 수 있어요.";
     public string TimelineRecsLogAction => IsEn ? "Want to watch" : "보고 싶어요";
     public string TimelineRecsExcludeAction => IsEn ? "Already watched or read" : "이미 본·읽은 작품";
     public string TimelineFilterSearchHint => IsEn
@@ -230,25 +268,44 @@ public sealed record OttlineStrings(
         : "남겨둔 기록이 아직 없어요. 방금 본 작품 하나부터 차근차근 쌓아보세요.";
     public string TimelineEmptyAction => IsEn ? "Leave a new record →" : "새로운 기록 남기기 →";
 
-    // Together View (app/[locale]/public/page.tsx + PublicDiscussionsClient.tsx + CuratedContentList.tsx)
+    // Together View (app/[locale]/public/page.tsx + PublicDiscussionsClient.tsx)
     public string TogetherEyebrow => IsEn ? "STORIES, SHARED" : "함께 나누는 이야기";
     public string TogetherHeadingTitle => IsEn ? "Same story, different feelings" : "같은 이야기, 다른 마음";
     public string TogetherHeadingSubtitle => IsEn
         ? "Share the scenes and thoughts that stayed with you."
         : "같은 작품에서 만난 장면과 생각을 함께 나눠요.";
     public string TogetherNewPostButton => IsEn ? "+ Leave a thought" : "+ 의견 남기기";
-    public string TogetherPromptBadge => IsEn ? "Questions from the ottline curator" : "ottline 큐레이터의 질문";
-    public string TogetherPromptCurationLabel => IsEn
-        ? "AI-operated account · Today's conversation starters, kept separate from people's records."
-        : "AI 운영 계정 · 사람의 기록과는 구분된, 오늘의 대화 소재예요.";
-    public string TogetherPromptReplyButton => IsEn ? "Leave a thought" : "의견 남기기";
     public string TogetherSortLatest => IsEn ? "Latest" : "최신";
     public string TogetherSortReactions => IsEn ? "Reactions" : "공감";
     public string TogetherSortComments => IsEn ? "Most comments" : "댓글 많은 순";
     public string TogetherReactDone => IsEn ? "✓ Watched it too" : "✓ 나도 봤어요";
+    public string TogetherReactDoneBook => IsEn ? "✓ Read it too" : "✓ 나도 읽었어요";
     public string TogetherReactCurious => IsEn ? "👀 Curious" : "👀 궁금해요";
     public string TogetherReactSave => IsEn ? "🔖 Save for later" : "🔖 저장해둘래요";
     public string TogetherOpenComments => IsEn ? "Together →" : "함께 기록 →";
+    public string TogetherSearchPlaceholder => IsEn ? "Filter by title or note" : "작품 제목이나 내용으로 찾기";
+    public string TogetherClearSearchButton => IsEn ? "Clear search" : "검색 지우기";
+    public string TogetherRefreshButton => IsEn ? "Refresh" : "새로고침";
+    public string TogetherListLoading => IsEn ? "Loading shared stories…" : "함께 나눈 이야기를 불러오고 있어요…";
+    public string TogetherEmptyListTitle => IsEn ? "No shared stories yet." : "아직 함께 나눈 이야기가 없어요.";
+    public string TogetherEmptySearchTitle => IsEn ? "No stories match that search yet." : "찾는 조건에 맞는 이야기가 아직 없어요.";
+    public string TogetherSelectPromptTitle => IsEn ? "Select a conversation from the left list." : "왼쪽에서 이야기를 선택해 읽어보세요.";
+    public string TogetherSelectPromptBody => IsEn
+        ? "Pick a title to read reactions and comments, or add it straight to your timeline."
+        : "작품을 고르면 공감과 댓글, 내 타임라인 기록까지 한 번에 이어서 볼 수 있어요.";
+    public string TogetherBackToList => IsEn ? "← Back to list" : "← 목록으로";
+    public string TogetherLogThisTitle => IsEn ? "Log this title" : "이 작품 기록하기";
+    public string TogetherOpenMyRecord => IsEn ? "Open my record" : "내 기록 펼치기";
+    public string TogetherCommentsHeading => IsEn ? "Shared thoughts" : "함께 나눈 이야기";
+    public string TogetherCommentsLoading => IsEn ? "Loading thoughts…" : "이야기를 불러오고 있어요…";
+    public string TogetherCommentsLoadError => IsEn
+        ? "Could not load comments. Please try again in a little while."
+        : "이야기를 불러오지 못했어요. 잠시 뒤 다시 확인해 주세요.";
+    public string TogetherCommentsRetry => IsEn ? "Try again" : "다시 불러오기";
+    public string TogetherCommentsEmpty => IsEn
+        ? "No thoughts here yet. Leave the first line."
+        : "아직 남겨진 이야기가 없어요. 첫 한 줄을 남겨보세요.";
+    public string TogetherSyncLogCheckbox => IsEn ? "Also keep on my timeline" : "내 타임라인에도 함께 남기기";
 
     // My Space View (app/[locale]/account/page.tsx + ProfileEditor.tsx)
     public string MySpaceEyebrow => IsEn ? "MY SPACE" : "나의 공간";
@@ -535,8 +592,6 @@ public sealed record OttlineStrings(
         SavedCelebrationSubtitle: "더 남기고 싶을 때 그날의 순간과 메모를 더해요.",
         TogetherTitle: "함께 하는 발자취",
         TogetherSubtitle: "다른 사람들은 요즘 무엇을 보고 읽을까요?",
-        AiPromptBadge: "ottline 큐레이터의 질문",
-        AiOperatorDisclosure: "AI 운영 계정 · 사람의 기록과는 구분된, 오늘의 대화 소재예요.",
         WriteTogetherButton: "의견 남기기",
         ReactionDoneLabel: "나도 봤어요",
         ReactionCuriousLabel: "궁금해요",
@@ -640,8 +695,6 @@ public sealed record OttlineStrings(
         SavedCelebrationSubtitle: "Add the moment and a note whenever you want.",
         TogetherTitle: "Shared Footprints",
         TogetherSubtitle: "What are others watching and reading lately?",
-        AiPromptBadge: "Questions from the ottline curator",
-        AiOperatorDisclosure: "AI-operated account · Today's conversation starters, kept separate from people's records.",
         WriteTogetherButton: "Leave a thought",
         ReactionDoneLabel: "Watched it too",
         ReactionCuriousLabel: "Curious",
