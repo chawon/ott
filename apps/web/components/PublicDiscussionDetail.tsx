@@ -31,6 +31,7 @@ export default function PublicDiscussionDetail({
   const [attempt, setAttempt] = useState(0);
   const [userId, setUserId] = useState<string | null>(null);
   const headingRef = useRef<HTMLHeadingElement>(null);
+  const requestFocusRef = useRef<Element | null>(null);
 
   useEffect(() => setUserId(getUserId()), []);
 
@@ -39,6 +40,7 @@ export default function PublicDiscussionDetail({
     if (!discussionId) return;
     let active = true;
     const controller = new AbortController();
+    requestFocusRef.current = document.activeElement;
     setState({ status: "loading" });
 
     void api<DiscussionListItem | null>(
@@ -69,7 +71,11 @@ export default function PublicDiscussionDetail({
   }, [discussionId, locale, attempt]);
 
   useEffect(() => {
-    if (state.status !== "loading") {
+    if (
+      state.status !== "loading" &&
+      (document.activeElement === document.body ||
+        document.activeElement === requestFocusRef.current)
+    ) {
       headingRef.current?.focus({ preventScroll: true });
     }
   }, [state.status]);

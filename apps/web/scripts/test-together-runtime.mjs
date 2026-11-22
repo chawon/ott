@@ -524,8 +524,40 @@ try {
         },
       );
       await check(
+        `${locale}: a delayed detail does not steal focus from search`,
+        async () => {
+          let release;
+          gates.set(ids[0], {
+            promise: new Promise((resolve) => {
+              release = resolve;
+            }),
+          });
+          try {
+            await page.locator(`[data-discussion-link="${ids[0]}"]`).click();
+            await page.getByTestId("discussion-loading").waitFor();
+            await page.locator("#public-title-search").fill("Dune");
+            release();
+            await ready(page, ids[0]);
+            assert.equal(
+              await page.locator(":focus").getAttribute("id"),
+              "public-title-search",
+            );
+            assert.equal(
+              await page.locator("#public-title-search").inputValue(),
+              "Dune",
+            );
+            await page.locator("#public-title-search").fill("");
+          } finally {
+            release();
+            gates.delete(ids[0]);
+          }
+        },
+      );
+      await check(
         `${locale}: HTTP 404 is missing; 503 offers working retry`,
         async () => {
+          await page.locator(`[data-discussion-link="${ids[1]}"]`).click();
+          await ready(page, ids[1]);
           statuses.set(ids[0], 404);
           await page.locator(`[data-discussion-link="${ids[0]}"]`).click();
           await page.getByTestId("discussion-missing").waitFor();
