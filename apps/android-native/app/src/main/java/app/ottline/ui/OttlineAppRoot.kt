@@ -102,6 +102,17 @@ sealed interface LaunchCommand {
     ) : LaunchCommand
 }
 
+internal fun resolveDirectMainTab(route: String): MainTab? = when {
+    route == "home" -> MainTab.HOME
+    route == "timeline" -> MainTab.TIMELINE
+    route == "together" || route.startsWith("discussion/") -> MainTab.TOGETHER
+    route == "my_space" || route == "watch_reminder" || route == "guides" -> MainTab.MY_SPACE
+    else -> null
+}
+
+internal fun resolveActiveMainTab(currentRoute: String, ownerTab: MainTab): MainTab =
+    resolveDirectMainTab(currentRoute) ?: ownerTab
+
 @Composable
 fun OttlineAppRoot(
     repository: OttlineRepository,
@@ -128,6 +139,14 @@ fun OttlineAppRoot(
     var pendingFeedbackReportBody by rememberSaveable { mutableStateOf<String?>(null) }
     var showIntroSplash by rememberSaveable { mutableStateOf(pendingCommand == null) }
     var pendingReviewCheckAfterSave by rememberSaveable { mutableStateOf(false) }
+    var lastMainTab by rememberSaveable { mutableStateOf(MainTab.HOME) }
+
+    val directMainTab = resolveDirectMainTab(currentRoute)
+    LaunchedEffect(directMainTab) {
+        if (directMainTab != null) {
+            lastMainTab = directMainTab
+        }
+    }
 
     LaunchedEffect(pendingReviewCheckAfterSave, quickRecordDraft == null, showIntroSplash) {
         if (pendingReviewCheckAfterSave && quickRecordDraft == null && !showIntroSplash) {
@@ -148,12 +167,20 @@ fun OttlineAppRoot(
             MainTab.TOGETHER -> "together"
             MainTab.MY_SPACE -> "my_space"
         }
-        navController.navigate(target) {
-            popUpTo(navController.graph.findStartDestination().id) {
-                saveState = true
+        lastMainTab = tab
+        if (currentRoute == target) return
+        // Return cleanly to the target tab's root (never save/restore stale detail sub-stacks
+        // like `title/{id}` across tab switches; filter/selection/scroll states live in ViewModel).
+        val poppedToExisting = navController.popBackStack(target, inclusive = false)
+        if (!poppedToExisting) {
+            navController.navigate(target) {
+                popUpTo(navController.graph.findStartDestination().id) {
+                    inclusive = false
+                    saveState = false
+                }
+                launchSingleTop = true
+                restoreState = false
             }
-            launchSingleTop = true
-            restoreState = true
         }
     }
 
@@ -305,12 +332,7 @@ fun OttlineAppRoot(
         onConsumeCommand()
     }
 
-    val activeMainTab = when {
-        currentRoute.startsWith("timeline") || currentRoute == "report" || currentRoute == "bookshelf" -> MainTab.TIMELINE
-        currentRoute.startsWith("together") || currentRoute.startsWith("discussion/") -> MainTab.TOGETHER
-        currentRoute.startsWith("my_space") || currentRoute == "feedback" || currentRoute == "watch_reminder" || currentRoute == "guides" -> MainTab.MY_SPACE
-        else -> MainTab.HOME
-    }
+    val activeMainTab = resolveActiveMainTab(currentRoute = currentRoute, ownerTab = lastMainTab)
 
     // Matches `SwipeNav.tsx` (`currentTab(pathname)`): active on the 4 top-level tab routes
     val swipeCurrentTab: MainTab? = when (currentRoute) {

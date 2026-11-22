@@ -15,8 +15,10 @@ import app.ottline.model.DiscussionReactionSummary
 import app.ottline.model.DiscussionReactionType
 import app.ottline.model.TitleType
 import app.ottline.ui.OttlineMainViewModel
+import app.ottline.ui.components.MainTab
 import app.ottline.ui.layout.AdaptiveLayoutMetrics
 import app.ottline.ui.layout.AdaptiveWindowMode
+import app.ottline.ui.resolveActiveMainTab
 import app.ottline.ui.theme.DarkOttlinePalette
 import app.ottline.ui.theme.LightOttlinePalette
 import app.ottline.ui.theme.ottlineColorScheme
@@ -427,5 +429,28 @@ class TogetherAndAdaptiveLayoutTest {
         assertEquals(DarkOttlinePalette.brandNavy, dark.onSecondaryContainer)
         assertEquals(DarkOttlinePalette.paperStrong, dark.surfaceContainerHigh)
         assertEquals(DarkOttlinePalette.border, dark.outlineVariant)
+    }
+
+    @Test
+    fun activeMainTab_preservesOwningTabOnSharedTitleDetailAndSubRoutes() {
+        // Opening title detail from Timeline MUST keep Timeline focused (not flip back to Home)
+        assertEquals(MainTab.TIMELINE, resolveActiveMainTab("title/{titleId}", ownerTab = MainTab.TIMELINE))
+        assertEquals(MainTab.TOGETHER, resolveActiveMainTab("title/{titleId}", ownerTab = MainTab.TOGETHER))
+        assertEquals(MainTab.MY_SPACE, resolveActiveMainTab("title/{titleId}", ownerTab = MainTab.MY_SPACE))
+        assertEquals(MainTab.HOME, resolveActiveMainTab("title/{titleId}", ownerTab = MainTab.HOME))
+
+        // Shared sub-routes preserve whichever tab opened them
+        assertEquals(MainTab.MY_SPACE, resolveActiveMainTab("report", ownerTab = MainTab.MY_SPACE))
+        assertEquals(MainTab.TIMELINE, resolveActiveMainTab("bookshelf", ownerTab = MainTab.TIMELINE))
+        assertEquals(MainTab.TOGETHER, resolveActiveMainTab("feedback", ownerTab = MainTab.TOGETHER))
+
+        // Direct top-level & section-owned routes always resolve deterministically
+        assertEquals(MainTab.HOME, resolveActiveMainTab("home", ownerTab = MainTab.TIMELINE))
+        assertEquals(MainTab.TIMELINE, resolveActiveMainTab("timeline", ownerTab = MainTab.HOME))
+        assertEquals(MainTab.TOGETHER, resolveActiveMainTab("together", ownerTab = MainTab.HOME))
+        assertEquals(MainTab.TOGETHER, resolveActiveMainTab("discussion/{discussionId}", ownerTab = MainTab.HOME))
+        assertEquals(MainTab.MY_SPACE, resolveActiveMainTab("my_space", ownerTab = MainTab.HOME))
+        assertEquals(MainTab.MY_SPACE, resolveActiveMainTab("watch_reminder", ownerTab = MainTab.HOME))
+        assertEquals(MainTab.MY_SPACE, resolveActiveMainTab("guides", ownerTab = MainTab.HOME))
     }
 }
