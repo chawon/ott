@@ -453,14 +453,30 @@ fun TimelineScreen(
                             "VIDEO" to tr("영상", "Video"),
                             "BOOK" to tr("책", "Book")
                         ).forEach { (key, label) ->
+                            val tabSelected = contentTypeTab == key || (key == "VIDEO" && contentTypeTab in listOf("MOVIE", "SERIES"))
                             FilterChip(
-                                selected = contentTypeTab == key || (key == "VIDEO" && contentTypeTab in listOf("MOVIE", "SERIES")),
+                                selected = tabSelected,
                                 onClick = { onUpdateFilter { it.copy(typeFilter = key) } },
                                 shape = RoundedCornerShape(8.dp),
-                                label = { Text(label) },
+                                label = {
+                                    Text(
+                                        text = label,
+                                        fontWeight = if (tabSelected) FontWeight.SemiBold else FontWeight.Medium
+                                    )
+                                },
                                 colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = palette.brandNavy,
-                                    selectedLabelColor = palette.onBrandNavy
+                                    containerColor = palette.card,
+                                    labelColor = palette.mutedInk,
+                                    selectedContainerColor = palette.paperStrong,
+                                    selectedLabelColor = palette.brandNavy
+                                ),
+                                border = FilterChipDefaults.filterChipBorder(
+                                    enabled = true,
+                                    selected = tabSelected,
+                                    borderColor = palette.border,
+                                    selectedBorderColor = palette.brandNavy,
+                                    borderWidth = 1.dp,
+                                    selectedBorderWidth = 1.dp
                                 )
                             )
                         }

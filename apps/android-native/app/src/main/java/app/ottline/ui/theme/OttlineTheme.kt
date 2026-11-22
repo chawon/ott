@@ -53,6 +53,7 @@ data class OttlinePalette(
     val onBrandNavy: Color,
     val brandMarkStroke: Color,
     val brandOrange: Color,
+    val onBrandOrange: Color = Color(0xFF0F0F0F),
     val danger: Color,
     val success: Color
 )
@@ -98,6 +99,27 @@ val DarkOttlinePalette = OttlinePalette(
 val LocalOttlinePalette = staticCompositionLocalOf { LightOttlinePalette }
 
 private val OttlineTypography = Typography(
+    displayLarge = TextStyle(
+        fontFamily = PretendardFontFamily,
+        fontWeight = FontWeight.Bold,
+        fontSize = 36.sp,
+        lineHeight = 44.sp,
+        letterSpacing = (-0.8).sp
+    ),
+    displayMedium = TextStyle(
+        fontFamily = PretendardFontFamily,
+        fontWeight = FontWeight.Bold,
+        fontSize = 32.sp,
+        lineHeight = 40.sp,
+        letterSpacing = (-0.6).sp
+    ),
+    displaySmall = TextStyle(
+        fontFamily = PretendardFontFamily,
+        fontWeight = FontWeight.Bold,
+        fontSize = 28.sp,
+        lineHeight = 36.sp,
+        letterSpacing = (-0.5).sp
+    ),
     headlineLarge = TextStyle(
         fontFamily = PretendardFontFamily,
         fontWeight = FontWeight.Bold,
@@ -183,15 +205,15 @@ internal fun ottlineColorScheme(
     darkColorScheme(
         primary = palette.brandNavy,
         onPrimary = palette.onBrandNavy,
-        primaryContainer = Color(0xFF22344D),
-        onPrimaryContainer = Color(0xFFDCEBFF),
+        primaryContainer = palette.paperStrong,
+        onPrimaryContainer = palette.brandNavy,
         inversePrimary = Color(0xFF1E4D8C),
         secondary = palette.brandNavy,
         onSecondary = palette.onBrandNavy,
-        secondaryContainer = Color(0xFF22344D),
-        onSecondaryContainer = Color(0xFFDCEBFF),
+        secondaryContainer = palette.paperStrong,
+        onSecondaryContainer = palette.brandNavy,
         tertiary = palette.brandOrange,
-        onTertiary = Color(0xFF0F0F0F),
+        onTertiary = palette.onBrandOrange,
         tertiaryContainer = palette.sageAccent,
         onTertiaryContainer = palette.ink,
         background = palette.background,
@@ -222,15 +244,15 @@ internal fun ottlineColorScheme(
     lightColorScheme(
         primary = palette.brandNavy,
         onPrimary = palette.onBrandNavy,
-        primaryContainer = Color(0xFFEBF1FA),
+        primaryContainer = palette.paperStrong,
         onPrimaryContainer = palette.brandNavy,
         inversePrimary = Color(0xFF8BB4EE),
         secondary = palette.brandNavy,
         onSecondary = palette.onBrandNavy,
-        secondaryContainer = Color(0xFFEBF1FA),
+        secondaryContainer = palette.paperStrong,
         onSecondaryContainer = palette.brandNavy,
         tertiary = palette.brandOrange,
-        onTertiary = Color(0xFF0F0F0F),
+        onTertiary = palette.onBrandOrange,
         tertiaryContainer = palette.paperStrong,
         onTertiaryContainer = palette.ink,
         background = palette.background,

@@ -546,7 +546,7 @@ private fun PersonalMomentCard(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Button(
+                    OutlinedButton(
                         onClick = {
                             onOpenQuickRecord(
                                 QuickRecordRequest(
@@ -557,9 +557,10 @@ private fun PersonalMomentCard(
                             )
                         },
                         shape = RoundedCornerShape(8.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = palette.brandNavy,
-                            contentColor = palette.onBrandNavy
+                        border = BorderStroke(1.dp, palette.brandNavy.copy(alpha = 0.55f)),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            containerColor = palette.paperStrong,
+                            contentColor = palette.brandNavy
                         ),
                         modifier = Modifier
                             .weight(1f)
@@ -567,7 +568,7 @@ private fun PersonalMomentCard(
                     ) {
                         Icon(Icons.Outlined.Edit, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(Modifier.width(4.dp))
-                        Text(tr("다듬기", "Edit"), fontWeight = FontWeight.Bold)
+                        Text(tr("다듬기", "Edit"), fontWeight = FontWeight.SemiBold)
                     }
 
                     OutlinedButton(

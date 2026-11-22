@@ -339,10 +339,10 @@ fun ReportScreen(
                                     }
                                 },
                                 enabled = !exportingRecap,
-                                shape = RoundedCornerShape(10.dp),
+                                shape = RoundedCornerShape(8.dp),
                                 colors = ButtonDefaults.buttonColors(
-                                    containerColor = palette.brandNavy,
-                                    contentColor = palette.onBrandNavy
+                                    containerColor = palette.brandOrange,
+                                    contentColor = palette.onBrandOrange
                                 ),
                                 modifier = Modifier.weight(1f)
                             ) {
@@ -881,9 +881,10 @@ fun FeedbackScreen(
                             }
                         },
                         enabled = replyBody.trim().isNotEmpty() && !submitting,
+                        shape = RoundedCornerShape(8.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = palette.brandNavy,
-                            contentColor = palette.onBrandNavy
+                            containerColor = palette.brandOrange,
+                            contentColor = palette.onBrandOrange
                         )
                     ) {
                         Icon(Icons.AutoMirrored.Outlined.Send, contentDescription = null)
@@ -949,9 +950,10 @@ fun FeedbackScreen(
                                 }
                             },
                             enabled = body.trim().isNotEmpty() && !submitting,
+                            shape = RoundedCornerShape(8.dp),
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = palette.brandNavy,
-                                contentColor = palette.onBrandNavy
+                                containerColor = palette.brandOrange,
+                                contentColor = palette.onBrandOrange
                             ),
                             modifier = Modifier.fillMaxWidth()
                         ) {

@@ -357,10 +357,10 @@ fun MySpaceScreen(
                                     }
                                 },
                                 enabled = nicknameInput.trim().isNotEmpty() && !savingProfile,
-                                shape = RoundedCornerShape(10.dp),
+                                shape = RoundedCornerShape(8.dp),
                                 colors = ButtonDefaults.buttonColors(
-                                    containerColor = palette.brandNavy,
-                                    contentColor = palette.onBrandNavy
+                                    containerColor = palette.brandOrange,
+                                    contentColor = palette.onBrandOrange
                                 ),
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -504,10 +504,10 @@ fun MySpaceScreen(
                             }
                         },
                         enabled = pairCodeInput.trim().isNotEmpty() && !pairingBusy,
-                        shape = RoundedCornerShape(10.dp),
+                        shape = RoundedCornerShape(8.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = palette.brandNavy,
-                            contentColor = palette.onBrandNavy
+                            containerColor = palette.brandOrange,
+                            contentColor = palette.onBrandOrange
                         ),
                         modifier = Modifier
                             .fillMaxWidth()

@@ -512,38 +512,86 @@ private fun TogetherFilterControls(
                 "SERIES" to tr("시리즈", "Series"),
                 "BOOK" to tr("책", "Book")
             ).forEach { (key, label) ->
+                val chipSelected = contentType == key
                 FilterChip(
-                    selected = contentType == key,
+                    selected = chipSelected,
                     onClick = { onContentTypeChange(key) },
                     shape = RoundedCornerShape(8.dp),
-                    label = { Text(label) },
+                    label = {
+                        Text(
+                            text = label,
+                            fontWeight = if (chipSelected) FontWeight.SemiBold else FontWeight.Medium
+                        )
+                    },
                     colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = palette.brandNavy,
-                        selectedLabelColor = palette.onBrandNavy
+                        containerColor = palette.card,
+                        labelColor = palette.mutedInk,
+                        selectedContainerColor = palette.paperStrong,
+                        selectedLabelColor = palette.brandNavy
+                    ),
+                    border = FilterChipDefaults.filterChipBorder(
+                        enabled = true,
+                        selected = chipSelected,
+                        borderColor = palette.border,
+                        selectedBorderColor = palette.brandNavy,
+                        borderWidth = 1.dp,
+                        selectedBorderWidth = 1.dp
                     )
                 )
             }
         }
 
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            val latestSelected = sortMode == "latest"
             FilterChip(
-                selected = sortMode == "latest",
+                selected = latestSelected,
                 onClick = { onSortModeChange("latest") },
                 shape = RoundedCornerShape(8.dp),
-                label = { Text(tr("최신순", "Latest")) },
+                label = {
+                    Text(
+                        text = tr("최신순", "Latest"),
+                        fontWeight = if (latestSelected) FontWeight.SemiBold else FontWeight.Medium
+                    )
+                },
                 colors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = palette.brandNavy,
-                    selectedLabelColor = palette.onBrandNavy
+                    containerColor = palette.card,
+                    labelColor = palette.mutedInk,
+                    selectedContainerColor = palette.paperStrong,
+                    selectedLabelColor = palette.brandNavy
+                ),
+                border = FilterChipDefaults.filterChipBorder(
+                    enabled = true,
+                    selected = latestSelected,
+                    borderColor = palette.border,
+                    selectedBorderColor = palette.brandNavy,
+                    borderWidth = 1.dp,
+                    selectedBorderWidth = 1.dp
                 )
             )
+            val commentsSelected = sortMode == "comments"
             FilterChip(
-                selected = sortMode == "comments",
+                selected = commentsSelected,
                 onClick = { onSortModeChange("comments") },
                 shape = RoundedCornerShape(8.dp),
-                label = { Text(tr("이야기 많은 순", "Most comments")) },
+                label = {
+                    Text(
+                        text = tr("이야기 많은 순", "Most comments"),
+                        fontWeight = if (commentsSelected) FontWeight.SemiBold else FontWeight.Medium
+                    )
+                },
                 colors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = palette.brandNavy,
-                    selectedLabelColor = palette.onBrandNavy
+                    containerColor = palette.card,
+                    labelColor = palette.mutedInk,
+                    selectedContainerColor = palette.paperStrong,
+                    selectedLabelColor = palette.brandNavy
+                ),
+                border = FilterChipDefaults.filterChipBorder(
+                    enabled = true,
+                    selected = commentsSelected,
+                    borderColor = palette.border,
+                    selectedBorderColor = palette.brandNavy,
+                    borderWidth = 1.dp,
+                    selectedBorderWidth = 1.dp
                 )
             )
         }
@@ -952,8 +1000,8 @@ private fun TogetherDetailPane(
                                 enabled = bodyText.trim().isNotEmpty() && !posting,
                                 shape = RoundedCornerShape(8.dp),
                                 colors = ButtonDefaults.buttonColors(
-                                    containerColor = palette.brandNavy,
-                                    contentColor = palette.onBrandNavy
+                                    containerColor = palette.brandOrange,
+                                    contentColor = palette.onBrandOrange
                                 ),
                                 modifier = Modifier.heightIn(min = 48.dp)
                             ) {
@@ -1469,8 +1517,8 @@ fun CommentsSection(
                     enabled = bodyText.trim().isNotEmpty() && !posting,
                     shape = RoundedCornerShape(8.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = palette.brandNavy,
-                        contentColor = palette.onBrandNavy
+                        containerColor = palette.brandOrange,
+                        contentColor = palette.onBrandOrange
                     ),
                     modifier = Modifier.heightIn(min = 48.dp)
                 ) {

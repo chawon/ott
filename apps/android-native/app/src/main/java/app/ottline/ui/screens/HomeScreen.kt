@@ -471,8 +471,8 @@ fun HomeScreen(
                                 },
                                 shape = RoundedCornerShape(8.dp),
                                 colors = ButtonDefaults.buttonColors(
-                                    containerColor = palette.brandNavy,
-                                    contentColor = palette.onBrandNavy
+                                    containerColor = palette.brandOrange,
+                                    contentColor = palette.onBrandOrange
                                 )
                             ) {
                                 Text(tr("기존 기록 자동 연결", "Auto-connect records"), fontWeight = FontWeight.Bold)
