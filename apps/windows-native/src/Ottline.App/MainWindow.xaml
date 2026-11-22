@@ -1578,12 +1578,89 @@
                                                FontSize="17"
                                                FontWeight="Bold"
                                                Margin="0,2,0,0" />
+                                    <TextBlock Text="{Binding RecommendationQuotaText}"
+                                               FontSize="12.5"
+                                               Foreground="{DynamicResource ForegroundSecondaryBrush}"
+                                               TextWrapping="Wrap"
+                                               Margin="0,4,0,0"
+                                               Visibility="{Binding HasRecommendationQuotaText, Converter={StaticResource BoolToVis}}" />
                                 </StackPanel>
                                 <Button Grid.Column="1"
                                         Style="{StaticResource SecondaryButtonStyle}"
-                                        Content="{Binding Strings.TimelineRecsRefresh}"
+                                        Content="{Binding RecommendationActionButtonLabel}"
+                                        IsEnabled="{Binding CanClickRecommendationAction}"
+                                        VerticalAlignment="Top"
                                         Click="RefreshRecommendations_Click" />
                             </Grid>
+
+                            <!-- Progress notice (keeps existing recommendation cards visible below) -->
+                            <Border Background="{DynamicResource BgCardBrush}"
+                                    BorderBrush="{DynamicResource BorderHairlineBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="8"
+                                    Padding="14,10"
+                                    Margin="0,0,0,12"
+                                    Visibility="{Binding IsRecommendationsLoading, Converter={StaticResource BoolToVis}}">
+                                <TextBlock Text="{Binding RecommendationLoadingMessage}"
+                                           FontSize="13"
+                                           Foreground="{DynamicResource ForegroundSecondaryBrush}"
+                                           TextWrapping="Wrap" />
+                            </Border>
+
+                            <!-- Gentle error notice + Retry (preserves existing cards below) -->
+                            <Border Background="{DynamicResource BgCardBrush}"
+                                    BorderBrush="{DynamicResource AccentOrangeBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="8"
+                                    Padding="14,10"
+                                    Margin="0,0,0,12"
+                                    Visibility="{Binding HasRecommendationError, Converter={StaticResource BoolToVis}}">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="{Binding RecommendationErrorMessage}"
+                                               FontSize="13"
+                                               Foreground="{DynamicResource ForegroundBrush}"
+                                               TextWrapping="Wrap"
+                                               VerticalAlignment="Center"
+                                               Margin="0,0,12,0" />
+                                    <Button Grid.Column="1"
+                                            Style="{StaticResource SecondaryButtonStyle}"
+                                            Content="{Binding Strings.TimelineRecsRetryButton}"
+                                            Visibility="{Binding CanRetryRecommendations, Converter={StaticResource BoolToVis}}"
+                                            Click="RetryRecommendations_Click" />
+                                </Grid>
+                            </Border>
+
+                            <!-- Ineligible (< 5 records) notice -->
+                            <Border Background="{DynamicResource BgCardBrush}"
+                                    BorderBrush="{DynamicResource BorderHairlineBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="8"
+                                    Padding="14,10"
+                                    Margin="0,0,0,12"
+                                    Visibility="{Binding IsRecommendationsIneligible, Converter={StaticResource BoolToVis}}">
+                                <TextBlock Text="{Binding Strings.TimelineRecsNeedMoreLogs}"
+                                           FontSize="13"
+                                           Foreground="{DynamicResource ForegroundSecondaryBrush}"
+                                           TextWrapping="Wrap" />
+                            </Border>
+
+                            <!-- Empty filtered state -->
+                            <Border Background="{DynamicResource BgCardBrush}"
+                                    BorderBrush="{DynamicResource BorderHairlineBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="8"
+                                    Padding="14,10"
+                                    Margin="0,0,0,12"
+                                    Visibility="{Binding IsRecommendationsEmptyFiltered, Converter={StaticResource BoolToVis}}">
+                                <TextBlock Text="{Binding Strings.TimelineRecsEmptyFiltered}"
+                                           FontSize="13"
+                                           Foreground="{DynamicResource ForegroundSecondaryBrush}"
+                                           TextWrapping="Wrap" />
+                            </Border>
 
                             <ItemsControl ItemsSource="{Binding Recommendations}">
                                 <ItemsControl.ItemsPanel>

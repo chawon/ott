@@ -659,7 +659,8 @@ public partial class MainWindow : Window
     private void FilterStatusDone_Click(object sender, RoutedEventArgs e) => _vm.ApplyMomentQuickFilter(status: LogStatus.DONE);
     private void FilterStatusInProgress_Click(object sender, RoutedEventArgs e) => _vm.ApplyMomentQuickFilter(status: LogStatus.IN_PROGRESS);
     private void FilterStatusWishlist_Click(object sender, RoutedEventArgs e) => _vm.ApplyMomentQuickFilter(status: LogStatus.WISHLIST);
-    private void RefreshRecommendations_Click(object sender, RoutedEventArgs e) => _ = _vm.LoadRecommendationsAsync(forceRefresh: true);
+    private void RefreshRecommendations_Click(object sender, RoutedEventArgs e) => _ = _vm.HandleRecommendationActionAsync();
+    private void RetryRecommendations_Click(object sender, RoutedEventArgs e) => _ = _vm.RetryRecommendationsAsync();
 
     private void RecommendationLog_Click(object sender, RoutedEventArgs e)
     {

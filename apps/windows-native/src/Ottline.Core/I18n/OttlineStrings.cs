@@ -200,6 +200,41 @@ public sealed record OttlineStrings(
         ? "Future timeline"
         : "미래의 타임라인";
     public string TimelineRecsRefresh => IsEn ? "See another set" : "다른 이야기 펼쳐보기";
+    public string TimelineRecsFindingButton => IsEn ? "Finding stories…" : "이야기를 고르고 있어요…";
+    public string TimelineRecsRetryButton => IsEn ? "Try again" : "다시 시도";
+    public string TimelineRecsLoading => IsEn
+        ? "Finding a few stories through the records you kept…"
+        : "남겨둔 이야기에서 다음에 만날 작품을 고르고 있어요…";
+    public string TimelineRecsRefreshingKeepExisting => IsEn
+        ? "Finding a new set of stories… Your current picks stay here until it’s ready."
+        : "새로운 이야기를 고르고 있어요… 새 추천이 준비될 때까지 기존 추천을 그대로 볼 수 있어요.";
+    public string TimelineRecsNeedMoreLogs => IsEn
+        ? "With five records, you can explore a few stories to meet next."
+        : "기록이 5개 모이면 다음에 만날 이야기도 펼쳐볼 수 있어요.";
+    public string TimelineRecsNotConnected => IsEn
+        ? "Sync your first record or connect your account to open your future timeline."
+        : "첫 기록을 동기화하거나 계정을 연결하면 미래의 타임라인을 펼쳐볼 수 있어요.";
+    public string TimelineRecsEmptyFiltered => IsEn
+        ? "No stories to open for this filter yet."
+        : "지금 고른 조건에 맞는 추천 작품이 아직 없어요.";
+    public string TimelineRecsLoadError => IsEn
+        ? "Could not bring in the next stories. Please try again in a little while."
+        : "다음 이야기를 불러오지 못했어요. 잠시 뒤 다시 확인해 주세요.";
+    public string TimelineRecsGenerateError => IsEn
+        ? "Could not finish finding new stories. Try again to check or continue the request."
+        : "새 이야기를 다 불러오지 못했어요. 다시 시도하면 진행 상태부터 이어서 확인할게요.";
+    public string TimelineRecsGenerateErrorKeepExisting => IsEn
+        ? "Could not finish finding new stories. Your current picks are safe—try again to continue."
+        : "새 이야기를 다 불러오지 못했어요. 기존 추천은 그대로 두고, 다시 시도하면 이어서 확인할게요.";
+    public string TimelineRecsStillGenerating => IsEn
+        ? "Still putting your next stories together. Try again in a moment to check the result."
+        : "아직 다음 이야기를 고르고 있어요. 잠시 뒤 다시 확인해 주세요.";
+    public string TimelineRecsQuotaExhausted => IsEn
+        ? "You’ve explored three times today. You can explore again at midnight (Korea time)."
+        : "오늘은 세 번의 이야기를 모두 펼쳐봤어요. 한국 시간 자정에 다시 펼쳐볼 수 있어요.";
+    public string FormatRecommendationQuotaRemaining(int remaining) => IsEn
+        ? $"You can explore {remaining} more {(remaining == 1 ? "time" : "times")} today."
+        : $"오늘 {remaining}번 더 펼쳐볼 수 있어요.";
     public string TimelineRecsLogAction => IsEn ? "Want to watch" : "보고 싶어요";
     public string TimelineRecsExcludeAction => IsEn ? "Already watched or read" : "이미 본·읽은 작품";
     public string TimelineFilterSearchHint => IsEn

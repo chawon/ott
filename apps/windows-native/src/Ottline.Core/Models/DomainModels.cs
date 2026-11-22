@@ -734,3 +734,62 @@ public sealed record ServerAccountDeleteResult(
 {
     public bool IsSuccess => Outcome == ServerAccountDeleteOutcome.Deleted;
 }
+
+public sealed record RecommendationQuota(
+    string Date = "",
+    string Timezone = "Asia/Seoul",
+    int Limit = 3,
+    int Used = 0,
+    int Remaining = 3,
+    string? ResetsAt = null
+);
+
+public sealed record RecommendationStateSnapshot(
+    IReadOnlyList<RecommendationItem> Items,
+    RecommendationQuota Quota,
+    string? GeneratedAt = null,
+    string? GenerationId = null,
+    bool Generating = false,
+    bool HasBatch = false,
+    bool Eligible = false,
+    string Locale = "ko"
+);
+
+public enum RecommendationErrorKind
+{
+    None,
+    NotConnected,
+    LoadFailed,
+    GenerateFailed,
+    LimitReached,
+    StillGenerating
+}
+
+public sealed record RecommendationApiResponse(
+    bool IsSuccess,
+    int? StatusCode,
+    RecommendationStateSnapshot? State,
+    bool IsNetworkError = false,
+    string? ErrorMessage = null
+);
+
+public sealed record RecommendationLoadResult(
+    RecommendationStateSnapshot? State,
+    RecommendationErrorKind ErrorKind = RecommendationErrorKind.None,
+    bool UsedExistingFallback = false,
+    bool GeneratedNewBatch = false,
+    string? PendingRequestId = null,
+    string? ErrorMessage = null
+)
+{
+    public bool HasError => ErrorKind is RecommendationErrorKind.NotConnected
+        or RecommendationErrorKind.LoadFailed
+        or RecommendationErrorKind.GenerateFailed
+        or RecommendationErrorKind.StillGenerating;
+}
+
+public sealed record PendingRecommendationAttempt(
+    string RequestId,
+    string? BaselineGenerationId = null,
+    string? CreatedAt = null
+);

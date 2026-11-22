@@ -123,6 +123,11 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
     private string? _timelinePlatformFilter;
     private string _timelineOriginFilter = "ALL";
     private bool _isRecommendationsOpen;
+    private bool _isRecommendationsLoading;
+    private RecommendationStateSnapshot? _recommendationState;
+    private RecommendationErrorKind _recommendationErrorKind = RecommendationErrorKind.None;
+    private string? _recommendationScopeKey;
+    private CancellationTokenSource? _recommendationsCts;
 
     // Title Detail state
     private bool _isTitleDetailOpen;
@@ -519,6 +524,7 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
             OnPropertyChanged(nameof(IsTimelineFilterVideo));
             OnPropertyChanged(nameof(IsTimelineFilterBook));
             RefreshTimelineItems();
+            RebuildVisibleRecommendations();
         }
     }
 
@@ -668,12 +674,118 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
         get => _isRecommendationsOpen;
         set
         {
+            if (_isRecommendationsOpen == value) return;
             _isRecommendationsOpen = value;
             OnPropertyChanged();
-            if (value && Recommendations.Count == 0)
+            if (value)
             {
-                _ = LoadRecommendationsAsync();
+                _ = LoadRecommendationsAsync(forceRefresh: false);
             }
+        }
+    }
+
+    public bool IsRecommendationsLoading
+    {
+        get => _isRecommendationsLoading;
+        private set
+        {
+            if (_isRecommendationsLoading == value) return;
+            _isRecommendationsLoading = value;
+            NotifyRecommendationPropertiesChanged();
+        }
+    }
+
+    public bool HasRecommendations => Recommendations.Count > 0;
+
+    public bool HasRecommendationError =>
+        _recommendationErrorKind is RecommendationErrorKind.NotConnected
+            or RecommendationErrorKind.LoadFailed
+            or RecommendationErrorKind.GenerateFailed
+            or RecommendationErrorKind.StillGenerating;
+
+    public bool IsRecommendationQuotaExhausted =>
+        _recommendationErrorKind == RecommendationErrorKind.LimitReached
+        || (_recommendationState != null
+            && _recommendationState.Eligible
+            && _recommendationState.Quota.Remaining <= 0
+            && !_recommendationState.Generating);
+
+    public bool IsRecommendationsIneligible =>
+        !_isRecommendationsLoading
+        && !HasRecommendationError
+        && _recommendationState != null
+        && !_recommendationState.Eligible;
+
+    public bool IsRecommendationsEmptyFiltered =>
+        !_isRecommendationsLoading
+        && !HasRecommendationError
+        && _recommendationState != null
+        && _recommendationState.Eligible
+        && _recommendationState.HasBatch
+        && Recommendations.Count == 0;
+
+    public string RecommendationQuotaText
+    {
+        get
+        {
+            if (_recommendationState == null)
+            {
+                return _recommendationErrorKind == RecommendationErrorKind.LimitReached
+                    ? _strings.TimelineRecsQuotaExhausted
+                    : string.Empty;
+            }
+            if (!_recommendationState.Eligible) return string.Empty;
+            if (_recommendationState.Quota.Remaining <= 0 || _recommendationErrorKind == RecommendationErrorKind.LimitReached)
+            {
+                return _strings.TimelineRecsQuotaExhausted;
+            }
+            return _strings.FormatRecommendationQuotaRemaining(_recommendationState.Quota.Remaining);
+        }
+    }
+
+    public bool HasRecommendationQuotaText => !string.IsNullOrWhiteSpace(RecommendationQuotaText);
+
+    public string RecommendationLoadingMessage => HasRecommendations
+        ? _strings.TimelineRecsRefreshingKeepExisting
+        : _strings.TimelineRecsLoading;
+
+    public string RecommendationErrorMessage => _recommendationErrorKind switch
+    {
+        RecommendationErrorKind.NotConnected => _strings.TimelineRecsNotConnected,
+        RecommendationErrorKind.LoadFailed => _strings.TimelineRecsLoadError,
+        RecommendationErrorKind.StillGenerating => _strings.TimelineRecsStillGenerating,
+        RecommendationErrorKind.GenerateFailed => HasRecommendations
+            ? _strings.TimelineRecsGenerateErrorKeepExisting
+            : _strings.TimelineRecsGenerateError,
+        _ => string.Empty
+    };
+
+    public bool CanRetryRecommendations =>
+        !_isRecommendationsLoading
+        && _recommendationErrorKind is RecommendationErrorKind.LoadFailed
+            or RecommendationErrorKind.GenerateFailed
+            or RecommendationErrorKind.StillGenerating;
+
+    public bool CanRefreshRecommendations =>
+        !_isRecommendationsLoading
+        && _recommendationErrorKind != RecommendationErrorKind.NotConnected
+        && !IsRecommendationQuotaExhausted
+        && (_recommendationState == null
+            || (_recommendationState.Eligible
+                && !_recommendationState.Generating
+                && (_recommendationState.Quota.Remaining > 0
+                    || _repo.GetPendingRecommendationAttempt() != null)));
+
+    public bool CanClickRecommendationAction =>
+        !_isRecommendationsLoading && (CanRetryRecommendations || CanRefreshRecommendations);
+
+    public string RecommendationActionButtonLabel
+    {
+        get
+        {
+            if (_isRecommendationsLoading) return _strings.TimelineRecsFindingButton;
+            if (CanRetryRecommendations) return _strings.TimelineRecsRetryButton;
+            return _strings.TimelineRecsRefresh;
         }
     }
 
@@ -1470,6 +1582,11 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
     {
         _settings = _repo.GetSettings();
         _strings = OttlineStrings.ForLocale(_settings.Locale);
+        if (!string.IsNullOrWhiteSpace(_recommendationScopeKey)
+            && !string.Equals(_recommendationScopeKey, CurrentRecommendationScopeKey(), StringComparison.OrdinalIgnoreCase))
+        {
+            ResetRecommendationsForScopeChange();
+        }
         if (!_isProfileEditorOpen)
         {
             _editDisplayName = _settings.DisplayName;
@@ -1625,6 +1742,7 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
         OnPropertyChanged(nameof(HasBookLogs));
         OnPropertyChanged(nameof(TimelineHeadingTitle));
         OnPropertyChanged(nameof(FutureButtonLabel));
+        NotifyRecommendationPropertiesChanged();
         OnPropertyChanged(nameof(TimelinePlatformComboOptions));
         OnPropertyChanged(nameof(TimelinePlaceComboOptions));
         OnPropertyChanged(nameof(TimelinePlaceComboIndex));
@@ -2173,13 +2291,10 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
         _repo.UpdateSettings(s => s with { Locale = locale });
         RefreshLocalState();
         _ = LoadTogetherAsync();
+        ResetRecommendationsForScopeChange();
         if (_isRecommendationsOpen)
         {
-            _ = LoadRecommendationsAsync();
-        }
-        else
-        {
-            Recommendations.Clear();
+            _ = LoadRecommendationsAsync(forceRefresh: false);
         }
         if (_isQuickRecordOpen)
         {
@@ -2197,24 +2312,165 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
         SetLocale(next);
     }
 
+    private string CurrentRecommendationScopeKey()
+    {
+        var userId = string.IsNullOrWhiteSpace(_settings.UserId) ? "anon" : _settings.UserId.Trim().ToLowerInvariant();
+        var lang = Ottline.Core.Local.OttlineDatabase.NormalizeRecommendationLanguage(_settings.Locale);
+        return $"{userId}:{lang}";
+    }
+
+    private void NotifyRecommendationPropertiesChanged()
+    {
+        OnPropertyChanged(nameof(IsRecommendationsLoading));
+        OnPropertyChanged(nameof(HasRecommendations));
+        OnPropertyChanged(nameof(HasRecommendationError));
+        OnPropertyChanged(nameof(IsRecommendationQuotaExhausted));
+        OnPropertyChanged(nameof(IsRecommendationsIneligible));
+        OnPropertyChanged(nameof(IsRecommendationsEmptyFiltered));
+        OnPropertyChanged(nameof(RecommendationQuotaText));
+        OnPropertyChanged(nameof(HasRecommendationQuotaText));
+        OnPropertyChanged(nameof(RecommendationLoadingMessage));
+        OnPropertyChanged(nameof(RecommendationErrorMessage));
+        OnPropertyChanged(nameof(CanRetryRecommendations));
+        OnPropertyChanged(nameof(CanRefreshRecommendations));
+        OnPropertyChanged(nameof(CanClickRecommendationAction));
+        OnPropertyChanged(nameof(RecommendationActionButtonLabel));
+    }
+
+    private void RebuildVisibleRecommendations()
+    {
+        Recommendations.Clear();
+        if (_recommendationState != null)
+        {
+            foreach (var item in _recommendationState.Items)
+            {
+                if (_timelineContentFilter == ContentFilter.VIDEO && !item.Title.Type.IsVideo()) continue;
+                if (_timelineContentFilter == ContentFilter.BOOK && !item.Title.Type.IsBook()) continue;
+                Recommendations.Add(item);
+            }
+        }
+        NotifyRecommendationPropertiesChanged();
+    }
+
+    private void ResetRecommendationsForScopeChange()
+    {
+        _recommendationsCts?.Cancel();
+        _recommendationsCts?.Dispose();
+        _recommendationsCts = null;
+        _isRecommendationsLoading = false;
+        _recommendationState = null;
+        _recommendationErrorKind = RecommendationErrorKind.None;
+        _recommendationScopeKey = CurrentRecommendationScopeKey();
+        Recommendations.Clear();
+        NotifyRecommendationPropertiesChanged();
+    }
+
+    public Task HandleRecommendationActionAsync()
+    {
+        if (CanRetryRecommendations)
+        {
+            return RetryRecommendationsAsync();
+        }
+        return LoadRecommendationsAsync(forceRefresh: true);
+    }
+
+    public Task RetryRecommendationsAsync()
+    {
+        if (_recommendationErrorKind == RecommendationErrorKind.LoadFailed)
+        {
+            return LoadRecommendationsAsync(forceRefresh: false);
+        }
+        return LoadRecommendationsAsync(forceRefresh: true);
+    }
+
     public async Task LoadRecommendationsAsync(bool forceRefresh = false)
     {
         _repo.RefreshApi();
-        Recommendations.Clear();
-        var remote = await _repo.Api.FetchRecommendationsAsync(_timelineContentFilter, forceRefresh);
-        if (remote.Count > 0)
+        var expectedScope = CurrentRecommendationScopeKey();
+        if (!string.Equals(_recommendationScopeKey, expectedScope, StringComparison.OrdinalIgnoreCase))
         {
-            await UrlToImageSourceConverter.PrefetchUrlsAsync(
-                remote.Select(r => r.Title.PosterUrl),
-                isHero: false
-            );
-            foreach (var r in remote) Recommendations.Add(r);
+            ResetRecommendationsForScopeChange();
+        }
+
+        if (_isRecommendationsLoading) return;
+
+        _recommendationsCts?.Cancel();
+        _recommendationsCts?.Dispose();
+        var cts = new CancellationTokenSource();
+        _recommendationsCts = cts;
+        _recommendationScopeKey = expectedScope;
+        _recommendationErrorKind = RecommendationErrorKind.None;
+        IsRecommendationsLoading = true;
+
+        try
+        {
+            var result = forceRefresh
+                ? await _repo.GenerateRecommendationsAsync(cts.Token)
+                : await _repo.LoadRecommendationsAsync(allowAutoGenerate: true, cts.Token);
+
+            if (cts.IsCancellationRequested || !string.Equals(CurrentRecommendationScopeKey(), expectedScope, StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+
+            if (result.State != null)
+            {
+                _recommendationState = result.State;
+                if (result.State.Items.Count > 0)
+                {
+                    await UrlToImageSourceConverter.PrefetchUrlsAsync(
+                        result.State.Items.Select(r => r.Title.PosterUrl),
+                        isHero: false
+                    );
+                }
+
+                if (cts.IsCancellationRequested || !string.Equals(CurrentRecommendationScopeKey(), expectedScope, StringComparison.OrdinalIgnoreCase))
+                {
+                    return;
+                }
+
+                RebuildVisibleRecommendations();
+            }
+
+            _recommendationErrorKind = result.ErrorKind;
+            NotifyRecommendationPropertiesChanged();
+        }
+        catch (OperationCanceledException)
+        {
+            // Scope changed or superseded by a newer request.
+        }
+        catch
+        {
+            if (!cts.IsCancellationRequested && string.Equals(CurrentRecommendationScopeKey(), expectedScope, StringComparison.OrdinalIgnoreCase))
+            {
+                _recommendationErrorKind = forceRefresh
+                    ? RecommendationErrorKind.GenerateFailed
+                    : RecommendationErrorKind.LoadFailed;
+                NotifyRecommendationPropertiesChanged();
+            }
+        }
+        finally
+        {
+            if (ReferenceEquals(_recommendationsCts, cts))
+            {
+                IsRecommendationsLoading = false;
+            }
         }
     }
 
     public async Task ExcludeRecommendationAsync(RecommendationItem item)
     {
         Recommendations.Remove(item);
+        _repo.RemoveRecommendationItemFromCache(item);
+        if (_recommendationState != null)
+        {
+            var filtered = _recommendationState.Items
+                .Where(x => !string.Equals(x.Title.Id, item.Title.Id, StringComparison.OrdinalIgnoreCase)
+                            && !string.Equals(x.Title.Title, item.Title.Title, StringComparison.OrdinalIgnoreCase))
+                .ToList();
+            _recommendationState = _recommendationState with { Items = filtered };
+        }
+        NotifyRecommendationPropertiesChanged();
         _repo.RefreshApi();
         await _repo.Api.ExcludeRecommendationAsync(item);
         ShowToast(IsEnglishLocale
@@ -2579,7 +2835,7 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
             LinkedDevices.Clear();
             FeedbackThreads.Clear();
             SelectedFeedbackThread = null;
-            Recommendations.Clear();
+            ResetRecommendationsForScopeChange();
             OnPropertyChanged(nameof(IsFeedbackThreadsEmpty));
 
             RefreshLocalState();
@@ -2796,6 +3052,8 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
     {
         _searchDebounceCts?.Cancel();
         _searchDebounceCts?.Dispose();
+        _recommendationsCts?.Cancel();
+        _recommendationsCts?.Dispose();
         _repo.Dispose();
     }
 
