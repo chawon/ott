@@ -115,6 +115,33 @@ for (const entry of entries) {
     `${pathname}: per-page Twitter description`,
   );
 
+  if (
+    localPath === "/about" ||
+    localPath === "/guide" ||
+    localPath.startsWith("/guide/")
+  ) {
+    const publicMarkup = html.replace(
+      /<script\b[^>]*>[\s\S]*?<\/script>/gi,
+      "",
+    );
+    assert.doesNotMatch(
+      publicMarkup,
+      /chat\s*gpt/i,
+      `${pathname}: published service guidance excludes the unavailable ChatGPT channel`,
+    );
+    for (const script of html.matchAll(
+      /<script\b([^>]*)>([\s\S]*?)<\/script>/gi,
+    )) {
+      if (attributes(script[1]).type === "application/ld+json") {
+        assert.doesNotMatch(
+          JSON.stringify(JSON.parse(script[2])),
+          /chat\s*gpt/i,
+          `${pathname}: structured guidance excludes ChatGPT promotion`,
+        );
+      }
+    }
+  }
+
   if (pathname !== "/chatgpt") {
     assert.match(html, new RegExp(`<html[^>]*lang="${locale}"`));
     assert.equal(meta("twitter:card"), "summary_large_image");

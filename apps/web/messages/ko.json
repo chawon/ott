@@ -556,7 +556,7 @@
   "About": {
     "title": "영화·시리즈·책 기록 앱 소개 및 사용법",
     "subtitle": "가입 없이 남기는 영화·시리즈·책 기록 타임라인",
-    "description": "ottline은 넷플릭스, 티빙, 디즈니+ 같은 OTT의 시청 기록과 영화·시리즈·책 감상 기록을 빠르게 남겨 내 타임라인에 모으는 서비스예요. 번거로운 가입 없이 웹에서 바로 시작하고, 설치형 PWA·Android·iPhone·iPad·macOS·Windows 앱과 토스 인앱에서도 같은 기록을 이어볼 수 있어요. ChatGPT 연결은 준비 중이에요.",
+    "description": "ottline은 넷플릭스, 티빙, 디즈니+ 같은 OTT의 시청 기록과 영화·시리즈·책 감상 기록을 빠르게 남겨 내 타임라인에 모으는 서비스예요. 번거로운 가입 없이 웹에서 바로 시작하고, 설치형 PWA·Android·iPhone·iPad·macOS·Windows 앱과 토스 인앱에서도 같은 기록을 이어볼 수 있어요.",
     "pairingHighlightTitle": "기록은 한 번 시작하면 계속 이어져요.",
     "pairingHighlightDesc": "기록이 있는 기기의 ‘내 공간’에서 기록 연결 코드를 확인해 주세요. 새 Mac·iPhone·iPad나 웹의 ‘내 공간’에 같은 코드를 입력하면 타임라인을 이어볼 수 있어요.",
     "platformsTitle": "웹에서 시작해, 더 다양한 곳으로",
@@ -585,9 +585,6 @@
     "platformMacosTitle": "macOS 앱",
     "platformMacosDesc": "Mac에서도 영상과 책을 기록하고 돌아보세요. 기록 연결 코드로 iPhone·iPad·웹의 기록을 이어 쓸 수 있어요. macOS 14 이상에서 사용할 수 있어요.",
     "platformMacosLink": "Mac App Store에서 받기",
-    "platformChatGptTitle": "ChatGPT 연결",
-    "platformChatGptDesc": "ChatGPT 대화에 최근 기록을 불러오는 읽기 전용 연결을 준비 중이에요.",
-    "platformPreparing": "준비 중",
     "howToUseTitle": "어떻게 사용하나요?",
     "step1Title": "작품 검색",
     "step1Desc": "홈에서 기록 버튼을 눌러 검색창을 열고, 영화·시리즈·책 제목을 찾아보세요.",

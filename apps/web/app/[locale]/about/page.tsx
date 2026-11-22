@@ -1,7 +1,6 @@
 import {
   Apple,
   ArrowRight,
-  Bot,
   ExternalLink,
   Globe,
   Laptop,
@@ -45,7 +44,6 @@ type PlatformItem = {
   description: string;
   icon: LucideIcon;
   links?: PlatformLink[];
-  status?: string;
 };
 
 export async function generateMetadata({
@@ -190,12 +188,6 @@ export default function AboutPage() {
         },
       ],
     },
-    {
-      title: tAbout("platformChatGptTitle"),
-      description: tAbout("platformChatGptDesc"),
-      icon: Bot,
-      status: tAbout("platformPreparing"),
-    },
   ];
 
   return (
@@ -305,11 +297,6 @@ export default function AboutPage() {
                           </IntlLink>
                         );
                       })}
-                    </div>
-                  ) : null}
-                  {platform.status ? (
-                    <div className="mt-4 inline-flex items-center rounded-full bg-amber-100 px-3 py-1.5 text-xs font-medium text-amber-900">
-                      {platform.status}
                     </div>
                   ) : null}
                 </article>

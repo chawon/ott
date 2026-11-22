@@ -556,7 +556,7 @@
   "About": {
     "title": "Movie, Series, and Book Log App & How to Use",
     "subtitle": "Movie, series, and book timelines without sign-up",
-    "description": "ottline helps you keep OTT watch history from services like Netflix, TVING, and Disney+, along with films, series, and books, on your own timeline. Start on the web without signing up, then continue on the installable PWA, Android, iPhone, iPad, macOS, Windows, or Toss in-app mini app. The ChatGPT connection is still in preparation.",
+    "description": "ottline helps you keep OTT watch history from services like Netflix, TVING, and Disney+, along with films, series, and books, on your own timeline. Start on the web without signing up, then continue on the installable PWA, Android, iPhone, iPad, macOS, Windows, or Toss in-app mini app.",
     "pairingHighlightTitle": "Once you start recording, your timeline keeps going.",
     "pairingHighlightDesc": "Find your record connection code in My space on a device that has your records. Enter it in My space on your Mac, iPhone, iPad, or the web to continue the same timeline.",
     "platformsTitle": "Started on the web, opened in more places",
@@ -585,9 +585,6 @@
     "platformMacosTitle": "macOS app",
     "platformMacosDesc": "Record and revisit movies, shows, and books on your Mac. Use your record connection code to continue the same timeline. Requires macOS 14 or later.",
     "platformMacosLink": "Download on the Mac App Store",
-    "platformChatGptTitle": "ChatGPT connection",
-    "platformChatGptDesc": "A read-only ChatGPT connection is still in preparation for bringing recent records into the conversation.",
-    "platformPreparing": "Coming soon",
     "howToUseTitle": "How it works",
     "step1Title": "Find a title",
     "step1Desc": "Select the record button on Home to search for a film, series, or book.",
