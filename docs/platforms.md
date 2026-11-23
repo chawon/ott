@@ -21,7 +21,7 @@ Apple 공개 버전의 추가 근거는 [한국 스토어 조회](https://itunes
 
 Windows 공개 `2.0.1.0` 설치판(`ChawonLee.ottline_2.0.1.0_arm64__ry7416pek43sa`)에서 서버 계정 삭제 성공 시 로컬 초기화와 오프라인 실패 시 기록·연결 상태 보존을 2026-11-23 실기기 검증으로 완료했다. [삭제 정책과 Windows 검증](../wiki/pages/features/delete-sync.md#windows-확인-사항)
 
-심사 중인 `2.0.2.0`은 구버전 ID로 남아 있는 감상 기록에 서버 삭제가 적용되지 않는 경우가 있어 Windows 담당이 보완 중이다. [본부 검증과 재현 조건](https://github.com/chawon/ott/issues/161#issuecomment-7092864246)
+심사 중인 `2.0.2.0`에서 확인된 구버전 기록 삭제 누락은 `2.0.3.0` 후보 PR #172에서 재검증을 통과했다. 삭제 반영 직전에 사용자가 저장한 수정이 다른 기기에 전달되도록 Windows 담당이 보완 중이다. [후보 검증과 남은 작업](https://github.com/chawon/ott/issues/161#issuecomment-7095112747)
 
 ## 이전 설치와 연결 채널
 
