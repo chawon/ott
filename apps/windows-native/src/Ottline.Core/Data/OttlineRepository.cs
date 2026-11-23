@@ -935,23 +935,29 @@ public sealed class OttlineRepository : IDisposable
             SyncState: "pending"
         );
 
-        var saved = _db.UpsertLog(draft, recordHistory: true);
-
         var outboxType = existing == null ? "UPSERT_LOG" : "UPDATE_LOG";
-        var payloadJson = SerializeLogOutboxPayload(saved);
-        _db.UpsertLogOutbox(outboxType, saved.Id, payloadJson);
-
-        if (shareToTogether && !string.IsNullOrWhiteSpace(saved.Note))
+        (string Type, Func<WatchLog, string> PayloadSerializer)? discussionOutbox = null;
+        if (shareToTogether && !string.IsNullOrWhiteSpace(draft.Note))
         {
-            var discPayload = JsonSerializer.Serialize(new
-            {
-                titleId = saved.TitleId,
-                title = saved.Title,
-                body = saved.Note,
-                spoiler = saved.Spoiler
-            });
-            _db.EnqueueOutbox("CREATE_DISCUSSION", saved.Id, discPayload);
+            discussionOutbox = (
+                "CREATE_DISCUSSION",
+                s => JsonSerializer.Serialize(new
+                {
+                    titleId = s.TitleId,
+                    title = s.Title,
+                    body = s.Note,
+                    spoiler = s.Spoiler
+                })
+            );
         }
+
+        var saved = _db.SaveLogAndOutboxAtomic(
+            draft,
+            recordHistory: true,
+            outboxType: outboxType,
+            payloadSerializer: SerializeLogOutboxPayload,
+            extraOutbox: discussionOutbox
+        );
 
         if (existing == null)
         {
@@ -1038,7 +1044,7 @@ public sealed class OttlineRepository : IDisposable
     private static string SyncRecoveryTieConflictsKey(string userId) =>
         $"sync_recovery_tie_conflicts:{userId.Trim().ToLowerInvariant()}";
 
-    private void RecordTieConflictAudit(string userId, string logId, string timestampIso, string? localNote, string? serverNote)
+    private string BuildTieConflictAuditJson(string userId, string logId, string timestampIso, string? localNote, string? serverNote)
     {
         var key = SyncRecoveryTieConflictsKey(userId);
         List<Dictionary<string, string?>> entries;
@@ -1067,7 +1073,7 @@ public sealed class OttlineRepository : IDisposable
             ["serverNote"] = serverNote,
             ["recordedAt"] = DateTimeOffset.UtcNow.ToString("O", CultureInfo.InvariantCulture)
         });
-        _db.SetAppSetting(key, JsonSerializer.Serialize(entries));
+        return JsonSerializer.Serialize(entries);
     }
 
     private WatchLog EnsureValidSyncUuidsForLog(WatchLog log)
@@ -1124,6 +1130,21 @@ public sealed class OttlineRepository : IDisposable
         return serverLogs.FirstOrDefault(s => SyncIdNormalizer.AreTitlesEquivalent(local.Title, s.Title));
     }
 
+    private static SyncDeletedLog? FindMatchingServerDeletedLog(WatchLog local, IReadOnlyList<SyncDeletedLog> deletedLogs)
+    {
+        var byLogId = deletedLogs.FirstOrDefault(d => string.Equals(d.Id, local.Id, StringComparison.OrdinalIgnoreCase));
+        if (byLogId != null) return byLogId;
+
+        if (!string.IsNullOrWhiteSpace(local.TitleId))
+        {
+            return deletedLogs.FirstOrDefault(d =>
+                !string.IsNullOrWhiteSpace(d.TitleId) &&
+                string.Equals(d.TitleId, local.TitleId, StringComparison.OrdinalIgnoreCase));
+        }
+
+        return null;
+    }
+
     private static bool IsStaleRecordConfirmedInFullPull(WatchLog staleLog, SyncPullResult fullPull)
     {
         if (FindMatchingServerLog(staleLog, fullPull.UpsertedLogs) != null)
@@ -1131,8 +1152,28 @@ public sealed class OttlineRepository : IDisposable
             return true;
         }
 
-        return fullPull.SafeDeletedLogIds.Any(id =>
-            string.Equals(id, staleLog.Id, StringComparison.OrdinalIgnoreCase));
+        return fullPull.SafeDeletedLogs.Any(d =>
+            string.Equals(d.Id, staleLog.Id, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private void ReenqueueOrphanedUnsyncedLogs()
+    {
+        var activeLogs = _db.GetAllLogs();
+        foreach (var log in activeLogs)
+        {
+            if (string.Equals(log.SyncState, "synced", StringComparison.OrdinalIgnoreCase)) continue;
+            if (_db.HasPendingLogOutbox(log.Id)) continue;
+
+            var targetTitleId = SyncIdNormalizer.IsValidUuid(log.TitleId) ? null : SyncIdNormalizer.EnsureUuid(log.TitleId);
+            var targetLogId = SyncIdNormalizer.IsValidUuid(log.Id) ? null : SyncIdNormalizer.EnsureUuid(log.Id);
+            _db.CommitRecoveryCandidateAtomic(
+                local: log,
+                outboxType: "UPSERT_LOG",
+                payloadSerializer: SerializeLogOutboxPayload,
+                targetTitleId: targetTitleId,
+                targetLogId: targetLogId
+            );
+        }
     }
 
     private async Task<(SyncPullResult? FullPull, bool EnqueuedAny)> RunOneTimeSyncPushV2RecoveryIfNeededAsync(
@@ -1145,12 +1186,14 @@ public sealed class OttlineRepository : IDisposable
             return (null, false);
         }
 
+        // Select ALL active local logs without a pending outbox row — including both legacy "synced"
+        // rows and any orphaned "pending"/"failed" rows left without an outbox entry by a prior crash.
         var localLogs = _db.GetAllLogs();
-        var syncedLocalCandidates = localLogs
-            .Where(l => string.Equals(l.SyncState, "synced", StringComparison.OrdinalIgnoreCase) && !_db.HasPendingLogOutbox(l.Id))
+        var recoveryCandidates = localLogs
+            .Where(l => !_db.HasPendingLogOutbox(l.Id))
             .ToList();
 
-        if (syncedLocalCandidates.Count == 0)
+        if (recoveryCandidates.Count == 0)
         {
             return (null, false);
         }
@@ -1162,25 +1205,48 @@ public sealed class OttlineRepository : IDisposable
         ).ConfigureAwait(false);
 
         var enqueuedAny = false;
-        foreach (var local in syncedLocalCandidates)
+        foreach (var local in recoveryCandidates)
         {
             var matchedServer = FindMatchingServerLog(local, fullPull.UpsertedLogs);
             if (matchedServer == null)
             {
-                // Mis-marked "synced" in 2.0.0.0/2.0.1.0 and missing from server:
-                // normalize IDs to deterministic UUIDs and preserve original local UpdatedAt (T2)
-                // so a concurrent write T3 > T2 on another device after full pull is NEVER overwritten.
-                var normalized = EnsureValidSyncUuidsForLog(local);
-                _db.EnsureHistorySnapshot(normalized);
-                _db.UpdateLogSyncState(normalized.Id, "pending");
-                var pendingLog = normalized with { SyncState = "pending" };
-                _db.UpsertLogOutbox("UPSERT_LOG", pendingLog.Id, SerializeLogOutboxPayload(pendingLog));
+                var matchedDeleted = FindMatchingServerDeletedLog(local, fullPull.SafeDeletedLogs);
+                if (matchedDeleted != null)
+                {
+                    var deletedTs = matchedDeleted.UpdatedAt ?? matchedDeleted.DeletedAt;
+                    var hasLocalDelUtc = SyncIdNormalizer.TryParseUtc(local.UpdatedAt, out var localDelUtc);
+                    var hasServerDelUtc = SyncIdNormalizer.TryParseUtc(deletedTs, out var serverDelUtc);
+                    if (hasLocalDelUtc && hasServerDelUtc && serverDelUtc > localDelUtc)
+                    {
+                        // Server deletion is strictly newer than local row: keep history snapshot and
+                        // allow ReconcilePulledChanges to mark local row soft-deleted.
+                        _db.EnsureHistorySnapshot(local);
+                        continue;
+                    }
+                }
+
+                // Mis-marked "synced" (or interrupted recovery) and missing from active server state:
+                // atomically normalize UUIDs, preserve history, mark pending, and enqueue outbox
+                // while preserving original local UpdatedAt (T2).
+                var targetTitleId = SyncIdNormalizer.IsValidUuid(local.TitleId) ? null : SyncIdNormalizer.EnsureUuid(local.TitleId);
+                var targetLogId = SyncIdNormalizer.IsValidUuid(local.Id) ? null : SyncIdNormalizer.EnsureUuid(local.Id);
+                _db.CommitRecoveryCandidateAtomic(
+                    local: local,
+                    outboxType: "UPSERT_LOG",
+                    payloadSerializer: SerializeLogOutboxPayload,
+                    targetTitleId: targetTitleId,
+                    targetLogId: targetLogId
+                );
                 enqueuedAny = true;
                 continue;
             }
 
             if (!HasMeaningfulLogDifference(local, matchedServer))
             {
+                if (!string.Equals(local.SyncState, "synced", StringComparison.OrdinalIgnoreCase))
+                {
+                    _db.MarkLogSynced(local.Id);
+                }
                 continue;
             }
 
@@ -1190,39 +1256,35 @@ public sealed class OttlineRepository : IDisposable
             if (hasLocalUtc && hasServerUtc && localUtc >= serverUtc)
             {
                 // Strict comparison (no tolerance drop for sub-second newer edits) + exact-timestamp tie handling:
-                // preserve original local UpdatedAt (T2) so server LWW protects any concurrent edit T3 > T2.
-                if (!string.Equals(local.TitleId, matchedServer.TitleId, StringComparison.OrdinalIgnoreCase))
-                {
-                    _db.RemapTitleId(local.TitleId, matchedServer.TitleId, MergeTitleMetadata(matchedServer.Title, local.Title));
-                }
-                if (!string.Equals(local.Id, matchedServer.Id, StringComparison.OrdinalIgnoreCase))
-                {
-                    _db.RemapLogId(local.Id, matchedServer.Id, markSynced: false);
-                }
+                // atomically remap to canonical server IDs, preserve history (and tie audit), set pending,
+                // and enqueue outbox with exact original local UpdatedAt (T2) in a single SQLite transaction.
+                var targetTitleId = !string.Equals(local.TitleId, matchedServer.TitleId, StringComparison.OrdinalIgnoreCase)
+                    ? matchedServer.TitleId
+                    : null;
+                var canonicalTitle = targetTitleId != null
+                    ? MergeTitleMetadata(matchedServer.Title, local.Title)
+                    : null;
+                var targetLogId = !string.Equals(local.Id, matchedServer.Id, StringComparison.OrdinalIgnoreCase)
+                    ? matchedServer.Id
+                    : null;
 
-                var remapped = _db.GetLog(matchedServer.Id) ?? local with
-                {
-                    Id = matchedServer.Id,
-                    TitleId = matchedServer.TitleId,
-                    Title = matchedServer.Title
-                };
+                var isTie = localUtc == serverUtc;
+                var tieAuditKey = isTie ? SyncRecoveryTieConflictsKey(userId) : null;
+                var tieAuditJson = isTie
+                    ? BuildTieConflictAuditJson(userId, matchedServer.Id, local.UpdatedAt, local.Note, matchedServer.Note)
+                    : null;
 
-                if (localUtc == serverUtc)
-                {
-                    // Exact timestamp tie with differing content: preserve BOTH server and local snapshots
-                    // in revision history + durable conflict audit record before submitting with exact T2.
-                    _db.EnsureHistorySnapshot(matchedServer with { Id = remapped.Id, TitleId = remapped.TitleId });
-                    _db.EnsureHistorySnapshot(remapped);
-                    RecordTieConflictAudit(userId, remapped.Id, remapped.UpdatedAt, remapped.Note, matchedServer.Note);
-                }
-                else
-                {
-                    _db.EnsureHistorySnapshot(remapped);
-                }
-
-                _db.UpdateLogSyncState(remapped.Id, "pending");
-                var pendingEdit = remapped with { SyncState = "pending" };
-                _db.UpsertLogOutbox("UPDATE_LOG", pendingEdit.Id, SerializeLogOutboxPayload(pendingEdit));
+                _db.CommitRecoveryCandidateAtomic(
+                    local: local,
+                    outboxType: "UPDATE_LOG",
+                    payloadSerializer: SerializeLogOutboxPayload,
+                    targetTitleId: targetTitleId,
+                    canonicalTitle: canonicalTitle,
+                    targetLogId: targetLogId,
+                    extraHistorySnapshot: isTie ? matchedServer : null,
+                    tieAuditKey: tieAuditKey,
+                    tieAuditJson: tieAuditJson
+                );
                 enqueuedAny = true;
             }
             else
@@ -1262,7 +1324,7 @@ public sealed class OttlineRepository : IDisposable
                 }
             }
 
-            var existingById = _db.GetLog(remoteLog.Id);
+            var existingById = _db.GetLogIncludingDeleted(remoteLog.Id);
             if (existingById != null && !string.Equals(existingById.TitleId, remoteLog.TitleId, StringComparison.OrdinalIgnoreCase))
             {
                 _db.RemapTitleId(existingById.TitleId, remoteLog.TitleId, remoteLog.Title);
@@ -1289,7 +1351,32 @@ public sealed class OttlineRepository : IDisposable
             }
 
             _db.DeleteLogsByTitleExcept(remoteLog.TitleId, remoteLog.Id);
-            _db.UpsertLog(remoteLog with { SyncState = "synced" }, recordHistory: false);
+            _db.UpsertLog(remoteLog with { SyncState = "synced", DeletedAt = null }, recordHistory: false);
+        }
+
+        foreach (var deletedLog in pullRes.SafeDeletedLogs)
+        {
+            // Never clobber a concurrent or subsequent unsynced local edit queued in outbox.
+            if (_db.HasPendingLogOutbox(deletedLog.Id))
+            {
+                continue;
+            }
+
+            var existingLocal = _db.GetLogIncludingDeleted(deletedLog.Id);
+            if (existingLocal == null)
+            {
+                continue;
+            }
+
+            // Preserve revision history snapshot before marking soft-deleted so the row leaves active
+            // timeline views while retaining history and allowing a fresh separate log on the title.
+            _db.EnsureHistorySnapshot(existingLocal);
+            _db.MarkLogDeleted(
+                logId: existingLocal.Id,
+                deletedAt: deletedLog.DeletedAt,
+                updatedAt: deletedLog.UpdatedAt ?? deletedLog.DeletedAt,
+                syncState: "synced"
+            );
         }
     }
 
@@ -1431,6 +1518,9 @@ public sealed class OttlineRepository : IDisposable
             {
                 return (false, "로컬 우선 모드 (네트워크 오프라인)");
             }
+
+            // Self-heal any active pending/failed rows left without an outbox entry (e.g. crash before fix).
+            ReenqueueOrphanedUnsyncedLogs();
 
             var pending = _db.GetPendingOutbox();
             var allLogEvents = pending.Where(e => e.Type is "UPSERT_LOG" or "UPDATE_LOG").ToList();

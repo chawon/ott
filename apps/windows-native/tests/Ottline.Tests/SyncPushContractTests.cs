@@ -1463,4 +1463,426 @@ public sealed class SyncPushContractTests
             CleanupDb(dbPath);
         }
     }
+
+    [Fact]
+    public async Task LegacyRecovery_InterruptedMidRecovery_OrphanedPendingRowsWithoutOutbox_AreRecoveredOnRestart()
+    {
+        var userId = "11111111-2222-3333-4444-555555555555";
+        var deviceId = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee";
+        var existingTitleId = "50000000-0000-0000-0000-000000000001";
+        var existingLogId = "60000000-0000-0000-0000-000000000001";
+        var orphanPostRecoveryTitleId = "50000000-0000-0000-0000-000000000003";
+        var orphanPostRecoveryLogId = "60000000-0000-0000-0000-000000000003";
+
+        var pushedNotesById = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+        var handler = new CapturingHttpMessageHandler((req, _) =>
+        {
+            if (req.Method == HttpMethod.Post && req.PathAndQuery == "/api/sync/push")
+            {
+                using var doc = JsonDocument.Parse(req.Body!);
+                var accepted = new List<string>();
+                foreach (var l in doc.RootElement.GetProperty("changes").GetProperty("logs").EnumerateArray())
+                {
+                    var id = l.GetProperty("id").GetString()!;
+                    var note = l.GetProperty("payload").GetProperty("note").GetString()!;
+                    pushedNotesById[id] = note;
+                    accepted.Add(id);
+                }
+                return Task.FromResult(JsonResponse(new { accepted, rejected = Array.Empty<object>() }));
+            }
+            if (req.Method == HttpMethod.Get && req.PathAndQuery.StartsWith("/api/sync/pull", StringComparison.Ordinal))
+            {
+                return Task.FromResult(JsonResponse(new
+                {
+                    serverTime = "2026-11-23T05:00:00Z",
+                    changes = new
+                    {
+                        titles = new[]
+                        {
+                            new { id = existingTitleId, type = "movie", name = "중단 복구 기존 작품", year = 2024, provider = "TMDB", providerId = "5551" }
+                        },
+                        logs = new[]
+                        {
+                            new
+                            {
+                                id = existingLogId,
+                                titleId = existingTitleId,
+                                status = "IN_PROGRESS",
+                                note = "서버 구버전",
+                                spoiler = false,
+                                origin = "LOG",
+                                watchedAt = "2026-11-20T12:00:00Z",
+                                createdAt = "2026-11-20T12:00:00Z",
+                                updatedAt = "2026-11-20T10:00:00Z"
+                            }
+                        }
+                    }
+                }));
+            }
+            return Task.FromResult(JsonResponse(new { ok = true }));
+        });
+
+        var dbPath = Path.Combine(Path.GetTempPath(), $"ottline_recovery_crash_{Guid.NewGuid():N}.db");
+        try
+        {
+            var missingLegacyLogId = "local-log:aaaa1111bbbb2222cccc3333dddd4444";
+            var expectedMissingUuid = SyncIdNormalizer.EnsureUuid(missingLegacyLogId);
+
+            // Simulate a crash state where recovery switched BOTH rows (missing-on-server + newer local edit)
+            // to sync_state='pending' BEFORE outbox rows were committed (0 outbox entries, recovery_done unset).
+            using (var db1 = new OttlineDatabase(dbPath))
+            {
+                db1.SaveSettings(db1.LoadSettings() with
+                {
+                    BaseUrl = "https://mock.ottline.test",
+                    UserId = userId,
+                    DeviceId = deviceId
+                });
+
+                var missingTitle = new TitleSummary("tmdb:movie:5552", "tmdb", "5552", TitleType.movie, "중단 복구 누락 작품", Year: 2025);
+                db1.UpsertLog(new WatchLog(
+                    Id: missingLegacyLogId,
+                    TitleId: missingTitle.Id,
+                    Title: missingTitle,
+                    Status: LogStatus.DONE,
+                    Note: "종료 직전 누락 기록",
+                    OccurredAt: "2026-11-21T12:00:00Z",
+                    WatchedOn: "2026-11-21",
+                    CreatedAt: "2026-11-21T12:00:00Z",
+                    UpdatedAt: "2026-11-21T13:00:00Z",
+                    SyncState: "pending"
+                ), recordHistory: false);
+
+                var existingTitle = new TitleSummary(existingTitleId, "tmdb", "5551", TitleType.movie, "중단 복구 기존 작품", Year: 2024);
+                db1.UpsertLog(new WatchLog(
+                    Id: existingLogId,
+                    TitleId: existingTitleId,
+                    Title: existingTitle,
+                    Status: LogStatus.DONE,
+                    Note: "종료 직전 최신 로컬 수정",
+                    OccurredAt: "2026-11-20T12:00:00Z",
+                    WatchedOn: "2026-11-20",
+                    CreatedAt: "2026-11-20T12:00:00Z",
+                    UpdatedAt: "2026-11-21T14:00:00Z",
+                    SyncState: "pending"
+                ), recordHistory: false);
+
+                Assert.Empty(db1.GetPendingOutbox());
+            }
+
+            // App restarts -> recovery MUST pick up BOTH orphaned pending rows, commit atomically, and push both!
+            using (var db2 = new OttlineDatabase(dbPath))
+            using (var api2 = new OttlineApiClient(new HttpClient(handler)))
+            using (var repo2 = new OttlineRepository(db2, api2))
+            {
+                var (ok, _) = await repo2.SyncAllAsync();
+
+                Assert.True(ok);
+                Assert.Equal("종료 직전 누락 기록", pushedNotesById[expectedMissingUuid]);
+                Assert.Equal("종료 직전 최신 로컬 수정", pushedNotesById[existingLogId]);
+                Assert.Empty(db2.GetPendingOutbox());
+                Assert.All(repo2.GetAllLogs(), l => Assert.Equal("synced", l.SyncState));
+
+                // Also verify post-recovery self-healing if an active row ever becomes orphaned pending without outbox
+                var postOrphanTitle = new TitleSummary(orphanPostRecoveryTitleId, "local", "", TitleType.book, "복구 후 고아 행", Year: 2026);
+                db2.UpsertLog(new WatchLog(
+                    Id: orphanPostRecoveryLogId,
+                    TitleId: orphanPostRecoveryTitleId,
+                    Title: postOrphanTitle,
+                    Status: LogStatus.DONE,
+                    Note: "복구 완료 후 고아 재큐잉",
+                    OccurredAt: "2026-11-22T12:00:00Z",
+                    WatchedOn: "2026-11-22",
+                    CreatedAt: "2026-11-22T12:00:00Z",
+                    UpdatedAt: "2026-11-22T12:00:00Z",
+                    SyncState: "pending"
+                ), recordHistory: false);
+                Assert.Empty(db2.GetPendingOutbox());
+
+                var (ok2, _) = await repo2.SyncAllAsync();
+                Assert.True(ok2);
+                Assert.Equal("복구 완료 후 고아 재큐잉", pushedNotesById[orphanPostRecoveryLogId]);
+                Assert.Equal("synced", db2.GetLog(orphanPostRecoveryLogId)!.SyncState);
+            }
+        }
+        finally
+        {
+            CleanupDb(dbPath);
+        }
+    }
+
+    [Fact]
+    public async Task ServerDeletedLog_StaleConflictAndNormalPull_SoftDeletesLocallyPreservesHistoryAndAllowsSeparateSubsequentLog()
+    {
+        var userId = "11111111-2222-3333-4444-555555555555";
+        var titleUuid = "70000000-0000-0000-0000-000000000001";
+        var deletedLogUuid = "80000000-0000-0000-0000-000000000001";
+        var serverDeletedAt = "2026-11-22T10:00:00Z";
+
+        var serverActiveLogs = new List<object>();
+        var pushedLogIds = new List<string>();
+        var pushAttempt = 0;
+
+        var handler = new CapturingHttpMessageHandler((req, _) =>
+        {
+            if (req.Method == HttpMethod.Post && req.PathAndQuery == "/api/sync/push")
+            {
+                pushAttempt++;
+                using var doc = JsonDocument.Parse(req.Body!);
+                var logs = doc.RootElement.GetProperty("changes").GetProperty("logs");
+                var accepted = new List<string>();
+                var rejected = new List<object>();
+
+                foreach (var l in logs.EnumerateArray())
+                {
+                    var id = l.GetProperty("id").GetString()!;
+                    pushedLogIds.Add(id);
+                    if (pushAttempt == 1 && string.Equals(id, deletedLogUuid, StringComparison.OrdinalIgnoreCase))
+                    {
+                        rejected.Add(new { id, reason = "stale" });
+                    }
+                    else
+                    {
+                        accepted.Add(id);
+                        serverActiveLogs.Add(new
+                        {
+                            id,
+                            titleId = titleUuid,
+                            status = l.GetProperty("payload").GetProperty("status").GetString(),
+                            note = l.GetProperty("payload").GetProperty("note").GetString(),
+                            spoiler = false,
+                            origin = "LOG",
+                            watchedAt = l.GetProperty("payload").GetProperty("watchedAt").GetString(),
+                            createdAt = "2026-11-23T05:10:00Z",
+                            updatedAt = l.GetProperty("updatedAt").GetString()
+                        });
+                    }
+                }
+                return Task.FromResult(JsonResponse(new { accepted, rejected }));
+            }
+
+            if (req.Method == HttpMethod.Get && req.PathAndQuery.StartsWith("/api/sync/pull", StringComparison.Ordinal))
+            {
+                var pullLogs = new List<object>
+                {
+                    new
+                    {
+                        id = deletedLogUuid,
+                        titleId = titleUuid,
+                        status = "DONE",
+                        note = "삭제 전 서버 기록",
+                        spoiler = false,
+                        origin = "LOG",
+                        watchedAt = "2026-11-20T12:00:00Z",
+                        createdAt = "2026-11-20T12:00:00Z",
+                        updatedAt = serverDeletedAt,
+                        deletedAt = serverDeletedAt
+                    }
+                };
+                pullLogs.AddRange(serverActiveLogs);
+
+                return Task.FromResult(JsonResponse(new
+                {
+                    serverTime = "2026-11-23T05:15:00Z",
+                    changes = new
+                    {
+                        titles = new[]
+                        {
+                            new { id = titleUuid, type = "movie", name = "삭제 동기화 작품", year = 2024, provider = "TMDB", providerId = "7771" }
+                        },
+                        logs = pullLogs
+                    }
+                }));
+            }
+
+            return Task.FromResult(JsonResponse(new { ok = true }));
+        });
+
+        var (repo, db, _, dbPath) = CreateTempRepo(handler, userId);
+        try
+        {
+            db.SetAppSetting($"sync_push_v2_recovery_done:{userId}", "2026-11-20T00:00:00Z");
+
+            var title = new TitleSummary(titleUuid, "tmdb", "7771", TitleType.movie, "삭제 동기화 작품", Year: 2024);
+            db.UpsertLog(new WatchLog(
+                Id: deletedLogUuid,
+                TitleId: titleUuid,
+                Title: title,
+                Status: LogStatus.IN_PROGRESS,
+                Note: "초기 로컬 기록",
+                OccurredAt: "2026-11-20T12:00:00Z",
+                WatchedOn: "2026-11-20",
+                CreatedAt: "2026-11-20T12:00:00Z",
+                UpdatedAt: "2026-11-20T12:00:00Z",
+                SyncState: "synced"
+            ), recordHistory: true);
+
+            // Local offline edit before server soft-deletion -> stale rejected -> full pull confirms deletedAt
+            db.UpsertLog(new WatchLog(
+                Id: deletedLogUuid,
+                TitleId: titleUuid,
+                Title: title,
+                Status: LogStatus.DONE,
+                Note: "삭제 충돌 로컬 수정",
+                OccurredAt: "2026-11-20T12:00:00Z",
+                WatchedOn: "2026-11-20",
+                CreatedAt: "2026-11-20T12:00:00Z",
+                UpdatedAt: "2026-11-21T12:00:00Z",
+                Revision: 2,
+                SyncState: "pending"
+            ), recordHistory: true);
+            db.UpsertLogOutbox("UPDATE_LOG", deletedLogUuid, "{}");
+
+            var (ok1, _) = await repo.SyncAllAsync();
+            Assert.True(ok1);
+            Assert.Empty(db.GetPendingOutbox());
+
+            // Deleted row MUST NOT remain in active timeline, while soft-deleted state + history remain preserved!
+            Assert.Empty(repo.GetAllLogs());
+            Assert.Null(db.GetLog(deletedLogUuid));
+            var deletedRecord = db.GetLogIncludingDeleted(deletedLogUuid);
+            Assert.NotNull(deletedRecord);
+            Assert.Equal(serverDeletedAt, deletedRecord!.DeletedAt);
+            Assert.Equal("synced", deletedRecord.SyncState);
+
+            var historyAfterDelete = repo.GetHistoryForTitle(titleUuid);
+            Assert.Contains(historyAfterDelete, h => h.Note == "초기 로컬 기록");
+            Assert.Contains(historyAfterDelete, h => h.Note == "삭제 충돌 로컬 수정");
+
+            // Subsequent local record for the SAME title must create a SEPARATE active log + separate outbox!
+            var freshLog = repo.SaveLogLocalFirst(title, LogStatus.DONE, RecordFeeling.SATISFIED, "2026-11-23", note: "삭제 후 새로 남긴 감상");
+            Assert.NotEqual(deletedLogUuid, freshLog.Id);
+            Assert.Null(freshLog.DeletedAt);
+            var outboxAfterFresh = db.GetPendingOutbox();
+            Assert.Single(outboxAfterFresh);
+            Assert.Equal(freshLog.Id, outboxAfterFresh[0].EntityId);
+            Assert.Equal("UPSERT_LOG", outboxAfterFresh[0].Type);
+
+            var (ok2, _) = await repo.SyncAllAsync();
+            Assert.True(ok2);
+            Assert.Empty(db.GetPendingOutbox());
+            Assert.Single(repo.GetAllLogs());
+            Assert.Equal(freshLog.Id, repo.GetAllLogs()[0].Id);
+            Assert.Equal("삭제 후 새로 남긴 감상", repo.GetAllLogs()[0].Note);
+
+            // Old soft-deleted row stays soft-deleted AND combined history preserves all 3 snapshots!
+            Assert.Equal(serverDeletedAt, db.GetLogIncludingDeleted(deletedLogUuid)!.DeletedAt);
+            var finalHistory = repo.GetHistoryForTitle(titleUuid);
+            Assert.Contains(finalHistory, h => h.Note == "초기 로컬 기록");
+            Assert.Contains(finalHistory, h => h.Note == "삭제 충돌 로컬 수정");
+            Assert.Contains(finalHistory, h => h.Note == "삭제 후 새로 남긴 감상");
+        }
+        finally
+        {
+            repo.Dispose();
+            CleanupDb(dbPath);
+        }
+    }
+
+    [Fact]
+    public async Task ServerDeletedLog_WithConcurrentPendingLocalEdit_PreservesPendingOutboxAndActiveRow()
+    {
+        var userId = "11111111-2222-3333-4444-555555555555";
+        var titleUuid = "90000000-0000-0000-0000-000000000001";
+        var logUuid = "91000000-0000-0000-0000-000000000001";
+
+        OttlineRepository? repoRef = null;
+        var title = new TitleSummary(titleUuid, "tmdb", "9991", TitleType.movie, "동시 수정 보호 작품", Year: 2024);
+        var injectedConcurrentEdit = false;
+
+        var handler = new CapturingHttpMessageHandler((req, _) =>
+        {
+            if (req.Method == HttpMethod.Post && req.PathAndQuery == "/api/sync/push")
+            {
+                return Task.FromResult(JsonResponse(new
+                {
+                    accepted = Array.Empty<string>(),
+                    rejected = new[] { new { id = logUuid, reason = "stale" } }
+                }));
+            }
+            if (req.Method == HttpMethod.Get && req.PathAndQuery.StartsWith("/api/sync/pull", StringComparison.Ordinal))
+            {
+                // While full pull is in flight, user saves a brand new concurrent local edit on the same log!
+                if (!injectedConcurrentEdit && repoRef != null)
+                {
+                    injectedConcurrentEdit = true;
+                    repoRef.SaveLogLocalFirst(title, LogStatus.DONE, RecordFeeling.SATISFIED, "2026-11-23", note: "pull 도중 동시 수정");
+                }
+                return Task.FromResult(JsonResponse(new
+                {
+                    serverTime = "2026-11-23T05:20:00Z",
+                    changes = new
+                    {
+                        titles = new[]
+                        {
+                            new { id = titleUuid, type = "movie", name = "동시 수정 보호 작품", year = 2024, provider = "TMDB", providerId = "9991" }
+                        },
+                        logs = new[]
+                        {
+                            new
+                            {
+                                id = logUuid,
+                                titleId = titleUuid,
+                                status = "DONE",
+                                note = "서버 삭제 직전",
+                                spoiler = false,
+                                origin = "LOG",
+                                watchedAt = "2026-11-20T12:00:00Z",
+                                createdAt = "2026-11-20T12:00:00Z",
+                                updatedAt = "2026-11-22T10:00:00Z",
+                                deletedAt = "2026-11-22T10:00:00Z"
+                            }
+                        }
+                    }
+                }));
+            }
+            return Task.FromResult(JsonResponse(new { ok = true }));
+        });
+
+        var (repo, db, _, dbPath) = CreateTempRepo(handler, userId);
+        repoRef = repo;
+        try
+        {
+            db.SetAppSetting($"sync_push_v2_recovery_done:{userId}", "2026-11-20T00:00:00Z");
+
+            db.UpsertLog(new WatchLog(
+                Id: logUuid,
+                TitleId: titleUuid,
+                Title: title,
+                Status: LogStatus.IN_PROGRESS,
+                Note: "오래된 stale 로컬 수정",
+                OccurredAt: "2026-11-20T12:00:00Z",
+                WatchedOn: "2026-11-20",
+                CreatedAt: "2026-11-20T12:00:00Z",
+                UpdatedAt: "2026-11-21T10:00:00Z",
+                SyncState: "pending"
+            ), recordHistory: true);
+            db.UpsertLogOutbox("UPDATE_LOG", logUuid, "{}");
+
+            var (ok, _) = await repo.SyncAllAsync();
+
+            Assert.True(ok);
+            // Concurrent edit replaced staleEvt.Id with a new active outbox row -> MUST NOT be soft-deleted or dropped!
+            var pending = db.GetPendingOutbox();
+            Assert.Single(pending);
+            Assert.Equal(logUuid, pending[0].EntityId);
+            Assert.Null(pending[0].LastError);
+
+            var active = db.GetLog(logUuid);
+            Assert.NotNull(active);
+            Assert.Null(active!.DeletedAt);
+            Assert.Equal("pull 도중 동시 수정", active.Note);
+            Assert.Equal("pending", active.SyncState);
+
+            var history = repo.GetHistoryForTitle(titleUuid);
+            Assert.Contains(history, h => h.Note == "오래된 stale 로컬 수정");
+            Assert.Contains(history, h => h.Note == "pull 도중 동시 수정");
+        }
+        finally
+        {
+            repo.Dispose();
+            CleanupDb(dbPath);
+        }
+    }
 }

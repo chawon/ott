@@ -490,7 +490,8 @@ public sealed record WatchLog(
     string UpdatedAt = "",
     int Revision = 1,
     LogOrigin Origin = LogOrigin.LOG,
-    string SyncState = "synced"
+    string SyncState = "synced",
+    string? DeletedAt = null
 );
 
 public sealed record WatchLogHistoryEntry(
@@ -705,16 +706,24 @@ public sealed record SyncPushResult(
     public int AcceptedCount => AcceptedIds.Count;
 }
 
+public sealed record SyncDeletedLog(
+    string Id,
+    string? TitleId,
+    string DeletedAt,
+    string? UpdatedAt = null
+);
+
 public sealed record SyncPullResult(
     IReadOnlyList<WatchLog> UpsertedLogs,
     string ServerCursor,
     bool HasMore,
     IReadOnlyList<TitleSummary>? UpsertedTitles = null,
-    IReadOnlyList<string>? DeletedLogIds = null
+    IReadOnlyList<SyncDeletedLog>? DeletedLogs = null
 )
 {
     public IReadOnlyList<TitleSummary> SafeUpsertedTitles => UpsertedTitles ?? Array.Empty<TitleSummary>();
-    public IReadOnlyList<string> SafeDeletedLogIds => DeletedLogIds ?? Array.Empty<string>();
+    public IReadOnlyList<SyncDeletedLog> SafeDeletedLogs => DeletedLogs ?? Array.Empty<SyncDeletedLog>();
+    public IReadOnlyList<string> SafeDeletedLogIds => SafeDeletedLogs.Select(d => d.Id).ToList();
 }
 
 public sealed record LogsPageResult(
