@@ -9,8 +9,8 @@ packages:
     path: ../apple-core
 settings:
   base:
-    MARKETING_VERSION: "2.0.0"
-    CURRENT_PROJECT_VERSION: "27"
+    MARKETING_VERSION: "2.0.1"
+    CURRENT_PROJECT_VERSION: "28"
     SWIFT_VERSION: "5.0"
     MACOSX_DEPLOYMENT_TARGET: "14.0"
     ENABLE_USER_SCRIPT_SANDBOXING: NO
@@ -36,7 +36,27 @@ targets:
         CODE_SIGN_ENTITLEMENTS: Sources/OttlineMacApp/OttlineMacApp.entitlements
     dependencies:
       - package: OttlineCore
+      - target: OttlineMacWidgetExtension
+        embed: true
       - sdk: libsqlite3.tbd
+
+  OttlineMacWidgetExtension:
+    type: app-extension
+    platform: macOS
+    deploymentTarget: "14.0"
+    sources:
+      - path: Sources/OttlineMacWidget
+        excludes:
+          - "Info.plist"
+          - "OttlineMacWidget.entitlements"
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: app.ottline.MacWidget
+        PRODUCT_NAME: OttlineMacWidgetExtension
+        PRODUCT_BUNDLE_PACKAGE_TYPE: "XPC!"
+        INFOPLIST_FILE: Sources/OttlineMacWidget/Info.plist
+        CODE_SIGN_ENTITLEMENTS: Sources/OttlineMacWidget/OttlineMacWidget.entitlements
+        SKIP_INSTALL: YES
 
   OttlineMacTests:
     type: bundle.unit-test
@@ -59,6 +79,7 @@ schemes:
     build:
       targets:
         OttlineMacApp: all
+        OttlineMacWidgetExtension: all
         OttlineMacTests: [test]
     test:
       targets:

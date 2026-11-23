@@ -357,12 +357,6 @@ public final class OttlineApiClient: @unchecked Sendable {
 
     // MARK: - 4. Discussions & Together & Comments
 
-    public func getCuratedContents(limit: Int = 6) async throws -> [CuratedContentItem] {
-        let q = [URLQueryItem(name: "limit", value: String(limit))]
-        let req = try makeRequest(path: "/curated-contents", queryItems: q)
-        return try await send(req, as: [CuratedContentItem].self)
-    }
-
     public func getDiscussionsLatest(limit: Int = 6, minComments: Int? = nil, days: Int? = nil) async throws -> [DiscussionListItem] {
         var q = [URLQueryItem(name: "limit", value: String(limit))]
         if let minComments { q.append(URLQueryItem(name: "minComments", value: String(minComments))) }

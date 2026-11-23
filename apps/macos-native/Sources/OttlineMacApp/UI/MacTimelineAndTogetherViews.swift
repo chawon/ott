@@ -1159,81 +1159,155 @@ public struct MacTogetherSpreadView: View {
     @Environment(\.ottlinePalette) private var palette
     @Environment(\.appLocale) private var locale
 
-    @State private var curated: [CuratedContentItem] = []
     @State private var discussions: [DiscussionListItem] = []
-    @State private var selectedDiscussion: DiscussionListItem?
-    @State private var reactionState = DiscussionReactionState()
-    @State private var reactionBusy: Bool = false
+    @State private var selectedDiscussionId: String?
+    @State private var reactionStates: [String: DiscussionReactionState] = [:]
+    @State private var busyReactionIds: Set<String> = []
+    @State private var reactionGuard = TogetherReactionGuard()
     @State private var searchQuery: String = ""
+    @State private var selectedType: String = "all" // "all" | "movie" | "series" | "book"
+    @State private var sortBy: String = "latest" // "latest" | "comments"
     @State private var loading: Bool = true
+    @State private var loadError: Bool = false
+
+    private var filteredDiscussions: [DiscussionListItem] {
+        TogetherFilterSort.filterAndSort(
+            discussions,
+            selectedType: selectedType,
+            searchQuery: searchQuery,
+            sortBy: sortBy
+        )
+    }
+
+    private var selectedDiscussion: DiscussionListItem? {
+        let rows = filteredDiscussions
+        if let selectedDiscussionId, let match = rows.first(where: { $0.id == selectedDiscussionId }) {
+            return match
+        }
+        return rows.first
+    }
 
     public var body: some View {
-        let filtered = discussions.filter { disc in
-            let q = searchQuery.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-            return q.isEmpty || disc.titleName.lowercased().contains(q)
-        }
+        let filtered = filteredDiscussions
 
         VStack(spacing: 0) {
             HStack(alignment: .top, spacing: 24) {
-                // Left Pane: Curated Prompts & Discussion List
-                VStack(alignment: .leading, spacing: 12) {
-                    Text(OttlineStrings.tr("함께 기록", "TOGETHER", locale: locale))
-                        .font(OttlineFont.medium(11))
-                        .kerning(0.9)
-                        .foregroundStyle(palette.mutedInk)
+                // Left Pane: Search, Filters, Sort & Discussion List
+                VStack(alignment: .leading, spacing: 10) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(OttlineStrings.tr("함께", "TOGETHER", locale: locale))
+                            .font(OttlineFont.medium(11))
+                            .kerning(0.9)
+                            .foregroundStyle(palette.mutedInk)
 
-                    Text(OttlineStrings.tr("모두의 감상과 이야기", "Shared thoughts & stories", locale: locale))
-                        .font(OttlineFont.bold(22))
+                        Text(OttlineStrings.tr("같이 보는 이야기", "Stories people are talking about", locale: locale))
+                            .font(OttlineFont.bold(22))
+                            .foregroundStyle(palette.ink)
+                    }
+
+                    HStack(spacing: 8) {
+                        OttlineLucideIcon(kind: .search, size: 15, color: palette.subtleInk)
+                        TextField(
+                            OttlineStrings.tr("작품 제목 찾기", "Filter by title", locale: locale),
+                            text: $searchQuery
+                        )
+                        .textFieldStyle(.plain)
+                        .font(OttlineFont.regular(13.5))
                         .foregroundStyle(palette.ink)
 
-                    TextField(
-                        OttlineStrings.tr("작품명 검색", "Filter by title", locale: locale),
-                        text: $searchQuery
-                    )
-                    .textFieldStyle(.plain)
-                    .font(OttlineFont.regular(13.5))
+                        if !searchQuery.isEmpty {
+                            Button {
+                                searchQuery = ""
+                            } label: {
+                                OttlineLucideIcon(kind: .x, size: 14, color: palette.mutedInk)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
                     .padding(.horizontal, 12)
                     .frame(height: 38)
                     .background(palette.card)
                     .clipShape(RoundedRectangle(cornerRadius: 8))
                     .overlay(RoundedRectangle(cornerRadius: 8).stroke(palette.border, lineWidth: 1))
 
+                    HStack(spacing: 5) {
+                        ForEach([
+                            ("all", OttlineStrings.tr("전체", "All", locale: locale)),
+                            ("movie", OttlineStrings.tr("영화", "Movie", locale: locale)),
+                            ("series", OttlineStrings.tr("시리즈", "Series", locale: locale)),
+                            ("book", OttlineStrings.tr("책", "Book", locale: locale))
+                        ], id: \.0) { key, label in
+                            let active = selectedType == key
+                            Button {
+                                selectedType = key
+                            } label: {
+                                Text(label)
+                                    .font(active ? OttlineFont.semiBold(12) : OttlineFont.regular(12))
+                                    .foregroundStyle(active ? palette.primaryAccent : palette.mutedInk)
+                                    .lineLimit(1)
+                                    .fixedSize(horizontal: true, vertical: false)
+                                    .padding(.horizontal, 9)
+                                    .frame(height: 28)
+                                    .background(active ? palette.paperStrong : palette.card)
+                                    .clipShape(RoundedRectangle(cornerRadius: 6))
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 6)
+                                            .stroke(active ? palette.primaryAccent : palette.border, lineWidth: active ? 1.4 : 1)
+                                    )
+                            }
+                            .buttonStyle(.plain)
+                        }
+
+                        Spacer(minLength: 4)
+
+                        OttlineSelectDropdown(
+                            selection: $sortBy,
+                            options: [
+                                OttlineSelectOption(value: "latest", label: OttlineStrings.tr("최신", "Latest", locale: locale)),
+                                OttlineSelectOption(value: "comments", label: OttlineStrings.tr("이야기 많은순", "Most comments", locale: locale))
+                            ],
+                            compact: true,
+                            backgroundStyle: .card
+                        )
+                    }
+
                     ScrollView(.vertical, showsIndicators: false) {
                         VStack(alignment: .leading, spacing: 10) {
-                            if !curated.isEmpty && searchQuery.isEmpty {
-                                Text(OttlineStrings.tr("오늘의 글감", "Curated prompts", locale: locale))
-                                    .font(OttlineFont.semiBold(12))
-                                    .foregroundStyle(palette.primaryAccent)
-                                ForEach(curated.prefix(3)) { item in
-                                    Button {
-                                        appState.overlayStack.append(.titleDetail(item.titleId))
-                                    } label: {
-                                        VStack(alignment: .leading, spacing: 4) {
-                                            Text(item.titleName)
-                                                .font(OttlineFont.semiBold(13.5))
-                                                .foregroundStyle(palette.ink)
-                                            Text(item.body)
-                                                .font(OttlineFont.regular(12.5))
-                                                .foregroundStyle(palette.mutedInk)
-                                                .lineLimit(2)
-                                        }
-                                        .padding(10)
-                                        .frame(maxWidth: .infinity, alignment: .leading)
-                                        .background(palette.paperStrong)
-                                        .clipShape(RoundedRectangle(cornerRadius: 8))
-                                        .overlay(RoundedRectangle(cornerRadius: 8).stroke(palette.border, lineWidth: 1))
-                                    }
-                                    .buttonStyle(.plain)
-                                }
-                            }
-
                             if loading && discussions.isEmpty {
                                 ProgressView().frame(maxWidth: .infinity, minHeight: 120)
+                            } else if loadError && discussions.isEmpty {
+                                macTogetherErrorCard
+                            } else if filtered.isEmpty {
+                                VStack(alignment: .leading, spacing: 8) {
+                                    Text(OttlineStrings.tr("조건에 맞는 이야기가 없어요.", "No stories match your filter.", locale: locale))
+                                        .font(OttlineFont.medium(13.5))
+                                        .foregroundStyle(palette.mutedInk)
+                                    if !searchQuery.isEmpty || selectedType != "all" {
+                                        Button {
+                                            searchQuery = ""
+                                            selectedType = "all"
+                                        } label: {
+                                            Text(OttlineStrings.tr("전체 보기", "Show all", locale: locale))
+                                                .font(OttlineFont.semiBold(12.5))
+                                                .foregroundStyle(palette.primaryAccent)
+                                                .padding(.horizontal, 10)
+                                                .frame(height: 32)
+                                                .background(palette.paperStrong)
+                                                .clipShape(RoundedRectangle(cornerRadius: 6))
+                                        }
+                                        .buttonStyle(.plain)
+                                    }
+                                }
+                                .padding(14)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .background(palette.card)
+                                .clipShape(RoundedRectangle(cornerRadius: 8))
+                                .overlay(RoundedRectangle(cornerRadius: 8).stroke(palette.border, lineWidth: 1))
                             } else {
                                 ForEach(filtered) { disc in
                                     let active = selectedDiscussion?.id == disc.id
                                     Button {
-                                        selectedDiscussion = disc
+                                        selectedDiscussionId = disc.id
                                         Task { await loadReactions(for: disc.id) }
                                     } label: {
                                         HStack(spacing: 10) {
@@ -1253,10 +1327,11 @@ public struct MacTogetherSpreadView: View {
                                                 Text([
                                                     OttlineStrings.titleTypeLabel(disc.titleType, locale: locale),
                                                     disc.titleYear.map(String.init),
-                                                    locale == "en" ? "\(disc.commentCount) comments" : "이야기 \(disc.commentCount)"
+                                                    locale == "en" ? "\(disc.commentCount) notes" : "이야기 \(disc.commentCount)"
                                                 ].compactMap { $0 }.joined(separator: " · "))
                                                 .font(OttlineFont.regular(12))
                                                 .foregroundStyle(active ? palette.primaryAccent : palette.mutedInk)
+                                                .lineLimit(1)
                                             }
                                             Spacer()
                                         }
@@ -1287,6 +1362,8 @@ public struct MacTogetherSpreadView: View {
                             year: disc.titleYear,
                             posterUrl: disc.posterUrl
                         )
+                        let currentReactionState = reactionStates[disc.id]
+                            ?? DiscussionReactionState(summary: disc.reactionSummary ?? .empty)
 
                         VStack(alignment: .leading, spacing: 18) {
                             HStack(alignment: .top, spacing: 18) {
@@ -1312,20 +1389,10 @@ public struct MacTogetherSpreadView: View {
 
                                     DiscussionReactionChipsView(
                                         titleType: disc.titleType,
-                                        state: reactionState,
-                                        isBusy: reactionBusy
+                                        state: currentReactionState,
+                                        isBusy: busyReactionIds.contains(disc.id)
                                     ) { type in
-                                        Task {
-                                            reactionBusy = true
-                                            if let updated = try? await repository.toggleReactionAndAutoLog(
-                                                discussionId: disc.id,
-                                                title: discTitle,
-                                                type: type
-                                            ) {
-                                                reactionState = updated
-                                            }
-                                            reactionBusy = false
-                                        }
+                                        Task { await toggleReaction(disc: disc, discTitle: discTitle, type: type) }
                                     }
 
                                     HStack(spacing: 8) {
@@ -1359,6 +1426,22 @@ public struct MacTogetherSpreadView: View {
                                                 .overlay(RoundedRectangle(cornerRadius: 8).stroke(palette.border, lineWidth: 1))
                                         }
                                         .buttonStyle(.plain)
+
+                                        Button {
+                                            let prefix = OttlineStrings.tr(
+                                                "[신고/문의] 작품: \(disc.titleName) (\(disc.titleId))\n사유: ",
+                                                "[Report] Title: \(disc.titleName) (\(disc.titleId))\nReason: ",
+                                                locale: locale
+                                            )
+                                            appState.overlayStack.append(.feedback(prefix))
+                                        } label: {
+                                            Text(OttlineStrings.tr("신고", "Report", locale: locale))
+                                                .font(OttlineFont.regular(12.5))
+                                                .foregroundStyle(palette.subtleInk)
+                                                .padding(.horizontal, 8)
+                                                .frame(height: 36)
+                                        }
+                                        .buttonStyle(.plain)
                                     }
                                 }
                             }
@@ -1376,9 +1459,23 @@ public struct MacTogetherSpreadView: View {
                                 onSelectTitle: { tid in appState.overlayStack.append(.titleDetail(tid)) },
                                 onReportComment: { prefill in appState.overlayStack.append(.feedback(prefill)) }
                             )
+                            .id(disc.id)
 
                             OttlineAppFooter()
                         }
+                    } else if loading {
+                        VStack(spacing: 12) {
+                            ProgressView()
+                            Text(OttlineStrings.tr("이야기를 불러오고 있어요.", "Loading discussions.", locale: locale))
+                                .font(OttlineFont.regular(13.5))
+                                .foregroundStyle(palette.mutedInk)
+                        }
+                        .frame(maxWidth: .infinity, minHeight: 240)
+                        .background(palette.card)
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                        .overlay(RoundedRectangle(cornerRadius: 8).stroke(palette.border, lineWidth: 1))
+                    } else if loadError {
+                        macTogetherErrorCard
                     } else {
                         Text(OttlineStrings.tr("왼쪽에서 이야기를 선택해 읽어보세요.", "Select a conversation from the left list.", locale: locale))
                             .font(OttlineFont.regular(15))
@@ -1396,32 +1493,120 @@ public struct MacTogetherSpreadView: View {
         .task(id: initialDiscussionId ?? "root") {
             await loadTogetherFeed()
         }
+        .onChange(of: selectedType) { _, _ in
+            syncSelection()
+        }
+        .onChange(of: searchQuery) { _, _ in
+            syncSelection()
+        }
+        .onChange(of: sortBy) { _, _ in
+            syncSelection()
+        }
+    }
+
+    private var macTogetherErrorCard: some View {
+        VStack(spacing: 12) {
+            Text(OttlineStrings.tr(
+                "이야기를 불러오지 못했어요. 네트워크를 확인한 뒤 다시 시도해 주세요.",
+                "Couldn't load discussions. Check your connection and try again.",
+                locale: locale
+            ))
+            .font(OttlineFont.regular(14))
+            .foregroundStyle(palette.mutedInk)
+            .multilineTextAlignment(.center)
+
+            Button {
+                Task { await loadTogetherFeed() }
+            } label: {
+                Text(OttlineStrings.tr("다시 시도", "Try again", locale: locale))
+                    .font(OttlineFont.semiBold(13))
+                    .foregroundStyle(palette.primaryAccent)
+                    .padding(.horizontal, 14)
+                    .frame(height: 36)
+                    .background(palette.paperStrong)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(palette.border, lineWidth: 1))
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(20)
+        .frame(maxWidth: .infinity)
+        .background(palette.card)
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .overlay(RoundedRectangle(cornerRadius: 8).stroke(palette.border, lineWidth: 1))
     }
 
     private func loadTogetherFeed() async {
-        loading = true
-        async let cTask = try? repository.api.getCuratedContents(limit: 6)
-        async let dTask = try? repository.api.getAllDiscussions(limit: 100)
-        curated = (await cTask) ?? []
-        discussions = (await dTask) ?? []
-        if let initialId = initialDiscussionId {
-            if let match = discussions.first(where: { $0.id == initialId }) {
-                selectedDiscussion = match
-            } else if let direct = try? await repository.api.getDiscussionById(initialId) {
-                selectedDiscussion = direct
+        loading = discussions.isEmpty
+        loadError = false
+        do {
+            let loaded = try await repository.api.getAllDiscussions(limit: 100)
+            guard !Task.isCancelled else { return }
+            discussions = loaded
+            loadError = false
+        } catch is CancellationError {
+            return
+        } catch {
+            guard !Task.isCancelled else { return }
+            if discussions.isEmpty {
+                loadError = true
             }
-        } else if selectedDiscussion == nil {
-            selectedDiscussion = discussions.first
         }
-        if let sel = selectedDiscussion {
-            await loadReactions(for: sel.id)
+
+        if let initialId = initialDiscussionId, !initialId.isEmpty {
+            if !discussions.contains(where: { $0.id == initialId }),
+               let direct = try? await repository.api.getDiscussionById(initialId) {
+                guard !Task.isCancelled else { return }
+                discussions.insert(direct, at: 0)
+                loadError = false
+            }
+            if let match = discussions.first(where: { $0.id == initialId }) {
+                if !searchQuery.isEmpty && !match.titleName.lowercased().contains(searchQuery.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()) {
+                    searchQuery = ""
+                }
+                if selectedType != "all" && match.titleType.rawValue != selectedType {
+                    selectedType = "all"
+                }
+                selectedDiscussionId = match.id
+            }
         }
+
         loading = false
+        syncSelection()
+    }
+
+    private func syncSelection() {
+        let resolved = TogetherFilterSort.resolveSelectedDiscussionId(
+            currentId: selectedDiscussionId,
+            initialId: initialDiscussionId,
+            filtered: filteredDiscussions
+        )
+        selectedDiscussionId = resolved
+        if let resolved {
+            Task { await loadReactions(for: resolved) }
+        }
     }
 
     private func loadReactions(for discussionId: String) async {
+        guard !(repository.prefs.snapshot.userId ?? "").isEmpty else { return }
+        let token = reactionGuard.beginLoad(for: discussionId)
         if let state = try? await repository.api.getMyDiscussionReactions(discussionId: discussionId) {
-            reactionState = state
+            guard !Task.isCancelled, reactionGuard.shouldApplyLoad(for: discussionId, token: token) else { return }
+            reactionStates[discussionId] = state
+        }
+    }
+
+    private func toggleReaction(disc: DiscussionListItem, discTitle: Title, type: DiscussionReactionType) async {
+        guard !busyReactionIds.contains(disc.id) else { return }
+        busyReactionIds.insert(disc.id)
+        defer { busyReactionIds.remove(disc.id) }
+        if let updated = try? await repository.toggleReactionAndAutoLog(
+            discussionId: disc.id,
+            title: discTitle,
+            type: type
+        ) {
+            reactionGuard.markMutation(for: disc.id)
+            reactionStates[disc.id] = updated
         }
     }
 }

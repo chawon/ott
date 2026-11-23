@@ -183,6 +183,7 @@ public struct SharedWidgetSnapshot: Codable, Equatable, Sendable {
 public final class AppPreferences: ObservableObject {
     public static let productionApiBaseUrl = "https://ottline.app"
     public static let appGroupId = "group.app.ottline"
+    public static let macAppGroupId = "3Z9ULN66D4.group.app.ottline"
     public static let widgetSnapshotKey = "ottline.widget.snapshot.v2"
     public static let sharedExtensionQueueKey = "ottline.v2.pending_shared_logs"
     public static let sharedExtensionPendingUrlKey = "ottline.v2.pending_shared_url"
@@ -221,7 +222,7 @@ public final class AppPreferences: ObservableObject {
 
     public static var defaultGroupDefaults: UserDefaults? {
         #if os(macOS)
-        return nil
+        return UserDefaults(suiteName: AppPreferences.macAppGroupId)
         #else
         return UserDefaults(suiteName: AppPreferences.appGroupId)
         #endif

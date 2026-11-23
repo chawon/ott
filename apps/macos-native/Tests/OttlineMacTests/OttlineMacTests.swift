@@ -367,4 +367,131 @@ final class OttlineMacTests: XCTestCase {
         XCTAssertFalse(coord.hasPendingAttempt)
         XCTAssertNil(coord.errorMessage)
     }
+
+    func testMacServerAccountDeletionPreservationTogetherHelpersAndWidgetSnapshot() async throws {
+        final class MacDeleteMockProtocol: URLProtocol {
+            nonisolated(unsafe) static var statusCode: Int = 500
+            nonisolated(unsafe) static var failOffline: Bool = false
+            nonisolated(unsafe) static var seenPaths: [String] = []
+
+            override class func canInit(with request: URLRequest) -> Bool { true }
+            override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
+
+            override func startLoading() {
+                Self.seenPaths.append(request.url?.path ?? "")
+                if Self.failOffline {
+                    client?.urlProtocol(self, didFailWithError: URLError(.notConnectedToInternet))
+                    return
+                }
+                let resp = HTTPURLResponse(
+                    url: request.url!,
+                    statusCode: Self.statusCode,
+                    httpVersion: nil,
+                    headerFields: ["Content-Type": "application/json"]
+                )!
+                client?.urlProtocol(self, didReceive: resp, cacheStoragePolicy: .notAllowed)
+                client?.urlProtocol(self, didLoad: Data("{}".utf8))
+                client?.urlProtocolDidFinishLoading(self)
+            }
+
+            override func stopLoading() {}
+        }
+
+        XCTAssertEqual(AppPreferences.macAppGroupId, "3Z9ULN66D4.group.app.ottline")
+
+        let suiteName = "ottline.mac.del.\(UUID().uuidString)"
+        let groupSuiteName = "ottline.mac.group.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        let groupDefaults = UserDefaults(suiteName: groupSuiteName)!
+        defer {
+            defaults.removePersistentDomain(forName: suiteName)
+            groupDefaults.removePersistentDomain(forName: groupSuiteName)
+        }
+
+        let prefs = AppPreferences(
+            defaults: defaults,
+            groupDefaults: groupDefaults,
+            keychainService: "app.ottline.mac.del.\(UUID().uuidString)"
+        )
+        prefs.setLocale("ko")
+        prefs.saveAuth(userId: "u-mac-del", deviceId: "d-mac-del", pairingCode: "MAC12345", nickname: "맥유저", personaKey: .cinemaKeeper)
+
+        let tempDbPath = FileManager.default.temporaryDirectory
+            .appendingPathComponent("mac_del_\(UUID().uuidString).db")
+            .path
+        defer { try? FileManager.default.removeItem(atPath: tempDbPath) }
+
+        let config = URLSessionConfiguration.ephemeral
+        config.protocolClasses = [MacDeleteMockProtocol.self]
+        let mockSession = URLSession(configuration: config)
+        let repo = OttlineRepository(
+            db: OttlineDatabase(path: tempDbPath),
+            prefs: prefs,
+            api: OttlineApiClient(prefs: prefs, session: mockSession)
+        )
+
+        _ = await repo.saveLogForTitle(
+            candidateTitle: Title(id: "t-mac-keep", provider: .tmdb, providerId: "550", type: .movie, name: "파이트 클럽"),
+            draft: LogDraft(status: .inProgress, note: "맥 위젯 테스트", watchedAt: "2026-11-23T10:00:00Z")
+        )
+
+        // Verify shared widget snapshot written for macOS WidgetKit extension
+        let snapData = try XCTUnwrap(groupDefaults.data(forKey: AppPreferences.widgetSnapshotKey))
+        let snap = try JSONDecoder().decode(SharedWidgetSnapshot.self, from: snapData)
+        XCTAssertEqual(snap.continueItem?.titleName, "파이트 클럽")
+        XCTAssertEqual(snap.inProgressCount, 1)
+
+        // 1. Offline failure preserves local DB & session
+        MacDeleteMockProtocol.seenPaths = []
+        MacDeleteMockProtocol.failOffline = true
+        let offlineOutcome = await repo.performServerAccountDeletion(locale: "ko")
+        XCTAssertFalse(offlineOutcome.isSuccess)
+        XCTAssertEqual(repo.logs.count, 1)
+        XCTAssertEqual(prefs.snapshot.userId, "u-mac-del")
+
+        // 2. HTTP 500 preserves local DB & session
+        MacDeleteMockProtocol.failOffline = false
+        MacDeleteMockProtocol.statusCode = 500
+        let errOutcome = await repo.performServerAccountDeletion(locale: "en")
+        XCTAssertFalse(errOutcome.isSuccess)
+        XCTAssertTrue(errOutcome.message.contains("Couldn't delete server data"))
+        XCTAssertEqual(repo.logs.count, 1)
+        XCTAssertEqual(prefs.snapshot.userId, "u-mac-del")
+
+        // 3. HTTP 204 succeeds and clears local DB & session
+        MacDeleteMockProtocol.statusCode = 204
+        let okOutcome = await repo.performServerAccountDeletion(locale: "ko")
+        XCTAssertTrue(okOutcome.isSuccess)
+        XCTAssertEqual(repo.logs.count, 0)
+        XCTAssertNil(prefs.snapshot.userId)
+        XCTAssertTrue(MacDeleteMockProtocol.seenPaths.contains("/api/auth/account"))
+
+        // 4. Together filter/sort & reaction race guard
+        let sampleDiscussions = [
+            DiscussionListItem(id: "m1", titleId: "tm1", titleName: "Dune", titleType: .movie, commentCount: 2, createdAt: "2026-11-20T10:00:00Z"),
+            DiscussionListItem(id: "b1", titleId: "tb1", titleName: "Dune Messiah", titleType: .book, commentCount: 9, createdAt: "2026-11-22T10:00:00Z")
+        ]
+        XCTAssertEqual(
+            TogetherFilterSort.filterAndSort(sampleDiscussions, selectedType: "book", searchQuery: "dune", sortBy: "comments").map(\.id),
+            ["b1"]
+        )
+        var guardState = TogetherReactionGuard()
+        let t1 = guardState.beginLoad(for: "m1")
+        guardState.markMutation(for: "m1")
+        XCTAssertFalse(guardState.shouldApplyLoad(for: "m1", token: t1))
+
+        // 5. Widget & Public Discussion deep link parsing (`ottline://title/...`, `ottline://public/...`, Universal Links)
+        XCTAssertEqual(
+            OttlineDeepLinkParser.parse(URL(string: "ottline://title/t-mac-keep")!),
+            .overlay(.titleDetail("t-mac-keep"))
+        )
+        XCTAssertEqual(
+            OttlineDeepLinkParser.parse(URL(string: "ottline://public/disc-42")!),
+            .overlay(.publicDiscussion("disc-42"))
+        )
+        XCTAssertEqual(
+            OttlineDeepLinkParser.parse(URL(string: "https://ottline.app/ko/public/disc-42")!),
+            .overlay(.publicDiscussion("disc-42"))
+        )
+    }
 }

@@ -46,6 +46,10 @@ public struct OttlineRootContainerView: View {
     @State private var pendingPlaceFilter: Place?
     @State private var pendingOccasionFilter: Occasion?
     @State private var handoffNoticeMessage: String?
+    @State private var selectedTogetherDiscussionId: String?
+    @State private var pendingDirectDiscussionId: String?
+    @State private var hasExplicitTogetherSelection: Bool = false
+    @State private var currentViewportIsSpread: Bool = UIDevice.current.userInterfaceIdiom == .pad
 
     public init(repository: OttlineRepository) {
         self._repository = ObservedObject(wrappedValue: repository)
@@ -91,6 +95,45 @@ public struct OttlineRootContainerView: View {
         }
     }
 
+    private func openPublicDiscussion(_ discussionId: String, fromDeepLink: Bool = false) {
+        selectedTogetherDiscussionId = discussionId
+        hasExplicitTogetherSelection = true
+        if currentViewportIsSpread {
+            pendingDirectDiscussionId = discussionId
+            overlayStack.removeAll()
+            activeTab = .together
+        } else if fromDeepLink {
+            activeTab = .together
+            overlayStack = [.publicDiscussion(discussionId)]
+        } else {
+            overlayStack.append(.publicDiscussion(discussionId))
+        }
+    }
+
+    private func handleSpreadTransition(to isSpread: Bool) {
+        let wasSpread = currentViewportIsSpread
+        currentViewportIsSpread = isSpread
+        guard wasSpread != isSpread else { return }
+        if isSpread {
+            // Compact -> Spread: promote open PublicDiscussion detail seamlessly into 2-column Together spread
+            if case .publicDiscussion(let did) = overlayStack.last {
+                _ = overlayStack.popLast()
+                selectedTogetherDiscussionId = did
+                pendingDirectDiscussionId = did
+                hasExplicitTogetherSelection = true
+                activeTab = .together
+            }
+        } else {
+            // Spread -> Compact: preserve active discussion in single-screen flow if user selected one
+            if activeTab == .together,
+               overlayStack.isEmpty,
+               hasExplicitTogetherSelection,
+               let did = selectedTogetherDiscussionId {
+                overlayStack = [.publicDiscussion(did)]
+            }
+        }
+    }
+
     @ViewBuilder
     private func quickRecordModalContent(
         _ req: QuickRecordRequest,
@@ -111,7 +154,7 @@ public struct OttlineRootContainerView: View {
                 overlayStack.append(.titleDetail(tid))
             },
             onOpenPublicDiscussion: { discussionId in
-                overlayStack.append(.publicDiscussion(discussionId))
+                openPublicDiscussion(discussionId)
             },
             onOpenShareCard: { log in
                 rootShareCardLog = log
@@ -263,6 +306,12 @@ public struct OttlineRootContainerView: View {
                     .environment(\.ottlineViewportWidth, liveViewportWidth)
                     .preferredColorScheme(preferredScheme)
             }
+            .onAppear {
+                currentViewportIsSpread = metrics.isSpread
+            }
+            .onChange(of: metrics.isSpread) { nextSpread in
+                handleSpreadTransition(to: nextSpread)
+            }
         }
         .ignoresSafeArea(.keyboard)
         .preferredColorScheme(preferredScheme)
@@ -356,7 +405,7 @@ public struct OttlineRootContainerView: View {
                     activeTab = .mySpace
                 },
                 onOpenPublicDiscussion: { did in
-                    overlayStack.append(.publicDiscussion(did))
+                    openPublicDiscussion(did)
                 },
                 onStartBrowserHandoff: startBrowserHandoff
             )
@@ -380,8 +429,16 @@ public struct OttlineRootContainerView: View {
         case .together:
             TogetherScreen(
                 repository: repository,
+                selectedDiscussionId: $selectedTogetherDiscussionId,
+                directDiscussionId: pendingDirectDiscussionId,
+                onConsumeDirectDiscussion: { pendingDirectDiscussionId = nil },
+                onExplicitSelectDiscussion: { _ in hasExplicitTogetherSelection = true },
                 onOpenTitleDetail: { tid in overlayStack.append(.titleDetail(tid)) },
-                onOpenPublicDiscussion: { did in overlayStack.append(.publicDiscussion(did)) },
+                onOpenPublicDiscussion: { did in
+                    selectedTogetherDiscussionId = did
+                    hasExplicitTogetherSelection = true
+                    overlayStack.append(.publicDiscussion(did))
+                },
                 onOpenQuickRecord: { req in quickRecordRequest = req },
                 onReportUgc: { prefill in overlayStack.append(.feedback(prefill)) }
             )
@@ -499,7 +556,9 @@ public struct OttlineRootContainerView: View {
             overlayStack.removeAll()
             activeTab = tab
         case .overlay(let screen):
-            if case .titleDetail = screen {
+            if case .publicDiscussion(let did) = screen {
+                openPublicDiscussion(did, fromDeepLink: true)
+            } else if case .titleDetail = screen {
                 overlayStack.append(screen)
             } else {
                 overlayStack = [screen]
