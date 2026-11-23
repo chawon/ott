@@ -1,5 +1,10 @@
 # Wiki Log
 
+## [2026-11-23] verify(windows): Store 공개판 `2.0.1.0` 계정 삭제 실기기 검증 완료 및 PR #168 동기화 복구 보완(`be854a4`)
+
+- Microsoft Store 공개 설치판 `ChawonLee.ottline_2.0.1.0_arm64__ry7416pek43sa`에서 [PR #140](https://github.com/chawon/ott/pull/140)의 온라인 `서버 데이터 전체 삭제` 성공 로컬 초기화 및 오프라인 실패 시 로컬 기록·연결 상태 보존 실기기 검증을 완료했다. Project 카드(`Windows 계정 삭제 요청과 실패 처리 수정`)를 **`완료`**로 전환했다. [삭제 정책](pages/features/delete-sync.md#windows-확인-사항) · [스토어 근거](pages/platforms/ms-store.md) · [후속 작업](../docs/changes/v2-follow-up.md#1-windows-서버-계정-삭제-수정)
+- 차기 `2.0.2.0` 후보 [PR #168](https://github.com/chawon/ott/pull/168) (`fix/windows-sync-push-contract`, HEAD `be854a4`)에 본부 재검토 2건(복구 중 종료 단일 트랜잭션 원자화·고아 행 자가 복구, `logs.deleted_at` 소프트 삭제 반영 및 이력·동시 수정·재기록 보존)을 반영해 `Ottline.Tests` **59/59**, 운영 API 임시 계정 실검증 **7/7**, `Native Windows CI`([`45114305364`](https://github.com/chawon/ott/actions/runs/45114305364))를 통과하고 본부 재검토를 회신했다.
+
 ## [2026-11-23] Windows 네이티브 앱 2.0.1.0 공개
 
 한국·미국 Microsoft Store에서 `2.0.1.0` x64·arm64 패키지를 확인했다. [PR #140](https://github.com/chawon/ott/pull/140)의 서버 계정 삭제 수정이 포함됐다. 공개 설치판에서의 계정 삭제·오류 보존 검증과 `2.0.2.0` 후보의 동기화 수정은 Windows 담당이 이어간다. [스토어 근거](pages/platforms/ms-store.md) · [후속 작업](../docs/changes/v2-follow-up.md#1-windows-서버-계정-삭제-수정)
