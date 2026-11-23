@@ -48,6 +48,7 @@ public struct MySpaceScreen: View {
     @State private var showServerDeleteSheet: Bool = false
     @State private var deleteConfirmInput: String = ""
     @State private var deletingAccount: Bool = false
+    @State private var serverDeleteError: String? = nil
     @State private var shortcutsGuideExpanded: Bool = false
 
     #if DEBUG
@@ -1293,6 +1294,8 @@ public struct MySpaceScreen: View {
                         Rectangle().fill(palette.border).frame(height: 1)
 
                         VStack(alignment: .leading, spacing: 8) {
+                            let hasServerAccount = !(repository.prefs.snapshot.userId ?? "").isEmpty
+                                && !(repository.prefs.snapshot.deviceId ?? "").isEmpty
                             Text(OttlineStrings.tr("서버 데이터 전체 삭제", "Delete all server data", locale: locale))
                                 .font(OttlineFont.semiBold(15))
                                 .foregroundStyle(palette.ink)
@@ -1306,21 +1309,33 @@ public struct MySpaceScreen: View {
 
                             Button {
                                 deleteConfirmInput = ""
+                                serverDeleteError = nil
                                 showServerDeleteSheet = true
                             } label: {
                                 Text(OttlineStrings.tr("서버 데이터 전체 삭제", "Delete all server data", locale: locale))
                                     .font(OttlineFont.semiBold(13.5))
-                                    .foregroundStyle(palette.danger)
+                                    .foregroundStyle(hasServerAccount ? palette.danger : palette.subtleInk)
                                     .padding(.horizontal, 14)
                                     .frame(minHeight: 40)
-                                    .background(palette.card)
+                                    .background(hasServerAccount ? palette.card : palette.mutedBg)
                                     .clipShape(RoundedRectangle(cornerRadius: 8))
                                     .overlay(
                                         RoundedRectangle(cornerRadius: 8)
-                                            .stroke(palette.danger.opacity(0.45), lineWidth: 1)
+                                            .stroke(hasServerAccount ? palette.danger.opacity(0.45) : palette.border, lineWidth: 1)
                                     )
                             }
                             .buttonStyle(.plain)
+                            .disabled(!hasServerAccount)
+
+                            if !hasServerAccount {
+                                Text(OttlineStrings.tr(
+                                    "연결된 서버 계정이 있을 때 사용할 수 있어요.",
+                                    "Available when this device is linked to a server account.",
+                                    locale: locale
+                                ))
+                                .font(OttlineFont.regular(12))
+                                .foregroundStyle(palette.subtleInk)
+                            }
                         }
                     }
                 } label: {
@@ -1383,23 +1398,47 @@ public struct MySpaceScreen: View {
                     .background(palette.paperStrong)
                     .clipShape(RoundedRectangle(cornerRadius: 8))
 
+                if let serverDeleteError, !serverDeleteError.isEmpty {
+                    Text(serverDeleteError)
+                        .font(OttlineFont.regular(13.5))
+                        .foregroundStyle(palette.danger)
+                        .padding(12)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(palette.danger.opacity(0.08))
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8)
+                                .stroke(palette.danger.opacity(0.4), lineWidth: 1)
+                        )
+                }
+
                 Button {
                     Task {
+                        guard !deletingAccount else { return }
                         deletingAccount = true
-                        try? await repository.deleteServerAccountAndLocalData()
-                        profileExpanded = false
-                        editNickname = ""
-                        editPersonaKey = .cinemaKeeper
-                        devices = []
-                        deleteConfirmInput = ""
+                        serverDeleteError = nil
+                        let outcome = await repository.performServerAccountDeletion(locale: locale)
                         deletingAccount = false
-                        showServerDeleteSheet = false
-                        toastMessage = OttlineStrings.tr("서버 데이터를 모두 삭제했어요.", "All server data deleted.", locale: locale)
+                        switch outcome {
+                        case .deleted(let msg):
+                            profileExpanded = false
+                            editNickname = ""
+                            editPersonaKey = .cinemaKeeper
+                            devices = []
+                            deleteConfirmInput = ""
+                            serverDeleteError = nil
+                            showServerDeleteSheet = false
+                            toastMessage = msg
+                        case .notConnected(let msg), .failed(let msg):
+                            serverDeleteError = msg
+                        }
                     }
                 } label: {
                     Text(deletingAccount
                         ? OttlineStrings.tr("삭제 중...", "Deleting...", locale: locale)
-                        : OttlineStrings.tr("서버 데이터 전체 삭제", "Delete all server data", locale: locale)
+                        : (serverDeleteError != nil
+                            ? OttlineStrings.tr("다시 시도", "Try again", locale: locale)
+                            : OttlineStrings.tr("서버 데이터 전체 삭제", "Delete all server data", locale: locale))
                     )
                     .font(OttlineFont.semiBold(14.5))
                     .foregroundStyle(.white)

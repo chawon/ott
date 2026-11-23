@@ -27,6 +27,7 @@ public struct MacMySpaceSpreadView: View {
     @State private var showServerDeleteSheet: Bool = false
     @State private var deleteConfirmInput: String = ""
     @State private var deletingAccount: Bool = false
+    @State private var serverDeleteError: String? = nil
 
     public var body: some View {
         let snap = repository.prefs.snapshot
@@ -569,20 +570,28 @@ public struct MacMySpaceSpreadView: View {
                 }
                 .buttonStyle(.plain)
 
+                let hasServerAccount = !(repository.prefs.snapshot.userId ?? "").isEmpty
+                    && !(repository.prefs.snapshot.deviceId ?? "").isEmpty
                 Button {
                     deleteConfirmInput = ""
+                    serverDeleteError = nil
                     showServerDeleteSheet = true
                 } label: {
                     Text(OttlineStrings.tr("서버 데이터 전체 삭제…", "Delete all server data…", locale: locale))
                         .font(OttlineFont.semiBold(13))
-                        .foregroundStyle(palette.danger)
+                        .foregroundStyle(hasServerAccount ? palette.danger : palette.subtleInk)
                         .padding(.horizontal, 12)
                         .frame(height: 36)
-                        .background(palette.card)
+                        .background(hasServerAccount ? palette.card : palette.mutedBg)
                         .clipShape(RoundedRectangle(cornerRadius: 8))
-                        .overlay(RoundedRectangle(cornerRadius: 8).stroke(palette.danger.opacity(0.45), lineWidth: 1))
+                        .overlay(RoundedRectangle(cornerRadius: 8).stroke(hasServerAccount ? palette.danger.opacity(0.45) : palette.border, lineWidth: 1))
                 }
                 .buttonStyle(.plain)
+                .disabled(!hasServerAccount)
+                .help(hasServerAccount
+                    ? OttlineStrings.tr("연결된 서버 계정과 모든 기기 데이터를 삭제합니다.", "Delete linked server account and synced data.", locale: locale)
+                    : OttlineStrings.tr("연결된 서버 계정이 있을 때 사용할 수 있어요.", "Available when linked to a server account.", locale: locale)
+                )
             }
         }
         .padding(18)
@@ -625,18 +634,43 @@ public struct MacMySpaceSpreadView: View {
                     .background(palette.card)
                     .clipShape(RoundedRectangle(cornerRadius: 8))
                     .overlay(RoundedRectangle(cornerRadius: 8).stroke(palette.border, lineWidth: 1))
+                if let serverDeleteError, !serverDeleteError.isEmpty {
+                    Text(serverDeleteError)
+                        .font(OttlineFont.regular(13))
+                        .foregroundStyle(palette.danger)
+                        .padding(12)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(palette.danger.opacity(0.08))
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                        .overlay(RoundedRectangle(cornerRadius: 8).stroke(palette.danger.opacity(0.4), lineWidth: 1))
+                }
                 Button {
                     Task {
+                        guard !deletingAccount else { return }
                         deletingAccount = true
-                        try? await repository.deleteServerAccountAndLocalData()
-                        devices = []
-                        editNickname = ""
+                        serverDeleteError = nil
+                        let outcome = await repository.performServerAccountDeletion(locale: locale)
                         deletingAccount = false
-                        showServerDeleteSheet = false
-                        toastMessage = OttlineStrings.tr("서버 데이터를 모두 삭제했어요.", "All server data deleted.", locale: locale)
+                        switch outcome {
+                        case .deleted(let msg):
+                            devices = []
+                            editNickname = ""
+                            editPersonaKey = .cinemaKeeper
+                            deleteConfirmInput = ""
+                            serverDeleteError = nil
+                            showServerDeleteSheet = false
+                            toastMessage = msg
+                        case .notConnected(let msg), .failed(let msg):
+                            serverDeleteError = msg
+                        }
                     }
                 } label: {
-                    Text(OttlineStrings.tr("영구 삭제", "Delete permanently", locale: locale))
+                    Text(deletingAccount
+                        ? OttlineStrings.tr("삭제 중...", "Deleting...", locale: locale)
+                        : (serverDeleteError != nil
+                            ? OttlineStrings.tr("다시 시도", "Try again", locale: locale)
+                            : OttlineStrings.tr("영구 삭제", "Delete permanently", locale: locale))
+                    )
                         .font(OttlineFont.semiBold(14))
                         .foregroundStyle(Color.white)
                         .padding(.horizontal, 18)

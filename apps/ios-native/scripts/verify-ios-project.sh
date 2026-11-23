@@ -9,10 +9,14 @@ echo "==> Verifying apps/ios-native project contract in $ROOT_DIR"
 grep -q 'PRODUCT_BUNDLE_IDENTIFIER: app.ottline' "$ROOT_DIR/project.yml"
 grep -q 'PRODUCT_BUNDLE_IDENTIFIER: app.ottline.QuickLogWidget' "$ROOT_DIR/project.yml"
 grep -q 'PRODUCT_BUNDLE_IDENTIFIER: app.ottline.ShareExtension' "$ROOT_DIR/project.yml"
-grep -q 'MARKETING_VERSION: "2.0.0"' "$ROOT_DIR/project.yml"
+MARKETING_VER="$(awk -F'"' '/MARKETING_VERSION:/ {print $2; exit}' "$ROOT_DIR/project.yml")"
+if [[ ! "$MARKETING_VER" =~ ^2\.[0-9]+\.[0-9]+$ ]]; then
+  echo "ERROR: MARKETING_VERSION must be 2.x.y (got: '${MARKETING_VER:-empty}')"
+  exit 1
+fi
 BUILD_NUM="$(awk -F'"' '/CURRENT_PROJECT_VERSION:/ {print $2; exit}' "$ROOT_DIR/project.yml")"
-if [[ ! "$BUILD_NUM" =~ ^[0-9]+$ ]] || (( BUILD_NUM < 25 )); then
-  echo "ERROR: CURRENT_PROJECT_VERSION must be an integer >= 25 (got: '${BUILD_NUM:-empty}')"
+if [[ ! "$BUILD_NUM" =~ ^[0-9]+$ ]] || (( BUILD_NUM < 28 )); then
+  echo "ERROR: CURRENT_PROJECT_VERSION must be an integer >= 28 (got: '${BUILD_NUM:-empty}')"
   exit 1
 fi
 
@@ -56,5 +60,11 @@ done
 
 # 6. Verify Analytics platform constraint ("ios_native") in shared OttlineCore repository
 grep -q 'platform: "ios_native"' "$APPLE_CORE_DIR/Sources/OttlineCore/Data/OttlineRepository.swift"
+
+# 7. Verify retired AI Curator endpoint/UI references are removed
+if grep -rnE 'curated-contents|getCuratedContents|CuratedContentItem' "$APPLE_CORE_DIR/Sources" "$ROOT_DIR/Sources"; then
+  echo "ERROR: Retired curator references must be removed from Apple sources"
+  exit 1
+fi
 
 echo "==> All static iOS Native v2 checks passed!"

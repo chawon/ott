@@ -1178,6 +1178,12 @@ public enum OttlineDeepLinkParser {
         if host == "timeline" || path.contains("/timeline") {
             return .tab(.timeline)
         }
+        if host == "public" {
+            if let discussionId = rawPath.split(separator: "/").last.map(String.init), !discussionId.isEmpty {
+                return .overlay(.publicDiscussion(discussionId))
+            }
+            return .tab(.together)
+        }
         if host == "together" || path == "/public" || path.hasSuffix("/public") {
             return .tab(.together)
         }
@@ -1195,7 +1201,7 @@ public enum OttlineDeepLinkParser {
         if host == "bookshelf" || path.contains("/bookshelf") {
             return .overlay(.bookshelf(firstNonEmpty("kdc").flatMap(Int.init)))
         }
-        if path.contains("/titles/") || path.contains("/title/") {
+        if host == "title" || host == "titles" || path.contains("/titles/") || path.contains("/title/") {
             if let titleId = rawPath.split(separator: "/").last.map(String.init), !titleId.isEmpty {
                 return .overlay(.titleDetail(titleId))
             }

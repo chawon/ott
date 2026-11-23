@@ -1318,4 +1318,231 @@ final class OttlineCoreTests: XCTestCase {
         XCTAssertEqual(PosterMockProtocol.requestCount, 1)
         XCTAssertNotNil(cache2.cachedImage(for: url))
     }
+
+    // MARK: - 14. Server Account Deletion Failure Preservation & Success Clearing (`#163`)
+
+    func testServerAccountDeletionPreservesDataOnErrorsAndClearsOn2xx() async throws {
+        final class DeleteMockProtocol: URLProtocol {
+            nonisolated(unsafe) static var mode: String = "http500"
+            nonisolated(unsafe) static var deleteRequestCount: Int = 0
+            nonisolated(unsafe) static var lastDeleteMethod: String?
+            nonisolated(unsafe) static var lastDeletePath: String?
+
+            override class func canInit(with request: URLRequest) -> Bool { true }
+            override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
+
+            override func startLoading() {
+                let path = request.url?.path ?? ""
+                if path == "/api/auth/account" {
+                    Self.deleteRequestCount += 1
+                    Self.lastDeleteMethod = request.httpMethod
+                    Self.lastDeletePath = path
+                }
+
+                if Self.mode == "offline" {
+                    client?.urlProtocol(self, didFailWithError: URLError(.notConnectedToInternet))
+                    return
+                }
+                let status: Int
+                let body: String
+                if path != "/api/auth/account" {
+                    status = 500
+                    body = "{}"
+                } else {
+                    switch Self.mode {
+                    case "http401":
+                        status = 401
+                        body = #"{"code":"unauthorized","message":"invalid device"}"#
+                    case "http200":
+                        status = 200
+                        body = #"{"deleted":true}"#
+                    case "http204":
+                        status = 204
+                        body = ""
+                    default:
+                        status = 500
+                        body = #"{"code":"internal_error","message":"server failure"}"#
+                    }
+                }
+                let resp = HTTPURLResponse(
+                    url: request.url!,
+                    statusCode: status,
+                    httpVersion: nil,
+                    headerFields: ["Content-Type": "application/json"]
+                )!
+                client?.urlProtocol(self, didReceive: resp, cacheStoragePolicy: .notAllowed)
+                if !body.isEmpty {
+                    client?.urlProtocol(self, didLoad: Data(body.utf8))
+                }
+                client?.urlProtocolDidFinishLoading(self)
+            }
+
+            override func stopLoading() {}
+        }
+
+        let suiteName = "ottline.test.delete.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let tempDbPath = FileManager.default.temporaryDirectory
+            .appendingPathComponent("test_delete_\(UUID().uuidString).db")
+            .path
+        defer { try? FileManager.default.removeItem(atPath: tempDbPath) }
+
+        let prefs = AppPreferences(
+            defaults: defaults,
+            groupDefaults: nil,
+            keychainService: "app.ottline.test.delete.\(UUID().uuidString)"
+        )
+        let config = URLSessionConfiguration.ephemeral
+        config.protocolClasses = [DeleteMockProtocol.self]
+        let mockSession = URLSession(configuration: config)
+        let repo = OttlineRepository(
+            db: OttlineDatabase(path: tempDbPath),
+            prefs: prefs,
+            api: OttlineApiClient(prefs: prefs, session: mockSession)
+        )
+
+        // Seed 1 local log while NOT connected to any server account
+        _ = await repo.saveLogForTitle(
+            candidateTitle: Title(id: "t-del-1", provider: .tmdb, providerId: "100", type: .movie, name: "보존되어야 할 영화"),
+            draft: LogDraft(status: .done, note: "중요한 기록", watchedAt: "2026-11-22T10:00:00Z")
+        )
+        XCTAssertEqual(repo.logs.count, 1)
+
+        // 1. Unlinked device -> `.notConnected`, 0 DELETE /api/auth/account calls, local log preserved
+        DeleteMockProtocol.deleteRequestCount = 0
+        let notConnectedKo = await repo.performServerAccountDeletion(locale: "ko")
+        XCTAssertFalse(notConnectedKo.isSuccess)
+        if case .notConnected(let msg) = notConnectedKo {
+            XCTAssertTrue(msg.contains("연결된 서버 계정이 없어요"))
+        } else {
+            XCTFail("Expected .notConnected, got \(notConnectedKo)")
+        }
+        XCTAssertEqual(DeleteMockProtocol.deleteRequestCount, 0)
+        XCTAssertEqual(repo.logs.count, 1)
+
+        // Link mock server session
+        prefs.saveAuth(
+            userId: "u-del-1",
+            deviceId: "d-del-1",
+            pairingCode: "DEL12345",
+            nickname: "밤산책",
+            personaKey: .bookDrifter
+        )
+
+        // 2. HTTP 500 -> `.failed`, preserves local DB + auth + profile
+        DeleteMockProtocol.mode = "http500"
+        let err500Ko = await repo.performServerAccountDeletion(locale: "ko")
+        XCTAssertFalse(err500Ko.isSuccess)
+        XCTAssertTrue(err500Ko.message.contains("삭제하지 못했어요"))
+        XCTAssertFalse(err500Ko.message.contains("모두 삭제했어요"))
+        XCTAssertEqual(DeleteMockProtocol.lastDeleteMethod, "DELETE")
+        XCTAssertEqual(DeleteMockProtocol.lastDeletePath, "/api/auth/account")
+        XCTAssertEqual(DeleteMockProtocol.deleteRequestCount, 1)
+        XCTAssertEqual(repo.logs.count, 1)
+        XCTAssertEqual(prefs.snapshot.userId, "u-del-1")
+        XCTAssertEqual(prefs.snapshot.deviceId, "d-del-1")
+        XCTAssertEqual(prefs.snapshot.pairingCode, "DEL12345")
+        XCTAssertEqual(prefs.snapshot.nickname, "밤산책")
+        XCTAssertEqual(prefs.snapshot.personaKey, .bookDrifter)
+
+        // 3. HTTP 401 -> `.failed` (EN), preserves local DB + auth
+        DeleteMockProtocol.mode = "http401"
+        let err401En = await repo.performServerAccountDeletion(locale: "en")
+        XCTAssertFalse(err401En.isSuccess)
+        XCTAssertTrue(err401En.message.contains("Couldn't delete server data"))
+        XCTAssertEqual(repo.logs.count, 1)
+        XCTAssertEqual(prefs.snapshot.userId, "u-del-1")
+
+        // 4. Network offline -> `.failed`, preserves local DB + auth + outbox
+        DeleteMockProtocol.mode = "offline"
+        let errOffline = await repo.performServerAccountDeletion(locale: "ko")
+        XCTAssertFalse(errOffline.isSuccess)
+        XCTAssertEqual(repo.logs.count, 1)
+        XCTAssertGreaterThan(repo.outboxCount, 0)
+        XCTAssertEqual(prefs.snapshot.userId, "u-del-1")
+
+        // 5. HTTP 200 -> `.deleted`, clears local DB, outbox, and auth session
+        DeleteMockProtocol.mode = "http200"
+        let ok200 = await repo.performServerAccountDeletion(locale: "ko")
+        XCTAssertTrue(ok200.isSuccess)
+        XCTAssertEqual(ok200.message, "서버 데이터를 모두 삭제했어요.")
+        XCTAssertEqual(repo.logs.count, 0)
+        XCTAssertEqual(repo.outboxCount, 0)
+        XCTAssertNil(prefs.snapshot.userId)
+        XCTAssertNil(prefs.snapshot.deviceId)
+        XCTAssertNil(prefs.snapshot.pairingCode)
+        XCTAssertNil(prefs.snapshot.nickname)
+    }
+
+    // MARK: - 15. Together Filter/Sort, Selection Continuity & Reaction Race Guard (`#22`, `#27`)
+
+    func testTogetherFilterSortSelectionAndReactionRaceGuard() {
+        let items = [
+            DiscussionListItem(
+                id: "d-movie-old",
+                titleId: "t-1",
+                titleName: "Interstellar",
+                titleType: .movie,
+                titleYear: 2014,
+                commentCount: 12,
+                createdAt: "2026-11-10T10:00:00Z"
+            ),
+            DiscussionListItem(
+                id: "d-book-new",
+                titleId: "t-2",
+                titleName: "Project Hail Mary",
+                titleType: .book,
+                titleYear: 2021,
+                commentCount: 3,
+                createdAt: "2026-11-22T10:00:00Z"
+            ),
+            DiscussionListItem(
+                id: "d-series-mid",
+                titleId: "t-3",
+                titleName: "The Bear",
+                titleType: .series,
+                titleYear: 2022,
+                commentCount: 8,
+                createdAt: "2026-11-18T10:00:00Z"
+            )
+        ]
+
+        // Latest sort
+        let latest = TogetherFilterSort.filterAndSort(items, selectedType: "all", searchQuery: "", sortBy: "latest")
+        XCTAssertEqual(latest.map(\.id), ["d-book-new", "d-series-mid", "d-movie-old"])
+
+        // Most comments sort
+        let byComments = TogetherFilterSort.filterAndSort(items, selectedType: "all", searchQuery: "", sortBy: "comments")
+        XCTAssertEqual(byComments.map(\.id), ["d-movie-old", "d-series-mid", "d-book-new"])
+
+        // Type & search filter
+        let bookOnly = TogetherFilterSort.filterAndSort(items, selectedType: "book", searchQuery: "hail", sortBy: "latest")
+        XCTAssertEqual(bookOnly.map(\.id), ["d-book-new"])
+
+        // Selection continuity
+        XCTAssertEqual(
+            TogetherFilterSort.resolveSelectedDiscussionId(currentId: "d-series-mid", initialId: nil, filtered: latest),
+            "d-series-mid"
+        )
+        XCTAssertEqual(
+            TogetherFilterSort.resolveSelectedDiscussionId(currentId: "d-series-mid", initialId: nil, filtered: bookOnly),
+            "d-book-new"
+        )
+        XCTAssertEqual(
+            TogetherFilterSort.resolveSelectedDiscussionId(currentId: "d-series-mid", initialId: "d-movie-old", filtered: latest),
+            "d-movie-old"
+        )
+
+        // Reaction race guard: older fetch token invalidated by newer fetch or toggle mutation
+        var guardState = TogetherReactionGuard()
+        let load1 = guardState.beginLoad(for: "d-movie-old")
+        let load2 = guardState.beginLoad(for: "d-movie-old")
+        XCTAssertFalse(guardState.shouldApplyLoad(for: "d-movie-old", token: load1))
+        XCTAssertTrue(guardState.shouldApplyLoad(for: "d-movie-old", token: load2))
+
+        // Mutation (toggle) invalidates in-flight GET token
+        guardState.markMutation(for: "d-movie-old")
+        XCTAssertFalse(guardState.shouldApplyLoad(for: "d-movie-old", token: load2))
+    }
 }

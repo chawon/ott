@@ -9,8 +9,8 @@ packages:
     path: ../apple-core
 settings:
   base:
-    MARKETING_VERSION: "2.0.0"
-    CURRENT_PROJECT_VERSION: "27"
+    MARKETING_VERSION: "2.0.1"
+    CURRENT_PROJECT_VERSION: "28"
     SWIFT_VERSION: "5.0"
     IPHONEOS_DEPLOYMENT_TARGET: "16.0"
     TARGETED_DEVICE_FAMILY: "1,2"
