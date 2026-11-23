@@ -1,5 +1,9 @@
 # Wiki Log
 
+## [2026-11-23] Windows 네이티브 앱 2.0.1.0 공개
+
+한국·미국 Microsoft Store에서 `2.0.1.0` x64·arm64 패키지를 확인했다. [PR #140](https://github.com/chawon/ott/pull/140)의 서버 계정 삭제 수정이 포함됐다. 공개 설치판에서의 계정 삭제·오류 보존 검증과 `2.0.2.0` 후보의 동기화 수정은 Windows 담당이 이어간다. [스토어 근거](pages/platforms/ms-store.md) · [후속 작업](../docs/changes/v2-follow-up.md#1-windows-서버-계정-삭제-수정)
+
 ## [2026-11-22] feat(windows): 추천 복구·큐레이터 제거·함께 2단·공통 풋터/안내 5종 PR #156 병합 (차기 v2.0.2.0 후보)
 
 - [PR #156](https://github.com/chawon/ott/pull/156) `main` 병합 완료(`b6baa17`, 순차 커밋 `38deac2` · `2800702` · `c50b6c5` · `ce860a9`).
