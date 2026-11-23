@@ -1,5 +1,11 @@
 # Wiki Log
 
+## [2026-11-23] release(windows): PR #168 병합 및 Microsoft Store `v2.0.2.0` 심사 제출 (`Certification`)
+
+- [PR #168](https://github.com/chawon/ott/pull/168)([#161](https://github.com/chawon/ott/issues/161))을 `main` `fa09d2e`(코드 `be854a4`)로 병합하고 `main` `Native Windows CI`([`45116276550`](https://github.com/chawon/ott/actions/runs/45116276550), `1m28s`, `Ottline.Tests` **59/59**) 통과를 확인했다.
+- PR #156(추천 60초 복구·큐레이터 제거·함께 2단/`PUT /reactions`·공통 5종 풋터/안내) + PR #168(동기화 push 계약·구버전 1회 원자적 복구·`stale` 풀 확인 해소·`logs.deleted_at` 소프트 삭제·계측/버전 정합) 통합본 `ottline-2.0.2.0.msixbundle`(`x64` `81.50 MB` + `arm64` `77.56 MB`, 총 `159.06 MB`, SHA-256 `C4622C9CEE02D199B2FA835B1C5199E5BC0DEC7A36E8721568B75787626DD24A`)을 Partner Center `9NSVNZGDMGF5`에 제출했다(Submission ID **`1152921505702478292`**, 상태 **`Certification`**, `Errors: 0`, `Desktop` 전용).
+- Project 카드 `#161`을 **`검증`**으로 이동했다. 남은 확인은 `v2.0.2.0` 공개 게시 확인 및 공개 Store 설치판 실기기 교차 동기화 검증이다. [Windows Wiki](pages/platforms/windows-native.md) · [스토어 근거](pages/platforms/ms-store.md) · [후속 작업](../docs/changes/v2-follow-up.md#windows-후속-기능-통합-반영-2026-11-22-차기-v2020-후보)
+
 ## [2026-11-23] verify(windows): Store 공개판 `2.0.1.0` 계정 삭제 실기기 검증 완료 및 PR #168 동기화 복구 보완(`be854a4`)
 
 - Microsoft Store 공개 설치판 `ChawonLee.ottline_2.0.1.0_arm64__ry7416pek43sa`에서 [PR #140](https://github.com/chawon/ott/pull/140)의 온라인 `서버 데이터 전체 삭제` 성공 로컬 초기화 및 오프라인 실패 시 로컬 기록·연결 상태 보존 실기기 검증을 완료했다. Project 카드(`Windows 계정 삭제 요청과 실패 처리 수정`)를 **`완료`**로 전환했다. [삭제 정책](pages/features/delete-sync.md#windows-확인-사항) · [스토어 근거](pages/platforms/ms-store.md) · [후속 작업](../docs/changes/v2-follow-up.md#1-windows-서버-계정-삭제-수정)

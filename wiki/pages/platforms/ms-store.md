@@ -7,7 +7,7 @@
 | Product ID | `9NSVNZGDMGF5` |
 | 패키지 ID | `ChawonLee.ottline` |
 | Package Family Name | `ChawonLee.ottline_ry7416pek43sa` |
-| 현재 공개 버전 | `2.0.1.0`, x64·arm64 MSIXBundle. 2026-11-23 한국·미국 카탈로그 확인 |
+| 현재 공개 버전 | `2.0.1.0`, x64·arm64 MSIXBundle. 2026-11-23 한국·미국 카탈로그 확인 및 설치판 검증 완료 (`2.0.2.0` Submission `1152921505702478292` `Certification` 심사 중) |
 | 스토어 제목 | 한국어 `ottline - 영화·드라마·책·독서 기록`, 영어 `ottline: Movie, TV & Book Log` |
 
 Windows에서는 [Microsoft Store 제품 페이지](https://apps.microsoft.com/detail/9nsvnzgdmgf5?hl=ko-KR&gl=KR)에서 설치하거나 `winget install --id 9NSVNZGDMGF5 --source msstore`를 사용한다.

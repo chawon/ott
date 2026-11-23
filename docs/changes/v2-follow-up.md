@@ -43,7 +43,8 @@ Windows의 서버 계정 삭제에서 요청 경로와 실패 처리의 불일�
   - **운영 API(`https://ottline.app`) 임시 계정 실측**: 추천 생성 `quota.used 0→1` (`9995ms`), 응답 유실+재시작 복구 `1→2` (`8550ms`, 중복 차감 0), 동일 `requestId` 멱등성 `3→3`, 함께 46건 조회(`/api/curated-contents` 0호출)·`PUT /reactions` ON→OFF 확인 후 `DeleteServerAccountAsync()` (`HTTP 200`)로 임시 계정 정리 완료.
   - **패키지·실행 검증**: `x64`+`arm64` MSIXBundle(`159.02 MB`, SHA-256 `1D3697AB30C8A83FA9128FBF7E39A2B162D479FD10DFCC7A9CD9FC52099B45B2`) 무결성 검증 및 `win-arm64` 실앱 실행 사용자 검수 통과.
 - **남은 확인**:
-  - **차기 `2.0.2.0` 후보**는 [동기화 복구 #161](https://github.com/chawon/ott/issues/161)과 [PR #168 보완(`be854a4`, CI `45114305364`)](https://github.com/chawon/ott/pull/168#issuecomment-7091922822)의 본부 재검토를 거쳐 제출할 소스를 정한다. 제출·공개 여부와 스토어 설치판 실기기 결과는 Windows 담당이 기록한다.
+  - **Microsoft Store `v2.0.2.0` 심사 제출 완료 (`2026-11-23`)**: [PR #168](https://github.com/chawon/ott/pull/168)([#161](https://github.com/chawon/ott/issues/161))을 `main` `fa09d2e`(코드 `be854a4`)로 병합하고 `main` `Native Windows CI`([`45116276550`](https://github.com/chawon/ott/actions/runs/45116276550), `Ottline.Tests` **59/59**)·운영 API 임시 계정 실검증(7/7, `DELETE /api/auth/account` HTTP 200 정리)을 통과한 뒤, PR #156 + PR #168 통합본 `ottline-2.0.2.0.msixbundle`(`x64` `81.50 MB` + `arm64` `77.56 MB`, 총 `159.06 MB`, SHA-256 `C4622C9CEE02D199B2FA835B1C5199E5BC0DEC7A36E8721568B75787626DD24A`)을 Partner Center `9NSVNZGDMGF5`에 제출했다(Submission ID **`1152921505702478292`**, 상태 **`Certification`**, `Errors: 0`).
+  - `v2.0.2.0` 공개 게시 확인 및 공개 스토어 설치판에서 Windows↔모바일/웹 교차 동기화·구버전 복구·함께 2단·추천 복구 실기기 확인.
 
 ## 2. Apple v2 업데이트 검증
 
