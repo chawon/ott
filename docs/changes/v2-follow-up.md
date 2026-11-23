@@ -97,8 +97,8 @@ Windows의 서버 계정 삭제에서 요청 경로와 실패 처리의 불일�
   - **GitHub Actions CI**: PR #173 [Native iOS v2 CI `45183376281`](https://github.com/chawon/ott/actions/runs/45183376281) · [Native macOS v2 CI `45183376159`](https://github.com/chawon/ott/actions/runs/45183376159) 성공, `main` (`5567dd5`) [Native macOS v2 CI `45190943508`](https://github.com/chawon/ott/actions/runs/45190943508) 성공([iOS CI `45190943521`](https://github.com/chawon/ott/actions/runs/45190943521) 실행 중).
   - **운영 API(`https://ottline.app`) 격리 계정 실측**: `GET /api/curated-contents` KO/EN `200 []`, `#147` 기기 표기 `[('iPad App', 'iPadOS'), ('macOS App', 'macOS')]`, `#142` `내 미래는?` `quota.used 0→1` (`10445ms`, `items=6`)·동일 `requestId` 멱등 재시도 `1→1` (`653ms`, `+0` 차감)·`/state` 복구·EN 로케일 격리(`hasBatch=false`) 확인 후 `DELETE /api/auth/account` (`200`, `222ms`)로 임시 계정 정리 완료.
   - **Mac App Store `2.0.0 (27)` 설치판 확인 (`/Applications/ottline.app`, `_MASReceipt`, `macOS 15.8.3`)**: `NSWorkspace` URL 해석 및 `ottline://quick?quick=1&title=Dune&platform=Netflix&type=video` 프로토콜 기동 확인.
-  - **App Store Connect 업로드 (`2.0.1`, build `28`)**: `Ottline 2.0.1 (28).xcarchive`(`OttlineApp.ipa`, `EXPORT SUCCEEDED`) 및 `OttlineMac 2.0.1 (28).xcarchive`(`ottline.pkg`, `OttlineMacWidgetExtension` 포함, `EXPORT SUCCEEDED`) 모두 업로드 완료.
-- **남은 확인**: App Store Connect에서 iOS/iPadOS·macOS `2.0.1 (28)` 심사 제출·공개 승인, `#163`·큐레이터 제거·iPad 2단 실기기 검증, 기존 Expo `1.0.4` → 공개 App Store 업데이트 데이터 보존 및 Safari/Chrome `?native_handoff=1` 실브라우저 이어받기 검증.
+  - **App Store Connect 업로드 및 심사 제출 (`2.0.1`, build `28`)**: `Ottline 2.0.1 (28).xcarchive`(`OttlineApp.ipa`, `EXPORT SUCCEEDED`) 및 `OttlineMac 2.0.1 (28).xcarchive`(`ottline.pkg`, `OttlineMacWidgetExtension` 포함, `EXPORT SUCCEEDED`) 모두 업로드 후 **iOS/iPadOS·macOS `2.0.1 (28)` 심사 제출 완료**(`2026-11-23 23:22 KST`, `Waiting for Review`).
+- **남은 확인**: iOS/iPadOS·macOS `2.0.1 (28)` 심사 승인·공개 후 실기기 확인(`#163`·큐레이터 제거·iPad 2단), 기존 Expo `1.0.4` → 공개 App Store 업데이트 데이터 보존 및 Safari/Chrome `?native_handoff=1` 실브라우저 이어받기 검증.
 
 ## 3. 브라우저 확장·토스·ChatGPT 앱
 

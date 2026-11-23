@@ -21,7 +21,7 @@
 - Expo SecureStore·SQLite 이전, WidgetKit, 공유 확장, Siri 단축어, Handoff, iPad 2컬럼 레이아웃, 2단계 포스터 캐시, 온디바이스 공유 카드 생성, 미래의 타임라인 복구(`#142`), `ObservableObject` 메인 스레드 발행 안전화를 구현했다.
 - `2026-11-21` `OttlineTests` 18/18·[iOS SwiftUI CI](https://github.com/chawon/ott/actions/runs/44897582945) 통과 및 실기기(iPhone X `iOS 16.7.16`, iPad 10세대) 검증을 마쳤다. Release `2.0.0 (27)`(`OttlineWidgetExtension`·`OttlineShareExtension` 포함)과 한·영 스크린샷을 App Store Connect에 제출했다.
 - `2026-11-22` 사용자 출시 확인을 반영했다. 공개 스토어판의 기존 Expo 인플레이스 업데이트 시 계정·기록·미동기화 변경 보존은 [출시 후 검증](https://github.com/users/chawon/projects/1/views/2?pane=issue&itemId=312000240)에서 확인한다.
-- `2026-11-23` 차기 **`2.0.1 (28)`**([PR #173](https://github.com/chawon/ott/pull/173), `main` `5567dd5`, 코드 `49e62c3`)을 병합해 서버 계정 삭제 오류 보존([#163](https://github.com/chawon/ott/issues/163))·함께 AI 큐레이터 제거·iPad 함께 2단 정합성(가로/세로/Split View 선택 연속성·직접 링크·오류/재시도·반응 레이스 가드)을 반영했다. `OttlineTests` 20/20·[PR iOS CI `45183376281`](https://github.com/chawon/ott/actions/runs/45183376281) 통과 후 Release **`2.0.1 (28)`**을 App Store Connect에 업로드했다(심사 제출·공개 및 실기기 검증 대기). [담당 업무와 완료 조건](../../../docs/changes/v2-follow-up.md#2-apple-v2-업데이트-검증)
+- `2026-11-23` 차기 **`2.0.1 (28)`**([PR #173](https://github.com/chawon/ott/pull/173), `main` `5567dd5`, 코드 `49e62c3`)을 병합해 서버 계정 삭제 오류 보존([#163](https://github.com/chawon/ott/issues/163))·함께 AI 큐레이터 제거·iPad 함께 2단 정합성(가로/세로/Split View 선택 연속성·직접 링크·오류/재시도·반응 레이스 가드)을 반영했다. `OttlineTests` 20/20·[PR iOS CI `45183376281`](https://github.com/chawon/ott/actions/runs/45183376281) 통과 후 Release **`2.0.1 (28)`**을 App Store Connect에 **심사 제출 완료**했다(`Waiting for Review`, 공개·실기기 검증 대기). [담당 업무와 완료 조건](../../../docs/changes/v2-follow-up.md#2-apple-v2-업데이트-검증)
 
 ## 이전 Expo 설치판
 
