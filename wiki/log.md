@@ -1,5 +1,12 @@
 # Wiki Log
 
+## [2026-11-23] feat(apple): PR #173 병합 및 iOS·macOS `2.0.1 (28)` App Store Connect 업로드
+
+- [PR #173](https://github.com/chawon/ott/pull/173)을 `main` `5567dd5`(코드 `49e62c3`)에 병합했다.
+- 주요 반영: 서버 계정 삭제 실패 시 로컬·연결·화면 상태 보존 및 KO/EN 오류/재시도 안내([#163](https://github.com/chawon/ott/issues/163)), 함께 AI 큐레이터 UI·조회 전면 제거(카드 `313279211`, 구 Expo 미탑재 확인), iPad 함께 2단↔Split View 연속성·직접 링크·오류/재시도·반응 레이스 가드 및 macOS 함께 종류 필터/정렬/레이스 가드 보강(카드 `313285015`), **macOS 데스크톱 위젯(`OttlineMacWidgetExtension`, `3Z9ULN66D4.group.app.ottline`, Small/Medium/Large)** 추가.
+- 검증·CI·업로드: `OttlineTests` **20/20**, `OttlineMacTests` **6/6**, PR [iOS CI `45183376281`](https://github.com/chawon/ott/actions/runs/45183376281)·[macOS CI `45183376159`](https://github.com/chawon/ott/actions/runs/45183376159) 및 `main` [macOS CI `45190943508`](https://github.com/chawon/ott/actions/runs/45190943508) 통과, `macOS 15.8.3` 실기기 데스크톱 위젯 갤러리 등록·렌더링 사용자 검수 통과, 운영 API 격리 계정 실측(`GET /api/curated-contents` `200 []`, `#147` `iPad App/iPadOS`·`macOS App/macOS`, `#142` `quota.used 0→1` 및 동일 `requestId` 멱등 재시도 `1→1`, `DELETE /api/auth/account` `200` 정리) 완료, Mac App Store `2.0.0 (27)` 설치판 `ottline://quick` 프로토콜 확인 완료. Release **`2.0.1 (28)`** iOS(`OttlineApp.ipa`)·macOS(`ottline.pkg`) 모두 App Store Connect 업로드(`EXPORT SUCCEEDED`) 완료.
+- 남은 확인: App Store Connect에서 iOS·macOS `2.0.1 (28)` 심사 제출·공개 승인 및 실기기 확인(`#163`·큐레이터 제거·iPad 2단·Expo 업데이트·Safari/Chrome `?native_handoff=1`). [플랫폼 현황](../docs/platforms.md) · [후속 작업](../docs/changes/v2-follow-up.md#ios--ipados--macos-201-28-후속-통합-반영-2026-11-23) · [iOS Wiki](pages/platforms/native.md) · [macOS Wiki](pages/platforms/macos-native.md)
+
 ## [2026-11-23] Windows 구버전 감상 기록 삭제 반영 검증
 
 `2.0.2.0` 심사 제출 후 본부가 구버전 기록 ID에서 삭제 반영 누락을 재현해 Windows 담당의 #161을 진행으로 되돌렸다. [검증 결과](https://github.com/chawon/ott/issues/161#issuecomment-7092864246) · [Windows 후속 작업](../docs/changes/v2-follow-up.md#windows-후속-기능-통합-반영-2026-11-22-차기-v2020-후보)

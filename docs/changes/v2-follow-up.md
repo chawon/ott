@@ -83,7 +83,22 @@ Windows의 서버 계정 삭제에서 요청 경로와 실패 처리의 불일�
     - **iOS / iPadOS**: `app.ottline` `2.0.0 (27)`(`MinimumOSVersion 16.0`, Widget·Share 익스텐션 포함) 업로드 및 한·영 스크린샷(iPhone 6.3" / iPad 13")·ASO 제목/부제 반영 후 **심사 제출 완료**
     - **macOS**: `app.ottline` (`id6780318110` macOS 플랫폼 신규 추가) `2.0.0 (27)`(`LSMinimumSystemVersion 14.0`, App Sandbox Release 권한 검증) 업로드 및 한·영 스크린샷(`2560×1600` 각 5장)·심사 메모 입력 후 **최초 심사 제출 완료**
 - **당시 남은 확인의 인계**: 심사·공개 대기는 `2026-11-22` 사용자 출시 확인으로 갱신했다. 공개 스토어판 업데이트·macOS 연결·웹/확장 활성화는 위 출시 후 담당 업무에서 추적한다. [macOS 플랫폼 상태](../../wiki/pages/platforms/macos-native.md)
-- *(별도 후속 검토)* macOS 데스크톱 WidgetKit 익스텐션과 전용 App Group은 기능 제안이며 현재 출시 검증의 완료 조건에 포함하지 않는다.
+
+### iOS / iPadOS · macOS `2.0.1 (28)` 후속 통합 반영 (`2026-11-23`)
+
+- **PR / 병합 커밋**: [PR #173](https://github.com/chawon/ott/pull/173) 병합 완료 (`main` `5567dd5`, 코드 커밋 `49e62c3`)
+- **주요 반영 내역**:
+  - **서버 계정 삭제 실패 보존 ([#163](https://github.com/chawon/ott/issues/163))**: `OttlineRepository.deleteServerAccountAndLocalData()`에 미연결(`not_connected`) 가드 및 `performServerAccountDeletion(locale:)` 결과를 추가하고 `MySpaceScreen.swift`·`MacMySpaceAndDialogs.swift`의 `try?`를 제거했다. HTTP 오류(`401`/`404`/`500`)·오프라인 시 로컬 DB·연결 정보·`devices`·프로필 상태를 보존하고 시트 내 KO/EN 오류/재시도 안내를 표시하며, 서버 2xx 성공 확인 후에만 초기화·성공 토스트를 실행한다.
+  - **함께 AI 큐레이터 제거 (카드 `313279211`)**: iPhone·iPad(`TogetherScreen.swift`), macOS(`MacTimelineAndTogetherViews.swift`), `OttlineCore`(`CuratedContentItem`, `getCuratedContents`)의 큐레이터 UI·상태·조회 호출을 전면 제거하고 정적 CI 차단 가드를 추가했다. 구 Expo(`apps/native`)에는 큐레이터 미탑재를 확인했다.
+  - **iPad·macOS 함께 2단 정합성 및 동반 보강 (카드 `313285015` + `#163`)**: 공용 `TogetherFilterSort`·`TogetherReactionGuard` 도입, iPad 가로·세로/Split View(`>= 700pt` 2단 ↔ 단일) 선택 연속성 및 직접 상세 링크 진입 지원, macOS `MacTogetherSpreadView` 종류 필터·정렬·검색 초기화·`CommentsPanelView.id(disc.id)`·반응 레이스 가드·신고·오류/재시도 보강, `PublicDiscussionDetailScreen` `404` vs 일반 오류 구분 및 `CommentsPanelView` 취소 가드·재시도를 반영했다.
+  - **macOS 데스크톱 위젯 (`OttlineMacWidgetExtension`, `app.ottline.MacWidget`)**: App Sandbox + App Group(`3Z9ULN66D4.group.app.ottline`) 기반 `.systemSmall`·`.systemMedium`·`.systemLarge` 위젯과 `ottline://title/<id>`·`ottline://public/<id>` 딥링크 파싱을 추가하고, `macOS 15.8.3` 실기기에서 `chronod`·`NotificationCenter` 갤러리 등록·실시간 타임라인 렌더링·사용자 확인을 마쳤다.
+- **완료한 검증 및 App Store Connect 업로드**:
+  - **정적 계약·단위 테스트**: `verify-ios-project.sh`·`verify-macos-project.sh` 통과, `OttlineTests` **20/20 통과**, `OttlineMacTests` **6/6 통과**.
+  - **GitHub Actions CI**: PR #173 [Native iOS v2 CI `45183376281`](https://github.com/chawon/ott/actions/runs/45183376281) · [Native macOS v2 CI `45183376159`](https://github.com/chawon/ott/actions/runs/45183376159) 성공, `main` (`5567dd5`) [Native macOS v2 CI `45190943508`](https://github.com/chawon/ott/actions/runs/45190943508) 성공([iOS CI `45190943521`](https://github.com/chawon/ott/actions/runs/45190943521) 실행 중).
+  - **운영 API(`https://ottline.app`) 격리 계정 실측**: `GET /api/curated-contents` KO/EN `200 []`, `#147` 기기 표기 `[('iPad App', 'iPadOS'), ('macOS App', 'macOS')]`, `#142` `내 미래는?` `quota.used 0→1` (`10445ms`, `items=6`)·동일 `requestId` 멱등 재시도 `1→1` (`653ms`, `+0` 차감)·`/state` 복구·EN 로케일 격리(`hasBatch=false`) 확인 후 `DELETE /api/auth/account` (`200`, `222ms`)로 임시 계정 정리 완료.
+  - **Mac App Store `2.0.0 (27)` 설치판 확인 (`/Applications/ottline.app`, `_MASReceipt`, `macOS 15.8.3`)**: `NSWorkspace` URL 해석 및 `ottline://quick?quick=1&title=Dune&platform=Netflix&type=video` 프로토콜 기동 확인.
+  - **App Store Connect 업로드 (`2.0.1`, build `28`)**: `Ottline 2.0.1 (28).xcarchive`(`OttlineApp.ipa`, `EXPORT SUCCEEDED`) 및 `OttlineMac 2.0.1 (28).xcarchive`(`ottline.pkg`, `OttlineMacWidgetExtension` 포함, `EXPORT SUCCEEDED`) 모두 업로드 완료.
+- **남은 확인**: App Store Connect에서 iOS/iPadOS·macOS `2.0.1 (28)` 심사 제출·공개 승인, `#163`·큐레이터 제거·iPad 2단 실기기 검증, 기존 Expo `1.0.4` → 공개 App Store 업데이트 데이터 보존 및 Safari/Chrome `?native_handoff=1` 실브라우저 이어받기 검증.
 
 ## 3. 브라우저 확장·토스·ChatGPT 앱
 
