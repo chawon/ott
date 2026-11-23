@@ -17,6 +17,37 @@ public static class SyncIdNormalizer
     public static bool IsValidUuid(string? rawId) =>
         !string.IsNullOrWhiteSpace(rawId) && Guid.TryParse(rawId.Trim(), out _);
 
+    /// <summary>
+    /// Returns true strictly when <paramref name="localLogId"/> and <paramref name="serverLogId"/>
+    /// identify the exact same log record — either identical IDs/UUIDs or a legacy non-UUID local ID
+    /// whose deterministic UUID v5 matches the canonical server UUID. Never matches two distinct UUIDs
+    /// or unrelated records that merely share a title.
+    /// </summary>
+    public static bool IsSameLogIdentity(string? localLogId, string? serverLogId)
+    {
+        if (string.IsNullOrWhiteSpace(localLogId) || string.IsNullOrWhiteSpace(serverLogId))
+        {
+            return false;
+        }
+
+        var localTrimmed = localLogId.Trim();
+        var serverTrimmed = serverLogId.Trim();
+        if (string.Equals(localTrimmed, serverTrimmed, StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        if (Guid.TryParse(localTrimmed, out var localGuid) &&
+            Guid.TryParse(serverTrimmed, out var serverGuid))
+        {
+            return localGuid == serverGuid;
+        }
+
+        return !IsValidUuid(localTrimmed) &&
+               Guid.TryParse(serverTrimmed, out var canonicalServerGuid) &&
+               CreateDeterministicUuid(localTrimmed) == canonicalServerGuid;
+    }
+
     public static string EnsureUuid(string? rawId)
     {
         var trimmed = rawId?.Trim();

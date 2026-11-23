@@ -1121,7 +1121,7 @@ public sealed class OttlineRepository : IDisposable
 
     private static WatchLog? FindMatchingServerLog(WatchLog local, IReadOnlyList<WatchLog> serverLogs)
     {
-        var byLogId = serverLogs.FirstOrDefault(s => string.Equals(s.Id, local.Id, StringComparison.OrdinalIgnoreCase));
+        var byLogId = serverLogs.FirstOrDefault(s => SyncIdNormalizer.IsSameLogIdentity(local.Id, s.Id));
         if (byLogId != null) return byLogId;
 
         var byTitleId = serverLogs.FirstOrDefault(s => string.Equals(s.TitleId, local.TitleId, StringComparison.OrdinalIgnoreCase));
@@ -1132,17 +1132,32 @@ public sealed class OttlineRepository : IDisposable
 
     private static SyncDeletedLog? FindMatchingServerDeletedLog(WatchLog local, IReadOnlyList<SyncDeletedLog> deletedLogs)
     {
-        var byLogId = deletedLogs.FirstOrDefault(d => string.Equals(d.Id, local.Id, StringComparison.OrdinalIgnoreCase));
-        if (byLogId != null) return byLogId;
+        // Strictly prove same log identity (exact ID/UUID match or legacy non-UUID -> deterministic UUID v5).
+        // Never match by TitleId alone so a deleted record can never clobber a separate record on the same title.
+        return deletedLogs.FirstOrDefault(d => SyncIdNormalizer.IsSameLogIdentity(local.Id, d.Id));
+    }
 
-        if (!string.IsNullOrWhiteSpace(local.TitleId))
+    private static bool TryResolveServerDeletedEffectiveUtc(SyncDeletedLog deletedLog, out DateTimeOffset effectiveUtc)
+    {
+        var hasDeleted = SyncIdNormalizer.TryParseUtc(deletedLog.DeletedAt, out var deletedUtc);
+        var hasUpdated = SyncIdNormalizer.TryParseUtc(deletedLog.UpdatedAt, out var updatedUtc);
+        if (hasDeleted && hasUpdated)
         {
-            return deletedLogs.FirstOrDefault(d =>
-                !string.IsNullOrWhiteSpace(d.TitleId) &&
-                string.Equals(d.TitleId, local.TitleId, StringComparison.OrdinalIgnoreCase));
+            effectiveUtc = deletedUtc >= updatedUtc ? deletedUtc : updatedUtc;
+            return true;
         }
-
-        return null;
+        if (hasDeleted)
+        {
+            effectiveUtc = deletedUtc;
+            return true;
+        }
+        if (hasUpdated)
+        {
+            effectiveUtc = updatedUtc;
+            return true;
+        }
+        effectiveUtc = default;
+        return false;
     }
 
     private static bool IsStaleRecordConfirmedInFullPull(WatchLog staleLog, SyncPullResult fullPull)
@@ -1153,7 +1168,7 @@ public sealed class OttlineRepository : IDisposable
         }
 
         return fullPull.SafeDeletedLogs.Any(d =>
-            string.Equals(d.Id, staleLog.Id, StringComparison.OrdinalIgnoreCase));
+            SyncIdNormalizer.IsSameLogIdentity(staleLog.Id, d.Id));
     }
 
     private void ReenqueueOrphanedUnsyncedLogs()
@@ -1181,17 +1196,21 @@ public sealed class OttlineRepository : IDisposable
         CancellationToken ct)
     {
         var recoveryKey = SyncPushV2RecoveryKey(userId);
-        if (!string.IsNullOrWhiteSpace(_db.GetAppSetting(recoveryKey)))
-        {
-            return (null, false);
-        }
+        var recoveryAlreadyDone = !string.IsNullOrWhiteSpace(_db.GetAppSetting(recoveryKey));
 
-        // Select ALL active local logs without a pending outbox row — including both legacy "synced"
-        // rows and any orphaned "pending"/"failed" rows left without an outbox entry by a prior crash.
+        // First-time v2 recovery inspects ALL active local logs without a pending outbox row.
+        // If recovery_done was already persisted on an earlier build (e.g. 2.0.2.0) while legacy
+        // non-UUID active rows remained stranded behind an advanced LastSyncCursor, perform a full
+        // pull for strictly those remaining legacy non-UUID rows until all active logs are canonicalized
+        // or reconciled to their server soft-deleted state.
         var localLogs = _db.GetAllLogs();
-        var recoveryCandidates = localLogs
-            .Where(l => !_db.HasPendingLogOutbox(l.Id))
-            .ToList();
+        var recoveryCandidates = recoveryAlreadyDone
+            ? localLogs
+                .Where(l => !SyncIdNormalizer.IsValidUuid(l.Id) && !_db.HasPendingLogOutbox(l.Id))
+                .ToList()
+            : localLogs
+                .Where(l => !_db.HasPendingLogOutbox(l.Id))
+                .ToList();
 
         if (recoveryCandidates.Count == 0)
         {
@@ -1205,36 +1224,71 @@ public sealed class OttlineRepository : IDisposable
         ).ConfigureAwait(false);
 
         var enqueuedAny = false;
-        foreach (var local in recoveryCandidates)
+        foreach (var snapshotLocal in recoveryCandidates)
         {
-            var matchedServer = FindMatchingServerLog(local, fullPull.UpsertedLogs);
+            // Re-read after awaiting fullPull so a concurrent local edit made while pull was in flight
+            // is handled by its own active outbox entry rather than overwritten by stale recovery state.
+            var local = _db.GetLog(snapshotLocal.Id);
+            if (local == null || _db.HasPendingLogOutbox(local.Id))
+            {
+                continue;
+            }
+
+            var matchedServerByIdentity = fullPull.UpsertedLogs.FirstOrDefault(s =>
+                SyncIdNormalizer.IsSameLogIdentity(local.Id, s.Id));
+            var matchedDeleted = matchedServerByIdentity == null
+                ? FindMatchingServerDeletedLog(local, fullPull.SafeDeletedLogs)
+                : null;
+            var matchedServer = matchedServerByIdentity
+                ?? (matchedDeleted == null ? FindMatchingServerLog(local, fullPull.UpsertedLogs) : null);
+
             if (matchedServer == null)
             {
-                var matchedDeleted = FindMatchingServerDeletedLog(local, fullPull.SafeDeletedLogs);
                 if (matchedDeleted != null)
                 {
-                    var deletedTs = matchedDeleted.UpdatedAt ?? matchedDeleted.DeletedAt;
                     var hasLocalDelUtc = SyncIdNormalizer.TryParseUtc(local.UpdatedAt, out var localDelUtc);
-                    var hasServerDelUtc = SyncIdNormalizer.TryParseUtc(deletedTs, out var serverDelUtc);
-                    if (hasLocalDelUtc && hasServerDelUtc && serverDelUtc > localDelUtc)
+                    var hasServerDelUtc = TryResolveServerDeletedEffectiveUtc(matchedDeleted, out var serverDelUtc);
+                    var localIsNewerOrTie = hasLocalDelUtc && hasServerDelUtc && localDelUtc >= serverDelUtc;
+                    if (!localIsNewerOrTie)
                     {
-                        // Server deletion is strictly newer than local row: keep history snapshot and
-                        // allow ReconcilePulledChanges to mark local row soft-deleted.
+                        // Server deletion is strictly newer (or timestamps unparseable) for this proven
+                        // identical record: preserve history snapshot and let ReconcilePulledChanges
+                        // atomically remap + mark the local row soft-deleted.
                         _db.EnsureHistorySnapshot(local);
                         continue;
                     }
                 }
 
-                // Mis-marked "synced" (or interrupted recovery) and missing from active server state:
-                // atomically normalize UUIDs, preserve history, mark pending, and enqueue outbox
-                // while preserving original local UpdatedAt (T2).
-                var targetTitleId = SyncIdNormalizer.IsValidUuid(local.TitleId) ? null : SyncIdNormalizer.EnsureUuid(local.TitleId);
+                // Mis-marked "synced" (or interrupted recovery, or local edit strictly newer than server
+                // deletion) and missing from active server state: atomically normalize UUIDs, preserve
+                // history, mark pending, and enqueue outbox while preserving original local UpdatedAt (T2).
+                string? targetTitleId;
+                TitleSummary? canonicalTitle = null;
+                if (matchedDeleted != null &&
+                    !string.IsNullOrWhiteSpace(matchedDeleted.TitleId) &&
+                    SyncIdNormalizer.IsValidUuid(matchedDeleted.TitleId) &&
+                    !string.Equals(local.TitleId, matchedDeleted.TitleId, StringComparison.OrdinalIgnoreCase))
+                {
+                    targetTitleId = matchedDeleted.TitleId.Trim();
+                    var serverDeletedTitle = fullPull.SafeUpsertedTitles.FirstOrDefault(t =>
+                        string.Equals(t.Id, targetTitleId, StringComparison.OrdinalIgnoreCase));
+                    if (serverDeletedTitle != null)
+                    {
+                        canonicalTitle = MergeTitleMetadata(serverDeletedTitle, local.Title);
+                    }
+                }
+                else
+                {
+                    targetTitleId = SyncIdNormalizer.IsValidUuid(local.TitleId) ? null : SyncIdNormalizer.EnsureUuid(local.TitleId);
+                }
+
                 var targetLogId = SyncIdNormalizer.IsValidUuid(local.Id) ? null : SyncIdNormalizer.EnsureUuid(local.Id);
                 _db.CommitRecoveryCandidateAtomic(
                     local: local,
                     outboxType: "UPSERT_LOG",
                     payloadSerializer: SerializeLogOutboxPayload,
                     targetTitleId: targetTitleId,
+                    canonicalTitle: canonicalTitle,
                     targetLogId: targetLogId
                 );
                 enqueuedAny = true;
@@ -1313,6 +1367,44 @@ public sealed class OttlineRepository : IDisposable
             _db.UpsertTitle(serverTitle);
         }
 
+        // Apply proven server soft-deletions BEFORE active log upserts so a soft-deleted legacy record
+        // is remapped to its canonical UUID and archived out of active queries before any separate
+        // newer active log on the same title is reconciled.
+        foreach (var deletedLog in pullRes.SafeDeletedLogs)
+        {
+            var matchedLocals = _db.FindLogsByIdentityIncludingDeleted(deletedLog.Id);
+            if (matchedLocals.Count == 0)
+            {
+                continue;
+            }
+
+            // Never clobber a concurrent or subsequent unsynced local edit queued in outbox
+            // under either the canonical server UUID or a legacy non-UUID local ID.
+            if (_db.HasPendingLogOutbox(deletedLog.Id) ||
+                matchedLocals.Any(m => _db.HasPendingLogOutbox(m.Id)))
+            {
+                continue;
+            }
+
+            var hasServerDelUtc = TryResolveServerDeletedEffectiveUtc(deletedLog, out var serverDelUtc);
+
+            foreach (var existingLocal in matchedLocals)
+            {
+                if (existingLocal.DeletedAt == null &&
+                    hasServerDelUtc &&
+                    SyncIdNormalizer.TryParseUtc(existingLocal.UpdatedAt, out var localUtc) &&
+                    localUtc >= serverDelUtc)
+                {
+                    // Protect a strictly newer (or same-timestamp) active local edit from older tombstones.
+                    continue;
+                }
+
+                // Atomically preserve revision history, remap legacy non-UUID ID to canonical server UUID,
+                // and mark soft-deleted without touching any separate log on the same title.
+                _db.ApplyServerDeletedLogAtomic(existingLocal, deletedLog);
+            }
+        }
+
         foreach (var remoteLog in pullRes.UpsertedLogs)
         {
             var localTitleMatches = _db.FindMatchingTitles(remoteLog.Title);
@@ -1352,31 +1444,6 @@ public sealed class OttlineRepository : IDisposable
 
             _db.DeleteLogsByTitleExcept(remoteLog.TitleId, remoteLog.Id);
             _db.UpsertLog(remoteLog with { SyncState = "synced", DeletedAt = null }, recordHistory: false);
-        }
-
-        foreach (var deletedLog in pullRes.SafeDeletedLogs)
-        {
-            // Never clobber a concurrent or subsequent unsynced local edit queued in outbox.
-            if (_db.HasPendingLogOutbox(deletedLog.Id))
-            {
-                continue;
-            }
-
-            var existingLocal = _db.GetLogIncludingDeleted(deletedLog.Id);
-            if (existingLocal == null)
-            {
-                continue;
-            }
-
-            // Preserve revision history snapshot before marking soft-deleted so the row leaves active
-            // timeline views while retaining history and allowing a fresh separate log on the title.
-            _db.EnsureHistorySnapshot(existingLocal);
-            _db.MarkLogDeleted(
-                logId: existingLocal.Id,
-                deletedAt: deletedLog.DeletedAt,
-                updatedAt: deletedLog.UpdatedAt ?? deletedLog.DeletedAt,
-                syncState: "synced"
-            );
         }
     }
 
