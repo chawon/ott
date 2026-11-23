@@ -8,6 +8,8 @@ namespace Ottline.Core.Local;
 
 public sealed class OttlineDatabase : IDisposable
 {
+    public const string StalePendingPullMarker = "stale_pending_pull";
+
     private readonly string _connectionString;
     private readonly object _syncRoot = new();
 
@@ -102,7 +104,8 @@ public sealed class OttlineDatabase : IDisposable
                     updated_at TEXT NOT NULL,
                     revision INTEGER NOT NULL DEFAULT 1,
                     origin TEXT NOT NULL DEFAULT 'LOG',
-                    sync_state TEXT NOT NULL DEFAULT 'synced'
+                    sync_state TEXT NOT NULL DEFAULT 'synced',
+                    deleted_at TEXT
                 );
 
                 CREATE INDEX IF NOT EXISTS idx_logs_title_id ON logs(title_id);
@@ -151,6 +154,33 @@ public sealed class OttlineDatabase : IDisposable
                 DELETE FROM titles WHERE id NOT IN (SELECT DISTINCT title_id FROM logs);
             ";
             cmd.ExecuteNonQuery();
+
+            EnsureLogsDeletedAtColumnInternal(conn);
+        }
+    }
+
+    private static void EnsureLogsDeletedAtColumnInternal(SqliteConnection conn)
+    {
+        using var pragma = conn.CreateCommand();
+        pragma.CommandText = "PRAGMA table_info(logs);";
+        var hasDeletedAt = false;
+        using (var reader = pragma.ExecuteReader())
+        {
+            while (reader.Read())
+            {
+                if (string.Equals(reader.GetString(1), "deleted_at", StringComparison.OrdinalIgnoreCase))
+                {
+                    hasDeletedAt = true;
+                    break;
+                }
+            }
+        }
+
+        if (!hasDeletedAt)
+        {
+            using var alter = conn.CreateCommand();
+            alter.CommandText = "ALTER TABLE logs ADD COLUMN deleted_at TEXT;";
+            alter.ExecuteNonQuery();
         }
     }
 
@@ -236,6 +266,29 @@ public sealed class OttlineDatabase : IDisposable
         }
     }
 
+    public IReadOnlyList<TitleSummary> GetAllTitles()
+    {
+        lock (_syncRoot)
+        {
+            using var conn = OpenConnection();
+            using var cmd = conn.CreateCommand();
+            cmd.CommandText = "SELECT * FROM titles ORDER BY updated_at DESC;";
+            var list = new List<TitleSummary>();
+            using var reader = cmd.ExecuteReader();
+            while (reader.Read())
+            {
+                list.Add(ReadTitleFromReader(reader, string.Empty));
+            }
+            return list;
+        }
+    }
+
+    public IReadOnlyList<TitleSummary> FindMatchingTitles(TitleSummary candidate)
+    {
+        var all = GetAllTitles();
+        return all.Where(t => SyncIdNormalizer.AreTitlesEquivalent(t, candidate)).ToList();
+    }
+
     public IReadOnlyList<TitleSummary> SearchLocalTitles(string query, ContentFilter filter = ContentFilter.ALL, int limit = 20)
     {
         lock (_syncRoot)
@@ -272,119 +325,30 @@ public sealed class OttlineDatabase : IDisposable
         {
             using var conn = OpenConnection();
             using var tx = conn.BeginTransaction();
+            var saved = UpsertLogInternal(conn, tx, log, recordHistory);
+            tx.Commit();
+            return saved;
+        }
+    }
 
-            UpsertTitleInternal(conn, tx, log.Title);
+    public WatchLog SaveLogAndOutboxAtomic(
+        WatchLog log,
+        bool recordHistory,
+        string outboxType,
+        Func<WatchLog, string> payloadSerializer,
+        (string Type, Func<WatchLog, string> PayloadSerializer)? extraOutbox = null)
+    {
+        lock (_syncRoot)
+        {
+            using var conn = OpenConnection();
+            using var tx = conn.BeginTransaction();
 
-            var existing = GetLogInternal(conn, tx, log.Id) ?? GetLogByTitleIdInternal(conn, tx, log.TitleId);
-            var nowIso = DateTimeOffset.UtcNow.ToString("O", CultureInfo.InvariantCulture);
-            var watchedOn = RecordDate.OccurredAtToWatchedOnDate(log.OccurredAt, log.WatchedOn);
-            var occurredAt = string.IsNullOrWhiteSpace(log.OccurredAt) ? RecordDate.ToNoonUtcIso(watchedOn) : log.OccurredAt;
+            var saved = UpsertLogInternal(conn, tx, log, recordHistory);
+            UpsertLogOutboxInternal(conn, tx, outboxType, saved.Id, payloadSerializer(saved));
 
-            var finalId = existing?.Id ?? (string.IsNullOrWhiteSpace(log.Id) ? $"local-log:{Guid.NewGuid():N}" : log.Id);
-            var finalCreatedAt = existing?.CreatedAt ?? (string.IsNullOrWhiteSpace(log.CreatedAt) ? nowIso : log.CreatedAt);
-            var finalRevision = existing != null
-                ? Math.Max(existing.Revision + (recordHistory ? 1 : 0), log.Revision)
-                : Math.Max(1, log.Revision);
-
-            var saved = log with
+            if (extraOutbox.HasValue)
             {
-                Id = finalId,
-                TitleId = log.Title.Id,
-                WatchedOn = watchedOn,
-                OccurredAt = occurredAt,
-                CreatedAt = finalCreatedAt,
-                UpdatedAt = string.IsNullOrWhiteSpace(log.UpdatedAt) ? nowIso : log.UpdatedAt,
-                Revision = finalRevision
-            };
-
-            using (var cmd = conn.CreateCommand())
-            {
-                cmd.Transaction = tx;
-                cmd.CommandText = @"
-                    INSERT INTO logs (
-                        id, title_id, status, rating, reaction, ott, place, occasion,
-                        season_number, episode_number, note, spoiler, occurred_at, watched_on,
-                        created_at, updated_at, revision, origin, sync_state
-                    ) VALUES (
-                        $id, $title_id, $status, $rating, $reaction, $ott, $place, $occasion,
-                        $season_number, $episode_number, $note, $spoiler, $occurred_at, $watched_on,
-                        $created_at, $updated_at, $revision, $origin, $sync_state
-                    )
-                    ON CONFLICT(id) DO UPDATE SET
-                        title_id = excluded.title_id,
-                        status = excluded.status,
-                        rating = excluded.rating,
-                        reaction = excluded.reaction,
-                        ott = excluded.ott,
-                        place = excluded.place,
-                        occasion = excluded.occasion,
-                        season_number = excluded.season_number,
-                        episode_number = excluded.episode_number,
-                        note = excluded.note,
-                        spoiler = excluded.spoiler,
-                        occurred_at = excluded.occurred_at,
-                        watched_on = excluded.watched_on,
-                        updated_at = excluded.updated_at,
-                        revision = excluded.revision,
-                        origin = excluded.origin,
-                        sync_state = excluded.sync_state;
-                ";
-                cmd.Parameters.AddWithValue("$id", saved.Id);
-                cmd.Parameters.AddWithValue("$title_id", saved.TitleId);
-                cmd.Parameters.AddWithValue("$status", saved.Status.ToWire());
-                cmd.Parameters.AddWithValue("$rating", (object?)saved.Rating ?? DBNull.Value);
-                cmd.Parameters.AddWithValue("$reaction", (object?)saved.Reaction ?? DBNull.Value);
-                cmd.Parameters.AddWithValue("$ott", (object?)saved.Ott ?? DBNull.Value);
-                cmd.Parameters.AddWithValue("$place", (object?)saved.Place ?? DBNull.Value);
-                cmd.Parameters.AddWithValue("$occasion", (object?)saved.Occasion ?? DBNull.Value);
-                cmd.Parameters.AddWithValue("$season_number", (object?)saved.SeasonNumber ?? DBNull.Value);
-                cmd.Parameters.AddWithValue("$episode_number", (object?)saved.EpisodeNumber ?? DBNull.Value);
-                cmd.Parameters.AddWithValue("$note", (object?)saved.Note ?? DBNull.Value);
-                cmd.Parameters.AddWithValue("$spoiler", saved.Spoiler ? 1 : 0);
-                cmd.Parameters.AddWithValue("$occurred_at", saved.OccurredAt);
-                cmd.Parameters.AddWithValue("$watched_on", saved.WatchedOn);
-                cmd.Parameters.AddWithValue("$created_at", saved.CreatedAt);
-                cmd.Parameters.AddWithValue("$updated_at", saved.UpdatedAt);
-                cmd.Parameters.AddWithValue("$revision", saved.Revision);
-                cmd.Parameters.AddWithValue("$origin", saved.Origin.ToWire());
-                cmd.Parameters.AddWithValue("$sync_state", saved.SyncState);
-                cmd.ExecuteNonQuery();
-            }
-
-            if (recordHistory)
-            {
-                using var histCmd = conn.CreateCommand();
-                histCmd.Transaction = tx;
-                histCmd.CommandText = @"
-                    INSERT INTO log_history (
-                        id, log_id, title_id, status, rating, reaction, ott, place, occasion,
-                        season_number, episode_number, note, spoiler, occurred_at, watched_on,
-                        revision, origin, recorded_at
-                    ) VALUES (
-                        $id, $log_id, $title_id, $status, $rating, $reaction, $ott, $place, $occasion,
-                        $season_number, $episode_number, $note, $spoiler, $occurred_at, $watched_on,
-                        $revision, $origin, $recorded_at
-                    );
-                ";
-                histCmd.Parameters.AddWithValue("$id", $"hist:{saved.Id}:r{saved.Revision}:{Guid.NewGuid():N}");
-                histCmd.Parameters.AddWithValue("$log_id", saved.Id);
-                histCmd.Parameters.AddWithValue("$title_id", saved.TitleId);
-                histCmd.Parameters.AddWithValue("$status", saved.Status.ToWire());
-                histCmd.Parameters.AddWithValue("$rating", (object?)saved.Rating ?? DBNull.Value);
-                histCmd.Parameters.AddWithValue("$reaction", (object?)saved.Reaction ?? DBNull.Value);
-                histCmd.Parameters.AddWithValue("$ott", (object?)saved.Ott ?? DBNull.Value);
-                histCmd.Parameters.AddWithValue("$place", (object?)saved.Place ?? DBNull.Value);
-                histCmd.Parameters.AddWithValue("$occasion", (object?)saved.Occasion ?? DBNull.Value);
-                histCmd.Parameters.AddWithValue("$season_number", (object?)saved.SeasonNumber ?? DBNull.Value);
-                histCmd.Parameters.AddWithValue("$episode_number", (object?)saved.EpisodeNumber ?? DBNull.Value);
-                histCmd.Parameters.AddWithValue("$note", (object?)saved.Note ?? DBNull.Value);
-                histCmd.Parameters.AddWithValue("$spoiler", saved.Spoiler ? 1 : 0);
-                histCmd.Parameters.AddWithValue("$occurred_at", saved.OccurredAt);
-                histCmd.Parameters.AddWithValue("$watched_on", saved.WatchedOn);
-                histCmd.Parameters.AddWithValue("$revision", saved.Revision);
-                histCmd.Parameters.AddWithValue("$origin", saved.Origin.ToWire());
-                histCmd.Parameters.AddWithValue("$recorded_at", nowIso);
-                histCmd.ExecuteNonQuery();
+                EnqueueOutboxInternal(conn, tx, extraOutbox.Value.Type, saved.Id, extraOutbox.Value.PayloadSerializer(saved));
             }
 
             tx.Commit();
@@ -392,12 +356,143 @@ public sealed class OttlineDatabase : IDisposable
         }
     }
 
+    private static WatchLog UpsertLogInternal(SqliteConnection conn, SqliteTransaction tx, WatchLog log, bool recordHistory)
+    {
+        UpsertTitleInternal(conn, tx, log.Title);
+
+        var existing = GetLogInternal(conn, tx, log.Id, includeDeleted: true)
+                       ?? GetLogByTitleIdInternal(conn, tx, log.TitleId);
+        var nowIso = DateTimeOffset.UtcNow.ToString("O", CultureInfo.InvariantCulture);
+        var watchedOn = RecordDate.OccurredAtToWatchedOnDate(log.OccurredAt, log.WatchedOn);
+        var occurredAt = string.IsNullOrWhiteSpace(log.OccurredAt) ? RecordDate.ToNoonUtcIso(watchedOn) : log.OccurredAt;
+
+        var finalId = existing?.Id ?? (string.IsNullOrWhiteSpace(log.Id) ? Guid.NewGuid().ToString("D") : log.Id);
+        var finalCreatedAt = existing?.CreatedAt ?? (string.IsNullOrWhiteSpace(log.CreatedAt) ? nowIso : log.CreatedAt);
+        var finalRevision = existing != null
+            ? Math.Max(existing.Revision + (recordHistory ? 1 : 0), log.Revision)
+            : Math.Max(1, log.Revision);
+
+        var saved = log with
+        {
+            Id = finalId,
+            TitleId = log.Title.Id,
+            WatchedOn = watchedOn,
+            OccurredAt = occurredAt,
+            CreatedAt = finalCreatedAt,
+            UpdatedAt = string.IsNullOrWhiteSpace(log.UpdatedAt) ? nowIso : log.UpdatedAt,
+            Revision = finalRevision
+        };
+
+        using (var cmd = conn.CreateCommand())
+        {
+            cmd.Transaction = tx;
+            cmd.CommandText = @"
+                INSERT INTO logs (
+                    id, title_id, status, rating, reaction, ott, place, occasion,
+                    season_number, episode_number, note, spoiler, occurred_at, watched_on,
+                    created_at, updated_at, revision, origin, sync_state, deleted_at
+                ) VALUES (
+                    $id, $title_id, $status, $rating, $reaction, $ott, $place, $occasion,
+                    $season_number, $episode_number, $note, $spoiler, $occurred_at, $watched_on,
+                    $created_at, $updated_at, $revision, $origin, $sync_state, $deleted_at
+                )
+                ON CONFLICT(id) DO UPDATE SET
+                    title_id = excluded.title_id,
+                    status = excluded.status,
+                    rating = excluded.rating,
+                    reaction = excluded.reaction,
+                    ott = excluded.ott,
+                    place = excluded.place,
+                    occasion = excluded.occasion,
+                    season_number = excluded.season_number,
+                    episode_number = excluded.episode_number,
+                    note = excluded.note,
+                    spoiler = excluded.spoiler,
+                    occurred_at = excluded.occurred_at,
+                    watched_on = excluded.watched_on,
+                    updated_at = excluded.updated_at,
+                    revision = excluded.revision,
+                    origin = excluded.origin,
+                    sync_state = excluded.sync_state,
+                    deleted_at = excluded.deleted_at;
+            ";
+            cmd.Parameters.AddWithValue("$id", saved.Id);
+            cmd.Parameters.AddWithValue("$title_id", saved.TitleId);
+            cmd.Parameters.AddWithValue("$status", saved.Status.ToWire());
+            cmd.Parameters.AddWithValue("$rating", (object?)saved.Rating ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("$reaction", (object?)saved.Reaction ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("$ott", (object?)saved.Ott ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("$place", (object?)saved.Place ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("$occasion", (object?)saved.Occasion ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("$season_number", (object?)saved.SeasonNumber ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("$episode_number", (object?)saved.EpisodeNumber ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("$note", (object?)saved.Note ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("$spoiler", saved.Spoiler ? 1 : 0);
+            cmd.Parameters.AddWithValue("$occurred_at", saved.OccurredAt);
+            cmd.Parameters.AddWithValue("$watched_on", saved.WatchedOn);
+            cmd.Parameters.AddWithValue("$created_at", saved.CreatedAt);
+            cmd.Parameters.AddWithValue("$updated_at", saved.UpdatedAt);
+            cmd.Parameters.AddWithValue("$revision", saved.Revision);
+            cmd.Parameters.AddWithValue("$origin", saved.Origin.ToWire());
+            cmd.Parameters.AddWithValue("$sync_state", saved.SyncState);
+            cmd.Parameters.AddWithValue("$deleted_at", (object?)saved.DeletedAt ?? DBNull.Value);
+            cmd.ExecuteNonQuery();
+        }
+
+        if (recordHistory)
+        {
+            using var histCmd = conn.CreateCommand();
+            histCmd.Transaction = tx;
+            histCmd.CommandText = @"
+                INSERT INTO log_history (
+                    id, log_id, title_id, status, rating, reaction, ott, place, occasion,
+                    season_number, episode_number, note, spoiler, occurred_at, watched_on,
+                    revision, origin, recorded_at
+                ) VALUES (
+                    $id, $log_id, $title_id, $status, $rating, $reaction, $ott, $place, $occasion,
+                    $season_number, $episode_number, $note, $spoiler, $occurred_at, $watched_on,
+                    $revision, $origin, $recorded_at
+                );
+            ";
+            histCmd.Parameters.AddWithValue("$id", $"hist:{saved.Id}:r{saved.Revision}:{Guid.NewGuid():N}");
+            histCmd.Parameters.AddWithValue("$log_id", saved.Id);
+            histCmd.Parameters.AddWithValue("$title_id", saved.TitleId);
+            histCmd.Parameters.AddWithValue("$status", saved.Status.ToWire());
+            histCmd.Parameters.AddWithValue("$rating", (object?)saved.Rating ?? DBNull.Value);
+            histCmd.Parameters.AddWithValue("$reaction", (object?)saved.Reaction ?? DBNull.Value);
+            histCmd.Parameters.AddWithValue("$ott", (object?)saved.Ott ?? DBNull.Value);
+            histCmd.Parameters.AddWithValue("$place", (object?)saved.Place ?? DBNull.Value);
+            histCmd.Parameters.AddWithValue("$occasion", (object?)saved.Occasion ?? DBNull.Value);
+            histCmd.Parameters.AddWithValue("$season_number", (object?)saved.SeasonNumber ?? DBNull.Value);
+            histCmd.Parameters.AddWithValue("$episode_number", (object?)saved.EpisodeNumber ?? DBNull.Value);
+            histCmd.Parameters.AddWithValue("$note", (object?)saved.Note ?? DBNull.Value);
+            histCmd.Parameters.AddWithValue("$spoiler", saved.Spoiler ? 1 : 0);
+            histCmd.Parameters.AddWithValue("$occurred_at", saved.OccurredAt);
+            histCmd.Parameters.AddWithValue("$watched_on", saved.WatchedOn);
+            histCmd.Parameters.AddWithValue("$revision", saved.Revision);
+            histCmd.Parameters.AddWithValue("$origin", saved.Origin.ToWire());
+            histCmd.Parameters.AddWithValue("$recorded_at", nowIso);
+            histCmd.ExecuteNonQuery();
+        }
+
+        return saved;
+    }
+
     public WatchLog? GetLog(string id)
     {
         lock (_syncRoot)
         {
             using var conn = OpenConnection();
-            return GetLogInternal(conn, null, id);
+            return GetLogInternal(conn, null, id, includeDeleted: false);
+        }
+    }
+
+    public WatchLog? GetLogIncludingDeleted(string id)
+    {
+        lock (_syncRoot)
+        {
+            using var conn = OpenConnection();
+            return GetLogInternal(conn, null, id, includeDeleted: true);
         }
     }
 
@@ -410,13 +505,34 @@ public sealed class OttlineDatabase : IDisposable
         }
     }
 
-    public IReadOnlyList<WatchLog> GetAllLogs()
+    public IReadOnlyList<WatchLog> GetLogsByTitleId(string titleId, bool includeDeleted = false)
+    {
+        if (string.IsNullOrWhiteSpace(titleId)) return Array.Empty<WatchLog>();
+        lock (_syncRoot)
+        {
+            using var conn = OpenConnection();
+            using var cmd = conn.CreateCommand();
+            var deletedClause = includeDeleted ? "" : " AND l.deleted_at IS NULL";
+            cmd.CommandText = BaseLogJoinQuery + $" WHERE l.title_id = $title_id{deletedClause} ORDER BY l.updated_at DESC;";
+            cmd.Parameters.AddWithValue("$title_id", titleId);
+            var list = new List<WatchLog>();
+            using var reader = cmd.ExecuteReader();
+            while (reader.Read())
+            {
+                list.Add(ReadWatchLogFromJoinReader(reader));
+            }
+            return list;
+        }
+    }
+
+    public IReadOnlyList<WatchLog> GetAllLogs(bool includeDeleted = false)
     {
         lock (_syncRoot)
         {
             using var conn = OpenConnection();
             using var cmd = conn.CreateCommand();
-            cmd.CommandText = BaseLogJoinQuery + " ORDER BY l.watched_on DESC, l.updated_at DESC;";
+            var whereClause = includeDeleted ? "" : " WHERE l.deleted_at IS NULL";
+            cmd.CommandText = BaseLogJoinQuery + $"{whereClause} ORDER BY l.watched_on DESC, l.updated_at DESC;";
             var list = new List<WatchLog>();
             using var reader = cmd.ExecuteReader();
             while (reader.Read())
@@ -523,7 +639,7 @@ public sealed class OttlineDatabase : IDisposable
         }
     }
 
-    public void RemapLogId(string oldLogId, string newLogId)
+    public void RemapLogId(string oldLogId, string newLogId, bool markSynced = true)
     {
         if (string.IsNullOrWhiteSpace(oldLogId) || string.IsNullOrWhiteSpace(newLogId) || oldLogId == newLogId)
             return;
@@ -533,10 +649,12 @@ public sealed class OttlineDatabase : IDisposable
             using var conn = OpenConnection();
             using var tx = conn.BeginTransaction();
 
+            var targetAlreadyExists = GetLogInternal(conn, tx, newLogId, includeDeleted: true) != null;
+
             using (var cmd = conn.CreateCommand())
             {
                 cmd.Transaction = tx;
-                cmd.CommandText = "UPDATE logs SET id = $newId, sync_state = 'synced' WHERE id = $oldId;";
+                cmd.CommandText = "UPDATE log_history SET log_id = $newId WHERE log_id = $oldId;";
                 cmd.Parameters.AddWithValue("$newId", newLogId);
                 cmd.Parameters.AddWithValue("$oldId", oldLogId);
                 cmd.ExecuteNonQuery();
@@ -545,7 +663,38 @@ public sealed class OttlineDatabase : IDisposable
             using (var cmd = conn.CreateCommand())
             {
                 cmd.Transaction = tx;
-                cmd.CommandText = "UPDATE log_history SET log_id = $newId WHERE log_id = $oldId;";
+                cmd.CommandText = "UPDATE outbox SET entity_id = $newId WHERE entity_id = $oldId;";
+                cmd.Parameters.AddWithValue("$newId", newLogId);
+                cmd.Parameters.AddWithValue("$oldId", oldLogId);
+                cmd.ExecuteNonQuery();
+            }
+
+            if (targetAlreadyExists)
+            {
+                using (var delOld = conn.CreateCommand())
+                {
+                    delOld.Transaction = tx;
+                    delOld.CommandText = "DELETE FROM logs WHERE id = $oldId;";
+                    delOld.Parameters.AddWithValue("$oldId", oldLogId);
+                    delOld.ExecuteNonQuery();
+                }
+
+                if (markSynced)
+                {
+                    using var markCmd = conn.CreateCommand();
+                    markCmd.Transaction = tx;
+                    markCmd.CommandText = "UPDATE logs SET sync_state = 'synced' WHERE id = $newId;";
+                    markCmd.Parameters.AddWithValue("$newId", newLogId);
+                    markCmd.ExecuteNonQuery();
+                }
+            }
+            else
+            {
+                using var cmd = conn.CreateCommand();
+                cmd.Transaction = tx;
+                cmd.CommandText = markSynced
+                    ? "UPDATE logs SET id = $newId, sync_state = 'synced' WHERE id = $oldId;"
+                    : "UPDATE logs SET id = $newId WHERE id = $oldId;";
                 cmd.Parameters.AddWithValue("$newId", newLogId);
                 cmd.Parameters.AddWithValue("$oldId", oldLogId);
                 cmd.ExecuteNonQuery();
@@ -557,13 +706,360 @@ public sealed class OttlineDatabase : IDisposable
 
     public void MarkLogSynced(string logId)
     {
+        UpdateLogSyncState(logId, "synced");
+    }
+
+    public void UpdateLogSyncState(string logId, string syncState)
+    {
+        if (string.IsNullOrWhiteSpace(logId)) return;
         lock (_syncRoot)
         {
             using var conn = OpenConnection();
             using var cmd = conn.CreateCommand();
-            cmd.CommandText = "UPDATE logs SET sync_state = 'synced' WHERE id = $id;";
+            cmd.CommandText = "UPDATE logs SET sync_state = $state WHERE id = $id;";
+            cmd.Parameters.AddWithValue("$state", syncState);
             cmd.Parameters.AddWithValue("$id", logId);
             cmd.ExecuteNonQuery();
+        }
+    }
+
+    public void MarkLogDeleted(string logId, string deletedAt, string? updatedAt = null, string syncState = "synced")
+    {
+        if (string.IsNullOrWhiteSpace(logId) || string.IsNullOrWhiteSpace(deletedAt)) return;
+        lock (_syncRoot)
+        {
+            using var conn = OpenConnection();
+            using var cmd = conn.CreateCommand();
+            cmd.CommandText = @"
+                UPDATE logs
+                SET deleted_at = $deleted_at,
+                    updated_at = COALESCE($updated_at, updated_at),
+                    sync_state = $state
+                WHERE id = $id;
+            ";
+            cmd.Parameters.AddWithValue("$deleted_at", deletedAt.Trim());
+            cmd.Parameters.AddWithValue("$updated_at", string.IsNullOrWhiteSpace(updatedAt) ? DBNull.Value : updatedAt.Trim());
+            cmd.Parameters.AddWithValue("$state", syncState);
+            cmd.Parameters.AddWithValue("$id", logId);
+            cmd.ExecuteNonQuery();
+        }
+    }
+
+    public void DeleteLogsByTitleExcept(string titleId, string keepLogId)
+    {
+        if (string.IsNullOrWhiteSpace(titleId) || string.IsNullOrWhiteSpace(keepLogId)) return;
+        lock (_syncRoot)
+        {
+            using var conn = OpenConnection();
+            using var tx = conn.BeginTransaction();
+
+            using (var remapHist = conn.CreateCommand())
+            {
+                remapHist.Transaction = tx;
+                remapHist.CommandText = @"
+                    UPDATE log_history
+                    SET log_id = $keepId
+                    WHERE title_id = $titleId
+                      AND log_id IN (SELECT id FROM logs WHERE title_id = $titleId AND id != $keepId AND deleted_at IS NULL);
+                ";
+                remapHist.Parameters.AddWithValue("$keepId", keepLogId);
+                remapHist.Parameters.AddWithValue("$titleId", titleId);
+                remapHist.ExecuteNonQuery();
+            }
+
+            using (var delLogs = conn.CreateCommand())
+            {
+                delLogs.Transaction = tx;
+                delLogs.CommandText = "DELETE FROM logs WHERE title_id = $titleId AND id != $keepId AND deleted_at IS NULL;";
+                delLogs.Parameters.AddWithValue("$titleId", titleId);
+                delLogs.Parameters.AddWithValue("$keepId", keepLogId);
+                delLogs.ExecuteNonQuery();
+            }
+
+            tx.Commit();
+        }
+    }
+
+    public OutboxEvent UpsertLogOutbox(string type, string logId, string payloadJson)
+    {
+        lock (_syncRoot)
+        {
+            using var conn = OpenConnection();
+            using var tx = conn.BeginTransaction();
+            var evt = UpsertLogOutboxInternal(conn, tx, type, logId, payloadJson);
+            tx.Commit();
+            return evt;
+        }
+    }
+
+    /// <summary>
+    /// Atomically performs optional title/log ID remapping, history snapshot preservation,
+    /// tie-conflict audit persistence, pending sync_state transition, and outbox enqueue inside
+    /// a single SQLite transaction so a crash can never leave a recovery row without an outbox entry.
+    /// </summary>
+    public (WatchLog SavedLog, OutboxEvent Outbox) CommitRecoveryCandidateAtomic(
+        WatchLog local,
+        string outboxType,
+        Func<WatchLog, string> payloadSerializer,
+        string? targetTitleId = null,
+        TitleSummary? canonicalTitle = null,
+        string? targetLogId = null,
+        WatchLog? extraHistorySnapshot = null,
+        string? tieAuditKey = null,
+        string? tieAuditJson = null)
+    {
+        lock (_syncRoot)
+        {
+            using var conn = OpenConnection();
+            using var tx = conn.BeginTransaction();
+
+            var currentTitleId = local.TitleId;
+            var currentLogId = local.Id;
+
+            if (!string.IsNullOrWhiteSpace(targetTitleId) &&
+                !string.Equals(currentTitleId, targetTitleId, StringComparison.OrdinalIgnoreCase))
+            {
+                RemapTitleIdInternal(conn, tx, currentTitleId, targetTitleId, canonicalTitle);
+                currentTitleId = targetTitleId;
+            }
+
+            if (!string.IsNullOrWhiteSpace(targetLogId) &&
+                !string.Equals(currentLogId, targetLogId, StringComparison.OrdinalIgnoreCase))
+            {
+                RemapLogIdInternal(conn, tx, currentLogId, targetLogId, markSynced: false);
+                currentLogId = targetLogId;
+            }
+
+            var resolved = GetLogInternal(conn, tx, currentLogId, includeDeleted: true) ?? local with
+            {
+                Id = currentLogId,
+                TitleId = currentTitleId,
+                Title = (canonicalTitle ?? local.Title) with { Id = currentTitleId }
+            };
+
+            if (extraHistorySnapshot != null)
+            {
+                EnsureHistorySnapshotInternal(conn, tx, extraHistorySnapshot with
+                {
+                    Id = resolved.Id,
+                    TitleId = resolved.TitleId
+                });
+            }
+
+            EnsureHistorySnapshotInternal(conn, tx, resolved);
+
+            if (!string.IsNullOrWhiteSpace(tieAuditKey) && tieAuditJson != null)
+            {
+                SetAppSettingInternal(conn, tx, tieAuditKey, tieAuditJson);
+            }
+
+            using (var updateStateCmd = conn.CreateCommand())
+            {
+                updateStateCmd.Transaction = tx;
+                updateStateCmd.CommandText = "UPDATE logs SET sync_state = 'pending', deleted_at = NULL WHERE id = $id;";
+                updateStateCmd.Parameters.AddWithValue("$id", resolved.Id);
+                updateStateCmd.ExecuteNonQuery();
+            }
+
+            var pendingLog = resolved with { SyncState = "pending", DeletedAt = null };
+            var evt = UpsertLogOutboxInternal(conn, tx, outboxType, pendingLog.Id, payloadSerializer(pendingLog));
+
+            tx.Commit();
+            return (pendingLog, evt);
+        }
+    }
+
+    private static void RemapTitleIdInternal(SqliteConnection conn, SqliteTransaction tx, string oldTitleId, string newTitleId, TitleSummary? canonicalTitle)
+    {
+        if (canonicalTitle != null)
+        {
+            UpsertTitleInternal(conn, tx, canonicalTitle with { Id = newTitleId });
+        }
+        else
+        {
+            using var copyCmd = conn.CreateCommand();
+            copyCmd.Transaction = tx;
+            copyCmd.CommandText = "UPDATE OR IGNORE titles SET id = $newId WHERE id = $oldId;";
+            copyCmd.Parameters.AddWithValue("$newId", newTitleId);
+            copyCmd.Parameters.AddWithValue("$oldId", oldTitleId);
+            copyCmd.ExecuteNonQuery();
+        }
+
+        using (var updateLogs = conn.CreateCommand())
+        {
+            updateLogs.Transaction = tx;
+            updateLogs.CommandText = "UPDATE logs SET title_id = $newId WHERE title_id = $oldId;";
+            updateLogs.Parameters.AddWithValue("$newId", newTitleId);
+            updateLogs.Parameters.AddWithValue("$oldId", oldTitleId);
+            updateLogs.ExecuteNonQuery();
+        }
+
+        using (var updateHist = conn.CreateCommand())
+        {
+            updateHist.Transaction = tx;
+            updateHist.CommandText = "UPDATE log_history SET title_id = $newId WHERE title_id = $oldId;";
+            updateHist.Parameters.AddWithValue("$newId", newTitleId);
+            updateHist.Parameters.AddWithValue("$oldId", oldTitleId);
+            updateHist.ExecuteNonQuery();
+        }
+
+        using (var deleteOld = conn.CreateCommand())
+        {
+            deleteOld.Transaction = tx;
+            deleteOld.CommandText = "DELETE FROM titles WHERE id = $oldId AND $oldId != $newId;";
+            deleteOld.Parameters.AddWithValue("$oldId", oldTitleId);
+            deleteOld.Parameters.AddWithValue("$newId", newTitleId);
+            deleteOld.ExecuteNonQuery();
+        }
+    }
+
+    private static void RemapLogIdInternal(SqliteConnection conn, SqliteTransaction tx, string oldLogId, string newLogId, bool markSynced)
+    {
+        var targetAlreadyExists = GetLogInternal(conn, tx, newLogId, includeDeleted: true) != null;
+
+        using (var cmd = conn.CreateCommand())
+        {
+            cmd.Transaction = tx;
+            cmd.CommandText = "UPDATE log_history SET log_id = $newId WHERE log_id = $oldId;";
+            cmd.Parameters.AddWithValue("$newId", newLogId);
+            cmd.Parameters.AddWithValue("$oldId", oldLogId);
+            cmd.ExecuteNonQuery();
+        }
+
+        using (var cmd = conn.CreateCommand())
+        {
+            cmd.Transaction = tx;
+            cmd.CommandText = "UPDATE outbox SET entity_id = $newId WHERE entity_id = $oldId;";
+            cmd.Parameters.AddWithValue("$newId", newLogId);
+            cmd.Parameters.AddWithValue("$oldId", oldLogId);
+            cmd.ExecuteNonQuery();
+        }
+
+        if (targetAlreadyExists)
+        {
+            using (var delOld = conn.CreateCommand())
+            {
+                delOld.Transaction = tx;
+                delOld.CommandText = "DELETE FROM logs WHERE id = $oldId;";
+                delOld.Parameters.AddWithValue("$oldId", oldLogId);
+                delOld.ExecuteNonQuery();
+            }
+
+            if (markSynced)
+            {
+                using var markCmd = conn.CreateCommand();
+                markCmd.Transaction = tx;
+                markCmd.CommandText = "UPDATE logs SET sync_state = 'synced' WHERE id = $newId;";
+                markCmd.Parameters.AddWithValue("$newId", newLogId);
+                markCmd.ExecuteNonQuery();
+            }
+        }
+        else
+        {
+            using var cmd = conn.CreateCommand();
+            cmd.Transaction = tx;
+            cmd.CommandText = markSynced
+                ? "UPDATE logs SET id = $newId, sync_state = 'synced' WHERE id = $oldId;"
+                : "UPDATE logs SET id = $newId WHERE id = $oldId;";
+            cmd.Parameters.AddWithValue("$newId", newLogId);
+            cmd.Parameters.AddWithValue("$oldId", oldLogId);
+            cmd.ExecuteNonQuery();
+        }
+    }
+
+    private static OutboxEvent UpsertLogOutboxInternal(SqliteConnection conn, SqliteTransaction tx, string type, string logId, string payloadJson)
+    {
+        var evt = new OutboxEvent(
+            Id: $"outbox:{Guid.NewGuid():N}",
+            Type: type,
+            EntityId: logId,
+            PayloadJson: payloadJson,
+            CreatedAt: DateTimeOffset.UtcNow.ToString("O", CultureInfo.InvariantCulture)
+        );
+
+        using (var delCmd = conn.CreateCommand())
+        {
+            delCmd.Transaction = tx;
+            delCmd.CommandText = "DELETE FROM outbox WHERE entity_id = $entity_id AND type IN ('UPSERT_LOG', 'UPDATE_LOG');";
+            delCmd.Parameters.AddWithValue("$entity_id", logId);
+            delCmd.ExecuteNonQuery();
+        }
+
+        using (var insCmd = conn.CreateCommand())
+        {
+            insCmd.Transaction = tx;
+            insCmd.CommandText = @"
+                INSERT INTO outbox (id, type, entity_id, payload_json, created_at, retry_count, last_error)
+                VALUES ($id, $type, $entity_id, $payload_json, $created_at, 0, NULL);
+            ";
+            insCmd.Parameters.AddWithValue("$id", evt.Id);
+            insCmd.Parameters.AddWithValue("$type", evt.Type);
+            insCmd.Parameters.AddWithValue("$entity_id", evt.EntityId);
+            insCmd.Parameters.AddWithValue("$payload_json", evt.PayloadJson);
+            insCmd.Parameters.AddWithValue("$created_at", evt.CreatedAt);
+            insCmd.ExecuteNonQuery();
+        }
+
+        return evt;
+    }
+
+    private static OutboxEvent EnqueueOutboxInternal(SqliteConnection conn, SqliteTransaction tx, string type, string entityId, string payloadJson)
+    {
+        var evt = new OutboxEvent(
+            Id: $"outbox:{Guid.NewGuid():N}",
+            Type: type,
+            EntityId: entityId,
+            PayloadJson: payloadJson,
+            CreatedAt: DateTimeOffset.UtcNow.ToString("O", CultureInfo.InvariantCulture)
+        );
+
+        using var cmd = conn.CreateCommand();
+        cmd.Transaction = tx;
+        cmd.CommandText = @"
+            INSERT INTO outbox (id, type, entity_id, payload_json, created_at, retry_count, last_error)
+            VALUES ($id, $type, $entity_id, $payload_json, $created_at, 0, NULL);
+        ";
+        cmd.Parameters.AddWithValue("$id", evt.Id);
+        cmd.Parameters.AddWithValue("$type", evt.Type);
+        cmd.Parameters.AddWithValue("$entity_id", evt.EntityId);
+        cmd.Parameters.AddWithValue("$payload_json", evt.PayloadJson);
+        cmd.Parameters.AddWithValue("$created_at", evt.CreatedAt);
+        cmd.ExecuteNonQuery();
+        return evt;
+    }
+
+    private static void SetAppSettingInternal(SqliteConnection conn, SqliteTransaction? tx, string key, string? value)
+    {
+        using var cmd = conn.CreateCommand();
+        cmd.Transaction = tx;
+        if (value == null)
+        {
+            cmd.CommandText = "DELETE FROM app_settings WHERE key = $key;";
+            cmd.Parameters.AddWithValue("$key", key);
+        }
+        else
+        {
+            cmd.CommandText = @"
+                INSERT INTO app_settings (key, value) VALUES ($key, $val)
+                ON CONFLICT(key) DO UPDATE SET value = excluded.value;
+            ";
+            cmd.Parameters.AddWithValue("$key", key);
+            cmd.Parameters.AddWithValue("$val", value);
+        }
+        cmd.ExecuteNonQuery();
+    }
+
+    public bool HasPendingLogOutbox(string logId)
+    {
+        if (string.IsNullOrWhiteSpace(logId)) return false;
+        lock (_syncRoot)
+        {
+            using var conn = OpenConnection();
+            using var cmd = conn.CreateCommand();
+            cmd.CommandText = "SELECT COUNT(1) FROM outbox WHERE entity_id = $entity_id AND type IN ('UPSERT_LOG', 'UPDATE_LOG');";
+            cmd.Parameters.AddWithValue("$entity_id", logId);
+            var count = Convert.ToInt64(cmd.ExecuteScalar() ?? 0);
+            return count > 0;
         }
     }
 
@@ -623,14 +1119,116 @@ public sealed class OttlineDatabase : IDisposable
 
     public void DeleteOutbox(string id)
     {
+        DeleteOutboxIfExists(id);
+    }
+
+    public int DeleteOutboxIfExists(string id)
+    {
         lock (_syncRoot)
         {
             using var conn = OpenConnection();
             using var cmd = conn.CreateCommand();
             cmd.CommandText = "DELETE FROM outbox WHERE id = $id;";
             cmd.Parameters.AddWithValue("$id", id);
-            cmd.ExecuteNonQuery();
+            return cmd.ExecuteNonQuery();
         }
+    }
+
+    public void EnsureHistorySnapshot(WatchLog log)
+    {
+        if (string.IsNullOrWhiteSpace(log.Id) || string.IsNullOrWhiteSpace(log.TitleId)) return;
+        lock (_syncRoot)
+        {
+            using var conn = OpenConnection();
+            EnsureHistorySnapshotInternal(conn, null, log);
+        }
+    }
+
+    private static void EnsureHistorySnapshotInternal(SqliteConnection conn, SqliteTransaction? tx, WatchLog log)
+    {
+        if (string.IsNullOrWhiteSpace(log.Id) || string.IsNullOrWhiteSpace(log.TitleId)) return;
+        using var checkCmd = conn.CreateCommand();
+        checkCmd.Transaction = tx;
+        checkCmd.CommandText = @"
+            SELECT status, rating, note, spoiler, ott, place, occasion, season_number, episode_number, watched_on
+            FROM log_history
+            WHERE log_id = $log_id
+            ORDER BY revision DESC, recorded_at DESC
+            LIMIT 1;
+        ";
+        checkCmd.Parameters.AddWithValue("$log_id", log.Id);
+        using (var reader = checkCmd.ExecuteReader())
+        {
+            if (reader.Read())
+            {
+                var hStatus = reader.GetString(0);
+                var hRating = reader.IsDBNull(1) ? (double?)null : reader.GetDouble(1);
+                var hNote = reader.IsDBNull(2) ? null : reader.GetString(2);
+                var hSpoiler = reader.GetInt32(3) != 0;
+                var hOtt = reader.IsDBNull(4) ? null : reader.GetString(4);
+                var hPlace = reader.IsDBNull(5) ? null : reader.GetString(5);
+                var hOccasion = reader.IsDBNull(6) ? null : reader.GetString(6);
+                var hSeason = reader.IsDBNull(7) ? (int?)null : reader.GetInt32(7);
+                var hEpisode = reader.IsDBNull(8) ? (int?)null : reader.GetInt32(8);
+                var hWatchedOn = reader.GetString(9);
+
+                static string Norm(string? v) => string.IsNullOrWhiteSpace(v) ? string.Empty : v.Trim();
+                var sameRating = hRating.HasValue == log.Rating.HasValue &&
+                                 (!hRating.HasValue || Math.Abs(hRating.Value - log.Rating!.Value) <= 0.05);
+                if (string.Equals(hStatus, log.Status.ToWire(), StringComparison.OrdinalIgnoreCase) &&
+                    sameRating &&
+                    string.Equals(Norm(hNote), Norm(log.Note), StringComparison.Ordinal) &&
+                    hSpoiler == log.Spoiler &&
+                    string.Equals(Norm(hOtt), Norm(log.Ott), StringComparison.OrdinalIgnoreCase) &&
+                    string.Equals(Norm(hPlace), Norm(log.Place), StringComparison.OrdinalIgnoreCase) &&
+                    string.Equals(Norm(hOccasion), Norm(log.Occasion), StringComparison.OrdinalIgnoreCase) &&
+                    hSeason == log.SeasonNumber &&
+                    hEpisode == log.EpisodeNumber &&
+                    string.Equals(Norm(hWatchedOn), Norm(log.WatchedOn), StringComparison.Ordinal))
+                {
+                    return;
+                }
+            }
+        }
+
+        var recordedAt = string.IsNullOrWhiteSpace(log.UpdatedAt)
+            ? DateTimeOffset.UtcNow.ToString("O", CultureInfo.InvariantCulture)
+            : log.UpdatedAt;
+        var watchedOn = RecordDate.OccurredAtToWatchedOnDate(log.OccurredAt, log.WatchedOn);
+        var occurredAt = string.IsNullOrWhiteSpace(log.OccurredAt) ? RecordDate.ToNoonUtcIso(watchedOn) : log.OccurredAt;
+
+        using var histCmd = conn.CreateCommand();
+        histCmd.Transaction = tx;
+        histCmd.CommandText = @"
+            INSERT INTO log_history (
+                id, log_id, title_id, status, rating, reaction, ott, place, occasion,
+                season_number, episode_number, note, spoiler, occurred_at, watched_on,
+                revision, origin, recorded_at
+            ) VALUES (
+                $id, $log_id, $title_id, $status, $rating, $reaction, $ott, $place, $occasion,
+                $season_number, $episode_number, $note, $spoiler, $occurred_at, $watched_on,
+                $revision, $origin, $recorded_at
+            );
+        ";
+        histCmd.Parameters.AddWithValue("$id", $"hist:{log.Id}:r{Math.Max(1, log.Revision)}:{Guid.NewGuid():N}");
+        histCmd.Parameters.AddWithValue("$log_id", log.Id);
+        histCmd.Parameters.AddWithValue("$title_id", log.TitleId);
+        histCmd.Parameters.AddWithValue("$status", log.Status.ToWire());
+        histCmd.Parameters.AddWithValue("$rating", (object?)log.Rating ?? DBNull.Value);
+        histCmd.Parameters.AddWithValue("$reaction", (object?)log.Reaction ?? DBNull.Value);
+        histCmd.Parameters.AddWithValue("$ott", (object?)log.Ott ?? DBNull.Value);
+        histCmd.Parameters.AddWithValue("$place", (object?)log.Place ?? DBNull.Value);
+        histCmd.Parameters.AddWithValue("$occasion", (object?)log.Occasion ?? DBNull.Value);
+        histCmd.Parameters.AddWithValue("$season_number", (object?)log.SeasonNumber ?? DBNull.Value);
+        histCmd.Parameters.AddWithValue("$episode_number", (object?)log.EpisodeNumber ?? DBNull.Value);
+        histCmd.Parameters.AddWithValue("$note", (object?)log.Note ?? DBNull.Value);
+        histCmd.Parameters.AddWithValue("$spoiler", log.Spoiler ? 1 : 0);
+        histCmd.Parameters.AddWithValue("$occurred_at", occurredAt);
+        histCmd.Parameters.AddWithValue("$watched_on", watchedOn);
+        histCmd.Parameters.AddWithValue("$revision", Math.Max(1, log.Revision));
+        histCmd.Parameters.AddWithValue("$origin", log.Origin.ToWire());
+        histCmd.Parameters.AddWithValue("$recorded_at", recordedAt);
+        histCmd.ExecuteNonQuery();
     }
 
     public void IncrementOutboxRetry(string id, string error)
@@ -641,6 +1239,19 @@ public sealed class OttlineDatabase : IDisposable
             using var cmd = conn.CreateCommand();
             cmd.CommandText = "UPDATE outbox SET retry_count = retry_count + 1, last_error = $err WHERE id = $id;";
             cmd.Parameters.AddWithValue("$err", error);
+            cmd.Parameters.AddWithValue("$id", id);
+            cmd.ExecuteNonQuery();
+        }
+    }
+
+    public void MarkOutboxStalePendingPull(string id)
+    {
+        lock (_syncRoot)
+        {
+            using var conn = OpenConnection();
+            using var cmd = conn.CreateCommand();
+            cmd.CommandText = "UPDATE outbox SET last_error = $err WHERE id = $id;";
+            cmd.Parameters.AddWithValue("$err", StalePendingPullMarker);
             cmd.Parameters.AddWithValue("$id", id);
             cmd.ExecuteNonQuery();
         }
@@ -661,11 +1272,17 @@ public sealed class OttlineDatabase : IDisposable
                     var loaded = JsonSerializer.Deserialize<LocalSettings>(raw);
                     if (loaded != null)
                     {
-                        var needsGuidNormalization = string.IsNullOrWhiteSpace(loaded.DeviceId)
-                                                     || (!Guid.TryParse(loaded.DeviceId, out _) && string.IsNullOrWhiteSpace(loaded.UserId));
-                        if (needsGuidNormalization)
+                        var needsDeviceNormalization = string.IsNullOrWhiteSpace(loaded.DeviceId)
+                                                       || (!Guid.TryParse(loaded.DeviceId, out _) && string.IsNullOrWhiteSpace(loaded.UserId));
+                        var needsClientNormalization = string.IsNullOrWhiteSpace(loaded.ClientId)
+                                                       || !Guid.TryParse(loaded.ClientId, out _);
+                        if (needsDeviceNormalization || needsClientNormalization)
                         {
-                            var normalized = loaded with { DeviceId = Guid.NewGuid().ToString("D") };
+                            var normalized = loaded with
+                            {
+                                DeviceId = needsDeviceNormalization ? Guid.NewGuid().ToString("D") : loaded.DeviceId,
+                                ClientId = needsClientNormalization ? Guid.NewGuid().ToString("D") : loaded.ClientId
+                            };
                             SaveSettingsInternal(conn, normalized);
                             return normalized;
                         }
@@ -680,7 +1297,8 @@ public sealed class OttlineDatabase : IDisposable
 
             var defaults = new LocalSettings(
                 DeviceId: Guid.NewGuid().ToString("D"),
-                DeviceName: $"{Environment.MachineName} (Windows Native)"
+                DeviceName: $"{Environment.MachineName} (Windows Native)",
+                ClientId: Guid.NewGuid().ToString("D")
             );
             SaveSettingsInternal(conn, defaults);
             return defaults;
@@ -693,6 +1311,44 @@ public sealed class OttlineDatabase : IDisposable
         {
             using var conn = OpenConnection();
             SaveSettingsInternal(conn, settings);
+        }
+    }
+
+    public string? GetAppSetting(string key)
+    {
+        if (string.IsNullOrWhiteSpace(key)) return null;
+        lock (_syncRoot)
+        {
+            using var conn = OpenConnection();
+            using var cmd = conn.CreateCommand();
+            cmd.CommandText = "SELECT value FROM app_settings WHERE key = $key LIMIT 1;";
+            cmd.Parameters.AddWithValue("$key", key);
+            return cmd.ExecuteScalar() as string;
+        }
+    }
+
+    public void SetAppSetting(string key, string? value)
+    {
+        if (string.IsNullOrWhiteSpace(key)) return;
+        lock (_syncRoot)
+        {
+            using var conn = OpenConnection();
+            using var cmd = conn.CreateCommand();
+            if (value == null)
+            {
+                cmd.CommandText = "DELETE FROM app_settings WHERE key = $key;";
+                cmd.Parameters.AddWithValue("$key", key);
+            }
+            else
+            {
+                cmd.CommandText = @"
+                    INSERT INTO app_settings (key, value) VALUES ($key, $val)
+                    ON CONFLICT(key) DO UPDATE SET value = excluded.value;
+                ";
+                cmd.Parameters.AddWithValue("$key", key);
+                cmd.Parameters.AddWithValue("$val", value);
+            }
+            cmd.ExecuteNonQuery();
         }
     }
 
@@ -850,6 +1506,7 @@ public sealed class OttlineDatabase : IDisposable
             l.note AS l_note, l.spoiler AS l_spoiler, l.occurred_at AS l_occurred_at,
             l.watched_on AS l_watched_on, l.created_at AS l_created_at, l.updated_at AS l_updated_at,
             l.revision AS l_revision, l.origin AS l_origin, l.sync_state AS l_sync_state,
+            l.deleted_at AS l_deleted_at,
             t.id AS t_id, t.provider AS t_provider, t.provider_id AS t_provider_id, t.type AS t_type,
             t.title AS t_title, t.original_title AS t_original_title, t.year AS t_year,
             t.poster_url AS t_poster_url, t.overview AS t_overview, t.genres_json AS t_genres_json,
@@ -861,12 +1518,13 @@ public sealed class OttlineDatabase : IDisposable
         INNER JOIN titles t ON t.id = l.title_id
     ";
 
-    private static WatchLog? GetLogInternal(SqliteConnection conn, SqliteTransaction? tx, string id)
+    private static WatchLog? GetLogInternal(SqliteConnection conn, SqliteTransaction? tx, string id, bool includeDeleted = false)
     {
         if (string.IsNullOrWhiteSpace(id)) return null;
         using var cmd = conn.CreateCommand();
         cmd.Transaction = tx;
-        cmd.CommandText = BaseLogJoinQuery + " WHERE l.id = $id LIMIT 1;";
+        var deletedClause = includeDeleted ? "" : " AND l.deleted_at IS NULL";
+        cmd.CommandText = BaseLogJoinQuery + $" WHERE l.id = $id{deletedClause} LIMIT 1;";
         cmd.Parameters.AddWithValue("$id", id);
         using var reader = cmd.ExecuteReader();
         return reader.Read() ? ReadWatchLogFromJoinReader(reader) : null;
@@ -877,7 +1535,7 @@ public sealed class OttlineDatabase : IDisposable
         if (string.IsNullOrWhiteSpace(titleId)) return null;
         using var cmd = conn.CreateCommand();
         cmd.Transaction = tx;
-        cmd.CommandText = BaseLogJoinQuery + " WHERE l.title_id = $title_id ORDER BY l.updated_at DESC LIMIT 1;";
+        cmd.CommandText = BaseLogJoinQuery + " WHERE l.title_id = $title_id AND l.deleted_at IS NULL ORDER BY l.updated_at DESC LIMIT 1;";
         cmd.Parameters.AddWithValue("$title_id", titleId);
         using var reader = cmd.ExecuteReader();
         return reader.Read() ? ReadWatchLogFromJoinReader(reader) : null;
@@ -906,7 +1564,8 @@ public sealed class OttlineDatabase : IDisposable
             UpdatedAt: reader.GetString(reader.GetOrdinal("l_updated_at")),
             Revision: reader.GetInt32(reader.GetOrdinal("l_revision")),
             Origin: LogOriginExtensions.FromWire(reader.GetString(reader.GetOrdinal("l_origin"))),
-            SyncState: reader.GetString(reader.GetOrdinal("l_sync_state"))
+            SyncState: reader.GetString(reader.GetOrdinal("l_sync_state")),
+            DeletedAt: GetNullableString(reader, "l_deleted_at")
         );
     }
 
