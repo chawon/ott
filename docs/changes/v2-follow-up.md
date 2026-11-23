@@ -44,7 +44,8 @@ Windows의 서버 계정 삭제에서 요청 경로와 실패 처리의 불일�
   - **패키지·실행 검증**: `x64`+`arm64` MSIXBundle(`159.02 MB`, SHA-256 `1D3697AB30C8A83FA9128FBF7E39A2B162D479FD10DFCC7A9CD9FC52099B45B2`) 무결성 검증 및 `win-arm64` 실앱 실행 사용자 검수 통과.
 - **남은 확인**:
   - **Microsoft Store `v2.0.2.0` 심사 제출 완료 (`2026-11-23`)**: [PR #168](https://github.com/chawon/ott/pull/168)([#161](https://github.com/chawon/ott/issues/161))을 `main` `fa09d2e`(코드 `be854a4`)로 병합하고 `main` `Native Windows CI`([`45116276550`](https://github.com/chawon/ott/actions/runs/45116276550), `Ottline.Tests` **59/59**)·운영 API 임시 계정 실검증(7/7, `DELETE /api/auth/account` HTTP 200 정리)을 통과한 뒤, PR #156 + PR #168 통합본 `ottline-2.0.2.0.msixbundle`(`x64` `81.50 MB` + `arm64` `77.56 MB`, 총 `159.06 MB`, SHA-256 `C4622C9CEE02D199B2FA835B1C5199E5BC0DEC7A36E8721568B75787626DD24A`)을 Partner Center `9NSVNZGDMGF5`에 제출했다(Submission ID **`1152921505702478292`**, 상태 **`Certification`**, `Errors: 0`).
-  - `v2.0.2.0` 공개 게시 확인 및 공개 스토어 설치판에서 Windows↔모바일/웹 교차 동기화·구버전 복구·함께 2단·추천 복구 실기기 확인.
+  - **11월 23일 본부 검증.** `fa09d2e`의 격리 DB에서 구버전 `local-log:…`와 그 정식 ID가 같은 감상 기록을 가리킬 때, 서버 삭제 후에도 Windows 활성 기록이 1건 남고 복구 완료 표시와 커서가 저장됐다. 다음 증분 동기화 후에도 1건이 남았다. 정식 ID 대조군은 통과했다. Windows 담당이 최초 업그레이드와 이미 복구를 마친 설치판을 함께 보완한다. [#161 재현 결과](https://github.com/chawon/ott/issues/161#issuecomment-7092864246)
+  - `2.0.2.0` 공개 게시와 설치판의 함께 2단·추천 복구를 확인한다. 감상 기록은 수정이 포함된 공개 설치판에서 Windows와 모바일·웹 간 교차 동기화를 검증한다.
 
 ## 2. Apple v2 업데이트 검증
 

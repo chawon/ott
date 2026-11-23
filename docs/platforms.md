@@ -21,6 +21,8 @@ Apple 공개 버전의 추가 근거는 [한국 스토어 조회](https://itunes
 
 Windows 공개 `2.0.1.0` 설치판(`ChawonLee.ottline_2.0.1.0_arm64__ry7416pek43sa`)에서 서버 계정 삭제 성공 시 로컬 초기화와 오프라인 실패 시 기록·연결 상태 보존을 2026-11-23 실기기 검증으로 완료했다. [삭제 정책과 Windows 검증](../wiki/pages/features/delete-sync.md#windows-확인-사항)
 
+심사 중인 `2.0.2.0`은 구버전 ID로 남아 있는 감상 기록에 서버 삭제가 적용되지 않는 경우가 있어 Windows 담당이 보완 중이다. [본부 검증과 재현 조건](https://github.com/chawon/ott/issues/161#issuecomment-7092864246)
+
 ## 이전 설치와 연결 채널
 
 - Android Bubblewrap TWA는 `1.0.19 (23)`까지의 배포 계열이다. 현재 Android 앱은 같은 Play 패키지를 이어받는다. 기존 설치 토큰으로 세션을 복구하거나, 호환 브라우저의 웹 세션과 로컬 기록을 핸드오프로 이어받는 경로를 유지한다. [Android 전환](android-native-v2-transition.md)

@@ -1,5 +1,9 @@
 # Wiki Log
 
+## [2026-11-23] Windows 구버전 감상 기록 삭제 반영 검증
+
+`2.0.2.0` 심사 제출 후 본부가 구버전 기록 ID에서 삭제 반영 누락을 재현해 Windows 담당의 #161을 진행으로 되돌렸다. [검증 결과](https://github.com/chawon/ott/issues/161#issuecomment-7092864246) · [Windows 후속 작업](../docs/changes/v2-follow-up.md#windows-후속-기능-통합-반영-2026-11-22-차기-v2020-후보)
+
 ## [2026-11-23] release(windows): PR #168 병합 및 Microsoft Store `v2.0.2.0` 심사 제출 (`Certification`)
 
 - [PR #168](https://github.com/chawon/ott/pull/168)([#161](https://github.com/chawon/ott/issues/161))을 `main` `fa09d2e`(코드 `be854a4`)로 병합하고 `main` `Native Windows CI`([`45116276550`](https://github.com/chawon/ott/actions/runs/45116276550), `1m28s`, `Ottline.Tests` **59/59**) 통과를 확인했다.
