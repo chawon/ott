@@ -386,7 +386,10 @@ try {
         `${locale}: keyboard navigation, selected URL, two panes`,
         async () => {
           await page.goto(`${base}${routePath(locale)}`);
-          const link = page.locator(`[data-discussion-link="${ids[0]}"]`);
+          // A streamed route can briefly include a hidden copy of the list.
+          const link = page.locator(
+            `[data-discussion-link="${ids[0]}"]:visible`,
+          );
           await link.focus();
           await page.keyboard.press("Enter");
           await ready(page, ids[0]);
@@ -714,13 +717,20 @@ try {
             await page.getByTestId("together-list-pane").isVisible(),
             false,
           );
-          const heading = await page
-            .getByTestId("discussion-detail")
-            .getByRole("heading", { level: 2 })
-            .boundingBox();
-          assert.ok(
-            heading && heading.y >= 0 && heading.y < 844,
+          const heading = page
+            .locator(
+              `[data-testid="discussion-detail"][data-discussion-id="${stories.at(-1).id}"]:visible`,
+            )
+            .getByRole("heading", {
+              level: 2,
+              name: stories.at(-1).titleName,
+              exact: true,
+            });
+          // The detail can mount before the compact viewport finishes scrolling.
+          await poll(
             "Opening a story from the bottom of a compact list shows its title",
+            () => heading.boundingBox(),
+            (box) => box && box.y >= 0 && box.y < 844,
           );
           await noOverflow(page);
         },
