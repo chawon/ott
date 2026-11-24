@@ -20,17 +20,17 @@ const browser = await chromium.launch({
   args: ["--no-sandbox"],
 });
 
-async function readLogs(page) {
+async function readRows(page, table) {
   return page.evaluate(
-    () =>
+    (name) =>
       new Promise((resolve, reject) => {
         const open = indexedDB.open("watchlog");
         open.onerror = () => reject(open.error);
         open.onsuccess = () => {
           const db = open.result;
           const request = db
-            .transaction("logs", "readonly")
-            .objectStore("logs")
+            .transaction(name, "readonly")
+            .objectStore(name)
             .getAll();
           request.onsuccess = () => {
             db.close();
@@ -42,6 +42,7 @@ async function readLogs(page) {
           };
         };
       }),
+    table,
   );
 }
 
@@ -221,7 +222,7 @@ try {
         "Status selection must not push a record",
       );
       assert.deepEqual(
-        await readLogs(page),
+        await readRows(page, "logs"),
         [],
         "Status selection must not create a local record",
       );
@@ -262,7 +263,7 @@ try {
         );
       }
       assert.deepEqual(
-        await readLogs(page),
+        await readRows(page, "logs"),
         [],
         "Changing statuses and optional context must remain an unsaved draft",
       );
@@ -276,7 +277,23 @@ try {
         "Save stays visible with expanded context and the mobile keyboard",
       );
       await page.screenshot({ path: join(output, `${item.name}-ready.png`) });
-      await save.click();
+      // The saved stage acknowledges the IndexedDB commit. Wait independently
+      // for the account pull that contains the record accepted by the fixture.
+      const waitForRecordPull = () =>
+        page.waitForResponse(
+          async (response) => {
+            if (
+              new URL(response.url()).pathname !== "/api/sync/pull" ||
+              !response.ok() ||
+              !state.log
+            )
+              return false;
+            const body = await response.json();
+            return body.changes.logs.some((row) => row.id === state.log.id);
+          },
+          { timeout: 10000 },
+        );
+      await Promise.all([waitForRecordPull(), save.click()]);
       await page.getByTestId("record-done").waitFor();
       await page.waitForFunction(
         () =>
@@ -284,7 +301,7 @@ try {
             .querySelector('[role="dialog"]')
             ?.getAttribute("data-record-stage") === "saved",
       );
-      const logs = await readLogs(page);
+      const logs = await readRows(page, "logs");
       assert.equal(logs.length, 1);
       assert.equal(logs[0].status, "DONE");
       assert.equal(
@@ -298,6 +315,22 @@ try {
         assert.equal(logs[0].episodeNumber, 3);
         assert.equal(logs[0].seasonYear, 2025);
       }
+      assert.equal(logs[0].syncStatus, "synced");
+      assert.deepEqual(
+        await readRows(page, "outbox"),
+        [],
+        "The accepted operation left the queue",
+      );
+      await Promise.all([
+        waitForRecordPull(),
+        page.evaluate(() => window.dispatchEvent(new Event("online"))),
+      ]);
+      assert.deepEqual(
+        state.pushes.flatMap((batch) =>
+          batch.changes.logs.map((row) => row.id),
+        ),
+        [logs[0].id],
+      );
       assert.equal(
         state.pushes.length,
         1,
