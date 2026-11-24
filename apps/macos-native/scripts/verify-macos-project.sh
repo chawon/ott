@@ -8,10 +8,15 @@ echo "==> Verifying apps/macos-native project contract in $ROOT_DIR"
 
 # 1. Verify XcodeGen project.yml and version/bundle contracts
 grep -q 'PRODUCT_BUNDLE_IDENTIFIER: app.ottline' "$ROOT_DIR/project.yml"
-grep -q 'MARKETING_VERSION: "2.0.0"' "$ROOT_DIR/project.yml"
+grep -q 'PRODUCT_BUNDLE_IDENTIFIER: app.ottline.MacWidget' "$ROOT_DIR/project.yml"
+MARKETING_VER="$(awk -F'"' '/MARKETING_VERSION:/ {print $2; exit}' "$ROOT_DIR/project.yml")"
+if [[ ! "$MARKETING_VER" =~ ^2\.[0-9]+\.[0-9]+$ ]]; then
+  echo "ERROR: MARKETING_VERSION must be 2.x.y (got: '${MARKETING_VER:-empty}')"
+  exit 1
+fi
 BUILD_NUM="$(awk -F'"' '/CURRENT_PROJECT_VERSION:/ {print $2; exit}' "$ROOT_DIR/project.yml")"
-if [[ ! "$BUILD_NUM" =~ ^[0-9]+$ ]] || (( BUILD_NUM < 25 )); then
-  echo "ERROR: CURRENT_PROJECT_VERSION must be an integer >= 25 (got: '${BUILD_NUM:-empty}')"
+if [[ ! "$BUILD_NUM" =~ ^[0-9]+$ ]] || (( BUILD_NUM < 28 )); then
+  echo "ERROR: CURRENT_PROJECT_VERSION must be an integer >= 28 (got: '${BUILD_NUM:-empty}')"
   exit 1
 fi
 
@@ -20,6 +25,9 @@ grep -q '<key>ATSApplicationFontsPath</key>' "$ROOT_DIR/Sources/OttlineMacApp/In
 grep -q '<key>ITSAppUsesNonExemptEncryption</key>' "$ROOT_DIR/Sources/OttlineMacApp/Info.plist"
 grep -q '<key>com.apple.security.app-sandbox</key>' "$ROOT_DIR/Sources/OttlineMacApp/OttlineMacApp.entitlements"
 grep -q '<key>com.apple.security.network.client</key>' "$ROOT_DIR/Sources/OttlineMacApp/OttlineMacApp.entitlements"
+grep -q '<string>3Z9ULN66D4.group.app.ottline</string>' "$ROOT_DIR/Sources/OttlineMacApp/OttlineMacApp.entitlements"
+grep -q '<key>com.apple.security.app-sandbox</key>' "$ROOT_DIR/Sources/OttlineMacWidget/OttlineMacWidget.entitlements"
+grep -q '<string>3Z9ULN66D4.group.app.ottline</string>' "$ROOT_DIR/Sources/OttlineMacWidget/OttlineMacWidget.entitlements"
 
 # 3. Verify Pretendard OTF fonts exist in shared Fonts directory
 for font in Pretendard-Regular.otf Pretendard-Medium.otf Pretendard-SemiBold.otf Pretendard-Bold.otf Pretendard-ExtraBold.otf; do
@@ -80,5 +88,11 @@ done
 
 # 5. Verify shared OttlineCore analytics platform compatibility
 grep -q 'platform: "ios_native"' "$APPLE_CORE_DIR/Sources/OttlineCore/Data/OttlineRepository.swift"
+
+# 6. Verify retired AI Curator endpoint/UI references are removed
+if grep -rnE 'curated-contents|getCuratedContents|CuratedContentItem' "$APPLE_CORE_DIR/Sources" "$ROOT_DIR/Sources"; then
+  echo "ERROR: Retired curator references must be removed from Apple sources"
+  exit 1
+fi
 
 echo "==> All static macOS Native v2 checks passed!"

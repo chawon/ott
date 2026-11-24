@@ -3169,7 +3169,7 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
             var wasSelected = _together.ReactionState.HasReaction(reactionType);
             if (!wasSelected)
             {
-                _repo.ApplyDiscussionReactionLocalFirst(post, reactionType);
+                _repo.ApplyDiscussionReactionLocalFirst(post, reactionType, enqueueRemoteReaction: false);
                 RefreshLocalState();
             }
 
@@ -3179,9 +3179,15 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
             if (updated != null)
             {
                 _together.ApplyReactionUpdate(post.Id, updated);
+                if (!wasSelected)
+                {
+                    _ = SyncNowAsync(silent: true);
+                }
             }
             else
             {
+                // Queue remote reaction toggle only when offline/failed so we never double-toggle
+                _repo.EnqueueOfflineDiscussionReaction(post.Id, reactionType);
                 // Optimistic fallback when offline
                 var currentSelected = _together.ReactionState.SafeSelectedTypes.ToList();
                 var summary = _together.ReactionState.Summary;

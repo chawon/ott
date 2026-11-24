@@ -2250,6 +2250,7 @@ public struct CommentsPanelView: View {
     @State private var discussionId: String?
     @State private var comments: [TitleCommentItem] = []
     @State private var isLoading = false
+    @State private var loadFailed = false
     @State private var sortOrder = "oldest"
     @State private var visibleCount = 5
     @State private var composerBody = ""
@@ -2321,6 +2322,32 @@ public struct CommentsPanelView: View {
                 if isLoading {
                     ProgressView()
                         .frame(maxWidth: .infinity, minHeight: 120)
+                } else if loadFailed && comments.isEmpty {
+                    VStack(spacing: 10) {
+                        Text(OttlineStrings.tr(
+                            "이야기를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.",
+                            "Couldn't load comments. Please try again.",
+                            locale: locale
+                        ))
+                        .font(OttlineFont.regular(13.5))
+                        .foregroundStyle(palette.mutedInk)
+                        .multilineTextAlignment(.center)
+                        Button {
+                            Task { await loadComments() }
+                        } label: {
+                            Text(OttlineStrings.tr("다시 시도", "Try again", locale: locale))
+                                .font(OttlineFont.semiBold(13))
+                                .foregroundStyle(palette.primaryAccent)
+                                .padding(.horizontal, 14)
+                                .frame(minHeight: 36)
+                                .background(palette.card)
+                                .clipShape(RoundedRectangle(cornerRadius: 8))
+                                .overlay(RoundedRectangle(cornerRadius: 8).stroke(palette.border, lineWidth: 1))
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    .frame(maxWidth: .infinity, minHeight: 120)
+                    .padding(.vertical, 8)
                 } else if comments.isEmpty {
                     Text(OttlineStrings.tr("아직 댓글이 없어요.", "No comments yet.", locale: locale))
                         .font(OttlineFont.regular(13.5))
@@ -2664,8 +2691,15 @@ public struct CommentsPanelView: View {
 
     private func loadComments() async {
         isLoading = true
+        loadFailed = false
+        comments = []
+        discussionId = initialDiscussionId
         visibleCount = 5
-        defer { isLoading = false }
+        defer {
+            if !Task.isCancelled {
+                isLoading = false
+            }
+        }
         do {
             let resolvedId: String? = {
                 if let initialDiscussionId, !initialDiscussionId.isEmpty {
@@ -2674,19 +2708,26 @@ public struct CommentsPanelView: View {
                 return discussionId
             }()
             if let did = resolvedId {
-                discussionId = did
                 let list = try await repository.api.getDiscussionComments(discussionId: did, limit: 200)
+                guard !Task.isCancelled else { return }
+                discussionId = did
                 comments = list.sorted { RecordDate.parseInstantMillis($0.createdAt) < RecordDate.parseInstantMillis($1.createdAt) }
             } else if let dto = try await repository.api.getDiscussionByTitle(titleId: title.id) {
+                guard !Task.isCancelled else { return }
                 discussionId = dto.id
                 onDiscussionResolved?(dto.id)
                 let list = try await repository.api.getDiscussionComments(discussionId: dto.id, limit: 200)
+                guard !Task.isCancelled else { return }
                 comments = list.sorted { RecordDate.parseInstantMillis($0.createdAt) < RecordDate.parseInstantMillis($1.createdAt) }
             } else {
+                guard !Task.isCancelled else { return }
                 comments = []
             }
+        } catch is CancellationError {
+            return
         } catch {
-            // Non-blocking
+            guard !Task.isCancelled else { return }
+            loadFailed = true
         }
     }
 

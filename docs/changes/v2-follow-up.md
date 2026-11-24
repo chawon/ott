@@ -14,7 +14,7 @@ Windows의 서버 계정 삭제에서 요청 경로와 실패 처리의 불일�
 - HTTP 오류와 네트워크 실패에는 로컬 기록·이력·미동기화 변경(`outbox`)·연결 상태가 보존돼야 한다. 성공 시 초기화와 안내, 실패 시 보존과 재시도를 테스트용 계정 또는 모의 API로 확인한다.
 - [Windows 개발 가이드](../../apps/windows-native/README.md)의 테스트와 패키지 검증을 사용한다. 코드 병합, 스토어 업데이트와 설치 확인을 각각 기록한다.
 
-### 진행 현황 (`2026-11-20`)
+### 진행 현황 (`2026-11-23`)
 
 - **PR / 병합 커밋**: [PR #140](https://github.com/chawon/ott/pull/140) 병합 완료 (`main` `1fb24ee`, 코드 커밋 `e8b9f24`, 기준 `e93f3e4`)
 - **구현 완료**:
@@ -24,10 +24,10 @@ Windows의 서버 계정 삭제에서 요청 경로와 실패 처리의 불일�
 - **완료한 검증 및 스토어 제출**:
   - **단위·모의 API 테스트 (`Ottline.Tests`)**: 모의 `HttpMessageHandler` 테스트 5건 추가 포함 **19/19 통과** (성공 `200`/`204`, HTTP 오류 `401`/`404`/`500` 보존+재시도, `HttpRequestException`/타임아웃 보존+재시도, 미연결 계정 무호출 보존, `UnlinkDevice` 경로)
   - **GitHub Actions (`Native Windows CI`)**: PR #140 Run [`44696668066`](https://github.com/chawon/ott/actions/runs/44696668066) 및 `main` (`1fb24ee`) Run [`44697026662`](https://github.com/chawon/ott/actions/runs/44697026662) 모두 성공
-  - **Microsoft Store 제출 (`v2.0.1.0`)**: `main` `1fb24ee`에서 `ottline-2.0.1.0.msixbundle` (`x64` `81.42 MB` + `arm64` `77.48 MB`, 총 `158.90 MB`, SHA-256 `6F450DDC0E664EC8FF33CF1579DD0815FBFB6793013AB132C2B9A5A5C6B114B2`) 빌드·검증 후 Partner Center `9NSVNZGDMGF5`에 제출 완료 — Submission ID `1152921505702457337`, 상태 **`Certification`** (`Errors: 0`, `Desktop` 전용 유지)
-- **남은 확인**:
-  - Microsoft Store `v2.0.1.0` 심사 승인 및 공개 게시(`Published`) 확인
-  - 스토어 설치판(`2.0.1.0`) 업데이트 후 테스트 계정으로 서버 계정 삭제 성공 및 실패 보존 실기기 확인
+  - **Microsoft Store 제출 (`v2.0.1.0`)**: `main` `1fb24ee`에서 `ottline-2.0.1.0.msixbundle` (`x64` `81.42 MB` + `arm64` `77.48 MB`, 총 `158.90 MB`, SHA-256 `6F450DDC0E664EC8FF33CF1579DD0815FBFB6793013AB132C2B9A5A5C6B114B2`) 빌드·검증 후 Partner Center `9NSVNZGDMGF5`에 제출 완료 — Submission ID `1152921505702457337`, 11월 20일 제출 당시 `Certification` (`Errors: 0`, `Desktop` 전용)
+  - **11월 23일 공개 확인.** 한국·미국 Microsoft Store 카탈로그에서 `2.0.1.0` x64·arm64 패키지를 확인했다. [제품과 카탈로그 근거](../../wiki/pages/platforms/ms-store.md)
+  - **11월 23일 스토어 설치판 실기기 검증 완료.** Microsoft Store 공개 패키지 `ChawonLee.ottline_2.0.1.0_arm64__ry7416pek43sa` 업데이트 후 온라인 `서버 데이터 전체 삭제` 성공·로컬 초기화와 오프라인 실패 시 로컬 기록·연결 상태 보존을 사용자 실기기에서 확인했다. Project 카드(`Windows 계정 삭제 요청과 실패 처리 수정`)를 **`완료`**로 전환했다.
+- **남은 확인**: 없음 (`v2.0.1.0` 공개 게시 및 스토어 설치판 실기기 검증 완료)
 
 ### Windows 후속 기능 통합 반영 (`2026-11-22`, 차기 `v2.0.2.0` 후보)
 
@@ -43,7 +43,11 @@ Windows의 서버 계정 삭제에서 요청 경로와 실패 처리의 불일�
   - **운영 API(`https://ottline.app`) 임시 계정 실측**: 추천 생성 `quota.used 0→1` (`9995ms`), 응답 유실+재시작 복구 `1→2` (`8550ms`, 중복 차감 0), 동일 `requestId` 멱등성 `3→3`, 함께 46건 조회(`/api/curated-contents` 0호출)·`PUT /reactions` ON→OFF 확인 후 `DeleteServerAccountAsync()` (`HTTP 200`)로 임시 계정 정리 완료.
   - **패키지·실행 검증**: `x64`+`arm64` MSIXBundle(`159.02 MB`, SHA-256 `1D3697AB30C8A83FA9128FBF7E39A2B162D479FD10DFCC7A9CD9FC52099B45B2`) 무결성 검증 및 `win-arm64` 실앱 실행 사용자 검수 통과.
 - **남은 확인**:
-  - 현재 `Certification` 심사 중인 `v2.0.1.0` (`1152921505702457337`) 공개 게시 후 `main` `b6baa17` 기준 **`v2.0.2.0`** 스토어 제출 및 스토어 설치판 실기기 확인.
+  - **Microsoft Store `v2.0.2.0` 심사 제출 완료 (`2026-11-23`)**: [PR #168](https://github.com/chawon/ott/pull/168)([#161](https://github.com/chawon/ott/issues/161))을 `main` `fa09d2e`(코드 `be854a4`)로 병합하고 `main` `Native Windows CI`([`45116276550`](https://github.com/chawon/ott/actions/runs/45116276550), `Ottline.Tests` **59/59**)·운영 API 임시 계정 실검증(7/7, `DELETE /api/auth/account` HTTP 200 정리)을 통과한 뒤, PR #156 + PR #168 통합본 `ottline-2.0.2.0.msixbundle`(`x64` `81.50 MB` + `arm64` `77.56 MB`, 총 `159.06 MB`, SHA-256 `C4622C9CEE02D199B2FA835B1C5199E5BC0DEC7A36E8721568B75787626DD24A`)을 Partner Center `9NSVNZGDMGF5`에 제출했다(Submission ID **`1152921505702478292`**, 상태 **`Certification`**, `Errors: 0`).
+  - **11월 23일 본부 검증.** `fa09d2e`의 격리 DB에서 구버전 `local-log:…`와 그 정식 ID가 같은 감상 기록을 가리킬 때, 서버 삭제 후에도 Windows 활성 기록이 1건 남고 복구 완료 표시와 커서가 저장됐다. 다음 증분 동기화 후에도 1건이 남았다. 정식 ID 대조군은 통과했다. [#161 재현 결과](https://github.com/chawon/ott/issues/161#issuecomment-7092864246)
+  - **후속 `2.0.3.0` 후보.** Windows 담당은 `fix/windows-legacy-delete-reconcile`의 `d23a56c`([PR #172](https://github.com/chawon/ott/pull/172), 기준 `85e6f23`)로 로컬 MSIX를 빌드했다. Windows CI 63건과 본부의 기존 재현 2건·담당 회귀 4건이 통과했다. 최초 복구와 이미 복구를 끝낸 설치판 모두에서 삭제가 적용됐다. [Windows CI](https://github.com/chawon/ott/actions/runs/45132795005) · [패키지 검증](https://github.com/chawon/ott/issues/161#issuecomment-7094633513)
+  - **병합 전 보완.** 삭제 검사 직후 사용자가 저장한 새 감상은 다음 동기화 뒤 로컬 이력에만 남고 서버 전송은 0건이었다. Windows 담당은 삭제 트랜잭션이 최신 수정과 전송 대기를 보존하는지 확인하고, 수정본의 공개 설치판에서 모바일·웹과의 교차 동기화를 검증한다. [재현 순서와 인수 조건](https://github.com/chawon/ott/pull/172#pullrequestreview-6018306106)
+  - `2.0.2.0` 공개 게시와 설치판의 함께 2단·추천 복구를 확인한다. 감상 기록은 수정이 포함된 공개 설치판에서 Windows와 모바일·웹 간 교차 동기화를 검증한다.
 
 ## 2. Apple v2 업데이트 검증
 
@@ -60,9 +64,9 @@ Windows의 서버 계정 삭제에서 요청 경로와 실패 처리의 불일�
 | Apple 공통 담당 | 기존 Expo `1.0.4`에서 공개 SwiftUI 앱으로 업데이트할 때 계정·기록·미동기화 변경을 보존하는지 iPhone·iPad에서 확인하고 macOS 결과를 취합한다. | [출시 후 업데이트·데이터 보존 검증](https://github.com/users/chawon/projects/1/views/2?pane=issue&itemId=312000240) |
 | macOS 담당 | Mac App Store 설치판에서 Safari·Chrome 이어받기(`?native_handoff=1` → `ottline://open?handoff=1`), `ottline://quick`과 제목·플랫폼 전달을 검증한다. 실제 설치 출처·빌드·OS·브라우저 결과를 남긴다. | [Mac 설치판 연결 검증](https://github.com/users/chawon/projects/1/views/2?pane=issue&itemId=313827720) |
 | 브라우저 확장 담당 | Chrome·Edge·Whale의 기존 스토어 설치판에서 Web → Windows 및 macOS 빠른 기록 전달과 게시 버전을 확인한다. | [확장 연결·스토어 갱신](https://github.com/users/chawon/projects/1/views/2?pane=issue&itemId=312000267) |
-| Apple 공통 담당·iOS 담당 | 출시 선행 조건이 충족된 `2.0.1` 후속 작업을 main 기준으로 착수한다. 실제 착수 시 진행 상태로 바꾸고 iPhone·iPad·Mac 회귀 검증과 추가 제출 결과를 남긴다. | [Apple 큐레이터 제거](https://github.com/users/chawon/projects/1/views/2?pane=issue&itemId=313279211) · [iPad 함께 2단 점검](https://github.com/users/chawon/projects/1/views/2?pane=issue&itemId=313285015) |
+| Apple 공통 담당·iOS 담당 | 공개 `2.0.1`을 설치한 iPhone·iPad·Mac에서 큐레이터 제거를 확인한다. iPad 담당은 가로·세로와 Split View 전환 시 목록 선택·상세가 유지되는지 확인한다. | [Apple 큐레이터 제거](https://github.com/users/chawon/projects/1/views/2?pane=issue&itemId=313279211) · [iPad 함께 2단 점검](https://github.com/users/chawon/projects/1/views/2?pane=issue&itemId=313285015) |
 
-공개 서비스 가이드 변경은 Web/PWA 담당에게 배정한 상태다. 이 문서 갱신으로 해당 UI의 배포 완료나 스토어 설치판의 데이터 보존 검증을 완료 처리하지 않는다. 미래의 타임라인 응답 유실·지연 복구와 `quota.used` 실측은 [Apple 추천 복구 카드](https://github.com/users/chawon/projects/1/views/2?pane=issue&itemId=312248018)에서 계속 추적한다.
+공개 서비스 가이드의 Apple 안내는 [11월 22일 Web 배포](../web-api-rollout-2026-11-22.md)에 반영했다. macOS 담당은 Safari·Chrome에서 기존 기록을 이어받는지 확인해 Web/PWA 담당과 결과를 공유한다. 아래 운영 API 검증에서 추천 생성 1회 차감과 같은 요청 재시도 시 추가 차감 0회를 확인했다. 공개 앱에서 응답 유실 후 복구하는 동작은 Apple 담당이 검증한다. [Apple 추천 복구 카드](https://github.com/users/chawon/projects/1/views/2?pane=issue&itemId=312248018)
 
 ### iOS / iPadOS · macOS 진행 현황 (`2026-11-21`)
 
@@ -79,7 +83,24 @@ Windows의 서버 계정 삭제에서 요청 경로와 실패 처리의 불일�
     - **iOS / iPadOS**: `app.ottline` `2.0.0 (27)`(`MinimumOSVersion 16.0`, Widget·Share 익스텐션 포함) 업로드 및 한·영 스크린샷(iPhone 6.3" / iPad 13")·ASO 제목/부제 반영 후 **심사 제출 완료**
     - **macOS**: `app.ottline` (`id6780318110` macOS 플랫폼 신규 추가) `2.0.0 (27)`(`LSMinimumSystemVersion 14.0`, App Sandbox Release 권한 검증) 업로드 및 한·영 스크린샷(`2560×1600` 각 5장)·심사 메모 입력 후 **최초 심사 제출 완료**
 - **당시 남은 확인의 인계**: 심사·공개 대기는 `2026-11-22` 사용자 출시 확인으로 갱신했다. 공개 스토어판 업데이트·macOS 연결·웹/확장 활성화는 위 출시 후 담당 업무에서 추적한다. [macOS 플랫폼 상태](../../wiki/pages/platforms/macos-native.md)
-- *(별도 후속 검토)* macOS 데스크톱 WidgetKit 익스텐션과 전용 App Group은 기능 제안이며 현재 출시 검증의 완료 조건에 포함하지 않는다.
+
+### iOS / iPadOS · macOS `2.0.1 (28)` 후속 통합 반영 (`2026-11-23`)
+
+- **PR / 병합 커밋**: [PR #173](https://github.com/chawon/ott/pull/173) 병합 완료 (`main` `5567dd5`, 코드 커밋 `49e62c3`)
+- **주요 반영 내역**:
+  - **서버 계정 삭제 실패 보존 ([#163](https://github.com/chawon/ott/issues/163))**: `OttlineRepository.deleteServerAccountAndLocalData()`에 미연결(`not_connected`) 가드 및 `performServerAccountDeletion(locale:)` 결과를 추가하고 `MySpaceScreen.swift`·`MacMySpaceAndDialogs.swift`의 `try?`를 제거했다. HTTP 오류(`401`/`404`/`500`)·오프라인 시 로컬 DB·연결 정보·`devices`·프로필 상태를 보존하고 시트 내 KO/EN 오류/재시도 안내를 표시하며, 서버 2xx 성공 확인 후에만 초기화·성공 토스트를 실행한다.
+  - **함께 AI 큐레이터 제거 (카드 `313279211`)**: iPhone·iPad(`TogetherScreen.swift`), macOS(`MacTimelineAndTogetherViews.swift`), `OttlineCore`(`CuratedContentItem`, `getCuratedContents`)의 큐레이터 UI·상태·조회 호출을 전면 제거하고 정적 CI 차단 가드를 추가했다. 구 Expo(`apps/native`)에는 큐레이터 미탑재를 확인했다.
+  - **iPad·macOS 함께 2단 정합성 및 동반 보강 (카드 `313285015` + `#163`)**: 공용 `TogetherFilterSort`·`TogetherReactionGuard` 도입, iPad 가로·세로/Split View(`>= 700pt` 2단 ↔ 단일) 선택 연속성 및 직접 상세 링크 진입 지원, macOS `MacTogetherSpreadView` 종류 필터·정렬·검색 초기화·`CommentsPanelView.id(disc.id)`·반응 레이스 가드·신고·오류/재시도 보강, `PublicDiscussionDetailScreen` `404` vs 일반 오류 구분 및 `CommentsPanelView` 취소 가드·재시도를 반영했다.
+  - **macOS 데스크톱 위젯 (`OttlineMacWidgetExtension`, `app.ottline.MacWidget`)**: App Sandbox + App Group(`3Z9ULN66D4.group.app.ottline`) 기반 `.systemSmall`·`.systemMedium`·`.systemLarge` 위젯과 `ottline://title/<id>`·`ottline://public/<id>` 딥링크 파싱을 추가하고, `macOS 15.8.3` 실기기에서 `chronod`·`NotificationCenter` 갤러리 등록·실시간 타임라인 렌더링·사용자 확인을 마쳤다.
+- **완료한 검증 및 App Store Connect 업로드**:
+  - **정적 계약·단위 테스트**: `verify-ios-project.sh`·`verify-macos-project.sh` 통과, `OttlineTests` **20/20 통과**, `OttlineMacTests` **6/6 통과**.
+  - **GitHub Actions CI**: PR #173 [Native iOS v2 CI `45183376281`](https://github.com/chawon/ott/actions/runs/45183376281) · [Native macOS v2 CI `45183376159`](https://github.com/chawon/ott/actions/runs/45183376159) 성공, `main` (`5567dd5`) [Native macOS v2 CI `45190943508`](https://github.com/chawon/ott/actions/runs/45190943508) 6/6 및 [iOS CI `45190943521`](https://github.com/chawon/ott/actions/runs/45190943521) 20/20 통과.
+  - **운영 API(`https://ottline.app`) 격리 계정 실측**: `GET /api/curated-contents` KO/EN `200 []`, `#147` 기기 표기 `[('iPad App', 'iPadOS'), ('macOS App', 'macOS')]`, `#142` `내 미래는?` `quota.used 0→1` (`10445ms`, `items=6`)·동일 `requestId` 멱등 재시도 `1→1` (`653ms`, `+0` 차감)·`/state` 복구·EN 로케일 격리(`hasBatch=false`) 확인 후 `DELETE /api/auth/account` (`200`, `222ms`)로 임시 계정 정리 완료.
+  - **Mac App Store `2.0.0 (27)` 설치판 확인 (`/Applications/ottline.app`, `_MASReceipt`, `macOS 15.8.3`)**: `NSWorkspace` URL 해석 및 `ottline://quick?quick=1&title=Dune&platform=Netflix&type=video` 프로토콜 기동 확인.
+  - **App Store Connect 업로드 및 심사 제출 (`2.0.1`, build `28`)**: `Ottline 2.0.1 (28).xcarchive`(`OttlineApp.ipa`, `EXPORT SUCCEEDED`) 및 `OttlineMac 2.0.1 (28).xcarchive`(`ottline.pkg`, `OttlineMacWidgetExtension` 포함, `EXPORT SUCCEEDED`) 모두 업로드 후 **iOS/iPadOS·macOS `2.0.1 (28)` 심사 제출 완료**(`2026-11-23 23:22 KST`, `Waiting for Review`).
+  - **11월 24일 공개 확인.** 한국·미국 스토어의 `2.0.1` 버전 기록은 Mac 06:09 KST, iPhone·iPad 08:25 KST다. [한국 Mac](https://apps.apple.com/kr/app/id6780318110?platform=mac) · [미국 Mac](https://apps.apple.com/us/app/id6780318110?platform=mac) · [iPhone](https://apps.apple.com/kr/app/id6780318110) · [iPad](https://apps.apple.com/us/app/id6780318110?platform=ipad)
+- **공개 설치판 검증.** Apple 담당은 iPhone·iPad·Mac에서 계정 삭제 실패 시 기록·연결·입력 보존과 재시도 성공 뒤 초기화, 큐레이터 UI·조회 제거를 확인한다. iPhone·iPad에서는 Expo `1.0.4 (24)`에서 업데이트한 기록 보존, iPad에서는 창 너비 전환 시 선택 유지도 확인한다. [삭제 검증 #163](https://github.com/chawon/ott/issues/163#issuecomment-7119018051) · [Apple 업데이트 검증](https://github.com/users/chawon/projects/1/views/2?pane=issue&itemId=312000240)
+- **Mac 브라우저 연결.** `2.0.0 (27)` 스토어판에서 빠른 기록 URL로 앱이 열렸다. 공개 `2.0.1`에서 Safari·Chrome의 기존 계정·미동기화 기록 이어받기와 빠른 기록 화면의 제목·플랫폼 값은 macOS 담당이 확인한다. [Mac 설치판 카드](https://github.com/users/chawon/projects/1/views/2?pane=issue&itemId=313827720)
 
 ## 3. 브라우저 확장·토스·ChatGPT 앱
 

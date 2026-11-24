@@ -579,53 +579,7 @@ public struct TmdbMetadataResponse: Codable, Sendable {
     public var overview: String?
 }
 
-// MARK: - Discussions, Curated & Together
-
-public struct CuratedContentItem: Codable, Equatable, Identifiable, Sendable {
-    public var id: String
-    public var titleId: String
-    public var titleName: String
-    public var titleType: TitleType
-    public var titleYear: Int?
-    public var posterUrl: String?
-    public var kind: String
-    public var body: String
-    public var actorKey: String
-    public var actorType: String
-    public var actorDisplayName: String
-    public var disclosure: String
-    public var publishedAt: String
-
-    public init(
-        id: String,
-        titleId: String,
-        titleName: String,
-        titleType: TitleType = .movie,
-        titleYear: Int? = nil,
-        posterUrl: String? = nil,
-        kind: String = "",
-        body: String = "",
-        actorKey: String = "",
-        actorType: String = "AI_CURATOR",
-        actorDisplayName: String = "",
-        disclosure: String = "",
-        publishedAt: String = ""
-    ) {
-        self.id = id
-        self.titleId = titleId
-        self.titleName = titleName
-        self.titleType = titleType
-        self.titleYear = titleYear
-        self.posterUrl = posterUrl
-        self.kind = kind
-        self.body = body
-        self.actorKey = actorKey
-        self.actorType = actorType
-        self.actorDisplayName = actorDisplayName
-        self.disclosure = disclosure
-        self.publishedAt = publishedAt
-    }
-}
+// MARK: - Discussions & Together
 
 public struct DiscussionReactionSummary: Codable, Equatable, Sendable {
     public var done: Int

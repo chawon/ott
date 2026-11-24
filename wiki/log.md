@@ -1,5 +1,39 @@
 # Wiki Log
 
+## [2026-11-24] Mac·iPhone·iPad App Store `2.0.1` 공개
+
+한국·미국의 플랫폼별 스토어에서 Mac 06:09 KST, iPhone·iPad 08:25 KST 버전 기록을 확인했다. PR #173 병합본 `5567dd5`의 Mac 테스트 6개와 iOS 테스트 20개가 통과했다. 스토어에 제출한 빌드는 `28`이다. [한국 Mac](https://apps.apple.com/kr/app/id6780318110?platform=mac) · [미국 iPad](https://apps.apple.com/us/app/id6780318110?platform=ipad) · [출시·CI 근거](https://github.com/chawon/ott/issues/163#issuecomment-7119018051)
+
+공개 설치판의 계정 삭제 실패·재시도·성공과 Safari·Chrome에서 Mac으로 기존 기록을 이어받는 흐름은 담당 카드에서 계속 검증한다. [삭제 검증 #163](https://github.com/chawon/ott/issues/163#issuecomment-7119018051) · [Mac 설치판 검증](https://github.com/users/chawon/projects/1/views/2?pane=issue&itemId=313827720) · [Apple 후속 작업](../docs/changes/v2-follow-up.md#2-apple-v2-업데이트-검증)
+
+## [2026-11-23] release(apple): PR #173 병합 및 iOS·macOS `2.0.1 (28)` App Store 심사 제출
+
+- [PR #173](https://github.com/chawon/ott/pull/173)을 `main` `5567dd5`(코드 `49e62c3`)에 병합했다.
+- 주요 반영: 서버 계정 삭제 실패 시 로컬·연결·화면 상태 보존 및 KO/EN 오류/재시도 안내([#163](https://github.com/chawon/ott/issues/163)), 함께 AI 큐레이터 UI·조회 전면 제거(카드 `313279211`, 구 Expo 미탑재 확인), iPad 함께 2단↔Split View 연속성·직접 링크·오류/재시도·반응 레이스 가드 및 macOS 함께 종류 필터/정렬/레이스 가드 보강(카드 `313285015`), **macOS 데스크톱 위젯(`OttlineMacWidgetExtension`, `3Z9ULN66D4.group.app.ottline`, Small/Medium/Large)** 추가.
+- 검증·CI·제출: `OttlineTests` **20/20**, `OttlineMacTests` **6/6**, PR [iOS CI `45183376281`](https://github.com/chawon/ott/actions/runs/45183376281)·[macOS CI `45183376159`](https://github.com/chawon/ott/actions/runs/45183376159) 및 `main` [macOS CI `45190943508`](https://github.com/chawon/ott/actions/runs/45190943508) 통과, `macOS 15.8.3` 실기기 데스크톱 위젯 갤러리 등록·렌더링 사용자 검수 통과, 운영 API 격리 계정 실측(`GET /api/curated-contents` `200 []`, `#147` `iPad App/iPadOS`·`macOS App/macOS`, `#142` `quota.used 0→1` 및 동일 `requestId` 멱등 재시도 `1→1`, `DELETE /api/auth/account` `200` 정리) 완료, Mac App Store `2.0.0 (27)` 설치판 `ottline://quick` 프로토콜 확인 완료. Release **`2.0.1 (28)`** iOS(`OttlineApp.ipa`)·macOS(`ottline.pkg`) 모두 App Store Connect 업로드 및 **심사 제출 완료**(`2026-11-23 23:22 KST`, `Waiting for Review`).
+- 남은 확인: iOS·macOS `2.0.1 (28)` 심사 승인·공개 후 실기기 확인(`#163`·큐레이터 제거·iPad 2단·Expo 업데이트·Safari/Chrome `?native_handoff=1`). [플랫폼 현황](../docs/platforms.md) · [후속 작업](../docs/changes/v2-follow-up.md#ios--ipados--macos-201-28-후속-통합-반영-2026-11-23) · [iOS Wiki](pages/platforms/native.md) · [macOS Wiki](pages/platforms/macos-native.md)
+
+## [2026-11-23] Windows 구버전 감상 기록 삭제 반영 검증
+
+`2.0.2.0` 심사 제출 후 본부가 구버전 기록 ID에서 삭제 반영 누락을 재현해 Windows 담당의 #161을 진행으로 되돌렸다. [검증 결과](https://github.com/chawon/ott/issues/161#issuecomment-7092864246) · [Windows 후속 작업](../docs/changes/v2-follow-up.md#windows-후속-기능-통합-반영-2026-11-22-차기-v2020-후보)
+
+후속 `2.0.3.0` 후보 `d23a56c`에서 기존 재현은 통과했다. 삭제 반영 직전의 최신 편집이 서버에 전송되지 않는 사례를 확인해 Windows 담당에게 보완을 요청했다. [PR #172 검토](https://github.com/chawon/ott/pull/172#pullrequestreview-6018306106)
+
+## [2026-11-23] release(windows): PR #168 병합 및 Microsoft Store `v2.0.2.0` 심사 제출 (`Certification`)
+
+- [PR #168](https://github.com/chawon/ott/pull/168)([#161](https://github.com/chawon/ott/issues/161))을 `main` `fa09d2e`(코드 `be854a4`)로 병합하고 `main` `Native Windows CI`([`45116276550`](https://github.com/chawon/ott/actions/runs/45116276550), `1m28s`, `Ottline.Tests` **59/59**) 통과를 확인했다.
+- PR #156(추천 60초 복구·큐레이터 제거·함께 2단/`PUT /reactions`·공통 5종 풋터/안내) + PR #168(동기화 push 계약·구버전 1회 원자적 복구·`stale` 풀 확인 해소·`logs.deleted_at` 소프트 삭제·계측/버전 정합) 통합본 `ottline-2.0.2.0.msixbundle`(`x64` `81.50 MB` + `arm64` `77.56 MB`, 총 `159.06 MB`, SHA-256 `C4622C9CEE02D199B2FA835B1C5199E5BC0DEC7A36E8721568B75787626DD24A`)을 Partner Center `9NSVNZGDMGF5`에 제출했다(Submission ID **`1152921505702478292`**, 상태 **`Certification`**, `Errors: 0`, `Desktop` 전용).
+- Project 카드 `#161`을 **`검증`**으로 이동했다. 남은 확인은 `v2.0.2.0` 공개 게시 확인 및 공개 Store 설치판 실기기 교차 동기화 검증이다. [Windows Wiki](pages/platforms/windows-native.md) · [스토어 근거](pages/platforms/ms-store.md) · [후속 작업](../docs/changes/v2-follow-up.md#windows-후속-기능-통합-반영-2026-11-22-차기-v2020-후보)
+
+## [2026-11-23] verify(windows): Store 공개판 `2.0.1.0` 계정 삭제 실기기 검증 완료 및 PR #168 동기화 복구 보완(`be854a4`)
+
+- Microsoft Store 공개 설치판 `ChawonLee.ottline_2.0.1.0_arm64__ry7416pek43sa`에서 [PR #140](https://github.com/chawon/ott/pull/140)의 온라인 `서버 데이터 전체 삭제` 성공 로컬 초기화 및 오프라인 실패 시 로컬 기록·연결 상태 보존 실기기 검증을 완료했다. Project 카드(`Windows 계정 삭제 요청과 실패 처리 수정`)를 **`완료`**로 전환했다. [삭제 정책](pages/features/delete-sync.md#windows-확인-사항) · [스토어 근거](pages/platforms/ms-store.md) · [후속 작업](../docs/changes/v2-follow-up.md#1-windows-서버-계정-삭제-수정)
+- 차기 `2.0.2.0` 후보 [PR #168](https://github.com/chawon/ott/pull/168) (`fix/windows-sync-push-contract`, HEAD `be854a4`)에 본부 재검토 2건(복구 중 종료 단일 트랜잭션 원자화·고아 행 자가 복구, `logs.deleted_at` 소프트 삭제 반영 및 이력·동시 수정·재기록 보존)을 반영해 `Ottline.Tests` **59/59**, 운영 API 임시 계정 실검증 **7/7**, `Native Windows CI`([`45114305364`](https://github.com/chawon/ott/actions/runs/45114305364))를 통과하고 본부 재검토를 회신했다.
+
+## [2026-11-23] Windows 네이티브 앱 2.0.1.0 공개
+
+한국·미국 Microsoft Store에서 `2.0.1.0` x64·arm64 패키지를 확인했다. [PR #140](https://github.com/chawon/ott/pull/140)의 서버 계정 삭제 수정이 포함됐다. 공개 설치판에서의 계정 삭제·오류 보존 검증과 `2.0.2.0` 후보의 동기화 수정은 Windows 담당이 이어간다. [스토어 근거](pages/platforms/ms-store.md) · [후속 작업](../docs/changes/v2-follow-up.md#1-windows-서버-계정-삭제-수정)
+
 ## [2026-11-22] feat(windows): 추천 복구·큐레이터 제거·함께 2단·공통 풋터/안내 5종 PR #156 병합 (차기 v2.0.2.0 후보)
 
 - [PR #156](https://github.com/chawon/ott/pull/156) `main` 병합 완료(`b6baa17`, 순차 커밋 `38deac2` · `2800702` · `c50b6c5` · `ce860a9`).

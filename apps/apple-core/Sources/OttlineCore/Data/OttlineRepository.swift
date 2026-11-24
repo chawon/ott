@@ -988,10 +988,41 @@ public final class OttlineRepository: ObservableObject, @unchecked Sendable {
     }
 
     public func deleteServerAccountAndLocalData() async throws {
-        if !(prefs.snapshot.userId ?? "").isEmpty && !(prefs.snapshot.deviceId ?? "").isEmpty {
-            try await api.deleteAccount()
+        guard !(prefs.snapshot.userId ?? "").isEmpty,
+              !(prefs.snapshot.deviceId ?? "").isEmpty else {
+            throw ApiError(statusCode: 0, code: "not_connected", message: "No linked server account")
         }
+        try await api.deleteAccount()
         resetLocalData()
+    }
+
+    public func performServerAccountDeletion(locale: String) async -> ServerAccountDeletionOutcome {
+        do {
+            try await deleteServerAccountAndLocalData()
+            return .deleted(
+                message: OttlineStrings.tr(
+                    "서버 데이터를 모두 삭제했어요.",
+                    "All server data deleted.",
+                    locale: locale
+                )
+            )
+        } catch let apiError as ApiError where apiError.code == "not_connected" {
+            return .notConnected(
+                message: OttlineStrings.tr(
+                    "연결된 서버 계정이 없어요. 이 기기의 기록만 비우려면 ‘로컬 데이터 초기화’를 사용해 주세요.",
+                    "No server account is linked on this device. Use 'Reset local data' to clear local records.",
+                    locale: locale
+                )
+            )
+        } catch {
+            return .failed(
+                message: OttlineStrings.tr(
+                    "서버 데이터를 삭제하지 못했어요. 네트워크 연결을 확인한 뒤 다시 시도해 주세요. 이 기기의 기록과 연결 정보는 그대로 보존됐어요.",
+                    "Couldn't delete server data. Check your connection and try again. Your local records and link are still safe.",
+                    locale: locale
+                )
+            )
+        }
     }
 
     // MARK: - 7. Analytics (`platform = "ios_native"`)
