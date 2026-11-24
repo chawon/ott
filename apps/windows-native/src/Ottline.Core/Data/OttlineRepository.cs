@@ -1137,29 +1137,6 @@ public sealed class OttlineRepository : IDisposable
         return deletedLogs.FirstOrDefault(d => SyncIdNormalizer.IsSameLogIdentity(local.Id, d.Id));
     }
 
-    private static bool TryResolveServerDeletedEffectiveUtc(SyncDeletedLog deletedLog, out DateTimeOffset effectiveUtc)
-    {
-        var hasDeleted = SyncIdNormalizer.TryParseUtc(deletedLog.DeletedAt, out var deletedUtc);
-        var hasUpdated = SyncIdNormalizer.TryParseUtc(deletedLog.UpdatedAt, out var updatedUtc);
-        if (hasDeleted && hasUpdated)
-        {
-            effectiveUtc = deletedUtc >= updatedUtc ? deletedUtc : updatedUtc;
-            return true;
-        }
-        if (hasDeleted)
-        {
-            effectiveUtc = deletedUtc;
-            return true;
-        }
-        if (hasUpdated)
-        {
-            effectiveUtc = updatedUtc;
-            return true;
-        }
-        effectiveUtc = default;
-        return false;
-    }
-
     private static bool IsStaleRecordConfirmedInFullPull(WatchLog staleLog, SyncPullResult fullPull)
     {
         if (FindMatchingServerLog(staleLog, fullPull.UpsertedLogs) != null)
@@ -1247,7 +1224,7 @@ public sealed class OttlineRepository : IDisposable
                 if (matchedDeleted != null)
                 {
                     var hasLocalDelUtc = SyncIdNormalizer.TryParseUtc(local.UpdatedAt, out var localDelUtc);
-                    var hasServerDelUtc = TryResolveServerDeletedEffectiveUtc(matchedDeleted, out var serverDelUtc);
+                    var hasServerDelUtc = SyncIdNormalizer.TryResolveServerDeletedEffectiveUtc(matchedDeleted, out var serverDelUtc);
                     var localIsNewerOrTie = hasLocalDelUtc && hasServerDelUtc && localDelUtc >= serverDelUtc;
                     if (!localIsNewerOrTie)
                     {
@@ -1386,7 +1363,7 @@ public sealed class OttlineRepository : IDisposable
                 continue;
             }
 
-            var hasServerDelUtc = TryResolveServerDeletedEffectiveUtc(deletedLog, out var serverDelUtc);
+            var hasServerDelUtc = SyncIdNormalizer.TryResolveServerDeletedEffectiveUtc(deletedLog, out var serverDelUtc);
 
             foreach (var existingLocal in matchedLocals)
             {
@@ -1399,7 +1376,8 @@ public sealed class OttlineRepository : IDisposable
                     continue;
                 }
 
-                // Atomically preserve revision history, remap legacy non-UUID ID to canonical server UUID,
+                // Atomically re-verify pending outbox & latest UpdatedAt inside SQLite transaction,
+                // preserve revision history, remap legacy non-UUID ID to canonical server UUID,
                 // and mark soft-deleted without touching any separate log on the same title.
                 _db.ApplyServerDeletedLogAtomic(existingLocal, deletedLog);
             }

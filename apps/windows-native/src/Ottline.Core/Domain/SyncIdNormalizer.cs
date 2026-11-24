@@ -181,4 +181,27 @@ public static class SyncIdNormalizer
         utc = default;
         return false;
     }
+
+    public static bool TryResolveServerDeletedEffectiveUtc(SyncDeletedLog deletedLog, out DateTimeOffset effectiveUtc)
+    {
+        var hasDeleted = TryParseUtc(deletedLog.DeletedAt, out var deletedUtc);
+        var hasUpdated = TryParseUtc(deletedLog.UpdatedAt, out var updatedUtc);
+        if (hasDeleted && hasUpdated)
+        {
+            effectiveUtc = deletedUtc >= updatedUtc ? deletedUtc : updatedUtc;
+            return true;
+        }
+        if (hasDeleted)
+        {
+            effectiveUtc = deletedUtc;
+            return true;
+        }
+        if (hasUpdated)
+        {
+            effectiveUtc = updatedUtc;
+            return true;
+        }
+        effectiveUtc = default;
+        return false;
+    }
 }
