@@ -22,13 +22,11 @@ import { Link } from "@/i18n/routing";
 import { api, apiWithAuth } from "@/lib/api";
 import { googleBooksUrl } from "@/lib/googleBooks";
 import {
-  enqueueUpdateLog,
   getTitleLocal,
   getUserId,
   listHistoryLocal,
   listLogsByTitleLocal,
-  updateLogLocal,
-  updatePendingCreatePayload,
+  saveLogEdit,
   upsertHistoryLocal,
   upsertLogsLocal,
   upsertTitleLocal,
@@ -656,7 +654,6 @@ export default function TitlePage() {
       };
 
       setLog(updatedLocal);
-      await updateLogLocal(log.id, updatedLocal);
       const historyEntry: WatchLogHistory = {
         id: safeUUID(),
         logId: log.id,
@@ -676,15 +673,7 @@ export default function TitlePage() {
         occasion: occasion || null,
       };
       setHistory((prev) => [historyEntry, ...prev]);
-      await upsertHistoryLocal([historyEntry]);
-
-      const mergedIntoCreate = await updatePendingCreatePayload(
-        log.id,
-        payload,
-      );
-      if (!mergedIntoCreate) {
-        await enqueueUpdateLog(log.id, payload);
-      }
+      await saveLogEdit(updatedLocal, payload, historyEntry);
       await syncOutbox();
       setEditOpen(false);
     } catch (error) {

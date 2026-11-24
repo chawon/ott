@@ -1,14 +1,15 @@
-import { apiWithAuth, ensureAuthIds } from "./api";
-import type { OutboxItem } from "./db";
+import { ApiError, apiForSync, ensureAuthIds } from "./api";
+import { db, type OutboxItem } from "./db";
 import {
   findTitleByProvider,
+  getDeviceId,
   getTitleLocal,
+  getUserId,
   listOutbox,
-  markLogDeleted,
+  outboxLogId as logId,
   recordOutboxError,
   remapLogsForTitle,
   removeLogsByTitleExcept,
-  removeOutboxItem,
   removeTitleLocal,
   setLogSyncStatus,
   upsertLogLocal,
@@ -68,11 +69,6 @@ function emitSyncUpdate() {
   window.dispatchEvent(new CustomEvent("sync:updated"));
 }
 
-function getUserId() {
-  if (typeof localStorage === "undefined") return null;
-  return localStorage.getItem("watchlog.userId");
-}
-
 function getLastSyncAt(userId: string) {
   if (
     typeof localStorage === "undefined" ||
@@ -89,78 +85,153 @@ function setLastSyncAt(userId: string, value: string) {
   localStorage.setItem("watchlog.lastSyncUserId", userId);
 }
 
-type SyncAuthIds = {
-  userId: string | null;
-  deviceId: string | null;
+type SyncIdentity = { userId: string; deviceId: string };
+type PulledLog = Omit<WatchLog, "title"> & { titleId: string };
+type PullResponse = {
+  serverTime: string;
+  changes: { logs: PulledLog[]; titles: Title[] };
+};
+type OutboxPayload = {
+  log?: { id: string; op?: string; updatedAt?: string };
+  title?: unknown;
+  updatedAt?: string;
 };
 
-async function pushItem(item: OutboxItem, auth: SyncAuthIds) {
-  const payload = item.payload as any;
-  const changes = {
-    logs: payload?.log ? [payload.log] : [],
-    titles: payload?.title ? [payload.title] : [],
-  };
+class AccountChanged extends Error {}
 
-  const res = await apiWithAuth<{
+function requireAccount(auth: SyncIdentity) {
+  if (getUserId() !== auth.userId || getDeviceId() !== auth.deviceId)
+    throw new AccountChanged();
+}
+
+// Account switches during a Dexie await must roll back the entire local commit.
+function accountTransaction<T>(auth: SyncIdentity, work: () => Promise<T>) {
+  return db.transaction(
+    "rw",
+    db.titles,
+    db.logs,
+    db.history,
+    db.outbox,
+    async () => {
+      requireAccount(auth);
+      const result = await work();
+      requireAccount(auth);
+      return result;
+    },
+  );
+}
+
+function payload(item: OutboxItem) {
+  return (item.payload ?? {}) as OutboxPayload;
+}
+
+function sameOperation(current: OutboxItem, sent: OutboxItem) {
+  // Edits may replace a queued create in place, even within the same millisecond.
+  return (
+    current.id === sent.id &&
+    current.type === sent.type &&
+    logId(current) === logId(sent) &&
+    current.userId === sent.userId &&
+    JSON.stringify(current.payload) === JSON.stringify(sent.payload)
+  );
+}
+
+// OffsetDateTime can include fractions finer than the browser's milliseconds.
+const zonedTimestamp =
+  /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.(\d{1,9}))?(?:Z|[+-]\d{2}:\d{2})$/i;
+
+function newerVersion(candidate?: string, previous?: string) {
+  if (!candidate || !previous) return false;
+  const left = zonedTimestamp.exec(candidate);
+  const right = zonedTimestamp.exec(previous);
+  if (!left || !right) return false;
+  const epoch = Date.parse(candidate);
+  const base = Date.parse(previous);
+  if (epoch !== base) return epoch > base;
+  const submillis = (fraction = "") => fraction.padEnd(9, "0").slice(3);
+  return Number.isFinite(epoch) && submillis(left[1]) > submillis(right[1]);
+}
+
+function isOffline() {
+  return typeof navigator !== "undefined" && !navigator.onLine;
+}
+
+async function pushItem(item: OutboxItem, auth: SyncIdentity) {
+  requireAccount(auth);
+  const { log, title } = payload(item);
+  if (!log || log.id !== logId(item)) throw new SyncRejectedError();
+  const res = await apiForSync<{
     accepted: string[];
     rejected: { id: string; reason: string }[];
-  }>("/sync/push", {
+  }>("/sync/push", auth, {
     method: "POST",
     body: JSON.stringify({
       userId: auth.userId,
       deviceId: auth.deviceId,
       clientTime: new Date().toISOString(),
-      changes,
+      changes: { logs: [log], titles: title ? [title] : [] },
     }),
   });
-
-  const rejectedIds = new Set((res.rejected ?? []).map((r) => r.id));
-  const logId = payload?.log?.id;
-  if (logId && rejectedIds.has(logId)) {
+  requireAccount(auth);
+  const rejection = res.rejected?.find((row) => row.id === log.id);
+  if (rejection?.reason === "stale") return "stale";
+  if (rejection || !res.accepted?.includes(log.id))
     throw new SyncRejectedError();
+  return "accepted";
+}
+
+function fetchChanges(auth: SyncIdentity, since: string | null) {
+  requireAccount(auth);
+  const query = since ? `?since=${encodeURIComponent(since)}` : "";
+  return apiForSync<PullResponse>(`/sync/pull${query}`, auth);
+}
+
+async function cacheLog(
+  row: PulledLog,
+  titles: Map<string, Title>,
+  pendingIds: Set<string>,
+  verifiedConflict = false,
+) {
+  if (pendingIds.has(row.id)) return;
+  const existing = await db.logs.get(row.id);
+  if (!verifiedConflict && existing?.syncStatus === "pending") return;
+  if (
+    existing?.syncStatus === "synced" &&
+    newerVersion(existing.updatedAt, row.updatedAt)
+  )
+    return;
+  const { titleId, ...fields } = row;
+  const title =
+    titles.get(titleId) ??
+    (await getTitleLocal(titleId)) ??
+    ({ id: titleId, type: "movie", name: "Unknown" } as Title);
+  const log: WatchLog = {
+    ...fields,
+    title,
+    origin: row.origin ?? "LOG",
+    syncStatus: "synced",
+  };
+  if (!row.deletedAt)
+    await removeLogsByTitleExcept(titleId, row.id, pendingIds);
+  if (verifiedConflict || row.deletedAt) {
+    // Old installations may have bumped updatedAt just for a failed badge.
+    // The checked wire operation supplies the version; keep local history intact.
+    const updatedAt = row.updatedAt ?? row.deletedAt;
+    if (!updatedAt) return;
+    await upsertTitleLocal(title);
+    await db.logs.put({ ...log, titleId, updatedAt });
+  } else {
+    await upsertLogLocal(log);
   }
 }
 
-async function pullChanges() {
-  const userId = getUserId();
-  if (!userId) return;
-  const last = getLastSyncAt(userId);
-  const query = last ? `?since=${encodeURIComponent(last)}` : "";
-  const res = await apiWithAuth<{
-    serverTime: string;
-    changes: { logs: any[]; titles: any[] };
-  }>(`/sync/pull${query}`);
-
-  // Pairing may finish while an older account's request is still in flight.
-  if (getUserId() !== userId) {
-    syncRequested = true;
-    return;
-  }
-
-  const titleMap = new Map<string, Title>();
-  if (res.changes?.titles?.length) {
-    for (const t of res.changes.titles) {
-      const title: Title = {
-        id: t.id,
-        type: t.type,
-        name: t.name,
-        year: t.year ?? null,
-        genres: t.genres ?? null,
-        directors: t.directors ?? null,
-        cast: t.cast ?? null,
-        overview: t.overview ?? null,
-        posterUrl: t.posterUrl ?? null,
-        author: t.author ?? null,
-        publisher: t.publisher ?? null,
-        isbn10: t.isbn10 ?? null,
-        isbn13: t.isbn13 ?? null,
-        pubdate: t.pubdate ?? null,
-        provider: t.provider ?? undefined,
-        providerId: t.providerId ?? undefined,
-        updatedAt: t.updatedAt ?? undefined,
-        deletedAt: t.deletedAt ?? null,
-      };
-      titleMap.set(title.id, title);
+async function pullChanges(auth: SyncIdentity) {
+  const res = await fetchChanges(auth, getLastSyncAt(auth.userId));
+  await accountTransaction(auth, async () => {
+    const pending = new Set((await listOutbox()).map(logId));
+    const titles = new Map<string, Title>();
+    for (const title of res.changes.titles) {
+      titles.set(title.id, title);
       if (title.provider && title.providerId) {
         const local = await findTitleByProvider(
           title.provider,
@@ -168,110 +239,222 @@ async function pullChanges() {
           title,
         );
         if (local && local.id !== title.id) {
-          await remapLogsForTitle(local.id, title);
-          await removeTitleLocal(local.id);
+          if (await remapLogsForTitle(local.id, title, pending))
+            await removeTitleLocal(local.id);
         }
       }
       await upsertTitleLocal(title);
     }
-  }
-
-  if (res.changes?.logs?.length) {
-    for (const l of res.changes.logs) {
-      if (l.deletedAt) {
-        await markLogDeleted(l.id, l.deletedAt, l.updatedAt);
-        continue;
-      }
-      const title =
-        titleMap.get(l.titleId) ??
-        (await getTitleLocal(l.titleId)) ??
-        ({
-          id: l.titleId,
-          type: "movie",
-          name: "Unknown",
-        } as Title);
-
-      const log: WatchLog = {
-        id: l.id,
-        title,
-        status: l.status,
-        rating: l.rating ?? null,
-        note: l.note ?? null,
-        spoiler: l.spoiler ?? false,
-        ott: l.ott ?? null,
-        seasonNumber: l.seasonNumber ?? null,
-        episodeNumber: l.episodeNumber ?? null,
-        seasonPosterUrl: l.seasonPosterUrl ?? null,
-        seasonYear: l.seasonYear ?? null,
-        origin: l.origin ?? "LOG",
-        watchedAt: l.watchedAt,
-        place: l.place ?? null,
-        occasion: l.occasion ?? null,
-        createdAt: l.createdAt,
-        updatedAt: l.updatedAt ?? undefined,
-        deletedAt: l.deletedAt ?? null,
-        syncStatus: "synced",
-      };
-      await removeLogsByTitleExcept(l.titleId, l.id);
-      await upsertLogLocal(log);
-    }
-  }
-
-  if (getUserId() !== userId) {
-    syncRequested = true;
-    return;
-  }
-  if (res.serverTime) setLastSyncAt(userId, res.serverTime);
+    for (const log of res.changes.logs) await cacheLog(log, titles, pending);
+  });
+  requireAccount(auth);
+  if (res.serverTime) setLastSyncAt(auth.userId, res.serverTime);
 }
 
-async function runSyncCycle(): Promise<SyncState> {
-  if (typeof navigator !== "undefined" && !navigator.onLine)
-    return { status: "offline", failure: null };
+async function finishAccepted(auth: SyncIdentity, sent: OutboxItem) {
+  await accountTransaction(auth, async () => {
+    const current = await db.outbox.get(sent.id);
+    if (!current) return;
+    if (!sameOperation(current, sent)) {
+      syncRequested = true;
+      return;
+    }
+    await db.outbox.delete(sent.id);
+    if (
+      !(await db.outbox.filter((row) => logId(row) === logId(sent)).first())
+    ) {
+      await setLogSyncStatus(logId(sent), "synced");
+    }
+  });
+}
 
-  const items = await listOutbox();
-  const hasStoredUser = !!getUserId();
-  if (items.length === 0 && !hasStoredUser) return IDLE_SYNC_STATE;
+async function reconcileStale(
+  auth: SyncIdentity,
+  sent: OutboxItem,
+  snapshot: Map<string, OutboxItem>,
+) {
+  const version = payload(sent).log?.updatedAt;
+  if (
+    !version ||
+    !zonedTimestamp.test(version) ||
+    !Number.isFinite(Date.parse(version))
+  )
+    return false;
+  // A regular checkpoint may already be beyond this change. Ask from the
+  // rejected wire version so the account's strictly newer row is eligible.
+  const res = await fetchChanges(auth, version);
+  requireAccount(auth);
+  if (isOffline()) throw new Error("Offline during conflict recovery");
+  const server = res.changes.logs.find((row) => row.id === logId(sent));
+  if (
+    !server?.updatedAt ||
+    !server.titleId ||
+    !server.createdAt ||
+    !server.watchedAt ||
+    !server.status ||
+    !newerVersion(server.updatedAt, version)
+  )
+    return false;
+  const serverVersion = server.updatedAt;
+  await accountTransaction(auth, async () => {
+    const current = await db.outbox.get(sent.id);
+    if (
+      !current ||
+      current.userId !== auth.userId ||
+      logId(current) !== logId(sent)
+    )
+      return;
+    if (sameOperation(current, sent) && current.phase !== "followup")
+      await db.outbox.delete(sent.id);
+    const pending = await listOutbox();
+    const sameLog = pending.filter((row) => logId(row) === server.id);
+    if (sameLog.length) {
+      // Preserve edits saved while waiting, including an in-place create edit.
+      // A skewed device clock may need a successor to the observed server version.
+      let floor = serverVersion;
+      let rebased = false;
+      for (const edit of sameLog) {
+        const prior = snapshot.get(edit.id);
+        const change = payload(edit).log;
+        if (
+          edit.userId !== auth.userId ||
+          !change?.updatedAt ||
+          change.id !== server.id
+        )
+          continue;
+        if (prior && sameOperation(prior, edit) && edit.phase !== "followup") {
+          if (newerVersion(change.updatedAt, floor)) floor = change.updatedAt;
+          continue;
+        }
+        if (!newerVersion(change.updatedAt, floor)) {
+          const updatedAt = new Date(Date.parse(floor) + 1).toISOString();
+          const next = { ...payload(edit), log: { ...change, updatedAt } };
+          if (edit.type === "create_log") next.updatedAt = updatedAt;
+          await db.outbox.update(edit.id, { payload: next, phase: undefined });
+          floor = updatedAt;
+          rebased = true;
+        } else {
+          floor = change.updatedAt;
+          await db.outbox.update(edit.id, { phase: undefined });
+        }
+        syncRequested = true;
+      }
+      if (rebased) await db.logs.update(server.id, { updatedAt: floor });
+      return;
+    }
+    const titles = new Map(
+      res.changes.titles.map((title) => [title.id, title]),
+    );
+    await cacheLog(server, titles, new Set(pending.map(logId)), true);
+  });
+  return true;
+}
 
-  let auth: SyncAuthIds;
-  try {
-    auth = await ensureAuthIds({
-      register: items.length > 0 || hasStoredUser,
+async function markAttemptFailed(
+  auth: SyncIdentity,
+  sent: OutboxItem,
+  message: string,
+) {
+  await accountTransaction(auth, async () => {
+    const current = await db.outbox.get(sent.id);
+    if (!current || !sameOperation(current, sent)) return;
+    if (current.phase === "sending")
+      await db.outbox.update(sent.id, { phase: undefined });
+    await recordOutboxError(sent.id, message);
+    if (
+      !(await db.outbox
+        .filter((row) => row.id !== sent.id && logId(row) === logId(sent))
+        .first())
+    )
+      await setLogSyncStatus(logId(sent), "failed");
+  });
+}
+
+async function syncAccount(auth: SyncIdentity): Promise<SyncState> {
+  const items = await accountTransaction(auth, async () => {
+    const rows = await listOutbox();
+    for (const row of rows) {
+      if (!row.userId) {
+        // Existing v2/v3 rows have no ownership field. Bind before the first request.
+        row.userId =
+          localStorage.getItem("watchlog.lastSyncUserId") ?? auth.userId;
+        await db.outbox.update(row.id, { userId: row.userId });
+      }
+    }
+    return rows.filter((row) => row.userId === auth.userId);
+  });
+  const snapshot = new Map(items.map((item) => [item.id, item]));
+  const unverified = new Set<string>();
+  let failure: SyncState["failure"] = null;
+  for (const queued of items) {
+    if (unverified.has(logId(queued))) continue;
+    const item = await accountTransaction(auth, async () => {
+      const row = await db.outbox.get(queued.id);
+      if (!row || row.userId !== auth.userId) return;
+      // Another tab can save an edit before the push or its conflict read returns.
+      if (!row.phase) await db.outbox.update(row.id, { phase: "sending" });
+      return row;
     });
-  } catch (e) {
-    console.error("[Sync] Authentication failed during sync:", e);
-    return { status: "failed", failure: "auth" };
-  }
-
-  if (!auth.userId || !auth.deviceId)
-    return { status: "failed", failure: "auth" };
-
-  let pushFailure: SyncState["failure"] = null;
-  for (const item of items) {
+    if (!item) continue;
+    let checkingStale = false;
     try {
-      await pushItem(item, auth);
-      await removeOutboxItem(item.id);
-      if (item.type === "create_log") {
-        await setLogSyncStatus(item.localLogId, "synced");
+      const result = await pushItem(item, auth);
+      if (result === "stale") {
+        checkingStale = true;
+        if (!(await reconcileStale(auth, item, snapshot))) {
+          unverified.add(logId(item));
+          throw new SyncRejectedError();
+        }
       } else {
-        await setLogSyncStatus(item.logId, "synced");
+        await finishAccepted(auth, item);
       }
       emitSyncUpdate();
-    } catch (e: any) {
-      await recordOutboxError(item.id, e?.message ?? "Sync failed");
-      if (item.type === "create_log") {
-        await setLogSyncStatus(item.localLogId, "failed");
+    } catch (error) {
+      if (error instanceof AccountChanged) throw error;
+      if (isOffline()) return { status: "offline", failure: null };
+      await markAttemptFailed(
+        auth,
+        item,
+        error instanceof Error ? error.message : "Sync failed",
+      );
+      if (error instanceof SyncRejectedError) {
+        failure = "rejected";
+        if (unverified.has(logId(item))) continue;
       } else {
-        await setLogSyncStatus(item.logId, "failed");
+        failure = "request";
+        if (
+          checkingStale ||
+          (error instanceof ApiError && error.status === 401)
+        )
+          return { status: "failed", failure };
       }
-      pushFailure = e instanceof SyncRejectedError ? "rejected" : "request";
       break;
     }
   }
-  await pullChanges();
+  await pullChanges(auth);
   emitSyncUpdate();
-  return pushFailure
-    ? { status: "failed", failure: pushFailure }
-    : IDLE_SYNC_STATE;
+  return failure ? { status: "failed", failure } : IDLE_SYNC_STATE;
+}
+
+async function runSyncCycle(): Promise<SyncState> {
+  if (isOffline()) return { status: "offline", failure: null };
+  if (!getUserId() && !(await db.outbox.count())) return IDLE_SYNC_STATE;
+
+  let auth: Awaited<ReturnType<typeof ensureAuthIds>>;
+  try {
+    auth = await ensureAuthIds({ register: true });
+  } catch {
+    return { status: "failed", failure: "auth" };
+  }
+  if (!auth.userId || !auth.deviceId)
+    return { status: "failed", failure: "auth" };
+  try {
+    return await syncAccount({ userId: auth.userId, deviceId: auth.deviceId });
+  } catch (error) {
+    if (!(error instanceof AccountChanged)) throw error;
+    syncRequested = true;
+    return IDLE_SYNC_STATE;
+  }
 }
 
 export function syncOutbox(): Promise<void> {
@@ -286,7 +469,7 @@ export function syncOutbox(): Promise<void> {
         // A concurrent caller may have queued work after this cycle's snapshot.
         // Keep every caller waiting through that work and its canonical pull.
         outcome = await runSyncCycle();
-        if (outcome.status !== "idle") break;
+        if (outcome.status !== "idle" && outcome.failure !== "rejected") break;
       } while (syncRequested);
     } catch (error) {
       outcome = { status: "failed", failure: "request" };

@@ -13,7 +13,7 @@ export type LocalBookClassification = BookClassification & {
   source: "DATA4LIBRARY";
 };
 
-export type OutboxItem =
+export type OutboxItem = { userId?: string; phase?: "sending" | "followup" } & (
   | {
       id: string;
       type: "create_log";
@@ -40,7 +40,8 @@ export type OutboxItem =
       createdAt: string;
       attempts: number;
       lastError?: string | null;
-    };
+    }
+);
 
 class WatchLogDB extends Dexie {
   titles!: Table<LocalTitle, string>;
