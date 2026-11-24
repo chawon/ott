@@ -3,7 +3,7 @@
 > ottline은 가입 없이 영상과 책 기록을 시작하고, 개인 타임라인으로 다시 돌아보는 무료 기록 서비스입니다.
 > ottline is a free personal timeline for keeping video and book records without creating an account first.
 
-ottline은 한국어와 영어로 제공되며 Web, 설치형 PWA, Android, iOS, Windows, 브라우저 확장, 토스 인앱에서 같은 기록 흐름을 이어갑니다.
+ottline은 한국어와 영어로 제공되며 Web, 설치형 PWA, Android, iPhone·iPad(iOS/iPadOS), macOS, Windows, 브라우저 확장, 토스 인앱에서 같은 기록 흐름을 이어갑니다.
 
 ## How data works
 

@@ -208,6 +208,11 @@ export default function QuickLogCard({
   const [watchedDate, setWatchedDate] = useState(() =>
     recordDateInput(new Date().toISOString()),
   );
+  const storeImpressionRecord = useRef<string | null>(null);
+  const [storeSave, setStoreSave] = useState<{
+    id: string;
+    first: boolean;
+  } | null>(null);
   const [savedRecord, setSavedRecord] = useState<WatchLog | null>(null);
   const [editing, setEditing] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -401,6 +406,7 @@ export default function QuickLogCard({
     setSelected(null);
     setPendingStatus(null);
     setSavedRecord(null);
+    setStoreSave(null);
     setEditing(false);
     setSaveError(null);
     setPendingShare(null);
@@ -524,6 +530,7 @@ export default function QuickLogCard({
     setSelected(null);
     setPendingStatus(null);
     setSavedRecord(null);
+    setStoreSave(null);
     setEditing(false);
     setSaveError(null);
     setPendingShare(null);
@@ -838,6 +845,7 @@ export default function QuickLogCard({
       setLocalLogId(newLocalLogId);
       setStatus(clickedStatus);
       setSavedRecord(localLog);
+      setStoreSave({ id: newLocalLogId, first: logCountBeforeSave === 0 });
       setWatchedDate(recordDateInput(localLog.watchedAt));
       setEditing(false);
       const logCreateProperties = {
@@ -1479,7 +1487,13 @@ export default function QuickLogCard({
                     </button>
                   ) : null}
                 </div>
-                <SavedNativeStoreCta recordId={localLogId} />
+                {storeSave && (
+                  <SavedNativeStoreCta
+                    recordId={storeSave.id}
+                    firstRecord={storeSave.first}
+                    impressionRecord={storeImpressionRecord}
+                  />
+                )}
               </div>
             ) : (
               <>

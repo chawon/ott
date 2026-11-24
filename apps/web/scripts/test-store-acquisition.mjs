@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
-import { chromium } from "playwright";
+import { chromium, webkit } from "playwright";
 
 const base = new URL(process.env.WEB_RUNTIME_URL ?? "http://127.0.0.1:3220");
 assert.ok(
@@ -13,10 +13,12 @@ assert.ok(
 const output =
   process.env.STORE_QA_OUTPUT ?? "/tmp/ottline-windows-acquisition";
 await mkdir(output, { recursive: true });
-const browser = await chromium.launch({
+const browserType =
+  process.env.STORE_QA_BROWSER === "webkit" ? webkit : chromium;
+const browser = await browserType.launch({
   executablePath: process.env.PLAYWRIGHT_EXECUTABLE_PATH,
   headless: true,
-  args: ["--no-sandbox"],
+  args: browserType === chromium ? ["--no-sandbox"] : [],
 });
 const WINDOWS =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/143.0 Safari/537.36 Edg/143.0";
@@ -26,6 +28,10 @@ const IOS =
   "Mozilla/5.0 (iPhone; CPU iPhone OS 18_2 like Mac OS X) AppleWebKit/605.1.15 Version/18.2 Mobile/15E148 Safari/604.1";
 const MAC =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 Version/18.2 Safari/605.1.15";
+const LINUX =
+  "Mozilla/5.0 (X11; Linux aarch64) AppleWebKit/537.36 Chrome/143.0 Safari/537.36";
+const IOS_CHROME = IOS.replace("Version/18.2", "CriOS/143.0");
+const MAC_CHROME = MAC.replace("Version/18.2", "Chrome/143.0");
 const DISMISSED_KEY = "ottline.windowsStoreCta.dismissedAt";
 const title = {
   id: "10000000-0000-4000-8000-000000000031",
@@ -51,6 +57,9 @@ async function fixture({
   locale = "ko",
   width = 1440,
   standalone = false,
+  maxTouchPoints = 0,
+  cooldownKey = DISMISSED_KEY,
+  failOutbox = false,
   cooldown = null,
   twa = false,
   storageBlocked = false,
@@ -67,7 +76,26 @@ async function fixture({
   const errors = [];
   let log = null;
   await context.addInitScript(
-    ({ standalone, cooldown, twa, storageBlocked, key }) => {
+    ({
+      standalone,
+      cooldown,
+      twa,
+      storageBlocked,
+      key,
+      maxTouchPoints,
+      failOutbox,
+    }) => {
+      Object.defineProperty(navigator, "maxTouchPoints", {
+        value: maxTouchPoints,
+      });
+      if (failOutbox) {
+        const put = IDBObjectStore.prototype.put;
+        IDBObjectStore.prototype.put = function (...args) {
+          if (this.name === "outbox")
+            throw new DOMException("Fixture", "QuotaExceededError");
+          return put.apply(this, args);
+        };
+      }
       const media = window.matchMedia.bind(window);
       window.matchMedia = (query) =>
         query === "(display-mode: standalone)"
@@ -97,7 +125,15 @@ async function fixture({
         };
       }
     },
-    { standalone, cooldown, twa, storageBlocked, key: DISMISSED_KEY },
+    {
+      standalone,
+      cooldown,
+      twa,
+      storageBlocked,
+      key: cooldownKey,
+      maxTouchPoints,
+      failOutbox,
+    },
   );
   await context.route("**/*", async (route) => {
     const request = route.request();
@@ -184,6 +220,27 @@ function checkWindowsUrl(href, locale, campaign) {
     decodeURIComponent(href),
     /PRIVATE|pairing|userId|deviceId|recordId/,
   );
+}
+
+function checkAppleUrl(href, locale, device) {
+  const region = locale === "ko" ? "/kr" : "";
+  const path =
+    device === "mac"
+      ? "/app/id6780318110?platform=mac"
+      : "/app/ottline/id6780318110";
+  assert.equal(href, `https://apps.apple.com${region}${path}`);
+}
+
+function checkAppleEvent(event, locale, device) {
+  assert.equal(event.platform, "web");
+  assert.equal(event.properties.locale, locale);
+  assert.equal(event.properties.targetDevice, device);
+  assert.equal(event.properties.osFamily, device === "mac" ? "macos" : "ios");
+  assert.equal(
+    event.properties.deviceType,
+    { iphone: "mobile", ipad: "tablet", mac: "desktop" }[device],
+  );
+  assert.doesNotMatch(JSON.stringify(event.properties), /PRIVATE/);
 }
 
 async function activateExternalLink(page, locator) {
@@ -301,8 +358,22 @@ try {
       expected: "android-play",
     },
     { name: "twa", userAgent: ANDROID, twa: true, expected: null },
-    { name: "ios", userAgent: IOS, expected: "ios-pwa" },
-    { name: "mac", userAgent: MAC, expected: "browser-pwa" },
+    { name: "ios-smart-banner", userAgent: IOS, expected: null },
+    {
+      name: "ipad-desktop-smart-banner",
+      userAgent: MAC,
+      maxTouchPoints: 5,
+      expected: null,
+    },
+    { name: "ios-pwa", userAgent: IOS, standalone: true, expected: null },
+    { name: "mac-pwa", userAgent: MAC, standalone: true, expected: null },
+    {
+      name: "mac-webview",
+      userAgent: MAC.replace(/Version.*$/, ""),
+      expected: null,
+    },
+    { name: "mac", userAgent: MAC, expected: "macos-appstore" },
+    { name: "linux", userAgent: LINUX, expected: "browser-pwa" },
   ]) {
     const f = await fixture(item);
     try {
@@ -323,11 +394,6 @@ try {
           item.expected,
           item.name,
         );
-        if (item.expected === "ios-pwa")
-          assert.equal(
-            await f.page.getByTestId("store-install-link").count(),
-            0,
-          );
         if (item.expected === "browser-pwa") {
           await banner
             .getByRole("button", { name: "설치", exact: true })
@@ -340,6 +406,135 @@ try {
         }
       } else assert.equal(await banner.count(), 0, item.name);
       assert.deepEqual(f.errors, [], item.name);
+      scenarios++;
+    } finally {
+      await f.context.close();
+    }
+  }
+
+  for (const item of [
+    {
+      userAgent: IOS,
+      device: "iphone",
+      locale: "ko",
+      width: 390,
+      page: "/",
+      action: "click",
+    },
+    {
+      userAgent: IOS_CHROME,
+      device: "iphone",
+      locale: "en",
+      page: "/en",
+      action: "dismiss",
+    },
+    {
+      userAgent: MAC,
+      maxTouchPoints: 5,
+      device: "ipad",
+      locale: "ko",
+      page: "/guide/ott-watch-log",
+      action: "dismiss",
+    },
+    {
+      userAgent: MAC_CHROME,
+      maxTouchPoints: 5,
+      device: "ipad",
+      locale: "en",
+      page: "/en/guide/ott-watch-log",
+      action: "click",
+    },
+    {
+      userAgent: MAC,
+      device: "mac",
+      locale: "en",
+      page: "/en",
+      action: "click",
+    },
+    {
+      userAgent: MAC_CHROME,
+      device: "mac",
+      locale: "ko",
+      page: "/",
+      action: "dismiss",
+    },
+  ]) {
+    const f = await fixture(item);
+    try {
+      const platform =
+        item.device === "mac" ? "macos-appstore" : "ios-appstore";
+      const prefix = platform.replace("-", "_") + "_cta";
+      await f.page.goto(base.origin + item.page + "?recordId=PRIVATE");
+      const banner = f.page.getByTestId("store-install-banner");
+      const link = banner.getByTestId("store-install-link");
+      await link.waitFor();
+      assert.equal(await banner.getAttribute("data-store-platform"), platform);
+      checkAppleUrl(await link.getAttribute("href"), item.locale, item.device);
+      await until(
+        () =>
+          f.seen(`${prefix}_impression`, "global_install_banner").length === 1,
+        "One owned Apple banner impression",
+      );
+      checkAppleEvent(
+        f.seen(`${prefix}_impression`, "global_install_banner")[0],
+        item.locale,
+        item.device,
+      );
+      await installEvent(f.page);
+      assert.equal(await banner.count(), 1);
+      if (item.action === "click") await activateExternalLink(f.page, link);
+      else await f.page.getByTestId("store-install-dismiss").click();
+      await until(
+        () =>
+          f.seen(`${prefix}_${item.action}`, "global_install_banner").length ===
+          1,
+        "One global Apple interaction",
+      );
+      await banner.waitFor({ state: "detached" });
+      await f.page.waitForLoadState("networkidle");
+      await f.page.reload({ waitUntil: "networkidle" });
+      await f.page.locator("h1").waitFor();
+      await installEvent(f.page);
+      assert.equal(
+        await banner.count(),
+        0,
+        "Dismissal persists after navigating or reinstall prompt",
+      );
+      const about = (item.locale === "en" ? "/en" : "") + "/about";
+      await f.page.goto(base.origin + about);
+      const directory = f.page.getByTestId(`about-${platform}-link`);
+      await directory.scrollIntoViewIfNeeded();
+      await until(
+        () =>
+          f.seen(`${prefix}_impression`, "about_platform_card").length === 1,
+        "Matching Apple directory link was seen",
+      );
+      checkAppleUrl(
+        await directory.getAttribute("href"),
+        item.locale,
+        item.device,
+      );
+      await activateExternalLink(f.page, directory);
+      await until(
+        () => f.seen(`${prefix}_click`, "about_platform_card").length === 1,
+        "One directory click",
+      );
+      checkAppleEvent(
+        f.seen(`${prefix}_click`, "about_platform_card")[0],
+        item.locale,
+        item.device,
+      );
+      const other = item.device === "mac" ? "ios" : "macos";
+      assert.equal(
+        f.seen(`${other}_appstore_cta_impression`, "about_platform_card")
+          .length,
+        0,
+      );
+      assert.equal(
+        f.seen(`${prefix}_impression`, "global_install_banner").length,
+        1,
+      );
+      assert.deepEqual(f.errors, []);
       scenarios++;
     } finally {
       await f.context.close();
@@ -483,8 +678,55 @@ try {
       expected: null,
     },
     { name: "android", userAgent: ANDROID, expected: "android-play" },
-    { name: "ios", userAgent: IOS, expected: null },
-    { name: "mac", userAgent: MAC, expected: null },
+    {
+      name: "iphone-safari",
+      userAgent: IOS,
+      locale: "ko",
+      width: 390,
+      expected: "ios-appstore",
+      device: "iphone",
+      action: "dismiss",
+    },
+    {
+      name: "ipad-desktop",
+      userAgent: MAC,
+      maxTouchPoints: 5,
+      locale: "en",
+      expected: "ios-appstore",
+      device: "ipad",
+      action: "click",
+    },
+    {
+      name: "mac-chrome",
+      userAgent: MAC_CHROME,
+      locale: "en",
+      expected: "macos-appstore",
+      device: "mac",
+      action: "dismiss",
+    },
+    {
+      name: "mac-safari",
+      userAgent: MAC,
+      locale: "ko",
+      expected: "macos-appstore",
+      device: "mac",
+      action: "click",
+    },
+    {
+      name: "ios-cooldown",
+      userAgent: IOS,
+      cooldown: String(Date.now()),
+      cooldownKey: "ottline.iosAppStoreCta.dismissedAt",
+      expected: null,
+    },
+    {
+      name: "ios-standalone",
+      userAgent: IOS,
+      standalone: true,
+      expected: null,
+    },
+    { name: "mac-embedded", userAgent: MAC + " Instagram 123", expected: null },
+    { name: "failed-outbox", userAgent: IOS, failOutbox: true, expected: null },
   ]) {
     const f = await fixture(item);
     try {
@@ -498,7 +740,39 @@ try {
       );
       await f.page.getByTestId("title-search-result").first().click();
       await f.page.getByTestId("record-status-DONE").click();
+      assert.equal(
+        await f.page
+          .locator('[data-testid^="saved-"][data-testid$="-cta"]')
+          .count(),
+        0,
+      );
+      assert.equal(
+        f.events.filter((e) => e.properties.placement === "quicklog_saved")
+          .length,
+        0,
+      );
       await f.page.getByTestId("record-save-initial").click();
+      if (item.failOutbox) {
+        await f.page
+          .getByRole("alert")
+          .filter({ hasText: /.+/ })
+          .first()
+          .waitFor();
+        assert.equal(
+          await f.page.getByTestId("saved-ios-appstore-cta").count(),
+          0,
+        );
+        assert.equal(
+          f.events.filter(
+            (e) =>
+              e.eventName === "first_log_create" ||
+              e.properties.placement === "quicklog_saved",
+          ).length,
+          0,
+        );
+        scenarios++;
+        continue;
+      }
       await f.page.getByTestId("record-done").waitFor();
       assert.equal(
         await f.page.getByTestId("store-install-banner").count(),
@@ -508,10 +782,8 @@ try {
       if (item.expected) {
         const link = f.page.getByTestId(`saved-${item.expected}-link`);
         await link.waitFor();
-        const eventPrefix =
-          item.expected === "windows-store"
-            ? "windows_store_cta"
-            : "android_play_cta";
+        await link.scrollIntoViewIfNeeded();
+        const eventPrefix = item.expected.replace("-", "_") + "_cta";
         await until(
           () =>
             f.seen(`${eventPrefix}_impression`, "quicklog_saved").length === 1,
@@ -543,6 +815,41 @@ try {
             0,
             "Saved click also suppresses global CTA",
           );
+        } else if (item.device) {
+          checkAppleUrl(await link.getAttribute("href"), f.locale, item.device);
+          checkAppleEvent(
+            f.seen(`${eventPrefix}_impression`, "quicklog_saved")[0],
+            f.locale,
+            item.device,
+          );
+          if (item.action === "click") await activateExternalLink(f.page, link);
+          else
+            await f.page.getByTestId(`saved-${item.expected}-dismiss`).click();
+          await until(
+            () =>
+              f.seen(`${eventPrefix}_${item.action}`, "quicklog_saved")
+                .length === 1,
+            "One saved Apple interaction",
+          );
+          await link.waitFor({ state: "detached" });
+          await until(
+            () =>
+              f.events.filter((e) => e.eventName === "first_log_create")
+                .length === 1,
+            "First web record is independently measured",
+          );
+          assert.equal(
+            f.seen(`${eventPrefix}_impression`, "global_install_banner").length,
+            0,
+            "Direct recording does not emit a global impression",
+          );
+          await f.page.goto(base.origin + (f.locale === "en" ? "/en" : "/"));
+          await f.page.getByTestId("home-record").waitFor();
+          assert.equal(
+            await f.page.getByTestId("store-install-banner").count(),
+            0,
+            "Saved action also suppresses global banner on next visit",
+          );
         } else {
           const referrer = new URLSearchParams(
             new URL(await link.getAttribute("href")).searchParams.get(
@@ -562,6 +869,103 @@ try {
         );
       }
       assert.deepEqual(f.errors, [], item.name);
+      scenarios++;
+    } finally {
+      await f.context.close();
+    }
+  }
+
+  // The first local record remains eligible across editing and canonical ID
+  // refreshes. A subsequent record is ineligible even without a dismissal.
+  {
+    const f = await fixture({ userAgent: IOS, locale: "en" });
+    try {
+      await f.page.goto(base.origin + "/en");
+      await f.page.getByTestId("store-install-banner").waitFor();
+      await f.page.getByTestId("home-first-record").click();
+      const banner = f.page.getByTestId("store-install-banner");
+      const link = f.page.getByTestId("saved-ios-appstore-link");
+      for (let attempt = 0; attempt < 2; attempt++) {
+        if (attempt) await f.page.goto(base.origin + "/en?quick=1");
+        await f.page.getByTestId("title-search").fill(title.name);
+        await banner.waitFor({ state: "detached" });
+        await f.page.getByTestId("title-search-result").first().click();
+        await f.page.getByTestId("record-status-DONE").click();
+        await f.page.getByTestId("record-save-initial").click();
+        await f.page.getByTestId("record-done").waitFor();
+        if (!attempt) {
+          await link.scrollIntoViewIfNeeded();
+          await until(
+            () =>
+              f.seen("ios_appstore_cta_impression", "quicklog_saved").length ===
+              1,
+            "First saved offer was seen",
+          );
+          await f.page.getByTestId("record-edit-details").click();
+          await f.page.getByRole("button", { name: "Maybe later" }).click();
+          await link.scrollIntoViewIfNeeded();
+        } else {
+          assert.equal(
+            await link.count(),
+            0,
+            "A subsequent local record has no Apple offer",
+          );
+        }
+      }
+      await until(
+        () => f.events.filter((e) => e.eventName === "log_create").length === 2,
+        "Both explicit saves are recorded",
+      );
+      assert.equal(
+        f.events.filter((e) => e.eventName === "first_log_create").length,
+        1,
+      );
+      assert.equal(
+        f.seen("ios_appstore_cta_impression", "quicklog_saved").length,
+        1,
+      );
+      assert.deepEqual(f.errors, []);
+      scenarios++;
+    } finally {
+      await f.context.close();
+    }
+  }
+
+  {
+    const f = await fixture({ userAgent: IOS, locale: "en" });
+    try {
+      await f.page.goto(base.origin + "/en/privacy");
+      await f.page.evaluate(() => {
+        const frame = document.createElement("iframe");
+        frame.src = "/en/about";
+        frame.title = "Embedded directory";
+        document.body.prepend(frame);
+      });
+      const frame = f.page.frameLocator('iframe[title="Embedded directory"]');
+      const directory = frame.getByTestId("about-ios-appstore-link");
+      await directory.scrollIntoViewIfNeeded();
+      await until(
+        () =>
+          frame.locator("body").evaluate((node) => {
+            const event = new Event("beforeinstallprompt", {
+              cancelable: true,
+            });
+            return !node.ownerDocument.defaultView.dispatchEvent(event);
+          }),
+        "Embedded acquisition surface has hydrated",
+      );
+      await activateExternalLink(f.page, directory);
+      assert.equal(await frame.getByTestId("store-install-banner").count(), 0);
+      assert.equal(
+        await f.page.getByTestId("store-install-banner").count(),
+        0,
+        "A private or utility route has no global Apple offer",
+      );
+      assert.equal(
+        f.events.filter((e) => /appstore_cta/.test(e.eventName)).length,
+        0,
+      );
+      assert.deepEqual(f.errors, []);
       scenarios++;
     } finally {
       await f.context.close();

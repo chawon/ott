@@ -16,6 +16,7 @@ import {
   parsePendingAppOpen,
   shouldTrackAppOpenForSession,
 } from "./analytics-session.mjs";
+import { appleDevice } from "./store-acquisition.mjs";
 
 export {
   normalizeOwnedEntrySource,
@@ -113,7 +114,12 @@ function detectDeviceType(): DeviceType {
 function detectOsFamily(): OsFamily {
   if (typeof window === "undefined") return "unknown";
   const ua = window.navigator.userAgent.toLowerCase();
-  if (/iphone|ipad|ipod|ios/.test(ua)) return "ios";
+  const apple = appleDevice({
+    userAgent: ua,
+    maxTouchPoints: window.navigator.maxTouchPoints,
+  });
+  if (apple === "iphone" || apple === "ipad" || /iphone|ipad|ipod|ios/.test(ua))
+    return "ios";
   if (ua.includes("android")) return "android";
   if (ua.includes("windows")) return "windows";
   if (ua.includes("mac os x") || ua.includes("macintosh")) return "macos";
@@ -316,6 +322,12 @@ export async function trackEvent(
     | "android_play_cta_impression"
     | "android_play_cta_click"
     | "android_play_cta_dismiss"
+    | "ios_appstore_cta_impression"
+    | "ios_appstore_cta_click"
+    | "ios_appstore_cta_dismiss"
+    | "macos_appstore_cta_impression"
+    | "macos_appstore_cta_click"
+    | "macos_appstore_cta_dismiss"
     | "windows_store_cta_impression"
     | "windows_store_cta_click"
     | "windows_store_cta_dismiss"

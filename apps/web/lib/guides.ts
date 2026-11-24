@@ -115,8 +115,8 @@ const koGuides: Record<GuideSlug, GuideDocument> = {
     title: "보고 난 순간을, 한곳에 가볍게 남겨요",
     summary:
       "어느 OTT에서 봤는지 흩어져 있어도 괜찮아요. 작품을 찾고 지금의 상태를 고른 뒤, 본 날짜나 플랫폼처럼 기억하고 싶은 것만 더해보세요. 여러 OTT의 기록이 한 타임라인에 모여요.",
-    updatedAt: "2026-11-11",
-    updatedLabel: "2026년 11월 11일 업데이트",
+    updatedAt: "2026-11-24",
+    updatedLabel: "2026년 11월 24일 업데이트",
     image: {
       src: "/guides/v2-brand-ko-home.png",
       width: 2560,
@@ -345,8 +345,8 @@ const enGuides: Record<GuideSlug, GuideDocument> = {
     title: "Keep the moment, wherever you watched it",
     summary:
       "Bring titles from different streaming services into one personal timeline. Find a title, choose its current status, and add a date, platform, or any other details you want to remember.",
-    updatedAt: "2026-11-11",
-    updatedLabel: "Updated November 11, 2026",
+    updatedAt: "2026-11-24",
+    updatedLabel: "Updated November 24, 2026",
     image: {
       src: "/guides/v2-brand-en-home.png",
       width: 2560,
@@ -422,8 +422,8 @@ const enGuides: Record<GuideSlug, GuideDocument> = {
     title: "Keep movie and series watch history in one place",
     summary:
       "The part that stays with you may be an episode, a room, or the person beside you. A few small details make it easier to return to a series and to remember how a film met you at the time.",
-    updatedAt: "2026-11-11",
-    updatedLabel: "Updated November 11, 2026",
+    updatedAt: "2026-11-24",
+    updatedLabel: "Updated November 24, 2026",
     image: {
       src: "/guides/v2-brand-en-recording.png",
       width: 2560,

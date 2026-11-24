@@ -4,20 +4,25 @@ import {
   Download,
   ExternalLink,
   MonitorDown,
-  Share,
   Smartphone,
   X,
 } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
-import { isDismissalCooldownActive } from "@/lib/android-acquisition.mjs";
-import { getGooglePlayTwaSignal } from "@/lib/androidAppContext";
+import { usePathname } from "@/i18n/routing";
 import {
   buildNativeStoreUrl,
   getInstallBannerMode,
-  STORE_CTA_DISMISSED_AT_KEYS,
+  isAppleStore,
+  isIosSafari,
 } from "@/lib/store-acquisition.mjs";
-import { trackStoreCta } from "@/lib/storeAcquisition";
+import {
+  browserStoreSurface,
+  dismissStoreOffer,
+  STORE_OFFER_CHANGED,
+  storeOfferSuppressed,
+  trackStoreCta,
+} from "@/lib/storeAcquisition";
 
 interface BeforeInstallPromptEvent extends Event {
   readonly userChoice: Promise<{
@@ -48,10 +53,15 @@ const COPY_KEYS = {
     description: "windowsDesc",
     action: "windowsAction",
   },
-  "ios-pwa": {
-    title: "title",
+  "ios-appstore": {
+    title: "iosTitle",
     description: "iosDesc",
-    action: "installAction",
+    action: "iosAction",
+  },
+  "macos-appstore": {
+    title: "macosTitle",
+    description: "macosDesc",
+    action: "macosAction",
   },
   "browser-pwa": {
     title: "title",
@@ -78,6 +88,7 @@ function writeLocalStorage(key: string, value: string) {
 
 export default function PwaInstallBanner() {
   const locale = useLocale();
+  const path = usePathname();
   const t = useTranslations("PwaInstall");
   const [isVisible, setIsVisible] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
@@ -88,32 +99,34 @@ export default function PwaInstallBanner() {
     useState<BeforeInstallPromptEvent | null>(null);
   const promptRef = useRef<BeforeInstallPromptEvent | null>(null);
   const trackedMode = useRef<BannerMode | null>(null);
+  const [iosSafari, setIosSafari] = useState(false);
+  const applePage =
+    path === "/" ||
+    path === "/about" ||
+    path === "/guide" ||
+    path.startsWith("/guide/");
+  // Safari owns the About banner. Direct record-entry links stay clear while
+  // the dialog hydrates. Both conditions also apply during client navigation.
+  const allowedOnPage =
+    !isAppleStore(mode) ||
+    (applePage &&
+      !(iosSafari && path === "/about") &&
+      new URLSearchParams(window.location.search).get("quick") !== "1");
 
   useEffect(() => {
-    const navigatorWithStandalone = window.navigator as Navigator & {
-      standalone?: boolean;
-    };
-    const standalone =
-      window.matchMedia("(display-mode: standalone)").matches ||
-      navigatorWithStandalone.standalone === true;
-    const nextMode = getInstallBannerMode({
-      userAgent: window.navigator.userAgent,
-      maxTouchPoints: window.navigator.maxTouchPoints,
-      displayMode: standalone ? "standalone" : "browser",
-      twaSignal: getGooglePlayTwaSignal(),
-      embedded: window.self !== window.top,
-    });
+    const browser = browserStoreSurface();
+    const nextMode = getInstallBannerMode(browser);
+    const standalone = browser.displayMode !== "browser";
+    setIosSafari(isIosSafari(browser));
     setMode(nextMode);
     setSurface(standalone ? "pwa" : "browser");
     setWebHandoff(Boolean(readLocalStorage("watchlog.userId")?.trim()));
 
     const isSuppressed = () =>
       !nextMode ||
-      (nextMode === "browser-pwa" || nextMode === "ios-pwa"
+      (nextMode === "browser-pwa"
         ? readLocalStorage(PWA_BANNER_HIDDEN_KEY) === "true"
-        : isDismissalCooldownActive(
-            readLocalStorage(STORE_CTA_DISMISSED_AT_KEYS[nextMode]),
-          ));
+        : storeOfferSuppressed(nextMode));
     if (nextMode && nextMode !== "browser-pwa" && !isSuppressed()) {
       setIsVisible(true);
     }
@@ -142,20 +155,22 @@ export default function PwaInstallBanner() {
     };
     window.addEventListener("beforeinstallprompt", handlePrompt);
     window.addEventListener("storage", updateRecording);
+    window.addEventListener(STORE_OFFER_CHANGED, updateRecording);
     return () => {
       observer.disconnect();
       window.removeEventListener("beforeinstallprompt", handlePrompt);
       window.removeEventListener("storage", updateRecording);
+      window.removeEventListener(STORE_OFFER_CHANGED, updateRecording);
     };
   }, []);
 
   useEffect(() => {
     if (
+      !allowedOnPage ||
       !isVisible ||
       isRecording ||
       !mode ||
       mode === "browser-pwa" ||
-      mode === "ios-pwa" ||
       trackedMode.current === mode ||
       document.querySelector(RECORDING_SELECTOR)
     )
@@ -166,7 +181,7 @@ export default function PwaInstallBanner() {
       surface,
       ...(mode === "android-play" ? { webHandoff } : {}),
     });
-  }, [isVisible, isRecording, mode, surface, webHandoff]);
+  }, [allowedOnPage, isVisible, isRecording, mode, surface, webHandoff]);
 
   const handlePwaInstall = async () => {
     const prompt = promptRef.current;
@@ -184,8 +199,8 @@ export default function PwaInstallBanner() {
   };
 
   const dismissStore = (action: "click" | "dismiss") => {
-    if (!mode || mode === "browser-pwa" || mode === "ios-pwa") return;
-    writeLocalStorage(STORE_CTA_DISMISSED_AT_KEYS[mode], String(Date.now()));
+    if (!mode || mode === "browser-pwa") return;
+    dismissStoreOffer(mode);
     void trackStoreCta(mode, action, {
       placement: "global_install_banner",
       surface,
@@ -195,15 +210,15 @@ export default function PwaInstallBanner() {
 
   const handleClose = () => {
     setIsVisible(false);
-    if (mode === "browser-pwa" || mode === "ios-pwa") {
+    if (mode === "browser-pwa") {
       writeLocalStorage(PWA_BANNER_HIDDEN_KEY, "true");
     } else {
       dismissStore("dismiss");
     }
   };
 
-  if (!isVisible || isRecording || !mode) return null;
-  const nativeStore = mode === "android-play" || mode === "windows-store";
+  if (!allowedOnPage || !isVisible || isRecording || !mode) return null;
+  const nativeStore = mode !== "browser-pwa";
   const storeUrl = nativeStore
     ? buildNativeStoreUrl({
         platform: mode,
@@ -215,7 +230,10 @@ export default function PwaInstallBanner() {
       })
     : null;
   const copy = COPY_KEYS[mode];
-  const Icon = mode === "windows-store" ? MonitorDown : Smartphone;
+  const Icon =
+    mode === "windows-store" || mode === "macos-appstore"
+      ? MonitorDown
+      : Smartphone;
 
   return (
     <div
@@ -261,11 +279,6 @@ export default function PwaInstallBanner() {
                   <Download className="h-3.5 w-3.5" aria-hidden="true" />
                   {t("installAction")}
                 </button>
-              ) : mode === "ios-pwa" ? (
-                <div className="flex min-h-12 items-center gap-1.5 rounded-lg bg-ott-paper-strong px-3 text-[10px] font-semibold text-brand-navy dark:text-foreground">
-                  <Share className="h-3.5 w-3.5" aria-hidden="true" />
-                  <span>Safari &gt; Add to Home Screen</span>
-                </div>
               ) : null}
               <button
                 type="button"

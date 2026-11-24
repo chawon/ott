@@ -3,7 +3,7 @@ import {
   isAndroidUserAgent,
 } from "./android-acquisition.mjs";
 
-/** @typedef {"android-play" | "windows-store"} StorePlatform */
+/** @typedef {"android-play" | "windows-store" | "ios-appstore" | "macos-appstore"} StorePlatform */
 /** @typedef {"web_global_banner" | "web_quicklog_saved" | "about_platform_card" | "extension_handoff"} StoreCampaign */
 /**
  * @typedef {{
@@ -26,6 +26,8 @@ export const MICROSOFT_STORE_URL =
 export const STORE_CTA_DISMISSED_AT_KEYS = {
   "android-play": "ottline.androidPlayCta.dismissedAt",
   "windows-store": "ottline.windowsStoreCta.dismissedAt",
+  "ios-appstore": "ottline.iosAppStoreCta.dismissedAt",
+  "macos-appstore": "ottline.macAppStoreCta.dismissedAt",
 };
 
 /** @param {string} locale */
@@ -43,6 +45,31 @@ export function localizedStoreUrls(locale) {
   };
 }
 
+/** @param {StoreSurface} surface */
+export function appleDevice({ userAgent, maxTouchPoints = 0 }) {
+  const ua = userAgent ?? "";
+  if (/iPod/i.test(ua)) return null;
+  if (/iPad/i.test(ua) || (/Macintosh/i.test(ua) && maxTouchPoints > 1))
+    return "ipad";
+  if (/iPhone/i.test(ua)) return "iphone";
+  return /Macintosh/i.test(ua) ? "mac" : null;
+}
+
+/** @param {StoreSurface} surface */
+export function isIosSafari(surface) {
+  const device = appleDevice(surface);
+  return (
+    (device === "iphone" || device === "ipad") &&
+    /Version\/[\d.]+.*Safari\//i.test(surface.userAgent ?? "") &&
+    !/CriOS|Chrome|FxiOS|EdgiOS|OPiOS/i.test(surface.userAgent ?? "")
+  );
+}
+
+/** @param {StorePlatform | string | null} platform */
+export function isAppleStore(platform) {
+  return platform === "ios-appstore" || platform === "macos-appstore";
+}
+
 /** @param {StoreSurface} options */
 export function isEmbeddedStoreSurface({
   userAgent = "",
@@ -52,24 +79,24 @@ export function isEmbeddedStoreSurface({
   if (embedded) return true;
   const ua = userAgent ?? "";
   if (
-    /TossApp|apps-in-toss|\bwv\b|WebView|FBAN|FBAV|Instagram|KAKAOTALK|\bLine\/|MicroMessenger/i.test(
+    /TossApp|apps-in-toss|\bwv\b|WebView|FBAN|FBAV|Instagram|KAKAOTALK|NAVER\(inapp|DaumApps|GSA\/|TikTok|\bLine\/|MicroMessenger/i.test(
       ua,
     )
   ) {
     return true;
   }
-  const ios =
-    /iPhone|iPad|iPod/i.test(ua) ||
-    (/Macintosh/i.test(ua) && maxTouchPoints > 1);
-  // iOS WKWebView omits Safari; known standalone browsers remain eligible.
-  return ios && !/Safari\/|CriOS\/|FxiOS\/|EdgiOS\/|OPiOS\//i.test(ua);
+  const apple = appleDevice({ userAgent: ua, maxTouchPoints });
+  // WKWebView omits the browser token, including on desktop Apple devices.
+  return (
+    !!apple && !/Safari\/|Firefox\/|CriOS\/|FxiOS\/|EdgiOS\/|OPiOS\//i.test(ua)
+  );
 }
 
 /**
  * Choose the surface before checking cooldowns, so a dismissed native CTA
  * cannot be replaced by a browser PWA prompt. iPadOS can advertise Macintosh.
  * @param {StoreSurface} options
- * @returns {StorePlatform | "ios-pwa" | "browser-pwa" | null}
+ * @returns {StorePlatform | "browser-pwa" | null}
  */
 export function getInstallBannerMode({
   userAgent = "",
@@ -91,21 +118,17 @@ export function getInstallBannerMode({
       : null;
   }
   if (displayMode !== "browser") return null;
-  if (
-    /iPhone|iPad|iPod/i.test(ua) ||
-    (/Macintosh/i.test(ua) && maxTouchPoints > 1)
-  ) {
-    return "ios-pwa";
-  }
+  const apple = appleDevice({ userAgent: ua, maxTouchPoints });
+  if (apple) return apple === "mac" ? "macos-appstore" : "ios-appstore";
   if (/Windows Phone/i.test(ua)) return null;
   if (/Windows NT/i.test(ua)) return "windows-store";
-  return /Macintosh|Mac OS X|X11|Linux|CrOS/i.test(ua) ? "browser-pwa" : null;
+  return /X11|Linux|CrOS/i.test(ua) ? "browser-pwa" : null;
 }
 
 /** @param {StoreSurface} options @returns {StorePlatform | null} */
 export function getNativeStorePlatform(options) {
   const mode = getInstallBannerMode(options);
-  return mode === "browser-pwa" || mode === "ios-pwa" ? null : mode;
+  return mode === "browser-pwa" ? null : mode;
 }
 
 /**
@@ -152,6 +175,11 @@ export function buildNativeStoreUrl({
       content: allowedContent.includes(content) ? content : "",
       webHandoff: webHandoff === true,
     });
+  }
+  if (isAppleStore(platform)) {
+    if (campaign === "extension_handoff")
+      throw new TypeError("Unsupported Apple campaign");
+    return platform === "ios-appstore" ? urls.appStore : urls.macAppStore;
   }
   if (platform === "windows-store") {
     const url = new URL(urls.microsoftStore);

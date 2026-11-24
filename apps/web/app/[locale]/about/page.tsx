@@ -56,6 +56,7 @@ export async function generateMetadata({
 
   return {
     title: t("title"),
+    itunes: { appId: "6780318110" },
     description: t("description"),
     alternates: localizedAlternates(locale, "/about"),
     openGraph: localizedOpenGraph(
@@ -138,6 +139,7 @@ export default function AboutPage() {
       links: [
         {
           href: storeUrls.appStore,
+          storePlatform: "ios-appstore",
           label: tAbout("platformIosLink"),
           external: true,
           icon: Store,
@@ -151,6 +153,7 @@ export default function AboutPage() {
       links: [
         {
           href: storeUrls.macAppStore,
+          storePlatform: "macos-appstore",
           label: tAbout("platformMacosLink"),
           external: true,
           icon: Store,
