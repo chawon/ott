@@ -1,8 +1,8 @@
 # 채널별 유입·첫 기록·반복 이용 기준선 (2026-11-24)
 
-- **기준일**: `2026-11-24` (`main` [`bc0dc11`](https://github.com/chawon/ott/commit/bc0dc11), Web·API 운영 [`c693fd8`](../web-api-rollout-2026-11-22.md))
+- **기준일**: `2026-11-24` (`main` [`81b0a0c`](https://github.com/chawon/ott/commit/81b0a0c), Web·API 운영 [`c693fd8`](../web-api-rollout-2026-11-22.md))
 - **담당 역할**: 마케팅 담당 (`플랫폼=공통`)
-- **연결 카드**: [채널별 유입·첫 기록·반복 이용 기준선 정리](https://github.com/users/chawon/projects/1/views/2?pane=issue&itemId=313863452) · [Apple·네이티브 v2 출시 안내와 첫 유입 실험안](https://github.com/users/chawon/projects/1/views/2?pane=issue&itemId=313863479)
+- **연결 카드·이슈**: [채널별 유입·첫 기록·반복 이용 기준선 정리](https://github.com/users/chawon/projects/1/views/2?pane=issue&itemId=313863452) · [Apple·네이티브 v2 출시 안내와 첫 유입 실험안](https://github.com/users/chawon/projects/1/views/2?pane=issue&itemId=313863479) · [Web 실행 #175](https://github.com/chawon/ott/issues/175)
 - **연관 문서**: [마케팅 운영](../marketing-operations.md) · [통계 집계 기준](../realistic-analytics-metrics.md) · [유입 기반](../seo-acquisition-foundation-2026-07-19.md) · [경쟁 리서치](../research/competitor-landscape-2026-11.md) · [공통 계측 정합성 #169](https://github.com/chawon/ott/issues/169)
 
 > **공개 문서 경계**: 저장소 운영 규칙에 따라 비공개 운영 DB 집계([주간 사용 통계](https://github.com/users/chawon/projects/1/views/2?pane=issue&itemId=312007804))의 원천 수치·개인별 활동·식별자는 이 문서에 복제하지 않는다. 이 문서는 **측정 출처·기간 경계·분모/단위·확보 상태(`비공개 운영 집계 확인` vs `미측정`)·정성 진단과 측정 공백**을 정리한다. 과거 시점 참고 수치([2026-11-17 Microsoft Store 진단](../web-acquisition-funnel-plan-2026-11-17.md))를 현재 v2 실적으로 복사하지 않는다.
@@ -35,9 +35,9 @@
 | --- | --- | --- | --- | --- |
 | **유기적 검색 (Google · 네이버 · Bing)** | KO·EN / Web (`ottline.app`) | 공개 19 URL(`sitemap.xml`), `hreflang`/`canonical`, `SoftwareApplication`·`Article`·`BreadcrumbList` 적용. 단, 영문 대표 스크린샷(`v2-en-desktop.png`) 스켈레톤 결함 확인 | **미측정** *(콘솔 회신 대기)* | GSC·네이버 서치어드바이저·Bing 최근 28~30일 노출·클릭·CTR·색인·상위 검색어/페이지 |
 | **AI 검색·언급 (`ai_referral`)** | KO·EN / Web | `utm_source=chatgpt.com` 및 ChatGPT referrer → `ai_referral`/`chatgpt` 계측 배포 완료([PR #141](https://github.com/chawon/ott/pull/141)). 단, [`llms.txt`](../../apps/web/public/llms.txt)에 `macOS`·`iPad` 누락 | 언급: **부분 관찰** / 실제 유입·첫 기록: **미측정** | `2026-11-22` 웹 검색 기준 KO 추천 검색에서 Google Play 출처 노출 관찰, EN 비교 검색 미노출. 실제 `ai_referral` 세션·첫 기록은 `/admin/analytics/acquisition` 회신 대기 |
-| **Apple App Store (iPhone·iPad)** | KO·EN / iOS·iPadOS `16.0+` | **`2.0.0 (27)` 공개** (`2026-11-22`), 차기 `2.0.1 (28)` 심사 중 (`2026-11-23`) | **미측정** *(초기 수집 구간)* | App Store Connect App Analytics 노출·조회·최초 다운로드 + **캠페인 `pt` (Provider Token)** 확인 대기 |
-| **Mac App Store (macOS)** | KO·EN / macOS `14.0+` | **`2.0.0 (27)` 최초 출시** (`2026-11-22`), 차기 `2.0.1 (28)` 심사 중 (`2026-11-23`) | **미측정** *(초기 수집 구간)* | App Store Connect macOS 조회·최초 다운로드. 웹→Mac 캠페인 링크·배너 아직 미구현 |
-| **Google Play (Android)** | KO·EN / Android 폰·태블릿 | 기존 공개판 운영 중, **`2.0.5 (29)` 심사 승인 대기** (`2026-11-22` 제출) | **미측정** *(콘솔 회신 대기)* | Google Play Console 최근 30일 방문자·설치 및 UTM(`android_play_cta`, `quicklog_saved`, `about_page`) 유입 |
+| **Apple App Store (iPhone·iPad)** | KO·EN / iOS·iPadOS `16.0+` | **`2.0.1` 공개** (`2026-11-24` 한국·미국 스토어 확인, 제출 빌드 `28`, [공개·CI 기록](https://github.com/chawon/ott/issues/163#issuecomment-7119018051); 최초 SwiftUI `2.0.0`은 `11/22` 출시). 공개 설치판 계정 삭제·Expo 업데이트 보존은 실기기 검증 진행 중 | **미측정** *(초기 수집 구간)* | App Store Connect App Analytics 노출·조회·최초 다운로드 + **캠페인 링크(`pt`)** 확인 대기 (Apple 담당 확인 전에도 기본 링크·웹 클릭 측정 가능) |
+| **Mac App Store (macOS)** | KO·EN / macOS `14.0+` | **`2.0.1` 공개** (`2026-11-24` 한국·미국 스토어 확인, 데스크톱·알림 센터 위젯 3종 포함, [공개·CI 기록](https://github.com/chawon/ott/issues/163#issuecomment-7119018051); 최초 출시 `2.0.0`은 `11/22`). Safari·Chrome `?native_handoff=1` 이어받기 및 삭제 처리는 실기기 검증 중 | **미측정** *(초기 수집 구간)* | App Store Connect macOS 조회·최초 다운로드. 웹→Mac 안내·클릭 측정은 [#175](https://github.com/chawon/ott/issues/175)에서 구현 예정 |
+| **Google Play (Android)** | KO·EN / Android 폰·태블릿 | **`2.0.5` 공개 확인** (`2026-11-24` [한국 Play](https://play.google.com/store/apps/details?id=app.ottline&hl=ko&gl=KR)·[미국 Play](https://play.google.com/store/apps/details?id=app.ottline&hl=en&gl=US)). 공개 설치판 실기기 확인 및 `#149` 웹 기록 가져오기 522 수정(PR `#154`)은 별도 추적 중 | **미측정** *(콘솔 회신 대기)* | Google Play Console 최근 30일 방문자·설치 및 UTM(`android_play_cta`, `quicklog_saved`, `about_page`) 유입 |
 | **Microsoft Store (Windows)** | KO·EN / Windows 10/11 | **`2.0.1.0` 공개·계정 삭제 실기기 검증 완료** (`2026-11-23`), `2.0.2.0` 심사 중 | `2026-11-18` v2 개편 이후 **미측정** | Microsoft Partner Center `11/18` 이후 조회·설치·전환율 및 `?cid=`(`web_global_banner`, `web_quicklog_saved`, `about_platform_card`, `extension_handoff`) 귀속 *(과거 `2026-11-17` v1 기록과 구분)* |
 | **브라우저 확장 (Chrome·Edge·Whale)** | KO·EN / 데스크톱 Chromium | Chrome `0.1.0` 공개(소스 `0.1.1`), Edge·Whale 최신 게시 버전 미확인 | **미측정** | 각 확장 스토어 조회·설치·활성 사용자 수 및 `capture_title` 웹 진입 건수 |
 | **토스 인앱 (`내 OTT 타임라인`)** | KO / iOS·Android 토스 앱 | 별도 출시 브랜치 공개판 유지 (최신 라이브 번들·실사용 미확인) | **미측정** | 토스 콘솔 방문·기록·재기록 및 서버 저장 성공 건수([채널 전략](../changes/v2-channel-strategy.md#토스-인앱)) |
@@ -56,25 +56,25 @@
 
 ---
 
-## 3. 코드·공개 표면 실사에서 확인된 측정·전환 공백 (`2026-11-24`)
+## 3. 코드·공개 표면 실사에서 확인된 측정·안내 공백 (`2026-11-24`)
 
-외부 콘솔 수치가 도착하기 전에도 현재 운영 코드(`c693fd8`, `main` `bc0dc11`)에서 즉시 확인 가능한 유입·전환 누수 5건이 드러났다.
+외부 콘솔 수치가 도착하기 전에도 현재 운영 코드(`c693fd8`, `main` `81b0a0c`)에서 아래 5건의 안내·계측 공백이 확인됐다. 다만 **이 공백이 실제 스토어 다운로드 손실로 이어지는 규모는 현재 콘솔 자료가 없어 확정할 수 없으며, 첫 실험([#175](https://github.com/chawon/ott/issues/175))에서 검증할 가설로 둔다.**
 
-1. **웹→Apple(iPhone·iPad·macOS) 스토어 전환 퍼널 및 계측 부재**
+1. **웹→Apple(iPhone·iPad·macOS) 스토어 안내 및 클릭 계측 부재**
    - [`apps/web/lib/store-acquisition.mjs`](../../apps/web/lib/store-acquisition.mjs)의 `StorePlatform`은 `"android-play" | "windows-store"`만 지원한다.
    - [`PwaInstallBanner.tsx`](../../apps/web/components/PwaInstallBanner.tsx)는 iPhone·iPad 방문자에게 여전히 `Safari > Add to Home Screen`(`ios-pwa`)을, macOS 방문자에게는 `browser-pwa`를 노출한다.
    - [`SavedNativeStoreCta.tsx`](../../apps/web/components/SavedNativeStoreCta.tsx)는 첫 기록 저장 직후 Android·Windows CTA만 노출하고 iPhone·iPad·macOS가 빠져 있다.
-   - [`apps/web/app/[locale]/layout.tsx`](../../apps/web/app/%5Blocale%5D/layout.tsx)에 iOS Safari 공식 Smart App Banner(`itunes: { appId: "6780318110" }`)가 없다.
+   - [`apps/web/app/[locale]/layout.tsx`](../../apps/web/app/%5Blocale%5D/layout.tsx)에 iOS Safari 공식 Smart App Banner(`itunes: { appId: "6780318110" }`)가 없다. *(Apple이 그리는 Smart App Banner는 사이트가 직접 세는 노출·클릭과 구분해 해석한다.)*
    - [`apps/web/app/[locale]/about/page.tsx`](../../apps/web/app/%5Blocale%5D/about/page.tsx)의 iPhone·iPad 및 macOS 스토어 링크에 App Store Connect 캠페인 파라미터(`pt`·`ct`·`mt=8`)와 자체 클릭 이벤트(`ios_appstore_cta_*`, `macos_appstore_cta_*`)가 없으며, Google Play `/about` 링크도 `StoreCampaignLink`를 거치지 않아 자체 클릭 이벤트가 기록되지 않는다.
 2. **웹 계측의 iPadOS 분류 불일치**
-   - [`apps/web/lib/analytics.ts`](../../apps/web/lib/analytics.ts)에서 iPadOS 데스크톱 Safari가 `deviceType="tablet"` vs `osFamily="macos"`로 불일치 기록된다([기능 기준표](../feature-matrix.md) 9번 항목). Apple 전환 실험 시 iPadOS(`Macintosh` + `maxTouchPoints > 1`)를 `ios-appstore`로 정확히 분리해야 한다.
+   - [`apps/web/lib/analytics.ts`](../../apps/web/lib/analytics.ts)에서 iPadOS 데스크톱 Safari가 `deviceType="tablet"` vs `osFamily="macos"`로 불일치 기록된다([기능 기준표](../feature-matrix.md) 9번 항목). Apple 전환 실험 시 iPadOS(`Macintosh` + `maxTouchPoints > 1`)를 iPhone·iPad 대상으로 정확히 분리해야 한다.
 3. **`llms.txt`의 macOS·iPad 누락**
    - [`apps/web/public/llms.txt`](../../apps/web/public/llms.txt) 6행의 지원 플랫폼 목록에 `macOS`와 `iPad`가 빠져 있어 AI 검색·요약 크롤러가 최신 지원 범위를 놓친다.
 4. **공개 검색·PWA 대표 스크린샷 결함**
    - `SoftwareApplication` JSON-LD([`seo.ts`](../../apps/web/lib/seo.ts))와 [`manifest.webmanifest`](../../apps/web/app/manifest.webmanifest/route.ts)가 참조하는 [`/pwa/v2-en-desktop.png`](../../apps/web/public/pwa/v2-en-desktop.png)가 본문 대신 회색 스켈레톤 박스만 찍혀 있다.
    - 가이드 대표 이미지 [`v2-brand-ko-home.png`](../../apps/web/public/guides/v2-brand-ko-home.png)·[`v2-brand-en-home.png`](../../apps/web/public/guides/v2-brand-en-home.png) 하단 인기 작품 영역도 회색 스켈레톤 상태이며, [`v2-brand-en-recording.png`](../../apps/web/public/guides/v2-brand-en-recording.png)에는 영문 화면에 한국어 포스터가 혼입돼 있다.
 5. **공통 계측 정합성 선행 과제 ([이슈 #169](https://github.com/chawon/ott/issues/169))**
-   - 클라이언트별 `first_log_create` 귀속과 기기별 실사용 집계가 정리되기 전에는 마케팅 실험의 1차 판정 지표를 **자체 CTA 노출·클릭·닫기 + 웹 세션 기록 완료 + 각 스토어 공식 콘솔 최초 다운로드**로 분리해 해석해야 한다.
+   - 클라이언트별 `first_log_create` 귀속과 기기별 실사용 집계가 정리되기 전에는 마케팅 실험의 1차 판정 지표를 **배포일부터 집계하는 위치별 CTA 노출·클릭·닫기 + 배포 전후 웹 세션 첫 기록·기록 완료 + App Store Connect 공식 최초 다운로드**로 각각 분리해 보고한다.
 
 ---
 
@@ -82,11 +82,11 @@
 
 기준선 진단과 [경쟁 리서치(#159)](../research/competitor-landscape-2026-11.md)를 교차하면, 지금 단계에서 **대규모 외부 홍보를 먼저 여는 것은 비효율적**이다.
 
-1. **웹 방문 → 첫 기록·스토어 전환 누수가 크다**: 현재 웹 유입이 기록으로 이어지는 비중이 낮고, 오늘(`2026-11-22`~`24`) 출시된 iPhone·iPad·macOS 방문자를 스토어 앱으로 연결하는 장치와 계측이 비어 있다.
-2. **일회성 기록 후 이탈이 핵심 병목이다**: 반복 이용 개선은 제품 기획의 1순위 데이터 신뢰 복구(`#161`·`#162`·`#163`)와 2·3순위 회상/안심 연결(`#158`)이 병행돼야 하므로, 마케팅은 **신뢰가 확보된 플랫폼(Web/PWA + Apple `2.0.0` → `2.0.1`)**부터 전환·계측 구멍을 메우고 검증 완료 시점에 맞춰 외부 유입을 여는 2단계 접근이 타당하다.
-3. **권장 순서** (상세 실행안: [Apple·네이티브 v2 출시 안내 및 첫 유입 실험안](apple-v2-launch-and-first-experiment-2026-11-24.md)):
-   - **1단계 (즉시 준비 · 후보 A)**: 웹→Apple(iPhone·iPad·macOS) 스토어 전환 퍼널·캠페인 계측·`llms.txt`·깨진 공개 스크린샷 정비 (비용 0원, Web 실행 카드 연계).
-   - **2단계 (검증 게이트 충족 후 · 후보 B)**: Apple 실기기 검증(`312000240`, `313827720`) 및 `2.0.1 (28)` 공개 확인 + 사용자 게시 승인 후, 고의도 외부 채널 1곳(국내 GeekNews Show GN 또는 글로벌 `r/macapps`) + 영구 디렉토리(AlternativeTo) 1건 집중 실험.
+1. **웹 방문 → 첫 기록 공백과 Apple 안내·계측 미비가 함께 존재한다**: 비공개 운영 집계에서 웹 실행 세션·활성 클라이언트 대비 실제 기록 비중이 낮고, Apple `2.0.0`·`2.0.1` 출시 이후에도 웹에 iPhone·iPad·Mac 스토어 안내와 클릭 계측이 비어 있다. 이 안내를 보강하면 스토어 이동이 늘고 웹 첫 기록을 방해하지 않을 것이라는 점은 **첫 실험([#175](https://github.com/chawon/ott/issues/175))으로 검증할 가설**이다.
+2. **일회성 기록 후 이탈이 핵심 병목이다**: 반복 이용 개선은 제품 기획의 1순위 데이터 신뢰 복구(`#161`·`#162`·`#163`)와 2·3순위 회상/안심 연결(`#158`)이 병행돼야 하므로, 마케팅은 **이미 공개된 Web/PWA + Apple `2.0.1`의 이동 경로와 계측을 먼저 정비**하고 실기기·공개 자산 검증 완료 시점에 외부 유입을 여는 2단계 접근이 타당하다.
+3. **채택된 순서** (상세 실행안: [Apple·네이티브 v2 출시 안내 및 첫 유입 실험안](apple-v2-launch-and-first-experiment-2026-11-24.md)):
+   - **1단계 (채택 · Web 실행 [#175](https://github.com/chawon/ott/issues/175))**: 웹→Apple(iPhone·iPad·macOS) App Store 이동 경로·클릭 계측·`llms.txt`·깨진 공개 스크린샷 정비 (비용 0원, `#162` 우선 처리 후 진행).
+   - **2단계 (조건부 후속 · 후보 B)**: 공개 설치판 실기기 검증(`#163` Apple 삭제 처리, `312000240` Expo 업데이트 보존, `313827720` Mac 이어받기)·공개 자산 검증·사용자 게시 승인 후, 고의도 외부 채널 1곳(국내 GeekNews Show GN 또는 글로벌 `r/macapps`) + 영구 디렉토리(AlternativeTo) 1건 집중 실험.
 
 ---
 
