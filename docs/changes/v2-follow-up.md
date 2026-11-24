@@ -64,9 +64,9 @@ Windows의 서버 계정 삭제에서 요청 경로와 실패 처리의 불일�
 | Apple 공통 담당 | 기존 Expo `1.0.4`에서 공개 SwiftUI 앱으로 업데이트할 때 계정·기록·미동기화 변경을 보존하는지 iPhone·iPad에서 확인하고 macOS 결과를 취합한다. | [출시 후 업데이트·데이터 보존 검증](https://github.com/users/chawon/projects/1/views/2?pane=issue&itemId=312000240) |
 | macOS 담당 | Mac App Store 설치판에서 Safari·Chrome 이어받기(`?native_handoff=1` → `ottline://open?handoff=1`), `ottline://quick`과 제목·플랫폼 전달을 검증한다. 실제 설치 출처·빌드·OS·브라우저 결과를 남긴다. | [Mac 설치판 연결 검증](https://github.com/users/chawon/projects/1/views/2?pane=issue&itemId=313827720) |
 | 브라우저 확장 담당 | Chrome·Edge·Whale의 기존 스토어 설치판에서 Web → Windows 및 macOS 빠른 기록 전달과 게시 버전을 확인한다. | [확장 연결·스토어 갱신](https://github.com/users/chawon/projects/1/views/2?pane=issue&itemId=312000267) |
-| Apple 공통 담당·iOS 담당 | 출시 선행 조건이 충족된 `2.0.1` 후속 작업을 main 기준으로 착수한다. 실제 착수 시 진행 상태로 바꾸고 iPhone·iPad·Mac 회귀 검증과 추가 제출 결과를 남긴다. | [Apple 큐레이터 제거](https://github.com/users/chawon/projects/1/views/2?pane=issue&itemId=313279211) · [iPad 함께 2단 점검](https://github.com/users/chawon/projects/1/views/2?pane=issue&itemId=313285015) |
+| Apple 공통 담당·iOS 담당 | 공개 `2.0.1`을 설치한 iPhone·iPad·Mac에서 큐레이터 제거를 확인한다. iPad 담당은 가로·세로와 Split View 전환 시 목록 선택·상세가 유지되는지 확인한다. | [Apple 큐레이터 제거](https://github.com/users/chawon/projects/1/views/2?pane=issue&itemId=313279211) · [iPad 함께 2단 점검](https://github.com/users/chawon/projects/1/views/2?pane=issue&itemId=313285015) |
 
-공개 서비스 가이드 변경은 Web/PWA 담당에게 배정한 상태다. 이 문서 갱신으로 해당 UI의 배포 완료나 스토어 설치판의 데이터 보존 검증을 완료 처리하지 않는다. 미래의 타임라인 응답 유실·지연 복구와 `quota.used` 실측은 [Apple 추천 복구 카드](https://github.com/users/chawon/projects/1/views/2?pane=issue&itemId=312248018)에서 계속 추적한다.
+공개 서비스 가이드의 Apple 안내는 [11월 22일 Web 배포](../web-api-rollout-2026-11-22.md)에 반영했다. macOS 담당은 Safari·Chrome에서 기존 기록을 이어받는지 확인해 Web/PWA 담당과 결과를 공유한다. 아래 운영 API 검증에서 추천 생성 1회 차감과 같은 요청 재시도 시 추가 차감 0회를 확인했다. 공개 앱에서 응답 유실 후 복구하는 동작은 Apple 담당이 검증한다. [Apple 추천 복구 카드](https://github.com/users/chawon/projects/1/views/2?pane=issue&itemId=312248018)
 
 ### iOS / iPadOS · macOS 진행 현황 (`2026-11-21`)
 
@@ -94,11 +94,13 @@ Windows의 서버 계정 삭제에서 요청 경로와 실패 처리의 불일�
   - **macOS 데스크톱 위젯 (`OttlineMacWidgetExtension`, `app.ottline.MacWidget`)**: App Sandbox + App Group(`3Z9ULN66D4.group.app.ottline`) 기반 `.systemSmall`·`.systemMedium`·`.systemLarge` 위젯과 `ottline://title/<id>`·`ottline://public/<id>` 딥링크 파싱을 추가하고, `macOS 15.8.3` 실기기에서 `chronod`·`NotificationCenter` 갤러리 등록·실시간 타임라인 렌더링·사용자 확인을 마쳤다.
 - **완료한 검증 및 App Store Connect 업로드**:
   - **정적 계약·단위 테스트**: `verify-ios-project.sh`·`verify-macos-project.sh` 통과, `OttlineTests` **20/20 통과**, `OttlineMacTests` **6/6 통과**.
-  - **GitHub Actions CI**: PR #173 [Native iOS v2 CI `45183376281`](https://github.com/chawon/ott/actions/runs/45183376281) · [Native macOS v2 CI `45183376159`](https://github.com/chawon/ott/actions/runs/45183376159) 성공, `main` (`5567dd5`) [Native macOS v2 CI `45190943508`](https://github.com/chawon/ott/actions/runs/45190943508) 성공([iOS CI `45190943521`](https://github.com/chawon/ott/actions/runs/45190943521) 실행 중).
+  - **GitHub Actions CI**: PR #173 [Native iOS v2 CI `45183376281`](https://github.com/chawon/ott/actions/runs/45183376281) · [Native macOS v2 CI `45183376159`](https://github.com/chawon/ott/actions/runs/45183376159) 성공, `main` (`5567dd5`) [Native macOS v2 CI `45190943508`](https://github.com/chawon/ott/actions/runs/45190943508) 6/6 및 [iOS CI `45190943521`](https://github.com/chawon/ott/actions/runs/45190943521) 20/20 통과.
   - **운영 API(`https://ottline.app`) 격리 계정 실측**: `GET /api/curated-contents` KO/EN `200 []`, `#147` 기기 표기 `[('iPad App', 'iPadOS'), ('macOS App', 'macOS')]`, `#142` `내 미래는?` `quota.used 0→1` (`10445ms`, `items=6`)·동일 `requestId` 멱등 재시도 `1→1` (`653ms`, `+0` 차감)·`/state` 복구·EN 로케일 격리(`hasBatch=false`) 확인 후 `DELETE /api/auth/account` (`200`, `222ms`)로 임시 계정 정리 완료.
   - **Mac App Store `2.0.0 (27)` 설치판 확인 (`/Applications/ottline.app`, `_MASReceipt`, `macOS 15.8.3`)**: `NSWorkspace` URL 해석 및 `ottline://quick?quick=1&title=Dune&platform=Netflix&type=video` 프로토콜 기동 확인.
   - **App Store Connect 업로드 및 심사 제출 (`2.0.1`, build `28`)**: `Ottline 2.0.1 (28).xcarchive`(`OttlineApp.ipa`, `EXPORT SUCCEEDED`) 및 `OttlineMac 2.0.1 (28).xcarchive`(`ottline.pkg`, `OttlineMacWidgetExtension` 포함, `EXPORT SUCCEEDED`) 모두 업로드 후 **iOS/iPadOS·macOS `2.0.1 (28)` 심사 제출 완료**(`2026-11-23 23:22 KST`, `Waiting for Review`).
-- **남은 확인**: iOS/iPadOS·macOS `2.0.1 (28)` 심사 승인·공개 후 실기기 확인(`#163`·큐레이터 제거·iPad 2단), 기존 Expo `1.0.4` → 공개 App Store 업데이트 데이터 보존 및 Safari/Chrome `?native_handoff=1` 실브라우저 이어받기 검증.
+  - **11월 24일 공개 확인.** 한국·미국 스토어의 `2.0.1` 버전 기록은 Mac 06:09 KST, iPhone·iPad 08:25 KST다. [한국 Mac](https://apps.apple.com/kr/app/id6780318110?platform=mac) · [미국 Mac](https://apps.apple.com/us/app/id6780318110?platform=mac) · [iPhone](https://apps.apple.com/kr/app/id6780318110) · [iPad](https://apps.apple.com/us/app/id6780318110?platform=ipad)
+- **공개 설치판 검증.** Apple 담당은 iPhone·iPad·Mac에서 계정 삭제 실패 시 기록·연결·입력 보존과 재시도 성공 뒤 초기화, 큐레이터 UI·조회 제거를 확인한다. iPhone·iPad에서는 Expo `1.0.4 (24)`에서 업데이트한 기록 보존, iPad에서는 창 너비 전환 시 선택 유지도 확인한다. [삭제 검증 #163](https://github.com/chawon/ott/issues/163#issuecomment-7119018051) · [Apple 업데이트 검증](https://github.com/users/chawon/projects/1/views/2?pane=issue&itemId=312000240)
+- **Mac 브라우저 연결.** `2.0.0 (27)` 스토어판에서 빠른 기록 URL로 앱이 열렸다. 공개 `2.0.1`에서 Safari·Chrome의 기존 계정·미동기화 기록 이어받기와 빠른 기록 화면의 제목·플랫폼 값은 macOS 담당이 확인한다. [Mac 설치판 카드](https://github.com/users/chawon/projects/1/views/2?pane=issue&itemId=313827720)
 
 ## 3. 브라우저 확장·토스·ChatGPT 앱
 

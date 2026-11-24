@@ -1,5 +1,11 @@
 # Wiki Log
 
+## [2026-11-24] Mac·iPhone·iPad App Store `2.0.1` 공개
+
+한국·미국의 플랫폼별 스토어에서 Mac 06:09 KST, iPhone·iPad 08:25 KST 버전 기록을 확인했다. PR #173 병합본 `5567dd5`의 Mac 테스트 6개와 iOS 테스트 20개가 통과했다. 스토어에 제출한 빌드는 `28`이다. [한국 Mac](https://apps.apple.com/kr/app/id6780318110?platform=mac) · [미국 iPad](https://apps.apple.com/us/app/id6780318110?platform=ipad) · [출시·CI 근거](https://github.com/chawon/ott/issues/163#issuecomment-7119018051)
+
+공개 설치판의 계정 삭제 실패·재시도·성공과 Safari·Chrome에서 Mac으로 기존 기록을 이어받는 흐름은 담당 카드에서 계속 검증한다. [삭제 검증 #163](https://github.com/chawon/ott/issues/163#issuecomment-7119018051) · [Mac 설치판 검증](https://github.com/users/chawon/projects/1/views/2?pane=issue&itemId=313827720) · [Apple 후속 작업](../docs/changes/v2-follow-up.md#2-apple-v2-업데이트-검증)
+
 ## [2026-11-23] release(apple): PR #173 병합 및 iOS·macOS `2.0.1 (28)` App Store 심사 제출
 
 - [PR #173](https://github.com/chawon/ott/pull/173)을 `main` `5567dd5`(코드 `49e62c3`)에 병합했다.
