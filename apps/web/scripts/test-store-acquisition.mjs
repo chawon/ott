@@ -60,6 +60,7 @@ async function fixture({
   maxTouchPoints = 0,
   cooldownKey = DISMISSED_KEY,
   failOutbox = false,
+  canonicalId = null,
   cooldown = null,
   twa = false,
   storageBlocked = false,
@@ -75,6 +76,7 @@ async function fixture({
   const events = [];
   const errors = [];
   let log = null;
+  const canonicalPull = Promise.withResolvers();
   await context.addInitScript(
     ({
       standalone,
@@ -157,18 +159,20 @@ async function fixture({
       for (const item of changes)
         log = {
           ...item.payload,
-          id: item.id,
+          id: canonicalId ?? item.id,
           titleId: title.id,
           createdAt: item.updatedAt,
           updatedAt: item.updatedAt,
         };
       return reply({ accepted: changes.map((item) => item.id), rejected: [] });
     }
-    if (path === "/sync/pull")
+    if (path === "/sync/pull") {
+      if (log && canonicalId) await canonicalPull.promise;
       return reply({
         serverTime: new Date().toISOString(),
         changes: { titles: log ? [title] : [], logs: log ? [log] : [] },
       });
+    }
     if (path.startsWith("/tmdb/"))
       return reply({ genres: [], directors: [], cast: [] });
     if (path === "/discussions/connection") return reply(null);
@@ -189,7 +193,15 @@ async function fixture({
         event.eventName === eventName &&
         event.properties.placement === placement,
     );
-  return { context, page, events, errors, seen, locale };
+  return {
+    context,
+    page,
+    events,
+    errors,
+    seen,
+    locale,
+    releaseCanonical: canonicalPull.resolve,
+  };
 }
 
 async function installEvent(page) {
@@ -878,7 +890,8 @@ try {
   // The first local record remains eligible across editing and canonical ID
   // refreshes. A subsequent record is ineligible even without a dismissal.
   {
-    const f = await fixture({ userAgent: IOS, locale: "en" });
+    const canonicalId = "20000000-0000-4000-8000-000000000031";
+    const f = await fixture({ userAgent: IOS, locale: "en", canonicalId });
     try {
       await f.page.goto(base.origin + "/en");
       await f.page.getByTestId("store-install-banner").waitFor();
@@ -901,6 +914,12 @@ try {
               1,
             "First saved offer was seen",
           );
+          f.releaseCanonical();
+          await f.page
+            .locator(
+              `[data-testid="home-featured"][data-log-id="${canonicalId}"]`,
+            )
+            .waitFor({ state: "attached" });
           await f.page.getByTestId("record-edit-details").click();
           await f.page.getByRole("button", { name: "Maybe later" }).click();
           await link.scrollIntoViewIfNeeded();
@@ -927,6 +946,7 @@ try {
       assert.deepEqual(f.errors, []);
       scenarios++;
     } finally {
+      f.releaseCanonical();
       await f.context.close();
     }
   }
@@ -939,6 +959,8 @@ try {
         const frame = document.createElement("iframe");
         frame.src = "/en/about";
         frame.title = "Embedded directory";
+        frame.style.cssText =
+          "position:fixed;top:80px;left:80px;width:900px;height:780px;z-index:1000";
         document.body.prepend(frame);
       });
       const frame = f.page.frameLocator('iframe[title="Embedded directory"]');
@@ -954,7 +976,20 @@ try {
           }),
         "Embedded acquisition surface has hydrated",
       );
-      await activateExternalLink(f.page, directory);
+      // The directory link is permanent in an embedded document. Exercise its
+      // click handler without opening an external store from the test iframe.
+      await directory.evaluate((link) =>
+        link.addEventListener(
+          "click",
+          (event) => {
+            event.preventDefault();
+            link.dataset.clicked = "true";
+          },
+          { once: true },
+        ),
+      );
+      await directory.click();
+      assert.equal(await directory.getAttribute("data-clicked"), "true");
       assert.equal(await frame.getByTestId("store-install-banner").count(), 0);
       assert.equal(
         await f.page.getByTestId("store-install-banner").count(),
