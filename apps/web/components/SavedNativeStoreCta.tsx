@@ -2,16 +2,20 @@
 
 import { ExternalLink } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
-import { useEffect, useRef, useState } from "react";
-import { isDismissalCooldownActive } from "@/lib/android-acquisition.mjs";
-import { getGooglePlayTwaSignal } from "@/lib/androidAppContext";
+import { type RefObject, useEffect, useRef, useState } from "react";
 import {
   buildNativeStoreUrl,
   getNativeStorePlatform,
-  STORE_CTA_DISMISSED_AT_KEYS,
+  isAppleStore,
   type StorePlatform,
 } from "@/lib/store-acquisition.mjs";
-import { trackStoreCta } from "@/lib/storeAcquisition";
+import {
+  browserStoreSurface,
+  dismissStoreOffer,
+  STORE_OFFER_CHANGED,
+  storeOfferSuppressed,
+  trackStoreCta,
+} from "@/lib/storeAcquisition";
 import styles from "./recording.module.css";
 
 const COPY_KEYS = {
@@ -19,6 +23,16 @@ const COPY_KEYS = {
     title: "savedPlayCtaTitle",
     action: "savedPlayCtaAction",
     hint: "savedPlayCtaHint",
+  },
+  "ios-appstore": {
+    title: "savedIosCtaTitle",
+    action: "savedIosCtaAction",
+    hint: "savedIosCtaHint",
+  },
+  "macos-appstore": {
+    title: "savedMacosCtaTitle",
+    action: "savedMacosCtaAction",
+    hint: "savedMacosCtaHint",
   },
   "windows-store": {
     title: "savedWindowsCtaTitle",
@@ -33,69 +47,91 @@ type StoreContext = {
   recordId: string;
 };
 
+function properties({ platform, surface }: StoreContext) {
+  return {
+    placement: "quicklog_saved",
+    surface,
+    ...(platform === "android-play" ? { webHandoff: true } : {}),
+  };
+}
+
+function recordImpression(
+  context: StoreContext,
+  previous: RefObject<string | null>,
+) {
+  if (previous.current === context.recordId) return;
+  previous.current = context.recordId;
+  void trackStoreCta(context.platform, "impression", properties(context));
+}
+
 export default function SavedNativeStoreCta({
   recordId,
+  firstRecord,
+  impressionRecord,
 }: {
   recordId: string;
+  firstRecord: boolean;
+  impressionRecord: RefObject<string | null>;
 }) {
   const locale = useLocale();
   const t = useTranslations("QuickLogCard");
+  const tInstall = useTranslations("PwaInstall");
   const [context, setContext] = useState<StoreContext | null>(null);
-  const trackedRecordId = useRef<string | null>(null);
+  const linkRef = useRef<HTMLAnchorElement>(null);
 
   useEffect(() => {
-    const navigatorWithStandalone = window.navigator as Navigator & {
-      standalone?: boolean;
-    };
-    const standalone =
-      window.matchMedia("(display-mode: standalone)").matches ||
-      navigatorWithStandalone.standalone === true;
-    const platform = getNativeStorePlatform({
-      userAgent: window.navigator.userAgent,
-      maxTouchPoints: window.navigator.maxTouchPoints,
-      displayMode: standalone ? "standalone" : "browser",
-      twaSignal: getGooglePlayTwaSignal(),
-      embedded: window.self !== window.top,
-    });
-    let suppressed = false;
-    if (platform && platform !== "android-play") {
-      try {
-        suppressed = isDismissalCooldownActive(
-          window.localStorage.getItem(STORE_CTA_DISMISSED_AT_KEYS[platform]),
-        );
-      } catch {
-        // Keep the optional CTA usable when browser storage is unavailable.
-      }
+    const browser = browserStoreSurface();
+    const platform = getNativeStorePlatform(browser);
+    if (!platform || (isAppleStore(platform) && !firstRecord)) {
+      setContext(null);
+      return;
     }
-    setContext(
-      platform && !suppressed
-        ? {
-            platform,
-            surface: standalone ? "pwa" : "browser",
-            recordId,
-          }
-        : null,
-    );
-  }, [recordId]);
+    const updateVisibility = () => {
+      if (platform !== "android-play" && storeOfferSuppressed(platform)) {
+        setContext(null);
+        return;
+      }
+      setContext({
+        platform,
+        surface: browser.displayMode === "browser" ? "browser" : "pwa",
+        recordId,
+      });
+    };
+    updateVisibility();
+    window.addEventListener("storage", updateVisibility);
+    window.addEventListener(STORE_OFFER_CHANGED, updateVisibility);
+    return () => {
+      window.removeEventListener("storage", updateVisibility);
+      window.removeEventListener(STORE_OFFER_CHANGED, updateVisibility);
+    };
+  }, [recordId, firstRecord]);
 
   useEffect(() => {
+    const link = linkRef.current;
     if (
       !context ||
+      !link ||
       context.recordId !== recordId ||
-      trackedRecordId.current === recordId
+      impressionRecord.current === recordId
     )
       return;
-    trackedRecordId.current = recordId;
-    void trackStoreCta(context.platform, "impression", {
-      placement: "quicklog_saved",
-      surface: context.surface,
-      ...(context.platform === "android-play" ? { webHandoff: true } : {}),
+    const observer = new IntersectionObserver((entries) => {
+      if (!entries.some((entry) => entry.isIntersecting)) return;
+      recordImpression(context, impressionRecord);
+      observer.disconnect();
     });
-  }, [context, recordId]);
+    observer.observe(link);
+    return () => observer.disconnect();
+  }, [context, recordId, impressionRecord]);
 
   if (!context || context.recordId !== recordId) return null;
-  const { platform, surface } = context;
+  const { platform } = context;
   const copy = COPY_KEYS[platform];
+  const onAction = (action: "click" | "dismiss") => {
+    recordImpression(context, impressionRecord);
+    void trackStoreCta(platform, action, properties(context));
+    if (platform !== "android-play") dismissStoreOffer(platform);
+  };
   const storeUrl = buildNativeStoreUrl({
     platform,
     locale,
@@ -111,35 +147,27 @@ export default function SavedNativeStoreCta({
     >
       <p>{t(copy.title)}</p>
       <a
+        ref={linkRef}
         href={storeUrl}
         target="_blank"
         rel="noreferrer"
         className={styles.quiet}
         data-testid={`saved-${platform}-link`}
-        onClick={() => {
-          void trackStoreCta(platform, "click", {
-            placement: "quicklog_saved",
-            surface,
-            ...(platform === "android-play" ? { webHandoff: true } : {}),
-          });
-          // Keep the established Android saved-stage behavior. The Windows
-          // prompt shares the global banner's 14-day dismissal window.
-          if (platform !== "android-play") {
-            try {
-              window.localStorage.setItem(
-                STORE_CTA_DISMISSED_AT_KEYS[platform],
-                String(Date.now()),
-              );
-            } catch {
-              // The link still opens and this CTA still closes without storage.
-            }
-            window.setTimeout(() => setContext(null), 0);
-          }
-        }}
+        onClick={() => onAction("click")}
       >
         {t(copy.action)}
         <ExternalLink size={16} aria-hidden="true" />
       </a>
+      {isAppleStore(platform) && (
+        <button
+          type="button"
+          className={styles.quiet}
+          data-testid={`saved-${platform}-dismiss`}
+          onClick={() => onAction("dismiss")}
+        >
+          {tInstall("closeAction")}
+        </button>
+      )}
       <p className={styles.hint}>{t(copy.hint)}</p>
     </div>
   );

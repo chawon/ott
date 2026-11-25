@@ -5,9 +5,11 @@ import {
   isDismissalCooldownActive,
 } from "./android-acquisition.mjs";
 import {
+  appleDevice,
   buildNativeStoreUrl,
   getInstallBannerMode,
   getNativeStorePlatform,
+  isIosSafari,
   localizedStoreUrls,
   STORE_CTA_DISMISSED_AT_KEYS,
 } from "./store-acquisition.mjs";
@@ -58,29 +60,58 @@ test("Android browser/PWA and TWA boundaries are retained", () => {
   }
 });
 
-test("iOS retains PWA guidance and never receives a new native store CTA", () => {
-  for (const surface of [
-    { userAgent: IOS },
-    { userAgent: MAC, maxTouchPoints: 5 },
+test("Safari and Chrome on Apple hardware get the matching native store", () => {
+  for (const [device, surface, safari] of [
+    ["iphone", { userAgent: IOS }, true],
+    [
+      "iphone",
+      { userAgent: IOS.replace("Version/18.2", "CriOS/143.0") },
+      false,
+    ],
+    ["ipad", { userAgent: IOS.replaceAll("iPhone", "iPad") }, true],
+    ["ipad", { userAgent: MAC, maxTouchPoints: 5 }, true],
+    [
+      "ipad",
+      {
+        userAgent: MAC.replace("Version/18.2", "Chrome/143.0"),
+        maxTouchPoints: 5,
+      },
+      false,
+    ],
+    ["mac", { userAgent: MAC }, false],
+    [
+      "mac",
+      {
+        userAgent:
+          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:143.0) Gecko/20100101 Firefox/143.0",
+      },
+      false,
+    ],
+    ["mac", { userAgent: MAC.replace("Version/18.2", "Chrome/143.0") }, false],
   ]) {
-    assert.equal(getInstallBannerMode(surface), "ios-pwa");
-    assert.equal(getNativeStorePlatform(surface), null);
-    assert.equal(
-      getInstallBannerMode({ ...surface, displayMode: "standalone" }),
-      null,
-    );
+    const platform = device === "mac" ? "macos-appstore" : "ios-appstore";
+    assert.equal(appleDevice(surface), device);
+    assert.equal(isIosSafari(surface), safari);
+    assert.equal(getInstallBannerMode(surface), platform);
+    assert.equal(getNativeStorePlatform(surface), platform);
+    for (const displayMode of [
+      "standalone",
+      "minimal-ui",
+      "fullscreen",
+      "window-controls-overlay",
+    ]) {
+      assert.equal(getNativeStorePlatform({ ...surface, displayMode }), null);
+    }
   }
 });
 
-test("macOS and Linux retain browser installation only", () => {
-  for (const userAgent of [MAC, LINUX]) {
-    assert.equal(getInstallBannerMode({ userAgent }), "browser-pwa");
-    assert.equal(getNativeStorePlatform({ userAgent }), null);
-    assert.equal(
-      getInstallBannerMode({ userAgent, displayMode: "standalone" }),
-      null,
-    );
-  }
+test("Linux retains user-initiated browser installation", () => {
+  assert.equal(getInstallBannerMode({ userAgent: LINUX }), "browser-pwa");
+  assert.equal(getNativeStorePlatform({ userAgent: LINUX }), null);
+  assert.equal(
+    getInstallBannerMode({ userAgent: LINUX, displayMode: "standalone" }),
+    null,
+  );
 });
 
 test("embedded apps, Android WebViews, iOS WKWebViews, and frames suppress acquisition prompts", () => {
@@ -91,6 +122,8 @@ test("embedded apps, Android WebViews, iOS WKWebViews, and frames suppress acqui
       "apps-in-toss",
       "Instagram 123",
       "KAKAOTALK",
+      "NAVER(inapp; search; 2300)",
+      "GSA/1.0",
       "FBAN/FBIOS",
       "WebView2",
     ]) {
@@ -115,12 +148,18 @@ test("embedded apps, Android WebViews, iOS WKWebViews, and frames suppress acqui
 });
 
 test("unknown user agents have no speculative install prompt", () => {
-  for (const userAgent of [null, undefined, "", "SomeUnknownBrowser"]) {
+  for (const userAgent of [
+    null,
+    undefined,
+    "",
+    "SomeUnknownBrowser",
+    IOS.replace("iPhone;", "iPod touch;"),
+  ]) {
     assert.equal(getInstallBannerMode({ userAgent }), null);
   }
 });
 
-test("Windows cooldown has an independent storage key and exact 14-day boundary", () => {
+test("store cooldowns have independent keys and share an exact 14-day boundary", () => {
   assert.equal(
     STORE_CTA_DISMISSED_AT_KEYS["android-play"],
     "ottline.androidPlayCta.dismissedAt",
@@ -133,6 +172,15 @@ test("Windows cooldown has an independent storage key and exact 14-day boundary"
     STORE_CTA_DISMISSED_AT_KEYS["windows-store"],
     STORE_CTA_DISMISSED_AT_KEYS["android-play"],
   );
+  assert.equal(
+    STORE_CTA_DISMISSED_AT_KEYS["ios-appstore"],
+    "ottline.iosAppStoreCta.dismissedAt",
+  );
+  assert.equal(
+    STORE_CTA_DISMISSED_AT_KEYS["macos-appstore"],
+    "ottline.macAppStoreCta.dismissedAt",
+  );
+  assert.equal(new Set(Object.values(STORE_CTA_DISMISSED_AT_KEYS)).size, 4);
   const now = Date.UTC(2026, 10, 17);
   const boundary = now - ANDROID_ACQUISITION_COOLDOWN_MS;
   assert.equal(isDismissalCooldownActive(String(boundary + 1), now), true);
@@ -260,11 +308,43 @@ test("Android shared builder preserves global and saved campaign/handoff contrac
   }
 });
 
-test("App Store listing stays unchanged in this Windows-only phase", () => {
+test("each Apple placement uses only the localized official listing while campaign tokens are unavailable", () => {
   for (const locale of ["ko", "en"]) {
-    const url = new URL(localizedStoreUrls(locale).appStore);
-    assert.equal(url.hostname, "apps.apple.com");
-    assert.equal(url.search, "");
-    assert.match(url.pathname, /id6780318110$/);
+    const region = locale === "ko" ? "/kr" : "";
+    for (const platform of ["ios-appstore", "macos-appstore"]) {
+      const path =
+        platform === "ios-appstore"
+          ? "/app/ottline/id6780318110"
+          : "/app/id6780318110?platform=mac";
+      for (const campaign of [
+        "web_global_banner",
+        "web_quicklog_saved",
+        "about_platform_card",
+      ]) {
+        assert.equal(
+          buildNativeStoreUrl({
+            platform,
+            locale,
+            campaign,
+            content: "PRIVATE",
+            userId: "PRIVATE",
+            deviceId: "PRIVATE",
+            pairingCode: "PRIVATE",
+            recordId: "PRIVATE",
+            webHandoff: true,
+          }),
+          `https://apps.apple.com${region}${path}`,
+        );
+      }
+      assert.throws(
+        () =>
+          buildNativeStoreUrl({
+            platform,
+            locale,
+            campaign: "extension_handoff",
+          }),
+        TypeError,
+      );
+    }
   }
 });

@@ -1,8 +1,16 @@
 "use client";
 
 import { type ReactNode, useEffect, useRef } from "react";
-import type { StorePlatform } from "@/lib/store-acquisition.mjs";
-import { trackStoreCta } from "@/lib/storeAcquisition";
+import {
+  getNativeStorePlatform,
+  isAppleStore,
+  type StorePlatform,
+} from "@/lib/store-acquisition.mjs";
+import {
+  browserStoreSurface,
+  dismissStoreOffer,
+  trackStoreCta,
+} from "@/lib/storeAcquisition";
 
 /** Server-rendered href, with attribution only when the card is actually seen. */
 export default function StoreCampaignLink({
@@ -58,6 +66,12 @@ export default function StoreCampaignLink({
           void trackStoreCta(platform, "impression", properties);
         }
         void trackStoreCta(platform, "click", properties);
+        if (
+          isAppleStore(platform) &&
+          getNativeStorePlatform(browserStoreSurface()) === platform
+        ) {
+          dismissStoreOffer(platform);
+        }
       }}
     >
       {children}

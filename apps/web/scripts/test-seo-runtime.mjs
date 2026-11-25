@@ -248,10 +248,16 @@ for (const entry of entries) {
     assert.match(html, /macOS/);
     assert.equal(
       meta("apple-itunes-app"),
-      undefined,
-      "Smart App Banner is outside this PR",
+      "app-id=6780318110",
+      "About supplies the official Apple Smart App Banner",
     );
   }
+  if (localPath !== "/about")
+    assert.equal(
+      meta("apple-itunes-app"),
+      undefined,
+      "Recording and guide pages use only owned site prompts",
+    );
   if (localPath.startsWith("/guide/")) {
     const script = [
       ...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/g),
