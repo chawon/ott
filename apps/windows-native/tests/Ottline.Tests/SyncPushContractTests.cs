@@ -2729,6 +2729,9 @@ public sealed class SyncPushContractTests
         var legacy2Id = "local-log:cafe0000111122223333444455556662";
         var canonical2Uuid = SyncIdNormalizer.EnsureUuid(legacy2Id);
 
+        var title3Uuid = "76000000-0000-0000-0000-000000000003";
+        var canonical3Uuid = "76100000-0000-0000-0000-000000000003";
+
         var serverDeletedAt = "2026-11-22T10:00:00Z";
         var uploadedLogs = new List<(string Id, string Note)>();
         var serverActiveLogs = new List<object>();
@@ -2790,6 +2793,19 @@ public sealed class SyncPushContractTests
                         createdAt = "2026-11-20T12:00:00Z",
                         updatedAt = serverDeletedAt,
                         deletedAt = serverDeletedAt
+                    },
+                    new
+                    {
+                        id = canonical3Uuid,
+                        titleId = title3Uuid,
+                        status = "DONE",
+                        note = "삭제된 정식 UUID 구기록 3",
+                        spoiler = false,
+                        origin = "LOG",
+                        watchedAt = "2026-11-20T12:00:00Z",
+                        createdAt = "2026-11-20T12:00:00Z",
+                        updatedAt = serverDeletedAt,
+                        deletedAt = serverDeletedAt
                     }
                 };
                 logs.AddRange(serverActiveLogs);
@@ -2802,7 +2818,8 @@ public sealed class SyncPushContractTests
                         titles = new object[]
                         {
                             new { id = title1Uuid, type = "movie", name = "삭제 선행 후 재기록 작품", year = 2024, provider = "TMDB", providerId = "7811" },
-                            new { id = title2Uuid, type = "movie", name = "삭제 직후 stale 초안 저장 작품", year = 2024, provider = "TMDB", providerId = "7812" }
+                            new { id = title2Uuid, type = "movie", name = "삭제 직후 stale 초안 저장 작품", year = 2024, provider = "TMDB", providerId = "7812" },
+                            new { id = title3Uuid, type = "movie", name = "삭제 직후 정식 UUID 초안 저장 작품", year = 2024, provider = "TMDB", providerId = "7813" }
                         },
                         logs
                     }
@@ -2844,17 +2861,32 @@ public sealed class SyncPushContractTests
                 SyncState: "synced"
             ), recordHistory: true);
 
-            // Delete commits FIRST on both rows
+            var title3 = new TitleSummary(title3Uuid, "tmdb", "7813", TitleType.movie, "삭제 직후 정식 UUID 초안 저장 작품", Year: 2024);
+            var existing3 = db.UpsertLog(new WatchLog(
+                Id: canonical3Uuid,
+                TitleId: title3Uuid,
+                Title: title3,
+                Status: LogStatus.DONE,
+                Note: "삭제 전 정식 UUID 구기록 3",
+                OccurredAt: "2026-11-20T12:00:00Z",
+                WatchedOn: "2026-11-20",
+                CreatedAt: "2026-11-20T12:00:00Z",
+                UpdatedAt: "2026-11-20T12:00:00Z",
+                SyncState: "synced"
+            ), recordHistory: true);
+
+            // Delete commits FIRST on all three rows (legacy1, legacy2, and canonical3)
             Assert.True(db.ApplyServerDeletedLogAtomic(existing1, new SyncDeletedLog(canonical1Uuid, title1Uuid, serverDeletedAt, serverDeletedAt)));
             Assert.True(db.ApplyServerDeletedLogAtomic(existing2, new SyncDeletedLog(canonical2Uuid, title2Uuid, serverDeletedAt, serverDeletedAt)));
+            Assert.True(db.ApplyServerDeletedLogAtomic(existing3, new SyncDeletedLog(canonical3Uuid, title3Uuid, serverDeletedAt, serverDeletedAt)));
 
-            // Case A: Normal SaveLogLocalFirst after deletion commits -> creates separate new UUID log
+            // Case A: Normal SaveLogLocalFirst after deletion commits -> creates separate new UUID UPSERT_LOG
             var fresh1 = repo.SaveLogLocalFirst(title1, LogStatus.DONE, RecordFeeling.SATISFIED, "2026-11-24", note: "삭제 후 별도 신규 감상 1");
             Assert.NotEqual(canonical1Uuid, fresh1.Id);
             Assert.True(SyncIdNormalizer.IsValidUuid(fresh1.Id));
 
             // Case B: Reverse TOCTOU where caller held stale legacy2Id before deletion committed ->
-            // SaveLogAndOutboxAtomic MUST detect soft-deleted canonical2Uuid and allocate a separate new UUID!
+            // SaveLogAndOutboxAtomic MUST detect soft-deleted canonical2Uuid and allocate a separate new UUID UPSERT_LOG!
             var staleDraft2 = existing2 with
             {
                 Note = "삭제 직후 stale 초안으로 저장된 신규 감상 2",
@@ -2872,16 +2904,45 @@ public sealed class SyncPushContractTests
             Assert.True(SyncIdNormalizer.IsValidUuid(fresh2.Id));
             Assert.Null(db.GetLogIncludingDeleted(legacy2Id));
 
-            // Sync uploads BOTH new separate records ONCE while keeping both soft-deleted records + full history intact!
+            // Case C: Reverse TOCTOU where caller held stale canonical UUID (canonical3Uuid) before deletion committed ->
+            // SaveLogAndOutboxAtomic MUST preserve soft-deleted canonical3Uuid and allocate a separate new UUID UPSERT_LOG!
+            var staleDraft3 = existing3 with
+            {
+                Note = "삭제 직후 정식 UUID stale 초안으로 저장된 신규 감상 3",
+                UpdatedAt = "2026-11-24T01:41:00Z",
+                SyncState = "pending",
+                DeletedAt = null
+            };
+            var fresh3 = db.SaveLogAndOutboxAtomic(
+                staleDraft3,
+                recordHistory: true,
+                outboxType: "UPDATE_LOG",
+                payloadSerializer: l => JsonSerializer.Serialize(new { logId = l.Id, note = l.Note }));
+            Assert.NotEqual(canonical3Uuid, fresh3.Id);
+            Assert.True(SyncIdNormalizer.IsValidUuid(fresh3.Id));
+            Assert.Null(db.GetLog(canonical3Uuid));
+            Assert.Equal(serverDeletedAt, db.GetLogIncludingDeleted(canonical3Uuid)!.DeletedAt);
+
+            // Verify all three queued outbox events are UPSERT_LOG on the brand-new separate UUIDs
+            var pendingBeforeSync = db.GetPendingOutbox();
+            Assert.Equal(3, pendingBeforeSync.Count);
+            Assert.All(pendingBeforeSync, e => Assert.Equal("UPSERT_LOG", e.Type));
+            Assert.Contains(pendingBeforeSync, e => e.EntityId == fresh1.Id);
+            Assert.Contains(pendingBeforeSync, e => e.EntityId == fresh2.Id);
+            Assert.Contains(pendingBeforeSync, e => e.EntityId == fresh3.Id);
+
+            // Sync uploads ALL THREE new separate records ONCE while keeping all soft-deleted records + full history intact!
             var (ok, _) = await repo.SyncAllAsync();
             Assert.True(ok);
             Assert.Empty(db.GetPendingOutbox());
-            Assert.Equal(2, uploadedLogs.Count);
+            Assert.Equal(3, uploadedLogs.Count);
             Assert.Contains(uploadedLogs, u => u.Id == fresh1.Id && u.Note == "삭제 후 별도 신규 감상 1");
             Assert.Contains(uploadedLogs, u => u.Id == fresh2.Id && u.Note == "삭제 직후 stale 초안으로 저장된 신규 감상 2");
+            Assert.Contains(uploadedLogs, u => u.Id == fresh3.Id && u.Note == "삭제 직후 정식 UUID stale 초안으로 저장된 신규 감상 3");
 
             Assert.Equal(serverDeletedAt, db.GetLogIncludingDeleted(canonical1Uuid)!.DeletedAt);
             Assert.Equal(serverDeletedAt, db.GetLogIncludingDeleted(canonical2Uuid)!.DeletedAt);
+            Assert.Equal(serverDeletedAt, db.GetLogIncludingDeleted(canonical3Uuid)!.DeletedAt);
 
             var hist1 = repo.GetHistoryForTitle(title1Uuid);
             Assert.Contains(hist1, h => h.LogId == canonical1Uuid && h.Note == "삭제 전 구기록 1");
@@ -2890,6 +2951,15 @@ public sealed class SyncPushContractTests
             var hist2 = repo.GetHistoryForTitle(title2Uuid);
             Assert.Contains(hist2, h => h.LogId == canonical2Uuid && h.Note == "삭제 전 구기록 2");
             Assert.Contains(hist2, h => h.LogId == fresh2.Id && h.Note == "삭제 직후 stale 초안으로 저장된 신규 감상 2");
+
+            var hist3 = repo.GetHistoryForTitle(title3Uuid);
+            Assert.Contains(hist3, h => h.LogId == canonical3Uuid && h.Note == "삭제 전 정식 UUID 구기록 3");
+            Assert.Contains(hist3, h => h.LogId == fresh3.Id && h.Note == "삭제 직후 정식 UUID stale 초안으로 저장된 신규 감상 3");
+
+            // Follow-up sync must NOT re-upload any of the three records
+            var (ok2, _) = await repo.SyncAllAsync();
+            Assert.True(ok2);
+            Assert.Equal(3, uploadedLogs.Count);
         }
         finally
         {

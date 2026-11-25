@@ -346,33 +346,48 @@ public sealed class OttlineDatabase : IDisposable
             var effectiveLog = log;
             var effectiveOutboxType = outboxType;
 
-            // Guard against a concurrent sync transaction remapping/soft-deleting a legacy non-UUID row
-            // after SaveLogLocalFirst read it and before this transaction acquired _syncRoot.
-            if (!string.IsNullOrWhiteSpace(log.Id) &&
-                !SyncIdNormalizer.IsValidUuid(log.Id) &&
-                GetLogInternal(conn, tx, log.Id, includeDeleted: true) == null)
+            // Guard against a concurrent sync transaction soft-deleting or remapping the target row
+            // (whether legacy non-UUID or canonical UUID) after the caller read it and before this
+            // transaction acquired _syncRoot. Once a row is soft-deleted locally, a subsequent save
+            // must preserve the soft-deleted row + its history and emit a brand-new UUID UPSERT_LOG.
+            if (!string.IsNullOrWhiteSpace(log.Id))
             {
-                var canonicalId = SyncIdNormalizer.EnsureUuid(log.Id);
-                var canonicalRow = GetLogInternal(conn, tx, canonicalId, includeDeleted: true);
-                if (canonicalRow != null)
+                var directRow = GetLogInternal(conn, tx, log.Id, includeDeleted: true);
+                var resolvedRow = directRow;
+                if (resolvedRow == null)
                 {
-                    if (canonicalRow.DeletedAt != null)
+                    var canonicalId = SyncIdNormalizer.EnsureUuid(log.Id);
+                    if (!string.Equals(canonicalId, log.Id, StringComparison.Ordinal))
                     {
+                        resolvedRow = GetLogInternal(conn, tx, canonicalId, includeDeleted: true);
+                    }
+                }
+
+                if (resolvedRow != null)
+                {
+                    if (resolvedRow.DeletedAt != null)
+                    {
+                        var freshCreatedAt = string.IsNullOrWhiteSpace(log.UpdatedAt)
+                            ? DateTimeOffset.UtcNow.ToString("O", CultureInfo.InvariantCulture)
+                            : log.UpdatedAt;
                         effectiveLog = log with
                         {
                             Id = Guid.NewGuid().ToString("D"),
+                            TitleId = resolvedRow.TitleId,
+                            Title = log.Title with { Id = resolvedRow.TitleId },
+                            CreatedAt = freshCreatedAt,
                             Revision = 1,
                             DeletedAt = null
                         };
                         effectiveOutboxType = "UPSERT_LOG";
                     }
-                    else
+                    else if (directRow == null)
                     {
                         effectiveLog = log with
                         {
-                            Id = canonicalRow.Id,
-                            TitleId = canonicalRow.TitleId,
-                            Title = log.Title with { Id = canonicalRow.TitleId }
+                            Id = resolvedRow.Id,
+                            TitleId = resolvedRow.TitleId,
+                            Title = log.Title with { Id = resolvedRow.TitleId }
                         };
                     }
                 }
