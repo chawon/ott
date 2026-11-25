@@ -28,19 +28,22 @@ public class SyncService {
     private final WatchLogHistoryService historyService;
     private final TmdbClient tmdbClient;
     private final SyncDeliveryStore deliveryStore;
+    private final AccountWriteLock writeLock;
 
     public SyncService(
             TitleRepository titleRepository,
             WatchLogRepository watchLogRepository,
             WatchLogHistoryService historyService,
             TmdbClient tmdbClient,
-            SyncDeliveryStore deliveryStore
+            SyncDeliveryStore deliveryStore,
+            AccountWriteLock writeLock
     ) {
         this.titleRepository = titleRepository;
         this.watchLogRepository = watchLogRepository;
         this.historyService = historyService;
         this.tmdbClient = tmdbClient;
         this.deliveryStore = deliveryStore;
+        this.writeLock = writeLock;
     }
 
     @Transactional
@@ -49,7 +52,7 @@ public class SyncService {
         List<SyncReject> rejected = new ArrayList<>();
         Map<UUID, UUID> titleIdMap = new HashMap<>();
         UUID reqUserId = (req == null) ? null : req.userId();
-        deliveryStore.lockPush(reqUserId);
+        writeLock.acquire(reqUserId);
 
         if (req != null && req.changes() != null) {
             var changes = req.changes();

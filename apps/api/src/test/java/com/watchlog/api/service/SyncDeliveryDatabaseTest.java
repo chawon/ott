@@ -44,6 +44,7 @@ class SyncDeliveryDatabaseTest {
     static WatchLogRepository logs;
     static TitleRepository titles;
     static WatchLogHistoryService history;
+    static AccountWriteLock writes;
     static final String SCHEMA = "sync_test_" + UUID.randomUUID().toString().replace("-", "");
     static final OffsetDateTime OLD = OffsetDateTime.parse("2020-01-01T12:00:00Z");
     UUID user = UUID.randomUUID();
@@ -85,7 +86,8 @@ class SyncDeliveryDatabaseTest {
         titles = repos.getRepository(TitleRepository.class);
         logs = repos.getRepository(WatchLogRepository.class);
         history = new WatchLogHistoryService(repos.getRepository(WatchLogHistoryRepository.class));
-        sync = new SyncService(titles, logs, history, null, new SyncDeliveryStore(jdbc));
+        writes = new AccountWriteLock(jdbc);
+        sync = new SyncService(titles, logs, history, null, new SyncDeliveryStore(jdbc), writes);
     }
 
     @AfterAll
@@ -320,7 +322,7 @@ class SyncDeliveryDatabaseTest {
             var transaction = new TransactionTemplate(manager);
             var repositoryFactory = new JpaRepositoryFactory(SharedEntityManagerCreator.createSharedEntityManager(upgradeFactory.getObject()));
             var service = new SyncService(repositoryFactory.getRepository(TitleRepository.class),repositoryFactory.getRepository(WatchLogRepository.class),
-                    new WatchLogHistoryService(repositoryFactory.getRepository(WatchLogHistoryRepository.class)),null,new SyncDeliveryStore(sql));
+                    new WatchLogHistoryService(repositoryFactory.getRepository(WatchLogHistoryRepository.class)),null,new SyncDeliveryStore(sql),new AccountWriteLock(sql));
             var repaired = transaction.execute(status -> service.pull(legacyCursor,owner,device));
             assertThat(repaired.changes().logs()).extracting(SyncLogDto::id).containsExactly(log);
             assertThat(repaired.changes().titles()).extracting(SyncTitleDto::id).contains(title);
@@ -374,7 +376,7 @@ class SyncDeliveryDatabaseTest {
         var cursor = readyCursor();
         var request = new tools.jackson.databind.ObjectMapper().readValue(
                 "{\"titleId\":\""+title.getId()+"\",\"status\":\"DONE\",\"note\":\"REST service\"}", CreateWatchLogRequest.class);
-        var logService = new LogService(logs,new TitleService(titles,null),history);
+        var logService = new LogService(logs,new TitleService(titles,null),history,writes);
         var log = tx.execute(status -> logService.create(request,user,"ko"));
         var next = pull(cursor);
         assertThat(next.changes().logs()).extracting(SyncLogDto::id).contains(log.getId());
@@ -421,13 +423,87 @@ class SyncDeliveryDatabaseTest {
     }
 
     @Test
+    void successfulRestEditCannotBeOverwrittenByAnOlderSyncThatReadBeforeItsCommit() throws Exception {
+        var row = restore(OLD,"before REST");
+        var request = new tools.jackson.databind.ObjectMapper().readValue(
+                "{\"status\":\"DONE\",\"note\":\"newer REST edit\"}",UpdateWatchLogRequest.class);
+        var service = new LogService(logs,new TitleService(titles,null),history,writes);
+        var result = mixedWriteRace(row,() -> service.update(row.log(),request,user));
+        assertThat(result.rejected()).extracting(SyncReject::reason).contains("stale");
+        assertThat(jdbc.queryForObject("select note from watch_logs where id = ?",String.class,row.log())).isEqualTo("newer REST edit");
+    }
+
+    @Test
+    void commentBackedRecordEditCannotBeOverwrittenByAnOlderSync() throws Exception {
+        var row = restore(OLD,"before comment");
+        var repositories = new JpaRepositoryFactory(SharedEntityManagerCreator.createSharedEntityManager(factory.getObject()));
+        var discussions = new DiscussionService(repositories.getRepository(com.watchlog.api.repo.DiscussionRepository.class),logs);
+        var discussion = tx.execute(status -> discussions.ensureForTitle(titles.findById(row.title()).orElseThrow(),"ko"));
+        var service = new CommentService(repositories.getRepository(com.watchlog.api.repo.CommentRepository.class),discussions,
+                new TitleService(titles,null),logs,history,writes);
+        var result = mixedWriteRace(row,() -> service.create(discussion.getId(),"newer comment record",user,List.of(),true,"ko"));
+        assertThat(result.rejected()).extracting(SyncReject::reason).contains("stale");
+        assertThat(jdbc.queryForObject("select note from watch_logs where id = ?",String.class,row.log())).isEqualTo("newer comment record");
+    }
+
+    @Test
+    void canonicalAccountMergeCannotBeOverwrittenByAnOlderTargetAccountSync() throws Exception {
+        var row = restore(OLD,"before account merge");
+        var fromUser = UUID.randomUUID();
+        var fromLog = UUID.randomUUID();
+        jdbc.update("insert into users(id,pairing_code) values (?,?)",fromUser,fromUser.toString().substring(0,16));
+        jdbc.update("insert into watch_logs(id,title_id,user_id,status,note,watched_at,updated_at) values (?,?,?,'DONE','merge winner',?,?)",
+                fromLog,row.title(),fromUser,OLD,OLD.plusYears(2));
+        var repositories = new JpaRepositoryFactory(SharedEntityManagerCreator.createSharedEntityManager(factory.getObject()));
+        var service = new AuthService(repositories.getRepository(com.watchlog.api.repo.UserRepository.class),
+                repositories.getRepository(com.watchlog.api.repo.UserDeviceRepository.class),logs,
+                repositories.getRepository(com.watchlog.api.repo.CommentRepository.class),
+                repositories.getRepository(com.watchlog.api.repo.DiscussionReactionRepository.class),
+                mock(AndroidReminderService.class),mock(RecommendationAccountStore.class),writes);
+        String code = jdbc.queryForObject("select pairing_code from users where id = ?",String.class,user);
+        var result = mixedWriteRace(row,() -> service.pair(code,fromUser,"isolated merge","windows_native"));
+        assertThat(result.rejected()).extracting(SyncReject::reason).contains("stale");
+        assertThat(jdbc.queryForObject("select note from watch_logs where id = ?",String.class,row.log())).isEqualTo("merge winner");
+        assertThat(jdbc.queryForObject("select count(*) from watch_logs where id = ?",Integer.class,fromLog)).isZero();
+        assertThat(jdbc.queryForObject("select count(*) from watch_logs where user_id = ? and title_id = ?",Integer.class,user,row.title())).isEqualTo(1);
+    }
+
+    private SyncPushResponse mixedWriteRace(Row row,Runnable currentWrite) throws Exception {
+        try (var blocker = dataSource.getConnection();var pool = Executors.newFixedThreadPool(2)) {
+            blocker.setAutoCommit(false);
+            try (var statement = blocker.prepareStatement("select id from watch_logs where id = ? for no key update")) {
+                statement.setObject(1,row.log());
+                try (var result=statement.executeQuery()) { assertThat(result.next()).isTrue(); }
+            }
+            try {
+                var current = pool.submit(() -> tx.executeWithoutResult(status -> {currentWrite.run();logs.flush();}));
+                awaitBlockedWriters(1);
+                var delayed = pool.submit(() -> pushLog(row,OLD.plusDays(1),"late offline edit"));
+                try { awaitBlockedWriters(2); }
+                finally { blocker.commit(); }
+                current.get(10,TimeUnit.SECONDS);
+                return delayed.get(10,TimeUnit.SECONDS);
+            } finally { blocker.rollback(); }
+        }
+    }
+
+    private void awaitBlockedWriters(int minimum) throws InterruptedException {
+        for (int i=0;i<100;i++) {
+            int blocked=jdbc.queryForObject("select count(*) from pg_stat_activity where application_name = ? and wait_event_type = 'Lock'",Integer.class,SCHEMA);
+            if (blocked>=minimum) return;
+            Thread.sleep(20);
+        }
+        throw new AssertionError("Did not reach the deterministic writer barrier");
+    }
+
+    @Test
     void originalTitleRequestIsAnIdempotentReplayAfterTmdbHydratedItsMetadata() {
         var tmdb = mock(com.watchlog.api.tmdb.TmdbClient.class);
         var title = UUID.randomUUID();
         String provider = "isolated-"+title;
         when(tmdb.fetchDetails(TitleType.movie,provider,"ko")).thenReturn(new com.watchlog.api.tmdb.TmdbClient.Snapshot(
                 TitleType.movie,"Hydrated name",2026,"Hydrated overview","https://images.invalid/poster",List.of("Drama"),List.of("Director"),List.of("Cast")));
-        var service = new SyncService(titles,logs,history,tmdb,new SyncDeliveryStore(jdbc));
+        var service = new SyncService(titles,logs,history,tmdb,new SyncDeliveryStore(jdbc),writes);
         var payload = new SyncTitlePayload(TitleType.movie,"Original offline name",2000,null,null,null,
                 "Original overview",null,null,null,null,null,null,"TMDB",provider);
         var request = new SyncPushRequest(user,a.toString(),OLD,new SyncChanges(List.of(),
@@ -453,7 +529,7 @@ class SyncDeliveryDatabaseTest {
             assertThat(release.await(10,TimeUnit.SECONDS)).isTrue();
             return new com.watchlog.api.tmdb.TmdbClient.Snapshot(TitleType.movie,"Hydrated",2026,null,null,null,List.of("Director"),null);
         });
-        var service = new SyncService(titles,logs,history,tmdb,new SyncDeliveryStore(jdbc));
+        var service = new SyncService(titles,logs,history,tmdb,new SyncDeliveryStore(jdbc),writes);
         var title = UUID.randomUUID();
         var request = new SyncPushRequest(user,a.toString(),OLD,new SyncChanges(List.of(),
                 List.of(new SyncChange<>(title,"upsert",OLD,new SyncTitlePayload(TitleType.movie,"Waiting",null,null,null,null,

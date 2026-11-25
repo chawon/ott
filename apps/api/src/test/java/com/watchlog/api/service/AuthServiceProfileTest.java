@@ -54,7 +54,8 @@ class AuthServiceProfileTest {
                 repositoryProxy(CommentRepository.class, this::defaultRepositoryReturn),
                 repositoryProxy(DiscussionReactionRepository.class, this::defaultRepositoryReturn),
                 null,
-                org.mockito.Mockito.mock(RecommendationAccountStore.class)
+                org.mockito.Mockito.mock(RecommendationAccountStore.class),
+                org.mockito.Mockito.mock(AccountWriteLock.class)
         );
     }
 

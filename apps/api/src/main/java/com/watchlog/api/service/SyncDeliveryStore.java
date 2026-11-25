@@ -18,16 +18,6 @@ public class SyncDeliveryStore {
     }
 
     @Transactional(propagation = Propagation.MANDATORY)
-    public void lockPush(UUID userId) {
-        // Read conflict versions only after an earlier sync writer has committed.
-        // Scope to the account: unrelated users do not wait for this push's metadata network call.
-        if (userId != null) {
-            jdbc.queryForObject("select pg_advisory_xact_lock(hashtextextended(current_schema() || '.ottline.sync.push.' || cast(? as text), 0))",
-                    Object.class, userId);
-        }
-    }
-
-    @Transactional(propagation = Propagation.MANDATORY)
     public PullWindow preparePull(OffsetDateTime since, UUID userId, UUID deviceId) {
         // Only pull publishers serialize. Source-row writers never take this fence.
         // Millisecond cursors also survive legacy clients that normalize ISO timestamps.

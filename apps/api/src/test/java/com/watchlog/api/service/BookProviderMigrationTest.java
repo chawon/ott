@@ -77,7 +77,7 @@ class BookProviderMigrationTest {
                         List.of(new SyncChange<>(incomingId, "upsert", timestamp, payload))));
         var logs = mock(WatchLogRepository.class);
         when(titles.findById(legacy.getId())).thenReturn(Optional.of(legacy));
-        var service = new SyncService(titles, logs, mock(WatchLogHistoryService.class), null, mock(SyncDeliveryStore.class));
+        var service = new SyncService(titles, logs, mock(WatchLogHistoryService.class), null, mock(SyncDeliveryStore.class), mock(AccountWriteLock.class));
         assertThat(service.push(request, "ko").accepted()).contains(incomingId, incomingLogId);
         var savedLog = org.mockito.ArgumentCaptor.forClass(WatchLogEntity.class);
         verify(logs).save(savedLog.capture());
@@ -110,7 +110,7 @@ class BookProviderMigrationTest {
                 null, null, null, null, null, null, null, "LOCAL", "9788983921987");
         var request = new SyncPushRequest(null, "old-native", timestamp, new SyncChanges(List.of(),
                 List.of(new SyncChange<>(legacy.getId(), "upsert", timestamp, payload))));
-        var service = new SyncService(titles, mock(WatchLogRepository.class), mock(WatchLogHistoryService.class), null, mock(SyncDeliveryStore.class));
+        var service = new SyncService(titles, mock(WatchLogRepository.class), mock(WatchLogHistoryService.class), null, mock(SyncDeliveryStore.class), mock(AccountWriteLock.class));
         assertThat(service.push(request, "ko").accepted()).contains(legacy.getId());
         assertThat(legacy.getProvider()).isEqualTo(provider);
         assertThat(legacy.getProviderId()).isEqualTo(providerId);

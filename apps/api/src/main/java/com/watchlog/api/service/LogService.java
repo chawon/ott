@@ -27,15 +27,18 @@ public class LogService {
     private final WatchLogRepository watchLogRepository;
     private final TitleService titleService;
     private final WatchLogHistoryService historyService;
+    private final AccountWriteLock writeLock;
 
     public LogService(
             WatchLogRepository watchLogRepository,
             TitleService titleService,
-            WatchLogHistoryService historyService
+            WatchLogHistoryService historyService,
+            AccountWriteLock writeLock
     ) {
         this.watchLogRepository = watchLogRepository;
         this.titleService = titleService;
         this.historyService = historyService;
+        this.writeLock = writeLock;
     }
 
     @Transactional(readOnly = true)
@@ -173,6 +176,7 @@ public class LogService {
 
     @Transactional
     public WatchLogEntity create(CreateWatchLogRequest req, UUID userId, String language) {
+        writeLock.acquire(userId);
         var title = (req.titleId() != null)
                 ? titleService.require(req.titleId())
                 : (req.provider() != null && req.providerId() != null && "TMDB".equalsIgnoreCase(req.provider()))
@@ -219,6 +223,7 @@ public class LogService {
 
     @Transactional
     public WatchLogEntity update(UUID id, UpdateWatchLogRequest req, UUID userId) {
+        writeLock.acquire(userId);
         var log = watchLogRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Log not found: " + id));
         if (userId != null && log.getUserId() != null && !log.getUserId().equals(userId)) {

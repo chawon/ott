@@ -191,7 +191,7 @@
 4. 구현 기준은 [SyncController](../apps/api/src/main/java/com/watchlog/api/web/SyncController.java), [SyncService](../apps/api/src/main/java/com/watchlog/api/service/SyncService.java), [DB 마이그레이션](../apps/api/src/main/resources/db/migration)이다.
 5. `2026-11-25` [#171 수정안](changes/api-sync-delivery-171-2026-11-25.md)은 **운영 미반영**이다. V33의 트랜잭션 변경 목록을 pull에서 발행해 사용자 논리 시각과 전달 cursor를 분리하고 기존 since/응답 DTO를 유지한다.
 6. 기기가 마지막 신 API의 serverTime을 echo하면 해당 전달 경계 `>`의 증분을 받는다. 최초·미인정·응답 유실·구 API cursor는 전체 재대조하며, 정상 cursor의 다음 조회는 변경이 없으면 빈 목록이다.
-7. 원래 과거 편집/삭제 시각·최신 원격 보호·canonical ID와 관련 제목을 보존한다. 동률의 동일 로그 재시도는 이력을 추가하지 않고 수락하며 다른 payload는 stale, 제목의 같은 버전 재시도는 보강된 canonical 메타데이터를 유지한다.
+7. 원래 과거 편집/삭제 시각·canonical ID와 관련 제목을 보존한다. sync·REST 기록 쓰기·댓글 기록 갱신·계정 병합은 같은 계정 잠금을 기록 조회 전에 얻어 최신 원격 편집을 보존한다. 동률의 동일 로그 재시도는 이력을 추가하지 않고 수락하며 다른 payload는 stale, 제목의 같은 버전 재시도는 보강된 canonical 메타데이터를 유지한다.
 8. 적용 순서·전역 pull fence의 보유 범위·비용·기존 바이너리 확인 및 구 Expo 실패/재시도 인수 조건은 변경안을 따른다.
 
 ### ChatGPT App
