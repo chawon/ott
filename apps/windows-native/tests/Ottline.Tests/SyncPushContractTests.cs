@@ -1885,4 +1885,1086 @@ public sealed class SyncPushContractTests
             CleanupDb(dbPath);
         }
     }
+
+    [Fact]
+    public async Task LegacyDeletedLog_FirstRecovery_SoftDeletesLocalLegacyIdPreservesHistoryAndStaysDeletedOnIncrementalSync()
+    {
+        var userId = "11111111-2222-3333-4444-555555555555";
+        var legacyTitleId = "tmdb:movie:7772";
+        var serverTitleUuid = "71000000-0000-0000-0000-000000000001";
+        var legacyLogId = "local-log:11112222333344445555666677778888";
+        var canonicalLogUuid = SyncIdNormalizer.EnsureUuid(legacyLogId);
+        var serverDeletedAt = "2026-11-22T10:00:00Z";
+
+        var pushCount = 0;
+        var pullPaths = new List<string>();
+
+        var handler = new CapturingHttpMessageHandler((req, _) =>
+        {
+            if (req.Method == HttpMethod.Post && req.PathAndQuery == "/api/sync/push")
+            {
+                pushCount++;
+                return Task.FromResult(JsonResponse(new { accepted = Array.Empty<string>(), rejected = Array.Empty<object>() }));
+            }
+            if (req.Method == HttpMethod.Get && req.PathAndQuery.StartsWith("/api/sync/pull", StringComparison.Ordinal))
+            {
+                pullPaths.Add(req.PathAndQuery);
+                // Incremental pull returns empty after cursor advances past serverDeletedAt
+                if (req.PathAndQuery.Contains("since=", StringComparison.Ordinal))
+                {
+                    return Task.FromResult(JsonResponse(new
+                    {
+                        serverTime = "2026-11-23T06:05:00Z",
+                        changes = new { titles = Array.Empty<object>(), logs = Array.Empty<object>() }
+                    }));
+                }
+
+                return Task.FromResult(JsonResponse(new
+                {
+                    serverTime = "2026-11-23T06:00:00Z",
+                    changes = new
+                    {
+                        titles = new[]
+                        {
+                            new { id = serverTitleUuid, type = "movie", name = "레거시 삭제 작품", year = 2024, provider = "TMDB", providerId = "7772" }
+                        },
+                        logs = new[]
+                        {
+                            new
+                            {
+                                id = canonicalLogUuid,
+                                titleId = serverTitleUuid,
+                                status = "DONE",
+                                note = "서버에서 삭제된 구기록",
+                                spoiler = false,
+                                origin = "LOG",
+                                watchedAt = "2026-11-20T12:00:00Z",
+                                createdAt = "2026-11-20T12:00:00Z",
+                                updatedAt = serverDeletedAt,
+                                deletedAt = serverDeletedAt
+                            }
+                        }
+                    }
+                }));
+            }
+            return Task.FromResult(JsonResponse(new { ok = true }));
+        });
+
+        var (repo, db, _, dbPath) = CreateTempRepo(handler, userId);
+        try
+        {
+            // Fresh upgrade from 2.0.0.0/2.0.1.0: recovery_done unset, active legacy non-UUID log & title
+            var legacyTitle = new TitleSummary(legacyTitleId, "tmdb", "7772", TitleType.movie, "레거시 삭제 작품", Year: 2024);
+            db.UpsertLog(new WatchLog(
+                Id: legacyLogId,
+                TitleId: legacyTitleId,
+                Title: legacyTitle,
+                Status: LogStatus.DONE,
+                Note: "로컬 레거시 기록 (11/20)",
+                OccurredAt: "2026-11-20T12:00:00Z",
+                WatchedOn: "2026-11-20",
+                CreatedAt: "2026-11-20T12:00:00Z",
+                UpdatedAt: "2026-11-20T12:00:00Z",
+                SyncState: "synced"
+            ), recordHistory: false);
+
+            var (ok1, _) = await repo.SyncAllAsync();
+            Assert.True(ok1);
+            Assert.Equal(0, pushCount);
+            Assert.Empty(db.GetPendingOutbox());
+
+            // Local legacy row MUST be remapped to canonical server UUID and soft-deleted (0 active rows)
+            Assert.Empty(repo.GetAllLogs());
+            Assert.Null(db.GetLogIncludingDeleted(legacyLogId));
+            var deletedCanonical = db.GetLogIncludingDeleted(canonicalLogUuid);
+            Assert.NotNull(deletedCanonical);
+            Assert.Equal(serverTitleUuid, deletedCanonical!.TitleId);
+            Assert.Equal(serverDeletedAt, deletedCanonical.DeletedAt);
+            Assert.Equal("synced", deletedCanonical.SyncState);
+
+            // Revision history MUST be preserved under the canonical log & title IDs
+            var history = repo.GetHistoryForTitle(serverTitleUuid);
+            Assert.Contains(history, h => h.LogId == canonicalLogUuid && h.Note == "로컬 레거시 기록 (11/20)");
+            Assert.False(string.IsNullOrWhiteSpace(db.GetAppSetting($"sync_push_v2_recovery_done:{userId}")));
+
+            // Subsequent sync after cursor advances MUST stay at 0 active logs with history intact
+            // (even when the server returns no new changes)
+            var (ok2, _) = await repo.SyncAllAsync();
+            Assert.True(ok2);
+            Assert.Equal(2, pullPaths.Count);
+            Assert.Equal("/api/sync/pull", pullPaths[0]);
+            Assert.Empty(repo.GetAllLogs());
+            Assert.Contains(repo.GetHistoryForTitle(serverTitleUuid), h => h.LogId == canonicalLogUuid && h.Note == "로컬 레거시 기록 (11/20)");
+        }
+        finally
+        {
+            repo.Dispose();
+            CleanupDb(dbPath);
+        }
+    }
+
+    [Fact]
+    public async Task LegacyDeletedLog_AlreadyMarkedRecoveryDoneAndCursorAdvanced_StillReconcilesLegacyDeletionOnUpgrade()
+    {
+        var userId = "11111111-2222-3333-4444-555555555555";
+        var serverTitleUuid = "72000000-0000-0000-0000-000000000001";
+        var legacyLogId = "local-log:aaaa9999bbbb8888cccc7777dddd6666";
+        var canonicalLogUuid = SyncIdNormalizer.EnsureUuid(legacyLogId);
+        var healthyTitleUuid = "72000000-0000-0000-0000-000000000002";
+        var healthyLogUuid = "72100000-0000-0000-0000-000000000002";
+        var serverDeletedAt = "2026-11-22T10:00:00Z";
+
+        var pushCount = 0;
+        var pullPaths = new List<string>();
+
+        var handler = new CapturingHttpMessageHandler((req, _) =>
+        {
+            if (req.Method == HttpMethod.Post && req.PathAndQuery == "/api/sync/push")
+            {
+                pushCount++;
+                return Task.FromResult(JsonResponse(new { accepted = Array.Empty<string>(), rejected = Array.Empty<object>() }));
+            }
+            if (req.Method == HttpMethod.Get && req.PathAndQuery.StartsWith("/api/sync/pull", StringComparison.Ordinal))
+            {
+                pullPaths.Add(req.PathAndQuery);
+                // Incremental pull after cursor 2026-11-23T05:00:00Z does NOT return the 11/22 deletion
+                if (req.PathAndQuery.Contains("since=", StringComparison.Ordinal))
+                {
+                    return Task.FromResult(JsonResponse(new
+                    {
+                        serverTime = "2026-11-23T06:20:00Z",
+                        changes = new { titles = Array.Empty<object>(), logs = Array.Empty<object>() }
+                    }));
+                }
+
+                // Full pull returns both the healthy active canonical log AND the 11/22 soft deletion
+                // (even when server updatedAt wasn't bumped past deletedAt)
+                return Task.FromResult(JsonResponse(new
+                {
+                    serverTime = "2026-11-23T06:15:00Z",
+                    changes = new
+                    {
+                        titles = new object[]
+                        {
+                            new { id = serverTitleUuid, type = "movie", name = "2.0.2.0 업그레이드 잔존 삭제 작품", year = 2024, provider = "TMDB", providerId = "7773" },
+                            new { id = healthyTitleUuid, type = "movie", name = "정상 유지 작품", year = 2025, provider = "TMDB", providerId = "7779" }
+                        },
+                        logs = new object[]
+                        {
+                            new
+                            {
+                                id = canonicalLogUuid,
+                                titleId = serverTitleUuid,
+                                status = "DONE",
+                                note = "이미 삭제된 서버 기록",
+                                spoiler = false,
+                                origin = "LOG",
+                                watchedAt = "2026-11-20T12:00:00Z",
+                                createdAt = "2026-11-20T12:00:00Z",
+                                updatedAt = "2026-11-20T12:00:00Z",
+                                deletedAt = serverDeletedAt
+                            },
+                            new
+                            {
+                                id = healthyLogUuid,
+                                titleId = healthyTitleUuid,
+                                status = "DONE",
+                                note = "정상 유지되는 다른 작품 기록",
+                                spoiler = false,
+                                origin = "LOG",
+                                watchedAt = "2026-11-21T12:00:00Z",
+                                createdAt = "2026-11-21T12:00:00Z",
+                                updatedAt = "2026-11-21T12:00:00Z"
+                            }
+                        }
+                    }
+                }));
+            }
+            return Task.FromResult(JsonResponse(new { ok = true }));
+        });
+
+        var (repo, db, _, dbPath) = CreateTempRepo(handler, userId);
+        try
+        {
+            // Exact state left by 2.0.2.0 (fa09d2e): recovery_done ALREADY set + LastSyncCursor advanced
+            // past serverDeletedAt, alongside another active canonical UUID log so GetAllLogs().Count > 0,
+            // while the legacy non-UUID log remained active with sync_state='synced'
+            db.SetAppSetting($"sync_push_v2_recovery_done:{userId}", "2026-11-23T05:00:00Z");
+            repo.UpdateSettings(s => s with { LastSyncCursor = "2026-11-23T05:00:00Z" });
+
+            var title = new TitleSummary(serverTitleUuid, "tmdb", "7773", TitleType.movie, "2.0.2.0 업그레이드 잔존 삭제 작품", Year: 2024);
+            db.UpsertLog(new WatchLog(
+                Id: legacyLogId,
+                TitleId: serverTitleUuid,
+                Title: title,
+                Status: LogStatus.DONE,
+                Note: "2.0.2.0에 잔존한 레거시 기록",
+                OccurredAt: "2026-11-20T12:00:00Z",
+                WatchedOn: "2026-11-20",
+                CreatedAt: "2026-11-20T12:00:00Z",
+                UpdatedAt: "2026-11-20T12:00:00Z",
+                SyncState: "synced"
+            ), recordHistory: false);
+
+            var healthyTitle = new TitleSummary(healthyTitleUuid, "tmdb", "7779", TitleType.movie, "정상 유지 작품", Year: 2025);
+            db.UpsertLog(new WatchLog(
+                Id: healthyLogUuid,
+                TitleId: healthyTitleUuid,
+                Title: healthyTitle,
+                Status: LogStatus.DONE,
+                Note: "정상 유지되는 다른 작품 기록",
+                OccurredAt: "2026-11-21T12:00:00Z",
+                WatchedOn: "2026-11-21",
+                CreatedAt: "2026-11-21T12:00:00Z",
+                UpdatedAt: "2026-11-21T12:00:00Z",
+                SyncState: "synced"
+            ), recordHistory: false);
+
+            // Sync #1 after upgrade: MUST trigger a full pull for the stranded legacy non-UUID row and soft-delete it
+            // even though recovery_done is already set, LastSyncCursor is advanced, and active count > 0!
+            var (ok1, _) = await repo.SyncAllAsync();
+            Assert.True(ok1);
+            Assert.Equal(0, pushCount);
+            Assert.Single(pullPaths);
+            Assert.Equal("/api/sync/pull", pullPaths[0]);
+            Assert.Empty(db.GetPendingOutbox());
+
+            var activeAfterSync1 = repo.GetAllLogs();
+            Assert.Single(activeAfterSync1);
+            Assert.Equal(healthyLogUuid, activeAfterSync1[0].Id);
+            Assert.Null(db.GetLogIncludingDeleted(legacyLogId));
+
+            var deletedRow = db.GetLogIncludingDeleted(canonicalLogUuid);
+            Assert.NotNull(deletedRow);
+            Assert.Equal(serverDeletedAt, deletedRow!.DeletedAt);
+            Assert.Equal("synced", deletedRow.SyncState);
+            Assert.Contains(repo.GetHistoryForTitle(serverTitleUuid), h => h.LogId == canonicalLogUuid && h.Note == "2.0.2.0에 잔존한 레거시 기록");
+
+            // Sync #2: zero legacy non-UUID active rows remain -> MUST immediately return to fast incremental pull!
+            var (ok2, _) = await repo.SyncAllAsync();
+            Assert.True(ok2);
+            Assert.Equal(2, pullPaths.Count);
+            Assert.StartsWith("/api/sync/pull?since=", pullPaths[1], StringComparison.Ordinal);
+            var activeAfterSync2 = repo.GetAllLogs();
+            Assert.Single(activeAfterSync2);
+            Assert.Equal(healthyLogUuid, activeAfterSync2[0].Id);
+            Assert.Equal(serverDeletedAt, db.GetLogIncludingDeleted(canonicalLogUuid)!.DeletedAt);
+        }
+        finally
+        {
+            repo.Dispose();
+            CleanupDb(dbPath);
+        }
+    }
+
+    [Fact]
+    public async Task LegacyDeletedLog_PreservesSeparateRecordOnSameTitle_AndAllowsSubsequentLocalRecord()
+    {
+        var userId = "11111111-2222-3333-4444-555555555555";
+        var sharedTitleUuid = "73000000-0000-0000-0000-000000000001";
+        var legacyDeletedId = "local-log:deadbeef000011112222333344445555";
+        var canonicalDeletedUuid = SyncIdNormalizer.EnsureUuid(legacyDeletedId);
+        var separateActiveLogUuid = "73100000-0000-0000-0000-000000000002";
+
+        var secondTitleUuid = "73000000-0000-0000-0000-000000000009";
+        var secondLegacyDeletedId = "local-log:feedface000011112222333344445555";
+        var secondCanonicalDeletedUuid = SyncIdNormalizer.EnsureUuid(secondLegacyDeletedId);
+
+        var serverDeletedAt = "2026-11-22T10:00:00Z";
+        var serverActiveLogs = new List<object>();
+
+        var handler = new CapturingHttpMessageHandler((req, _) =>
+        {
+            if (req.Method == HttpMethod.Post && req.PathAndQuery == "/api/sync/push")
+            {
+                using var doc = JsonDocument.Parse(req.Body!);
+                var accepted = new List<string>();
+                foreach (var l in doc.RootElement.GetProperty("changes").GetProperty("logs").EnumerateArray())
+                {
+                    var id = l.GetProperty("id").GetString()!;
+                    var tId = l.GetProperty("payload").GetProperty("titleId").GetString()!;
+                    var note = l.GetProperty("payload").GetProperty("note").GetString()!;
+                    accepted.Add(id);
+                    serverActiveLogs.Add(new
+                    {
+                        id,
+                        titleId = tId,
+                        status = l.GetProperty("payload").GetProperty("status").GetString(),
+                        note,
+                        spoiler = false,
+                        origin = "LOG",
+                        watchedAt = l.GetProperty("payload").GetProperty("watchedAt").GetString(),
+                        createdAt = "2026-11-23T06:30:00Z",
+                        updatedAt = l.GetProperty("updatedAt").GetString()
+                    });
+                }
+                return Task.FromResult(JsonResponse(new { accepted, rejected = Array.Empty<object>() }));
+            }
+            if (req.Method == HttpMethod.Get && req.PathAndQuery.StartsWith("/api/sync/pull", StringComparison.Ordinal))
+            {
+                var logs = new List<object>
+                {
+                    new
+                    {
+                        id = canonicalDeletedUuid,
+                        titleId = sharedTitleUuid,
+                        status = "DONE",
+                        note = "같은 작품의 삭제된 구기록",
+                        spoiler = false,
+                        origin = "LOG",
+                        watchedAt = "2026-11-20T12:00:00Z",
+                        createdAt = "2026-11-20T12:00:00Z",
+                        updatedAt = serverDeletedAt,
+                        deletedAt = serverDeletedAt
+                    },
+                    new
+                    {
+                        id = secondCanonicalDeletedUuid,
+                        titleId = secondTitleUuid,
+                        status = "DONE",
+                        note = "재기록 대상 작품의 삭제된 구기록",
+                        spoiler = false,
+                        origin = "LOG",
+                        watchedAt = "2026-11-20T12:00:00Z",
+                        createdAt = "2026-11-20T12:00:00Z",
+                        updatedAt = serverDeletedAt,
+                        deletedAt = serverDeletedAt
+                    }
+                };
+                logs.AddRange(serverActiveLogs);
+
+                return Task.FromResult(JsonResponse(new
+                {
+                    serverTime = "2026-11-23T06:30:00Z",
+                    changes = new
+                    {
+                        titles = new object[]
+                        {
+                            new { id = sharedTitleUuid, type = "movie", name = "같은 작품 별도 기록 보호", year = 2024, provider = "TMDB", providerId = "7774" },
+                            new { id = secondTitleUuid, type = "movie", name = "삭제 후 후속 기록 작품", year = 2024, provider = "TMDB", providerId = "7775" }
+                        },
+                        logs
+                    }
+                }));
+            }
+            return Task.FromResult(JsonResponse(new { ok = true }));
+        });
+
+        var (repo, db, _, dbPath) = CreateTempRepo(handler, userId);
+        try
+        {
+            // Title 1: has BOTH the legacy record whose server UUID was deleted AND a SEPARATE active record on the SAME title!
+            var sharedTitle = new TitleSummary(sharedTitleUuid, "tmdb", "7774", TitleType.movie, "같은 작품 별도 기록 보호", Year: 2024);
+            db.UpsertLog(new WatchLog(
+                Id: separateActiveLogUuid,
+                TitleId: sharedTitleUuid,
+                Title: sharedTitle,
+                Status: LogStatus.DONE,
+                Note: "같은 작품의 별도 활성 기록 (절대 삭제 금지)",
+                OccurredAt: "2026-11-21T12:00:00Z",
+                WatchedOn: "2026-11-21",
+                CreatedAt: "2026-11-21T12:00:00Z",
+                UpdatedAt: "2026-11-21T12:00:00Z",
+                SyncState: "synced"
+            ), recordHistory: true);
+
+            // Seed the distinct legacy record directly in SQLite so both rows coexist on sharedTitleUuid pre-sync
+            using (var conn = new Microsoft.Data.Sqlite.SqliteConnection($"Data Source={dbPath}"))
+            {
+                conn.Open();
+                using var cmd = conn.CreateCommand();
+                cmd.CommandText = @"
+                    INSERT INTO logs (
+                        id, title_id, status, spoiler, occurred_at, watched_on,
+                        created_at, updated_at, revision, origin, sync_state, note
+                    ) VALUES (
+                        $id, $title_id, 'DONE', 0, '2026-11-20T12:00:00Z', '2026-11-20',
+                        '2026-11-20T12:00:00Z', '2026-11-20T12:00:00Z', 1, 'LOG', 'synced',
+                        '삭제될 레거시 구기록'
+                    );
+                ";
+                cmd.Parameters.AddWithValue("$id", legacyDeletedId);
+                cmd.Parameters.AddWithValue("$title_id", sharedTitleUuid);
+                cmd.ExecuteNonQuery();
+            }
+
+            Assert.NotNull(db.GetLog(legacyDeletedId));
+            Assert.NotNull(db.GetLog(separateActiveLogUuid));
+
+            // Title 2: only has a legacy record whose server UUID was deleted
+            var secondTitle = new TitleSummary(secondTitleUuid, "tmdb", "7775", TitleType.movie, "삭제 후 후속 기록 작품", Year: 2024);
+            db.UpsertLog(new WatchLog(
+                Id: secondLegacyDeletedId,
+                TitleId: secondTitleUuid,
+                Title: secondTitle,
+                Status: LogStatus.DONE,
+                Note: "후속 기록 전 레거시 기록",
+                OccurredAt: "2026-11-20T12:00:00Z",
+                WatchedOn: "2026-11-20",
+                CreatedAt: "2026-11-20T12:00:00Z",
+                UpdatedAt: "2026-11-20T12:00:00Z",
+                SyncState: "synced"
+            ), recordHistory: true);
+
+            var (ok1, _) = await repo.SyncAllAsync();
+            Assert.True(ok1);
+            Assert.Empty(db.GetPendingOutbox());
+
+            // 1. On sharedTitle: legacyDeletedId is soft-deleted under canonicalDeletedUuid,
+            //    while separateActiveLogUuid MUST stay active and synced (NEVER matched by titleId)!
+            Assert.Null(db.GetLog(canonicalDeletedUuid));
+            Assert.Equal(serverDeletedAt, db.GetLogIncludingDeleted(canonicalDeletedUuid)!.DeletedAt);
+            var preservedSeparate = db.GetLog(separateActiveLogUuid);
+            Assert.NotNull(preservedSeparate);
+            Assert.Null(preservedSeparate!.DeletedAt);
+            Assert.Equal("같은 작품의 별도 활성 기록 (절대 삭제 금지)", preservedSeparate.Note);
+            Assert.Equal("synced", preservedSeparate.SyncState);
+
+            var sharedHistory = repo.GetHistoryForTitle(sharedTitleUuid);
+            Assert.Contains(sharedHistory, h => h.LogId == canonicalDeletedUuid && h.Note == "삭제될 레거시 구기록");
+            Assert.Contains(sharedHistory, h => h.LogId == separateActiveLogUuid && h.Note == "같은 작품의 별도 활성 기록 (절대 삭제 금지)");
+
+            // 2. On secondTitle: legacy record is soft-deleted -> user saves a subsequent new record cleanly!
+            Assert.Null(db.GetLog(secondCanonicalDeletedUuid));
+            Assert.Equal(serverDeletedAt, db.GetLogIncludingDeleted(secondCanonicalDeletedUuid)!.DeletedAt);
+
+            var subsequentLog = repo.SaveLogLocalFirst(secondTitle, LogStatus.DONE, RecordFeeling.SATISFIED, "2026-11-23", note: "삭제 후 새로 남긴 감상");
+            Assert.NotEqual(secondCanonicalDeletedUuid, subsequentLog.Id);
+            Assert.True(SyncIdNormalizer.IsValidUuid(subsequentLog.Id));
+
+            var (ok2, _) = await repo.SyncAllAsync();
+            Assert.True(ok2);
+            Assert.Empty(db.GetPendingOutbox());
+
+            Assert.Equal("삭제 후 새로 남긴 감상", db.GetLog(subsequentLog.Id)!.Note);
+            Assert.Equal(serverDeletedAt, db.GetLogIncludingDeleted(secondCanonicalDeletedUuid)!.DeletedAt);
+            var secondHistory = repo.GetHistoryForTitle(secondTitleUuid);
+            Assert.Contains(secondHistory, h => h.LogId == secondCanonicalDeletedUuid && h.Note == "후속 기록 전 레거시 기록");
+            Assert.Contains(secondHistory, h => h.LogId == subsequentLog.Id && h.Note == "삭제 후 새로 남긴 감상");
+        }
+        finally
+        {
+            repo.Dispose();
+            CleanupDb(dbPath);
+        }
+    }
+
+    [Fact]
+    public async Task LegacyDeletedLog_NewerLocalEditAndConcurrentEditDuringPull_AreProtectedFromTombstone()
+    {
+        var userId = "11111111-2222-3333-4444-555555555555";
+        var newerTitleUuid = "74000000-0000-0000-0000-000000000001";
+        var newerLegacyLogId = "local-log:12340000567800001234000056780001";
+        var newerCanonicalUuid = SyncIdNormalizer.EnsureUuid(newerLegacyLogId);
+
+        var concurrentTitleUuid = "74000000-0000-0000-0000-000000000002";
+        var concurrentLegacyLogId = "local-log:12340000567800001234000056780002";
+        var concurrentCanonicalUuid = SyncIdNormalizer.EnsureUuid(concurrentLegacyLogId);
+
+        var serverDeletedAt = "2026-11-22T10:00:00Z";
+        var localNewerUpdatedAt = "2026-11-23T01:00:00Z";
+
+        OttlineRepository? repoRef = null;
+        var concurrentTitle = new TitleSummary(concurrentTitleUuid, "tmdb", "7777", TitleType.movie, "풀 도중 동시 수정 레거시 작품", Year: 2024);
+        var injectedConcurrentEdit = false;
+
+        var pushedLogs = new Dictionary<string, (string Note, string UpdatedAt)>(StringComparer.OrdinalIgnoreCase);
+
+        var handler = new CapturingHttpMessageHandler((req, _) =>
+        {
+            if (req.Method == HttpMethod.Post && req.PathAndQuery == "/api/sync/push")
+            {
+                using var doc = JsonDocument.Parse(req.Body!);
+                var accepted = new List<string>();
+                foreach (var l in doc.RootElement.GetProperty("changes").GetProperty("logs").EnumerateArray())
+                {
+                    var id = l.GetProperty("id").GetString()!;
+                    var note = l.GetProperty("payload").GetProperty("note").GetString()!;
+                    var updatedAt = l.GetProperty("updatedAt").GetString()!;
+                    pushedLogs[id] = (note, updatedAt);
+                    accepted.Add(id);
+                }
+                return Task.FromResult(JsonResponse(new { accepted, rejected = Array.Empty<object>() }));
+            }
+            if (req.Method == HttpMethod.Get && req.PathAndQuery.StartsWith("/api/sync/pull", StringComparison.Ordinal))
+            {
+                if (!injectedConcurrentEdit && repoRef != null)
+                {
+                    injectedConcurrentEdit = true;
+                    // User edits the older legacy record concurrently WHILE the recovery full pull is in flight!
+                    repoRef.SaveLogLocalFirst(concurrentTitle, LogStatus.DONE, RecordFeeling.SATISFIED, "2026-11-23", note: "pull 중 레거시 동시 수정");
+                }
+
+                var logs = new List<object>();
+                if (pushedLogs.TryGetValue(newerCanonicalUuid, out var revivedNewer))
+                {
+                    logs.Add(new
+                    {
+                        id = newerCanonicalUuid,
+                        titleId = newerTitleUuid,
+                        status = "DONE",
+                        note = revivedNewer.Note,
+                        spoiler = false,
+                        origin = "LOG",
+                        watchedAt = "2026-11-23T12:00:00Z",
+                        createdAt = "2026-11-20T12:00:00Z",
+                        updatedAt = revivedNewer.UpdatedAt
+                    });
+                }
+                else
+                {
+                    logs.Add(new
+                    {
+                        id = newerCanonicalUuid,
+                        titleId = newerTitleUuid,
+                        status = "DONE",
+                        note = "과거 삭제본",
+                        spoiler = false,
+                        origin = "LOG",
+                        watchedAt = "2026-11-20T12:00:00Z",
+                        createdAt = "2026-11-20T12:00:00Z",
+                        updatedAt = serverDeletedAt,
+                        deletedAt = serverDeletedAt
+                    });
+                }
+
+                if (pushedLogs.TryGetValue(concurrentCanonicalUuid, out var revivedConcurrent))
+                {
+                    logs.Add(new
+                    {
+                        id = concurrentCanonicalUuid,
+                        titleId = concurrentTitleUuid,
+                        status = "DONE",
+                        note = revivedConcurrent.Note,
+                        spoiler = false,
+                        origin = "LOG",
+                        watchedAt = "2026-11-23T12:00:00Z",
+                        createdAt = "2026-11-20T12:00:00Z",
+                        updatedAt = revivedConcurrent.UpdatedAt
+                    });
+                }
+                else
+                {
+                    logs.Add(new
+                    {
+                        id = concurrentCanonicalUuid,
+                        titleId = concurrentTitleUuid,
+                        status = "DONE",
+                        note = "동시 수정 전 삭제본",
+                        spoiler = false,
+                        origin = "LOG",
+                        watchedAt = "2026-11-20T12:00:00Z",
+                        createdAt = "2026-11-20T12:00:00Z",
+                        updatedAt = serverDeletedAt,
+                        deletedAt = serverDeletedAt
+                    });
+                }
+
+                return Task.FromResult(JsonResponse(new
+                {
+                    serverTime = "2026-11-23T07:00:00Z",
+                    changes = new
+                    {
+                        titles = new object[]
+                        {
+                            new { id = newerTitleUuid, type = "movie", name = "삭제보다 최신 로컬 수정 작품", year = 2024, provider = "TMDB", providerId = "7776" },
+                            new { id = concurrentTitleUuid, type = "movie", name = "풀 도중 동시 수정 레거시 작품", year = 2024, provider = "TMDB", providerId = "7777" }
+                        },
+                        logs
+                    }
+                }));
+            }
+            return Task.FromResult(JsonResponse(new { ok = true }));
+        });
+
+        var (repo, db, _, dbPath) = CreateTempRepo(handler, userId);
+        repoRef = repo;
+        try
+        {
+            var newerTitle = new TitleSummary(newerTitleUuid, "tmdb", "7776", TitleType.movie, "삭제보다 최신 로컬 수정 작품", Year: 2024);
+            db.UpsertLog(new WatchLog(
+                Id: newerLegacyLogId,
+                TitleId: newerTitleUuid,
+                Title: newerTitle,
+                Status: LogStatus.DONE,
+                Note: "서버 삭제 이후의 최신 로컬 수정",
+                OccurredAt: "2026-11-23T12:00:00Z",
+                WatchedOn: "2026-11-23",
+                CreatedAt: "2026-11-20T12:00:00Z",
+                UpdatedAt: localNewerUpdatedAt,
+                SyncState: "synced"
+            ), recordHistory: true);
+
+            db.UpsertLog(new WatchLog(
+                Id: concurrentLegacyLogId,
+                TitleId: concurrentTitleUuid,
+                Title: concurrentTitle,
+                Status: LogStatus.DONE,
+                Note: "동시 수정 이전 구버전",
+                OccurredAt: "2026-11-20T12:00:00Z",
+                WatchedOn: "2026-11-20",
+                CreatedAt: "2026-11-20T12:00:00Z",
+                UpdatedAt: "2026-11-20T12:00:00Z",
+                SyncState: "synced"
+            ), recordHistory: true);
+
+            var (ok, _) = await repo.SyncAllAsync();
+            Assert.True(ok);
+            Assert.Empty(db.GetPendingOutbox());
+
+            // 1. Newer local edit (> serverDeletedAt) MUST be normalized to canonical UUID and pushed with EXACT original T2!
+            Assert.True(pushedLogs.ContainsKey(newerCanonicalUuid));
+            Assert.Equal("서버 삭제 이후의 최신 로컬 수정", pushedLogs[newerCanonicalUuid].Note);
+            Assert.StartsWith("2026-11-23T01:00:00", pushedLogs[newerCanonicalUuid].UpdatedAt);
+            var activeNewer = db.GetLog(newerCanonicalUuid);
+            Assert.NotNull(activeNewer);
+            Assert.Null(activeNewer!.DeletedAt);
+            Assert.Equal("synced", activeNewer.SyncState);
+
+            // 2. Concurrent local edit made during full pull MUST NOT be tombstoned; normalized and pushed cleanly!
+            Assert.True(pushedLogs.ContainsKey(concurrentCanonicalUuid));
+            Assert.Equal("pull 중 레거시 동시 수정", pushedLogs[concurrentCanonicalUuid].Note);
+            var activeConcurrent = db.GetLog(concurrentCanonicalUuid);
+            Assert.NotNull(activeConcurrent);
+            Assert.Null(activeConcurrent!.DeletedAt);
+            Assert.Equal("synced", activeConcurrent.SyncState);
+            var concurrentHistory = repo.GetHistoryForTitle(concurrentTitleUuid);
+            Assert.Contains(concurrentHistory, h => h.Note == "동시 수정 이전 구버전");
+            Assert.Contains(concurrentHistory, h => h.Note == "pull 중 레거시 동시 수정");
+        }
+        finally
+        {
+            repo.Dispose();
+            CleanupDb(dbPath);
+        }
+    }
+
+    [Fact]
+    public async Task ServerDeletedLog_EditSavedBetweenPreCheckAndDeleteTransaction_PreservesActiveRecordOutboxAndUploadsOnce()
+    {
+        var userId = "11111111-2222-3333-4444-555555555555";
+        var legacyTitleUuid = "75000000-0000-0000-0000-000000000001";
+        var legacyLogId = "local-log:face0000111122223333444455556666";
+        var canonicalLegacyUuid = SyncIdNormalizer.EnsureUuid(legacyLogId);
+
+        var canonicalTitleUuid = "75000000-0000-0000-0000-000000000002";
+        var canonicalLogUuid = "75100000-0000-0000-0000-000000000002";
+        var serverDeletedAt = "2026-11-22T10:00:00Z";
+
+        var uploadedLogs = new List<(string Id, string Note)>();
+        var serverActiveById = new Dictionary<string, (string TitleId, string Note, string UpdatedAt)>(StringComparer.OrdinalIgnoreCase);
+
+        var handler = new CapturingHttpMessageHandler((req, _) =>
+        {
+            if (req.Method == HttpMethod.Post && req.PathAndQuery == "/api/sync/push")
+            {
+                using var doc = JsonDocument.Parse(req.Body!);
+                var accepted = new List<string>();
+                foreach (var l in doc.RootElement.GetProperty("changes").GetProperty("logs").EnumerateArray())
+                {
+                    var id = l.GetProperty("id").GetString()!;
+                    var tId = l.GetProperty("payload").GetProperty("titleId").GetString()!;
+                    var note = l.GetProperty("payload").GetProperty("note").GetString()!;
+                    var updatedAt = l.GetProperty("updatedAt").GetString()!;
+                    uploadedLogs.Add((id, note));
+                    serverActiveById[id] = (tId, note, updatedAt);
+                    accepted.Add(id);
+                }
+                return Task.FromResult(JsonResponse(new { accepted, rejected = Array.Empty<object>() }));
+            }
+            if (req.Method == HttpMethod.Get && req.PathAndQuery.StartsWith("/api/sync/pull", StringComparison.Ordinal))
+            {
+                var logs = new List<object>();
+                foreach (var (id, titleId) in new[] { (canonicalLegacyUuid, legacyTitleUuid), (canonicalLogUuid, canonicalTitleUuid) })
+                {
+                    if (serverActiveById.TryGetValue(id, out var revived))
+                    {
+                        logs.Add(new
+                        {
+                            id,
+                            titleId = revived.TitleId,
+                            status = "DONE",
+                            note = revived.Note,
+                            spoiler = false,
+                            origin = "LOG",
+                            watchedAt = "2026-11-24T12:00:00Z",
+                            createdAt = "2026-11-20T12:00:00Z",
+                            updatedAt = revived.UpdatedAt
+                        });
+                    }
+                    else
+                    {
+                        logs.Add(new
+                        {
+                            id,
+                            titleId,
+                            status = "DONE",
+                            note = "서버 삭제본",
+                            spoiler = false,
+                            origin = "LOG",
+                            watchedAt = "2026-11-20T12:00:00Z",
+                            createdAt = "2026-11-20T12:00:00Z",
+                            updatedAt = serverDeletedAt,
+                            deletedAt = serverDeletedAt
+                        });
+                    }
+                }
+
+                return Task.FromResult(JsonResponse(new
+                {
+                    serverTime = "2026-11-24T01:30:00Z",
+                    changes = new
+                    {
+                        titles = new object[]
+                        {
+                            new { id = legacyTitleUuid, type = "movie", name = "삭제 트랜잭션 경합 레거시 작품", year = 2024, provider = "TMDB", providerId = "7801" },
+                            new { id = canonicalTitleUuid, type = "movie", name = "삭제 트랜잭션 경합 정식 UUID 작품", year = 2024, provider = "TMDB", providerId = "7802" }
+                        },
+                        logs
+                    }
+                }));
+            }
+            return Task.FromResult(JsonResponse(new { ok = true }));
+        });
+
+        var (repo, db, _, dbPath) = CreateTempRepo(handler, userId);
+        try
+        {
+            db.SetAppSetting($"sync_push_v2_recovery_done:{userId}", "2026-11-23T05:00:00Z");
+
+            var legacyTitle = new TitleSummary(legacyTitleUuid, "tmdb", "7801", TitleType.movie, "삭제 트랜잭션 경합 레거시 작품", Year: 2024);
+            db.UpsertLog(new WatchLog(
+                Id: legacyLogId,
+                TitleId: legacyTitleUuid,
+                Title: legacyTitle,
+                Status: LogStatus.DONE,
+                Note: "기존 레거시 감상 (11/20)",
+                OccurredAt: "2026-11-20T12:00:00Z",
+                WatchedOn: "2026-11-20",
+                CreatedAt: "2026-11-20T12:00:00Z",
+                UpdatedAt: "2026-11-20T12:00:00Z",
+                SyncState: "synced"
+            ), recordHistory: true);
+
+            var canonicalTitle = new TitleSummary(canonicalTitleUuid, "tmdb", "7802", TitleType.movie, "삭제 트랜잭션 경합 정식 UUID 작품", Year: 2024);
+            db.UpsertLog(new WatchLog(
+                Id: canonicalLogUuid,
+                TitleId: canonicalTitleUuid,
+                Title: canonicalTitle,
+                Status: LogStatus.DONE,
+                Note: "기존 정식 UUID 감상 (11/20)",
+                OccurredAt: "2026-11-20T12:00:00Z",
+                WatchedOn: "2026-11-20",
+                CreatedAt: "2026-11-20T12:00:00Z",
+                UpdatedAt: "2026-11-20T12:00:00Z",
+                SyncState: "synced"
+            ), recordHistory: true);
+
+            // Exact TOCTOU interleaving from HQ PR #172 review:
+            // 1) Pre-check reads rows and confirms empty outbox
+            var staleLegacySnapshot = Assert.Single(db.FindLogsByIdentityIncludingDeleted(canonicalLegacyUuid));
+            var staleCanonicalSnapshot = Assert.Single(db.FindLogsByIdentityIncludingDeleted(canonicalLogUuid));
+            Assert.Empty(db.GetPendingOutbox());
+
+            // 2) Immediately BEFORE ApplyServerDeletedLogAtomic acquires the transaction,
+            //    user saves newer edits via SaveLogLocalFirst on BOTH records!
+            repo.SaveLogLocalFirst(legacyTitle, LogStatus.DONE, RecordFeeling.SATISFIED, "2026-11-24", note: "삭제 직전 저장한 레거시 새 감상");
+            repo.SaveLogLocalFirst(canonicalTitle, LogStatus.DONE, RecordFeeling.SATISFIED, "2026-11-24", note: "삭제 직전 저장한 정식 새 감상");
+            Assert.Equal(2, db.GetPendingOutbox().Count);
+
+            // 3) ApplyServerDeletedLogAtomic runs with the pre-check snapshots -> MUST abort INSIDE tx!
+            var legacyDeletedApplied = db.ApplyServerDeletedLogAtomic(
+                staleLegacySnapshot,
+                new SyncDeletedLog(canonicalLegacyUuid, legacyTitleUuid, serverDeletedAt, serverDeletedAt));
+            var canonicalDeletedApplied = db.ApplyServerDeletedLogAtomic(
+                staleCanonicalSnapshot,
+                new SyncDeletedLog(canonicalLogUuid, canonicalTitleUuid, serverDeletedAt, serverDeletedAt));
+
+            Assert.False(legacyDeletedApplied);
+            Assert.False(canonicalDeletedApplied);
+            Assert.Equal(2, repo.GetAllLogs().Count);
+            Assert.Equal(2, db.GetPendingOutbox().Count);
+
+            // 4) Next normal SyncAllAsync MUST upload EACH new edit ONCE and keep BOTH active & synced!
+            var (ok, _) = await repo.SyncAllAsync();
+            Assert.True(ok);
+            Assert.Empty(db.GetPendingOutbox());
+            Assert.Equal(2, uploadedLogs.Count);
+            Assert.Contains(uploadedLogs, u => u.Id == canonicalLegacyUuid && u.Note == "삭제 직전 저장한 레거시 새 감상");
+            Assert.Contains(uploadedLogs, u => u.Id == canonicalLogUuid && u.Note == "삭제 직전 저장한 정식 새 감상");
+
+            var syncedLegacy = db.GetLog(canonicalLegacyUuid);
+            Assert.NotNull(syncedLegacy);
+            Assert.Null(syncedLegacy!.DeletedAt);
+            Assert.Equal("synced", syncedLegacy.SyncState);
+            Assert.Equal("삭제 직전 저장한 레거시 새 감상", syncedLegacy.Note);
+
+            var syncedCanonical = db.GetLog(canonicalLogUuid);
+            Assert.NotNull(syncedCanonical);
+            Assert.Null(syncedCanonical!.DeletedAt);
+            Assert.Equal("synced", syncedCanonical.SyncState);
+            Assert.Equal("삭제 직전 저장한 정식 새 감상", syncedCanonical.Note);
+
+            // Follow-up sync must not re-upload already synced edits
+            var (ok2, _) = await repo.SyncAllAsync();
+            Assert.True(ok2);
+            Assert.Equal(2, uploadedLogs.Count);
+        }
+        finally
+        {
+            repo.Dispose();
+            CleanupDb(dbPath);
+        }
+    }
+
+    [Fact]
+    public async Task ServerDeletedLog_DeleteAppliedFirst_ThenSubsequentOrStaleDraftSave_CreatesSeparateRecordPreservesHistoryAndUploadsOnce()
+    {
+        var userId = "11111111-2222-3333-4444-555555555555";
+        var title1Uuid = "76000000-0000-0000-0000-000000000001";
+        var legacy1Id = "local-log:cafe0000111122223333444455556661";
+        var canonical1Uuid = SyncIdNormalizer.EnsureUuid(legacy1Id);
+
+        var title2Uuid = "76000000-0000-0000-0000-000000000002";
+        var legacy2Id = "local-log:cafe0000111122223333444455556662";
+        var canonical2Uuid = SyncIdNormalizer.EnsureUuid(legacy2Id);
+
+        var title3Uuid = "76000000-0000-0000-0000-000000000003";
+        var canonical3Uuid = "76100000-0000-0000-0000-000000000003";
+
+        var serverDeletedAt = "2026-11-22T10:00:00Z";
+        var uploadedLogs = new List<(string Id, string Note)>();
+        var serverActiveLogs = new List<object>();
+
+        var handler = new CapturingHttpMessageHandler((req, _) =>
+        {
+            if (req.Method == HttpMethod.Post && req.PathAndQuery == "/api/sync/push")
+            {
+                using var doc = JsonDocument.Parse(req.Body!);
+                var accepted = new List<string>();
+                foreach (var l in doc.RootElement.GetProperty("changes").GetProperty("logs").EnumerateArray())
+                {
+                    var id = l.GetProperty("id").GetString()!;
+                    var tId = l.GetProperty("payload").GetProperty("titleId").GetString()!;
+                    var note = l.GetProperty("payload").GetProperty("note").GetString()!;
+                    uploadedLogs.Add((id, note));
+                    serverActiveLogs.Add(new
+                    {
+                        id,
+                        titleId = tId,
+                        status = "DONE",
+                        note,
+                        spoiler = false,
+                        origin = "LOG",
+                        watchedAt = "2026-11-24T12:00:00Z",
+                        createdAt = "2026-11-24T01:40:00Z",
+                        updatedAt = l.GetProperty("updatedAt").GetString()
+                    });
+                    accepted.Add(id);
+                }
+                return Task.FromResult(JsonResponse(new { accepted, rejected = Array.Empty<object>() }));
+            }
+            if (req.Method == HttpMethod.Get && req.PathAndQuery.StartsWith("/api/sync/pull", StringComparison.Ordinal))
+            {
+                var logs = new List<object>
+                {
+                    new
+                    {
+                        id = canonical1Uuid,
+                        titleId = title1Uuid,
+                        status = "DONE",
+                        note = "삭제된 구기록 1",
+                        spoiler = false,
+                        origin = "LOG",
+                        watchedAt = "2026-11-20T12:00:00Z",
+                        createdAt = "2026-11-20T12:00:00Z",
+                        updatedAt = serverDeletedAt,
+                        deletedAt = serverDeletedAt
+                    },
+                    new
+                    {
+                        id = canonical2Uuid,
+                        titleId = title2Uuid,
+                        status = "DONE",
+                        note = "삭제된 구기록 2",
+                        spoiler = false,
+                        origin = "LOG",
+                        watchedAt = "2026-11-20T12:00:00Z",
+                        createdAt = "2026-11-20T12:00:00Z",
+                        updatedAt = serverDeletedAt,
+                        deletedAt = serverDeletedAt
+                    },
+                    new
+                    {
+                        id = canonical3Uuid,
+                        titleId = title3Uuid,
+                        status = "DONE",
+                        note = "삭제된 정식 UUID 구기록 3",
+                        spoiler = false,
+                        origin = "LOG",
+                        watchedAt = "2026-11-20T12:00:00Z",
+                        createdAt = "2026-11-20T12:00:00Z",
+                        updatedAt = serverDeletedAt,
+                        deletedAt = serverDeletedAt
+                    }
+                };
+                logs.AddRange(serverActiveLogs);
+
+                return Task.FromResult(JsonResponse(new
+                {
+                    serverTime = "2026-11-24T01:45:00Z",
+                    changes = new
+                    {
+                        titles = new object[]
+                        {
+                            new { id = title1Uuid, type = "movie", name = "삭제 선행 후 재기록 작품", year = 2024, provider = "TMDB", providerId = "7811" },
+                            new { id = title2Uuid, type = "movie", name = "삭제 직후 stale 초안 저장 작품", year = 2024, provider = "TMDB", providerId = "7812" },
+                            new { id = title3Uuid, type = "movie", name = "삭제 직후 정식 UUID 초안 저장 작품", year = 2024, provider = "TMDB", providerId = "7813" }
+                        },
+                        logs
+                    }
+                }));
+            }
+            return Task.FromResult(JsonResponse(new { ok = true }));
+        });
+
+        var (repo, db, _, dbPath) = CreateTempRepo(handler, userId);
+        try
+        {
+            db.SetAppSetting($"sync_push_v2_recovery_done:{userId}", "2026-11-23T05:00:00Z");
+
+            var title1 = new TitleSummary(title1Uuid, "tmdb", "7811", TitleType.movie, "삭제 선행 후 재기록 작품", Year: 2024);
+            var existing1 = db.UpsertLog(new WatchLog(
+                Id: legacy1Id,
+                TitleId: title1Uuid,
+                Title: title1,
+                Status: LogStatus.DONE,
+                Note: "삭제 전 구기록 1",
+                OccurredAt: "2026-11-20T12:00:00Z",
+                WatchedOn: "2026-11-20",
+                CreatedAt: "2026-11-20T12:00:00Z",
+                UpdatedAt: "2026-11-20T12:00:00Z",
+                SyncState: "synced"
+            ), recordHistory: true);
+
+            var title2 = new TitleSummary(title2Uuid, "tmdb", "7812", TitleType.movie, "삭제 직후 stale 초안 저장 작품", Year: 2024);
+            var existing2 = db.UpsertLog(new WatchLog(
+                Id: legacy2Id,
+                TitleId: title2Uuid,
+                Title: title2,
+                Status: LogStatus.DONE,
+                Note: "삭제 전 구기록 2",
+                OccurredAt: "2026-11-20T12:00:00Z",
+                WatchedOn: "2026-11-20",
+                CreatedAt: "2026-11-20T12:00:00Z",
+                UpdatedAt: "2026-11-20T12:00:00Z",
+                SyncState: "synced"
+            ), recordHistory: true);
+
+            var title3 = new TitleSummary(title3Uuid, "tmdb", "7813", TitleType.movie, "삭제 직후 정식 UUID 초안 저장 작품", Year: 2024);
+            var existing3 = db.UpsertLog(new WatchLog(
+                Id: canonical3Uuid,
+                TitleId: title3Uuid,
+                Title: title3,
+                Status: LogStatus.DONE,
+                Note: "삭제 전 정식 UUID 구기록 3",
+                OccurredAt: "2026-11-20T12:00:00Z",
+                WatchedOn: "2026-11-20",
+                CreatedAt: "2026-11-20T12:00:00Z",
+                UpdatedAt: "2026-11-20T12:00:00Z",
+                SyncState: "synced"
+            ), recordHistory: true);
+
+            // Delete commits FIRST on all three rows (legacy1, legacy2, and canonical3)
+            Assert.True(db.ApplyServerDeletedLogAtomic(existing1, new SyncDeletedLog(canonical1Uuid, title1Uuid, serverDeletedAt, serverDeletedAt)));
+            Assert.True(db.ApplyServerDeletedLogAtomic(existing2, new SyncDeletedLog(canonical2Uuid, title2Uuid, serverDeletedAt, serverDeletedAt)));
+            Assert.True(db.ApplyServerDeletedLogAtomic(existing3, new SyncDeletedLog(canonical3Uuid, title3Uuid, serverDeletedAt, serverDeletedAt)));
+
+            // Case A: Normal SaveLogLocalFirst after deletion commits -> creates separate new UUID UPSERT_LOG
+            var fresh1 = repo.SaveLogLocalFirst(title1, LogStatus.DONE, RecordFeeling.SATISFIED, "2026-11-24", note: "삭제 후 별도 신규 감상 1");
+            Assert.NotEqual(canonical1Uuid, fresh1.Id);
+            Assert.True(SyncIdNormalizer.IsValidUuid(fresh1.Id));
+
+            // Case B: Reverse TOCTOU where caller held stale legacy2Id before deletion committed ->
+            // SaveLogAndOutboxAtomic MUST detect soft-deleted canonical2Uuid and allocate a separate new UUID UPSERT_LOG!
+            var staleDraft2 = existing2 with
+            {
+                Note = "삭제 직후 stale 초안으로 저장된 신규 감상 2",
+                UpdatedAt = "2026-11-24T01:40:00Z",
+                SyncState = "pending",
+                DeletedAt = null
+            };
+            var fresh2 = db.SaveLogAndOutboxAtomic(
+                staleDraft2,
+                recordHistory: true,
+                outboxType: "UPDATE_LOG",
+                payloadSerializer: l => JsonSerializer.Serialize(new { logId = l.Id, note = l.Note }));
+            Assert.NotEqual(legacy2Id, fresh2.Id);
+            Assert.NotEqual(canonical2Uuid, fresh2.Id);
+            Assert.True(SyncIdNormalizer.IsValidUuid(fresh2.Id));
+            Assert.Null(db.GetLogIncludingDeleted(legacy2Id));
+
+            // Case C: Reverse TOCTOU where caller held stale canonical UUID (canonical3Uuid) before deletion committed ->
+            // SaveLogAndOutboxAtomic MUST preserve soft-deleted canonical3Uuid and allocate a separate new UUID UPSERT_LOG!
+            var staleDraft3 = existing3 with
+            {
+                Note = "삭제 직후 정식 UUID stale 초안으로 저장된 신규 감상 3",
+                UpdatedAt = "2026-11-24T01:41:00Z",
+                SyncState = "pending",
+                DeletedAt = null
+            };
+            var fresh3 = db.SaveLogAndOutboxAtomic(
+                staleDraft3,
+                recordHistory: true,
+                outboxType: "UPDATE_LOG",
+                payloadSerializer: l => JsonSerializer.Serialize(new { logId = l.Id, note = l.Note }));
+            Assert.NotEqual(canonical3Uuid, fresh3.Id);
+            Assert.True(SyncIdNormalizer.IsValidUuid(fresh3.Id));
+            Assert.Null(db.GetLog(canonical3Uuid));
+            Assert.Equal(serverDeletedAt, db.GetLogIncludingDeleted(canonical3Uuid)!.DeletedAt);
+
+            // Verify all three queued outbox events are UPSERT_LOG on the brand-new separate UUIDs
+            var pendingBeforeSync = db.GetPendingOutbox();
+            Assert.Equal(3, pendingBeforeSync.Count);
+            Assert.All(pendingBeforeSync, e => Assert.Equal("UPSERT_LOG", e.Type));
+            Assert.Contains(pendingBeforeSync, e => e.EntityId == fresh1.Id);
+            Assert.Contains(pendingBeforeSync, e => e.EntityId == fresh2.Id);
+            Assert.Contains(pendingBeforeSync, e => e.EntityId == fresh3.Id);
+
+            // Sync uploads ALL THREE new separate records ONCE while keeping all soft-deleted records + full history intact!
+            var (ok, _) = await repo.SyncAllAsync();
+            Assert.True(ok);
+            Assert.Empty(db.GetPendingOutbox());
+            Assert.Equal(3, uploadedLogs.Count);
+            Assert.Contains(uploadedLogs, u => u.Id == fresh1.Id && u.Note == "삭제 후 별도 신규 감상 1");
+            Assert.Contains(uploadedLogs, u => u.Id == fresh2.Id && u.Note == "삭제 직후 stale 초안으로 저장된 신규 감상 2");
+            Assert.Contains(uploadedLogs, u => u.Id == fresh3.Id && u.Note == "삭제 직후 정식 UUID stale 초안으로 저장된 신규 감상 3");
+
+            Assert.Equal(serverDeletedAt, db.GetLogIncludingDeleted(canonical1Uuid)!.DeletedAt);
+            Assert.Equal(serverDeletedAt, db.GetLogIncludingDeleted(canonical2Uuid)!.DeletedAt);
+            Assert.Equal(serverDeletedAt, db.GetLogIncludingDeleted(canonical3Uuid)!.DeletedAt);
+
+            var hist1 = repo.GetHistoryForTitle(title1Uuid);
+            Assert.Contains(hist1, h => h.LogId == canonical1Uuid && h.Note == "삭제 전 구기록 1");
+            Assert.Contains(hist1, h => h.LogId == fresh1.Id && h.Note == "삭제 후 별도 신규 감상 1");
+
+            var hist2 = repo.GetHistoryForTitle(title2Uuid);
+            Assert.Contains(hist2, h => h.LogId == canonical2Uuid && h.Note == "삭제 전 구기록 2");
+            Assert.Contains(hist2, h => h.LogId == fresh2.Id && h.Note == "삭제 직후 stale 초안으로 저장된 신규 감상 2");
+
+            var hist3 = repo.GetHistoryForTitle(title3Uuid);
+            Assert.Contains(hist3, h => h.LogId == canonical3Uuid && h.Note == "삭제 전 정식 UUID 구기록 3");
+            Assert.Contains(hist3, h => h.LogId == fresh3.Id && h.Note == "삭제 직후 정식 UUID stale 초안으로 저장된 신규 감상 3");
+
+            // Follow-up sync must NOT re-upload any of the three records
+            var (ok2, _) = await repo.SyncAllAsync();
+            Assert.True(ok2);
+            Assert.Equal(3, uploadedLogs.Count);
+        }
+        finally
+        {
+            repo.Dispose();
+            CleanupDb(dbPath);
+        }
+    }
 }

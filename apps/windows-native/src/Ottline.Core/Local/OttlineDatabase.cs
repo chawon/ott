@@ -343,8 +343,58 @@ public sealed class OttlineDatabase : IDisposable
             using var conn = OpenConnection();
             using var tx = conn.BeginTransaction();
 
-            var saved = UpsertLogInternal(conn, tx, log, recordHistory);
-            UpsertLogOutboxInternal(conn, tx, outboxType, saved.Id, payloadSerializer(saved));
+            var effectiveLog = log;
+            var effectiveOutboxType = outboxType;
+
+            // Guard against a concurrent sync transaction soft-deleting or remapping the target row
+            // (whether legacy non-UUID or canonical UUID) after the caller read it and before this
+            // transaction acquired _syncRoot. Once a row is soft-deleted locally, a subsequent save
+            // must preserve the soft-deleted row + its history and emit a brand-new UUID UPSERT_LOG.
+            if (!string.IsNullOrWhiteSpace(log.Id))
+            {
+                var directRow = GetLogInternal(conn, tx, log.Id, includeDeleted: true);
+                var resolvedRow = directRow;
+                if (resolvedRow == null)
+                {
+                    var canonicalId = SyncIdNormalizer.EnsureUuid(log.Id);
+                    if (!string.Equals(canonicalId, log.Id, StringComparison.Ordinal))
+                    {
+                        resolvedRow = GetLogInternal(conn, tx, canonicalId, includeDeleted: true);
+                    }
+                }
+
+                if (resolvedRow != null)
+                {
+                    if (resolvedRow.DeletedAt != null)
+                    {
+                        var freshCreatedAt = string.IsNullOrWhiteSpace(log.UpdatedAt)
+                            ? DateTimeOffset.UtcNow.ToString("O", CultureInfo.InvariantCulture)
+                            : log.UpdatedAt;
+                        effectiveLog = log with
+                        {
+                            Id = Guid.NewGuid().ToString("D"),
+                            TitleId = resolvedRow.TitleId,
+                            Title = log.Title with { Id = resolvedRow.TitleId },
+                            CreatedAt = freshCreatedAt,
+                            Revision = 1,
+                            DeletedAt = null
+                        };
+                        effectiveOutboxType = "UPSERT_LOG";
+                    }
+                    else if (directRow == null)
+                    {
+                        effectiveLog = log with
+                        {
+                            Id = resolvedRow.Id,
+                            TitleId = resolvedRow.TitleId,
+                            Title = log.Title with { Id = resolvedRow.TitleId }
+                        };
+                    }
+                }
+            }
+
+            var saved = UpsertLogInternal(conn, tx, effectiveLog, recordHistory);
+            UpsertLogOutboxInternal(conn, tx, effectiveOutboxType, saved.Id, payloadSerializer(saved));
 
             if (extraOutbox.HasValue)
             {
@@ -493,6 +543,49 @@ public sealed class OttlineDatabase : IDisposable
         {
             using var conn = OpenConnection();
             return GetLogInternal(conn, null, id, includeDeleted: true);
+        }
+    }
+
+    public IReadOnlyList<WatchLog> FindLogsByIdentityIncludingDeleted(string serverLogId)
+    {
+        if (string.IsNullOrWhiteSpace(serverLogId)) return Array.Empty<WatchLog>();
+
+        var trimmedServerId = serverLogId.Trim();
+        lock (_syncRoot)
+        {
+            using var conn = OpenConnection();
+            var matchedIds = new List<string>();
+
+            using (var cmd = conn.CreateCommand())
+            {
+                cmd.CommandText = "SELECT id FROM logs;";
+                using var reader = cmd.ExecuteReader();
+                while (reader.Read())
+                {
+                    var candidateId = reader.GetString(0);
+                    if (SyncIdNormalizer.IsSameLogIdentity(candidateId, trimmedServerId))
+                    {
+                        matchedIds.Add(candidateId);
+                    }
+                }
+            }
+
+            if (matchedIds.Count == 0)
+            {
+                return Array.Empty<WatchLog>();
+            }
+
+            var matches = new List<WatchLog>(matchedIds.Count);
+            foreach (var id in matchedIds)
+            {
+                var log = GetLogInternal(conn, null, id, includeDeleted: true);
+                if (log != null)
+                {
+                    matches.Add(log);
+                }
+            }
+
+            return matches;
         }
     }
 
@@ -743,6 +836,191 @@ public sealed class OttlineDatabase : IDisposable
             cmd.Parameters.AddWithValue("$id", logId);
             cmd.ExecuteNonQuery();
         }
+    }
+
+    /// <summary>
+    /// Atomically verifies inside a single SQLite transaction that no newer local modification or
+    /// pending log outbox (under either the legacy non-UUID ID or canonical server UUID) exists for
+    /// this record, then preserves revision history, remaps a legacy non-UUID log ID to its proven
+    /// canonical server UUID, aligns ONLY the deleted row (and its history) to the canonical server
+    /// title_id without disturbing separate logs on the title, and marks the row soft-deleted.
+    /// Returns true if soft-deletion was applied, or false if skipped to protect a newer/pending edit.
+    /// </summary>
+    public bool ApplyServerDeletedLogAtomic(WatchLog existingLocal, SyncDeletedLog deletedLog)
+    {
+        if (string.IsNullOrWhiteSpace(existingLocal.Id) ||
+            string.IsNullOrWhiteSpace(deletedLog.Id) ||
+            string.IsNullOrWhiteSpace(deletedLog.DeletedAt))
+        {
+            return false;
+        }
+
+        var canonicalLogId = deletedLog.Id.Trim();
+        var deletedAt = deletedLog.DeletedAt.Trim();
+        var updatedAt = string.IsNullOrWhiteSpace(deletedLog.UpdatedAt) ? deletedAt : deletedLog.UpdatedAt.Trim();
+
+        lock (_syncRoot)
+        {
+            using var conn = OpenConnection();
+            using var tx = conn.BeginTransaction();
+
+            var currentLocal = GetLogInternal(conn, tx, existingLocal.Id, includeDeleted: true);
+            if (currentLocal == null &&
+                !string.Equals(existingLocal.Id, canonicalLogId, StringComparison.OrdinalIgnoreCase))
+            {
+                currentLocal = GetLogInternal(conn, tx, canonicalLogId, includeDeleted: true);
+            }
+
+            if (currentLocal == null || !SyncIdNormalizer.IsSameLogIdentity(currentLocal.Id, canonicalLogId))
+            {
+                tx.Commit();
+                return false;
+            }
+
+            // Re-check pending outbox INSIDE the transaction across BOTH legacy and canonical IDs
+            // so a concurrent SaveLogLocalFirst committed after pre-check can never be soft-deleted.
+            if (HasPendingLogOutboxForIdentityInternal(conn, tx, existingLocal.Id, currentLocal.Id, canonicalLogId))
+            {
+                tx.Commit();
+                return false;
+            }
+
+            // Re-check latest committed UpdatedAt INSIDE the transaction against max(updatedAt, deletedAt).
+            var hasServerDelUtc = SyncIdNormalizer.TryResolveServerDeletedEffectiveUtc(deletedLog, out var serverDelUtc);
+            if (currentLocal.DeletedAt == null &&
+                hasServerDelUtc &&
+                SyncIdNormalizer.TryParseUtc(currentLocal.UpdatedAt, out var currentLocalUtc) &&
+                currentLocalUtc >= serverDelUtc)
+            {
+                tx.Commit();
+                return false;
+            }
+
+            // Also guard against an active newer canonical row if both legacy and canonical rows coexist.
+            if (!string.Equals(currentLocal.Id, canonicalLogId, StringComparison.OrdinalIgnoreCase))
+            {
+                var canonicalRow = GetLogInternal(conn, tx, canonicalLogId, includeDeleted: true);
+                if (canonicalRow != null &&
+                    canonicalRow.DeletedAt == null &&
+                    hasServerDelUtc &&
+                    SyncIdNormalizer.TryParseUtc(canonicalRow.UpdatedAt, out var canonicalUtc) &&
+                    canonicalUtc >= serverDelUtc)
+                {
+                    tx.Commit();
+                    return false;
+                }
+            }
+
+            // 1. Capture the current local snapshot into log_history before remapping or soft-deleting.
+            EnsureHistorySnapshotInternal(conn, tx, currentLocal);
+
+            // 2. Remap legacy non-UUID (or differently cased) log_id + history to canonical server UUID.
+            if (!string.Equals(currentLocal.Id, canonicalLogId, StringComparison.Ordinal))
+            {
+                RemapLogIdInternal(conn, tx, currentLocal.Id, canonicalLogId, markSynced: false);
+            }
+
+            // 3. Align ONLY this deleted log and its history rows to the server's canonical title_id
+            //    without touching any other active or deleted logs that may reference currentLocal.TitleId.
+            var targetTitleId = !string.IsNullOrWhiteSpace(deletedLog.TitleId) &&
+                                SyncIdNormalizer.IsValidUuid(deletedLog.TitleId)
+                ? deletedLog.TitleId.Trim()
+                : currentLocal.TitleId;
+
+            if (!string.Equals(currentLocal.TitleId, targetTitleId, StringComparison.OrdinalIgnoreCase))
+            {
+                bool targetTitleExists;
+                using (var checkTitle = conn.CreateCommand())
+                {
+                    checkTitle.Transaction = tx;
+                    checkTitle.CommandText = "SELECT COUNT(1) FROM titles WHERE id = $id;";
+                    checkTitle.Parameters.AddWithValue("$id", targetTitleId);
+                    targetTitleExists = Convert.ToInt64(checkTitle.ExecuteScalar() ?? 0) > 0;
+                }
+
+                if (!targetTitleExists)
+                {
+                    UpsertTitleInternal(conn, tx, currentLocal.Title with { Id = targetTitleId });
+                }
+
+                using (var updateLogTitle = conn.CreateCommand())
+                {
+                    updateLogTitle.Transaction = tx;
+                    updateLogTitle.CommandText = "UPDATE logs SET title_id = $target_title_id WHERE id = $log_id;";
+                    updateLogTitle.Parameters.AddWithValue("$target_title_id", targetTitleId);
+                    updateLogTitle.Parameters.AddWithValue("$log_id", canonicalLogId);
+                    updateLogTitle.ExecuteNonQuery();
+                }
+
+                using (var updateHistTitle = conn.CreateCommand())
+                {
+                    updateHistTitle.Transaction = tx;
+                    updateHistTitle.CommandText = "UPDATE log_history SET title_id = $target_title_id WHERE log_id = $log_id;";
+                    updateHistTitle.Parameters.AddWithValue("$target_title_id", targetTitleId);
+                    updateHistTitle.Parameters.AddWithValue("$log_id", canonicalLogId);
+                    updateHistTitle.ExecuteNonQuery();
+                }
+
+                using (var deleteOrphanTitle = conn.CreateCommand())
+                {
+                    deleteOrphanTitle.Transaction = tx;
+                    deleteOrphanTitle.CommandText = @"
+                        DELETE FROM titles
+                        WHERE id = $old_title_id
+                          AND id != $target_title_id
+                          AND NOT EXISTS (SELECT 1 FROM logs WHERE title_id = $old_title_id)
+                          AND NOT EXISTS (SELECT 1 FROM log_history WHERE title_id = $old_title_id);
+                    ";
+                    deleteOrphanTitle.Parameters.AddWithValue("$old_title_id", currentLocal.TitleId);
+                    deleteOrphanTitle.Parameters.AddWithValue("$target_title_id", targetTitleId);
+                    deleteOrphanTitle.ExecuteNonQuery();
+                }
+            }
+
+            // 4. Mark the canonical log row soft-deleted and synced.
+            using (var markCmd = conn.CreateCommand())
+            {
+                markCmd.Transaction = tx;
+                markCmd.CommandText = @"
+                    UPDATE logs
+                    SET deleted_at = $deleted_at,
+                        updated_at = COALESCE($updated_at, updated_at),
+                        sync_state = 'synced'
+                    WHERE id = $id;
+                ";
+                markCmd.Parameters.AddWithValue("$deleted_at", deletedAt);
+                markCmd.Parameters.AddWithValue("$updated_at", updatedAt);
+                markCmd.Parameters.AddWithValue("$id", canonicalLogId);
+                markCmd.ExecuteNonQuery();
+            }
+
+            tx.Commit();
+            return true;
+        }
+    }
+
+    private static bool HasPendingLogOutboxForIdentityInternal(
+        SqliteConnection conn,
+        SqliteTransaction tx,
+        string requestedLocalId,
+        string currentLocalId,
+        string canonicalLogId)
+    {
+        using var cmd = conn.CreateCommand();
+        cmd.Transaction = tx;
+        cmd.CommandText = "SELECT entity_id FROM outbox WHERE type IN ('UPSERT_LOG', 'UPDATE_LOG');";
+        using var reader = cmd.ExecuteReader();
+        while (reader.Read())
+        {
+            var entityId = reader.GetString(0);
+            if (string.Equals(entityId, requestedLocalId, StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(entityId, currentLocalId, StringComparison.OrdinalIgnoreCase) ||
+                SyncIdNormalizer.IsSameLogIdentity(entityId, canonicalLogId))
+            {
+                return true;
+            }
+        }
+        return false;
     }
 
     public void DeleteLogsByTitleExcept(string titleId, string keepLogId)
