@@ -5,6 +5,9 @@ import android.content.Context
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import androidx.room.Room
+import androidx.sqlite.SQLiteConnection
+import androidx.sqlite.SQLiteDriver
+import androidx.sqlite.SQLiteStatement
 import androidx.test.core.app.ApplicationProvider
 import app.ottline.data.OttlineRepository
 import app.ottline.data.local.AppPreferences
@@ -22,7 +25,12 @@ import app.ottline.model.Place
 import app.ottline.model.Provider
 import app.ottline.model.Title
 import app.ottline.model.TitleType
+import java.sql.SQLException
 import java.util.concurrent.CopyOnWriteArrayList
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import okhttp3.mockwebserver.Dispatcher
@@ -56,6 +64,7 @@ class HandoffRecoveryTest {
 
     private lateinit var context: Context
     private lateinit var server: MockWebServer
+    private lateinit var driver: FaultInjectingSqliteDriver
     private lateinit var db: OttlineDatabase
     private lateinit var prefs: AppPreferences
     private lateinit var api: OttlineApiClient
@@ -84,8 +93,9 @@ class HandoffRecoveryTest {
         RevisitReminderApiClient.apiBaseUrlOverride = baseUrl
         RevisitReminderApiClient.httpClientOverride = null
 
+        driver = FaultInjectingSqliteDriver(JdbcSqliteDriver())
         db = Room.inMemoryDatabaseBuilder(context, OttlineDatabase::class.java)
-            .setDriver(JdbcSqliteDriver())
+            .setDriver(driver)
             .allowMainThreadQueries()
             .build()
         prefs = AppPreferences(context)
@@ -311,22 +321,68 @@ class HandoffRecoveryTest {
     }
 
     @Test
-    fun legacyUpgradeFrom205_withCompletedPrefTrue_neverTriggersAutoRelaunchLoop() {
+    fun legacyUpgradeFrom205_withCompletedPrefTrue_suppressesAutoLoopButPreservesManualRetryWhenUnverified() {
+        // 1. Legacy 2.0.5 user whose browser handoff was interrupted (e.g. Cloudflare 522):
+        //    old code wrote watchlog.twaBrowserHandoffCompleted = true BEFORE opening Chrome.
         context.getSharedPreferences("ottline.native_prefs", Context.MODE_PRIVATE)
             .edit()
             .putBoolean("watchlog.twaBrowserHandoffCompleted", true)
             .commit()
 
-        val upgradedPrefs = AppPreferences(context)
-        assertTrue(upgradedPrefs.current.twaAutoHandoffAttempted)
-        assertTrue(upgradedPrefs.current.twaBrowserHandoffCompleted)
+        val interruptedUpgrade = AppPreferences(context)
+        assertTrue(interruptedUpgrade.current.twaAutoHandoffAttempted)
+        assertFalse(interruptedUpgrade.current.twaBrowserHandoffCompleted)
+        assertTrue(interruptedUpgrade.current.legacyBrowserHandoffUnverified)
+        assertEquals(BrowserHandoffState.IDLE, interruptedUpgrade.current.browserHandoffState)
         assertEquals(
             AutoHandoffDecision.NONE,
             BrowserHandoffPolicy.decideAutoHandoffOnStart(
-                prefs = upgradedPrefs.current,
+                prefs = interruptedUpgrade.current,
                 hasPendingHandoffCallback = false,
                 hasTwaFootprint = true,
                 referrerWebHandoff = true
+            )
+        )
+        // Manual retry MUST still appear on Home even without TWA footprint
+        assertTrue(
+            BrowserHandoffPolicy.shouldShowHomeHandoffCard(
+                prefs = interruptedUpgrade.current,
+                activeLogCount = 0,
+                hasTwaFootprint = false
+            )
+        )
+
+        // 2. Even if the legacy 2.0.5 install already has a local userId, do NOT treat it as COMPLETED
+        context.getSharedPreferences("ottline.native_prefs", Context.MODE_PRIVATE)
+            .edit()
+            .putString("watchlog.userId", "u-local-only")
+            .putString("watchlog.deviceId", "d-local-only")
+            .commit()
+
+        val legacyWithLocalAccount = AppPreferences(context)
+        assertTrue(legacyWithLocalAccount.current.twaAutoHandoffAttempted)
+        assertFalse(legacyWithLocalAccount.current.twaBrowserHandoffCompleted)
+        assertTrue(legacyWithLocalAccount.current.legacyBrowserHandoffUnverified)
+        assertEquals(BrowserHandoffState.IDLE, legacyWithLocalAccount.current.browserHandoffState)
+        assertTrue(
+            BrowserHandoffPolicy.shouldShowHomeHandoffCard(
+                prefs = legacyWithLocalAccount.current,
+                activeLogCount = 0,
+                hasTwaFootprint = false
+            )
+        )
+
+        // 3. A legacy 2.0.5 install that actually completed handoff dismissed the banner and has logs
+        context.getSharedPreferences("ottline.native_prefs", Context.MODE_PRIVATE)
+            .edit()
+            .putBoolean("watchlog.twaMigrationDismissed", true)
+            .commit()
+        val legacySucceeded = AppPreferences(context)
+        assertFalse(
+            BrowserHandoffPolicy.shouldShowHomeHandoffCard(
+                prefs = legacySucceeded.current,
+                activeLogCount = 3,
+                hasTwaFootprint = true
             )
         )
     }
@@ -455,11 +511,14 @@ class HandoffRecoveryTest {
     fun crossAccountMergeFailure_preservesExistingAccountRoomLogsAndOutboxForRetry() = runBlocking {
         prefs.saveAuth("u-native-temp", "d-native-temp", "NAT-1111")
 
-        // Server fails /api/auth/pair (e.g., 502 / transient outage)
+        // Server succeeds profile verification, then fails /api/auth/pair (e.g., 502 / transient outage)
         server.dispatcher = object : Dispatcher() {
             override fun dispatch(request: RecordedRequest): MockResponse {
                 val path = request.path.orEmpty()
                 return when {
+                    path == "/api/auth/profile" && request.getHeader("X-User-Id") == "u-web-target" ->
+                        MockResponse().setResponseCode(200)
+                            .setBody("""{"userId":"u-web-target","nickname":"웹계정","pairingCode":"WEB-8888"}""")
                     path == "/api/auth/pair" -> MockResponse().setResponseCode(502).setBody("""{"error":"upstream"}""")
                     path == "/api/sync/push" -> MockResponse().setResponseCode(502)
                     else -> MockResponse().setResponseCode(404)
@@ -557,5 +616,359 @@ class HandoffRecoveryTest {
         val logsAfterMerge = repository.activeLogsFlow.first()
         assertNotNull(logsAfterMerge.find { it.title.name == "오펜하이머" })
         assertNotNull(logsAfterMerge.find { it.title.name == "소년이 온다" })
+    }
+
+    @Test
+    fun roomReadFailureDuringCrossAccountSwitch_preservesAccountLogsHistoryAndOutbox() = runBlocking {
+        prefs.saveAuth("u-old-safe", "d-old-safe", "OLD-1111")
+        server.dispatcher = object : Dispatcher() {
+            override fun dispatch(request: RecordedRequest): MockResponse {
+                val path = request.path.orEmpty()
+                return when {
+                    path == "/api/auth/profile" && request.getHeader("X-User-Id") == "u-web-new" ->
+                        MockResponse().setResponseCode(200)
+                            .setBody("""{"userId":"u-web-new","nickname":"웹계정","pairingCode":"WEB-2222"}""")
+                    else -> MockResponse().setResponseCode(404)
+                }
+            }
+        }
+
+        // Case 1: Local DB has log + history + outbox, and outbox read throws SQLException
+        val title = Title(
+            id = "t-keep-1",
+            type = TitleType.MOVIE,
+            name = "기생충",
+            year = 2019,
+            provider = Provider.LOCAL,
+            providerId = null
+        )
+        repository.saveLogForTitle(
+            rawTitle = title,
+            draft = LogDraft(status = LogStatus.DONE, note = "읽기 실패 시 보존", watchedAt = RecordDate.nowIso()),
+            awaitSync = false
+        )
+        assertEquals(1, db.watchLogDao().getActiveLogs().size)
+        assertEquals(1, db.watchLogHistoryDao().countAll())
+        assertEquals(1, db.outboxDao().getAll().size)
+
+        driver.failSelectContaining = "FROM outbox"
+        val outcomeWithData = repository.completeTwaHandoffWithOutcome(
+            status = "ok",
+            userId = "u-web-new",
+            deviceId = "d-web-new",
+            pairingCode = "WEB-2222",
+            nickname = "웹계정",
+            personaKey = null
+        )
+        driver.failSelectContaining = null
+
+        assertEquals(OttlineRepository.HandoffOutcome.MERGE_FAILED, outcomeWithData)
+        assertEquals("u-old-safe", prefs.current.userId)
+        assertEquals("d-old-safe", prefs.current.deviceId)
+        assertEquals(BrowserHandoffState.FAILED, prefs.current.browserHandoffState)
+        assertFalse(prefs.current.twaBrowserHandoffCompleted)
+        // All 3 tables MUST stay completely intact
+        assertEquals(1, db.watchLogDao().getActiveLogs().size)
+        assertEquals(1, db.watchLogHistoryDao().countAll())
+        assertEquals(1, db.outboxDao().getAll().size)
+
+        // Case 2: Even when local DB is empty, a Room read failure MUST NOT be treated as empty
+        db.outboxDao().clearAll()
+        db.watchLogHistoryDao().clearAll()
+        db.watchLogDao().clearAll()
+
+        driver.failSelectContaining = "FROM watch_logs"
+        val outcomeWhenEmptyButUnreadable = repository.completeTwaHandoffWithOutcome(
+            status = "ok",
+            userId = "u-web-new",
+            deviceId = "d-web-new",
+            pairingCode = "WEB-2222",
+            nickname = "웹계정",
+            personaKey = null
+        )
+        driver.failSelectContaining = null
+
+        assertEquals(OttlineRepository.HandoffOutcome.MERGE_FAILED, outcomeWhenEmptyButUnreadable)
+        assertEquals("u-old-safe", prefs.current.userId)
+        assertEquals(BrowserHandoffState.FAILED, prefs.current.browserHandoffState)
+        assertFalse(prefs.current.twaBrowserHandoffCompleted)
+
+        // Case 3: watch_log_history read failure on empty DB also aborts safely
+        driver.failSelectContaining = "FROM watch_log_history"
+        val outcomeHistoryUnreadable = repository.completeTwaHandoffWithOutcome(
+            status = "ok",
+            userId = "u-web-new",
+            deviceId = "d-web-new",
+            pairingCode = "WEB-2222",
+            nickname = "웹계정",
+            personaKey = null
+        )
+        driver.failSelectContaining = null
+
+        assertEquals(OttlineRepository.HandoffOutcome.MERGE_FAILED, outcomeHistoryUnreadable)
+        assertEquals("u-old-safe", prefs.current.userId)
+        assertEquals(BrowserHandoffState.FAILED, prefs.current.browserHandoffState)
+        assertFalse(prefs.current.twaBrowserHandoffCompleted)
+    }
+
+    @Test
+    fun concurrentSaveDuringCrossAccountSwitch_isNotClearedAndRoutesToMerge() = runBlocking {
+        prefs.saveAuth("u-old-race", "d-old-race", "OLD-RACE")
+        assertEquals(0, db.watchLogDao().getActiveLogs().size)
+        assertEquals(0, db.watchLogHistoryDao().countAll())
+        assertEquals(0, db.outboxDao().getAll().size)
+
+        val profileArrived = CountDownLatch(1)
+        val allowProfileResponse = CountDownLatch(1)
+        val pairBodies = CopyOnWriteArrayList<String>()
+
+        server.dispatcher = object : Dispatcher() {
+            override fun dispatch(request: RecordedRequest): MockResponse {
+                val path = request.path.orEmpty()
+                return when {
+                    path == "/api/auth/profile" && request.getHeader("X-User-Id") == "u-web-race" -> {
+                        profileArrived.countDown()
+                        allowProfileResponse.await(5, TimeUnit.SECONDS)
+                        MockResponse().setResponseCode(200)
+                            .setBody("""{"userId":"u-web-race","nickname":"레이스웹","pairingCode":"WEB-RACE"}""")
+                    }
+                    path == "/api/auth/pair" -> {
+                        pairBodies.add(request.body.readUtf8())
+                        MockResponse().setResponseCode(200)
+                            .setBody("""{"userId":"u-web-race","deviceId":"d-web-race","pairingCode":"WEB-RACE"}""")
+                    }
+                    path == "/api/sync/push" -> MockResponse().setResponseCode(200)
+                        .setBody("""{"accepted":["ok"],"rejected":[]}""")
+                    path.startsWith("/api/sync/pull") -> MockResponse().setResponseCode(200)
+                        .setBody(
+                            """
+                            {
+                              "serverTime": "2026-11-25T07:00:00Z",
+                              "changes": {
+                                "titles": [
+                                  {"id":"t-web-race-1","type":"movie","name":"듄","year":2021,"provider":"TMDB","providerId":"438631"}
+                                ],
+                                "logs": [
+                                  {"id":"l-web-race-1","titleId":"t-web-race-1","status":"DONE","note":"웹 기록","watchedAt":"2026-11-20T00:00:00Z","createdAt":"2026-11-20T00:00:00Z","updatedAt":"2026-11-20T00:00:00Z"}
+                                ]
+                              }
+                            }
+                            """.trimIndent()
+                        )
+                    path == "/api/nalytic/events" -> MockResponse().setResponseCode(202)
+                    path.startsWith("/api/android/") -> MockResponse().setResponseCode(200).setBody("{}")
+                    else -> MockResponse().setResponseCode(404)
+                }
+            }
+        }
+
+        // Start cross-account handoff while DB is empty
+        val handoffDeferred = async(Dispatchers.IO) {
+            repository.completeTwaHandoffWithOutcome(
+                status = "ok",
+                userId = "u-web-race",
+                deviceId = "d-web-race",
+                pairingCode = "WEB-RACE",
+                nickname = "레이스웹",
+                personaKey = null
+            )
+        }
+
+        assertTrue(profileArrived.await(5, TimeUnit.SECONDS))
+
+        // While server profile verification is in-flight, another coroutine saves a local record!
+        repository.saveLogForTitle(
+            rawTitle = Title(
+                id = "t-concurrent-1",
+                type = TitleType.BOOK,
+                name = "동시 저장 책",
+                year = 2025,
+                provider = Provider.LOCAL,
+                providerId = null
+            ),
+            draft = LogDraft(status = LogStatus.DONE, note = "절대 지워지면 안 됨", watchedAt = RecordDate.nowIso()),
+            awaitSync = false
+        )
+        assertEquals(1, db.watchLogDao().getActiveLogs().size)
+
+        // Release server profile verification -> locked transaction MUST see the concurrent save
+        allowProfileResponse.countDown()
+        val outcome = handoffDeferred.await()
+
+        assertEquals(OttlineRepository.HandoffOutcome.CONNECTED, outcome)
+        assertTrue(prefs.current.twaBrowserHandoffCompleted)
+        assertEquals(BrowserHandoffState.COMPLETED, prefs.current.browserHandoffState)
+        assertEquals("u-web-race", prefs.current.userId)
+        // Must have routed through /api/auth/pair with u-old-race instead of clearing Room!
+        assertEquals(1, pairBodies.size)
+        assertTrue(pairBodies.first().contains("u-old-race"))
+        val finalLogs = repository.activeLogsFlow.first()
+        assertNotNull(finalLogs.find { it.title.name == "동시 저장 책" })
+        assertNotNull(finalLogs.find { it.title.name == "듄" })
+    }
+
+    @Test
+    fun serverProfileFailureDuringOkCallback_doesNotMarkCompletedOrMutateAuth_andRetrySucceeds() = runBlocking {
+        // Transient 502 on /api/auth/profile
+        server.dispatcher = object : Dispatcher() {
+            override fun dispatch(request: RecordedRequest): MockResponse =
+                MockResponse().setResponseCode(502).setBody("""{"error":"bad gateway"}""")
+        }
+
+        val failedOutcome = repository.completeTwaHandoffWithOutcome(
+            status = "ok",
+            userId = "u-web-srv",
+            deviceId = "d-web-srv",
+            pairingCode = "WEB-SRV",
+            nickname = "서버재시도",
+            personaKey = PersonaKey.CINEMA_KEEPER
+        )
+
+        assertEquals(OttlineRepository.HandoffOutcome.SERVER_ERROR, failedOutcome)
+        assertNull(prefs.current.userId)
+        assertNull(prefs.current.deviceId)
+        assertFalse(prefs.current.twaBrowserHandoffCompleted)
+        assertFalse(prefs.current.twaMigrationBannerDismissed)
+        assertEquals(BrowserHandoffState.FAILED, prefs.current.browserHandoffState)
+        assertTrue(
+            BrowserHandoffPolicy.shouldShowHomeHandoffCard(
+                prefs = prefs.current,
+                activeLogCount = 0,
+                hasTwaFootprint = false
+            )
+        )
+
+        // Server recovers -> retry completes and verifies sync
+        server.dispatcher = object : Dispatcher() {
+            override fun dispatch(request: RecordedRequest): MockResponse {
+                val path = request.path.orEmpty()
+                return when {
+                    path == "/api/auth/profile" -> MockResponse().setResponseCode(200)
+                        .setBody("""{"userId":"u-web-srv","nickname":"서버재시도","personaKey":"cinema_keeper","pairingCode":"WEB-SRV"}""")
+                    path.startsWith("/api/sync/pull") -> MockResponse().setResponseCode(200)
+                        .setBody(
+                            """
+                            {
+                              "serverTime": "2026-11-25T07:05:00Z",
+                              "changes": {
+                                "titles": [{"id":"t-srv-1","type":"movie","name":"인셉션","year":2010,"provider":"TMDB","providerId":"27205"}],
+                                "logs": [{"id":"l-srv-1","titleId":"t-srv-1","status":"DONE","note":"복구 완료","watchedAt":"2026-11-21T00:00:00Z","createdAt":"2026-11-21T00:00:00Z","updatedAt":"2026-11-21T00:00:00Z"}]
+                              }
+                            }
+                            """.trimIndent()
+                        )
+                    path == "/api/nalytic/events" -> MockResponse().setResponseCode(202)
+                    path.startsWith("/api/android/") -> MockResponse().setResponseCode(200).setBody("{}")
+                    else -> MockResponse().setResponseCode(404)
+                }
+            }
+        }
+
+        val retryOutcome = repository.completeTwaHandoffWithOutcome(
+            status = "ok",
+            userId = "u-web-srv",
+            deviceId = "d-web-srv",
+            pairingCode = "WEB-SRV",
+            nickname = "서버재시도",
+            personaKey = PersonaKey.CINEMA_KEEPER
+        )
+
+        assertEquals(OttlineRepository.HandoffOutcome.CONNECTED, retryOutcome)
+        assertEquals("u-web-srv", prefs.current.userId)
+        assertTrue(prefs.current.twaBrowserHandoffCompleted)
+        assertTrue(prefs.current.twaMigrationBannerDismissed)
+        assertEquals(BrowserHandoffState.COMPLETED, prefs.current.browserHandoffState)
+        assertEquals(1, repository.activeLogsFlow.first().size)
+    }
+
+    @Test
+    fun syncPullFailureAfterProfileVerified_doesNotMarkCompleted_andRetryCompletes() = runBlocking {
+        // Profile succeeds (200), but /api/sync/pull fails transiently (502)
+        server.dispatcher = object : Dispatcher() {
+            override fun dispatch(request: RecordedRequest): MockResponse {
+                val path = request.path.orEmpty()
+                return when {
+                    path == "/api/auth/profile" -> MockResponse().setResponseCode(200)
+                        .setBody("""{"userId":"u-web-pull","nickname":"풀재시도","pairingCode":"WEB-PULL"}""")
+                    path.startsWith("/api/sync/pull") -> MockResponse().setResponseCode(502)
+                    path == "/api/nalytic/events" -> MockResponse().setResponseCode(202)
+                    path.startsWith("/api/android/") -> MockResponse().setResponseCode(200).setBody("{}")
+                    else -> MockResponse().setResponseCode(404)
+                }
+            }
+        }
+
+        val failedOutcome = repository.completeTwaHandoffWithOutcome(
+            status = "ok",
+            userId = "u-web-pull",
+            deviceId = "d-web-pull",
+            pairingCode = "WEB-PULL",
+            nickname = "풀재시도",
+            personaKey = null
+        )
+
+        assertEquals(OttlineRepository.HandoffOutcome.SERVER_ERROR, failedOutcome)
+        assertFalse(prefs.current.twaBrowserHandoffCompleted)
+        assertFalse(prefs.current.twaMigrationBannerDismissed)
+        assertEquals(BrowserHandoffState.FAILED, prefs.current.browserHandoffState)
+        assertTrue(
+            BrowserHandoffPolicy.shouldShowHomeHandoffCard(
+                prefs = prefs.current,
+                activeLogCount = 0,
+                hasTwaFootprint = false
+            )
+        )
+
+        // Pull recovers -> retry succeeds and marks COMPLETED
+        server.dispatcher = object : Dispatcher() {
+            override fun dispatch(request: RecordedRequest): MockResponse {
+                val path = request.path.orEmpty()
+                return when {
+                    path == "/api/auth/profile" -> MockResponse().setResponseCode(200)
+                        .setBody("""{"userId":"u-web-pull","nickname":"풀재시도","pairingCode":"WEB-PULL"}""")
+                    path.startsWith("/api/sync/pull") -> MockResponse().setResponseCode(200)
+                        .setBody("""{"serverTime":"2026-11-25T07:10:00Z","changes":{"titles":[],"logs":[]}}""")
+                    path == "/api/nalytic/events" -> MockResponse().setResponseCode(202)
+                    path.startsWith("/api/android/") -> MockResponse().setResponseCode(200).setBody("{}")
+                    else -> MockResponse().setResponseCode(404)
+                }
+            }
+        }
+
+        val retryOutcome = repository.completeTwaHandoffWithOutcome(
+            status = "ok",
+            userId = "u-web-pull",
+            deviceId = "d-web-pull",
+            pairingCode = "WEB-PULL",
+            nickname = "풀재시도",
+            personaKey = null
+        )
+
+        assertEquals(OttlineRepository.HandoffOutcome.CONNECTED, retryOutcome)
+        assertTrue(prefs.current.twaBrowserHandoffCompleted)
+        assertTrue(prefs.current.twaMigrationBannerDismissed)
+        assertEquals(BrowserHandoffState.COMPLETED, prefs.current.browserHandoffState)
+    }
+}
+
+private class FaultInjectingSqliteDriver(
+    private val delegate: SQLiteDriver
+) : SQLiteDriver {
+    @Volatile
+    var failSelectContaining: String? = null
+
+    override fun open(fileName: String): SQLiteConnection {
+        val inner = delegate.open(fileName)
+        return object : SQLiteConnection {
+            override fun prepare(sql: String): SQLiteStatement {
+                val pattern = failSelectContaining
+                if (pattern != null && sql.contains("SELECT", ignoreCase = true) && sql.contains(pattern, ignoreCase = true)) {
+                    throw SQLException("Injected Room read failure for: $sql")
+                }
+                return inner.prepare(sql)
+            }
+
+            override fun close() = inner.close()
+        }
     }
 }

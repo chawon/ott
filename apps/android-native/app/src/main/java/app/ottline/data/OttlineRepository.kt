@@ -1062,7 +1062,14 @@ class OttlineRepository(
         CONNECTED,
         EMPTY_SESSION,
         INVALID_CALLBACK,
+        SERVER_ERROR,
         MERGE_FAILED
+    }
+
+    private enum class HandoffSwitchDecision {
+        SWITCHED_OR_SAME,
+        NEEDS_MERGE,
+        STORAGE_ERROR
     }
 
     suspend fun completeTwaHandoff(
@@ -1113,79 +1120,133 @@ class OttlineRepository(
             return HandoffOutcome.INVALID_CALLBACK
         }
 
-        val currentUserId = prefs.current.userId
-        val localActiveLogs = runCatching { db.watchLogDao().getActiveLogs() }.getOrDefault(emptyList())
-        val pendingOutboxCount = runCatching { db.outboxDao().getAll().size }.getOrDefault(0)
-        val hasLocalData = localActiveLogs.isNotEmpty() || pendingOutboxCount > 0
+        // 1. Verify the callback credentials with the server BEFORE mutating prefs or Room.
+        val verifiedProfile = runCatching {
+            api.getProfileForCredentials(cleanUserId, cleanDeviceId)
+        }.getOrElse {
+            if (markBrowserHandoffDone) {
+                prefs.markAutoHandoffAttempted()
+                prefs.markBrowserHandoffFailed()
+            }
+            return HandoffOutcome.SERVER_ERROR
+        }
 
-        if (!currentUserId.isNullOrBlank() && currentUserId != cleanUserId && hasLocalData) {
-            val resolvedCode = cleanCode ?: runCatching {
-                api.getProfileForCredentials(cleanUserId, cleanDeviceId).pairingCode?.trim()?.takeIf { it.isNotEmpty() }
-            }.getOrNull()
-            if (resolvedCode.isNullOrBlank()) {
+        val resolvedCode = cleanCode ?: verifiedProfile.pairingCode?.trim()?.takeIf { it.isNotEmpty() }
+        val resolvedNickname = verifiedProfile.nickname?.takeIf { it.isNotBlank() } ?: nickname
+        val resolvedPersona = verifiedProfile.personaKey ?: personaKey
+
+        // 2. Under saveMutex + Room transaction, positively verify all local tables are readable
+        //    and empty before clearing on a cross-account switch (prevents read-error wipes and
+        //    TOCTOU races with concurrent local saves).
+        val switchDecision = saveMutex.withLock {
+            val currentUserId = prefs.current.userId
+            if (!currentUserId.isNullOrBlank() && currentUserId != cleanUserId) {
+                val clearResult = runCatching {
+                    db.watchLogDao().clearLocalTablesOnlyIfEmpty()
+                }
+                when {
+                    clearResult.isFailure -> HandoffSwitchDecision.STORAGE_ERROR
+                    clearResult.getOrThrow() -> {
+                        prefs.setLastSyncAt(null)
+                        prefs.saveAuth(cleanUserId, cleanDeviceId, resolvedCode)
+                        if (!resolvedNickname.isNullOrBlank() || resolvedPersona != null) {
+                            prefs.saveProfile(
+                                nickname = resolvedNickname ?: prefs.current.nickname,
+                                personaKey = resolvedPersona ?: prefs.current.personaKey,
+                                pairingCode = resolvedCode
+                            )
+                        }
+                        HandoffSwitchDecision.SWITCHED_OR_SAME
+                    }
+                    else -> HandoffSwitchDecision.NEEDS_MERGE
+                }
+            } else {
+                prefs.setLastSyncAt(null)
+                prefs.saveAuth(cleanUserId, cleanDeviceId, resolvedCode)
+                if (!resolvedNickname.isNullOrBlank() || resolvedPersona != null) {
+                    prefs.saveProfile(
+                        nickname = resolvedNickname ?: prefs.current.nickname,
+                        personaKey = resolvedPersona ?: prefs.current.personaKey,
+                        pairingCode = resolvedCode
+                    )
+                }
+                HandoffSwitchDecision.SWITCHED_OR_SAME
+            }
+        }
+
+        when (switchDecision) {
+            HandoffSwitchDecision.STORAGE_ERROR -> {
                 if (markBrowserHandoffDone) {
                     prefs.markAutoHandoffAttempted()
                     prefs.markBrowserHandoffFailed()
                 }
                 return HandoffOutcome.MERGE_FAILED
             }
-            val paired = runCatching { pairWithCode(resolvedCode) }.getOrNull()
-            if (paired != null) {
+
+            HandoffSwitchDecision.NEEDS_MERGE -> {
+                if (resolvedCode.isNullOrBlank()) {
+                    if (markBrowserHandoffDone) {
+                        prefs.markAutoHandoffAttempted()
+                        prefs.markBrowserHandoffFailed()
+                    }
+                    return HandoffOutcome.MERGE_FAILED
+                }
+                val paired = runCatching { pairWithCode(resolvedCode) }.getOrNull()
+                if (paired == null) {
+                    // Do NOT overwrite current auth or drop local logs/history/outbox when merge fails.
+                    if (markBrowserHandoffDone) {
+                        prefs.markAutoHandoffAttempted()
+                        prefs.markBrowserHandoffFailed()
+                    }
+                    return HandoffOutcome.MERGE_FAILED
+                }
+                val mergeSyncVerified = _syncState.value.status == SyncStatus.IDLE &&
+                    !prefs.current.lastSyncAt.isNullOrBlank()
+                if (!mergeSyncVerified) {
+                    if (markBrowserHandoffDone) {
+                        prefs.markAutoHandoffAttempted()
+                        prefs.markBrowserHandoffFailed()
+                    }
+                    return HandoffOutcome.SERVER_ERROR
+                }
                 prefs.dismissTwaMigrationBanner()
                 if (markBrowserHandoffDone) {
                     prefs.markTwaBrowserHandoffCompleted()
                 }
                 return HandoffOutcome.CONNECTED
             }
-            // Do NOT overwrite current auth or drop local logs/outbox when server merge fails.
-            if (markBrowserHandoffDone) {
-                prefs.markAutoHandoffAttempted()
-                prefs.markBrowserHandoffFailed()
-            }
-            return HandoffOutcome.MERGE_FAILED
-        }
 
-        if (!currentUserId.isNullOrBlank() && currentUserId != cleanUserId && !hasLocalData) {
-            saveMutex.withLock {
-                db.outboxDao().clearAll()
-                db.watchLogHistoryDao().clearAll()
-                db.watchLogDao().clearAll()
-            }
-        }
+            HandoffSwitchDecision.SWITCHED_OR_SAME -> {
+                repoScope.launch {
+                    runCatching {
+                        RevisitReminderScheduler.bindDeviceIfAuthenticated(
+                            context = appContext,
+                            force = true,
+                            explicitUserId = cleanUserId,
+                            explicitDeviceId = cleanDeviceId
+                        )
+                    }
+                }
 
-        prefs.setLastSyncAt(null)
-        prefs.saveAuth(cleanUserId, cleanDeviceId, cleanCode)
-        if (!nickname.isNullOrBlank() || personaKey != null) {
-            prefs.saveProfile(
-                nickname = nickname ?: prefs.current.nickname,
-                personaKey = personaKey ?: prefs.current.personaKey,
-                pairingCode = cleanCode
-            )
-        }
-        prefs.dismissTwaMigrationBanner()
-        if (markBrowserHandoffDone) {
-            prefs.markTwaBrowserHandoffCompleted()
-        }
+                val syncResult = syncOutbox()
+                val syncVerified = syncResult.status == SyncStatus.IDLE &&
+                    !prefs.current.lastSyncAt.isNullOrBlank()
+                if (!syncVerified) {
+                    if (markBrowserHandoffDone) {
+                        prefs.markAutoHandoffAttempted()
+                        prefs.markBrowserHandoffFailed()
+                    }
+                    return HandoffOutcome.SERVER_ERROR
+                }
 
-        repoScope.launch {
-            runCatching {
-                RevisitReminderScheduler.bindDeviceIfAuthenticated(
-                    context = appContext,
-                    force = true,
-                    explicitUserId = cleanUserId,
-                    explicitDeviceId = cleanDeviceId
-                )
+                prefs.dismissTwaMigrationBanner()
+                if (markBrowserHandoffDone) {
+                    prefs.markTwaBrowserHandoffCompleted()
+                }
+                trackEvent("login_success", mapOf("method" to "twa_handoff"))
+                return HandoffOutcome.CONNECTED
             }
         }
-
-        runCatching {
-            val profile = api.getProfile()
-            prefs.saveProfile(profile.nickname, profile.personaKey, profile.pairingCode)
-        }
-
-        syncOutbox()
-        trackEvent("login_success", mapOf("method" to "twa_handoff"))
-        return HandoffOutcome.CONNECTED
     }
 
     suspend fun tryRestoreFromTwaInstallToken(): Boolean {

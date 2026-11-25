@@ -11,6 +11,7 @@ import androidx.room.PrimaryKey
 import androidx.room.Query
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import androidx.room.Transaction
 import app.ottline.model.BookClassification
 import app.ottline.model.LogStatus
 import app.ottline.model.Occasion
@@ -340,10 +341,47 @@ interface WatchLogDao {
 
     @Query("DELETE FROM watch_logs")
     suspend fun clearAll()
+
+    @Query("SELECT COUNT(*) FROM watch_logs WHERE deletedAt IS NULL")
+    suspend fun countActiveLogs(): Int
+
+    @Query("SELECT COUNT(*) FROM watch_log_history")
+    suspend fun countHistoryForSwitch(): Int
+
+    @Query("SELECT COUNT(*) FROM outbox")
+    suspend fun countOutboxForSwitch(): Int
+
+    @Query("DELETE FROM outbox")
+    suspend fun clearOutboxForSwitch()
+
+    @Query("DELETE FROM watch_log_history")
+    suspend fun clearHistoryForSwitch()
+
+    /**
+     * Atomically verifies inside a single Room transaction that watch_logs, watch_log_history,
+     * and outbox are all readable and empty before clearing any stale rows on account switch.
+     * Throws on any SQLite read error instead of treating failures as empty.
+     */
+    @Transaction
+    suspend fun clearLocalTablesOnlyIfEmpty(): Boolean {
+        val activeLogs = countActiveLogs()
+        val history = countHistoryForSwitch()
+        val outbox = countOutboxForSwitch()
+        if (activeLogs == 0 && history == 0 && outbox == 0) {
+            clearOutboxForSwitch()
+            clearHistoryForSwitch()
+            clearAll()
+            return true
+        }
+        return false
+    }
 }
 
 @Dao
 interface WatchLogHistoryDao {
+    @Query("SELECT COUNT(*) FROM watch_log_history")
+    suspend fun countAll(): Int
+
     @Query("SELECT * FROM watch_log_history WHERE logId = :logId ORDER BY recordedAt DESC LIMIT :limit")
     suspend fun getByLogId(logId: String, limit: Int = 50): List<WatchLogHistoryEntity>
 

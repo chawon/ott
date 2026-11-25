@@ -72,8 +72,9 @@ object BrowserHandoffPolicy {
 
     /**
      * Determines whether the Home continuity/retry card should be visible.
-     * Covers both TWA upgrades and fresh Play installs arriving via `web_handoff=1`
-     * referrer or recovering from an incomplete/failed browser handoff.
+     * Covers TWA upgrades, fresh Play installs arriving via `web_handoff=1` referrer,
+     * legacy <=2.0.5 installs whose pre-launch flag has no verified completion proof,
+     * and any recoverable failed/incomplete/empty browser handoff state.
      */
     fun shouldShowHomeHandoffCard(
         prefs: PreferencesSnapshot,
@@ -92,6 +93,9 @@ object BrowserHandoffPolicy {
             BrowserHandoffState.FAILED,
             BrowserHandoffState.EMPTY_SESSION
         )
-        return hasTwaFootprint || hasWebHandoffReferrer || hasRecoverableState
+        return hasTwaFootprint ||
+            hasWebHandoffReferrer ||
+            hasRecoverableState ||
+            prefs.legacyBrowserHandoffUnverified
     }
 }

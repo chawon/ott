@@ -426,6 +426,14 @@ fun OttlineAppRoot(
                         }
                         Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
                     }
+                    OttlineRepository.HandoffOutcome.SERVER_ERROR -> {
+                        val msg = if (isEn) {
+                            "Couldn’t verify your account with the server. Your device records are safe—please try again shortly."
+                        } else {
+                            "서버와 연결을 확인하지 못했어요. 이 기기의 기록은 그대로 보관돼 있으니 잠시 후 다시 시도해 주세요."
+                        }
+                        Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
+                    }
                     OttlineRepository.HandoffOutcome.INVALID_CALLBACK,
                     OttlineRepository.HandoffOutcome.MERGE_FAILED -> {
                         val msg = if (isEn) {

@@ -183,6 +183,7 @@ fun HomeScreen(
         prefsSnapshot.userId,
         prefsSnapshot.twaMigrationBannerDismissed,
         prefsSnapshot.twaBrowserHandoffCompleted,
+        prefsSnapshot.legacyBrowserHandoffUnverified,
         prefsSnapshot.browserHandoffState,
         prefsSnapshot.installReferrerRaw,
         logs.size,
@@ -465,10 +466,17 @@ fun HomeScreen(
                         "기존 기록 연결을 마무리하지 못했어요",
                         "Couldn’t finish connecting your records"
                     )
-                    else -> tr(
-                        "이전 버전에서 남긴 기록을 이어받을까요?",
-                        "Restore records from the previous app?"
-                    )
+                    else -> if (prefsSnapshot.legacyBrowserHandoffUnverified) {
+                        tr(
+                            "이전 브라우저 연결을 다시 확인해 볼까요?",
+                            "Want to retry connecting your browser records?"
+                        )
+                    } else {
+                        tr(
+                            "이전 버전에서 남긴 기록을 이어받을까요?",
+                            "Restore records from the previous app?"
+                        )
+                    }
                 }
                 val handoffBody = when (prefsSnapshot.browserHandoffState) {
                     BrowserHandoffState.INCOMPLETE_RETURN -> tr(
@@ -487,10 +495,17 @@ fun HomeScreen(
                         "이 기기의 기록은 그대로 보관되어 있어요. 네트워크를 확인한 뒤 다시 연결하거나 코드로 이어받아 주세요.",
                         "Your records on this device are safe. Check your connection and try again, or link with a code."
                     )
-                    else -> tr(
-                        "ottline 2.0 네이티브 앱으로 새로워졌어요. 기존 앱(브라우저)에서 쓰던 기록을 버튼 한 번으로 바로 연결할 수 있어요.",
-                        "ottline is now a native app! Connect your previous app/browser records automatically with one tap."
-                    )
+                    else -> if (prefsSnapshot.legacyBrowserHandoffUnverified) {
+                        tr(
+                            "이전 버전에서 브라우저 연결이 마무리되지 않았을 수 있어요. 버튼 한 번으로 다시 연결하거나 연결 코드를 입력할 수 있어요.",
+                            "A previous browser connection may not have finished. Try connecting again or enter your connection code."
+                        )
+                    } else {
+                        tr(
+                            "ottline 2.0 네이티브 앱으로 새로워졌어요. 기존 앱(브라우저)에서 쓰던 기록을 버튼 한 번으로 바로 연결할 수 있어요.",
+                            "ottline is now a native app! Connect your previous app/browser records automatically with one tap."
+                        )
+                    }
                 }
                 val handoffPrimaryLabel = when (prefsSnapshot.browserHandoffState) {
                     BrowserHandoffState.INCOMPLETE_RETURN,

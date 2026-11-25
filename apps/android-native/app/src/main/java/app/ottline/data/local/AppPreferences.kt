@@ -39,6 +39,7 @@ data class PreferencesSnapshot(
     val twaMigrationBannerDismissed: Boolean,
     val twaAutoHandoffAttempted: Boolean = false,
     val twaBrowserHandoffCompleted: Boolean,
+    val legacyBrowserHandoffUnverified: Boolean = false,
     val browserHandoffState: BrowserHandoffState = BrowserHandoffState.IDLE,
     val browserHandoffPendingSinceMillis: Long = 0L,
     val dismissedRecommendations: Set<String>,
@@ -110,15 +111,17 @@ class AppPreferences(context: Context) {
 
         val storedUserId = prefs.getString(KEY_USER_ID, null)?.takeIf { it.isNotBlank() }
         val legacyCompleted = prefs.getBoolean(KEY_TWA_BROWSER_HANDOFF_COMPLETED, false)
+        val verifiedCompleted = prefs.getBoolean(KEY_TWA_BROWSER_HANDOFF_VERIFIED, false)
         val autoAttempted = if (prefs.contains(KEY_TWA_AUTO_HANDOFF_ATTEMPTED)) {
             prefs.getBoolean(KEY_TWA_AUTO_HANDOFF_ATTEMPTED, false)
         } else {
-            // Preserve non-looping behavior for installs upgraded from <=2.0.5
+            // Legacy <=2.0.5 wrote KEY_TWA_BROWSER_HANDOFF_COMPLETED before launching Chrome.
+            // Use it ONLY to suppress automatic relaunch loops, never as proof of completion.
             legacyCompleted
         }
         val storedHandoffState = prefs.getString(KEY_BROWSER_HANDOFF_STATE, null)
             ?.let { raw -> runCatching { BrowserHandoffState.valueOf(raw) }.getOrNull() }
-            ?: if (legacyCompleted && storedUserId != null) BrowserHandoffState.COMPLETED else BrowserHandoffState.IDLE
+            ?: if (verifiedCompleted) BrowserHandoffState.COMPLETED else BrowserHandoffState.IDLE
 
         return PreferencesSnapshot(
             userId = storedUserId,
@@ -134,7 +137,8 @@ class AppPreferences(context: Context) {
             singleDeviceCodeReminderShown = prefs.getBoolean(KEY_SINGLE_DEVICE_REMINDER_SHOWN, false),
             twaMigrationBannerDismissed = prefs.getBoolean(KEY_TWA_MIGRATION_DISMISSED, false),
             twaAutoHandoffAttempted = autoAttempted,
-            twaBrowserHandoffCompleted = legacyCompleted,
+            twaBrowserHandoffCompleted = verifiedCompleted,
+            legacyBrowserHandoffUnverified = legacyCompleted && !verifiedCompleted,
             browserHandoffState = storedHandoffState,
             browserHandoffPendingSinceMillis = prefs.getLong(KEY_BROWSER_HANDOFF_PENDING_SINCE, 0L),
             dismissedRecommendations = dismissedRecs,
@@ -278,10 +282,12 @@ class AppPreferences(context: Context) {
     }
 
     /**
-     * Records confirmed handoff completion (valid `ok` callback or non-empty install-token restore).
+     * Records confirmed handoff completion (server-verified `ok` callback + sync/merge success,
+     * or non-empty install-token restore).
      */
     fun markTwaBrowserHandoffCompleted() {
         prefs.edit()
+            .putBoolean(KEY_TWA_BROWSER_HANDOFF_VERIFIED, true)
             .putBoolean(KEY_TWA_BROWSER_HANDOFF_COMPLETED, true)
             .putBoolean(KEY_TWA_AUTO_HANDOFF_ATTEMPTED, true)
             .putString(KEY_BROWSER_HANDOFF_STATE, BrowserHandoffState.COMPLETED.name)
@@ -344,6 +350,7 @@ class AppPreferences(context: Context) {
         private const val KEY_TWA_MIGRATION_DISMISSED = "watchlog.twaMigrationDismissed"
         private const val KEY_TWA_AUTO_HANDOFF_ATTEMPTED = "watchlog.twaAutoHandoffAttempted"
         private const val KEY_TWA_BROWSER_HANDOFF_COMPLETED = "watchlog.twaBrowserHandoffCompleted"
+        private const val KEY_TWA_BROWSER_HANDOFF_VERIFIED = "watchlog.twaBrowserHandoffVerified"
         private const val KEY_BROWSER_HANDOFF_STATE = "watchlog.twaBrowserHandoffState"
         private const val KEY_BROWSER_HANDOFF_PENDING_SINCE = "watchlog.twaBrowserHandoffPendingSince"
         private const val KEY_DISMISSED_RECOMMENDATIONS = "watchlog.dismissedRecommendations"
