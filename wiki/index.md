@@ -20,7 +20,7 @@
 
 | 페이지 | 범위 |
 | --- | --- |
-| [ottline v2](pages/features/ottline-v2.md) | 기록장·수첩, 명시적 저장, 동기화와 플랫폼 전환 |
+| [ottline v2](pages/features/ottline-v2.md) · [페어링 기기의 기록 복구](../docs/changes/api-sync-delivery-171-2026-11-25.md) | 기록장·수첩, 명시적 저장, 동기화와 플랫폼 전환 |
 | [타임라인](pages/features/timeline.md) · [타임라인 내보내기](pages/features/timeline-export.md) | 필터와 검색, 서버 커서, CSV/XLSX |
 | [삭제 정책](pages/features/delete-sync.md) | 개별 기록 수정, 기기 초기화, 서버 전체 삭제 |
 | [개인 프로필](pages/features/personal-profile.md) · [복구 카드](pages/features/pairing-recovery-card.md) | 페어링 계정 개인화와 복구 |

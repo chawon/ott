@@ -1,5 +1,9 @@
 # Wiki Log
 
+## 2026-11-25 공통 API에서 페어링 기기의 과거 기록 수신 복구
+
+API `1dc6825`와 Flyway V33을 배포했다. 공개 API에서 배포 전 증분 조회가 놓친 기록을 같은 기기가 다음 동기화로 받았고, 과거 편집과 최신 편집이 동시에 도착해도 최신 메모가 남는 것을 확인했다. [PR #183](https://github.com/chawon/ott/pull/183) · [운영 배포](https://github.com/chawon/ott/actions/runs/45613732985) · [검증 기록](../docs/changes/api-sync-delivery-171-2026-11-25.md)
+
 ## [2026-11-24] Mac·iPhone·iPad App Store `2.0.1` 공개
 
 한국·미국의 플랫폼별 스토어에서 Mac 06:09 KST, iPhone·iPad 08:25 KST 버전 기록을 확인했다. PR #173 병합본 `5567dd5`의 Mac 테스트 6개와 iOS 테스트 20개가 통과했다. 스토어에 제출한 빌드는 `28`이다. [한국 Mac](https://apps.apple.com/kr/app/id6780318110?platform=mac) · [미국 iPad](https://apps.apple.com/us/app/id6780318110?platform=ipad) · [출시·CI 근거](https://github.com/chawon/ott/issues/163#issuecomment-7119018051)

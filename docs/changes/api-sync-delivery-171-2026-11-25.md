@@ -1,6 +1,6 @@
 # 과거 기록 복구의 기존 기기 증분 전달
 
-상태: [#183 수정 PR](https://github.com/chawon/ott/pull/183) 검증 중 · 기준 main `2141230` · 브랜치 `fix/api-sync-delivery-171` · 운영 미반영.
+2026-11-25 공통 API `1dc6825`가 운영에 반영됐다. [병합 PR #183](https://github.com/chawon/ott/pull/183) · [운영 배포](https://github.com/chawon/ott/actions/runs/45613732985)
 
 [실행 이슈 #171](https://github.com/chawon/ott/issues/171), [기존 진단](https://github.com/chawon/ott/issues/171#issuecomment-7160228976), [공통 계약](../product-contracts.md#sync)을 따른다. #182의 목록 삭제행 제외와 달력 제품 구현은 포함하지 않는다.
 
@@ -44,7 +44,7 @@ V33 이전에 서버에는 있지만 B가 놓친 행도 재대조로 받는다. 
 
 추가 비용은 원본 변경마다 작은 pending INSERT, pull의 전역 발행 fence/메타데이터 갱신과 기기별 첫 전체 재대조다. cursor가 바뀌거나 응답을 잃은 재시도에서는 추가 전체 재대조가 가능하다. 정상적인 echo 이후 변경 없는 pull은 빈 목록이다. 전달 테이블은 현행 엔터티당 한 행, cursor는 기기당 한 행이며 pending은 발행 후 제거된다. 발행 fence는 외부 메타데이터 네트워크 호출을 하지 않는다. 실제 운영 계정 규모의 첫 응답 크기·pull 지연·pending 잔여는 배포 확인 대상이다.
 
-1. DB 백업/복구 가능 상태와 최종 병합 SHA를 본부가 확인한다. 이 PR 자체는 배포하거나 운영 DB를 변경하지 않는다.
+1. 본부는 DB 백업의 복구 가능 여부와 최종 병합 SHA를 확인하고 운영 API를 배포한다.
 2. V33과 API 이미지를 적용한다. V33은 구 API가 쓰는 필드·응답을 바꾸지 않는다. 구 API가 발급한 벽시계 cursor로 신 API에 오면 마지막 신 API 발급 cursor와 불일치하므로 재대조한다. 다만 구 Pod 자체의 옛 조회와 기록 쓰기 경합은 고쳐지지 않으며 공통 쓰기 잠금은 새 API에만 있다. 구 writer Pod를 drain하고 신 API 단일 이미지에서 REST·sync 경합 보존까지 확인하기 전에는 rollout을 완료로 판정하지 않는다.
 3. 기존 계정/기기의 old cursor로 재대조 → 반환 cursor echo → 다음 빈 응답을 확인한다. A의 원래 과거 시각 생성/수정/삭제를 B가 통상 증분으로 받고, 관련 제목·최신 원격 보존·동률·재전송·지연 커밋을 확인한다. 검증에는 별도 fixture를 사용하고 기존 계정을 초기화하지 않는다.
 4. API-only 변경이므로 이 PR 때문에 Web/네이티브 제품 코드를 배포하지 않는다. #161/#162/#163의 플랫폼별 복구·실기기 완료는 각 담당 근거로 판단한다.
@@ -55,3 +55,10 @@ V33 이전에 서버에는 있지만 B가 놓친 행도 재대조로 받는다. 
 `SyncDeliveryDatabaseTest`는 실제 Flyway·JPA·서비스 경로와 두 DB 연결/동시 트랜잭션을 사용한다. 최초 회귀는 변경 전 실제 서비스에서 2020년 기록을 B가 놓쳐 실패하는 것을 확인했다. 새 suite는 CI 필수 PostgreSQL 실행 목록에 포함한다.
 
 대상: V32→V33 기존 cursor 회복/시각·이력 보존, 과거 생성·수정·로그/제목 tombstone, 필요한 기존 제목, 응답 유실/이전 cursor 재시도, 승인 cursor의 빈 응답, 미래 단말 시각, 동일 시각·마이크로초·멱등 이력, canonical 중복, 역순 커밋·롤백, 251개 동일 경계, REST/소유자 SQL 쓰기, metadata 보강 재시도와 계정 간 보강 비차단. 본부가 #183 최초 HEAD의 REST·sync 경합을 확인한 뒤 같은 row barrier를 쓴 **REST·댓글 기록·병합 대 과거 sync의 세 실제 서비스 회귀를 실패→통과로 고정**했다. 정확한 최종 커밋·테스트 수·CI 및 본부 독립 HTTP 검증은 #171과 PR에 기록한다.
+
+## 2026-11-25 운영 검증
+
+- V32 백업을 격리된 PostgreSQL에 복원해 기록과 변경 이력을 확인했다. 병합 커밋의 CI 239개가 모두 통과했고, 이 중 21개가 PostgreSQL 동기화 회귀 테스트다. [main CI](https://github.com/chawon/ott/actions/runs/45612766077)
+- `1dc6825` 이미지와 `APP_VERSION`을 확인했다. Flyway V33과 두 변경 감지 트리거가 적용됐고, API 서비스의 모든 엔드포인트가 새 Pod를 가리켰다. Argo CD는 `Synced / Healthy`였다. [배포 실행](https://github.com/chawon/ott/actions/runs/45613732985) · [운영 매니페스트](https://github.com/chawon/ott/commit/70cfe44ec01c374c7c81a44e0ddc9859879f1bde)
+- 공개 API에서 배포 전에 기기 B가 놓친 기록 1건과 해당 작품을 배포 후 같은 계정·기기의 기존 커서로 받았다. 과거 생성·수정·삭제 신호와 동일 요청 재전송을 확인했다. 일반 편집과 과거 복구 전송을 동시에 실행한 뒤에도 최신 메모와 시각이 남았고, 수신 확인 후 다음 조회에서 같은 기록이 반복되지 않았다. 합성 계정·기기·기록·이력·전달 메타데이터의 정리와 기존 기록·이력 건수 보존을 확인했다.
+- 구 iOS 출시 소스 `1.0.4 (24)`의 동기화 코드와 SQLite로 전송 실패 후 재시도를 실행했다. 전체 재대조 직후 화면에 과거 서버 값이 잠시 표시됐고 기기의 전송 대기 데이터는 보존됐다. 재시도 후 화면과 서버가 원래 편집으로 복구됐다. 설치된 iPhone에서의 확인은 Apple 담당이 이어간다. [출시 소스](https://github.com/chawon/ott/tree/fc074ceef188161940a9aec6facaef2034f2119f/apps/native) · [Apple 검증 카드](https://github.com/users/chawon/projects/1/views/2?pane=issue&itemId=312000240)

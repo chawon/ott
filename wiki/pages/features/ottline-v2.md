@@ -20,6 +20,8 @@ API 169개와 Web CI, 운영 검색·기록·수정·동기화·연결·추천, 
 
 `2026-11-18`에는 Windows 네이티브 `2.0.0.0`의 Microsoft Store 게시와 구형 Store PWA에서 계정·기록을 이어받는 동작을 확인했다. `2026-11-19` Web 배포에서 브라우저 확장이 여는 화면에 Windows 빠른 기록 링크를 추가했다. [Windows 전환](../../../docs/windows-native-v2-transition.md) · [확장 연결](../../../docs/desktop-protocol-and-extension-bridge-plan-2026-11-18.md)
 
+`2026-11-25`부터 한 기기가 복구한 과거 기록은 먼저 동기화를 마친 다른 기기에도 원래 편집 시각으로 도착한다. 같은 기록을 더 최근에 고쳤다면 최근 편집이 남는다. [기존 기기 수신과 운영 검증](../../../docs/changes/api-sync-delivery-171-2026-11-25.md)
+
 - [운영 배포와 검증](../../../docs/ottline-v2-production-rollout.md)
 - [플랫폼별 출시 현황](../../../docs/platforms.md)
 - [웹 구현 기록](../../../docs/ottline-ux-v2-web.md)
