@@ -152,6 +152,16 @@ public interface WatchLogRepository extends JpaRepository<WatchLogEntity, UUID> 
             """, nativeQuery = true)
     List<WatchLogEntity> findUserChangesAfter(@Param("userId") UUID userId, @Param("since") OffsetDateTime since);
 
+    @Query(value = """
+            select w.* from watch_logs w
+            left join sync_deliveries d on d.entity_type = 'log' and d.entity_id = w.id
+            where (cast(:userId as uuid) is null or w.user_id = cast(:userId as uuid))
+              and (cast(:since as timestamptz) is null
+                   or d.delivered_at > cast(:since as timestamptz))
+            order by w.updated_at desc, w.id desc
+            """, nativeQuery = true)
+    List<WatchLogEntity> findForSyncDelivery(@Param("userId") UUID userId, @Param("since") OffsetDateTime since);
+
     Optional<WatchLogEntity> findByTitle_IdAndDeletedAtIsNull(UUID titleId);
 
     Optional<WatchLogEntity> findByTitle_IdAndUserIdAndDeletedAtIsNull(UUID titleId, UUID userId);

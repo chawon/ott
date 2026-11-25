@@ -46,6 +46,6 @@ public class SyncController {
             @RequestHeader(value = "X-Device-Id", required = false) java.util.UUID deviceId
     ) {
         authService.requireActiveDevice(userId, deviceId);
-        return syncService.pull(since, userId);
+        return syncService.pull(since, userId, deviceId);
     }
 }

@@ -43,4 +43,13 @@ public interface TitleRepository extends JpaRepository<TitleEntity, UUID> {
 
     List<TitleEntity> findByUpdatedAtAfterOrDeletedAtAfter(OffsetDateTime updatedAt, OffsetDateTime deletedAt);
 
+    @Query(value = """
+            select t.* from titles t
+            left join sync_deliveries d on d.entity_type = 'title' and d.entity_id = t.id
+            where cast(:since as timestamptz) is null
+               or d.delivered_at > cast(:since as timestamptz)
+            order by t.updated_at desc, t.id desc
+            """, nativeQuery = true)
+    List<TitleEntity> findForSyncDelivery(@Param("since") OffsetDateTime since);
+
 }
