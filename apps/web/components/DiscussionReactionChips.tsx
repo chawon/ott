@@ -12,7 +12,6 @@ import {
   getDeviceId,
   getUserId,
   listLogsByTitleLocal,
-  upsertLogLocal,
 } from "@/lib/localStore";
 import { syncOutbox } from "@/lib/sync";
 import type {
@@ -175,8 +174,7 @@ export default function DiscussionReactionChips({
       syncStatus: "pending",
     };
 
-    await upsertLogLocal(log);
-    await enqueueCreateLog({
+    await enqueueCreateLog(log, {
       logId,
       titleId: title.id,
       updatedAt: now,

@@ -34,7 +34,9 @@ function shouldReloadAfterAuthReset() {
   return true;
 }
 
-function buildHeaders(init?: RequestInit) {
+type SyncIdentity = { userId: string; deviceId: string };
+
+function buildHeaders(init?: RequestInit, identity?: SyncIdentity) {
   const headers = new Headers(init?.headers ?? {});
   const hasBody = init?.body !== undefined && init?.body !== null;
   const isFormData =
@@ -43,8 +45,8 @@ function buildHeaders(init?: RequestInit) {
     headers.set("Content-Type", "application/json");
   }
 
-  const userId = getUserId();
-  const deviceId = getDeviceId();
+  const userId = identity?.userId ?? getUserId();
+  const deviceId = identity?.deviceId ?? getDeviceId();
   if (userId) headers.set("X-User-Id", userId);
   if (deviceId) headers.set("X-Device-Id", deviceId);
 
@@ -64,8 +66,12 @@ function buildHeaders(init?: RequestInit) {
   return headers;
 }
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const headers = buildHeaders(init);
+async function request<T>(
+  path: string,
+  init?: RequestInit,
+  syncIdentity?: SyncIdentity,
+): Promise<T> {
+  const headers = buildHeaders(init, syncIdentity);
   const res = await fetch(`/api${path}`, {
     ...init,
     headers,
@@ -78,7 +84,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
       headers.has("X-User-Id"),
       headers.has("X-Device-Id"),
     );
-    if (shouldResetAuth) {
+    if (shouldResetAuth && !syncIdentity) {
       if (!authRevocationInProgress) {
         authRevocationInProgress = true;
         await resetLocalState();
@@ -104,6 +110,16 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const text = await res.text();
   if (!text) return null as T;
   return JSON.parse(text) as T;
+}
+
+// A background sync must retain unsent records on a failed request. Use the
+// same authenticated device for the push and its conflict read, even across pairing.
+export function apiForSync<T>(
+  path: string,
+  identity: SyncIdentity,
+  init?: RequestInit,
+): Promise<T> {
+  return request<T>(path, init, identity);
 }
 
 // Now delegating to migration-aware ensureAuth in auth.ts

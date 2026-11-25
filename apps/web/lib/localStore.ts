@@ -39,38 +39,42 @@ export async function upsertLogLocal(log: WatchLog) {
 
 export async function upsertLogsLocal(logs: WatchLog[]) {
   if (logs.length === 0) return;
-  await db.titles.bulkPut(
-    logs.map((l) => ({
-      ...l.title,
-      updatedAt: l.title.updatedAt ?? nowIso(),
-    })),
-  );
-  const existingLogs = await db.logs.bulkGet(logs.map((l) => l.id));
-  const existingMap = new Map(
-    existingLogs.filter((l): l is LocalWatchLog => !!l).map((l) => [l.id, l]),
-  );
+  await db.transaction("rw", db.logs, db.titles, db.outbox, async () => {
+    const pending = new Set((await listOutbox()).map(outboxLogId));
+    await db.titles.bulkPut(
+      logs.map((l) => ({
+        ...l.title,
+        updatedAt: l.title.updatedAt ?? nowIso(),
+      })),
+    );
+    const existingLogs = await db.logs.bulkGet(logs.map((l) => l.id));
+    const existingMap = new Map(
+      existingLogs.filter((l): l is LocalWatchLog => !!l).map((l) => [l.id, l]),
+    );
 
-  const toPut: LocalWatchLog[] = [];
-  for (const log of logs) {
-    const existing = existingMap.get(log.id);
-    if (existing) {
-      if (existing.deletedAt && !log.deletedAt) continue;
-      const localTime = existing.updatedAt
-        ? new Date(existing.updatedAt).getTime()
-        : 0;
-      const incomingTime = log.updatedAt
-        ? new Date(log.updatedAt).getTime()
-        : 0;
-      if (localTime > incomingTime) continue;
+    const toPut: LocalWatchLog[] = [];
+    for (const log of logs) {
+      if (pending.has(log.id)) continue;
+      const existing = existingMap.get(log.id);
+      if (existing) {
+        if (existing.deletedAt && !log.deletedAt) continue;
+        const localTime = existing.updatedAt
+          ? new Date(existing.updatedAt).getTime()
+          : 0;
+        const incomingTime = log.updatedAt
+          ? new Date(log.updatedAt).getTime()
+          : 0;
+        if (localTime > incomingTime) continue;
+      }
+      toPut.push({
+        ...log,
+        syncStatus: log.syncStatus ?? "synced",
+        titleId: log.title.id,
+        updatedAt: log.updatedAt ?? nowIso(),
+      });
     }
-    toPut.push({
-      ...log,
-      syncStatus: log.syncStatus ?? "synced",
-      titleId: log.title.id,
-      updatedAt: log.updatedAt ?? nowIso(),
-    });
-  }
-  if (toPut.length > 0) await db.logs.bulkPut(toPut);
+    if (toPut.length > 0) await db.logs.bulkPut(toPut);
+  });
 }
 
 export async function upsertHistoryLocal(items: WatchLogHistory[]) {
@@ -215,7 +219,7 @@ export async function setLogSyncStatus(
   id: string,
   status: WatchLog["syncStatus"],
 ) {
-  await db.logs.update(id, { syncStatus: status, updatedAt: nowIso() });
+  await db.logs.update(id, { syncStatus: status });
 }
 
 export async function removeLogLocal(id: string) {
@@ -244,6 +248,7 @@ export async function enqueueDeleteLog(
   const item: OutboxItem = {
     id: safeUUID(),
     type: "delete_log",
+    userId: getUserId() ?? undefined,
     logId,
     payload: {
       log: {
@@ -266,10 +271,21 @@ export async function deleteLog(id: string) {
   await enqueueDeleteLog(id, now, now);
 }
 
-export async function removeLogsByTitleExcept(titleId: string, keepId: string) {
+export async function removeLogsByTitleExcept(
+  titleId: string,
+  keepId: string,
+  pendingIds: ReadonlySet<string>,
+) {
   await db.transaction("rw", [db.logs, db.history], async () => {
     const logs = await db.logs.where("titleId").equals(titleId).toArray();
-    const ids = logs.filter((l) => l.id !== keepId).map((l) => l.id);
+    const ids = logs
+      .filter(
+        (l) =>
+          l.id !== keepId &&
+          !pendingIds.has(l.id) &&
+          l.syncStatus !== "pending",
+      )
+      .map((l) => l.id);
     if (ids.length === 0) return;
     // Offline edits belong to the kept record after the server merges its ID.
     await db.history.where("logId").anyOf(ids).modify({ logId: keepId });
@@ -410,44 +426,60 @@ export async function findTitleByProvider(
     .first();
 }
 
-export async function remapLogsForTitle(oldTitleId: string, nextTitle: Title) {
-  const logs = await db.logs.where("titleId").equals(oldTitleId).toArray();
-  if (logs.length === 0) return;
+export async function remapLogsForTitle(
+  oldTitleId: string,
+  nextTitle: Title,
+  pendingIds: ReadonlySet<string>,
+) {
+  const all = await db.logs.where("titleId").equals(oldTitleId).toArray();
+  const logs = all.filter(
+    (log) => !pendingIds.has(log.id) && log.syncStatus !== "pending",
+  );
   const updated = logs.map((l) => ({
     ...l,
     titleId: nextTitle.id,
     title: nextTitle,
-    updatedAt: nowIso(),
   }));
   await db.logs.bulkPut(updated);
+  return logs.length === all.length;
 }
 
-export async function enqueueCreateLog(payload: {
-  logId: string;
-  titleId: string;
-  updatedAt: string;
-  log: Record<string, unknown>;
-  title?: Record<string, unknown>;
-}) {
+export async function enqueueCreateLog(
+  local: WatchLog,
+  payload: {
+    logId: string;
+    titleId: string;
+    updatedAt: string;
+    log: Record<string, unknown>;
+    title?: Record<string, unknown>;
+  },
+) {
   const item: OutboxItem = {
     id: safeUUID(),
     type: "create_log",
+    userId: getUserId() ?? undefined,
     localLogId: payload.logId,
     payload,
     createdAt: nowIso(),
     attempts: 0,
     lastError: null,
   };
-  await db.outbox.put(item);
+  await db.transaction("rw", db.logs, db.titles, db.outbox, async () => {
+    await upsertLogLocal(local);
+    await db.outbox.put(item);
+  });
 }
 
-export async function enqueueUpdateLog(
+async function enqueueUpdateLog(
   logId: string,
   payload: Record<string, unknown>,
+  followup: boolean,
 ) {
   const item: OutboxItem = {
     id: safeUUID(),
     type: "update_log",
+    phase: followup ? "followup" : undefined,
+    userId: getUserId() ?? undefined,
     logId,
     payload: {
       log: payload,
@@ -459,16 +491,20 @@ export async function enqueueUpdateLog(
   await db.outbox.put(item);
 }
 
-export async function updatePendingCreatePayload(
+async function updatePendingCreatePayload(
   localLogId: string,
   payload: Record<string, unknown>,
+  followup: boolean,
 ) {
   const pending = await db.outbox
     .filter(
-      (item) => item.type === "create_log" && item.localLogId === localLogId,
+      (item) =>
+        item.type === "create_log" &&
+        item.localLogId === localLogId &&
+        (!item.userId || item.userId === getUserId()),
     )
     .first();
-  if (!pending || pending.type !== "create_log") return false;
+  if (pending?.type !== "create_log") return false;
   if (typeof pending.payload !== "object" || pending.payload === null)
     return false;
   type SyncLogPayload = Record<string, unknown> & {
@@ -490,8 +526,70 @@ export async function updatePendingCreatePayload(
     ...prev,
     log: nextLog,
   };
-  await db.outbox.update(pending.id, { payload: next });
+  await db.outbox.update(pending.id, {
+    payload: next,
+    phase: followup ? "followup" : undefined,
+  });
   return true;
+}
+
+// Publish the draft, its exact wire operation and its history in one commit.
+// A pull in another tab can observe either side of a save, never half of it.
+export async function saveLogEdit(
+  log: WatchLog,
+  change: Record<string, unknown> & { updatedAt: string },
+  history: WatchLogHistory,
+) {
+  const userId = getUserId();
+  await db.transaction(
+    "rw",
+    db.titles,
+    db.logs,
+    db.outbox,
+    db.history,
+    async () => {
+      const followup = !!(await db.outbox
+        .filter(
+          (row) =>
+            row.userId === userId && outboxLogId(row) === log.id && !!row.phase,
+        )
+        .first());
+      await upsertTitleLocal(log.title);
+      await db.logs.put({
+        ...log,
+        titleId: log.title.id,
+        updatedAt: change.updatedAt,
+      });
+      if (!(await updatePendingCreatePayload(log.id, change, followup))) {
+        await enqueueUpdateLog(log.id, change, followup);
+      }
+      await upsertHistoryLocal([history]);
+      if (getUserId() !== userId)
+        throw new Error("The active account changed during save");
+    },
+  );
+}
+
+/** The pairing API explicitly merges the previous account into the destination. */
+export async function transferPairedOutbox(
+  oldUserId: string | null,
+  userId: string,
+  checkSource: () => void,
+) {
+  if (!oldUserId) return;
+  await db.transaction("rw", db.outbox, async () => {
+    checkSource();
+    const legacyOwner =
+      localStorage.getItem("watchlog.lastSyncUserId") ?? oldUserId;
+    await db.outbox
+      .filter((item) => (item.userId ?? legacyOwner) === oldUserId)
+      .modify({ userId });
+    checkSource();
+  });
+}
+
+export function outboxLogId(item: OutboxItem) {
+  return item.type === "create_log" ? item.localLogId : item.logId;
 }
 
 export async function listOutbox() {

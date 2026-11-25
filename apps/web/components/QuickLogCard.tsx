@@ -28,13 +28,10 @@ import { googleBooksUrl } from "@/lib/googleBooks";
 import {
   countLogsLocal,
   enqueueCreateLog,
-  enqueueUpdateLog,
   findTitleByProvider,
   listOutbox,
   resolveLogLocal,
-  updatePendingCreatePayload,
-  upsertHistoryLocal,
-  upsertLogLocal,
+  saveLogEdit,
 } from "@/lib/localStore";
 import { editedRecordDate, recordDateInput } from "@/lib/recordDate";
 import { recordDisplayYear } from "@/lib/recordMetadata";
@@ -787,8 +784,7 @@ export default function QuickLogCard({
         updatedAt: now,
       };
 
-      await upsertLogLocal(localLog);
-      await enqueueCreateLog({
+      await enqueueCreateLog(localLog, {
         logId: newLocalLogId,
         titleId: newLocalTitleId,
         updatedAt: now,
@@ -955,7 +951,6 @@ export default function QuickLogCard({
         updatedAt: now,
       };
 
-      await upsertLogLocal(updatedLog);
       const payload = {
         id: currentLogId,
         op: "upsert",
@@ -977,28 +972,24 @@ export default function QuickLogCard({
           occasion: updatedLog.occasion,
         },
       };
-      const merged = await updatePendingCreatePayload(currentLogId, payload);
-      if (!merged) await enqueueUpdateLog(currentLogId, payload);
-      await upsertHistoryLocal([
-        {
-          id: safeUUID(),
-          logId: currentLogId,
-          recordedAt: now,
-          status: updatedLog.status,
-          rating: updatedLog.rating,
-          note: updatedLog.note,
-          ott: updatedLog.ott,
-          seasonNumber: updatedLog.seasonNumber,
-          episodeNumber: updatedLog.episodeNumber,
-          seasonPosterUrl: updatedLog.seasonPosterUrl,
-          seasonYear: updatedLog.seasonYear,
-          origin: updatedLog.origin,
-          spoiler: updatedLog.spoiler,
-          watchedAt: updatedLog.watchedAt,
-          place: updatedLog.place,
-          occasion: updatedLog.occasion,
-        },
-      ]);
+      await saveLogEdit(updatedLog, payload, {
+        id: safeUUID(),
+        logId: currentLogId,
+        recordedAt: now,
+        status: updatedLog.status,
+        rating: updatedLog.rating,
+        note: updatedLog.note,
+        ott: updatedLog.ott,
+        seasonNumber: updatedLog.seasonNumber,
+        episodeNumber: updatedLog.episodeNumber,
+        seasonPosterUrl: updatedLog.seasonPosterUrl,
+        seasonYear: updatedLog.seasonYear,
+        origin: updatedLog.origin,
+        spoiler: updatedLog.spoiler,
+        watchedAt: updatedLog.watchedAt,
+        place: updatedLog.place,
+        occasion: updatedLog.occasion,
+      });
       setSavedRecord(updatedLog);
       setEditing(false);
       onCreated(updatedLog);

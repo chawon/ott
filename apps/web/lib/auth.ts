@@ -7,6 +7,7 @@ import {
   setDeviceId,
   setPairingCode,
   setUserId,
+  transferPairedOutbox,
 } from "./localStore";
 
 export type AuthInfo = {
@@ -56,6 +57,7 @@ export async function ensureAuth(): Promise<AuthInfo | null> {
 
 export async function pairWithCode(code: string): Promise<AuthInfo> {
   const oldUserId = getUserId();
+  const oldDeviceId = getDeviceId();
   const res = await fetch("/api/auth/pair", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -64,6 +66,13 @@ export async function pairWithCode(code: string): Promise<AuthInfo> {
   if (!res.ok) throw new Error("Pairing failed");
   const body = (await res.json()) as AuthInfo;
 
+  const checkSource = () => {
+    if (getUserId() !== oldUserId || getDeviceId() !== oldDeviceId)
+      throw new Error("The active account changed during pairing");
+  };
+  checkSource();
+  await transferPairedOutbox(oldUserId, body.userId, checkSource);
+  checkSource();
   clearUserProfileState();
   setUserId(body.userId);
   setDeviceId(body.deviceId);
