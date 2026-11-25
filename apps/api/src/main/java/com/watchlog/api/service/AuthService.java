@@ -51,6 +51,7 @@ public class AuthService {
     private final DiscussionReactionRepository discussionReactionRepository;
     private final AndroidReminderService androidReminderService;
     private final RecommendationAccountStore recommendationAccounts;
+    private final AccountWriteLock writeLock;
     private final SecureRandom random = new SecureRandom();
 
     public AuthService(
@@ -60,7 +61,8 @@ public class AuthService {
             CommentRepository commentRepository,
             DiscussionReactionRepository discussionReactionRepository,
             AndroidReminderService androidReminderService,
-            RecommendationAccountStore recommendationAccounts
+            RecommendationAccountStore recommendationAccounts,
+            AccountWriteLock writeLock
     ) {
         this.userRepository = userRepository;
         this.userDeviceRepository = userDeviceRepository;
@@ -69,6 +71,7 @@ public class AuthService {
         this.discussionReactionRepository = discussionReactionRepository;
         this.androidReminderService = androidReminderService;
         this.recommendationAccounts = recommendationAccounts;
+        this.writeLock = writeLock;
     }
 
     @Transactional
@@ -180,6 +183,7 @@ public class AuthService {
     }
 
     private void mergeUsers(java.util.UUID fromUserId, java.util.UUID toUserId) {
+        writeLock.acquire(fromUserId, toUserId);
         recommendationAccounts.merge(fromUserId, toUserId);
         var fromLogs = watchLogRepository.findByUserId(fromUserId);
         for (var log : fromLogs) {

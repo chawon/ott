@@ -10,11 +10,14 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 
 @Service
@@ -24,17 +27,23 @@ public class SyncService {
     private final WatchLogRepository watchLogRepository;
     private final WatchLogHistoryService historyService;
     private final TmdbClient tmdbClient;
+    private final SyncDeliveryStore deliveryStore;
+    private final AccountWriteLock writeLock;
 
     public SyncService(
             TitleRepository titleRepository,
             WatchLogRepository watchLogRepository,
             WatchLogHistoryService historyService,
-            TmdbClient tmdbClient
+            TmdbClient tmdbClient,
+            SyncDeliveryStore deliveryStore,
+            AccountWriteLock writeLock
     ) {
         this.titleRepository = titleRepository;
         this.watchLogRepository = watchLogRepository;
         this.historyService = historyService;
         this.tmdbClient = tmdbClient;
+        this.deliveryStore = deliveryStore;
+        this.writeLock = writeLock;
     }
 
     @Transactional
@@ -43,17 +52,18 @@ public class SyncService {
         List<SyncReject> rejected = new ArrayList<>();
         Map<UUID, UUID> titleIdMap = new HashMap<>();
         UUID reqUserId = (req == null) ? null : req.userId();
+        writeLock.acquire(reqUserId);
 
         if (req != null && req.changes() != null) {
             var changes = req.changes();
             if (changes.titles() != null) {
                 for (var c : changes.titles()) {
-                    applyTitleChange(c, accepted, rejected, titleIdMap, language);
+                    applyTitleChange(databaseTime(c), accepted, rejected, titleIdMap, language);
                 }
             }
             if (changes.logs() != null) {
                 for (var c : changes.logs()) {
-                    applyLogChange(c, accepted, rejected, titleIdMap, reqUserId);
+                    applyLogChange(databaseTime(c), accepted, rejected, titleIdMap, reqUserId);
                 }
             }
         }
@@ -61,17 +71,27 @@ public class SyncService {
         return new SyncPushResponse(accepted, rejected);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public SyncPullResponse pull(OffsetDateTime since, UUID userId) {
-        OffsetDateTime checkpoint = (since == null) ? OffsetDateTime.parse("1970-01-01T00:00:00Z") : since;
+        return pull(since, userId, null);
+    }
 
-        var titles = titleRepository.findByUpdatedAtAfterOrDeletedAtAfter(checkpoint, checkpoint)
-                .stream().map(SyncTitleDto::from).toList();
-        var logs = (userId == null)
-                ? watchLogRepository.findByUpdatedAtAfterOrDeletedAtAfter(checkpoint, checkpoint).stream().map(SyncLogDto::from).toList()
-                : watchLogRepository.findUserChangesAfter(userId, checkpoint).stream().map(SyncLogDto::from).toList();
-
-        return new SyncPullResponse(OffsetDateTime.now(), new SyncPullChanges(logs, titles));
+    @Transactional
+    public SyncPullResponse pull(OffsetDateTime since, UUID userId, UUID deviceId) {
+        watchLogRepository.flush();
+        var window = deliveryStore.preparePull(since, userId, deviceId);
+        var logs = watchLogRepository.findForSyncDelivery(userId, window.since()).stream().map(SyncLogDto::from).toList();
+        var titles = new LinkedHashMap<UUID, SyncTitleDto>();
+        for (var title : titleRepository.findForSyncDelivery(window.since())) {
+            titles.put(title.getId(), SyncTitleDto.from(title));
+        }
+        // A log can reference an unchanged, backdated title, or commit between the reads.
+        // Deliver its actual canonical title as well; clients must never need an Unknown fallback.
+        var required = logs.stream().map(SyncLogDto::titleId).filter(id -> !titles.containsKey(id)).distinct().toList();
+        for (var title : titleRepository.findAllById(required)) {
+            titles.put(title.getId(), SyncTitleDto.from(title));
+        }
+        return new SyncPullResponse(window.serverTime(), new SyncPullChanges(logs, List.copyOf(titles.values())));
     }
 
     private void applyTitleChange(SyncChange<SyncTitlePayload> change,
@@ -95,6 +115,7 @@ public class SyncService {
                     rejected.add(new SyncReject(change.id(), "stale"));
                     return;
                 }
+                if (handleEqualTitle(existing, change, change.id(), accepted, rejected)) return;
                 if ("delete".equalsIgnoreCase(op)) {
                     existing.setDeletedAt(change.updatedAt());
                     existing.setUpdatedAt(change.updatedAt());
@@ -135,6 +156,7 @@ public class SyncService {
                 rejected.add(new SyncReject(change.id(), "stale"));
                 return;
             }
+            if (handleEqualTitle(existing, change, existing.getId(), accepted, rejected)) return;
             if ("delete".equalsIgnoreCase(op)) {
                 existing.setDeletedAt(change.updatedAt());
                 existing.setUpdatedAt(change.updatedAt());
@@ -262,6 +284,7 @@ public class SyncService {
                 rejected.add(new SyncReject(change.id(), "stale"));
                 return;
             }
+            if (handleEqualLog(existing, change, false, existing.getId(), accepted, rejected)) return;
             if ("delete".equalsIgnoreCase(op)) {
                 existing.setDeletedAt(change.updatedAt());
                 existing.setUpdatedAt(change.updatedAt());
@@ -320,6 +343,7 @@ public class SyncService {
                 rejected.add(new SyncReject(change.id(), "stale"));
                 return;
             }
+            if (handleEqualLog(existing, change, true, change.id(), accepted, rejected)) return;
             existing.setUpdatedAt(change.updatedAt());
             existing.setDeletedAt(null);
             existing.setStatus(payload.status());
@@ -363,6 +387,64 @@ public class SyncService {
     private boolean isStale(OffsetDateTime updatedAt, OffsetDateTime deletedAt, OffsetDateTime incoming) {
         if (deletedAt != null && deletedAt.isAfter(incoming)) return true;
         return updatedAt != null && updatedAt.isAfter(incoming);
+    }
+
+    private static OffsetDateTime databaseTime(OffsetDateTime value) {
+        if (value == null) return null;
+        long micros = (value.getNano() + 500L) / 1000L;
+        return micros == 1_000_000 ? value.withNano(0).plusSeconds(1) : value.withNano((int) micros * 1000);
+    }
+
+    private static <T> SyncChange<T> databaseTime(SyncChange<T> change) {
+        return change == null ? null : new SyncChange<>(change.id(), change.op(), databaseTime(change.updatedAt()), change.payload());
+    }
+
+    private static boolean sameTime(OffsetDateTime left, OffsetDateTime right) {
+        return left != null && right != null && left.isEqual(databaseTime(right));
+    }
+
+    private static <T> boolean unchanged(T incoming, T stored) {
+        return incoming == null || Objects.equals(incoming, stored);
+    }
+
+    private static boolean unchanged(OffsetDateTime incoming, OffsetDateTime stored) {
+        return incoming == null || sameTime(stored, incoming);
+    }
+
+    private boolean handleEqualLog(WatchLogEntity existing, SyncChange<SyncLogPayload> change,
+                                   boolean replaceTpo, UUID acceptedId, List<UUID> accepted, List<SyncReject> rejected) {
+        if (!sameTime(existing.getUpdatedAt(), change.updatedAt())) return false;
+        var p = change.payload();
+        boolean deleting = "delete".equalsIgnoreCase(change.op());
+        boolean same = deleting ? sameTime(existing.getDeletedAt(), change.updatedAt()) : existing.getDeletedAt() == null
+                && (p == null || (unchanged(p.status(), existing.getStatus())
+                && (p.rating() == null || existing.getRating() != null && existing.getRating().compareTo(
+                    BigDecimal.valueOf(p.rating()).setScale(1, RoundingMode.HALF_UP)) == 0)
+                && unchanged(p.note(), existing.getNote()) && unchanged(p.spoiler(), existing.isSpoiler())
+                && unchanged(p.ott(), existing.getOtt()) && unchanged(p.seasonNumber(), existing.getSeasonNumber())
+                && unchanged(p.episodeNumber(), existing.getEpisodeNumber())
+                && unchanged(p.seasonPosterUrl(), existing.getSeasonPosterUrl()) && unchanged(p.seasonYear(), existing.getSeasonYear())
+                && unchanged(p.origin(), existing.getOrigin()) && unchanged(p.watchedAt(), existing.getWatchedAt())
+                && (replaceTpo ? Objects.equals(p.place(), existing.getPlace()) : unchanged(p.place(), existing.getPlace()))
+                && (replaceTpo ? Objects.equals(p.occasion(), existing.getOccasion()) : unchanged(p.occasion(), existing.getOccasion()))));
+        // Identical replays acknowledge without another row update, receipt or history entry.
+        // A different payload at the same logical instant cannot overwrite the committed version.
+        if (same) accepted.add(acceptedId);
+        else rejected.add(new SyncReject(change.id(), "stale"));
+        return true;
+    }
+
+    private boolean handleEqualTitle(TitleEntity existing, SyncChange<SyncTitlePayload> change,
+                                     UUID acceptedId, List<UUID> accepted, List<SyncReject> rejected) {
+        if (!sameTime(existing.getUpdatedAt(), change.updatedAt())) return false;
+        // Catalog hydration may have changed the original payload's name, year, images or credits.
+        // At the same logical version retain canonical metadata and acknowledge resolution.
+        // Do not compare the wire snapshot with the enriched row or re-run the network request.
+        boolean same = "delete".equalsIgnoreCase(change.op()) ? sameTime(existing.getDeletedAt(), change.updatedAt())
+                : existing.getDeletedAt() == null;
+        if (same) accepted.add(acceptedId);
+        else rejected.add(new SyncReject(change.id(), "stale"));
+        return true;
     }
 
     private void hydrateFromTmdbIfNeeded(TitleEntity entity, SyncTitlePayload payload, String language) {

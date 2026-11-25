@@ -24,19 +24,22 @@ public class CommentService {
     private final TitleService titleService;
     private final WatchLogRepository watchLogRepository;
     private final WatchLogHistoryService historyService;
+    private final AccountWriteLock writeLock;
 
     public CommentService(
             CommentRepository commentRepository,
             DiscussionService discussionService,
             TitleService titleService,
             WatchLogRepository watchLogRepository,
-            WatchLogHistoryService historyService
+            WatchLogHistoryService historyService,
+            AccountWriteLock writeLock
     ) {
         this.commentRepository = commentRepository;
         this.discussionService = discussionService;
         this.titleService = titleService;
         this.watchLogRepository = watchLogRepository;
         this.historyService = historyService;
+        this.writeLock = writeLock;
     }
 
     private String normalizeLocale(String language) {
@@ -56,6 +59,7 @@ public class CommentService {
             throw new IllegalArgumentException("Comment body is required");
         }
 
+        if (syncLog) writeLock.acquire(userId);
         DiscussionEntity discussion = discussionService.lock(discussionId);
         String originBaseName = normalizeTitleName(discussion.getTitle().getName());
         CommentEntity saved = createForDiscussion(discussion, body.trim(), userId, syncLog, originBaseName);
