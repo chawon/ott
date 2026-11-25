@@ -502,7 +502,33 @@ class OttlineRepository(
         }
     }
 
-    private suspend fun runSingleSyncCycle(): SyncState {
+    /**
+     * Runs a dedicated full sync (`since = null`) strictly serialized under `syncMutex` so an
+     * overlapping incremental sync response can never refill `lastSyncAt` before handoff pulls,
+     * and pull failures are never masked by an empty outbox.
+     */
+    private suspend fun syncForHandoffFullPull(): Boolean {
+        return syncMutex.withLock {
+            syncRequestedAgain = false
+            prefs.setLastSyncAt(null)
+            val handoffResult = runSingleSyncCycle(
+                forceFullPull = true,
+                failOnPullError = true
+            )
+            _syncState.value = handoffResult
+            val handoffSucceeded = handoffResult.status == SyncStatus.IDLE
+            while (syncRequestedAgain) {
+                syncRequestedAgain = false
+                _syncState.value = runSingleSyncCycle()
+            }
+            handoffSucceeded
+        }
+    }
+
+    private suspend fun runSingleSyncCycle(
+        forceFullPull: Boolean = false,
+        failOnPullError: Boolean = false
+    ): SyncState {
         if (initialDedupChecked.compareAndSet(false, true)) {
             deduplicateLocalRecordsIfNeeded()
         }
@@ -599,9 +625,9 @@ class OttlineRepository(
         }
 
         try {
-            pullChangesInternal()
+            pullChangesInternal(forceFull = forceFullPull)
         } catch (_: Exception) {
-            if (pushFailure == null && items.isNotEmpty()) {
+            if (pushFailure == null && (failOnPullError || items.isNotEmpty())) {
                 pushFailure = SyncFailureReason.REQUEST
             }
         }
@@ -669,8 +695,8 @@ class OttlineRepository(
         )
     }
 
-    private suspend fun pullChangesInternal() {
-        val since = prefs.current.lastSyncAt
+    private suspend fun pullChangesInternal(forceFull: Boolean = false) {
+        val since = if (forceFull) null else prefs.current.lastSyncAt
         val pull = api.pullSync(since)
 
         val pulledTitleIds = pull.changes.titles.mapTo(HashSet()) { it.id }
@@ -1029,7 +1055,7 @@ class OttlineRepository(
         return cleaned
     }
 
-    suspend fun pairWithCode(code: String): AuthPairResult {
+    suspend fun pairWithCode(code: String, skipFinalSync: Boolean = false): AuthPairResult {
         val oldUserId = prefs.current.userId
         if (!oldUserId.isNullOrBlank()) {
             runCatching { syncOutbox() }
@@ -1052,7 +1078,9 @@ class OttlineRepository(
             val profile = api.getProfile()
             prefs.saveProfile(profile.nickname, profile.personaKey, profile.pairingCode)
         }
-        syncOutbox()
+        if (!skipFinalSync) {
+            syncOutbox()
+        }
         return AuthPairResult(res.userId, res.pairingCode)
     }
 
@@ -1191,7 +1219,7 @@ class OttlineRepository(
                     }
                     return HandoffOutcome.MERGE_FAILED
                 }
-                val paired = runCatching { pairWithCode(resolvedCode) }.getOrNull()
+                val paired = runCatching { pairWithCode(resolvedCode, skipFinalSync = true) }.getOrNull()
                 if (paired == null) {
                     // Do NOT overwrite current auth or drop local logs/history/outbox when merge fails.
                     if (markBrowserHandoffDone) {
@@ -1200,8 +1228,7 @@ class OttlineRepository(
                     }
                     return HandoffOutcome.MERGE_FAILED
                 }
-                val mergeSyncVerified = _syncState.value.status == SyncStatus.IDLE &&
-                    !prefs.current.lastSyncAt.isNullOrBlank()
+                val mergeSyncVerified = syncForHandoffFullPull()
                 if (!mergeSyncVerified) {
                     if (markBrowserHandoffDone) {
                         prefs.markAutoHandoffAttempted()
@@ -1228,9 +1255,7 @@ class OttlineRepository(
                     }
                 }
 
-                val syncResult = syncOutbox()
-                val syncVerified = syncResult.status == SyncStatus.IDLE &&
-                    !prefs.current.lastSyncAt.isNullOrBlank()
+                val syncVerified = syncForHandoffFullPull()
                 if (!syncVerified) {
                     if (markBrowserHandoffDone) {
                         prefs.markAutoHandoffAttempted()

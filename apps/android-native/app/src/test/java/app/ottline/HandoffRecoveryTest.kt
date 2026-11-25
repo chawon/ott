@@ -949,6 +949,123 @@ class HandoffRecoveryTest {
         assertTrue(prefs.current.twaMigrationBannerDismissed)
         assertEquals(BrowserHandoffState.COMPLETED, prefs.current.browserHandoffState)
     }
+
+    @Test
+    fun overlappingIncrementalSyncDuringSameAccountHandoff_fullPull502DoesNotMarkCompleted_andRetryFullPullSucceeds() = runBlocking {
+        // Exact scenario reproduced in HQ review:
+        // Same account + empty outbox + pre-existing incremental cursor.
+        prefs.saveAuth("u-overlap", "d-overlap", "OVLP-1111")
+        prefs.setLastSyncAt("2026-11-24T00:00:00Z")
+        assertEquals(0, db.outboxDao().getAll().size)
+
+        val incrementalPullStarted = CountDownLatch(1)
+        val releaseIncrementalPull = CountDownLatch(1)
+        val profileVerified = CountDownLatch(1)
+        val pullPaths = CopyOnWriteArrayList<String>()
+        var failFullPull = true
+
+        server.dispatcher = object : Dispatcher() {
+            override fun dispatch(request: RecordedRequest): MockResponse {
+                val path = request.path.orEmpty()
+                return when {
+                    path == "/api/auth/profile" -> {
+                        profileVerified.countDown()
+                        MockResponse().setResponseCode(200)
+                            .setBody("""{"userId":"u-overlap","nickname":"겹침테스트","pairingCode":"OVLP-1111"}""")
+                    }
+                    path.startsWith("/api/sync/pull") -> {
+                        pullPaths.add(path)
+                        if (path.contains("since=")) {
+                            // Hold the earlier incremental sync until handoff has verified profile
+                            incrementalPullStarted.countDown()
+                            releaseIncrementalPull.await(5, TimeUnit.SECONDS)
+                            MockResponse().setResponseCode(200)
+                                .setBody("""{"serverTime":"2026-11-25T10:00:00Z","changes":{"titles":[],"logs":[]}}""")
+                        } else if (failFullPull) {
+                            // Full pull requested by handoff fails with 502!
+                            MockResponse().setResponseCode(502).setBody("""{"error":"upstream 502"}""")
+                        } else {
+                            // Manual retry full pull succeeds with actual web records
+                            MockResponse().setResponseCode(200)
+                                .setBody(
+                                    """
+                                    {
+                                      "serverTime": "2026-11-25T10:05:00Z",
+                                      "changes": {
+                                        "titles": [{"id":"t-full-1","type":"movie","name":"매드맥스","year":2015,"provider":"TMDB","providerId":"76341"}],
+                                        "logs": [{"id":"l-full-1","titleId":"t-full-1","status":"DONE","note":"전체 조회 복구","watchedAt":"2026-11-20T00:00:00Z","createdAt":"2026-11-20T00:00:00Z","updatedAt":"2026-11-20T00:00:00Z"}]
+                                      }
+                                    }
+                                    """.trimIndent()
+                                )
+                        }
+                    }
+                    path == "/api/nalytic/events" -> MockResponse().setResponseCode(202)
+                    path.startsWith("/api/android/") -> MockResponse().setResponseCode(200).setBody("{}")
+                    else -> MockResponse().setResponseCode(404)
+                }
+            }
+        }
+
+        // 1. Start an incremental sync in-flight holding syncMutex
+        val incrementalJob = async(Dispatchers.IO) { repository.syncOutbox() }
+        assertTrue(incrementalPullStarted.await(5, TimeUnit.SECONDS))
+
+        // 2. While incremental sync is in-flight, run same-account handoff callback
+        val handoffJob = async(Dispatchers.IO) {
+            repository.completeTwaHandoffWithOutcome(
+                status = "ok",
+                userId = "u-overlap",
+                deviceId = "d-overlap",
+                pairingCode = "OVLP-1111",
+                nickname = "겹침테스트",
+                personaKey = null
+            )
+        }
+        assertTrue(profileVerified.await(5, TimeUnit.SECONDS))
+        // Let handoff proceed to waiting on syncMutex, then release earlier incremental 200 response
+        Thread.sleep(150)
+        releaseIncrementalPull.countDown()
+
+        incrementalJob.await()
+        val firstOutcome = handoffJob.await()
+
+        // 3. Even though the earlier incremental sync returned 200 and populated lastSyncAt,
+        //    handoff MUST have issued a full pull (without since=) which returned 502,
+        //    so completion MUST NOT be marked and manual retry MUST stay visible!
+        assertEquals(OttlineRepository.HandoffOutcome.SERVER_ERROR, firstOutcome)
+        assertFalse(prefs.current.twaBrowserHandoffCompleted)
+        assertFalse(prefs.current.twaMigrationBannerDismissed)
+        assertEquals(BrowserHandoffState.FAILED, prefs.current.browserHandoffState)
+        assertTrue(pullPaths.any { it == "/api/sync/pull" })
+        assertTrue(
+            BrowserHandoffPolicy.shouldShowHomeHandoffCard(
+                prefs = prefs.current,
+                activeLogCount = 0,
+                hasTwaFootprint = false
+            )
+        )
+
+        // 4. Subsequent manual retry succeeds on full pull -> NOW marks COMPLETED & pulls records
+        failFullPull = false
+        val retryOutcome = repository.completeTwaHandoffWithOutcome(
+            status = "ok",
+            userId = "u-overlap",
+            deviceId = "d-overlap",
+            pairingCode = "OVLP-1111",
+            nickname = "겹침테스트",
+            personaKey = null
+        )
+
+        assertEquals(OttlineRepository.HandoffOutcome.CONNECTED, retryOutcome)
+        assertTrue(prefs.current.twaBrowserHandoffCompleted)
+        assertTrue(prefs.current.twaMigrationBannerDismissed)
+        assertEquals(BrowserHandoffState.COMPLETED, prefs.current.browserHandoffState)
+        assertEquals(2, pullPaths.count { it == "/api/sync/pull" })
+        val logs = repository.activeLogsFlow.first()
+        assertEquals(1, logs.size)
+        assertEquals("매드맥스", logs.first().title.name)
+    }
 }
 
 private class FaultInjectingSqliteDriver(
