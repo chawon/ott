@@ -5,6 +5,7 @@ import { safeUUID } from "./utils";
 
 const PROFILE_CACHE_KEY = "watchlog.profile.v1";
 const PROFILE_PROMPT_DISMISSED_KEY = "watchlog.profilePromptDismissed";
+export const LOG_CACHE_CHECKPOINT_KEY = "watchlog.logCacheCheckpoint.v1";
 
 function nowIso() {
   return new Date().toISOString();
@@ -37,7 +38,13 @@ export async function upsertLogLocal(log: WatchLog) {
   await db.logs.put(local);
 }
 
-export async function upsertLogsLocal(logs: WatchLog[]) {
+function requireLogCacheOwner(userId: string | null) {
+  if (userId !== getUserId())
+    throw new Error("The active account changed during the log request");
+}
+
+export async function upsertLogsLocal(logs: WatchLog[], userId = getUserId()) {
+  requireLogCacheOwner(userId);
   if (logs.length === 0) return;
   await db.transaction("rw", db.logs, db.titles, db.outbox, async () => {
     const pending = new Set((await listOutbox()).map(outboxLogId));
@@ -57,6 +64,7 @@ export async function upsertLogsLocal(logs: WatchLog[]) {
       if (pending.has(log.id)) continue;
       const existing = existingMap.get(log.id);
       if (existing) {
+        if (existing.syncStatus === "pending") continue;
         if (existing.deletedAt && !log.deletedAt) continue;
         const localTime = existing.updatedAt
           ? new Date(existing.updatedAt).getTime()
@@ -74,12 +82,20 @@ export async function upsertLogsLocal(logs: WatchLog[]) {
       });
     }
     if (toPut.length > 0) await db.logs.bulkPut(toPut);
+    requireLogCacheOwner(userId);
   });
 }
 
-export async function upsertHistoryLocal(items: WatchLogHistory[]) {
+export async function upsertHistoryLocal(
+  items: WatchLogHistory[],
+  userId = getUserId(),
+) {
+  requireLogCacheOwner(userId);
   if (items.length === 0) return;
-  await db.history.bulkPut(items);
+  await db.transaction("rw", db.history, async () => {
+    await db.history.bulkPut(items);
+    requireLogCacheOwner(userId);
+  });
 }
 
 export async function listLogsLocal(params: {
@@ -165,13 +181,13 @@ export async function removeTitleLocal(id: string) {
 }
 
 export async function listLogsByTitleLocal(titleId: string, limit: number) {
-  const items = await db.logs
+  return db.logs
     .where("titleId")
     .equals(titleId)
     .reverse()
+    .filter((log) => !log.deletedAt)
     .limit(limit)
     .toArray();
-  return items.filter((l) => !l.deletedAt);
 }
 
 /** A sync pull may replace a temporary title and merge its log into an older log. */
@@ -282,6 +298,7 @@ export async function removeLogsByTitleExcept(
       .filter(
         (l) =>
           l.id !== keepId &&
+          !l.deletedAt &&
           !pendingIds.has(l.id) &&
           l.syncStatus !== "pending",
       )
@@ -397,6 +414,7 @@ export async function resetLocalState() {
   localStorage.removeItem("watchlog.analytics.clientId");
   localStorage.removeItem("watchlog.lastSyncAt");
   localStorage.removeItem("watchlog.lastSyncUserId");
+  localStorage.removeItem(LOG_CACHE_CHECKPOINT_KEY);
   clearUserProfileState();
 }
 
@@ -610,5 +628,5 @@ export async function recordOutboxError(id: string, message: string) {
 }
 
 export async function countLogsLocal() {
-  return db.logs.count();
+  return db.logs.filter((log) => !log.deletedAt).count();
 }

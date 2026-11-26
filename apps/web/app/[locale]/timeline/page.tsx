@@ -781,9 +781,10 @@ function TimelinePageContent() {
           setHasMore(cached.hasMore);
         }
 
-        if (getUserId()) {
+        const owner = getUserId();
+        if (owner) {
           const res = await apiWithAuth<TimelinePageResponse>(serverPagePath());
-          await upsertLogsLocal(res.items);
+          await upsertLogsLocal(res.items, owner);
           const refreshed = await loadLocalPage(TIMELINE_PAGE_SIZE);
           if (!cancelled && generation === filterGenerationRef.current) {
             nextCursorRef.current = res.nextCursor;
@@ -861,11 +862,12 @@ function TimelinePageContent() {
     try {
       const cursor = nextCursorRef.current;
       if (cursor && (typeof navigator === "undefined" || navigator.onLine)) {
+        const owner = getUserId();
         const response = await apiWithAuth<TimelinePageResponse>(
           serverPagePath(cursor),
         );
         if (generation !== filterGenerationRef.current) return;
-        await upsertLogsLocal(response.items);
+        await upsertLogsLocal(response.items, owner);
         if (generation !== filterGenerationRef.current) return;
         nextCursorRef.current = response.nextCursor;
       }

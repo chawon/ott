@@ -250,6 +250,146 @@ try {
   console.log(
     "PASS: server cursors, offline cache, 50/51 boundaries, search, and responsive fallback work",
   );
+
+  const [oldListRow, restored, lateMarker] = fixture(3);
+  restored.title = oldListRow.title;
+  restored.titleId = oldListRow.titleId;
+  serverLogs = [oldListRow, restored];
+  await clearLocalLogs();
+  await page.reload();
+  await countIs(2);
+  // Model a cache written by the old Web with a valid post-deletion cursor.
+  await page.evaluate(() =>
+    localStorage.removeItem("watchlog.logCacheCheckpoint.v1"),
+  );
+  const draft = {
+    ...restored,
+    id: "pending-create",
+    note: "Offline edit",
+    syncStatus: "pending",
+  };
+  const change = {
+    id: draft.id,
+    op: "upsert",
+    updatedAt: "2026-09-15T00:00:00Z",
+    payload: { titleId: draft.titleId, status: draft.status, note: draft.note },
+  };
+  async function readDraft(seed = false) {
+    return page.evaluate(
+      ({ draft, change, seed }) =>
+        new Promise((resolve, reject) => {
+          const open = indexedDB.open("watchlog");
+          open.onerror = () => reject(open.error);
+          open.onsuccess = () => {
+            const db = open.result;
+            const tx = db.transaction(
+              ["logs", "outbox", "history"],
+              seed ? "readwrite" : "readonly",
+            );
+            const logs = tx.objectStore("logs"),
+              outbox = tx.objectStore("outbox"),
+              history = tx.objectStore("history");
+            if (seed) {
+              logs.put(draft);
+              outbox.put({
+                id: "queued-create",
+                userId: localStorage.getItem("watchlog.userId"),
+                type: "create_log",
+                localLogId: draft.id,
+                payload: { log: change },
+                createdAt: draft.createdAt,
+                attempts: 0,
+              });
+              history.put({
+                id: "draft-history",
+                logId: draft.id,
+                recordedAt: draft.createdAt,
+                note: draft.note,
+              });
+            }
+            const row = logs.get(draft.id),
+              operation = outbox.get("queued-create"),
+              snapshot = history.get("draft-history");
+            tx.oncomplete = () => {
+              db.close();
+              resolve({
+                row: row.result,
+                operation: operation.result,
+                snapshot: snapshot.result,
+              });
+            };
+            tx.onabort = () => {
+              db.close();
+              reject(tx.error);
+            };
+          };
+        }),
+      { draft, change, seed },
+    );
+  }
+  await readDraft(true);
+  let accept = false;
+  const pushes = [];
+  await page.route("**/api/sync/push", (route) => {
+    pushes.push(route.request().postDataJSON().changes.logs[0]);
+    return accept
+      ? route.fulfill({ json: { accepted: [draft.id], rejected: [] } })
+      : route.fulfill({ status: 503, json: {} });
+  });
+  const full = Promise.withResolvers();
+  const list = Promise.withResolvers();
+  const pulls = [];
+  await page.route("**/api/sync/pull*", async (route) => {
+    const since = new URL(route.request().url()).searchParams.get("since");
+    pulls.push(since);
+    if (!since) await full.promise;
+    return route.fulfill({
+      json: {
+        serverTime: "2026-09-15T01:00:00Z",
+        changes: {
+          logs: since
+            ? [{ ...restored, updatedAt: change.updatedAt, note: draft.note }]
+            : [{ ...oldListRow, deletedAt: oldListRow.updatedAt }, restored],
+          titles: since ? [] : [restored.title],
+        },
+      },
+    });
+  });
+  await page.route("**/api/logs/page*", async (route) => {
+    await list.promise;
+    return route.fulfill({
+      json: { items: [oldListRow, lateMarker], nextCursor: null },
+    });
+  });
+  await Promise.all([
+    page.waitForRequest("**/api/logs/page*"),
+    page.waitForRequest("**/api/sync/pull"),
+    page.reload(),
+  ]);
+  await countIs(3);
+  full.resolve();
+  await countIs(2);
+  list.resolve();
+  await page.getByRole("link", { name: lateMarker.title.name }).waitFor();
+  await countIs(3);
+  const pending = await readDraft();
+  assert.equal(pending.row.note, draft.note);
+  assert.deepEqual(pending.operation.payload.log, change);
+  assert.equal(pending.snapshot.logId, draft.id);
+  accept = true;
+  await Promise.all([
+    page.waitForRequest("**/api/sync/pull?since=*"),
+    page.reload(),
+  ]);
+  await countIs(2);
+  const retried = await readDraft();
+  assert.equal(retried.operation, undefined);
+  assert.equal(retried.snapshot.logId, restored.id);
+  assert.deepEqual(pushes, [change, change]);
+  assert.deepEqual(pulls, [null, "2026-09-15T01:00:00Z"]);
+  console.log(
+    "PASS: persisted cache repair, delayed legacy list, outbox and history retention, then retry and incremental sync on reload",
+  );
 } catch (error) {
   if (serverOutput) console.error(serverOutput);
   throw error;

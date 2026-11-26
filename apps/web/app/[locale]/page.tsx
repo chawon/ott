@@ -495,11 +495,12 @@ export default function HomePage() {
         if (cached.length > 0) setLogs(cached);
         await refreshActivationEligibility();
 
-        if (getUserId()) {
+        const owner = getUserId();
+        if (owner) {
           const l = await apiWithAuth<WatchLog[]>("/logs?limit=8");
-          await upsertLogsLocal(l);
+          await upsertLogsLocal(l, owner);
           const refreshed = await listAllLogsLocal();
-          if (refreshed.length > 0) setLogs(refreshed);
+          setLogs(refreshed);
           await refreshActivationEligibility();
         }
       } catch {
