@@ -187,4 +187,34 @@ object TwaBrowserBridge {
         val handoffUrl = "$base/$lang?native_handoff=1&ts=${System.currentTimeMillis()}"
         return launchInExternalCustomTab(context, handoffUrl)
     }
+
+    /**
+     * Launches browser handoff while keeping `twaAutoHandoffAttempted`, `browserHandoffState`,
+     * and `twaBrowserHandoffCompleted` strictly separated.
+     *
+     * - If [isAutomatic] is true, marks `twaAutoHandoffAttempted` so failed/cancelled attempts
+     *   never cause an automatic relaunch loop on subsequent app starts.
+     * - Marks `PENDING` before opening the browser; if launching the external browser fails,
+     *   immediately transitions to `LAUNCH_FAILED` without marking completion.
+     */
+    fun launchManagedHandoff(
+        context: Context,
+        prefs: AppPreferences,
+        isAutomatic: Boolean,
+        nowMillis: Long = System.currentTimeMillis(),
+        launcher: (Context, String, String) -> Boolean = ::launchTwaHandoff
+    ): Boolean {
+        if (isAutomatic) {
+            prefs.markAutoHandoffAttempted()
+        }
+        val snap = prefs.current
+        prefs.markBrowserHandoffPending(nowMillis)
+        val launched = runCatching {
+            launcher(context, snap.locale, snap.apiBaseUrl)
+        }.getOrDefault(false)
+        if (!launched) {
+            prefs.markBrowserHandoffLaunchFailed()
+        }
+        return launched
+    }
 }

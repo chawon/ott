@@ -36,6 +36,8 @@ import app.ottline.model.UpdateUserProfileRequest
 import app.ottline.model.UserProfile
 import app.ottline.model.WatchLog
 import app.ottline.model.WatchLogHistory
+import java.time.Instant
+import java.time.OffsetDateTime
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicBoolean
@@ -502,7 +504,44 @@ class OttlineRepository(
         }
     }
 
-    private suspend fun runSingleSyncCycle(): SyncState {
+    /**
+     * Runs a dedicated full sync (`since = null`) strictly serialized under `syncMutex` so an
+     * overlapping incremental sync response can never refill `lastSyncAt` before handoff pulls,
+     * pull failures are never masked by an empty outbox, and completion requires a valid
+     * `serverTime` checkpoint to be received and persisted by this full pull.
+     */
+    private suspend fun syncForHandoffFullPull(): Boolean {
+        return syncMutex.withLock {
+            syncRequestedAgain = false
+            prefs.setLastSyncAt(null)
+            val handoffResult = runSingleSyncCycle(
+                forceFullPull = true,
+                failOnPullError = true,
+                requireValidServerTime = true
+            )
+            _syncState.value = handoffResult
+            val handoffSucceeded = handoffResult.status == SyncStatus.IDLE &&
+                normalizeValidServerTime(prefs.current.lastSyncAt) != null
+            while (syncRequestedAgain) {
+                syncRequestedAgain = false
+                _syncState.value = runSingleSyncCycle()
+            }
+            handoffSucceeded
+        }
+    }
+
+    private fun normalizeValidServerTime(raw: String?): String? {
+        val cleaned = raw?.trim()?.takeIf { it.isNotEmpty() } ?: return null
+        val isIsoTimestamp = runCatching { Instant.parse(cleaned) }.isSuccess ||
+            runCatching { OffsetDateTime.parse(cleaned) }.isSuccess
+        return if (isIsoTimestamp) cleaned else null
+    }
+
+    private suspend fun runSingleSyncCycle(
+        forceFullPull: Boolean = false,
+        failOnPullError: Boolean = false,
+        requireValidServerTime: Boolean = false
+    ): SyncState {
         if (initialDedupChecked.compareAndSet(false, true)) {
             deduplicateLocalRecordsIfNeeded()
         }
@@ -599,9 +638,12 @@ class OttlineRepository(
         }
 
         try {
-            pullChangesInternal()
+            pullChangesInternal(
+                forceFull = forceFullPull,
+                requireValidServerTime = requireValidServerTime
+            )
         } catch (_: Exception) {
-            if (pushFailure == null && items.isNotEmpty()) {
+            if (pushFailure == null && (failOnPullError || items.isNotEmpty())) {
                 pushFailure = SyncFailureReason.REQUEST
             }
         }
@@ -669,9 +711,16 @@ class OttlineRepository(
         )
     }
 
-    private suspend fun pullChangesInternal() {
-        val since = prefs.current.lastSyncAt
+    private suspend fun pullChangesInternal(
+        forceFull: Boolean = false,
+        requireValidServerTime: Boolean = false
+    ) {
+        val since = if (forceFull) null else prefs.current.lastSyncAt
         val pull = api.pullSync(since)
+        val validServerTime = normalizeValidServerTime(pull.serverTime)
+        if (requireValidServerTime && validServerTime == null) {
+            throw IllegalStateException("Sync pull response missing valid serverTime")
+        }
 
         val pulledTitleIds = pull.changes.titles.mapTo(HashSet()) { it.id }
         val missingTitleIds = pull.changes.logs
@@ -792,8 +841,8 @@ class OttlineRepository(
             }
         }
 
-        if (pull.serverTime.isNotBlank()) {
-            prefs.setLastSyncAt(pull.serverTime)
+        if (validServerTime != null) {
+            prefs.setLastSyncAt(validServerTime)
         }
     }
 
@@ -1029,7 +1078,7 @@ class OttlineRepository(
         return cleaned
     }
 
-    suspend fun pairWithCode(code: String): AuthPairResult {
+    suspend fun pairWithCode(code: String, skipFinalSync: Boolean = false): AuthPairResult {
         val oldUserId = prefs.current.userId
         if (!oldUserId.isNullOrBlank()) {
             runCatching { syncOutbox() }
@@ -1052,11 +1101,27 @@ class OttlineRepository(
             val profile = api.getProfile()
             prefs.saveProfile(profile.nickname, profile.personaKey, profile.pairingCode)
         }
-        syncOutbox()
+        if (!skipFinalSync) {
+            syncOutbox()
+        }
         return AuthPairResult(res.userId, res.pairingCode)
     }
 
     data class AuthPairResult(val userId: String, val pairingCode: String?)
+
+    enum class HandoffOutcome {
+        CONNECTED,
+        EMPTY_SESSION,
+        INVALID_CALLBACK,
+        SERVER_ERROR,
+        MERGE_FAILED
+    }
+
+    private enum class HandoffSwitchDecision {
+        SWITCHED_OR_SAME,
+        NEEDS_MERGE,
+        STORAGE_ERROR
+    }
 
     suspend fun completeTwaHandoff(
         status: String,
@@ -1066,67 +1131,170 @@ class OttlineRepository(
         nickname: String?,
         personaKey: PersonaKey?,
         markBrowserHandoffDone: Boolean = true
-    ): Boolean {
-        if (markBrowserHandoffDone) {
-            prefs.markTwaBrowserHandoffCompleted()
-        }
+    ): Boolean = completeTwaHandoffWithOutcome(
+        status = status,
+        userId = userId,
+        deviceId = deviceId,
+        pairingCode = pairingCode,
+        nickname = nickname,
+        personaKey = personaKey,
+        markBrowserHandoffDone = markBrowserHandoffDone
+    ) == HandoffOutcome.CONNECTED
+
+    suspend fun completeTwaHandoffWithOutcome(
+        status: String,
+        userId: String?,
+        deviceId: String?,
+        pairingCode: String?,
+        nickname: String?,
+        personaKey: PersonaKey?,
+        markBrowserHandoffDone: Boolean = true
+    ): HandoffOutcome {
+        val normalizedStatus = status.trim().lowercase()
         val cleanUserId = userId?.trim()?.takeIf { it.isNotEmpty() }
         val cleanDeviceId = deviceId?.trim()?.takeIf { it.isNotEmpty() }
         val cleanCode = pairingCode?.trim()?.takeIf { it.isNotEmpty() }
 
-        if (status != "ok" || cleanUserId == null || cleanDeviceId == null) {
-            return false
+        if (normalizedStatus == "empty") {
+            if (markBrowserHandoffDone) {
+                prefs.markAutoHandoffAttempted()
+                prefs.markBrowserHandoffEmptySession()
+            }
+            return HandoffOutcome.EMPTY_SESSION
         }
 
-        val currentUserId = prefs.current.userId
-        val localActiveLogs = runCatching { db.watchLogDao().getActiveLogs() }.getOrDefault(emptyList())
+        if (normalizedStatus != "ok" || cleanUserId == null || cleanDeviceId == null) {
+            if (markBrowserHandoffDone) {
+                prefs.markAutoHandoffAttempted()
+                prefs.markBrowserHandoffFailed()
+            }
+            return HandoffOutcome.INVALID_CALLBACK
+        }
 
-        if (!currentUserId.isNullOrBlank() && currentUserId != cleanUserId && localActiveLogs.isNotEmpty() && !cleanCode.isNullOrBlank()) {
-            val paired = runCatching { pairWithCode(cleanCode) }.getOrNull()
-            if (paired != null) {
+        // 1. Verify the callback credentials with the server BEFORE mutating prefs or Room.
+        val verifiedProfile = runCatching {
+            api.getProfileForCredentials(cleanUserId, cleanDeviceId)
+        }.getOrElse {
+            if (markBrowserHandoffDone) {
+                prefs.markAutoHandoffAttempted()
+                prefs.markBrowserHandoffFailed()
+            }
+            return HandoffOutcome.SERVER_ERROR
+        }
+
+        val resolvedCode = cleanCode ?: verifiedProfile.pairingCode?.trim()?.takeIf { it.isNotEmpty() }
+        val resolvedNickname = verifiedProfile.nickname?.takeIf { it.isNotBlank() } ?: nickname
+        val resolvedPersona = verifiedProfile.personaKey ?: personaKey
+
+        // 2. Under saveMutex + Room transaction, positively verify all local tables are readable
+        //    and empty before clearing on a cross-account switch (prevents read-error wipes and
+        //    TOCTOU races with concurrent local saves).
+        val switchDecision = saveMutex.withLock {
+            val currentUserId = prefs.current.userId
+            if (!currentUserId.isNullOrBlank() && currentUserId != cleanUserId) {
+                val clearResult = runCatching {
+                    db.watchLogDao().clearLocalTablesOnlyIfEmpty()
+                }
+                when {
+                    clearResult.isFailure -> HandoffSwitchDecision.STORAGE_ERROR
+                    clearResult.getOrThrow() -> {
+                        prefs.setLastSyncAt(null)
+                        prefs.saveAuth(cleanUserId, cleanDeviceId, resolvedCode)
+                        if (!resolvedNickname.isNullOrBlank() || resolvedPersona != null) {
+                            prefs.saveProfile(
+                                nickname = resolvedNickname ?: prefs.current.nickname,
+                                personaKey = resolvedPersona ?: prefs.current.personaKey,
+                                pairingCode = resolvedCode
+                            )
+                        }
+                        HandoffSwitchDecision.SWITCHED_OR_SAME
+                    }
+                    else -> HandoffSwitchDecision.NEEDS_MERGE
+                }
+            } else {
+                prefs.setLastSyncAt(null)
+                prefs.saveAuth(cleanUserId, cleanDeviceId, resolvedCode)
+                if (!resolvedNickname.isNullOrBlank() || resolvedPersona != null) {
+                    prefs.saveProfile(
+                        nickname = resolvedNickname ?: prefs.current.nickname,
+                        personaKey = resolvedPersona ?: prefs.current.personaKey,
+                        pairingCode = resolvedCode
+                    )
+                }
+                HandoffSwitchDecision.SWITCHED_OR_SAME
+            }
+        }
+
+        when (switchDecision) {
+            HandoffSwitchDecision.STORAGE_ERROR -> {
+                if (markBrowserHandoffDone) {
+                    prefs.markAutoHandoffAttempted()
+                    prefs.markBrowserHandoffFailed()
+                }
+                return HandoffOutcome.MERGE_FAILED
+            }
+
+            HandoffSwitchDecision.NEEDS_MERGE -> {
+                if (resolvedCode.isNullOrBlank()) {
+                    if (markBrowserHandoffDone) {
+                        prefs.markAutoHandoffAttempted()
+                        prefs.markBrowserHandoffFailed()
+                    }
+                    return HandoffOutcome.MERGE_FAILED
+                }
+                val paired = runCatching { pairWithCode(resolvedCode, skipFinalSync = true) }.getOrNull()
+                if (paired == null) {
+                    // Do NOT overwrite current auth or drop local logs/history/outbox when merge fails.
+                    if (markBrowserHandoffDone) {
+                        prefs.markAutoHandoffAttempted()
+                        prefs.markBrowserHandoffFailed()
+                    }
+                    return HandoffOutcome.MERGE_FAILED
+                }
+                val mergeSyncVerified = syncForHandoffFullPull()
+                if (!mergeSyncVerified) {
+                    if (markBrowserHandoffDone) {
+                        prefs.markAutoHandoffAttempted()
+                        prefs.markBrowserHandoffFailed()
+                    }
+                    return HandoffOutcome.SERVER_ERROR
+                }
                 prefs.dismissTwaMigrationBanner()
-                return true
+                if (markBrowserHandoffDone) {
+                    prefs.markTwaBrowserHandoffCompleted()
+                }
+                return HandoffOutcome.CONNECTED
+            }
+
+            HandoffSwitchDecision.SWITCHED_OR_SAME -> {
+                repoScope.launch {
+                    runCatching {
+                        RevisitReminderScheduler.bindDeviceIfAuthenticated(
+                            context = appContext,
+                            force = true,
+                            explicitUserId = cleanUserId,
+                            explicitDeviceId = cleanDeviceId
+                        )
+                    }
+                }
+
+                val syncVerified = syncForHandoffFullPull()
+                if (!syncVerified) {
+                    if (markBrowserHandoffDone) {
+                        prefs.markAutoHandoffAttempted()
+                        prefs.markBrowserHandoffFailed()
+                    }
+                    return HandoffOutcome.SERVER_ERROR
+                }
+
+                prefs.dismissTwaMigrationBanner()
+                if (markBrowserHandoffDone) {
+                    prefs.markTwaBrowserHandoffCompleted()
+                }
+                trackEvent("login_success", mapOf("method" to "twa_handoff"))
+                return HandoffOutcome.CONNECTED
             }
         }
-
-        if (!currentUserId.isNullOrBlank() && currentUserId != cleanUserId && localActiveLogs.isEmpty()) {
-            saveMutex.withLock {
-                db.outboxDao().clearAll()
-                db.watchLogHistoryDao().clearAll()
-                db.watchLogDao().clearAll()
-            }
-        }
-
-        prefs.setLastSyncAt(null)
-        prefs.saveAuth(cleanUserId, cleanDeviceId, cleanCode)
-        if (!nickname.isNullOrBlank() || personaKey != null) {
-            prefs.saveProfile(
-                nickname = nickname ?: prefs.current.nickname,
-                personaKey = personaKey ?: prefs.current.personaKey,
-                pairingCode = cleanCode
-            )
-        }
-        prefs.dismissTwaMigrationBanner()
-
-        repoScope.launch {
-            runCatching {
-                RevisitReminderScheduler.bindDeviceIfAuthenticated(
-                    context = appContext,
-                    force = true,
-                    explicitUserId = cleanUserId,
-                    explicitDeviceId = cleanDeviceId
-                )
-            }
-        }
-
-        runCatching {
-            val profile = api.getProfile()
-            prefs.saveProfile(profile.nickname, profile.personaKey, profile.pairingCode)
-        }
-
-        syncOutbox()
-        trackEvent("login_success", mapOf("method" to "twa_handoff"))
-        return true
     }
 
     suspend fun tryRestoreFromTwaInstallToken(): Boolean {

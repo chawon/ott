@@ -111,6 +111,12 @@ ksp {
 dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
 
+    constraints {
+        implementation("androidx.fragment:fragment:1.8.6") {
+            because("Upgrade transitive androidx.fragment:fragment:1.1.0 flagged by Google Play SDK Index")
+        }
+    }
+
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.core.splashscreen)
     implementation(libs.androidx.lifecycle.runtime.ktx)
