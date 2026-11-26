@@ -1,5 +1,11 @@
 # Wiki Log
 
+## [2026-11-26] release(windows): PR #172 병합본 Microsoft Store `v2.0.3.0` 심사 제출 (`Certification`)
+
+- `v2.0.2.0`(`1152921505702478292`)의 Microsoft Store `Published` 공개를 확인한 뒤, [PR #172](https://github.com/chawon/ott/pull/172)([#161](https://github.com/chawon/ott/issues/161)) 병합본 `main` `7154328`(코드 `83cfa65`, 본부 재검토 **66/66**, `main` CI [`45615633182`](https://github.com/chawon/ott/actions/runs/45615633182))에서 `ottline-2.0.3.0.msixbundle`(`x64` `81.50 MB`, SHA-256 `2605CED75E081BA355F920802969375D1FB06F21459DBB2E700CA7A7417B5C4B` + `arm64` `77.56 MB`, SHA-256 `F390F3344C007179768304E2AC1ACB232705952009EEAFB2B861B984702C635D`, 총 `159.06 MB`, SHA-256 `6BDFFA58CB6EE063AFA268F24776DD72232D2407293EB3600A288941B5902E22`)을 빌드·무결성 검증(`Ottline.Tests` **65/65**)해 Partner Center `9NSVNZGDMGF5`에 제출했다.
+- 제출 결과: Submission ID **`1152921505702511198`**, 상태 **`Certification`**, `Errors = 0`, `Desktop` 전용(`Holographic = false`), 한·영 릴리스 노트 및 스토어 메타데이터 반영 완료.
+- 현재 한국·미국 스토어 공개판은 `2.0.2.0`이며, `2.0.3.0` 심사 승인·공개 후 기존 설치판 업데이트 및 Windows↔모바일·웹 교차 동기화 실기기 검증을 완료할 예정이다. [Windows Wiki](pages/platforms/windows-native.md) · [스토어 근거](pages/platforms/ms-store.md) · [후속 작업](../docs/changes/v2-follow-up.md#windows-후속-기능-통합-반영-2026-11-22-차기-v2020-후보)
+
 ## 2026-11-25 Web 동기화·Apple 스토어 안내 배포와 Windows 공개판 확인
 
 Web `8c8b064` 배포 후 기존 Chromium 설치 PWA를 다시 열었다. 구버전에서 준비한 별도 프로필의 기록과 이력을 확인했다. 미등록 합성 계정의 대기열은 배포 전후 연속성을 판정할 수 없어 담당 이슈에 검증 한계를 남겼다. 설치 프로필의 복사본과 운영 QA 계정의 두 기기로 충돌 후 후속 기록이 한 번 전송되고, 재시작 뒤 기록 2건과 빈 대기열이 유지됨을 확인했다. API는 `1dc6825`였고 두 Pod는 각 1/1 Ready, 재시작 0회였다. iPhone 환경을 모사한 Chromium에서 한국어 웹의 첫 기록을 저장하고 Apple 스토어 안내를 눌렀다. 노출·클릭을 운영 DB에서 확인했다. 실제 Apple 기기에서 스토어 전환과 마케팅 14일 집계를 이어간다. [Web 배포](https://github.com/chawon/ott/actions/runs/45615659458) · [동기화 인수](https://github.com/chawon/ott/issues/162#issuecomment-7162996402) · [스토어 안내 검증](https://github.com/chawon/ott/issues/175#issuecomment-7163045122)
