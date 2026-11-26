@@ -2,7 +2,7 @@
 
 [실행 이슈 #182](https://github.com/chawon/ott/issues/182) · 담당 API · 협업 Web/PWA · 기준 `main` `1beccebe1b494bbb4d55b3cd7cac6eb684d99550`
 
-작업 브랜치는 `fix/api-active-log-lists-182`다. API와 Web 수정을 [PR #184](https://github.com/chawon/ott/pull/184)에 통합했으며 최종 CI 결과는 해당 PR의 checks에서 확인한다. API `4dc2850`·추가 복구 회귀 `eba7832`, Web 담당 `458b7f8`을 통합한 `214b029`가 구현 근거다. 병합·운영 배포·실제 설치판 검증은 아직 하지 않았다. 별개로 완료된 [과거 복구 증분 전달 #171](api-sync-delivery-171-2026-11-25.md)의 계약을 유지한다.
+작업 브랜치는 `fix/api-active-log-lists-182`다. API와 Web 수정을 [PR #184](https://github.com/chawon/ott/pull/184)에 통합했으며 최종 CI 결과는 해당 PR의 checks에서 확인한다. API `4dc2850`·추가 복구 회귀 `eba7832`, Web 담당 `458b7f8`을 통합한 `214b029`와 브라우저 검사 보완 `e99b632`가 구현 근거다. 병합·운영 배포·실제 설치판 검증은 아직 하지 않았다. 별개로 완료된 [과거 복구 증분 전달 #171](api-sync-delivery-171-2026-11-25.md)의 계약을 유지한다.
 
 ## 사용자 문제와 완료 조건
 
@@ -62,6 +62,7 @@ Web의 기존 `syncNow` 경로는 구 버전의 성공 cursor를 새 체크포�
 - 통합 브랜치에서 `npm run test:timeline-v2 --workspace ott` **59/59 통과**. 기존 캐시 교정·두 응답 순서·늦은 목록·동일 ID 복구·실패/재시작·미전송 편집·계정 교체와 기존 충돌 복구를 검증한다.
 - Web 담당이 production build·타입 검사와 변경 파일 Biome 오류 0을 확인했다. 전체 Web lint는 고정 기준 커밋의 기존 22오류·71경고·23정보와 파일/규칙별 동일하다.
 - `BACKEND_URL=http://127.0.0.1:8080 npm run test:timeline-scroll --workspace ott`는 격리 브라우저의 실제 IndexedDB와 합성 HTTP 응답을 사용한다. 호스트의 Chromium 실행 파일은 `PLAYWRIGHT_EXECUTABLE_PATH`로 지정할 수 있다. 구 캐시 full 교정→지연 목록 무해→503 중 메모/operation/이력 보존→재시작 후 같은 payload 재전송·정식 ID 이력 귀속·대기열 0·증분 복귀와 기존 50/51/125건 스크롤을 확인한다. 운영 서버나 실제 설치 PWA를 호출하는 검증은 아니다.
+- 최초 브라우저 검사의 고정 pull 횟수는 default `next dev`에서 `[full, delta, delta]`로 실패했고 같은 코드의 production에서는 `[full, delta]`로 통과했다. Web 담당이 개발 모드의 effect 등록·해제·재등록을 관측했다. 검사만 보완해 응답마다 새 cursor를 발급하고 모든 요청의 계정/기기·직전 응답 cursor·재시작 시 저장된 cursor를 검사한다. full은 정확히 한 번, 쓰기는 동일 payload의 503 한 번과 수락 한 번임을 유지한다. 추가 읽기와 실제 중복 쓰기를 구분하며 default dev·production 둘 다 확인한다.
 - 임시 기준 코드 진단은 소스에서 제거했다. 영구 회귀는 기존 Web 테스트 경로에 통합했다.
 
 ## 출시와 복구
