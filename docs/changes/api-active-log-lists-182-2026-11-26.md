@@ -2,7 +2,7 @@
 
 [실행 이슈 #182](https://github.com/chawon/ott/issues/182) · 담당 API · 협업 Web/PWA · 기준 `main` `1beccebe1b494bbb4d55b3cd7cac6eb684d99550`
 
-작업 브랜치는 `fix/api-active-log-lists-182`다. API 구현과 합성 데이터 검증을 진행 중이며 Web 변경을 같은 PR에 통합한다. 병합·운영 배포·실제 설치판 검증은 아직 하지 않았다. 별개로 완료된 [과거 복구 증분 전달 #171](api-sync-delivery-171-2026-11-25.md)의 계약을 유지한다.
+작업 브랜치는 `fix/api-active-log-lists-182`다. API와 Web 수정을 [PR #184](https://github.com/chawon/ott/pull/184)에 통합했으며 최종 CI 결과는 해당 PR의 checks에서 확인한다. API `4dc2850`·추가 복구 회귀 `eba7832`, Web 담당 `458b7f8`을 통합한 `214b029`가 구현 근거다. 병합·운영 배포·실제 설치판 검증은 아직 하지 않았다. 별개로 완료된 [과거 복구 증분 전달 #171](api-sync-delivery-171-2026-11-25.md)의 계약을 유지한다.
 
 ## 사용자 문제와 완료 조건
 
@@ -32,14 +32,21 @@
 
 세 번째 상태는 임의의 운영 DB 조작 없이 재현했다. 실제 `SyncService`로 D를 삭제하고 같은 작품을 과거 시각의 새 ID N으로 복구하면 delta 순서는 `[D tombstone, N active]`다. 기준 Web의 실제 `cacheLog`와 Dexie 저장 함수가 N의 중복 정리 중 D tombstone을 지운 뒤, 늦은 구 목록 DTO를 받아 D를 활성으로 삽입한다. cursor는 이미 삭제 뒤로 진행해 있어 다음 delta와 수정된 활성 목록 조회 뒤에도 D가 남고, 명시적 full pull 뒤에야 N만 남았다.
 
-Web 담당은 기존 동기화 진입점의 한 번 재대조, tombstone과 이력 보존, 미전송 편집 보호, 작품 상세의 활성 기록 선택을 별도 브랜치에서 구현한다. 성공/실패 시점과 최종 회귀 결과는 통합 커밋으로 확정한다. 이 문서의 API 변경만으로 기존 캐시 복구가 완료됐다고 보지 않는다.
+Web의 기존 `syncNow` 경로는 구 버전의 성공 cursor를 새 체크포인트로 승계하지 않고 한 번 full pull을 한다. 현재 계정의 응답을 Dexie 트랜잭션에 모두 반영한 뒤에만 계정·cursor를 `watchlog.logCacheCheckpoint.v1`에 저장하고, 다음 sync부터 증분을 요청한다. 오프라인·HTTP 실패·계정 교체·로컬 반영 실패는 성공으로 표시하지 않는다. 계정 초기화는 새 체크포인트도 제거한다.
+
+- 삭제행을 먼저 반영하고, 같은 작품의 활성 기록을 정리해도 삭제행과 그 이력은 보관한다. 목록의 단순 부재로 로컬 행을 지우지 않는다.
+- 늦은 구 목록은 tombstone과 미전송 편집을 덮지 못한다. 응답을 기다리는 사이 계정이 바뀌면 원래 계정의 목록·이력은 새 계정에 저장하지 않는다.
+- 더 최신의 정상 sync는 같은 ID의 복구를 허용한다. 삭제보다 1µs 뒤의 복구도 기존 9자리 시각 비교로 받고, 이전·동일 시각의 활성 응답은 tombstone을 되살리지 않는다.
+- 작품별 로컬 조회는 삭제행을 제외한 뒤 limit를 적용하며, 홈의 활성 건수와 상세 화면도 보관 중인 tombstone을 활성 기록으로 세지 않는다. API 목록이 도착해도 표시할 현재 기록은 로컬 병합 후 고른다.
+
+배포 후 기존 기기는 계정의 전체 로그(삭제 포함)와 기존 full pull 계약의 공용 제목을 한 번 더 받는다. 초기 비용과 #171의 전역 pull fence 보유 시간이 늘 수 있다. 페이지 목록만으로 과거 오염을 식별할 수 없고 기존 sync DTO를 바꾸지 않기 위해 이 방식을 선택했다. 이력과 tombstone을 보관하며 캐시 초기화로 대체하지 않는다.
 
 ## 플랫폼별 영향
 
 | 대상 | 변경과 검증 | 상태 |
 | --- | --- | --- |
-| API | 두 목록 SQL에 활성 조건, 기존 PostgreSQL 통합 suite에 목록·페이지·증분 삭제 회귀 추가 | 로컬 구현·검증 완료, PR/CI 대기 |
-| Web / 설치 PWA / 구 TWA·Windows PWA | `sync.ts`·`localStore.ts`에서 기존 오염 복구와 재발 방어. 실제 Dexie·Web 함수로 검증하고 설치형 캐시도 같은 소스를 사용 | Web 협업 진행, 실제 설치판 확인 별도 |
+| API | 두 목록 SQL에 활성 조건, 기존 PostgreSQL 통합 suite에 목록·페이지·증분 삭제 회귀 추가 | 로컬 구현·검증 완료, PR #184 CI 연결 |
+| Web / 설치 PWA / 구 TWA·Windows PWA | `sync.ts`·`localStore.ts`와 홈/타임라인/상세에서 기존 오염 복구와 재발 방어. 실제 Dexie·Web 함수·Chromium으로 검증하고 설치형 캐시도 같은 소스를 사용 | 같은 PR에 통합, 실제 운영 설치판 확인 별도 |
 | Android 네이티브 / iPhone / iPad / Windows 네이티브 / macOS | 제품 코드·바이너리 변경 없음. 기존 sync DTO·삭제 전달은 유지. 해당 설치판의 개별 캐시 동작을 Web 실험으로 대신 확인하지 않음 | API 호환 회귀, 실기기 변경 검증 범위 밖 |
 | Chrome·Edge·Whale 확장 / 토스 / ChatGPT 앱 | 패키지·통합 코드 변경 없음. ChatGPT는 미운영이며 기존 읽기 전용 계약 유지 | 별도 출시 없음 |
 
@@ -50,8 +57,12 @@ Web 담당은 기존 동기화 진입점의 한 번 재대조, tombstone과 이�
 - 신규 11개 회귀가 수정 전 실패하는 것을 확인했다. 일반/단일/복수 OTT, 감상/수정 정렬, 책/영상, 같은 시각의 UUID 경계, 다른 계정 제외, 삭제만 있는 목록과 cursor 종료, sync tombstone, 동일 작품의 과거 복구를 포함한다.
 - 각 목록 fixture는 자기 계정 226행 중 삭제 75행을 포함한다. 활성 151행을 cursor로 끝까지 읽고 예상 ID 순서와 정확히 비교해 중복·누락을 확인한다. OTT·콘텐츠 필터는 같은 fixture의 해당 부분집합으로 확인한다.
 - 수정 후 `SyncDeliveryDatabaseTest` **32/32 통과**: 기존 #171 21개 + 신규 #182 11개.
+- 실제 API에서 삭제 후 1µs의 같은 ID 복구가 수락되고, 인정된 이전 cursor의 정상 delta에 원래 `updatedAt`·`deletedAt=null`로 전달되는 것도 같은 suite에서 확인했다.
 - 로컬 `./gradlew test bootJar --no-daemon --max-workers=2` 성공. 전체 250건 중 실행 227건 통과, Docker 전용 23건은 실행하지 못했다. 스킵을 통과로 간주하지 않으며 등록된 CI에서 필수 PostgreSQL suite 무스킵·ARM64 컨테이너/기존 DB 업그레이드를 확인한다.
-- Web의 임시 진단은 기준 코드의 현상을 확인하기 위한 것이며 영구 중복 테스트로 넣지 않는다. 수정 후 회귀는 기존 Web 테스트 경로에 통합한다.
+- 통합 브랜치에서 `npm run test:timeline-v2 --workspace ott` **59/59 통과**. 기존 캐시 교정·두 응답 순서·늦은 목록·동일 ID 복구·실패/재시작·미전송 편집·계정 교체와 기존 충돌 복구를 검증한다.
+- Web 담당이 production build·타입 검사와 변경 파일 Biome 오류 0을 확인했다. 전체 Web lint는 고정 기준 커밋의 기존 22오류·71경고·23정보와 파일/규칙별 동일하다.
+- `BACKEND_URL=http://127.0.0.1:8080 npm run test:timeline-scroll --workspace ott`는 격리 브라우저의 실제 IndexedDB와 합성 HTTP 응답을 사용한다. 호스트의 Chromium 실행 파일은 `PLAYWRIGHT_EXECUTABLE_PATH`로 지정할 수 있다. 구 캐시 full 교정→지연 목록 무해→503 중 메모/operation/이력 보존→재시작 후 같은 payload 재전송·정식 ID 이력 귀속·대기열 0·증분 복귀와 기존 50/51/125건 스크롤을 확인한다. 운영 서버나 실제 설치 PWA를 호출하는 검증은 아니다.
+- 임시 기준 코드 진단은 소스에서 제거했다. 영구 회귀는 기존 Web 테스트 경로에 통합했다.
 
 ## 출시와 복구
 
