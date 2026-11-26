@@ -2,7 +2,7 @@
 
 [실행 이슈 #182](https://github.com/chawon/ott/issues/182) · 담당 API · 협업 Web/PWA · 기준 `main` `1beccebe1b494bbb4d55b3cd7cac6eb684d99550`
 
-작업 브랜치는 `fix/api-active-log-lists-182`다. API와 Web 수정을 [PR #184](https://github.com/chawon/ott/pull/184)에 통합했으며 최종 CI 결과는 해당 PR의 checks에서 확인한다. API `4dc2850`·추가 복구 회귀 `eba7832`, Web 담당 `458b7f8`을 통합한 `214b029`와 브라우저 검사 보완 `e99b632`가 구현 근거다. 병합·운영 배포·실제 설치판 검증은 아직 하지 않았다. 별개로 완료된 [과거 복구 증분 전달 #171](api-sync-delivery-171-2026-11-25.md)의 계약을 유지한다.
+2026년 11월 26일 [PR #184](https://github.com/chawon/ott/pull/184)를 `main` `33942ae`에 병합해 API와 Web/PWA에 배포했다. 기존 설치 PWA의 업데이트와 미전송 편집 재시도를 같은 프로필에서 확인했다. [운영 인수](https://github.com/chawon/ott/issues/182#issuecomment-7183186703) · [선행 동기화 변경 #171](api-sync-delivery-171-2026-11-25.md)
 
 ## 사용자 문제와 완료 조건
 
@@ -45,12 +45,12 @@ Web의 기존 `syncNow` 경로는 구 버전의 성공 cursor를 새 체크포�
 
 | 대상 | 변경과 검증 | 상태 |
 | --- | --- | --- |
-| API | 두 목록 SQL에 활성 조건, 기존 PostgreSQL 통합 suite에 목록·페이지·증분 삭제 회귀 추가 | 로컬 구현·검증 완료, PR #184 CI 연결 |
-| Web / 설치 PWA / 구 TWA·Windows PWA | `sync.ts`·`localStore.ts`와 홈/타임라인/상세에서 기존 오염 복구와 재발 방어. 실제 Dexie·Web 함수·Chromium으로 검증하고 설치형 캐시도 같은 소스를 사용 | 같은 PR에 통합, 실제 운영 설치판 확인 별도 |
+| API | 두 목록 SQL에 활성 조건, 기존 PostgreSQL 통합 suite에 목록·페이지·증분 삭제 회귀 추가 | 운영 배포 및 합성 계정의 공개 API 확인 완료 |
+| Web / 설치 PWA / 구 TWA·Windows PWA | `sync.ts`·`localStore.ts`와 홈/타임라인/상세에서 기존 오염 복구와 재발 방어. 실제 Dexie·Web 함수·Chromium으로 검증하고 설치형 캐시도 같은 소스를 사용 | Web 배포 및 기존 데스크톱 Chromium 설치 PWA 확인 완료. 구 TWA·Windows PWA는 공통 Web 코드 적용 |
 | Android 네이티브 / iPhone / iPad / Windows 네이티브 / macOS | 제품 코드·바이너리 변경 없음. 기존 sync DTO·삭제 전달은 유지. 해당 설치판의 개별 캐시 동작을 Web 실험으로 대신 확인하지 않음 | API 호환 회귀, 실기기 변경 검증 범위 밖 |
 | Chrome·Edge·Whale 확장 / 토스 / ChatGPT 앱 | 패키지·통합 코드 변경 없음. ChatGPT는 미운영이며 기존 읽기 전용 계약 유지 | 별도 출시 없음 |
 
-## 검증 근거
+## 배포 전 검증 근거
 
 운영 데이터는 사용하지 않고 전용 PostgreSQL 16 cluster와 무작위 schema·합성 계정/기기/작품을 사용했다. schema는 suite 종료 때 제거한다.
 
@@ -58,17 +58,23 @@ Web의 기존 `syncNow` 경로는 구 버전의 성공 cursor를 새 체크포�
 - 각 목록 fixture는 자기 계정 226행 중 삭제 75행을 포함한다. 활성 151행을 cursor로 끝까지 읽고 예상 ID 순서와 정확히 비교해 중복·누락을 확인한다. OTT·콘텐츠 필터는 같은 fixture의 해당 부분집합으로 확인한다.
 - 수정 후 `SyncDeliveryDatabaseTest` **32/32 통과**: 기존 #171 21개 + 신규 #182 11개.
 - 실제 API에서 삭제 후 1µs의 같은 ID 복구가 수락되고, 인정된 이전 cursor의 정상 delta에 원래 `updatedAt`·`deletedAt=null`로 전달되는 것도 같은 suite에서 확인했다.
-- 로컬 `./gradlew test bootJar --no-daemon --max-workers=2` 성공. 전체 250건 중 실행 227건 통과, Docker 전용 23건은 실행하지 못했다. 스킵을 통과로 간주하지 않으며 등록된 CI에서 필수 PostgreSQL suite 무스킵·ARM64 컨테이너/기존 DB 업그레이드를 확인한다.
+- 로컬 `./gradlew test bootJar --no-daemon --max-workers=2` 성공. 전체 250건 중 실행 227건 통과, Docker 전용 23건은 실행하지 못했다. 병합본 CI에서는 전체 250개가 생략 없이 통과했고 ARM64 컨테이너와 기존 DB 업그레이드도 확인했다. [API CI](https://github.com/chawon/ott/actions/runs/45759188747)
 - 통합 브랜치에서 `npm run test:timeline-v2 --workspace ott` **59/59 통과**. 기존 캐시 교정·두 응답 순서·늦은 목록·동일 ID 복구·실패/재시작·미전송 편집·계정 교체와 기존 충돌 복구를 검증한다.
 - Web 담당이 production build·타입 검사와 변경 파일 Biome 오류 0을 확인했다. 전체 Web lint는 고정 기준 커밋의 기존 22오류·71경고·23정보와 파일/규칙별 동일하다.
 - `BACKEND_URL=http://127.0.0.1:8080 npm run test:timeline-scroll --workspace ott`는 격리 브라우저의 실제 IndexedDB와 합성 HTTP 응답을 사용한다. 호스트의 Chromium 실행 파일은 `PLAYWRIGHT_EXECUTABLE_PATH`로 지정할 수 있다. 구 캐시 full 교정→지연 목록 무해→503 중 메모/operation/이력 보존→재시작 후 같은 payload 재전송·정식 ID 이력 귀속·대기열 0·증분 복귀와 기존 50/51/125건 스크롤을 확인한다. 운영 서버나 실제 설치 PWA를 호출하는 검증은 아니다.
 - 최초 브라우저 검사의 고정 pull 횟수는 default `next dev`에서 `[full, delta, delta]`로 실패했고 같은 코드의 production에서는 `[full, delta]`로 통과했다. Web 담당이 개발 모드의 effect 등록·해제·재등록을 관측했다. 검사만 보완해 응답마다 새 cursor를 발급하고 모든 요청의 계정/기기·직전 응답 cursor·재시작 시 저장된 cursor를 검사한다. full은 정확히 한 번, 쓰기는 동일 payload의 503 한 번과 수락 한 번임을 유지한다. 추가 읽기와 실제 중복 쓰기를 구분하며 default dev·production 둘 다 확인한다.
 - 임시 기준 코드 진단은 소스에서 제거했다. 영구 회귀는 기존 Web 테스트 경로에 통합했다.
 
-## 출시와 복구
+## 2026-11-26 운영 배포와 인수
 
-최종 같은 HEAD에서 API·Web CI와 캐시 인수 조건을 확인하고 본부 검토를 받는다. 이 작업의 권한은 PR·검증까지다.
+[병합 커밋 `33942ae`](https://github.com/chawon/ott/commit/33942ae09106a5ce08e4838ef5552fee152a3046)의 [API CI](https://github.com/chawon/ott/actions/runs/45759188747)와 [Web CI](https://github.com/chawon/ott/actions/runs/45759188673)가 통과했다. 같은 커밋의 API를 배포하고 실제 목록과 기기 간 삭제 수신을 확인한 뒤 Web을 배포했다. [API 배포](https://github.com/chawon/ott/actions/runs/45759656893) · [API 매니페스트](https://github.com/chawon/ott/commit/c1f93e28220294c3985f0620a6dd4ef836bac3c5) · [Web 배포](https://github.com/chawon/ott/actions/runs/45759995665) · [Web 매니페스트](https://github.com/chawon/ott/commit/9e8d680bbcd441268704843c1d487b4e1554299c)
 
-승인 후 적용 순서는 **병합 SHA의 API → 실제 활성 목록/증분 삭제 확인 → 같은 SHA의 Web → 기존 캐시 재대조·미전송 편집/재시도 확인**이다. 캐시 전체 초기화나 사용자 기록 삭제를 복구 수단으로 사용하지 않는다. 되돌릴 때 서버 필터를 제거하면 구 문제가 재발할 수 있고 Web을 되돌리면 기존 캐시 정정/늦은 응답 보호가 사라질 수 있으므로 각 영향을 판단한다. 서버 행·이력·#171 전달 정보는 이 변경에서 삭제하지 않는다.
+- **목록과 동기화.** 같은 합성 계정에서 구 API의 일반·단일 OTT·복수 OTT 목록은 각각 19·9·18건이었고 삭제 기록 6·3·6건을 포함했다. 배포 후 13·6·12건이었으며 두 정렬 모두 마지막 페이지까지 활성 ID가 누락이나 중복 없이 일치했다. 다른 기기에서 합성 기록 하나를 삭제하자 기존 기기의 다음 증분 응답에 삭제 1건이 왔고, 그다음 응답은 0건이었다. 이때 공개 `/api/logs`도 HTTP 200과 활성 12건을 반환했다.
+- **기존 기기의 첫 동기화 비용.** 합성 계정에서 운영 Pod에 포워딩해 한 번 측정한 전체 응답은 527,335바이트·200ms였다. 다음 증분은 75바이트·34ms였다. 기존 캐시를 가진 설치판의 첫 동기화는 계정의 기록과 공용 제목을 함께 받는다.
+- **기존 설치 PWA.** 운영 `8c8b064`를 실제로 설치한 Linux Chromium 147의 같은 프로필에서 업데이트했다. 기존 서비스워커에 보관한 구 운영 HTML·JS와 실제 구 목록을 재생해 잘못 저장된 행을 재현했다. 구 앱 UI 저장·구 캐시 재현·새 앱 복구에서 전송 실패(503)를 각각 한 번 제어했다. 실제 운영 쓰기는 마지막 편집 한 건이었다. 새 Web의 실제 전체 동기화 1회 뒤 구 목록을 재생해도 삭제된 카드는 0개, 같은 작품의 활성 카드와 편집 중인 카드는 각각 1개였다. 앱과 브라우저를 완전히 종료했다가 다시 열자 첫 요청이 저장된 커서에서 시작했고 전체 조회 없이 증분만 받았다. 원래 편집은 실제 서버에 한 번 전송돼 한 번 수락됐다. 대기열은 0건이 됐고 기존 이력 ID와 메모가 보존됐다. 해당 합성 기록의 서버 이력은 1건에서 2건으로 늘었고 상세 화면에도 새 이력 한 건이 표시됐다.
+- **운영 상태.** 두 서비스의 엔드포인트는 각각 새 Pod 하나를 가리켰다. 두 이미지 태그는 병합 커밋의 전체 SHA였고 `APP_VERSION`은 `33942ae`였다. 각 Pod는 1/1 Ready·재시작 0회, Argo CD는 `Synced / Healthy`였다. Web 교체 직후 공개 버전 조회에서 HTTP 502가 한 번 관측됐다. 이후 새 버전과 `/en/timeline`을 각각 5회 연속 HTTP 200으로 확인했다. [공개 Web 버전](https://ottline.app/.well-known/ottline-version)
+- **정리.** 시험에서 만든 계정·기기·작품·기록·이력·동기화 참조·분석 행은 모두 0건이 됐다. 정리한 시험 기기의 요청은 401이었고 일반 계정·기기·기록·이력 및 미귀속 기록의 전후 건수가 일치했다. [본부 운영 인수](https://github.com/chawon/ott/issues/182#issuecomment-7183186703)
 
-운영 후에는 합성 전용 계정으로 목록·sync의 활성/삭제 결과와 캐시 수렴을 확인하고 정리한다. 실제 사용자 데이터로 증명하거나 비공개 활동 통계를 이 문서에 복제하지 않는다. 운영 오류나 오프라인 미전송 손실이 확인되면 본부가 해당 배포를 보류하고 담당 재현으로 판단한다.
+### 이전 이미지로 되돌릴 때
+
+이전 API 이미지는 삭제 행을 목록에 포함하고 이전 Web 이미지는 늦게 도착한 목록 응답을 다시 저장할 수 있다. 되돌리는 구성 요소에 맞춰 목록의 삭제 제외, 기존 기기의 삭제 수신, 로컬 캐시와 미전송 편집 보존을 다시 확인한다. 서버 행과 이력, #171 전달 정보는 이 배포에서 보존했다.

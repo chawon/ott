@@ -1,5 +1,9 @@
 # Wiki Log
 
+## 2026-11-26 타임라인 삭제 기록과 설치 PWA 복구
+
+`33942ae`를 API와 Web에 배포했다. 합성 계정에서 목록의 삭제 기록 제외와 기기 간 삭제 수신을 확인했다. 업데이트 전 설치한 PWA에서 잘못 표시된 기록을 바로잡고 미전송 편집을 한 번 전송했다. [운영 배포 및 검증](../docs/changes/api-active-log-lists-182-2026-11-26.md)
+
 ## 2026-11-26 Android 첫 설치 이어받기 보완 병합
 
 PR #154를 `main` `392d0b7`에 병합했다. Android 원본 테스트 58건과 본부의 기존 동시성·기준 시각 회귀 검사 2건이 모두 통과했다. 병합본의 정식 버전명 `2.0.6 (30)` AAB와 서명을 검증했다. 한국·미국 Play 공개판은 `2.0.5`이며 실제 Chrome에서 기존 기록·미전송 변경 보존을 확인하는 일은 Android 담당이 이어간다. [본부 검토](https://github.com/chawon/ott/pull/154#pullrequestreview-6068229114) · [병합본 후보](https://github.com/chawon/ott/actions/runs/45750274521) · [담당별 후속](https://github.com/chawon/ott/issues/149#issuecomment-7182015348)
