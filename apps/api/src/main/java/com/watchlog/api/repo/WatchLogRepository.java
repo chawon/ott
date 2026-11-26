@@ -20,7 +20,8 @@ public interface WatchLogRepository extends JpaRepository<WatchLogEntity, UUID> 
 
     @Query(value = """
             select * from watch_logs w
-            where (cast(:userId as uuid) is null or w.user_id = cast(:userId as uuid))
+            where w.deleted_at is null
+              and (cast(:userId as uuid) is null or w.user_id = cast(:userId as uuid))
               and (cast(:titleId as uuid) is null or w.title_id = cast(:titleId as uuid))
               and (cast(:status as text) is null or w.status = cast(:status as text))
               and (cast(:origin as text) is null or w.origin = cast(:origin as text))
@@ -82,7 +83,8 @@ public interface WatchLogRepository extends JpaRepository<WatchLogEntity, UUID> 
 
     @Query(value = """
             select * from watch_logs w
-            where (cast(:userId as uuid) is null or w.user_id = cast(:userId as uuid))
+            where w.deleted_at is null
+              and (cast(:userId as uuid) is null or w.user_id = cast(:userId as uuid))
               and (cast(:titleId as uuid) is null or w.title_id = cast(:titleId as uuid))
               and (cast(:status as text) is null or w.status = cast(:status as text))
               and (cast(:origin as text) is null or w.origin = cast(:origin as text))
