@@ -383,8 +383,10 @@ export default function TitlePage() {
       setOrigin(localCurrent.origin ?? "LOG");
       setWatchedDate(recordDateInput(localCurrent.watchedAt));
 
-      const localHistory = await listHistoryLocal(localCurrent.id, 50);
-      if (localHistory.length > 0) setHistory(localHistory);
+      setHistory(await listHistoryLocal(localCurrent.id, 50));
+    } else {
+      setLog(null);
+      setHistory([]);
     }
     return applied;
   }, [titleId]);
@@ -400,20 +402,17 @@ export default function TitlePage() {
       if (localApplied) hadLocal = true;
 
       const t = await api<Title>(`/titles/${titleId}`);
-      const hasUser = !!getUserId();
-      const logs = hasUser
-        ? await apiWithAuth<WatchLog[]>(
-            `/logs?titleId=${encodeURIComponent(titleId)}&limit=1`,
-          )
-        : [];
-      const current = logs[0] ?? null;
-
       setTitle(t);
       await upsertTitleLocal(t);
-      if (!hasUser) return;
+      const owner = getUserId();
+      if (!owner) return;
 
+      const logs = await apiWithAuth<WatchLog[]>(
+        `/logs?titleId=${encodeURIComponent(titleId)}&limit=1`,
+      );
+      await upsertLogsLocal(logs, owner);
+      const [current = null] = await listLogsByTitleLocal(titleId, 1);
       setLog(current);
-      await upsertLogsLocal(logs);
 
       if (!current) {
         setHistory([]);
@@ -443,8 +442,15 @@ export default function TitlePage() {
       const h = await apiWithAuth<WatchLogHistory[]>(
         `/logs/${current.id}/history?limit=50`,
       );
-      setHistory(h);
-      await upsertHistoryLocal(h);
+      await upsertHistoryLocal(h, owner);
+      const [latest] = await listLogsByTitleLocal(titleId, 1);
+      if (latest?.id === current.id) {
+        setHistory(
+          latest.syncStatus === "synced"
+            ? h
+            : await listHistoryLocal(current.id, 50),
+        );
+      }
     } catch (e: any) {
       if (!hadLocal) {
         setErr(e?.message ?? tDetail("errorTitle"));

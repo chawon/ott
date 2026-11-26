@@ -368,12 +368,19 @@ for (const previousUser of [null, "previous-user"]) {
   });
 }
 
-test("a checkpoint owned by the current account keeps incremental sync", async () => {
-  const h = await harness();
-  const since = "2026-11-03T12:34:56Z";
+function seedReconciledCheckpoint(h, since) {
   h.storage.set("watchlog.lastSyncAt", since);
   h.storage.set("watchlog.lastSyncUserId", "user");
+  h.storage.set(
+    h.store.LOG_CACHE_CHECKPOINT_KEY,
+    JSON.stringify({ userId: "user", since }),
+  );
+}
 
+test("a reconciled checkpoint owned by the current account keeps incremental sync", async () => {
+  const h = await harness();
+  const since = "2026-11-03T12:34:56Z";
+  seedReconciledCheckpoint(h, since);
   await h.sync();
 
   assert.deepEqual(h.pullPaths, [
@@ -409,8 +416,7 @@ test("an old account pull finishing after pairing cannot cache its records or ad
     },
   });
   const since = "2026-11-03T12:34:56Z";
-  h.storage.set("watchlog.lastSyncAt", since);
-  h.storage.set("watchlog.lastSyncUserId", "user");
+  seedReconciledCheckpoint(h, since);
   const first = h.sync();
   await started.promise;
   h.storage.set("watchlog.userId", "paired-user");
@@ -486,8 +492,7 @@ test("recovery reads from the rejected change version and accepts sub-millisecon
           ])
         : serverPull([]),
   });
-  h.storage.set("watchlog.lastSyncUserId", "user");
-  h.storage.set("watchlog.lastSyncAt", "2026-11-04T00:00:00Z");
+  seedReconciledCheckpoint(h, "2026-11-04T00:00:00Z");
   await seed(h);
   await h.enqueue(
     operation("create_log", "create", "next"),
@@ -887,4 +892,230 @@ test("an independent save joined during an unverified stale read is sent before 
   );
   assert.equal(h.requests.filter((r) => r.log?.id === "late").length, 1);
   assertState(h, "failed", "rejected");
+});
+
+const deletionTime = "2020-02-01T00:00:00.000001Z";
+const deleted = serverRow({
+  id: "z-deleted",
+  updatedAt: deletionTime,
+  deletedAt: deletionTime,
+});
+const replacement = serverRow({
+  id: "a-restored",
+  updatedAt: "2019-01-01T00:00:00Z",
+});
+const { deletedAt: _deletedAt, ...oldListFields } = deleted;
+const oldListRow = { ...oldListFields, title };
+
+for (const [order, logs] of [
+  ["deleted first", [deleted, replacement]],
+  ["active first", [replacement, deleted]],
+]) {
+  test(`a legacy owned checkpoint repairs old list pollution and retains both identities (${order})`, async () => {
+    const h = await harness({
+      pull: (path) => serverPull(path.includes("?") ? [] : logs),
+    });
+    h.storage.set("watchlog.lastSyncUserId", "user");
+    h.storage.set("watchlog.lastSyncAt", "2026-11-03T23:00:00Z");
+    await h.store.upsertLogsLocal([oldListRow, { ...replacement, title }]);
+    await h.store.upsertHistoryLocal([
+      { ...history("deleted-history"), logId: deleted.id },
+    ]);
+
+    await h.sync();
+    await h.store.upsertLogsLocal([oldListRow]); // A pre-fix list request finishes after the repair.
+    await h.sync();
+    assert.deepEqual(h.pullPaths, [
+      "/sync/pull",
+      "/sync/pull?since=2026-11-04T00%3A00%3A00Z",
+    ]);
+    assert.equal((await h.db.logs.get(deleted.id)).deletedAt, deletionTime);
+    assert.equal((await h.db.history.get("deleted-history")).logId, deleted.id);
+    assert.deepEqual(
+      (await h.store.listLogsLocal({})).map((l) => l.id),
+      [replacement.id],
+    );
+    assert.deepEqual(
+      (await h.store.listLogsByTitleLocal(title.id, 1)).map((l) => l.id),
+      [replacement.id],
+    );
+    assert.equal(await h.store.countLogsLocal(), 1);
+  });
+}
+
+test("a cold account retains tombstones against delayed lists but accepts a strictly newer same-ID sync restore", async () => {
+  let rows = [deleted, replacement];
+  const h = await harness({ pull: () => serverPull(rows) });
+  await h.sync();
+  const { deletedAt, ...active } = deleted;
+  for (const updatedAt of ["2019-01-01T00:00:00Z", deletedAt]) {
+    rows = [{ ...active, updatedAt }];
+    await h.sync();
+    await h.store.upsertLogsLocal([oldListRow]);
+    assert.equal((await h.db.logs.get(deleted.id)).deletedAt, deletedAt);
+    assert.ok(await h.db.logs.get(replacement.id));
+  }
+  const next = "2020-02-01T00:00:00.000002Z";
+  rows = [
+    { ...active, updatedAt: next },
+    { ...replacement, deletedAt: next, updatedAt: next },
+  ];
+  await h.sync();
+  assert.deepEqual(
+    (await h.store.listLogsLocal({})).map((l) => l.id),
+    [deleted.id],
+  );
+  assert.equal((await h.db.logs.get(deleted.id)).updatedAt, next);
+  assert.equal((await h.db.logs.get(replacement.id)).deletedAt, next);
+});
+
+test("a full repair retries after a failed request and shares its completed checkpoint across reloads", async () => {
+  const indexedDB = new IDBFactory();
+  let fail = true;
+  const h = await harness({
+    indexedDB,
+    pull: () =>
+      fail ? new Response(null, { status: 503 }) : serverPull([deleted]),
+  });
+  h.storage.set("watchlog.lastSyncUserId", "user");
+  h.storage.set("watchlog.lastSyncAt", "2026-11-03T23:00:00Z");
+  await h.store.upsertLogsLocal([oldListRow]);
+  h.online.onLine = false;
+  await h.sync();
+  assert.deepEqual(h.pullPaths, []);
+  h.online.onLine = true;
+  await assert.rejects(h.sync());
+  assert.equal((await h.store.listLogsLocal({})).length, 1);
+  assert.equal(h.storage.get("watchlog.lastSyncAt"), "2026-11-03T23:00:00Z");
+  fail = false;
+  await h.sync();
+  assert.deepEqual(h.pullPaths, ["/sync/pull", "/sync/pull"]);
+  const restarted = await harness({ indexedDB });
+  for (const [key, value] of h.storage) restarted.storage.set(key, value);
+  await restarted.sync();
+  assert.deepEqual(restarted.pullPaths, [
+    "/sync/pull?since=2026-11-04T00%3A00%3A00Z",
+  ]);
+  assert.equal(await restarted.store.countLogsLocal(), 0);
+});
+
+test("pending edits survive a concurrent repair, same-title deduplication and an older list; a later retry sends the draft", async () => {
+  const started = deferred(),
+    resume = deferred();
+  const h = await harness({
+    pull: async (path) => {
+      if (path.includes("?")) return serverPull([]);
+      started.resolve();
+      await resume.promise;
+      return serverPull([replacement, deleted]);
+    },
+  });
+  await h.store.upsertLogsLocal([oldListRow]);
+  const running = h.sync();
+  await started.promise;
+  const draft = {
+    ...oldListRow,
+    note: "unsent edit",
+    syncStatus: "pending",
+    updatedAt: "2018-01-01T00:00:00Z",
+  };
+  const change = {
+    id: deleted.id,
+    op: "upsert",
+    updatedAt: draft.updatedAt,
+    payload: { titleId: title.id, note: draft.note },
+  };
+  await h.store.saveLogEdit(draft, change, {
+    ...history("draft-history", draft.note),
+    logId: draft.id,
+  });
+  const pendingOnly = { ...draft, id: "other-pending" };
+  await h.store.upsertLogLocal(pendingOnly);
+  resume.resolve();
+  await running;
+  await h.store.upsertLogsLocal([
+    oldListRow,
+    { ...oldListRow, id: pendingOnly.id },
+  ]);
+  for (const id of [draft.id, pendingOnly.id])
+    assert.equal((await h.db.logs.get(id)).note, draft.note);
+  assert.equal((await h.db.history.get("draft-history")).logId, draft.id);
+  assert.deepEqual(
+    (await h.queue()).map((row) => row.payload.log),
+    [change],
+  );
+  await h.sync();
+  assert.deepEqual(
+    h.requests.flatMap((r) => (r.log ? [r.log] : [])),
+    [change],
+  );
+  assert.deepEqual(await h.queue(), []);
+});
+
+test("a late list from the previous account cannot seed the new account after reset", async () => {
+  const h = await harness();
+  const owner = h.store.getUserId();
+  await h.store.resetLocalState();
+  h.store.setUserId("next-account");
+  await assert.rejects(h.store.upsertLogsLocal([oldListRow], owner));
+  assert.equal(await h.db.titles.count(), 0);
+  assert.equal(await h.db.logs.count(), 0);
+});
+
+test("switching accounts during the legacy repair discards the response and the original owner can retry", async () => {
+  const started = deferred(),
+    resume = deferred();
+  let count = 0;
+  const h = await harness({
+    pull: async () => {
+      if (++count === 1) {
+        started.resolve();
+        await resume.promise;
+      }
+      return serverPull(count === 2 ? [] : [deleted]);
+    },
+  });
+  h.storage.set("watchlog.lastSyncUserId", "user");
+  h.storage.set("watchlog.lastSyncAt", "2026-11-03T23:00:00Z");
+  await h.store.upsertLogsLocal([oldListRow]);
+  const running = h.sync();
+  await started.promise;
+  h.store.setUserId("different");
+  h.store.setDeviceId("another-device");
+  resume.resolve();
+  await running;
+  assert.equal((await h.db.logs.get(deleted.id)).deletedAt, undefined);
+  h.store.setUserId("user");
+  h.store.setDeviceId("device");
+  await h.sync();
+  assert.deepEqual(
+    h.requests.map((r) => [r.user, r.path]),
+    [
+      ["user", "/sync/pull"],
+      ["different", "/sync/pull"],
+      ["user", "/sync/pull"],
+    ],
+  );
+  assert.equal((await h.db.logs.get(deleted.id)).deletedAt, deletionTime);
+});
+
+test("a stale push before the upgrade pull cannot reassign an old list row's history", async () => {
+  const h = await harness({
+    push: stale,
+    pull: (path) =>
+      serverPull(path.includes("?") ? [replacement] : [deleted, replacement]),
+  });
+  h.storage.set("watchlog.lastSyncUserId", "user");
+  h.storage.set("watchlog.lastSyncAt", "2026-11-03T23:00:00Z");
+  await h.store.upsertLogsLocal([oldListRow]);
+  await h.store.upsertHistoryLocal([
+    { ...history("old-list-history"), logId: deleted.id },
+  ]);
+  const edit = operation("update_log", "old-update", replacement.id);
+  edit.payload.log.updatedAt = "2018-06-01T00:00:00Z";
+  await h.enqueue(edit);
+  await h.sync();
+  assert.deepEqual(await h.queue(), []);
+  assert.equal((await h.db.logs.get(deleted.id)).deletedAt, deletionTime);
+  assert.equal((await h.db.history.get("old-list-history")).logId, deleted.id);
 });

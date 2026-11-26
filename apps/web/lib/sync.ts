@@ -5,6 +5,7 @@ import {
   getDeviceId,
   getTitleLocal,
   getUserId,
+  LOG_CACHE_CHECKPOINT_KEY,
   listOutbox,
   outboxLogId as logId,
   recordOutboxError,
@@ -75,14 +76,28 @@ function getLastSyncAt(userId: string) {
     localStorage.getItem("watchlog.lastSyncUserId") !== userId
   )
     return null;
-  // An unowned legacy checkpoint also needs one full pull after upgrading.
-  return localStorage.getItem("watchlog.lastSyncAt");
+  // Older clients could discard tombstones after their cursor had passed them.
+  // Only a checkpoint produced by this cache format can resume incrementally.
+  try {
+    const checkpoint = JSON.parse(
+      localStorage.getItem(LOG_CACHE_CHECKPOINT_KEY) ?? "null",
+    );
+    return checkpoint?.userId === userId && typeof checkpoint.since === "string"
+      ? checkpoint.since
+      : null;
+  } catch {
+    return null;
+  }
 }
 
 function setLastSyncAt(userId: string, value: string) {
   if (typeof localStorage === "undefined" || getUserId() !== userId) return;
   localStorage.setItem("watchlog.lastSyncAt", value);
   localStorage.setItem("watchlog.lastSyncUserId", userId);
+  localStorage.setItem(
+    LOG_CACHE_CHECKPOINT_KEY,
+    JSON.stringify({ userId, since: value }),
+  );
 }
 
 type SyncIdentity = { userId: string; deviceId: string };
@@ -200,6 +215,13 @@ async function cacheLog(
     newerVersion(existing.updatedAt, row.updatedAt)
   )
     return;
+  // Lists omit deletedAt. Only a strictly newer sync change can restore this ID.
+  if (
+    existing?.deletedAt &&
+    !row.deletedAt &&
+    !newerVersion(row.updatedAt, existing.deletedAt)
+  )
+    return;
   const { titleId, ...fields } = row;
   const title =
     titles.get(titleId) ??
@@ -211,9 +233,11 @@ async function cacheLog(
     origin: row.origin ?? "LOG",
     syncStatus: "synced",
   };
-  if (!row.deletedAt)
+  // A targeted conflict read proves this ID only. The account pull can
+  // reconcile siblings after it has applied their tombstones.
+  if (!row.deletedAt && !verifiedConflict)
     await removeLogsByTitleExcept(titleId, row.id, pendingIds);
-  if (verifiedConflict || row.deletedAt) {
+  if (verifiedConflict || row.deletedAt || existing?.deletedAt) {
     // Old installations may have bumped updatedAt just for a failed badge.
     // The checked wire operation supplies the version; keep local history intact.
     const updatedAt = row.updatedAt ?? row.deletedAt;
@@ -245,7 +269,14 @@ async function pullChanges(auth: SyncIdentity) {
       }
       await upsertTitleLocal(title);
     }
-    for (const log of res.changes.logs) await cacheLog(log, titles, pending);
+    // A deleted server ID keeps its own history. Mark it before an active
+    // sibling can be mistaken for a temporary local ID to merge.
+    for (const log of res.changes.logs) {
+      if (log.deletedAt) await cacheLog(log, titles, pending);
+    }
+    for (const log of res.changes.logs) {
+      if (!log.deletedAt) await cacheLog(log, titles, pending);
+    }
   });
   requireAccount(auth);
   if (res.serverTime) setLastSyncAt(auth.userId, res.serverTime);

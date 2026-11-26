@@ -8,6 +8,9 @@ import com.watchlog.api.repo.WatchLogHistoryRepository;
 import com.watchlog.api.repo.WatchLogRepository;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.*;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.springframework.orm.jpa.JpaTransactionManager;
@@ -24,6 +27,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.UUID;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.stream.Stream;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -550,6 +556,151 @@ class SyncDeliveryDatabaseTest {
             assertThat(waiting.get(10,TimeUnit.SECONDS).accepted()).contains(title);
         } finally { release.countDown(); }
     }
+
+    static Stream<Arguments> activeLogPages() {
+        return Stream.of(
+                Arguments.of(null,false,null,50),
+                Arguments.of("Netflix",false,null,50),
+                Arguments.of("Netflix, Disney+",false,null,50),
+                Arguments.of(null,true,null,100),
+                Arguments.of("Netflix",true,null,50),
+                Arguments.of("Netflix, Disney+",true,null,50),
+                Arguments.of("Netflix, Disney+",false,"book",50),
+                Arguments.of("Netflix, Disney+",true,"video",500));
+    }
+
+    @ParameterizedTest(name="active cursor ott={0}, history={1}, type={2}, limit={3}")
+    @MethodSource("activeLogPages")
+    void listsAndCursorPagesExcludeDeletedRowsBeforeApplyingTheirLimits(String ott,boolean byHistory,String type,int limit) {
+        var fixture = seedMixedListRows();
+        Comparator<ListRow> ordering = Comparator.comparing((ListRow row) -> byHistory ? row.updated() : row.watched())
+                .thenComparing(ListRow::id).reversed();
+        var expected = fixture.stream().filter(row -> !row.deleted())
+                .filter(row -> ott == null || List.of(ott.split(",\\s*")).contains(row.ott()))
+                .filter(row -> type == null || (type.equals("book") ? row.book() : !row.book()))
+                .sorted(ordering).map(ListRow::id).toList();
+        var service = new LogService(logs,new TitleService(titles,null),history,writes);
+        // Array endpoint shares these SQL branches, but intentionally remains capped at 100.
+        if (type == null) {
+            var array = tx.execute(status -> service.list(null,null,null,ott,null,null,null,100,user,byHistory));
+            assertThat(array).extracting(com.watchlog.api.domain.WatchLogEntity::getId)
+                    .containsExactlyElementsOf(expected.subList(0,Math.min(100,expected.size())));
+            assertThat(array).allSatisfy(row -> {
+                assertThat(row.getDeletedAt()).isNull();
+                assertThat(row.getUserId()).isEqualTo(user);
+            });
+        }
+        var received = new ArrayList<UUID>();
+        String cursor = null;
+        int pageCount = 0;
+        do {
+            String requested = cursor;
+            var page = tx.execute(status -> service.listPage(null,null,null,ott,null,null,null,limit,user,byHistory,type,requested));
+            var ids = page.items().stream().map(com.watchlog.api.domain.WatchLogEntity::getId).toList();
+            assertThat(ids).hasSizeLessThanOrEqualTo(Math.min(100,limit));
+            assertThat(ids).containsExactlyElementsOf(expected.subList(received.size(),Math.min(expected.size(),received.size()+Math.min(100,limit))));
+            assertThat(page.items()).allSatisfy(row -> assertThat(row.getDeletedAt()).isNull());
+            received.addAll(ids);
+            cursor = page.nextCursor();
+            if (cursor != null) assertThat(cursor).isNotEqualTo(requested);
+            assertThat(++pageCount).isLessThan(10);
+        } while (cursor != null);
+        assertThat(received).containsExactlyElementsOf(expected).doesNotHaveDuplicates();
+        assertThat(pageCount).isEqualTo((expected.size()+Math.min(100,limit)-1)/Math.min(100,limit));
+    }
+
+    @Test
+    void deletedOnlyListsAreEmptyAndDoNotMintAnExtraCursorInEitherOttBranch() {
+        var fixture = seedMixedListRows();
+        jdbc.update("update watch_logs set deleted_at = updated_at where user_id = ?",user);
+        var service = new LogService(logs,new TitleService(titles,null),history,writes);
+        for (String ott : new String[]{null,"Netflix","Netflix, Disney+"}) {
+            var array = tx.execute(status -> service.list(null,null,null,ott,null,null,null,100,user,true));
+            var page = tx.execute(status -> service.listPage(null,null,null,ott,null,null,null,50,user,true,null,null));
+            assertThat(array).isEmpty();
+            assertThat(page.items()).isEmpty();
+            assertThat(page.nextCursor()).isNull();
+        }
+        assertThat(jdbc.queryForObject("select count(*) from watch_logs where user_id = ?",Integer.class,user)).isEqualTo(fixture.size());
+    }
+
+    @Test
+    void hidingDeletedRowsFromListsKeepsTheirIncrementalSyncTombstones() {
+        var row = restore(OLD,"active before delete");
+        jdbc.update("update watch_logs set ott = 'Netflix' where id = ?",row.log());
+        var cursor = readyCursor();
+        var deletion = OLD.plusDays(1);
+        var request = new SyncPushRequest(user,a.toString(),deletion,new SyncChanges(
+                List.of(new SyncChange<>(row.log(),"delete",deletion,null)),List.of()));
+        assertThat(tx.execute(status -> sync.push(request,"ko")).accepted()).contains(row.log());
+        var service = new LogService(logs,new TitleService(titles,null),history,writes);
+        var array = tx.execute(status -> service.list(null,null,null,null,null,null,null,100,user,false));
+        assertThat(array).isEmpty();
+        assertThat(tx.execute(status -> service.listPage(null,null,null,"Netflix, Disney+",null,null,null,50,user,true,null,null)).items()).isEmpty();
+        var delta = pull(cursor);
+        assertThat(delta.changes().logs()).filteredOn(r -> r.id().equals(row.log())).singleElement()
+                .satisfies(r -> assertThat(r.deletedAt()).isEqualTo(deletion));
+        var acknowledged = pull(delta.serverTime());
+        assertThat(acknowledged.changes().logs()).isEmpty();
+        var legacy = tx.execute(status -> logs.findUserChangesAfter(user,OLD));
+        assertThat(legacy).extracting(com.watchlog.api.domain.WatchLogEntity::getId).contains(row.log());
+        // A legitimate same-ID restore may be newer within the same millisecond.
+        var restoredAt = deletion.plusNanos(1_000);
+        assertThat(pushLog(row,restoredAt,"restored one microsecond later").accepted()).contains(row.log());
+        assertThat(pull(acknowledged.serverTime()).changes().logs()).singleElement().satisfies(r -> {
+            assertThat(r.id()).isEqualTo(row.log());
+            assertThat(r.updatedAt()).isEqualTo(restoredAt);
+            assertThat(r.deletedAt()).isNull();
+        });
+    }
+
+    @Test
+    void olderRestoredRecordMayShareATitleWithANewerTombstoneButOnlyTheLiveRowIsListed() {
+        var old = restore(OLD,"later deleted");
+        var cursor = readyCursor();
+        var deletion = OLD.plusDays(1);
+        var request = new SyncPushRequest(user,a.toString(),deletion,new SyncChanges(
+                List.of(new SyncChange<>(old.log(),"delete",deletion,null)),List.of()));
+        assertThat(tx.execute(status -> sync.push(request,"ko")).accepted()).contains(old.log());
+        var restored = new Row(old.title(),UUID.randomUUID());
+        assertThat(pushLog(restored,OLD.minusYears(1),"older restored active record").accepted()).contains(restored.log());
+        var delta = pull(cursor);
+        assertThat(delta.changes().logs()).extracting(SyncLogDto::id).containsExactly(old.log(),restored.log());
+        assertThat(delta.changes().logs().getFirst().deletedAt()).isEqualTo(deletion);
+        var service = new LogService(logs,new TitleService(titles,null),history,writes);
+        var array = tx.execute(status -> service.list(null,null,null,null,null,null,null,100,user,true));
+        assertThat(array).extracting(com.watchlog.api.domain.WatchLogEntity::getId).containsExactly(restored.log());
+    }
+
+    private List<ListRow> seedMixedListRows() {
+        var rows = new ArrayList<ListRow>();
+        var titleBatch = new ArrayList<Object[]>();
+        var logBatch = new ArrayList<Object[]>();
+        long namespace = UUID.randomUUID().getMostSignificantBits();
+        for (int i=1;i<=226;i++) {
+            var id = new UUID(namespace,i);
+            var title = UUID.randomUUID();
+            boolean book = i%2 != 0;
+            String ott = i==226 ? "Hulu" : book ? "Disney+" : "Netflix";
+            var watched = OLD.plusDays(i%4);
+            var updated = OLD.plusDays((i+1)%5);
+            boolean deleted = i%3==0;
+            rows.add(new ListRow(id,ott,book,deleted,watched,updated));
+            titleBatch.add(new Object[]{title,book ? "book" : "movie","Isolated list "+i,OLD});
+            logBatch.add(new Object[]{id,title,user,book ? "IN_PROGRESS" : "DONE",ott,watched,updated,deleted ? updated.plusDays(1) : null});
+        }
+        tx.executeWithoutResult(status -> {
+            jdbc.batchUpdate("insert into titles(id,type,name,updated_at) values (?,?,?,?)",titleBatch);
+            jdbc.batchUpdate("insert into watch_logs(id,title_id,user_id,status,ott,watched_at,updated_at,deleted_at) values (?,?,?,?,?,?,?,?)",logBatch);
+            var otherTitle = UUID.randomUUID();
+            jdbc.update("insert into titles(id,type,name,updated_at) values (?,'movie','Other account fixture',?)",otherTitle,OLD);
+            jdbc.update("insert into watch_logs(id,title_id,user_id,status,ott,watched_at,updated_at) values (?,?,?,'DONE','Netflix',?,?)",
+                    UUID.randomUUID(),otherTitle,UUID.randomUUID(),OLD,OLD);
+        });
+        return rows;
+    }
+
+    private record ListRow(UUID id,String ott,boolean book,boolean deleted,OffsetDateTime watched,OffsetDateTime updated) {}
 
     private SyncPullResponse pull(OffsetDateTime cursor) {
         return tx.execute(status -> sync.pull(cursor,user,b));

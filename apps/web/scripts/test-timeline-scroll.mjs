@@ -98,20 +98,18 @@ try {
     viewport: { width: 390, height: 844 },
     serviceWorkers: "block",
   });
-  await context.addInitScript(() => {
+  const identity = {
+    userId: "00000000-0000-4000-8000-000000000001",
+    deviceId: "00000000-0000-4000-8000-000000000002",
+  };
+  await context.addInitScript(({ userId, deviceId }) => {
     try {
-      localStorage.setItem(
-        "watchlog.userId",
-        "00000000-0000-4000-8000-000000000001",
-      );
-      localStorage.setItem(
-        "watchlog.deviceId",
-        "00000000-0000-4000-8000-000000000002",
-      );
+      localStorage.setItem("watchlog.userId", userId);
+      localStorage.setItem("watchlog.deviceId", deviceId);
       localStorage.setItem("watchlog.pairingCode", "TESTCODE");
       localStorage.setItem("watchlog.lastSyncAt", "2026-09-14T00:00:00.000Z");
     } catch {}
-  });
+  }, identity);
   const page = await context.newPage();
   let serverLogs = fixture(125);
   const requestedCursors = [];
@@ -249,6 +247,185 @@ try {
 
   console.log(
     "PASS: server cursors, offline cache, 50/51 boundaries, search, and responsive fallback work",
+  );
+
+  const [oldListRow, restored, lateMarker] = fixture(3);
+  restored.title = oldListRow.title;
+  restored.titleId = oldListRow.titleId;
+  serverLogs = [oldListRow, restored];
+  await clearLocalLogs();
+  await page.reload();
+  await countIs(2);
+  // Model a cache written by the old Web with a valid post-deletion cursor.
+  await page.evaluate(() =>
+    localStorage.removeItem("watchlog.logCacheCheckpoint.v1"),
+  );
+  const draft = {
+    ...restored,
+    id: "pending-create",
+    note: "Offline edit",
+    syncStatus: "pending",
+  };
+  const change = {
+    id: draft.id,
+    op: "upsert",
+    updatedAt: "2026-09-15T00:00:00Z",
+    payload: { titleId: draft.titleId, status: draft.status, note: draft.note },
+  };
+  async function readDraft(seed = false) {
+    return page.evaluate(
+      ({ draft, change, seed, canonicalId }) =>
+        new Promise((resolve, reject) => {
+          const open = indexedDB.open("watchlog");
+          open.onerror = () => reject(open.error);
+          open.onsuccess = () => {
+            const db = open.result;
+            const tx = db.transaction(
+              ["logs", "outbox", "history"],
+              seed ? "readwrite" : "readonly",
+            );
+            const logs = tx.objectStore("logs"),
+              outbox = tx.objectStore("outbox"),
+              history = tx.objectStore("history");
+            if (seed) {
+              logs.put(draft);
+              outbox.put({
+                id: "queued-create",
+                userId: localStorage.getItem("watchlog.userId"),
+                type: "create_log",
+                localLogId: draft.id,
+                payload: { log: change },
+                createdAt: draft.createdAt,
+                attempts: 0,
+              });
+              history.put({
+                id: "draft-history",
+                logId: draft.id,
+                recordedAt: draft.createdAt,
+                note: draft.note,
+              });
+            }
+            const row = logs.get(draft.id),
+              canonical = logs.get(canonicalId),
+              operation = outbox.get("queued-create"),
+              snapshot = history.get("draft-history");
+            tx.oncomplete = () => {
+              db.close();
+              resolve({
+                row: row.result,
+                canonical: canonical.result,
+                operation: operation.result,
+                snapshot: snapshot.result,
+              });
+            };
+            tx.onabort = () => {
+              db.close();
+              reject(tx.error);
+            };
+          };
+        }),
+      { draft, change, seed, canonicalId: restored.id },
+    );
+  }
+  await readDraft(true);
+  let accept = false;
+  let hasServerEdit = false;
+  const pushes = [];
+  function checkIdentity(request) {
+    assert.equal(request.headers()["x-user-id"], identity.userId);
+    assert.equal(request.headers()["x-device-id"], identity.deviceId);
+  }
+  await page.route("**/api/sync/push", (route) => {
+    const request = route.request();
+    checkIdentity(request);
+    const { logs } = request.postDataJSON().changes;
+    assert.equal(logs.length, 1);
+    pushes.push({
+      change: logs[0],
+      status: accept ? 200 : 503,
+    });
+    if (!accept) return route.fulfill({ status: 503, json: {} });
+    hasServerEdit = true;
+    return route.fulfill({ json: { accepted: [draft.id], rejected: [] } });
+  });
+  const full = Promise.withResolvers();
+  const list = Promise.withResolvers();
+  const pulls = [];
+  await page.route("**/api/sync/pull*", async (route) => {
+    checkIdentity(route.request());
+    const since = new URL(route.request().url()).searchParams.get("since");
+    // Each response issues a different cursor. Additional lifecycle reads
+    // must continue from the last response, including in development Strict Mode.
+    assert.equal(since, pulls.at(-1)?.serverTime ?? null);
+    const serverTime = new Date(
+      Date.UTC(2026, 8, 15, 1) + pulls.length,
+    ).toISOString();
+    pulls.push({ since, serverTime });
+    if (!since) await full.promise;
+    const logs = since
+      ? []
+      : [{ ...oldListRow, deletedAt: oldListRow.updatedAt }, restored];
+    if (since && hasServerEdit) {
+      logs.push({ ...restored, updatedAt: change.updatedAt, note: draft.note });
+      hasServerEdit = false;
+    }
+    return route.fulfill({
+      json: {
+        serverTime,
+        changes: { logs, titles: since ? [] : [restored.title] },
+      },
+    });
+  });
+  await page.route("**/api/logs/page*", async (route) => {
+    await list.promise;
+    return route.fulfill({
+      json: { items: [oldListRow, lateMarker], nextCursor: null },
+    });
+  });
+  await Promise.all([
+    page.waitForRequest("**/api/logs/page*"),
+    page.waitForRequest("**/api/sync/pull"),
+    page.reload(),
+  ]);
+  await countIs(3);
+  full.resolve();
+  await countIs(2);
+  list.resolve();
+  await page.getByRole("link", { name: lateMarker.title.name }).waitFor();
+  await countIs(3);
+  const pending = await readDraft();
+  assert.equal(pending.row.note, draft.note);
+  assert.deepEqual(pending.operation.payload.log, change);
+  assert.equal(pending.snapshot.logId, draft.id);
+  assert.deepEqual(pushes, [{ change, status: 503 }]);
+  const checkpoint = await page.evaluate(() =>
+    JSON.parse(localStorage.getItem("watchlog.logCacheCheckpoint.v1")),
+  );
+  assert.deepEqual(checkpoint, {
+    userId: identity.userId,
+    since: pulls.at(-1).serverTime,
+  });
+  const beforeReload = pulls.length;
+  accept = true;
+  await Promise.all([
+    page.waitForRequest("**/api/sync/pull?since=*"),
+    page.reload(),
+  ]);
+  await countIs(2);
+  const retried = await readDraft();
+  assert.equal(retried.row, undefined);
+  assert.equal(retried.canonical.note, draft.note);
+  assert.equal(retried.operation, undefined);
+  assert.equal(retried.snapshot.logId, restored.id);
+  assert.equal(retried.snapshot.note, draft.note);
+  assert.deepEqual(pushes, [
+    { change, status: 503 },
+    { change, status: 200 },
+  ]);
+  assert.equal(pulls[beforeReload].since, checkpoint.since);
+  assert.equal(pulls.filter((request) => request.since === null).length, 1);
+  console.log(
+    "PASS: persisted cache repair, delayed legacy list, outbox and history retention, then retry and incremental sync on reload",
   );
 } catch (error) {
   if (serverOutput) console.error(serverOutput);
