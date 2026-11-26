@@ -640,9 +640,18 @@ class SyncDeliveryDatabaseTest {
         var delta = pull(cursor);
         assertThat(delta.changes().logs()).filteredOn(r -> r.id().equals(row.log())).singleElement()
                 .satisfies(r -> assertThat(r.deletedAt()).isEqualTo(deletion));
-        assertThat(pull(delta.serverTime()).changes().logs()).isEmpty();
+        var acknowledged = pull(delta.serverTime());
+        assertThat(acknowledged.changes().logs()).isEmpty();
         var legacy = tx.execute(status -> logs.findUserChangesAfter(user,OLD));
         assertThat(legacy).extracting(com.watchlog.api.domain.WatchLogEntity::getId).contains(row.log());
+        // A legitimate same-ID restore may be newer within the same millisecond.
+        var restoredAt = deletion.plusNanos(1_000);
+        assertThat(pushLog(row,restoredAt,"restored one microsecond later").accepted()).contains(row.log());
+        assertThat(pull(acknowledged.serverTime()).changes().logs()).singleElement().satisfies(r -> {
+            assertThat(r.id()).isEqualTo(row.log());
+            assertThat(r.updatedAt()).isEqualTo(restoredAt);
+            assertThat(r.deletedAt()).isNull();
+        });
     }
 
     @Test
