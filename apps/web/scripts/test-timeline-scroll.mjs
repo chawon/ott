@@ -98,20 +98,18 @@ try {
     viewport: { width: 390, height: 844 },
     serviceWorkers: "block",
   });
-  await context.addInitScript(() => {
+  const identity = {
+    userId: "00000000-0000-4000-8000-000000000001",
+    deviceId: "00000000-0000-4000-8000-000000000002",
+  };
+  await context.addInitScript(({ userId, deviceId }) => {
     try {
-      localStorage.setItem(
-        "watchlog.userId",
-        "00000000-0000-4000-8000-000000000001",
-      );
-      localStorage.setItem(
-        "watchlog.deviceId",
-        "00000000-0000-4000-8000-000000000002",
-      );
+      localStorage.setItem("watchlog.userId", userId);
+      localStorage.setItem("watchlog.deviceId", deviceId);
       localStorage.setItem("watchlog.pairingCode", "TESTCODE");
       localStorage.setItem("watchlog.lastSyncAt", "2026-09-14T00:00:00.000Z");
     } catch {}
-  });
+  }, identity);
   const page = await context.newPage();
   let serverLogs = fixture(125);
   const requestedCursors = [];
@@ -276,7 +274,7 @@ try {
   };
   async function readDraft(seed = false) {
     return page.evaluate(
-      ({ draft, change, seed }) =>
+      ({ draft, change, seed, canonicalId }) =>
         new Promise((resolve, reject) => {
           const open = indexedDB.open("watchlog");
           open.onerror = () => reject(open.error);
@@ -308,12 +306,14 @@ try {
               });
             }
             const row = logs.get(draft.id),
+              canonical = logs.get(canonicalId),
               operation = outbox.get("queued-create"),
               snapshot = history.get("draft-history");
             tx.oncomplete = () => {
               db.close();
               resolve({
                 row: row.result,
+                canonical: canonical.result,
                 operation: operation.result,
                 snapshot: snapshot.result,
               });
@@ -324,34 +324,55 @@ try {
             };
           };
         }),
-      { draft, change, seed },
+      { draft, change, seed, canonicalId: restored.id },
     );
   }
   await readDraft(true);
   let accept = false;
+  let hasServerEdit = false;
   const pushes = [];
+  function checkIdentity(request) {
+    assert.equal(request.headers()["x-user-id"], identity.userId);
+    assert.equal(request.headers()["x-device-id"], identity.deviceId);
+  }
   await page.route("**/api/sync/push", (route) => {
-    pushes.push(route.request().postDataJSON().changes.logs[0]);
-    return accept
-      ? route.fulfill({ json: { accepted: [draft.id], rejected: [] } })
-      : route.fulfill({ status: 503, json: {} });
+    const request = route.request();
+    checkIdentity(request);
+    const { logs } = request.postDataJSON().changes;
+    assert.equal(logs.length, 1);
+    pushes.push({
+      change: logs[0],
+      status: accept ? 200 : 503,
+    });
+    if (!accept) return route.fulfill({ status: 503, json: {} });
+    hasServerEdit = true;
+    return route.fulfill({ json: { accepted: [draft.id], rejected: [] } });
   });
   const full = Promise.withResolvers();
   const list = Promise.withResolvers();
   const pulls = [];
   await page.route("**/api/sync/pull*", async (route) => {
+    checkIdentity(route.request());
     const since = new URL(route.request().url()).searchParams.get("since");
-    pulls.push(since);
+    // Each response issues a different cursor. Additional lifecycle reads
+    // must continue from the last response, including in development Strict Mode.
+    assert.equal(since, pulls.at(-1)?.serverTime ?? null);
+    const serverTime = new Date(
+      Date.UTC(2026, 8, 15, 1) + pulls.length,
+    ).toISOString();
+    pulls.push({ since, serverTime });
     if (!since) await full.promise;
+    const logs = since
+      ? []
+      : [{ ...oldListRow, deletedAt: oldListRow.updatedAt }, restored];
+    if (since && hasServerEdit) {
+      logs.push({ ...restored, updatedAt: change.updatedAt, note: draft.note });
+      hasServerEdit = false;
+    }
     return route.fulfill({
       json: {
-        serverTime: "2026-09-15T01:00:00Z",
-        changes: {
-          logs: since
-            ? [{ ...restored, updatedAt: change.updatedAt, note: draft.note }]
-            : [{ ...oldListRow, deletedAt: oldListRow.updatedAt }, restored],
-          titles: since ? [] : [restored.title],
-        },
+        serverTime,
+        changes: { logs, titles: since ? [] : [restored.title] },
       },
     });
   });
@@ -376,6 +397,15 @@ try {
   assert.equal(pending.row.note, draft.note);
   assert.deepEqual(pending.operation.payload.log, change);
   assert.equal(pending.snapshot.logId, draft.id);
+  assert.deepEqual(pushes, [{ change, status: 503 }]);
+  const checkpoint = await page.evaluate(() =>
+    JSON.parse(localStorage.getItem("watchlog.logCacheCheckpoint.v1")),
+  );
+  assert.deepEqual(checkpoint, {
+    userId: identity.userId,
+    since: pulls.at(-1).serverTime,
+  });
+  const beforeReload = pulls.length;
   accept = true;
   await Promise.all([
     page.waitForRequest("**/api/sync/pull?since=*"),
@@ -383,10 +413,17 @@ try {
   ]);
   await countIs(2);
   const retried = await readDraft();
+  assert.equal(retried.row, undefined);
+  assert.equal(retried.canonical.note, draft.note);
   assert.equal(retried.operation, undefined);
   assert.equal(retried.snapshot.logId, restored.id);
-  assert.deepEqual(pushes, [change, change]);
-  assert.deepEqual(pulls, [null, "2026-09-15T01:00:00Z"]);
+  assert.equal(retried.snapshot.note, draft.note);
+  assert.deepEqual(pushes, [
+    { change, status: 503 },
+    { change, status: 200 },
+  ]);
+  assert.equal(pulls[beforeReload].since, checkpoint.since);
+  assert.equal(pulls.filter((request) => request.since === null).length, 1);
   console.log(
     "PASS: persisted cache repair, delayed legacy list, outbox and history retention, then retry and incremental sync on reload",
   );
