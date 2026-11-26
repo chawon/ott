@@ -1066,6 +1066,223 @@ class HandoffRecoveryTest {
         assertEquals(1, logs.size)
         assertEquals("매드맥스", logs.first().title.name)
     }
+
+    @Test
+    fun missingOrBlankServerTimeOnFullPull_preservesExistingLogsAndRetry_andValidServerTimeOnEmptyAccountCompletes() = runBlocking {
+        prefs.saveAuth("u-checkpoint", "d-checkpoint", "CHK-1111")
+        // Seed one existing synced record to verify it is preserved when full pull lacks valid serverTime
+        val existingTitle = Title(
+            id = "t-existing-chk",
+            type = TitleType.MOVIE,
+            name = "컨택트",
+            year = 2016,
+            provider = Provider.TMDB,
+            providerId = "329865"
+        )
+        db.titleDao().upsert(app.ottline.data.local.TitleEntity.fromModel(existingTitle))
+        db.watchLogDao().upsert(
+            app.ottline.data.local.WatchLogEntity(
+                id = "l-existing-chk",
+                titleId = existingTitle.id,
+                status = "DONE",
+                rating = 5.0,
+                note = "기존 기록 보존 확인",
+                spoiler = false,
+                ott = "넷플릭스",
+                seasonNumber = null,
+                episodeNumber = null,
+                seasonPosterUrl = null,
+                seasonYear = null,
+                origin = "LOG",
+                syncStatus = "synced",
+                watchedAt = "2026-11-20T00:00:00Z",
+                place = null,
+                occasion = null,
+                createdAt = "2026-11-20T00:00:00Z",
+                updatedAt = "2026-11-20T00:00:00Z",
+                deletedAt = null
+            )
+        )
+
+        val pullPaths = CopyOnWriteArrayList<String>()
+        var pullResponseBody = """{"changes":{"titles":[],"logs":[]}}"""
+
+        server.dispatcher = object : Dispatcher() {
+            override fun dispatch(request: RecordedRequest): MockResponse {
+                val path = request.path.orEmpty()
+                return when {
+                    path == "/api/auth/profile" -> MockResponse().setResponseCode(200)
+                        .setBody("""{"userId":"u-checkpoint","nickname":"체크포인트","pairingCode":"CHK-1111"}""")
+                    path.startsWith("/api/sync/pull") -> {
+                        pullPaths.add(path)
+                        MockResponse().setResponseCode(200).setBody(pullResponseBody)
+                    }
+                    path == "/api/nalytic/events" -> MockResponse().setResponseCode(202)
+                    path.startsWith("/api/android/") -> MockResponse().setResponseCode(200).setBody("{}")
+                    else -> MockResponse().setResponseCode(404)
+                }
+            }
+        }
+
+        // 1. Missing serverTime on HTTP 200 -> MUST NOT mark completed; preserves existing log & retry state
+        val missingOutcome = repository.completeTwaHandoffWithOutcome(
+            status = "ok",
+            userId = "u-checkpoint",
+            deviceId = "d-checkpoint",
+            pairingCode = "CHK-1111",
+            nickname = "체크포인트",
+            personaKey = null
+        )
+        assertEquals(OttlineRepository.HandoffOutcome.SERVER_ERROR, missingOutcome)
+        assertFalse(prefs.current.twaBrowserHandoffCompleted)
+        assertFalse(prefs.current.twaMigrationBannerDismissed)
+        assertNull(prefs.current.lastSyncAt)
+        assertEquals(BrowserHandoffState.FAILED, prefs.current.browserHandoffState)
+        assertEquals(1, db.watchLogDao().getActiveLogs().size)
+        assertEquals("컨택트", repository.activeLogsFlow.first().first().title.name)
+
+        // 2. Blank serverTime -> still SERVER_ERROR, retry preserved
+        pullResponseBody = """{"serverTime":"   ","changes":{"titles":[],"logs":[]}}"""
+        val blankOutcome = repository.completeTwaHandoffWithOutcome(
+            status = "ok",
+            userId = "u-checkpoint",
+            deviceId = "d-checkpoint",
+            pairingCode = "CHK-1111",
+            nickname = "체크포인트",
+            personaKey = null
+        )
+        assertEquals(OttlineRepository.HandoffOutcome.SERVER_ERROR, blankOutcome)
+        assertFalse(prefs.current.twaBrowserHandoffCompleted)
+        assertNull(prefs.current.lastSyncAt)
+        assertEquals(1, db.watchLogDao().getActiveLogs().size)
+
+        // 3. Invalid non-timestamp serverTime -> still SERVER_ERROR
+        pullResponseBody = """{"serverTime":"not-a-timestamp","changes":{"titles":[],"logs":[]}}"""
+        val invalidOutcome = repository.completeTwaHandoffWithOutcome(
+            status = "ok",
+            userId = "u-checkpoint",
+            deviceId = "d-checkpoint",
+            pairingCode = "CHK-1111",
+            nickname = "체크포인트",
+            personaKey = null
+        )
+        assertEquals(OttlineRepository.HandoffOutcome.SERVER_ERROR, invalidOutcome)
+        assertFalse(prefs.current.twaBrowserHandoffCompleted)
+        assertNull(prefs.current.lastSyncAt)
+
+        // 4. Valid serverTime on an empty account (titles=[], logs=[]) -> completes cleanly & persists serverTime
+        db.watchLogDao().clearAll()
+        db.titleDao().clearAll()
+        pullResponseBody = """{"serverTime":"2026-11-26T03:00:00Z","changes":{"titles":[],"logs":[]}}"""
+        val validEmptyOutcome = repository.completeTwaHandoffWithOutcome(
+            status = "ok",
+            userId = "u-checkpoint",
+            deviceId = "d-checkpoint",
+            pairingCode = "CHK-1111",
+            nickname = "체크포인트",
+            personaKey = null
+        )
+        assertEquals(OttlineRepository.HandoffOutcome.CONNECTED, validEmptyOutcome)
+        assertTrue(prefs.current.twaBrowserHandoffCompleted)
+        assertTrue(prefs.current.twaMigrationBannerDismissed)
+        assertEquals(BrowserHandoffState.COMPLETED, prefs.current.browserHandoffState)
+        assertEquals("2026-11-26T03:00:00Z", prefs.current.lastSyncAt)
+        assertTrue(pullPaths.all { it == "/api/sync/pull" })
+    }
+
+    @Test
+    fun overlappingIncrementalSyncWithValidServerTime_followedByHandoffMissingServerTime_doesNotMarkCompleted() = runBlocking {
+        prefs.saveAuth("u-ovlp-chk", "d-ovlp-chk", "OVLP-CHK")
+        prefs.setLastSyncAt("2026-11-25T00:00:00Z")
+
+        val incrementalStarted = CountDownLatch(1)
+        val releaseIncremental = CountDownLatch(1)
+        val profileDone = CountDownLatch(1)
+        val pullPaths = CopyOnWriteArrayList<String>()
+        var omitHandoffServerTime = true
+
+        server.dispatcher = object : Dispatcher() {
+            override fun dispatch(request: RecordedRequest): MockResponse {
+                val path = request.path.orEmpty()
+                return when {
+                    path == "/api/auth/profile" -> {
+                        profileDone.countDown()
+                        MockResponse().setResponseCode(200)
+                            .setBody("""{"userId":"u-ovlp-chk","nickname":"겹침시각","pairingCode":"OVLP-CHK"}""")
+                    }
+                    path.startsWith("/api/sync/pull") -> {
+                        pullPaths.add(path)
+                        if (path.contains("since=")) {
+                            incrementalStarted.countDown()
+                            releaseIncremental.await(5, TimeUnit.SECONDS)
+                            MockResponse().setResponseCode(200)
+                                .setBody("""{"serverTime":"2026-11-25T12:00:00Z","changes":{"titles":[],"logs":[]}}""")
+                        } else if (omitHandoffServerTime) {
+                            MockResponse().setResponseCode(200)
+                                .setBody("""{"changes":{"titles":[],"logs":[]}}""")
+                        } else {
+                            MockResponse().setResponseCode(200)
+                                .setBody("""{"serverTime":"2026-11-26T03:10:00Z","changes":{"titles":[],"logs":[]}}""")
+                        }
+                    }
+                    path == "/api/nalytic/events" -> MockResponse().setResponseCode(202)
+                    path.startsWith("/api/android/") -> MockResponse().setResponseCode(200).setBody("{}")
+                    else -> MockResponse().setResponseCode(404)
+                }
+            }
+        }
+
+        val incJob = async(Dispatchers.IO) { repository.syncOutbox() }
+        assertTrue(incrementalStarted.await(5, TimeUnit.SECONDS))
+
+        val handoffJob = async(Dispatchers.IO) {
+            repository.completeTwaHandoffWithOutcome(
+                status = "ok",
+                userId = "u-ovlp-chk",
+                deviceId = "d-ovlp-chk",
+                pairingCode = "OVLP-CHK",
+                nickname = "겹침시각",
+                personaKey = null
+            )
+        }
+        assertTrue(profileDone.await(5, TimeUnit.SECONDS))
+        Thread.sleep(150)
+        releaseIncremental.countDown()
+
+        incJob.await()
+        val firstOutcome = handoffJob.await()
+
+        // Earlier incremental 200 wrote serverTime, but handoff full pull omitted serverTime -> MUST NOT complete
+        assertEquals(OttlineRepository.HandoffOutcome.SERVER_ERROR, firstOutcome)
+        assertFalse(prefs.current.twaBrowserHandoffCompleted)
+        assertFalse(prefs.current.twaMigrationBannerDismissed)
+        assertNull(prefs.current.lastSyncAt)
+        assertEquals(BrowserHandoffState.FAILED, prefs.current.browserHandoffState)
+        assertTrue(
+            BrowserHandoffPolicy.shouldShowHomeHandoffCard(
+                prefs = prefs.current,
+                activeLogCount = 0,
+                hasTwaFootprint = false
+            )
+        )
+
+        // Retry with valid serverTime completes cleanly
+        omitHandoffServerTime = false
+        val retryOutcome = repository.completeTwaHandoffWithOutcome(
+            status = "ok",
+            userId = "u-ovlp-chk",
+            deviceId = "d-ovlp-chk",
+            pairingCode = "OVLP-CHK",
+            nickname = "겹침시각",
+            personaKey = null
+        )
+        assertEquals(OttlineRepository.HandoffOutcome.CONNECTED, retryOutcome)
+        assertTrue(prefs.current.twaBrowserHandoffCompleted)
+        assertTrue(prefs.current.twaMigrationBannerDismissed)
+        assertEquals(BrowserHandoffState.COMPLETED, prefs.current.browserHandoffState)
+        assertEquals("2026-11-26T03:10:00Z", prefs.current.lastSyncAt)
+        assertEquals(2, pullPaths.count { it == "/api/sync/pull" })
+    }
 }
 
 private class FaultInjectingSqliteDriver(

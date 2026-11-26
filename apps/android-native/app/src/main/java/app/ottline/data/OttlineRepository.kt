@@ -36,6 +36,8 @@ import app.ottline.model.UpdateUserProfileRequest
 import app.ottline.model.UserProfile
 import app.ottline.model.WatchLog
 import app.ottline.model.WatchLogHistory
+import java.time.Instant
+import java.time.OffsetDateTime
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicBoolean
@@ -505,7 +507,8 @@ class OttlineRepository(
     /**
      * Runs a dedicated full sync (`since = null`) strictly serialized under `syncMutex` so an
      * overlapping incremental sync response can never refill `lastSyncAt` before handoff pulls,
-     * and pull failures are never masked by an empty outbox.
+     * pull failures are never masked by an empty outbox, and completion requires a valid
+     * `serverTime` checkpoint to be received and persisted by this full pull.
      */
     private suspend fun syncForHandoffFullPull(): Boolean {
         return syncMutex.withLock {
@@ -513,10 +516,12 @@ class OttlineRepository(
             prefs.setLastSyncAt(null)
             val handoffResult = runSingleSyncCycle(
                 forceFullPull = true,
-                failOnPullError = true
+                failOnPullError = true,
+                requireValidServerTime = true
             )
             _syncState.value = handoffResult
-            val handoffSucceeded = handoffResult.status == SyncStatus.IDLE
+            val handoffSucceeded = handoffResult.status == SyncStatus.IDLE &&
+                normalizeValidServerTime(prefs.current.lastSyncAt) != null
             while (syncRequestedAgain) {
                 syncRequestedAgain = false
                 _syncState.value = runSingleSyncCycle()
@@ -525,9 +530,17 @@ class OttlineRepository(
         }
     }
 
+    private fun normalizeValidServerTime(raw: String?): String? {
+        val cleaned = raw?.trim()?.takeIf { it.isNotEmpty() } ?: return null
+        val isIsoTimestamp = runCatching { Instant.parse(cleaned) }.isSuccess ||
+            runCatching { OffsetDateTime.parse(cleaned) }.isSuccess
+        return if (isIsoTimestamp) cleaned else null
+    }
+
     private suspend fun runSingleSyncCycle(
         forceFullPull: Boolean = false,
-        failOnPullError: Boolean = false
+        failOnPullError: Boolean = false,
+        requireValidServerTime: Boolean = false
     ): SyncState {
         if (initialDedupChecked.compareAndSet(false, true)) {
             deduplicateLocalRecordsIfNeeded()
@@ -625,7 +638,10 @@ class OttlineRepository(
         }
 
         try {
-            pullChangesInternal(forceFull = forceFullPull)
+            pullChangesInternal(
+                forceFull = forceFullPull,
+                requireValidServerTime = requireValidServerTime
+            )
         } catch (_: Exception) {
             if (pushFailure == null && (failOnPullError || items.isNotEmpty())) {
                 pushFailure = SyncFailureReason.REQUEST
@@ -695,9 +711,16 @@ class OttlineRepository(
         )
     }
 
-    private suspend fun pullChangesInternal(forceFull: Boolean = false) {
+    private suspend fun pullChangesInternal(
+        forceFull: Boolean = false,
+        requireValidServerTime: Boolean = false
+    ) {
         val since = if (forceFull) null else prefs.current.lastSyncAt
         val pull = api.pullSync(since)
+        val validServerTime = normalizeValidServerTime(pull.serverTime)
+        if (requireValidServerTime && validServerTime == null) {
+            throw IllegalStateException("Sync pull response missing valid serverTime")
+        }
 
         val pulledTitleIds = pull.changes.titles.mapTo(HashSet()) { it.id }
         val missingTitleIds = pull.changes.logs
@@ -818,8 +841,8 @@ class OttlineRepository(
             }
         }
 
-        if (pull.serverTime.isNotBlank()) {
-            prefs.setLastSyncAt(pull.serverTime)
+        if (validServerTime != null) {
+            prefs.setLastSyncAt(validServerTime)
         }
     }
 
