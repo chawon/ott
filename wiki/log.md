@@ -1,5 +1,11 @@
 # Wiki Log
 
+## 2026-11-25 Web 동기화·Apple 스토어 안내 배포와 Windows 공개판 확인
+
+Web `8c8b064` 배포 후 기존 Chromium 설치 PWA를 다시 열었다. 구버전에서 준비한 별도 프로필의 기록과 이력을 확인했다. 미등록 합성 계정의 대기열은 배포 전후 연속성을 판정할 수 없어 담당 이슈에 검증 한계를 남겼다. 설치 프로필의 복사본과 운영 QA 계정의 두 기기로 충돌 후 후속 기록이 한 번 전송되고, 재시작 뒤 기록 2건과 빈 대기열이 유지됨을 확인했다. API는 `1dc6825`였고 두 Pod는 각 1/1 Ready, 재시작 0회였다. iPhone 환경을 모사한 Chromium에서 한국어 웹의 첫 기록을 저장하고 Apple 스토어 안내를 눌렀다. 노출·클릭을 운영 DB에서 확인했다. 실제 Apple 기기에서 스토어 전환과 마케팅 14일 집계를 이어간다. [Web 배포](https://github.com/chawon/ott/actions/runs/45615659458) · [동기화 인수](https://github.com/chawon/ott/issues/162#issuecomment-7162996402) · [스토어 안내 검증](https://github.com/chawon/ott/issues/175#issuecomment-7163045122)
+
+한국·미국 Microsoft Store에서 x64·arm64 `2.0.2.0` 공개를 확인해 이전 심사 상태를 갱신했다. 후속 `2.0.3.0`은 코드 병합·CI까지 완료했다. Android 공개판은 `2.0.5`이며 `2.0.6` 후보의 이어받기 완료 판정은 Android 담당이 보완한다. 달력·회상 카드 기획을 인수했고 제품 착수는 남은 안전성 검증 후 본부가 결정한다. [Windows 공개 근거](pages/platforms/ms-store.md) · [Android 검토](https://github.com/chawon/ott/pull/154#pullrequestreview-6057872444) · [달력 기획](https://github.com/chawon/ott/issues/176#issuecomment-7162885089) · [본부 착수 조건](https://github.com/chawon/ott/issues/158#issuecomment-7162888057)
+
 ## 2026-11-25 공통 API에서 페어링 기기의 과거 기록 수신 복구
 
 API `1dc6825`와 Flyway V33을 배포했다. 공개 API에서 배포 전 증분 조회가 놓친 기록을 같은 기기가 다음 동기화로 받았고, 과거 편집과 최신 편집이 동시에 도착해도 최신 메모가 남는 것을 확인했다. [PR #183](https://github.com/chawon/ott/pull/183) · [운영 배포](https://github.com/chawon/ott/actions/runs/45613732985) · [검증 기록](../docs/changes/api-sync-delivery-171-2026-11-25.md)

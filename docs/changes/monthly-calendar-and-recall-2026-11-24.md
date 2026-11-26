@@ -1,6 +1,6 @@
-# 포스터/표지 월간 기록 달력 및 저부담 회상 카드 기획 변경안 초안
+# 포스터/표지 월간 기록 달력 및 저부담 회상 카드 기획 변경안
 
-> 상태: **기획 보완 초안 (2순위 탐색 후보 · 제품 오너 정책 확정 반영 · 본부 재검토 요청)** · 작성일: `2026-11-24` · 기준 `main` [`81b0a0c`](https://github.com/chawon/ott/commit/81b0a0c) · 연결: [#176](https://github.com/chawon/ott/issues/176) · [#158](https://github.com/chawon/ott/issues/158) · [#159](https://github.com/chawon/ott/issues/159) · [#169](https://github.com/chawon/ott/issues/169) · 기술 검토: [API #179](https://github.com/chawon/ott/issues/179) · [Web/PWA #180](https://github.com/chawon/ott/issues/180)
+> 상태: **기획 인수 완료(11월 25일) · 안전성 복구 후 Web 구현 착수 판단** · 작성일: `2026-11-24` · 기준 `main` [`81b0a0c`](https://github.com/chawon/ott/commit/81b0a0c) · 연결: [#176](https://github.com/chawon/ott/issues/176) · [#158](https://github.com/chawon/ott/issues/158) · [#159](https://github.com/chawon/ott/issues/159) · [#169](https://github.com/chawon/ott/issues/169) · 기술 검토: [API #179](https://github.com/chawon/ott/issues/179) · [Web/PWA #180](https://github.com/chawon/ott/issues/180)
 
 > **역할·승인 구분**: 이 문서는 제품 기획 관점의 **사용자 문제·확정 정책·기대 경험·브랜드/톤 기준·시간대/부분 캐시 상태 구분·성공 지표 및 인수 조건**을 정의한다. 과거 월 조회 API·페이지네이션·로컬 캐시 구조 등 기술 설계는 [API #179](https://github.com/chawon/ott/issues/179)·[Web/PWA #180](https://github.com/chawon/ott/issues/180) 검토로 연결하며, **안전성 복구(`#161`·`#171`·`#162`·`#163`) → 월간 달력(`#176`) → QR 페어링(`#165`)** 순서를 유지한다. 제품 구현은 안전성 복구와 Web·API 검토 완료 뒤 본부에서 별도 판단한다.
 
@@ -109,14 +109,14 @@
 
 ## 선행 기술 검토 연결 (`#179` · `#180`)
 
-- **[API 검토 #179](https://github.com/chawon/ott/issues/179)** *(대기)*: 50건 초과·1년 전 과거 월의 누락 없는 조회 방법과 비용, 시간대별 월 경계(`[시작, 다음 달 시작)`)와 빈 달 판정 조건, 1단계 계측(`#169` 대조).
+- **[API 검토 #179](https://github.com/chawon/ott/issues/179)** *(11월 25일 기술 검토 완료)*: 50건 초과·1년 전 과거 월의 누락 없는 조회 방법과 비용, 시간대별 월 경계(`[시작, 다음 달 시작)`)와 빈 달 판정 조건, 1단계 계측(`#169` 대조).
 - **[Web/PWA 검토 #180](https://github.com/chawon/ott/issues/180)** *(11/24 기술 의견 완료)*: 홈 기존 기능과의 구분, 50건 이후/오프라인 부분 캐시 재현, 서울/LA(서머타임 포함) 시간대 경계, 회상 카드·키보드·뒤로 복귀 검증 방법 정리 완료.
 
 ---
 
 ## 출시와 복구 · 1단계 성공 지표 (공유 지표 제외)
 
-- **착수 관문**: 1순위 데이터 안전성 복구(`#161`·`#171`·`#162`·`#163`) 정리 + API `#179`·Web `#180` 기술 검토 완료 뒤 본부에서 구현 착수를 판단한다.
+- **착수 판단.** API #171과 Web #162의 운영 검증, API·Web의 기술 검토를 마쳤다. 본부는 #182와 Windows #161·Apple #163의 안전성 결과를 [다음 사이클 #158](https://github.com/chawon/ott/issues/158#issuecomment-7162888057)에서 확인한 뒤 Web 구현 착수를 결정한다.
 - **되돌림 조건**: 기존 목록 타임라인과 분리된 보기 전환으로 제공해 기록·동기화 데이터에 영향을 주지 않는다. 성능 저하나 4주 관찰 후 활용도 미흡 시 `달력` 전환과 회상 카드 노출을 제거해 즉시 복구할 수 있다.
 - **1단계 성공 지표 (Web/PWA 출시 후 완료된 28일 KST, 관리자·테스트 제외, `#169`·`#179` 확정 정의 기준)**:
   - **자기 선택 편향 분리**: 달력 조회자와 비조회자의 단순 재방문율 비교로 인과를 단정하지 않는다.

@@ -15,9 +15,13 @@
 
 PWA 기본 요건(manifest, icons, screenshots, 설치 배너, service worker)을 갖추고 있다.
 
+11월 25일 운영 버전 `8c8b064`에서 서버가 오래된 수정으로 거절한 항목은 최신 상태를 확인한 뒤 대기열에서 정리하고 다음 기록을 전송한다. Apple 방문자에게는 웹의 서비스 소개와 첫 기록 저장 후에 기기에 맞는 스토어를 안내한다. [배포](https://github.com/chawon/ott/actions/runs/45615659458) · [기존 설치 PWA의 운영 인수](https://github.com/chawon/ott/issues/162#issuecomment-7162996402) · [스토어 이동과 집계](https://github.com/chawon/ott/issues/175#issuecomment-7163045122)
+
 현재 Web 운영 이미지는 `2026-11-22`의 `c693fd8`다. 함께 상세·큰 화면 2단·큐레이터 종료, Apple 안내와 추천 재시도 복구를 포함한다. 실제 설치형 PWA의 기존 설치 업데이트·독립 창·종료/재진입 검증은 별도다. [통합 배포·실제 확인과 남은 검증](../../../docs/web-api-rollout-2026-11-22.md)을 따른다.
 
 `2026-11-12` PR `#130`, Web SHA `4cabcd5`에서 서비스워커 v7과 외부 자원이 필요 없는 한·영 오프라인 안내를 운영 반영했다. 실행 중인 화면의 로컬 기록 처리와, 오프라인에서 새로 진입했을 때의 안내를 구분한다. 전체 기록 화면을 네트워크 없이 처음 여는 기능은 별도 범위다. [배포·검증 기록](../../../docs/web-offline-accessibility-2026-11-12.md)을 따른다.
+
+기존 설치판은 서비스워커 캐시에서 이전 버전 문자열을 읽을 수 있다. 설치 업데이트 확인에는 `/.well-known/ottline-version`에 새 쿼리를 붙여 읽은 버전과 실제 동기화 동작을 함께 사용한다. [설치판 검증](https://github.com/chawon/ott/issues/162#issuecomment-7162996402)
 
 ### 주요 파일
 - `apps/web/app/manifest.webmanifest/route.ts` — 언어별 Web App Manifest

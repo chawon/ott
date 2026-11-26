@@ -9,6 +9,10 @@
 
 ---
 
+## 11월 25일 배포와 측정 일정
+
+Apple 기기별 App Store 안내를 Web `8c8b064`로 배포했다. 마케팅 담당은 **11월 26일~12월 9일(KST)**의 웹 클릭, 웹 첫 기록 완료, 스토어 최초 다운로드를 각각 집계한다. 첫 집계는 12월 10일부터 가능하다. QA 활동은 제외하고 App Store Connect 값은 표시 기준과 집계 지연을 함께 기록한다. Windows는 11월 25일 한국·미국에서 `2.0.2.0` 공개를 확인했다. [Web 배포](https://github.com/chawon/ott/actions/runs/45615659458) · [측정 업무 #175](https://github.com/chawon/ott/issues/175#issuecomment-7163045122) · [Windows 공개 근거](../../wiki/pages/platforms/ms-store.md)
+
 ## 1. 실제 공개·심사·미확인 상태 대조표 (`2026-11-24`)
 
 공개 안내 문구의 주장은 반드시 실제 설치판 상태와 일치해야 한다. `2026-11-22`는 Apple SwiftUI `2.0.0 (27)` 최초 출시일이며, `2026-11-24` 현재 한국·미국 스토어에 공개된 버전은 **Apple `2.0.1`**, **Android `2.0.5`**, **Windows `2.0.1.0`**이다.

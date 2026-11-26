@@ -20,7 +20,7 @@
 | **3. 연결과 다중 기기 실사용** | **등록 분포만 집계 완료 (비공개) / 기간 내 2대 이상 실사용 비율·전체 연결 성공률은 여전히 실제 미측정** | 현재 등록 분포 확인, 자동 이어받기와 가입(`register`) 구분. | 등록 수는 물리 기기 수나 실사용량이 아님. 서버 기록/이력의 작성 기기와 analytics client를 일관 귀속할 자료가 없어 **2대 이상 실사용 비율은 미측정**. 코드 연결 성공이 보관 이벤트에 없다는 사실로 실제 사용 `0회` 단정 금지. 연결 시도·실패 분모 공통 미수집으로 전체 성공률 산출 불가 → **[`#169`](https://github.com/chawon/ott/issues/169) 선행 검증 대상**. |
 | **4. 문의 유형** | **집계 완료 (수치 비공개)** | 같은 30일 구간 `BUG`/`IDEA`/`QUESTION`/`OTHER` 및 응답 상태 집계. | 사용자 선택 분류이므로 검증된 장애 원인이나 일반 고객 수로 단정 금지. 의심 기기 그룹 문의도 자동 테스트 미확정으로 임의 미삭제. |
 
-### 플랫폼별 현재 공개 버전 vs 심사·후보 버전 (`2026-11-24`)
+### 11월 24일 기획 제안 당시의 공개판과 심사·후보 버전
 
 | 플랫폼 | 현재 사용자에게 공개된 버전 | 심사 제출 / 차기 후보 (미공개) | 남은 실사용·운영 확인 |
 | --- | --- | --- | --- |
@@ -35,9 +35,9 @@
 
 | 업무 | 추적 위치 | 이번 제안과의 경계 |
 | --- | --- | --- |
-| 공통 데이터 안전성 복구 (최우선) | [#161](https://github.com/chawon/ott/issues/161)(Windows `2.0.2.0`/`2.0.3.0`) · [#171](https://github.com/chawon/ott/issues/171)(API 과거 복구 기록 증분 전달 · **대기**) · [#162](https://github.com/chawon/ott/issues/162#issuecomment-7122976697)(Web `stale`, PR `#178`·CI 검증 뒤 운영 확인 잔여) · [#163](https://github.com/chawon/ott/issues/163)(Apple `2.0.1` 공개 완료, 실기기 확인) | 1순위 변경안([상세 초안](cross-platform-sync-and-contract-reliability-2026-11-22.md))의 실행 트랙 |
+| 공통 데이터 안전성 복구 (최우선) | [#161](https://github.com/chawon/ott/issues/161)(Windows `2.0.2.0`/`2.0.3.0`) · [#171](https://github.com/chawon/ott/issues/171)(API 과거 복구 기록 증분 전달 · **11월 25일 운영 검증 완료**) · [#162](https://github.com/chawon/ott/issues/162)(Web 충돌 복구 · 11월 25일 운영 배포) · [#163](https://github.com/chawon/ott/issues/163)(Apple `2.0.1` 공개 완료, 실기기 확인) | 1순위 변경안([상세 초안](cross-platform-sync-and-contract-reliability-2026-11-22.md))의 실행 트랙 |
 | 공통 계측 정합성 검증 (측정 기반) | [#169](https://github.com/chawon/ott/issues/169) (API 담당 조율 · 공통 · 보통 · 대기) | 첫 기록·기기 연결·다중 기기 실사용 정의와 귀속 검증. **2순위 달력 계측 정합 및 3순위 QR 페어링(`#165`) 효과 측정의 선행 기반** |
-| 월간 달력 기술 검토 (2순위 선행) | [#179](https://github.com/chawon/ott/issues/179)(API 과거 월 조회·계측 검토) · [#180](https://github.com/chawon/ott/issues/180)(Web/PWA 부분 캐시·회상 동작 검토) | 2순위 [#176](https://github.com/chawon/ott/issues/176) 구현 승인 전 선행 기술 검토 트랙 |
+| 월간 달력 기술 검토 (2순위 선행) | [#179](https://github.com/chawon/ott/issues/179)(API 과거 월 조회·계측 검토) · [#180](https://github.com/chawon/ott/issues/180)(Web/PWA 부분 캐시·회상 동작 검토) | 11월 25일 두 기술 검토 완료. 구현 착수 판단은 [#158](https://github.com/chawon/ott/issues/158)에서 추적 |
 | 기존 독립 트랙 | [#142](https://github.com/chawon/ott/issues/142) · [#147](https://github.com/chawon/ott/issues/147) · [#149](https://github.com/chawon/ott/issues/149) · [#155](https://github.com/chawon/ott/issues/155) · 본부 비공개 API 이력 권한 검증 | 각 독립 트랙 유지 (중복 등록 금지) |
 | 후속 기획 설계 3건 | **2순위**: [#176 월간 달력](https://github.com/chawon/ott/issues/176) / **3순위**: [#165 QR 기기 연결](qr-device-pairing-2026-11-22.md) / **후순위(보류)**: [#164 외부 기록 가져오기](external-record-import-2026-11-22.md) | 기획 초안 상태, 구현·출시는 별도 승인 단계 |
 
@@ -48,12 +48,12 @@
 본부 회신의 수집 한계(반복 기록 소표본·미성숙, 다중 기기 실사용·연결 성공률 미측정)와 `2026-11-24` 사용자 방향 판단(현재 해외 이용자가 매우 적어 해외 포맷 Import보다 국내·전체 사용자가 즉시 체감하는 회상·QR 연결이 우선)을 반영한 최종 우선순위다.
 
 ### 1순위 (최우선 실행 마무리): 데이터 안전성 복구 (`#161` · `#171` · `#162` · `#163`)
-- **현황 (`2026-11-24`)**:
+- **11월 25일 본부 확인**
   - Apple `2.0.1`(`#163`): 한·미 App Store 공개 완료(실기기 확인 추적 중).
-  - Web `#162`: PR `#178`·CI 검증 완료 후 운영 확인 잔여([#162 본부 검증](https://github.com/chawon/ott/issues/162#issuecomment-7122976697)).
-  - Windows `#161`: `2.0.1.0` 공개(계정 삭제 검증 완료), `2.0.2.0` 심사 제출 중, `2.0.3.0` 후보 PR `#172` 본부 재검토 진행.
-  - API `#171`: 프로젝트판 **대기**.
-- **완료 관문**: 남은 Windows 동기화/복구(`#161`·`#171`), Web `stale` 운영 확인(`#162`), Apple `2.0.1` 실기기 확인(`#163`)의 인수 조건 충족.
+  - Web #162를 `8c8b064`로 배포했다. 기존 설치 PWA에서 실제 서버 충돌 뒤 후속 기록이 한 번 전송됐고, 재시작 후 대기열이 비었다. [운영 인수 완료](https://github.com/chawon/ott/issues/162#issuecomment-7162996402)
+  - Windows 공개판은 `2.0.2.0`이다. `2.0.3.0` 후보는 병합과 CI를 마쳤으며 공개 업데이트·교차 기기 검증이 남았다. [#161](https://github.com/chawon/ott/issues/161#issuecomment-7162883131)
+  - API #171은 운영 `1dc6825`에서 페어링 기기의 과거 기록 수신을 확인했다. 타임라인 목록의 삭제 기록 제외는 [#182](https://github.com/chawon/ott/issues/182)에서 추적한다.
+- **달력 착수 판단.** 기획 #176과 API·Web 검토 #179·#180을 완료했다. Web #162까지 운영 인수를 마쳤다. 본부가 #182와 Windows·Apple의 안전성 인수 결과를 대조한다. [본부 #158](https://github.com/chawon/ott/issues/158#issuecomment-7162888057)
 - **상세 기준**: [cross-platform-sync-and-contract-reliability-2026-11-22.md](cross-platform-sync-and-contract-reliability-2026-11-22.md)
 
 ### 선행·병행 측정 기반: 첫 기록·기기 연결 계측 정합성 검증 (`#169`)
@@ -86,4 +86,4 @@
 | 안건 | 문서·이슈 | 현재 판단 (`2026-11-24`) | 재검토 조건 |
 | --- | --- | --- | --- |
 | **외부 기록 가져오기 (Import)** | [#164](https://github.com/chawon/ott/issues/164) · [external-record-import-2026-11-22.md](external-record-import-2026-11-22.md) | **후순위 / 보류로 하향** (사용자 방향 확정: 현재 해외 이용자가 극소수이므로 Letterboxd·Goodreads 등 해외 포맷 우선 추진은 실효성이 낮고, 현재 자체 Web CSV도 작품 ID·ISBN·시즌/회차 부재로 완전 복원 한계가 존재) | ① 해외 유입이 유의미하게 증가하거나, ② 국내 주요 서비스의 공식 내보내기 포맷 확인·자체 CSV 메타 보강이 함께 검토될 때 |
-| **Windows 잔여 정합성 범위** | [feature-matrix.md](../feature-matrix.md) | 결정 보류 중 (`2.0.1.0` 공개·`2.0.2.0` 심사·`2.0.3.0` 후보 진행 중) | `2.0.2.0`/`2.0.3.0` 공개 및 실기기 교차 동기화 확인 후 시즌/에피소드·서버 이력·KDC·출처 표기 정렬 범위 결정 |
+| **Windows 잔여 정합성 범위** | [feature-matrix.md](../feature-matrix.md) | 결정 보류 중 (`2.0.2.0` 공개, `2.0.3.0` 후보 병합) | `2.0.3.0` 공개 및 실기기 교차 동기화 확인 후 시즌/에피소드·서버 이력·KDC·출처 표기 정렬 범위 결정 |

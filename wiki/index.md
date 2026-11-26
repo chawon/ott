@@ -6,7 +6,7 @@
 
 | 페이지 | 범위 |
 | --- | --- |
-| [Web/PWA](pages/platforms/pwa.md) | 브라우저 설치, 서비스워커와 오프라인 안내 |
+| [Web/PWA](pages/platforms/pwa.md) | 브라우저 설치, 기기 간 수정 충돌 복구, App Store 안내와 오프라인 재진입 |
 | [Android](pages/platforms/android-native.md) | Kotlin/Compose 네이티브 앱과 기존 TWA 계정·기록 복구 |
 | [iOS·iPadOS](pages/platforms/native.md) | 출시된 SwiftUI v2와 이전 Expo 설치판의 업데이트 검증 |
 | [Windows](pages/platforms/windows-native.md) · [Microsoft Store](pages/platforms/ms-store.md) | WPF 앱, 스토어 업데이트 및 이전 PWA 이어받기 |
