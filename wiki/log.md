@@ -1,5 +1,9 @@
 # Wiki Log
 
+## 2026-11-26 Android 첫 설치 이어받기 보완 병합
+
+PR #154를 `main` `392d0b7`에 병합했다. Android 원본 테스트 58건과 본부의 기존 동시성·기준 시각 회귀 검사 2건이 모두 통과했다. 병합본의 정식 버전명 `2.0.6 (30)` AAB와 서명을 검증했다. 한국·미국 Play 공개판은 `2.0.5`이며 실제 Chrome에서 기존 기록·미전송 변경 보존을 확인하는 일은 Android 담당이 이어간다. [본부 검토](https://github.com/chawon/ott/pull/154#pullrequestreview-6068229114) · [병합본 후보](https://github.com/chawon/ott/actions/runs/45750274521) · [담당별 후속](https://github.com/chawon/ott/issues/149#issuecomment-7182015348)
+
 ## [2026-11-26] release(windows): PR #172 병합본 Microsoft Store `v2.0.3.0` 심사 제출 (`Certification`)
 
 - `v2.0.2.0`(`1152921505702478292`)의 Microsoft Store `Published` 공개를 확인한 뒤, [PR #172](https://github.com/chawon/ott/pull/172)([#161](https://github.com/chawon/ott/issues/161)) 병합본 `main` `7154328`(코드 `83cfa65`, 본부 재검토 **66/66**, `main` CI [`45615633182`](https://github.com/chawon/ott/actions/runs/45615633182))에서 `ottline-2.0.3.0.msixbundle`(`x64` `81.50 MB`, SHA-256 `2605CED75E081BA355F920802969375D1FB06F21459DBB2E700CA7A7417B5C4B` + `arm64` `77.56 MB`, SHA-256 `F390F3344C007179768304E2AC1ACB232705952009EEAFB2B861B984702C635D`, 총 `159.06 MB`, SHA-256 `6BDFFA58CB6EE063AFA268F24776DD72232D2407293EB3600A288941B5902E22`)을 빌드·무결성 검증(`Ottline.Tests` **65/65**)해 Partner Center `9NSVNZGDMGF5`에 제출했다.

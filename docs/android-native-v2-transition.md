@@ -56,6 +56,12 @@
 
 ---
 
+### 3.3 첫 설치의 브라우저 이어받기와 수동 재시도
+
+11월 26일 PR #154를 `main` `392d0b7`에 병합했다. 브라우저 자동 실행 시도와 가져오기 완료를 별도로 저장한다. 앱은 현재 이어받기의 전체 조회가 성공하고 서버 기준 시각을 저장한 뒤 완료를 표시한다. 브라우저 실행 실패·취소·빈 세션·서버 오류에는 사용자가 다시 연결할 수 있다. [변경과 본부 검토](https://github.com/chawon/ott/pull/154#pullrequestreview-6068229114)
+
+`2.0.6 (30)` 서명 후보를 검증했다. Android 담당은 Play 설치판에서 기존 Chrome 기록과 미전송 편집을 보존한 채 복귀하는지 확인한다. 최초 Cloudflare 522의 원인·재발 관찰은 운영 담당이 추적한다. [후보 빌드](https://github.com/chawon/ott/actions/runs/45750274521) · [공통 #149](https://github.com/chawon/ott/issues/149#issuecomment-7182015348)
+
 ## 4. CI/CD 및 Google Play 프로덕션 배포 이력 (`2026-11-09`)
 
 ### 4.1 GitHub Actions 워크플로

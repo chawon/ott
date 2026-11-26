@@ -4,11 +4,12 @@ Kotlin · Jetpack Compose · Room · WorkManager 기반의 Google Play용 앱. `
 
 ## 운영 상태
 
-기준일 2026-11-25.
+기준일 2026-11-26.
 
 | 항목 | 확인 내용 |
 |---|---|
-| 최신 배포 기록 | 공개 `2.0.5` (`versionCode=29`). 11월 22일 production 트랙 업로드에 이어 11월 25일 한국·미국 공개 버전을 확인했다. [한국 Play](https://play.google.com/store/apps/details?id=app.ottline&hl=ko&gl=KR) · [미국 Play](https://play.google.com/store/apps/details?id=app.ottline&hl=en&gl=US) |
+| 최신 배포 기록 | 공개 `2.0.5` (`versionCode=29`). 11월 22일 production 트랙 업로드에 이어 11월 26일 한국·미국 공개 버전을 재확인했다. [한국 Play](https://play.google.com/store/apps/details?id=app.ottline&hl=ko&gl=KR) · [미국 Play](https://play.google.com/store/apps/details?id=app.ottline&hl=en&gl=US) |
+| 다음 출시 후보 | `2.0.6 (30)`, `main` `392d0b7` 서명 빌드 검증 완료. 첫 설치에서 브라우저를 통한 이어받기와 실패 후 재시도를 보완했다. [후보 CI](https://github.com/chawon/ott/actions/runs/45750274521) · [Play·Chrome 실기기 검증](https://github.com/chawon/ott/issues/149#issuecomment-7182015348) |
 | 앱 식별자 | `app.ottline`, Debug 기본 `app.ottline.dev` |
 | 지원 버전 | 최소 Android 7.0(API 24), `targetSdk=36`, `compileSdk=36` |
 | 소스와 검증 | [apps/android-native](../../../apps/android-native/), [Android 빌드·릴리스 워크플로](../../../.github/workflows/native-android-release.yml) |
