@@ -192,7 +192,10 @@ public sealed class TogetherListItem : INotifyPropertyChanged
 public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
 {
     private readonly OttlineRepository _repo;
+    private readonly AutoSyncGate _autoSyncGate = new();
     private CancellationTokenSource? _searchDebounceCts;
+    private Task? _activeSyncTask;
+    private Task _posterPrefetchTask = Task.CompletedTask;
 
     private LocalSettings _settings;
     private OttlineStrings _strings;
@@ -246,12 +249,12 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
     private RecordFeeling? _quickFeeling = RecordFeeling.SATISFIED;
     private string _quickWatchedOn = RecordDate.TodayDate();
     private string _quickPlatform = string.Empty;
+    private bool _isQuickPlatformCustomSelected;
     private string _quickPlace = string.Empty;
     private string _quickOccasion = string.Empty;
     private string _quickSeasonText = string.Empty;
     private string _quickEpisodeText = string.Empty;
     private string _quickNote = string.Empty;
-    private bool _quickSpoiler;
     private bool _quickShareTogether;
     private WatchLog? _quickLastSavedLog;
     private string _manualTitleInput = string.Empty;
@@ -320,10 +323,6 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
         RefreshLocalState();
         if (!skipStartupNetwork)
         {
-            if (!string.IsNullOrWhiteSpace(_settings.UserId))
-            {
-                _ = SyncNowAsync(silent: true);
-            }
             _ = LoadTogetherAsync();
             _ = EnrichMissingPostersAsync();
         }
@@ -418,9 +417,14 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
             OnPropertyChanged(nameof(IsTogetherTab));
             OnPropertyChanged(nameof(IsMySpaceTab));
             OnPropertyChanged(nameof(IsInfoTab));
-            if (value == MainTab.TIMELINE && TimelineMonthGroups.Count == 0)
+            if (value == MainTab.TIMELINE)
             {
                 RefreshTimelineItems();
+                _ = RequestAutoSyncAsync(AutoSyncTrigger.TabNavigation);
+            }
+            else if (value == MainTab.HOME)
+            {
+                _ = RequestAutoSyncAsync(AutoSyncTrigger.TabNavigation);
             }
             else if (value == MainTab.TOGETHER && Discussions.Count == 0)
             {
@@ -430,6 +434,25 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
             {
                 EnsureMySpaceDataLoaded();
             }
+        }
+    }
+
+    public void NavigateToTab(MainTab tab)
+    {
+        if (_currentTab != tab)
+        {
+            CurrentTab = tab;
+            return;
+        }
+
+        if (tab == MainTab.TIMELINE)
+        {
+            RefreshTimelineItems();
+            _ = RequestAutoSyncAsync(AutoSyncTrigger.TabNavigation);
+        }
+        else if (tab == MainTab.HOME)
+        {
+            _ = RequestAutoSyncAsync(AutoSyncTrigger.TabNavigation);
         }
     }
 
@@ -1291,6 +1314,15 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
             OnPropertyChanged();
             OnPropertyChanged(nameof(IsQuickSelectedSeries));
             RebuildQuickPresetChips();
+            OnPropertyChanged(nameof(QuickStatusDoneDisplay));
+            OnPropertyChanged(nameof(QuickStatusInProgressDisplay));
+            OnPropertyChanged(nameof(QuickStatusWishlistDisplay));
+            OnPropertyChanged(nameof(QuickFeelingSatisfiedDisplay));
+            OnPropertyChanged(nameof(QuickFeelingNeutralDisplay));
+            OnPropertyChanged(nameof(QuickFeelingDisappointedDisplay));
+            OnPropertyChanged(nameof(QuickPlatformComboOptions));
+            OnPropertyChanged(nameof(QuickPlatformComboIndex));
+            OnPropertyChanged(nameof(IsQuickPlatformCustomInput));
             OnPropertyChanged(nameof(QuickPlaceComboOptions));
             OnPropertyChanged(nameof(QuickPlaceComboIndex));
             OnPropertyChanged(nameof(QuickOccasionComboOptions));
@@ -1303,25 +1335,135 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
     public LogStatus QuickStatus
     {
         get => _quickStatus;
-        set { _quickStatus = value; OnPropertyChanged(); }
+        set
+        {
+            _quickStatus = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(IsQuickStatusDone));
+            OnPropertyChanged(nameof(IsQuickStatusInProgress));
+            OnPropertyChanged(nameof(IsQuickStatusWishlist));
+        }
     }
+
+    public bool IsQuickStatusDone => _quickStatus == LogStatus.DONE;
+    public bool IsQuickStatusInProgress => _quickStatus == LogStatus.IN_PROGRESS;
+    public bool IsQuickStatusWishlist => _quickStatus == LogStatus.WISHLIST;
+
+    public string QuickStatusDoneDisplay => _strings.QuickStatusDoneForType(_quickSelectedTitle?.Type == TitleType.book);
+    public string QuickStatusInProgressDisplay => _strings.QuickStatusInProgressForType(_quickSelectedTitle?.Type == TitleType.book);
+    public string QuickStatusWishlistDisplay => _strings.QuickStatusWishlistForType(_quickSelectedTitle?.Type == TitleType.book);
 
     public RecordFeeling? QuickFeeling
     {
         get => _quickFeeling;
-        set { _quickFeeling = value; OnPropertyChanged(); }
+        set
+        {
+            _quickFeeling = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(IsQuickFeelingSatisfied));
+            OnPropertyChanged(nameof(IsQuickFeelingNeutral));
+            OnPropertyChanged(nameof(IsQuickFeelingDisappointed));
+        }
+    }
+
+    public bool IsQuickFeelingSatisfied => _quickFeeling == RecordFeeling.SATISFIED;
+    public bool IsQuickFeelingNeutral => _quickFeeling == RecordFeeling.NEUTRAL;
+    public bool IsQuickFeelingDisappointed => _quickFeeling == RecordFeeling.DISAPPOINTED;
+
+    public string QuickFeelingSatisfiedDisplay =>
+        RecordFeelings.GetFeelingLabel(RecordFeeling.SATISFIED, _settings.Locale, _quickSelectedTitle?.Type == TitleType.book);
+    public string QuickFeelingNeutralDisplay =>
+        RecordFeelings.GetFeelingLabel(RecordFeeling.NEUTRAL, _settings.Locale, _quickSelectedTitle?.Type == TitleType.book);
+    public string QuickFeelingDisappointedDisplay =>
+        RecordFeelings.GetFeelingLabel(RecordFeeling.DISAPPOINTED, _settings.Locale, _quickSelectedTitle?.Type == TitleType.book);
+
+    public void ToggleQuickFeeling(RecordFeeling feeling)
+    {
+        QuickFeeling = _quickFeeling == feeling ? null : feeling;
     }
 
     public string QuickWatchedOn
     {
         get => _quickWatchedOn;
-        set { _quickWatchedOn = value; OnPropertyChanged(); }
+        set
+        {
+            _quickWatchedOn = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(QuickWatchedOnDate));
+        }
     }
+
+    public DateTime? QuickWatchedOnDate
+    {
+        get => RecordDate.ToPickerDate(_quickWatchedOn);
+        set
+        {
+            if (value.HasValue)
+            {
+                QuickWatchedOn = RecordDate.FromPickerDate(value);
+            }
+        }
+    }
+
+    public DateTime QuickMaxSelectableDate => DateTime.Today;
 
     public string QuickPlatform
     {
         get => _quickPlatform;
-        set { _quickPlatform = value; OnPropertyChanged(); }
+        set
+        {
+            _quickPlatform = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(QuickPlatformComboIndex));
+            OnPropertyChanged(nameof(IsQuickPlatformCustomInput));
+        }
+    }
+
+    public string[] QuickPlatformComboOptions =>
+        QuickRecordPlatformSelector.BuildOptions(_quickSelectedTitle?.Type == TitleType.book, _settings.Locale);
+
+    public int QuickPlatformComboIndex
+    {
+        get => QuickRecordPlatformSelector.Resolve(
+            _quickPlatform,
+            _isQuickPlatformCustomSelected,
+            _quickSelectedTitle?.Type == TitleType.book,
+            _settings.Locale
+        ).SelectedIndex;
+        set
+        {
+            // ItemsSource replacement temporarily clears the WPF selection when labels change.
+            if (value < 0 || value == QuickPlatformComboIndex) return;
+            var (platformValue, isCustomSelected) = QuickRecordPlatformSelector.ApplySelectionIndex(
+                value,
+                _quickPlatform,
+                _quickSelectedTitle?.Type == TitleType.book,
+                _settings.Locale
+            );
+            _isQuickPlatformCustomSelected = isCustomSelected;
+            _quickPlatform = platformValue;
+            OnPropertyChanged(nameof(QuickPlatform));
+            OnPropertyChanged(nameof(QuickPlatformComboIndex));
+            OnPropertyChanged(nameof(IsQuickPlatformCustomInput));
+        }
+    }
+
+    public bool IsQuickPlatformCustomInput =>
+        QuickRecordPlatformSelector.Resolve(
+            _quickPlatform,
+            _isQuickPlatformCustomSelected,
+            _quickSelectedTitle?.Type == TitleType.book,
+            _settings.Locale
+        ).ShowCustomInput;
+
+    private void SyncQuickPlatformCustomSelectionFlag()
+    {
+        var isBook = _quickSelectedTitle?.Type == TitleType.book;
+        var presets = OttlinePresets.GetQuickPlatformPresets(isBook, _settings.Locale);
+        _isQuickPlatformCustomSelected = !string.IsNullOrWhiteSpace(_quickPlatform)
+                                         && !OttlinePresets.TryMatchPlatformPresetIndex(presets, _quickPlatform, out _);
+        OnPropertyChanged(nameof(QuickPlatformComboIndex));
+        OnPropertyChanged(nameof(IsQuickPlatformCustomInput));
     }
 
     public string QuickPlace
@@ -1366,8 +1508,9 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
         }
         set
         {
+            if (value < 0 || value == QuickPlaceComboIndex) return;
             var options = QuickPlaceComboOptions;
-            QuickPlace = (value <= 0 || value >= options.Length) ? string.Empty : options[value];
+            QuickPlace = (value == 0 || value >= options.Length) ? string.Empty : options[value];
         }
     }
 
@@ -1412,8 +1555,9 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
         }
         set
         {
+            if (value < 0 || value == QuickOccasionComboIndex) return;
             var options = QuickOccasionComboOptions;
-            QuickOccasion = (value <= 0 || value >= options.Length) ? string.Empty : options[value];
+            QuickOccasion = (value == 0 || value >= options.Length) ? string.Empty : options[value];
         }
     }
 
@@ -1433,12 +1577,6 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
     {
         get => _quickNote;
         set { _quickNote = value; OnPropertyChanged(); }
-    }
-
-    public bool QuickSpoiler
-    {
-        get => _quickSpoiler;
-        set { _quickSpoiler = value; OnPropertyChanged(); }
     }
 
     public bool QuickShareTogether
@@ -2012,6 +2150,26 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
             EnsureMySpaceDataLoaded(allLogs);
         }
 
+        if (_isTitleDetailOpen && _selectedDetailLog != null)
+        {
+            var refreshedDetail = _repo.Database.GetLog(_selectedDetailLog.Id) ?? _repo.GetLogByTitleId(_selectedDetailLog.TitleId);
+            if (refreshedDetail == null)
+            {
+                IsTitleDetailOpen = false;
+                SelectedDetailLog = null;
+                SelectedTitleHistory.Clear();
+            }
+            else
+            {
+                SelectedDetailLog = refreshedDetail;
+                SelectedTitleHistory.Clear();
+                foreach (var h in _repo.GetHistoryForTitle(refreshedDetail.TitleId))
+                {
+                    SelectedTitleHistory.Add(h);
+                }
+            }
+        }
+
         if (_isShareSheetOpen)
         {
             RebuildSharePreview();
@@ -2076,6 +2234,16 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
         OnPropertyChanged(nameof(SelectedDetailPlatformText));
         OnPropertyChanged(nameof(SelectedDetailPlaceText));
         OnPropertyChanged(nameof(SelectedDetailOccasionText));
+        OnPropertyChanged(nameof(QuickStatusDoneDisplay));
+        OnPropertyChanged(nameof(QuickStatusInProgressDisplay));
+        OnPropertyChanged(nameof(QuickStatusWishlistDisplay));
+        OnPropertyChanged(nameof(QuickFeelingSatisfiedDisplay));
+        OnPropertyChanged(nameof(QuickFeelingNeutralDisplay));
+        OnPropertyChanged(nameof(QuickFeelingDisappointedDisplay));
+        OnPropertyChanged(nameof(QuickWatchedOnDate));
+        OnPropertyChanged(nameof(QuickPlatformComboOptions));
+        OnPropertyChanged(nameof(QuickPlatformComboIndex));
+        OnPropertyChanged(nameof(IsQuickPlatformCustomInput));
         OnPropertyChanged(nameof(QuickPlace));
         OnPropertyChanged(nameof(QuickOccasion));
         OnPropertyChanged(nameof(QuickPlaceComboOptions));
@@ -2263,29 +2431,32 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
         ContentFilter? prefilledFilter = null,
         WatchLog? existingLogToEdit = null)
     {
+        OnPropertyChanged(nameof(QuickMaxSelectableDate));
         _manualTitleInput = string.Empty;
         _manualAuthorOrYearInput = string.Empty;
         _manualIsbnInput = string.Empty;
 
         if (existingLogToEdit != null)
         {
+            _isQuickPlatformCustomSelected = false;
             QuickSelectedTitle = existingLogToEdit.Title;
             QuickStatus = existingLogToEdit.Status;
             QuickFeeling = RecordFeelings.ResolveRecordFeeling(existingLogToEdit.Rating, existingLogToEdit.Reaction);
             QuickWatchedOn = RecordDate.OccurredAtToWatchedOnDate(existingLogToEdit.OccurredAt, existingLogToEdit.WatchedOn);
             QuickPlatform = existingLogToEdit.Ott ?? string.Empty;
+            SyncQuickPlatformCustomSelectionFlag();
             QuickPlace = OttlinePresets.FormatPlace(existingLogToEdit.Place, _settings.Locale);
             QuickOccasion = OttlinePresets.FormatOccasion(existingLogToEdit.Occasion, _settings.Locale);
             QuickSeasonText = existingLogToEdit.SeasonNumber?.ToString() ?? string.Empty;
             QuickEpisodeText = existingLogToEdit.EpisodeNumber?.ToString() ?? string.Empty;
             QuickNote = existingLogToEdit.Note ?? string.Empty;
-            QuickSpoiler = existingLogToEdit.Spoiler;
             QuickShareTogether = false;
             QuickStage = QuickRecordStage.FORM;
             IsQuickRecordOpen = true;
             return;
         }
 
+        _isQuickPlatformCustomSelected = false;
         QuickStatus = LogStatus.DONE;
         QuickFeeling = RecordFeeling.SATISFIED;
         QuickWatchedOn = RecordDate.TodayDate();
@@ -2295,7 +2466,6 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
         QuickSeasonText = string.Empty;
         QuickEpisodeText = string.Empty;
         QuickNote = string.Empty;
-        QuickSpoiler = false;
         QuickShareTogether = false;
 
         if (prefilledFilter.HasValue)
@@ -2311,6 +2481,7 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
         else
         {
             QuickSelectedTitle = null;
+            SyncQuickPlatformCustomSelectionFlag();
             QuickSearchQuery = prefilledQuery ?? string.Empty;
             QuickStage = QuickRecordStage.SEARCH;
             TriggerDebouncedTitleSearch();
@@ -2322,11 +2493,12 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
     public void SelectTitleForQuickRecord(TitleSummary title)
     {
         var existing = _repo.GetLogByTitleId(title.Id);
+        _isQuickPlatformCustomSelected = false;
         QuickSelectedTitle = title;
         if (existing != null)
         {
             QuickStatus = existing.Status;
-            QuickFeeling = RecordFeelings.ResolveRecordFeeling(existing.Rating, existing.Reaction) ?? RecordFeeling.SATISFIED;
+            QuickFeeling = RecordFeelings.ResolveRecordFeeling(existing.Rating, existing.Reaction);
             QuickWatchedOn = RecordDate.OccurredAtToWatchedOnDate(existing.OccurredAt, existing.WatchedOn);
             if (string.IsNullOrWhiteSpace(QuickPlatform)) QuickPlatform = existing.Ott ?? string.Empty;
             QuickPlace = OttlinePresets.FormatPlace(existing.Place, _settings.Locale);
@@ -2334,12 +2506,12 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
             QuickSeasonText = existing.SeasonNumber?.ToString() ?? string.Empty;
             QuickEpisodeText = existing.EpisodeNumber?.ToString() ?? string.Empty;
             QuickNote = existing.Note ?? string.Empty;
-            QuickSpoiler = existing.Spoiler;
         }
         else if (title.Type.IsBook() && string.IsNullOrWhiteSpace(QuickPlatform))
         {
             QuickPlatform = IsEnglishLocale ? "Print book" : "종이책";
         }
+        SyncQuickPlatformCustomSelectionFlag();
         QuickStage = QuickRecordStage.FORM;
     }
 
@@ -2399,7 +2571,7 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
             seasonNumber: season,
             episodeNumber: episode,
             note: QuickNote,
-            spoiler: QuickSpoiler,
+            spoiler: null,
             shareToTogether: QuickShareTogether
         );
 
@@ -2417,28 +2589,83 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
         return saved;
     }
 
-    public async Task SyncNowAsync(bool silent = false)
+    public Task SyncNowAsync(bool silent = false)
     {
-        SyncStatusText = "동기화 중...";
-        var (_, msg) = await _repo.SyncAllAsync();
-        var syncedLogs = _repo.GetAllLogs();
-        if (syncedLogs.Count > 0)
+        var task = ExecuteSyncNowAsync(silent);
+        _activeSyncTask = task;
+        return task;
+    }
+
+    public async Task RequestAutoSyncAsync(AutoSyncTrigger trigger)
+    {
+        var inFlight = _activeSyncTask;
+        if (inFlight is { IsCompleted: false })
         {
-            await UrlToImageSourceConverter.PrefetchUrlsAsync(
-                syncedLogs.Take(16).Select(l => l.Title.PosterUrl),
-                isHero: false
-            );
-            await UrlToImageSourceConverter.PrefetchUrlsAsync(
-                syncedLogs.Take(2).Select(l => l.Title.PosterUrl),
-                isHero: true
-            );
+            await inFlight;
+            return;
         }
-        RefreshLocalState();
-        SyncStatusText = msg;
-        if (!silent)
+
+        if (!_autoSyncGate.ShouldRun(
+                trigger,
+                HasConnectedServerAccount,
+                _repo.GetPendingOutboxCount(),
+                DateTimeOffset.UtcNow))
         {
-            ShowToast(msg);
+            return;
         }
+
+        await SyncNowAsync(silent: true);
+    }
+
+    private async Task ExecuteSyncNowAsync(bool silent)
+    {
+        await RunOnUiThreadAsync(() => SyncStatusText = IsEnglishLocale ? "Syncing…" : "동기화 중...");
+        try
+        {
+            var (_, msg) = await _repo.SyncAllAsync();
+            _autoSyncGate.MarkCompleted(DateTimeOffset.UtcNow);
+            await RunOnUiThreadAsync(() =>
+            {
+                RefreshLocalState();
+                SyncStatusText = msg;
+                if (!silent)
+                {
+                    ShowToast(msg);
+                }
+            });
+            if (_posterPrefetchTask.IsCompleted)
+            {
+                _posterPrefetchTask = PrefetchRecentPostersAsync(_repo.GetAllLogs());
+            }
+        }
+        catch
+        {
+            _autoSyncGate.MarkCompleted(DateTimeOffset.UtcNow);
+            await RunOnUiThreadAsync(() =>
+            {
+                SyncStatusText = _strings.OfflineLabel;
+            });
+        }
+    }
+
+    private static async Task PrefetchRecentPostersAsync(IReadOnlyList<WatchLog> logs)
+    {
+        var urls = logs.Take(16).Select(log => log.Title.PosterUrl).ToArray();
+        if (urls.Length == 0) return;
+        await UrlToImageSourceConverter.PrefetchUrlsAsync(urls);
+        await UrlToImageSourceConverter.PrefetchUrlsAsync(urls.Take(2), isHero: true);
+    }
+
+    private static Task RunOnUiThreadAsync(Action action)
+    {
+        var dispatcher = System.Windows.Application.Current?.Dispatcher;
+        if (dispatcher == null || dispatcher.CheckAccess())
+        {
+            action();
+            return Task.CompletedTask;
+        }
+
+        return dispatcher.InvokeAsync(action).Task;
     }
 
     public async Task HandleExternalUriOrShareAsync(string rawArg)

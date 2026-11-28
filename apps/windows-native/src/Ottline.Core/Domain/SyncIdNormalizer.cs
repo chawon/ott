@@ -14,6 +14,22 @@ public static class SyncIdNormalizer
     // Fixed RFC 4122 DNS-style namespace for deterministic Windows local ID -> UUID conversion.
     private static readonly Guid NamespaceId = Guid.Parse("7d5c6209-9d51-4b28-9202-4f9a66b3a5f1");
 
+    internal static bool HasMeaningfulLogDifference(WatchLog local, WatchLog server)
+    {
+        static string Norm(string? s) => string.IsNullOrWhiteSpace(s) ? string.Empty : s.Trim();
+        if (local.Status != server.Status) return true;
+        if (local.Rating.HasValue != server.Rating.HasValue ||
+            (local.Rating.HasValue && Math.Abs(local.Rating.Value - server.Rating!.Value) > 0.05)) return true;
+        if (!string.Equals(Norm(local.Note), Norm(server.Note), StringComparison.Ordinal)) return true;
+        if (local.Spoiler != server.Spoiler) return true;
+        if (!string.Equals(Norm(local.Ott), Norm(server.Ott), StringComparison.OrdinalIgnoreCase)) return true;
+        if (!string.Equals(OttlinePresets.ToServerPlaceWire(local.Place) ?? "", OttlinePresets.ToServerPlaceWire(server.Place) ?? "", StringComparison.OrdinalIgnoreCase)) return true;
+        if (!string.Equals(OttlinePresets.ToServerOccasionWire(local.Occasion) ?? "", OttlinePresets.ToServerOccasionWire(server.Occasion) ?? "", StringComparison.OrdinalIgnoreCase)) return true;
+        if (local.SeasonNumber != server.SeasonNumber || local.EpisodeNumber != server.EpisodeNumber) return true;
+        if (!string.Equals(Norm(local.WatchedOn), Norm(server.WatchedOn), StringComparison.Ordinal)) return true;
+        return false;
+    }
+
     public static bool IsValidUuid(string? rawId) =>
         !string.IsNullOrWhiteSpace(rawId) && Guid.TryParse(rawId.Trim(), out _);
 

@@ -488,6 +488,9 @@ public sealed record OttlineStrings(
     public string QuickFeelingNeutralBtn => IsEn ? "Worth watching" : "볼만해요";
     public string QuickFeelingDisappointedBtn => IsEn ? "Disappointing" : "아쉬워요";
     public string QuickWhenInputLabel => IsEn ? "Date" : "날짜";
+    public string QuickPlatformNoneOption => IsEn ? "None" : "선택 안 함";
+    public string QuickPlatformCustomOption => IsEn ? "Custom input" : "직접 입력";
+    public string QuickPlatformCustomPlaceholder => IsEn ? "Enter platform" : "플랫폼 직접 입력";
     public string QuickPlaceInputLabel => IsEn ? "Place" : "장소";
     public string QuickOccasionInputLabel => IsEn ? "Who you were with or the occasion" : "누구와·어떤 상황";
     public string QuickNoteInputLabel => IsEn ? "Note" : "메모";
@@ -496,6 +499,12 @@ public sealed record OttlineStrings(
         ? "Kept on your timeline."
         : "타임라인에 남겨두었어요.";
     public string QuickKeepPolishingBtn => IsEn ? "Add to this moment" : "그날의 순간·메모 더하기";
+    public string QuickStatusDoneForType(bool isBook) =>
+        isBook ? (IsEn ? "Read" : "읽었어요") : (IsEn ? "Watched" : "봤어요");
+    public string QuickStatusInProgressForType(bool isBook) =>
+        isBook ? (IsEn ? "Reading" : "읽는 중") : (IsEn ? "Watching" : "보는 중");
+    public string QuickStatusWishlistForType(bool isBook) =>
+        isBook ? (IsEn ? "Want to read" : "읽고 싶어요") : (IsEn ? "Want to watch" : "보고 싶어요");
 
     public string DiscussionSendCommentBtn => IsEn ? "Post comment" : "댓글 등록";
     public string DiscussionNewModalTitle => IsEn ? "Leave a thought" : "의견 남기기";

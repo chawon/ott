@@ -3519,7 +3519,9 @@
                                              Text="{Binding NewFeedbackBody, UpdateSourceTrigger=PropertyChanged}"
                                              Height="132"
                                              TextWrapping="Wrap"
-                                             AcceptsReturn="True" />
+                                             AcceptsReturn="True"
+                                             VerticalContentAlignment="Top"
+                                             VerticalScrollBarVisibility="Auto" />
                                     <TextBlock Text="{Binding Strings.FeedbackBodyPlaceholder}"
                                                FontSize="13"
                                                Foreground="{DynamicResource ForegroundMutedBrush}"
@@ -4086,17 +4088,41 @@
                                     <StackPanel Grid.Column="0">
                                         <TextBlock Text="{Binding Strings.TimelineFilterStatusLabel}" FontSize="12" Foreground="{DynamicResource ForegroundMutedBrush}" Margin="0,0,0,6" />
                                         <WrapPanel Orientation="Horizontal">
-                                            <Button Style="{StaticResource SecondaryButtonStyle}" Content="{Binding Strings.QuickStatusDoneBtn}" Click="SetQuickStatusDone_Click" Margin="0,0,6,6" />
-                                            <Button Style="{StaticResource SecondaryButtonStyle}" Content="{Binding Strings.QuickStatusInProgressBtn}" Click="SetQuickStatusInProgress_Click" Margin="0,0,6,6" />
-                                            <Button Style="{StaticResource SecondaryButtonStyle}" Content="{Binding Strings.QuickStatusWishlistBtn}" Click="SetQuickStatusWishlist_Click" Margin="0,0,0,6" />
+                                            <Button Style="{StaticResource SelectableOptionButtonStyle}"
+                                                    Tag="{Binding IsQuickStatusDone}"
+                                                    Content="{Binding QuickStatusDoneDisplay}"
+                                                    Click="SetQuickStatusDone_Click"
+                                                    Margin="0,0,6,6" />
+                                            <Button Style="{StaticResource SelectableOptionButtonStyle}"
+                                                    Tag="{Binding IsQuickStatusInProgress}"
+                                                    Content="{Binding QuickStatusInProgressDisplay}"
+                                                    Click="SetQuickStatusInProgress_Click"
+                                                    Margin="0,0,6,6" />
+                                            <Button Style="{StaticResource SelectableOptionButtonStyle}"
+                                                    Tag="{Binding IsQuickStatusWishlist}"
+                                                    Content="{Binding QuickStatusWishlistDisplay}"
+                                                    Click="SetQuickStatusWishlist_Click"
+                                                    Margin="0,0,0,6" />
                                         </WrapPanel>
                                     </StackPanel>
                                     <StackPanel Grid.Column="2">
                                         <TextBlock Text="{Binding Strings.QuickWarmthLabel}" FontSize="12" Foreground="{DynamicResource ForegroundMutedBrush}" Margin="0,0,0,6" />
                                         <WrapPanel Orientation="Horizontal">
-                                            <Button Style="{StaticResource SecondaryButtonStyle}" Content="{Binding Strings.QuickFeelingSatisfiedBtn}" Click="SetQuickFeelingSatisfied_Click" Margin="0,0,6,6" />
-                                            <Button Style="{StaticResource SecondaryButtonStyle}" Content="{Binding Strings.QuickFeelingNeutralBtn}" Click="SetQuickFeelingNeutral_Click" Margin="0,0,6,6" />
-                                            <Button Style="{StaticResource SecondaryButtonStyle}" Content="{Binding Strings.QuickFeelingDisappointedBtn}" Click="SetQuickFeelingDisappointed_Click" Margin="0,0,0,6" />
+                                            <Button Style="{StaticResource SelectableOptionButtonStyle}"
+                                                    Tag="{Binding IsQuickFeelingSatisfied}"
+                                                    Content="{Binding QuickFeelingSatisfiedDisplay}"
+                                                    Click="SetQuickFeelingSatisfied_Click"
+                                                    Margin="0,0,6,6" />
+                                            <Button Style="{StaticResource SelectableOptionButtonStyle}"
+                                                    Tag="{Binding IsQuickFeelingNeutral}"
+                                                    Content="{Binding QuickFeelingNeutralDisplay}"
+                                                    Click="SetQuickFeelingNeutral_Click"
+                                                    Margin="0,0,6,6" />
+                                            <Button Style="{StaticResource SelectableOptionButtonStyle}"
+                                                    Tag="{Binding IsQuickFeelingDisappointed}"
+                                                    Content="{Binding QuickFeelingDisappointedDisplay}"
+                                                    Click="SetQuickFeelingDisappointed_Click"
+                                                    Margin="0,0,0,6" />
                                         </WrapPanel>
                                     </StackPanel>
                                 </Grid>
@@ -4114,36 +4140,87 @@
                                     </Grid.ColumnDefinitions>
                                     <StackPanel Grid.Column="0">
                                         <TextBlock Text="{Binding Strings.QuickWhenInputLabel}" FontSize="12" Foreground="{DynamicResource ForegroundMutedBrush}" Margin="0,0,0,6" />
-                                        <TextBox Style="{StaticResource OttlineTextBoxStyle}" Text="{Binding QuickWatchedOn, UpdateSourceTrigger=PropertyChanged}" />
+                                        <DatePicker x:Name="QuickWatchedOnDatePicker"
+                                                    Style="{StaticResource OttlineDatePickerStyle}"
+                                                    SelectedDate="{Binding QuickWatchedOnDate, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                    DisplayDateEnd="{Binding QuickMaxSelectableDate, Mode=OneWay}"
+                                                    SelectedDateFormat="Short"
+                                                    PreviewMouseLeftButtonUp="QuickDatePicker_PreviewMouseLeftButtonUp" />
                                     </StackPanel>
                                     <StackPanel Grid.Column="2">
                                         <TextBlock Text="{Binding Strings.TimelineFilterPlatformLabel}" FontSize="12" Foreground="{DynamicResource ForegroundMutedBrush}" Margin="0,0,0,6" />
-                                        <ComboBox IsEditable="True"
-                                                  ItemsSource="{Binding QuickPlatformOptions}"
-                                                  Text="{Binding QuickPlatform, UpdateSourceTrigger=PropertyChanged}"
-                                                  Padding="10,7" />
+                                        <ComboBox x:Name="QuickPlatformCombo" Style="{StaticResource OttlineComboBoxStyle}"
+                                                  ItemsSource="{Binding QuickPlatformComboOptions}"
+                                                  SelectedIndex="{Binding QuickPlatformComboIndex, UpdateSourceTrigger=Explicit}"
+                                                  SelectionChanged="QuickRecordCombo_SelectionChanged" />
+                                        <Grid Margin="0,6,0,0"
+                                              Visibility="{Binding IsQuickPlatformCustomInput, Converter={StaticResource BoolToVis}}">
+                                            <TextBox x:Name="QuickCustomPlatformTextBox"
+                                                     Style="{StaticResource OttlineTextBoxStyle}"
+                                                     Text="{Binding QuickPlatform, UpdateSourceTrigger=PropertyChanged}" />
+                                            <TextBlock Text="{Binding Strings.QuickPlatformCustomPlaceholder}"
+                                                       FontSize="13"
+                                                       Foreground="{DynamicResource ForegroundMutedBrush}"
+                                                       VerticalAlignment="Center"
+                                                       Margin="14,0,0,0"
+                                                       IsHitTestVisible="False">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock">
+                                                        <Setter Property="Visibility" Value="Collapsed" />
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding QuickPlatform}" Value="">
+                                                                <Setter Property="Visibility" Value="Visible" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
+                                        </Grid>
                                     </StackPanel>
                                     <StackPanel Grid.Column="4">
                                         <TextBlock Text="{Binding Strings.QuickPlaceInputLabel}" FontSize="12" Foreground="{DynamicResource ForegroundMutedBrush}" Margin="0,0,0,6" />
-                                        <ComboBox ItemsSource="{Binding QuickPlaceComboOptions}"
-                                                  SelectedIndex="{Binding QuickPlaceComboIndex}"
-                                                  Padding="10,7" />
+                                        <ComboBox Style="{StaticResource OttlineComboBoxStyle}"
+                                                  ItemsSource="{Binding QuickPlaceComboOptions}"
+                                                  SelectedIndex="{Binding QuickPlaceComboIndex, UpdateSourceTrigger=Explicit}"
+                                                  SelectionChanged="QuickRecordCombo_SelectionChanged" />
                                     </StackPanel>
                                     <StackPanel Grid.Column="6">
                                         <TextBlock Text="{Binding Strings.QuickOccasionInputLabel}" FontSize="12" Foreground="{DynamicResource ForegroundMutedBrush}" Margin="0,0,0,6" />
-                                        <ComboBox ItemsSource="{Binding QuickOccasionComboOptions}"
-                                                  SelectedIndex="{Binding QuickOccasionComboIndex}"
-                                                  Padding="10,7" />
+                                        <ComboBox Style="{StaticResource OttlineComboBoxStyle}"
+                                                  ItemsSource="{Binding QuickOccasionComboOptions}"
+                                                  SelectedIndex="{Binding QuickOccasionComboIndex, UpdateSourceTrigger=Explicit}"
+                                                  SelectionChanged="QuickRecordCombo_SelectionChanged" />
                                     </StackPanel>
                                 </Grid>
 
                                 <TextBlock Text="{Binding Strings.QuickNoteInputLabel}" FontSize="12" Foreground="{DynamicResource ForegroundMutedBrush}" Margin="0,0,0,6" />
-                                <TextBox Style="{StaticResource OttlineTextBoxStyle}"
-                                         Text="{Binding QuickNote, UpdateSourceTrigger=PropertyChanged}"
-                                         Height="96"
-                                         TextWrapping="Wrap"
-                                         AcceptsReturn="True"
-                                         Margin="0,0,0,14" />
+                                <Grid Margin="0,0,0,14">
+                                    <TextBox Style="{StaticResource OttlineTextBoxStyle}"
+                                             Text="{Binding QuickNote, UpdateSourceTrigger=PropertyChanged}"
+                                             Height="96"
+                                             TextWrapping="Wrap"
+                                             AcceptsReturn="True"
+                                             VerticalContentAlignment="Top"
+                                             VerticalScrollBarVisibility="Auto" />
+                                    <TextBlock Text="{Binding Strings.NotePlaceholder}"
+                                               FontSize="13"
+                                               Foreground="{DynamicResource ForegroundMutedBrush}"
+                                               VerticalAlignment="Top"
+                                               Margin="14,12,14,0"
+                                               TextWrapping="Wrap"
+                                               IsHitTestVisible="False">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Visibility" Value="Collapsed" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding QuickNote}" Value="">
+                                                        <Setter Property="Visibility" Value="Visible" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                </Grid>
 
                                 <Grid>
                                     <Grid.ColumnDefinitions>
@@ -4151,8 +4228,9 @@
                                         <ColumnDefinition Width="Auto" />
                                     </Grid.ColumnDefinitions>
                                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                        <CheckBox IsChecked="{Binding QuickSpoiler}" Content="{Binding Strings.SpoilerCheckLabel}" Margin="0,0,16,0" />
-                                        <CheckBox IsChecked="{Binding QuickShareTogether}" Content="{Binding Strings.ShareTogetherCheckLabel}" />
+                                        <CheckBox Style="{StaticResource OttlineCheckBoxStyle}"
+                                                  IsChecked="{Binding QuickShareTogether}"
+                                                  Content="{Binding Strings.ShareTogetherCheckLabel}" />
                                     </StackPanel>
                                     <Button Grid.Column="1"
                                             Style="{StaticResource PrimaryActionButtonStyle}"
@@ -4217,6 +4295,8 @@
                                  Height="110"
                                  TextWrapping="Wrap"
                                  AcceptsReturn="True"
+                                 VerticalContentAlignment="Top"
+                                 VerticalScrollBarVisibility="Auto"
                                  Margin="0,0,0,14" />
                         <Button Style="{StaticResource PrimaryActionButtonStyle}"
                                 Content="{Binding Strings.DiscussionSubmitBtn}"

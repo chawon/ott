@@ -36,10 +36,14 @@ jobs:
       - name: Build & Verify x64/arm64 MSIX and MSIXBundle
         working-directory: apps/windows-native
         run: |
-          ./scripts/build-msix.ps1 -Version "2.0.0.0"
-          ./scripts/verify-msix.ps1 -Version "2.0.0.0"
+          $version = dotnet msbuild src/Ottline.App/Ottline.App.csproj -nologo -getProperty:Version
+          if ($LASTEXITCODE -ne 0 -or $version -notmatch '^\d+\.\d+\.\d+\.\d+$') {
+            throw "Cannot resolve the four-part MSIX version from Ottline.App.csproj"
+          }
+          ./scripts/build-msix.ps1 -Version $version
+          ./scripts/verify-msix.ps1 -Version $version
 
-          $summary = @("### Native Windows CI (2.0.0.0)", "", "| Package | Size (MB) | SHA-256 |", "| :--- | :---: | :--- |")
+          $summary = @("### Native Windows CI ($version)", "", "| Package | Size (MB) | SHA-256 |", "| :--- | :---: | :--- |")
           foreach ($item in Get-ChildItem "output/msix" -File | Sort-Object Name) {
             $sizeMb = [math]::Round($item.Length / 1MB, 2)
             $sha = (Get-FileHash -Path $item.FullName -Algorithm SHA256).Hash

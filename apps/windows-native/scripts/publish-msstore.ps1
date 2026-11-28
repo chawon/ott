@@ -314,58 +314,58 @@ if ($LASTEXITCODE -ne 0) {
 $desiredTitleKo = if (-not [string]::IsNullOrWhiteSpace($TitleKo)) { $TitleKo } else { "ottline - 영화·드라마·책·독서 기록" }
 $desiredTitleEn = if (-not [string]::IsNullOrWhiteSpace($TitleEn)) { $TitleEn } else { "ottline: Movie, TV & Book Log" }
 
-$shortDescKo = "영화·드라마·OTT 시청 기록과 독서 노트를 한곳에, 가입 없이 타임라인과 Windows 11 위젯으로 남기는 감상 기록장"
-$shortDescEn = "Track movies, TV series, and books in a calm local-first timeline with an official Windows 11 widget."
+$shortDescKo = "영화·드라마·OTT 시청 기록과 책·독서 기록을 한곳에, 가입 없이 타임라인과 Windows 11 위젯으로 남기는 감상 기록장 ottline(오티티라인)"
+$shortDescEn = "Track movies, TV series, and books on a calm local-first timeline with an official Windows 11 widget."
 
 $descriptionKo = @"
-ottline은 영화, 시리즈(드라마), 책을 조용히 기록하고 나만의 타임라인으로 모아보는 순수 Windows 데스크톱 감상 수첩입니다.
+ottline(오티티라인)은 영화, 시리즈(드라마), 책을 조용히 기록하고 나만의 타임라인으로 모아보는 순수 Windows 데스크톱 감상 기록장입니다.
 
-작품을 검색해 상태(봤어요·보는 중·보고 싶어요 / 읽었어요·읽는 중·읽고 싶어요)를 고르고, 날짜·감상 느낌·메모·플랫폼·장소·함께한 상황을 가볍게 남기면 시간순 타임라인에 차곡차곡 쌓입니다. 로그인이나 회원가입 없이 설치 즉시 시작할 수 있고, 오프라인에서도 로컬 SQLite DB에 먼저 안전하게 저장됩니다.
+작품을 검색해 상태(봤어요·보는 중·보고 싶어요 / 읽었어요·읽는 중·읽고 싶어요)를 고르고, 원할 때 날짜·세 가지 느낌·메모·플랫폼·장소·함께한 상황을 덧붙인 뒤 ‘기록 남기기’를 누르면 시간순 타임라인에 차곡차곡 쌓입니다. 로그인이나 회원가입 없이 설치 즉시 시작할 수 있고, 오프라인에서도 로컬 SQLite DB에 먼저 안전하게 보관됩니다.
 
 [Windows 11 · 데스크톱 전용 기능]
 • Windows 11 공식 위젯 (Win + W): 소형·중형·대형 위젯으로 이어보는 작품과 이번 달 기록을 바탕화면 위젯 보드에서 바로 확인하고, 원클릭으로 빠른 기록을 열 수 있어요.
 • OTT 시청 종료 알림 & 전역 단축키 (Ctrl + Shift + O): Netflix, TVING, Wavve, Disney+, Apple TV 등 감상을 마친 뒤 잔잔한 알림으로 기억을 바로 남길 수 있어요.
 • 커스텀 시스템 트레이 플라이아웃: 창을 닫아도 트레이에서 가볍게 대기하며, 트레이 팝업으로 현재 시청 상태 확인과 빠른 기록을 이어갈 수 있어요.
-• 고해상도 공유 카드 PNG & CSV 백업: Story(9:16)·Feed(4:5) 감상 카드 및 리캡 카드를 고해상도 PNG로 저장하고, 타임라인 CSV 내보내기와 넷플릭스 시청 기록 가져오기를 지원해요.
-• 내 서가 (KDC 000~900) & 함께: 도서 기록을 KDC 주제별 서가로 모아보고, 다른 사람들의 감상 기록에 반응과 댓글로 이야기를 나눌 수 있어요.
-• 기존 앱·웹 기록 자동 이어받기: 기존 Microsoft Store PWA(Edge)에서 업데이트하면 첫 실행 시 자동 핸드오프로 기존 기록과 연결 코드를 안전하게 가져오며, 8자리 연결 코드로 iOS·Android·웹과도 이어집니다.
+• 고해상도 공유 카드 PNG & CSV 백업: Story(9:16)·Feed(4:5) 공유 카드를 고해상도 PNG로 저장하고, 타임라인 CSV 내보내기와 넷플릭스 시청 기록 가져오기를 지원해요.
+• 내 서가 (KDC 000~900) & 함께: 도서 기록을 KDC 주제별 서가로 모아보고, ‘함께 나누기’로 내 메모를 나누거나 ‘함께’에서 다른 사람의 이야기를 둘러볼 수 있어요.
+• 기존 앱·웹 기록 이어받기: 기존 Microsoft Store PWA(Edge)에서 업데이트하면 첫 실행 시 자동 핸드오프로 기존 타임라인과 기록 연결 코드를 안전하게 가져오며, ‘내 공간’의 기록 연결 코드로 다른 기기와도 같은 기록을 이어볼 수 있어요.
 "@.Trim()
 
 $descriptionEn = @"
 ottline is a calm, local-first Windows desktop recordbook for keeping movies, TV series, and books on a personal timeline.
 
-Search any film, series, or book, choose a status (Watched/Watching/Want to watch or Read/Reading/Want to read), and save the date, feeling, short note, platform, place, and occasion. No sign-up is required to start—every entry is saved offline first to your local SQLite timeline and can be synced across devices anytime with an 8-character connection code.
+Search any film, series, or book, choose a status (Watched/Watching/Want to watch or Read/Reading/Want to read), optionally add the date, one of three feelings, a short note, platform, place, and occasion, and press ‘Keep this record’ to save it to your chronological timeline. No sign-up is required to start—every record is kept offline first in your local SQLite timeline and can be continued across devices anytime with a record connection code in My space.
 
 [Built for Windows 11 & Desktop]
 • Official Windows 11 Widget (Win + W): Pin Small, Medium, or Large widgets to keep your current watch or read and monthly count on the Widgets Board, and launch Quick Record directly from the widget.
 • OTT Watch-End Reminders & Global Shortcut (Ctrl + Shift + O): Receive a gentle reminder after closing streaming apps (Netflix, TVING, Wavve, Disney+, Apple TV) so you never lose a thought right after credits roll.
 • Custom System Tray Flyout: Minimize cleanly to the system tray and click the tray icon for quick status, sync, and logging controls.
-• Editorial Share Cards & CSV Backup: Export high-resolution Story (9:16) and Feed (4:5) PNG cards, export your full timeline as CSV, or import your Netflix viewing history.
-• KDC Bookshelf (000–900) & Together: Browse books arranged by subject shelf and join quiet discussions around titles you care about.
-• Seamless Store PWA Migration: Existing Microsoft Store Edge PWA users automatically carry over their timeline, profile, and connection code on first launch, with cross-device sync across Windows, iOS, Android, and Web.
+• Editorial Share Cards & CSV Backup: Export high-resolution Story (9:16) and Feed (4:5) PNG share cards, export your full timeline as CSV, or import your Netflix viewing history.
+• KDC Bookshelf (000–900) & Together: Browse books arranged by subject shelf, share your note with ‘Share to Together’, or read shared thoughts in Together.
+• Seamless Store PWA Migration: Existing Microsoft Store Edge PWA users automatically carry over their timeline, profile, and record connection code on first launch, and can open the same records across devices using their record connection code.
 "@.Trim()
 
 $featuresKo = @(
     "회원가입·로그인 없이 바로 시작하는 로컬 우선 영화·시리즈·책 타임라인",
     "Windows 11 공식 위젯(Win + W) 소형·중형·대형 지원",
     "OTT 시청 종료 알림 및 전역 단축키(Ctrl+Shift+O)로 빠른 감상 기록",
-    "날짜, 플랫폼, 장소, 함께한 상황, 3단계 느낌 및 메모 기록",
-    "고해상도 Story·Feed 감상 카드 PNG 저장 및 리캡 리포트",
+    "날짜, 플랫폼, 장소, 함께한 상황, 세 가지 느낌 및 메모 기록",
+    "고해상도 Story·Feed 공유 카드 PNG 저장 및 이용 리포트",
     "KDC 000~900 내 서가 분류 및 타임라인 CSV 내보내기·넷플릭스 기록 가져오기",
-    "기존 Store PWA 자동 이어받기 및 8자리 연결 코드 멀티 디바이스 동기화"
+    "기존 Store PWA 자동 이어받기 및 ‘내 공간’의 기록 연결 코드 기기 연결"
 )
 
 $featuresEn = @(
     "Instant local-first timeline for movies, TV series, and books with no sign-up",
     "Official Windows 11 Widget (Win + W) in Small, Medium, and Large sizes",
     "OTT watch-end reminders and global Quick Record shortcut (Ctrl+Shift+O)",
-    "Record watch date, platform, place, occasion, feeling, and notes",
+    "Record watch date, platform, place, occasion, three feelings, and notes",
     "Export crisp high-resolution Story and Feed PNG share cards",
     "KDC 000–900 bookshelf shelves, CSV export, and Netflix history import",
-    "Automatic Store PWA migration and 8-character connection code sync"
+    "Automatic Store PWA migration and record connection code device sync"
 )
 
-$keywordsKo = @("영화 기록", "드라마 기록", "독서 기록", "시청 기록", "책 기록", "타임라인", "감상 수첩")
+$keywordsKo = @("오티티라인", "영화 기록", "드라마 기록", "독서 기록", "시청 기록", "책 기록", "타임라인")
 $keywordsEn = @("movie log", "book tracker", "tv tracker", "reading log", "watch diary", "timeline", "media journal")
 $copyrightText = "© 2026 Chawon Lee. All rights reserved."
 
@@ -379,7 +379,7 @@ ottline이 순수 Windows 네이티브 앱(v$Version)으로 새롭게 태어났�
 • 커스텀 시스템 트레이 플라이아웃: 트레이 아이콘 클릭 시 에디토리얼 톤의 전용 팝업에서 현재 시청 상태, 빠른 기록, 동기화를 한 번에 다룰 수 있어요.
 • OTT 시청 종료 알림 & 전역 단축키(Ctrl+Shift+O): Netflix, TVING, Wavve 등 시청 후 바로 기억을 남길 수 있어요.
 • 공유 카드 & 도서/영상 검색 강화: 영화·시리즈는 물론 국내 도서 표지까지 선명한 고해상도 공유 카드 PNG로 저장할 수 있어요.
-• 기존 PWA/웹 사용자 원클릭 이어받기: 기존 스토어 앱(Edge) 업데이트 시 자동 핸드오프(?native_handoff=1)를 지원하며, 홈/내 공간의 버튼이나 8자리 연결 코드로도 기존 기록을 합칠 수 있어요.
+• 기존 PWA/웹 사용자 원클릭 이어받기: 기존 스토어 앱(Edge) 업데이트 시 자동 핸드오프(?native_handoff=1)를 지원하며, 홈/내 공간의 버튼이나 ‘내 공간’의 기록 연결 코드로도 기존 기록을 합칠 수 있어요.
 "@.Trim()
     }
 
@@ -392,7 +392,7 @@ ottline $Version arrives as a brand-new, pure Windows native desktop app.
 • Custom System Tray Flyout: Left- or right-click the tray icon for quick logging, watch status, sync, and exit controls.
 • Watch Reminders & Global Shortcut (Ctrl+Shift+O): Get a gentle nudge after watching OTT titles to save the memory before it fades.
 • High-Resolution Share Cards: Export editorial Story and Feed PNG cards with crisp movie, series, and book covers.
-• Seamless Migration: One-click Store PWA (Edge) / browser session handoff (?native_handoff=1) automatically brings over your existing timeline and profile, alongside 8-character connection code pairing.
+• Seamless Migration: One-click Store PWA (Edge) / browser session handoff (?native_handoff=1) automatically brings over your existing timeline and profile, alongside record connection code pairing.
 "@.Trim()
     }
 
@@ -402,8 +402,8 @@ Testing & Certification Notes for ottline $Version (Native Desktop + Windows 11 
 
 1. No Login Required (Local-First Instant Access):
    - Launch the app directly after installation. No sign-in or password is required to test any feature.
-   - Click "+ 기록하기" (or "+ Quick Record" after switching language to EN in the header) to search movies, series, or books and save logs immediately to the local SQLite timeline.
-   - Existing Store PWA (Edge) or web/Android users can migrate via one-click browser handoff or an 8-character connection code in "내 공간 (My Space)".
+   - Click "+ 기록 남기기" (or "+ Leave a record" after switching language to EN in the header) to search movies, series, or books and save logs immediately to the local SQLite timeline.
+   - Existing Store PWA (Edge) or web/Android users can migrate via one-click browser handoff or a record connection code in "내 공간 (My space)".
 
 2. Windows 11 Official Widget (Win + W):
    - On Windows 11, press Win + W, click "+" in the top-right corner of the Widgets Board, and select "ottline" (small, medium, and large sizes are supported).

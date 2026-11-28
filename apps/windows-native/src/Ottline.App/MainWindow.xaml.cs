@@ -102,6 +102,8 @@ public partial class MainWindow : Window
             }
         };
 
+        Activated += MainWindow_Activated;
+
         Loaded += async (_, _) =>
         {
             _vm.UpdateWindowWidth(ActualWidth > 0 ? ActualWidth : Width);
@@ -129,7 +131,10 @@ public partial class MainWindow : Window
                 _vm.TryAutoLaunchStoreUpgradeHandoff();
             }
 
-            _ = _vm.SyncNowAsync(silent: true);
+            if (!_isHeadlessCapture)
+            {
+                await _vm.RequestAutoSyncAsync(AutoSyncTrigger.WindowActivated);
+            }
         };
     }
 
@@ -465,15 +470,22 @@ public partial class MainWindow : Window
             return;
         }
 
+        Activated -= MainWindow_Activated;
         CompositionTarget.Rendering -= OnIntroRendering;
         _desktop.Dispose();
         _vm.Dispose();
     }
 
+    private void MainWindow_Activated(object? sender, EventArgs e)
+    {
+        if (_isHeadlessCapture) return;
+        _ = _vm.RequestAutoSyncAsync(AutoSyncTrigger.WindowActivated);
+    }
+
     // ==================== HEADER & NAVIGATION ====================
-    private void BrandHeader_Click(object sender, MouseButtonEventArgs e) => _vm.CurrentTab = MainTab.HOME;
-    private void NavHome_Click(object sender, RoutedEventArgs e) => _vm.CurrentTab = MainTab.HOME;
-    private void NavTimeline_Click(object sender, RoutedEventArgs e) => _vm.CurrentTab = MainTab.TIMELINE;
+    private void BrandHeader_Click(object sender, MouseButtonEventArgs e) => _vm.NavigateToTab(MainTab.HOME);
+    private void NavHome_Click(object sender, RoutedEventArgs e) => _vm.NavigateToTab(MainTab.HOME);
+    private void NavTimeline_Click(object sender, RoutedEventArgs e) => _vm.NavigateToTab(MainTab.TIMELINE);
     private void NavTogether_Click(object sender, RoutedEventArgs e) => _vm.CurrentTab = MainTab.TOGETHER;
     private void NavMySpace_Click(object sender, RoutedEventArgs e)
     {
@@ -991,9 +1003,45 @@ public partial class MainWindow : Window
     private void SetQuickStatusInProgress_Click(object sender, RoutedEventArgs e) => _vm.QuickStatus = LogStatus.IN_PROGRESS;
     private void SetQuickStatusWishlist_Click(object sender, RoutedEventArgs e) => _vm.QuickStatus = LogStatus.WISHLIST;
 
-    private void SetQuickFeelingSatisfied_Click(object sender, RoutedEventArgs e) => _vm.QuickFeeling = RecordFeeling.SATISFIED;
-    private void SetQuickFeelingNeutral_Click(object sender, RoutedEventArgs e) => _vm.QuickFeeling = RecordFeeling.NEUTRAL;
-    private void SetQuickFeelingDisappointed_Click(object sender, RoutedEventArgs e) => _vm.QuickFeeling = RecordFeeling.DISAPPOINTED;
+    private void SetQuickFeelingSatisfied_Click(object sender, RoutedEventArgs e) => _vm.ToggleQuickFeeling(RecordFeeling.SATISFIED);
+    private void SetQuickFeelingNeutral_Click(object sender, RoutedEventArgs e) => _vm.ToggleQuickFeeling(RecordFeeling.NEUTRAL);
+    private void SetQuickFeelingDisappointed_Click(object sender, RoutedEventArgs e) => _vm.ToggleQuickFeeling(RecordFeeling.DISAPPOINTED);
+
+    private void QuickDatePicker_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+    {
+        if (sender is not System.Windows.Controls.DatePicker picker) return;
+        if (picker.IsDropDownOpen) return;
+
+        if (e.OriginalSource is DependencyObject source)
+        {
+            DependencyObject? curr = source;
+            while (curr != null && curr != picker)
+            {
+                if (curr is System.Windows.Controls.Button)
+                {
+                    return;
+                }
+                curr = curr is ContentElement ce
+                    ? LogicalTreeHelper.GetParent(ce)
+                    : VisualTreeHelper.GetParent(curr);
+            }
+        }
+
+        picker.IsDropDownOpen = true;
+    }
+
+    private void QuickRecordCombo_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+    {
+        if (sender is not System.Windows.Controls.ComboBox { SelectedIndex: >= 0 } combo ||
+            combo.DataContext is not MainViewModel vm) return;
+
+        var choosingCustomPlatform = combo == QuickPlatformCombo && !vm.IsQuickPlatformCustomInput;
+        combo.GetBindingExpression(Selector.SelectedIndexProperty)?.UpdateSource();
+        if (choosingCustomPlatform && vm.IsQuickPlatformCustomInput && string.IsNullOrEmpty(vm.QuickPlatform))
+        {
+            Dispatcher.BeginInvoke(() => QuickCustomPlatformTextBox.Focus());
+        }
+    }
 
     private void SetQuickDateToday_Click(object sender, RoutedEventArgs e) => _vm.QuickWatchedOn = RecordDate.TodayDate();
     private void SetQuickDateYesterday_Click(object sender, RoutedEventArgs e) => _vm.QuickWatchedOn = RecordDate.RelativeDate(-1);

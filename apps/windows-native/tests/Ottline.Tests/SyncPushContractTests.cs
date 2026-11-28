@@ -660,7 +660,9 @@ public sealed class SyncPushContractTests
             Assert.Equal(canonicalLogId, allLogs[0].Id);
             Assert.Equal(canonicalTitleId, allLogs[0].TitleId);
             Assert.Equal("Synced from phone", allLogs[0].Note);
-            Assert.Single(repo.GetHistoryForTitle(canonicalTitleId));
+            var history = repo.GetHistoryForTitle(canonicalTitleId);
+            Assert.Equal(new[] { "Synced from phone", "Local initial" }, history.Select(entry => entry.Note));
+            Assert.All(history, entry => Assert.Equal(canonicalLogId, entry.LogId));
         }
         finally
         {
