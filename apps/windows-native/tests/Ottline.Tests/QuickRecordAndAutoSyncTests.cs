@@ -328,4 +328,54 @@ public sealed class QuickRecordAndAutoSyncTests
         Assert.Equal("Custom input", en.QuickPlatformCustomOption);
         Assert.Equal("Enter platform", en.QuickPlatformCustomPlaceholder);
     }
+
+    [Fact]
+    public void PublishMsStoreScript_ContainsApprovedKoBrandKeywordAndV2Terminology()
+    {
+        var dir = new DirectoryInfo(AppContext.BaseDirectory);
+        string? scriptPath = null;
+        while (dir != null)
+        {
+            var candidate = Path.Combine(dir.FullName, "scripts", "publish-msstore.ps1");
+            if (File.Exists(candidate))
+            {
+                scriptPath = candidate;
+                break;
+            }
+            dir = dir.Parent;
+        }
+
+        Assert.NotNull(scriptPath);
+        var script = File.ReadAllText(scriptPath!, Encoding.UTF8);
+
+        // Partner Center keyword limit (7) & Korean brand term '오티티라인'
+        var keywordsKoMatch = System.Text.RegularExpressions.Regex.Match(
+            script,
+            @"\$keywordsKo\s*=\s*@\(([^)]+)\)"
+        );
+        Assert.True(keywordsKoMatch.Success, "$keywordsKo array not found in publish-msstore.ps1");
+        var koKeywords = System.Text.RegularExpressions.Regex.Matches(keywordsKoMatch.Groups[1].Value, "\"([^\"]+)\"")
+            .Select(m => m.Groups[1].Value)
+            .ToList();
+        Assert.Equal(7, koKeywords.Count);
+        Assert.Contains("오티티라인", koKeywords);
+
+        // Required approved KO & EN v2 copy markers (#187 / PR #188)
+        Assert.Contains("ottline(오티티라인)은", script);
+        Assert.Contains("‘기록 남기기’", script);
+        Assert.Contains("세 가지 느낌", script);
+        Assert.Contains("기록 연결 코드", script);
+        Assert.Contains("Keep this record", script);
+        Assert.Contains("record connection code", script);
+
+        // Legacy v1/pre-alignment terms must not remain
+        Assert.DoesNotContain("감상 수첩", script);
+        Assert.DoesNotContain("3단계 느낌", script);
+        Assert.DoesNotContain("8자리 연결 코드", script);
+        Assert.DoesNotContain("8-character connection code", script);
+        Assert.DoesNotContain("감상 카드", script);
+        Assert.DoesNotContain("+ 기록하기", script);
+        Assert.DoesNotContain("페어링 코드", script);
+        Assert.DoesNotContain("평점", script);
+    }
 }
