@@ -5,335 +5,49 @@ bootstrapped_from: cookpad
 bootstrapped_at: 2026-06-14T00:00:00+09:00
 ---
 
-# Design System Inspiration of Cookpad
+# ottline v2 디자인 기준
 
-## 1. Visual Theme & Atmosphere
+영화·시리즈·책을 기록하고 다시 펼쳐보는 서비스다. v2의 기준은 사용자가 선택한 A 타임라인이다. PC에서는 한 달의 기록을 여유 있게 펼쳐 보고, 모바일에서는 한 손으로 기록을 시작한다. [확정 시안](https://github.com/chawon/ott/blob/main/archive/prototypes/ottline-v2/README.md)
 
-ottline is a personal recordbook for what people watch and read. Cookpad is the reference because it makes a repeated everyday act feel warm, low-pressure, and close at hand. For ottline, the interface should feel like a well-used shelf of memories rather than a blank form or productivity dashboard.
+## 색·서체·표지
 
-The signature surface is a warm cream canvas, not pure white. Use `#F8F6F2` as the page background, white cards as the place where posters and notes sit, and friendly orange `#FF9933` as the final action color. Orange is a pop for record/save actions, focus states, and a thin current-navigation marker; it is not a wash across the whole product or a persistent selection fill.
+- 라이트의 배경·카드·본문은 `#F8F6F2`·`#FFFFFF`·`#0F0F0F`, 다크는 `#15120F`·`#211C18`·`#FFF8EF`를 쓴다. 밝은 바탕의 심벌과 워드마크는 네이비 `#1E4D8C`, 어두운 바탕은 해당 테마의 밝은 로고 자산을 쓴다.
+- 오렌지 `#FF9933`와 짙은 글자는 최종 기록·저장 버튼에 쓴다. 상태 선택은 중립색으로 표시하고, 포커스와 현재 탭에는 작은 강조를 허용한다. 같은 오렌지의 코드 이름은 Web `--primary`, Compose·SwiftUI `brandOrange`, WPF `AccentOrangeBrush`다. [Android 테마](https://github.com/chawon/ott/blob/main/apps/android-native/app/src/main/java/app/ottline/ui/theme/OttlineTheme.kt) · [Apple 공통 테마](https://github.com/chawon/ott/blob/main/apps/apple-core/Sources/OttlineCore/UI/Theme/OttlineTheme.swift) · [Windows 브러시](https://github.com/chawon/ott/blob/main/apps/windows-native/src/Ottline.App/Theme/OttlineThemeManager.cs)
+- 기본 서체는 Pretendard다. 로고는 열린 책과 재생 심벌, 굵기 700·자간 -0.025em의 `ottline`, 오렌지색 `ON THE TIMELINE` 부제로 구성한다. 승인된 자산을 재사용한다. [로고 원본과 타이포그래피](https://github.com/chawon/ott/blob/main/docs/ottline-ci-v2.md)
+- 기록 카드와 상세에서는 포스터·표지와 제목을 먼저 보여 준다. 날짜·장소·상황을 묶어 감상 상태와 메모를 함께 읽을 수 있게 한다. 웹 카드·버튼의 기본 모서리는 8px이며 작은 표지와 전체 화면 기록창에는 각각의 컴포넌트 값을 쓴다. [웹 테마](https://github.com/chawon/ott/blob/main/apps/web/app/globals.css) · [기록창 스타일](https://github.com/chawon/ott/blob/main/apps/web/components/recording.module.css)
 
-The mood is homey, familiar, and unintimidating. Posters, book covers, dates, and notes are the content equivalent of Cookpad's food photography. They should carry the emotional signal. Chrome should stay quiet, corners should stay soft at `8px`, and text should stay crisp with near-black `#0F0F0F` for primary content and charcoal `#4A4A4A` for secondary UI.
+## 기록과 회상
 
-**Key Characteristics:**
-- Warm off-white background `#F8F6F2` — never a clinical pure white canvas
-- Friendly orange `#FF9933` as the primary action and focus color
-- Restrained wordmark navy `#1E4D8C` for navigation, links, and selected-control outlines or text
-- White record tiles floating on the cream base for clear poster/card presentation
-- Near-black `#0F0F0F` for readable titles and notes; charcoal `#4A4A4A` for metadata
-- Soft, approachable `8px` border-radius on buttons, inputs, cards, badges, tabs, and dialogs
-- Poster-forward and cover-forward: visual media is the primary content anchor
-- Noto Sans-led system font stack; comfortable 16px body
-- Primary button: solid orange, near-black text, 16px weight 600
-- Warm neutral tints (`#FEF9EE`, `#ECEBE9`, `#FAF5D7`) for highlights and quiet grouping
-- Warm, unpressured mood — keeping a record should feel easy to return to
+- 작품을 찾아 상태를 고르면 초안이 된다. 사용자가 마지막 **기록 남기기**를 눌러야 저장한다. 날짜는 시각 없이 고르고, 플랫폼 프리셋·직접 입력, 장소·상황, 시리즈 시즌·회차에 계속 접근할 수 있게 한다.
+- 감상은 영상·책에 맞는 세 가지 느낌으로 표현한다. 기록창·타임라인·공유 카드에서 같은 표현을 쓰고, 선택과 저장 결과에 같은 느낌 아이콘을 쓴다. 느낌과 메모는 선택 사항이다. 메모가 비어도 완성된 기록으로 보여 주고 추가 입력은 상세에서 권한다.
+- 홈의 월별 대표·목록에는 감상을 마친 작품을 모으고, 이어가는 작품은 별도로 보여 준다. 진행 중이거나 보고 싶은 작품만 있는 사람에게도 기존 타임라인을 보여 준다.
+- 모바일에서는 보이는 화면 상단에 검색창과 영상·책 선택을 둔다. 키보드가 열려도 검색 결과를 스크롤하고 기록을 마칠 수 있게 한다. 웹 기록창은 상태를 고른 뒤에도 크기를 유지하며, 추가 입력은 본문만 스크롤하고 하단 저장 버튼은 보이게 한다. [저장 동작과 검증](https://github.com/chawon/ott/blob/main/docs/ottline-ux-v2-web.md#L508)
 
-## 2. Color Palette & Roles
+<a name="8-responsive-behavior"></a>
 
-Values below preserve the Cookpad reference and map them to ottline's recordbook surfaces.
+## 화면 폭과 플랫폼
 
-### Brand
-- **Cookpad Orange** (`#FF9933`): Final primary action color for record/save/share, input focus, and a thin or short marker on the current navigation item.
-- **Wordmark Navy** (`#1E4D8C`): Navigation, links, and selected-control outlines or text. The `ottline` wordmark stays navy while the `ON THE TIMELINE` subtitle stays orange.
-- **Orange foreground**: orange primary controls use near-black `#0F0F0F` text and icons.
+창에 실제로 주어진 너비와 운영체제의 크기 등급에 따라 배치를 정한다. 이전 Expo iOS·Android TWA·Windows Store PWA의 설치판 전환 경로는 [플랫폼 현황](https://github.com/chawon/ott/blob/main/docs/platforms.md)에 있다.
 
-### Surface
-- **Warm Off-White / Cream** (`#F8F6F2`): Signature page background.
-- **Card White** (`#FFFFFF`): QuickLog, timeline records, dialogs, and repeated cards.
-- **Cream Tint** (`#FEF9EE`): Highlighted record surfaces, empty states, and gentle callouts.
-- **Warm Gray Surface** (`#ECEBE9`): Dividers, disabled fills, skeleton blocks, and quiet separators.
+| 대상 | 화면과 입력 방식 | 구현 근거 |
+| --- | --- | --- |
+| Web/PWA | 768 CSS px부터 상단 탐색과 넉넉한 월별 배치를 쓴다. PC 타임라인의 기록 버튼은 상단에 한 번 둔다. 더 좁은 화면에서는 하단 기록 진입과 접는 필터를 쓴다. | [타임라인](https://github.com/chawon/ott/blob/main/apps/web/components/timeline-v2/timeline.module.css) |
+| Android · Compose | 현재 창 너비가 700dp 미만이면 하단 탐색, 700dp 이상이면 상단 탐색과 ‘함께’ 목록·상세 2단을 쓴다. 검색·입력은 전체 화면으로 열고 키보드와 시스템 탐색 영역을 피한다. | [창 너비 기준](https://github.com/chawon/ott/blob/main/apps/android-native/app/src/main/java/app/ottline/ui/layout/AdaptiveLayoutMetrics.kt) · [기록창](https://github.com/chawon/ott/blob/main/apps/android-native/app/src/main/java/app/ottline/ui/screens/QuickRecordDialog.kt) |
+| iPhone · SwiftUI | 가로 크기 등급이 `compact`이면 하단 탐색에서 전체 화면 기록창을 연다. 검색과 저장에는 iPad·Mac과 같은 `QuickRecordSheet`를 쓴다. | [iPhone 탐색](https://github.com/chawon/ott/blob/main/apps/ios-native/Sources/OttlineApp/OttlineApp.swift) · [공용 기록창](https://github.com/chawon/ott/blob/main/apps/apple-core/Sources/OttlineCore/UI/Components/QuickRecordSheet.swift) |
+| iPad · SwiftUI | 가로 크기 등급이 `regular`이고 창이 700pt 이상이면 상단 탐색과 ‘함께’ 2단을 쓴다. 좁은 Split View는 한 열로 돌아간다. 기록창의 표시는 크기 등급을 따라 `regular`면 큰 시트, `compact`면 전체 화면이다. | [창 너비 기준](https://github.com/chawon/ott/blob/main/apps/ios-native/Sources/OttlineApp/UI/Components/OttlinePadAdaptiveComponents.swift) · [탐색과 시트](https://github.com/chawon/ott/blob/main/apps/ios-native/Sources/OttlineApp/OttlineApp.swift) |
+| macOS · SwiftUI | 창 상단에 탐색과 기록 버튼을 둔다. 메뉴의 새 기록이나 `⌘N`으로 같은 기록 시트를 열고, 이동 메뉴에서는 키보드로 탭을 바꾼다. | [창과 시트](https://github.com/chawon/ott/blob/main/apps/macos-native/Sources/OttlineMacApp/UI/MacRootSpreadView.swift) · [메뉴와 단축키](https://github.com/chawon/ott/blob/main/apps/macos-native/Sources/OttlineMacApp/OttlineMacApp.swift) |
+| Windows · WPF | 상단 기록 버튼, `Ctrl+N`·`Ctrl+K`, 트레이에서 같은 기록창을 연다. ‘함께’는 창 너비 980 DIP부터 목록과 상세를 나란히 표시한다. | [창과 단축키](https://github.com/chawon/ott/blob/main/apps/windows-native/src/Ottline.App/MainWindow.xaml.cs) · [2단 기준](https://github.com/chawon/ott/blob/main/apps/windows-native/src/Ottline.Core/Domain/TogetherSpreadCoordinator.cs) |
 
-### Text
-- **Near-Black Text** (`#0F0F0F`): Primary titles, record notes, button-adjacent labels.
-- **Charcoal** (`#4A4A4A`): Metadata, secondary text, icons, placeholders, helper text.
-- **White** (`#FFFFFF`): Card surfaces and text placed on sufficiently dark poster or cover media.
+Windows 새 기록에는 상태 `DONE`과 느낌 `SATISFIED`가 미리 선택돼 있다. 이 초기값은 사용자가 저장 버튼을 눌러야 기록에 반영된다. [Windows 기록 폼](https://github.com/chawon/ott/blob/main/apps/windows-native/src/Ottline.App/ViewModels/MainViewModel.cs#L2289)
 
-### Accent / Misc
-- **Warm Yellow** (`#E9B83F`): Small highlights, recap emphasis, gentle badges.
-- **Pale Yellow Tint** (`#FAF5D7`): Low-emphasis badges and "saved for later" style surfaces.
-- **Scrim** (`rgba(0,0,0,0.2)`): Optional image overlay on poster/cover media when text must sit on top.
+<a name="10-voice--tone"></a>
 
-## 3. Typography Rules
+## 문구와 접근성
 
-### Font Stack
-```
-"Noto Sans", "Pretendard Variable", Pretendard, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif
-```
+- 한국어는 자연스러운 해요체, 영어는 짧은 문장과 sentence case를 쓴다. 타임라인에 쌓이는 한 건은 ‘기록’(record)이다. 입력·수정의 날짜·플랫폼·장소·상황은 ‘그날의 순간’, 저장한 기록의 회상은 ‘그날의 온기’, 영어는 ‘The moment’다.
+- 공개 동작은 ‘함께 나누기’, 완료는 ‘함께 나눴어요’, 공유용 이미지는 ‘공유 카드’다. ‘기록 연결 코드’(record connection code)와 그 개인 보관용 이미지인 ‘복구 카드’(recovery card)를 구분한다. 도움말·문의에서도 앱의 실제 저장·공유·연결·내보내기 동작을 같은 용어로 안내한다. [제품 문구 예시](https://github.com/chawon/ott/blob/main/wiki/pages/processes/ux-copy.md)
+- 빈 상태·불러오는 중·오류를 구별하고 오류에는 다음 행동을 적는다. 라이트·다크와 한국어·영어에서 버튼 이름과 키보드 포커스가 읽히게 한다. 선택과 완료는 글자나 아이콘으로도 드러내고, 모션 감소 설정을 존중한다.
 
-Cookpad leads with Noto Sans for clean Japanese and alphanumeric rendering. ottline can keep Pretendard in the stack for Korean clarity, but the feel should remain plain, readable, and fast.
+<a name="13-personas"></a>
 
-### Size Scale (observed)
-| Use | Size | Weight |
-|---|---|---|
-| Body / record meta | `16px` | 400 |
-| Record title / card title | `16px` | 600-700 |
-| Primary button | `16px` | 600 |
-| Category / tab label | `16px` | 400 |
-| Section heading | `20-24px` | 600-700 |
-
-### Conventions
-- 16px is the comfortable body default for notes, search, and record metadata.
-- Weight 600 carries buttons and record titles; 700 is reserved for stronger section headings.
-- Body weight 400 keeps notes and metadata easy to scan.
-- Avoid heavy display type. This product should feel like a recordbook, not a campaign page.
-
-## 4. Component Stylings
-
-### Buttons
-
-**Primary**
-- Background: `#FF9933`
-- Text: `#0F0F0F`
-- Radius: `8px`
-- Padding: `8px 24px`
-- Height: ~`48px`
-- Font: `16px` / `600`
-- Use: One final record, save, or share action in the current work area
-
-**Secondary / Outline**
-- Background: `#FFFFFF`
-- Text: `#1E4D8C` or `#4A4A4A`
-- Border: `1px solid #1E4D8C` at low emphasis, or the standard neutral border
-- Radius: `8px`
-- Use: Lower-emphasis action beside a primary
-
-**Text / Quiet**
-- Background: transparent
-- Text: `#4A4A4A`
-- Use: Navigation, dismiss, low-pressure actions
-
-**Disabled**
-- Background: `#ECEBE9`
-- Text: `#4A4A4A`
-- Use: Unavailable action
-
-### Category Tiles
-
-**Category Button**
-- Background: transparent or `#FEF9EE`
-- Text: `#0F0F0F`; selected text or outline may use `#1E4D8C`
-- Radius: `8px`
-- Padding: `16px`
-- Height: ~`64px`
-- Font: `16px` / `400`
-- Use: Quick filters, content-type switches, timeline categories, profile choices
-
-### Cards
-
-**Recipe Card**
-- Background: `#FFFFFF`
-- Text: `#0F0F0F`
-- Radius: `8px`
-- Padding: `0` when media-led; `16px` when text-led
-- Use: Record tile — poster or cover image first, title and metadata below, floating on `#F8F6F2`
-
-**Promoted / Highlight Card**
-- Background: `#FEF9EE`
-- Radius: `8px`
-- Use: Empty states, recap prompts, recovery-card surfaces, and gentle account callouts
-
-### Inputs
-
-**Search Field**
-- Background: `#FFFFFF`
-- Text: `#4A4A4A` placeholder, `#0F0F0F` typed
-- Radius: `8px`
-- Padding: `12px 16px`
-- Focus: border/ring in `#FF9933`
-- Use: Title search as the front door of the product
-
-### Badges
-
-**Rating / Highlight Badge**
-- Background: `#FAF5D7` or `#E9B83F`
-- Text: `#4A4A4A` or `#0F0F0F`
-- Radius: `8px` or `full`
-- Use: Status, place, occasion, source labels, recap highlights
-
-## 5. Layout Principles
-
-### Density
-ottline is medium density and media-forward. The grid or list can be efficient, but each record should leave enough room for the poster, title, date, and note to feel remembered rather than filed. The cream base separates white cards without relying on heavy borders or shadows.
-
-### Spacing & Structure
-- Title search and QuickLog are the core loop; make them prominent and easy to return to.
-- Category tiles and tabs should be large enough to tap without precision.
-- Timeline cards float on the cream base with minimal depth.
-- Dialogs should feel like a clear white sheet on a warm page, not a heavy modal system.
-
-## 6. Depth & Elevation
-
-ottline should read soft and mostly flat. Depth comes from the warm cream background separating white cards, plus poster and cover art.
-
-- Record cards: minimal shadow; cream-vs-white contrast and `8px` radius do most of the work
-- Media tiles: optional subtle scrim when text sits over artwork
-- Dropdowns / dialogs: light shadow + scrim
-- Avoid glossy, dramatic, or dashboard-heavy elevation
-
-## 7. Do's and Don'ts
-
-- **DO** put the interface on warm cream `#F8F6F2`. **DON'T** use a pure-white clinical canvas.
-- **DO** reserve orange `#FF9933` for final primary actions, focus, and a small active-navigation marker. **DON'T** use it as repeated navigation, selection, status, metric, or metadata fills and text.
-- **DO** let posters, covers, dates, and notes dominate record cards. **DON'T** clutter cards with chrome.
-- **DO** use `8px` radius consistently. **DON'T** use sharp corners or oversized pill cards.
-- **DO** use near-black `#0F0F0F` for primary text. **DON'T** make record titles low contrast.
-- **DO** keep copy warm, plain, and encouraging. **DON'T** make logging feel like submitting a form.
-- **DO** keep mobile controls generous. **DON'T** shrink navigation into tiny rows.
-- **DO** use Noto Sans / Pretendard / system fallback. **DON'T** load a heavy decorative font.
-
-## 8. Responsive Behavior
-
-| Width | Behavior |
-|---|---|
-| Desktop | Wide content column on cream base; top nav and QuickLog prominent |
-| Tablet | Cards and panels reflow to fewer columns; tabs wrap cleanly |
-| Mobile | Single-column record flow; floating bottom nav; title search and record action easy to reach |
-
-### Touch & Mobile
-- Category tiles and primary buttons should meet or exceed 48px touch height.
-- Record cards should preserve readable titles at 16px.
-- Floating bottom navigation is part of the mobile core loop and must not disappear behind browser chrome.
-- The product is often opened briefly after watching or reading; make the first action obvious.
-
-## 9. Agent Prompt Guide
-
-### Quick Color Reference
-- Primary / action: Cookpad Orange `#FF9933`
-- Navigation / link / selected outline: wordmark navy `#1E4D8C`
-- Page bg: warm cream `#F8F6F2`; card bg `#FFFFFF`
-- Text: `#0F0F0F`; chrome/secondary `#4A4A4A`
-- Warm accents: `#E9B83F`, `#FEF9EE`, `#FAF5D7`
-- Radius: `8px` everywhere
-
-### Example Component Prompts
-- "Create an ottline primary button in Cookpad style: solid `#FF9933`, near-black `#0F0F0F` text, `8px` radius, `8px 24px` padding, height about 48px, 16px weight 600."
-- "Build an ottline record card: white bg, `8px` radius, poster or cover media first, title below at 16px weight 600 `#0F0F0F`, metadata in `#4A4A4A`, floating on `#F8F6F2`."
-- "Design a Cookpad-style category grid for ottline: large tappable tiles around 64px tall, `8px` radius, 16px padding, icon + label at 16px `#0F0F0F`."
-- "Create an ottline title search bar: white field, `8px` radius, `#4A4A4A` placeholder, focus ring in `#FF9933`, placed on a `#F8F6F2` page."
-
-### Iteration Guide
-1. Warm cream `#F8F6F2` background, never pure white.
-2. Orange `#FF9933` is a pop for final actions, focus, and the current-nav micro-marker, not a selection or metadata wash.
-3. Posters and covers are the content anchor.
-4. `8px` radius everywhere.
-5. Text `#0F0F0F` on cream/white for crisp readability.
-6. 16px body, weight 600 for buttons and titles.
-7. Large tappable navigation.
-8. Noto Sans / Pretendard / system fallback.
-
-## 10. Voice & Tone
-
-ottline's voice is warm, encouraging, and refreshingly unpretentious. It speaks to someone who just watched, read, remembered, or wants to come back later. The copy should make keeping a record feel light and useful, not official. Korean copy should be plain and friendly; English copy should be short and personal.
-
-| Context | Tone |
-|---|---|
-| Buttons | Short friendly verb — `남기기`, `저장`, `이어 적기`. Inviting, no pressure. |
-| Record meta | Plain and helpful — date, place, platform, status. Practical, never fussy. |
-| Empty states | Encouraging — invite the user to search or leave the first record. |
-| Community | Warm and nearby — other people's records are traces, not a noisy feed. |
-| Errors | Gentle and blameless; one calm sentence plus the fix. |
-| Success | Friendly confirmation with a sense of the record being kept. |
-| Onboarding | Welcoming, low-pressure — logging should feel easy to start. |
-
-**Forbidden patterns.** Submission language, productivity workflow jargon, elite cinephile or critic tone, pressure/FOMO copy, shouting CTAs, and anything that makes a casual viewer or reader feel they did it wrong.
-
-**Voice samples.**
-- `기록 남기기` — primary record action.
-- `오늘 남길 작품을 찾아볼게요` — search prompt.
-- `타임라인에 쌓였어요` — success-style confirmation.
-
-## 11. Brand Narrative
-
-<!-- omd:limitation Project founding date was not provided. Replace before shipping if a public brand-history section is required. -->
-
-ottline is a personal media recordbook for video and books. [FILL IN: founding timing if this design system is used in external brand documentation.] The product direction is clear: recommendation is not the core promise; remembering, revisiting, sharing, and continuing a record are. It works without turning the user into an account workflow first, and it treats the timeline as the value that grows over time.
-
-The design language flows from that product thesis. **One**, it should feel warm and unintimidating, because the user is often recording a small memory after a show, a film, a series episode, or a book. **Two**, media must stay visible, because posters, covers, and titles carry the emotional recall. **Three**, it is personal before it is social; public records and comments should feel like nearby traces from other people, not a competitive feed.
-
-What ottline refuses: cold data-entry screens, recommendation-feed gloss, and productivity-dashboard pressure. It chooses warmth, speed, and memory every time — software that makes it easy to leave a note and come back later.
-
-## 12. Principles
-
-1. **Make everyday recording easy.** The first action should feel like keeping a note, not completing a task. *UI implication:* Warm surfaces, friendly verbs, and one clear primary action.
-
-2. **Media is the memory anchor.** Posters and covers help people remember what they watched or read. *UI implication:* Cards stay media-forward; chrome stays quiet; metadata supports recall without taking over.
-
-3. **Never make the user feel behind.** The product is for casual recording, not performance. *UI implication:* Plain copy, blameless errors, low-pressure CTAs, and no streak-pressure patterns.
-
-4. **Personal first, community nearby.** Shared records can add life without becoming a feed. *UI implication:* Keep public traces compact, warm, and non-competitive.
-
-5. **Warm, not clinical.** The interface should feel like a familiar recordbook. *UI implication:* Cream background, orange primary action, warm neutrals, soft `8px` corners, gentle depth.
-
-## 13. Personas
-
-*Personas are fictional archetypes informed by ottline's product shape, not real individuals.*
-
-**민지, 34, Seoul.** Watches series after work and wants to remember where she stopped, what she felt, and whether it is worth continuing. Opens ottline briefly on mobile. Needs fast search, a clear record action, and a timeline that feels personal.
-
-**Daniel, 29, New York.** Tracks films, shows, and books across services. Cares less about recommendations and more about having one place where his watched and read history accumulates. Values export, search, and clean metadata.
-
-**서현, 41, Busan.** Reads and watches with family. Uses notes, place, occasion, and shared cards to remember context. Needs the UI to feel friendly and reliable rather than like a social app.
-
-## 14. States
-
-| State | Treatment |
-|---|---|
-| **Empty (no search results)** | Warm cream canvas, one encouraging line suggesting a broader search or another title, plus the search field. |
-| **Empty (no saved records)** | Friendly one-liner inviting the user to leave the first record; orange primary to start. |
-| **Loading (record grid)** | Skeleton cards in warm-gray `#ECEBE9` at final card dimensions; no layout shift. |
-| **Loading (inline)** | In-button spinner; button keeps `8px` radius and orange fill; label swaps to loading. |
-| **Error (field)** | Orange-tinted border or helper line; cause plus fix in one calm sentence. |
-| **Error (page/network)** | Soft notice on cream; one sentence plus retry. |
-| **Success (record saved)** | Warm confirmation that the item was kept in the timeline. |
-| **Disabled** | Warm-gray `#ECEBE9` fill, muted text. |
-| **Skeleton** | Warm-gray blocks at exact final size; respect reduced motion. |
-| **Empty (new profile)** | Gentle invitation to add a nickname or keep recording first; no pressure. |
-
-## 15. Motion & Easing
-
-ottline's motion is gentle and warm. It should clarify state changes and make saving feel responsive without turning the interface into a playful animation system.
-
-**Durations:**
-
-| Token | Value | Use |
-|---|---|---|
-| `motion-instant` | 0ms | Toggle commits, selection |
-| `motion-fast` | 150ms | Button hover/press, nav tap |
-| `motion-standard` | 250ms | Card reveal, dropdown, media fade-in |
-| `motion-modal` | 300ms | Modal/dialog enter-exit |
-
-**Easings:**
-
-| Token | Curve | Use |
-|---|---|---|
-| `ease-standard` | `cubic-bezier(0.4, 0, 0.2, 1)` | The default |
-| `ease-enter` | `cubic-bezier(0, 0, 0.2, 1)` | Things arriving |
-| `ease-exit` | `cubic-bezier(0.4, 0, 1, 1)` | Dismissals |
-| `ease-warm` | `cubic-bezier(0.34, 1.2, 0.64, 1)` | Reserved for a saved-record micro-moment |
-
-**Spring stance.** A single soft overshoot is permitted on a save or record-created moment. Everywhere else, motion stays calm and standard.
-
-**Signature motions.**
-1. **Media fade-in.** Posters and covers fade in `opacity 0->1` over `motion-standard / ease-standard`.
-2. **Save-record moment.** The save/check icon scales `1.0 -> 1.12 -> 1.0` over `motion-standard / ease-warm` and fills orange.
-3. **Category tile press.** Subtle background tint over `motion-fast / ease-standard`.
-4. **Modal enter.** Scrim fades in; dialog appears with opacity + slight translate over `motion-modal / ease-enter`.
-
-**Reduce motion.** Under `prefers-reduced-motion: reduce`, all `motion-*` collapse to `motion-instant`; overshoot becomes a simple color/fill change.
-
-<!--
-OmD v0.1 Sources — Cookpad
-
-Reference source:
-- https://oh-my-design.kr/design-systems/cookpad.md
-
-Builder config:
-- https://oh-my-design.kr/builder?step=preview&ref=cookpad&cfg=Y29va3BhZHx8fHx8MHxidXR0b24saW5wdXQsdGFibGUsY2FyZCxiYWRnZSx0YWJzLGRpYWxvZw
-
-Requested components:
-- button, input, table, card, badge, tabs, dialog
-
-Verified reference tokens:
-- #FF9933 primary, #F8F6F2 cream bg, #FFFFFF card, #0F0F0F text, #4A4A4A chrome,
-  #FEF9EE cream tint, #ECEBE9 warm gray, #FAF5D7 pale yellow, 8px radius.
--->
+초기 Cookpad 예시와 가상 페르소나는 당시 참고 자료로 보관한다. [초기 디자인 원문](https://github.com/chawon/ott/blob/1d7a6f549a990245f293a697f5899b249f614e53/DESIGN.md) · [당시 페르소나](https://github.com/chawon/ott/blob/1d7a6f549a990245f293a697f5899b249f614e53/DESIGN.md#13-personas)

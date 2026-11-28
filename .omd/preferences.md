@@ -13,7 +13,8 @@ timestamp: 2026-11-02T07:05:27.240Z
 scope: spacing
 signal: user-correction
 confidence: explicit
-status: pending
+status: applied
+applied_at: 2026-11-28T10:13:51Z
 source_agent: codex
 source_context: "archive/prototypes/ottline-v2/app.js; archive/prototypes/ottline-v2/styles.css"
 ```
@@ -28,7 +29,8 @@ timestamp: 2026-11-02T07:05:27.241Z
 scope: layout
 signal: user-correction
 confidence: explicit
-status: pending
+status: applied
+applied_at: 2026-11-28T10:13:51Z
 source_agent: codex
 source_context: "archive/prototypes/ottline-v2/app.js; archive/prototypes/ottline-v2/styles.css"
 ```
@@ -59,7 +61,8 @@ timestamp: 2026-11-02T07:47:03.776Z
 scope: components.input
 signal: user-correction
 confidence: explicit
-status: pending
+status: applied
+applied_at: 2026-11-28T10:13:51Z
 source_agent: codex
 source_context: "archive/prototypes/ottline-v2/app.js; archive/prototypes/ottline-v2/styles.css"
 ```
@@ -74,7 +77,8 @@ timestamp: 2026-11-02T07:47:03.780Z
 scope: components.card
 signal: user-correction
 confidence: explicit
-status: pending
+status: applied
+applied_at: 2026-11-28T10:13:51Z
 source_agent: codex
 source_context: "archive/prototypes/ottline-v2/app.js; archive/prototypes/ottline-v2/styles.css"
 ```
@@ -89,7 +93,8 @@ timestamp: 2026-11-02T08:20:43.258Z
 scope: layout
 signal: user-statement
 confidence: explicit
-status: pending
+status: applied
+applied_at: 2026-11-28T10:13:51Z
 source_agent: codex
 source_context: "archive/prototypes/ottline-v2/app.js; archive/prototypes/ottline-v2/styles.css"
 ```
@@ -104,7 +109,8 @@ timestamp: 2026-11-02T08:20:43.258Z
 scope: voice
 signal: user-correction
 confidence: explicit
-status: pending
+status: applied
+applied_at: 2026-11-28T10:13:51Z
 source_agent: codex
 source_context: "archive/prototypes/ottline-v2/app.js; archive/prototypes/ottline-v2/data.js; DESIGN.md:224"
 ```
@@ -119,7 +125,8 @@ timestamp: 2026-11-02T08:20:43.259Z
 scope: components.card
 signal: user-correction
 confidence: explicit
-status: pending
+status: applied
+applied_at: 2026-11-28T10:13:51Z
 source_agent: codex
 source_context: "archive/prototypes/ottline-v2/app.js"
 ```
@@ -149,7 +156,8 @@ timestamp: 2026-11-03T02:17:51.323Z
 scope: voice
 signal: user-statement
 confidence: explicit
-status: pending
+status: superseded
+superseded_by: pref_mw27hyd6_df535763
 source_agent: codex
 source_context: "archive/prototypes/ottline-v2/app.js"
 ```
@@ -164,7 +172,8 @@ timestamp: 2026-11-03T02:19:22.837Z
 scope: components.input
 signal: user-correction
 confidence: explicit
-status: pending
+status: applied
+applied_at: 2026-11-28T10:13:51Z
 source_agent: codex
 source_context: "archive/prototypes/ottline-v2/app.js; apps/web/components/QuickLogCard.tsx"
 ```
@@ -179,7 +188,8 @@ timestamp: 2026-11-03T02:37:52.653Z
 scope: components.input
 signal: user-correction
 confidence: explicit
-status: pending
+status: applied
+applied_at: 2026-11-28T10:13:51Z
 source_agent: codex
 source_context: "archive/prototypes/ottline-v2/app.js"
 ```
@@ -194,7 +204,8 @@ timestamp: 2026-11-03T02:37:52.653Z
 scope: voice
 signal: user-correction
 confidence: explicit
-status: pending
+status: applied
+applied_at: 2026-11-28T10:13:51Z
 source_agent: codex
 source_context: "archive/prototypes/ottline-v2/app.js; archive/prototypes/ottline-v2/README.md"
 ```
@@ -254,7 +265,8 @@ timestamp: 2026-11-03T07:43:33.981Z
 scope: components.dialog
 signal: user-correction
 confidence: explicit
-status: pending
+status: applied
+applied_at: 2026-11-28T10:13:51Z
 source_agent: codex
 source_context: "archive/prototypes/ottline-v2/app.js; archive/prototypes/ottline-v2/styles.css"
 ```
@@ -269,7 +281,8 @@ timestamp: 2026-11-03T07:56:37.485Z
 scope: components.input
 signal: user-correction
 confidence: explicit
-status: pending
+status: applied
+applied_at: 2026-11-28T10:13:51Z
 source_agent: codex
 source_context: "archive/prototypes/ottline-v2/app.js; archive/prototypes/ottline-v2/rating-options.js; archive/prototypes/ottline-v2/share-card.js"
 ```
@@ -314,7 +327,8 @@ timestamp: 2026-11-04T09:28:15.694Z
 scope: voice
 signal: user-correction
 confidence: explicit
-status: pending
+status: applied
+applied_at: 2026-11-28T10:13:51Z
 source_agent: codex
 source_context: "apps/web/messages/en.json; apps/web/components/QuickLogCard.tsx; apps/web/app/[locale]/account/page.tsx; archive/prototypes/ottline-v2/app.js"
 ```
@@ -329,7 +343,8 @@ timestamp: 2026-11-04T14:22:52.218Z
 scope: voice
 signal: user-correction
 confidence: explicit
-status: pending
+status: applied
+applied_at: 2026-11-28T10:13:51Z
 source_agent: codex
 source_context: "apps/web/messages/ko.json; apps/web/messages/en.json; apps/web/lib/guides.ts; apps/web/components/QuickLogCard.tsx; apps/web/app/[locale]/title/[id]/page.tsx"
 ```
@@ -359,7 +374,8 @@ timestamp: 2026-11-04T15:10:05.986Z
 scope: typography
 signal: user-correction
 confidence: explicit
-status: pending
+status: superseded
+superseded_by: pref_mw29g5m6_652f1c2d
 source_agent: codex
 source_context: "apps/web/public/brand/v2; scripts/generate-brand-assets.mjs; apps/web/components/AppHeader.tsx"
 ```
@@ -374,7 +390,8 @@ timestamp: 2026-11-04T15:17:27.534Z
 scope: typography
 signal: user-correction
 confidence: explicit
-status: pending
+status: applied
+applied_at: 2026-11-28T10:13:51Z
 source_agent: codex
 source_context: "apps/web/components/AppHeader.tsx; apps/web/components/AppShell.module.css; apps/web/public/brand/v2"
 ```
@@ -419,7 +436,8 @@ timestamp: 2026-11-07T06:00:47.572Z
 scope: layout
 signal: user-correction
 confidence: explicit
-status: pending
+status: applied
+applied_at: 2026-11-28T10:13:51Z
 source_agent: codex
 source_context: "apps/web/components/timeline-v2/HomeTimelineView.tsx; apps/web/components/timeline-v2/timeline.module.css"
 ```
@@ -494,7 +512,8 @@ timestamp: 2026-11-07T11:25:30.823Z
 scope: components.card
 signal: user-correction
 confidence: explicit
-status: pending
+status: applied
+applied_at: 2026-11-28T10:13:51Z
 source_agent: codex
 source_context: "apps/web/components/RecordFeelings.tsx; apps/web/components/timeline-v2/RecordParts.tsx"
 ```
@@ -554,7 +573,8 @@ timestamp: 2026-11-07T13:03:19.238Z
 scope: components.button
 signal: user-correction
 confidence: explicit
-status: pending
+status: applied
+applied_at: 2026-11-28T10:13:51Z
 source_agent: codex
 source_context: "apps/web/app/[locale]/timeline/page.tsx; apps/web/components/timeline-v2/timeline.module.css"
 ```
@@ -569,7 +589,8 @@ timestamp: 2026-11-08T06:13:56.285Z
 scope: voice
 signal: user-correction
 confidence: explicit
-status: pending
+status: applied
+applied_at: 2026-11-28T10:13:51Z
 source_agent: codex
 source_context: "apps/web/messages/ko.json; apps/web/components/LogCard.tsx; apps/web/components/QuickLogCard.tsx"
 ```
@@ -599,7 +620,8 @@ timestamp: 2026-11-08T07:32:21.682Z
 scope: components.dialog
 signal: user-correction
 confidence: explicit
-status: pending
+status: applied
+applied_at: 2026-11-28T10:13:51Z
 source_agent: codex
 source_context: "apps/web/components/QuickLogCard.tsx; apps/web/components/recording.module.css"
 ```
