@@ -1,6 +1,6 @@
 # 스토어별 검색 노출 점검 및 한글 브랜드 ‘오티티라인’ ASO 보강안 (2026-11-28)
 
-- **기준일**: `2026-11-28` (`main` [`43e2964`](https://github.com/chawon/ott/commit/43e2964), Web·API 운영 `33942ae`, Apple `2.0.1`, Android `2.0.5`, Windows `2.0.3.0`, 브라우저 확장 공개 `0.1.0` / 소스 `0.1.1`)
+- **기준일**: `2026-11-28` (`main` [`43e2964`](https://github.com/chawon/ott/commit/43e2964), Web·API 운영 `33942ae`, Apple `2.0.1`, Android `2.0.5`, Windows `2.0.3.0`, Chrome·Edge 공개 `0.1.0` / 확장 소스 `0.1.1`)
 - **담당 역할**: 마케팅 담당 (`플랫폼=공통`)
 - **연결 카드·이슈**: [채널별 기준선 카드 `313863452`](https://github.com/users/chawon/projects/1/views/2?pane=issue&itemId=313863452) · [출시 안내·실험 카드 `313863479`](https://github.com/users/chawon/projects/1/views/2?pane=issue&itemId=313863479) · [브라우저 확장 카드 `312000267`](https://github.com/users/chawon/projects/1/views/2?pane=issue&itemId=312000267) · [실행 조율 이슈 #187](https://github.com/chawon/ott/issues/187)
 - **기준 문서**: [채널별 기준선 (2026-11-24)](acquisition-baseline-2026-11-24.md) · [Apple·네이티브 v2 출시 안내 및 첫 유입 실험안](apple-v2-launch-and-first-experiment-2026-11-24.md) · [플랫폼 현황](../platforms.md) · [기능 기준표](../feature-matrix.md) · [마케팅 운영](../marketing-operations.md) · [DESIGN.md](../../DESIGN.md) · [UX 문구 가이드](../../wiki/pages/processes/ux-copy.md)
@@ -21,8 +21,8 @@
 | **Google Play (`ko-KR`/`en-US`)** | `2.0.5` (`app.ottline`, `50+`) | **#1** (KR/US) | **미노출** (KR) | **미노출** (KR) | **미노출** (KR) | `오티티라인` 검색 시 타사 앱(`kr.mooin.ottlounge`, `kr.mooin.ottflix`)이 대신 노출 |
 | **Microsoft Store (`KR`/`US`)** | `2.0.3.0` (`9NSVNZGDMGF5`) | **#1** (KR/US) | **미노출** (KR) | **미노출** (KR) | **미노출** (KR) | 무관한 유틸리티·생산성 앱만 반환 |
 | **Chrome 웹 스토어 (`ko`/`en`)** | `0.1.0` *(소스 `0.1.1`)* | **#1** | **0건** | **0건** | **0건** | 구 영문 제목(`ottline Helper`) 유지로 한글 검색 전면 미노출 |
-| **Edge Add-ons** | `0.1.0` *(활성 사용자 2명)* | 구 제목 노출 | 미확인 | 미확인 | 미확인 | `0.1.1` 한국어 메타데이터 미게시 상태 |
-| **Whale 스토어** | `0.1.0` | 구글 색인 미노출 | 미확인 | 미확인 | 미확인 | 외부 웹 색인 미확인 (`312000267` 연계 점검 대상) |
+| **Edge Add-ons** | [`0.1.0`](https://microsoftedge.microsoft.com/addons/getproductdetailsbycrxid/egghbkekjopgknhggoeiekgdooofihbo?hl=ko-KR&gl=KR) | 구 제목 노출 | 미확인 | 미확인 | 미확인 | `0.1.1` 한국어 메타데이터 미게시 상태 |
+| **Whale 스토어** | 공개 버전 확인 대기 | 구글 색인 미노출 | 미확인 | 미확인 | 미확인 | 외부 웹 색인 미확인 (`312000267` 연계 점검 대상) |
 | **토스 인앱** | `내 OTT 타임라인` | 앱 내부 진입 | — | — | — | 독립 공개 앱스토어가 아닌 토스 앱 내부 검색·링크 경로 |
 
 ### 1-2. 비브랜드 카테고리 검색어 순위 스냅샷 (`2026-11-28`, 상위 50위 기준)
@@ -68,11 +68,11 @@
 - **표시명 유지**:
   - 한국어: `ottline: 영화·드라마·책·독서 기록` *(이미 `ottline`, `영화`, `드라마`, `책`, `독서`, `기록` 색인 중)*
   - 영어: `ottline: Movie, TV & Book Log` *(이미 `ottline`, `movie`, `tv`, `book`, `log` 색인 중)*
-- **한국어 키워드 필드 초안** *(App Store Connect 100자 이내, 쉼표 구분·공백 없음 — 60자)*:
+- **한국어 키워드 초안**은 쉼표를 포함해 UTF-8 97바이트다. App Store Connect의 언어별 한도는 100바이트다. [Apple 등록정보 규격](https://developer.apple.com/help/app-store-connect/reference/app-information/platform-version-information/)
   ```text
-  오티티라인,오티티,시청기록,감상기록,독서노트,북로그,영화노트,시리즈,타임라인,위젯,기록장,다이어리,서가,메모
+  오티티라인,오티티,시청기록,감상기록,독서노트,북로그,시리즈,타임라인
   ```
-- **영문(US) 키워드 필드 초안** *(100자 이내, 손목시계 중의성이 큰 단독 `watch` 회피 — 97자)*:
+- **영문(US) 키워드 초안**은 쉼표를 포함해 97바이트다. `watch`는 손목시계와 뜻이 겹쳐 단독 키워드에서 뺐다.
   ```text
   diary,tracker,reading,journal,series,episode,watchlist,film,bookshelf,timeline,widget,notes,media
   ```
@@ -113,7 +113,7 @@
   [주요 기능]
   • 빠른 기록 (+ 버튼 & 홈 화면 위젯)
     - 영화, 드라마, 시리즈, 책을 검색해 상태(‘봤어요 / 보는 중 / 보고 싶어요’, ‘읽었어요 / 읽는 중 / 읽고 싶어요’)를 고른 뒤 ‘기록 남기기’를 눌러 바로 보관해요.
-    - 별점 부담 대신 ‘아쉬워요 / 볼만해요 / 최고예요’ 세 가지 느낌(선택)으로 편하게 감상을 남겨요.
+    - 영상은 ‘아쉬워요 / 볼만해요 / 최고예요’, 책은 ‘아쉬워요 / 무난해요 / 인생책’ 중에서 느낌을 골라 남길 수 있어요.
     - 감상한 날짜, 플랫폼(OTT·극장·종이책·전자책 등), 장소, 함께한 상황, 한 줄 메모까지 그날의 순간을 원할 때만 덧붙여요.
   ```
   - *(주의: Android 첫 설치 웹 기록 자동 가져오기는 `#149` 수정본 `2.0.6`의 Play 공개 및 실기기 확인 전까지 과장하지 않습니다.)*
@@ -164,11 +164,13 @@
 
 ## 4. 검증 계획 및 역할별 후속 연결 ([이슈 #187](https://github.com/chawon/ott/issues/187))
 
+[제품 기획 검토 PR #188](https://github.com/chawon/ott/pull/188)에서 문구와 공개 기능을 대조한 뒤 아래 담당이 각 채널의 일정에 반영한다.
+
 | 담당 역할 | 반영 대상 | 권장 반영 시점 | 완료 근거 |
 | --- | --- | --- | --- |
-| **Apple 공통 담당** | App Store Connect KR/US 키워드·KR 설명 정비 + `SpotlightIndexManager.swift` | 다음 iOS/macOS 심사 제출 시(메타데이터 선반영 가능 여부 확인) | App Store 공개 설명·키워드 확인 + Apple CI 테스트 통과 |
-| **Android 담당** | Google Play Console `ko-KR` 짧은 설명·상세 설명 | `2.0.6` 제출 또는 등록정보 단독 갱신 | Play 공개 페이지(`hl=ko&gl=KR`) 반영 확인 |
-| **Windows 담당** | `publish-msstore.ps1` 설명·키워드(`오티티라인`) | 다음 Microsoft Store 제출 주기 | PR 병합 + 스토어 공개 반영 확인 |
-| **Web/PWA 담당** | `seo.ts` `alternateName` + `seo.test.mjs` + `llms.txt` | 일반 Web 배포 주기 | PR·CI 통과 + 운영 배포 후 JSON-LD·`llms.txt` 응답 확인 |
-| **브라우저 확장 담당** | `chrome-web-store-listing-2026-07-25.md` 및 `0.1.1` 스토어 게시(`312000267`) | `0.1.1` 스토어 갱신 시 | Chrome·Edge·Whale `0.1.1` 공개 확인 |
+| [Apple 공통 담당](https://github.com/users/chawon/projects/1/views/2?pane=issue&itemId=321363868) | App Store Connect KR/US 키워드·KR 설명, Spotlight 별칭 | 다음 iOS/macOS 제출 준비 | App Store Connect에 저장한 키워드, 공개 페이지의 설명, Spotlight 테스트와 기기 내 검색 결과 확인 |
+| [Android 담당](https://github.com/users/chawon/projects/1/views/2?pane=issue&itemId=321363874) | Google Play Console `ko-KR` 짧은 설명·상세 설명 | `2.0.6` 제출 또는 등록정보 단독 갱신 | Play 공개 페이지(`hl=ko&gl=KR`) 반영 확인 |
+| [Windows 담당](https://github.com/users/chawon/projects/1/views/2?pane=issue&itemId=321363878) | `publish-msstore.ps1` 설명·키워드(`오티티라인`) | 다음 Microsoft Store 제출 주기 | PR 병합 + 스토어 공개 반영 확인 |
+| [Web/PWA 담당](https://github.com/users/chawon/projects/1/views/2?pane=issue&itemId=321363881) | `seo.ts` `alternateName` + `seo.test.mjs` + `llms.txt` | 일반 Web 배포 주기 | PR·CI 통과 + 운영 배포 후 JSON-LD·`llms.txt` 응답 확인 |
+| [브라우저 확장 담당](https://github.com/users/chawon/projects/1/views/2?pane=issue&itemId=312000267) | `chrome-web-store-listing-2026-07-25.md` 및 `0.1.1` 스토어 게시 | `0.1.1` 스토어 갱신 시 | Chrome·Edge·Whale `0.1.1` 공개 확인 |
 | **마케팅 담당** | 반영 3~7일 후 전 스토어 `오티티라인`·`오티티 라인`·카테고리 키워드 재점검 | 각 스토어 공개 반영 후 | 공개 검색 재측정 기록 + 각 스토어 콘솔 노출·설치 지표 분리 대조 |

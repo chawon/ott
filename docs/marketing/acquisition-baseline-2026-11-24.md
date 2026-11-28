@@ -44,7 +44,7 @@
 | **외부 커뮤니티·디렉토리** | KO·EN | GeekNews·디스콰이엇·Reddit·AlternativeTo·Product Hunt 등록/언급 미확인(`2026-11-22` 검색 점검) | **0건 (미집행)** | 출시 검증 완료 후 고정 UTM(`utm_source`, `utm_medium=community|directory`, `utm_campaign`)으로 계측 예정 |
 | **ChatGPT 앱** | — | **미운영** (공개 안내 제외 유지) | **대상 제외** | 실제 재제출·운영 전환 전까지 마케팅 채널 기준선에서 제외 |
 
-> **2026-11-28 스토어 검색 노출 보충**: 위 `2026-11-24` 기준선 이후 Web·API는 `33942ae`, Windows는 `2.0.3.0`으로 공개 갱신됐습니다. `2026-11-28` 공개 스토어 검색 실측에서 영문 `ottline`은 주요 스토어 모두 1위·Mac App Store(KR) 카테고리 1~3위를 확인했으나, 한국어 발음 브랜드어 **`오티티라인`·`오티티 라인`은 전 스토어 미노출**(Google Play에서는 타사 앱 노출) 사각지대가 확인됐습니다. 상세 실측 결과와 채널별 ASO·색인 보강안은 [스토어별 검색 노출 점검 및 한글 브랜드 ‘오티티라인’ ASO 보강안 (`2026-11-28`)](store-search-visibility-and-ko-brand-aso-2026-11-28.md)과 [#187](https://github.com/chawon/ott/issues/187)에서 추적합니다. *(공개 검색 순위 관찰값이며 콘솔 노출·설치 수치와 분리합니다.)*
+> 11월 28일 마케팅 점검에서 영문 `ottline`은 조사한 Apple·Google Play·Microsoft·Chrome 검색 결과의 첫 번째에 나왔다. 한국 스토어에서 `오티티라인`을 검색했을 때 같은 채널에서 우리 앱을 찾지 못했다. Mac의 띄어쓰기형 `오티티 라인` 조회는 403으로 끝났고, Edge·Whale의 한글 검색 순위는 미확인이다. Web·API 운영 버전은 `33942ae`, Windows 공개 버전은 `2.0.3.0`이다. [채널별 측정 범위와 문구 초안](store-search-visibility-and-ko-brand-aso-2026-11-28.md) · [실행 이슈 #187](https://github.com/chawon/ott/issues/187)
 
 ### 2-2. 사이트 진입 이후 · 첫 기록 · 반복 이용 · 다중 기기
 
