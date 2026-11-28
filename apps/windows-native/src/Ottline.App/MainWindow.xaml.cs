@@ -131,7 +131,10 @@ public partial class MainWindow : Window
                 _vm.TryAutoLaunchStoreUpgradeHandoff();
             }
 
-            _ = _vm.SyncNowAsync(silent: true);
+            if (!_isHeadlessCapture)
+            {
+                await _vm.RequestAutoSyncAsync(AutoSyncTrigger.WindowActivated);
+            }
         };
     }
 

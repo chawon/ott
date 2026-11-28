@@ -900,7 +900,7 @@ public sealed class OttlineRepository : IDisposable
         int? seasonNumber = null,
         int? episodeNumber = null,
         string? note = null,
-        bool spoiler = false,
+        bool? spoiler = false,
         bool shareToTogether = false,
         LogOrigin origin = LogOrigin.LOG)
     {
@@ -925,7 +925,7 @@ public sealed class OttlineRepository : IDisposable
             SeasonNumber: seasonNumber,
             EpisodeNumber: episodeNumber,
             Note: string.IsNullOrWhiteSpace(note) ? null : note.Trim(),
-            Spoiler: spoiler,
+            Spoiler: spoiler.GetValueOrDefault(),
             OccurredAt: occurredAt,
             WatchedOn: normalizedDate,
             CreatedAt: existing?.CreatedAt ?? nowIso,
@@ -956,7 +956,8 @@ public sealed class OttlineRepository : IDisposable
             recordHistory: true,
             outboxType: outboxType,
             payloadSerializer: SerializeLogOutboxPayload,
-            extraOutbox: discussionOutbox
+            extraOutbox: discussionOutbox,
+            preserveExistingSpoiler: !spoiler.HasValue
         );
 
         if (existing == null)

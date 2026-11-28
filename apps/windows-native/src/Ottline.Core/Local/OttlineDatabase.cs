@@ -336,7 +336,8 @@ public sealed class OttlineDatabase : IDisposable
         bool recordHistory,
         string outboxType,
         Func<WatchLog, string> payloadSerializer,
-        (string Type, Func<WatchLog, string> PayloadSerializer)? extraOutbox = null)
+        (string Type, Func<WatchLog, string> PayloadSerializer)? extraOutbox = null,
+        bool preserveExistingSpoiler = false)
     {
         lock (_syncRoot)
         {
@@ -393,7 +394,7 @@ public sealed class OttlineDatabase : IDisposable
                 }
             }
 
-            var saved = UpsertLogInternal(conn, tx, effectiveLog, recordHistory);
+            var saved = UpsertLogInternal(conn, tx, effectiveLog, recordHistory, preserveExistingSpoiler);
             UpsertLogOutboxInternal(conn, tx, effectiveOutboxType, saved.Id, payloadSerializer(saved));
 
             if (extraOutbox.HasValue)
@@ -406,7 +407,8 @@ public sealed class OttlineDatabase : IDisposable
         }
     }
 
-    private static WatchLog UpsertLogInternal(SqliteConnection conn, SqliteTransaction tx, WatchLog log, bool recordHistory)
+    private static WatchLog UpsertLogInternal(SqliteConnection conn, SqliteTransaction tx, WatchLog log, bool recordHistory,
+        bool preserveExistingSpoiler = false)
     {
         UpsertTitleInternal(conn, tx, log.Title);
 
@@ -426,6 +428,7 @@ public sealed class OttlineDatabase : IDisposable
         {
             Id = finalId,
             TitleId = log.Title.Id,
+            Spoiler = preserveExistingSpoiler ? existing?.Spoiler ?? false : log.Spoiler,
             WatchedOn = watchedOn,
             OccurredAt = occurredAt,
             CreatedAt = finalCreatedAt,

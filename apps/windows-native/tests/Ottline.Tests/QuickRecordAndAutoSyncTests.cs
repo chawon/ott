@@ -235,6 +235,38 @@ public sealed class QuickRecordAndAutoSyncTests
     }
 
     [Fact]
+    public void QuickRecord_SavesSpoilersForTheSelectedTitleAndPreservesEditsInTheOutbox()
+    {
+        var dbPath = Path.Combine(Path.GetTempPath(), $"ottline_quick_spoiler_{Guid.NewGuid():N}.db");
+        try
+        {
+            using var http = new HttpClient(new StubHttpHandler((_, _) => Task.FromResult(JsonResponse(new { }))));
+            using var repo = new OttlineRepository(new OttlineDatabase(dbPath), new OttlineApiClient(http));
+            var first = TitleFallback.BuildManualVideoMetadata("First movie", TitleType.movie, 2024);
+            var second = TitleFallback.BuildManualVideoMetadata("Second movie", TitleType.movie, 2025);
+            var existing = repo.SaveLogLocalFirst(first, LogStatus.DONE, null, "2026-01-01", spoiler: true);
+
+            var edit = repo.SaveLogLocalFirst(first, LogStatus.DONE, null, "2026-01-02", spoiler: null);
+            var newLog = repo.SaveLogLocalFirst(second, LogStatus.DONE, null, "2026-01-03", spoiler: null);
+
+            Assert.Equal(existing.Id, edit.Id);
+            Assert.True(edit.Spoiler);
+            Assert.False(newLog.Spoiler);
+            foreach (var log in new[] { edit, newLog })
+            {
+                var queued = repo.Database.GetPendingOutbox().Last(item => item.EntityId == log.Id);
+                using var payload = JsonDocument.Parse(queued.PayloadJson);
+                Assert.Equal(log.Spoiler, payload.RootElement.GetProperty("spoiler").GetBoolean());
+            }
+            Assert.False(repo.SaveLogLocalFirst(first, LogStatus.DONE, null, "2026-01-04", spoiler: false).Spoiler);
+        }
+        finally
+        {
+            CleanupDb(dbPath);
+        }
+    }
+
+    [Fact]
     public void RecordDate_PickerRoundTrip_HandlesExactDateMonthAndInvalidValues()
     {
         Assert.Equal(new DateTime(2026, 11, 28), RecordDate.ToPickerDate("2026-11-28"));

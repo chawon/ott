@@ -195,6 +195,7 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
     private readonly AutoSyncGate _autoSyncGate = new();
     private CancellationTokenSource? _searchDebounceCts;
     private Task? _activeSyncTask;
+    private Task _posterPrefetchTask = Task.CompletedTask;
 
     private LocalSettings _settings;
     private OttlineStrings _strings;
@@ -254,7 +255,6 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
     private string _quickSeasonText = string.Empty;
     private string _quickEpisodeText = string.Empty;
     private string _quickNote = string.Empty;
-    private bool _quickSpoiler;
     private bool _quickShareTogether;
     private WatchLog? _quickLastSavedLog;
     private string _manualTitleInput = string.Empty;
@@ -323,10 +323,6 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
         RefreshLocalState();
         if (!skipStartupNetwork)
         {
-            if (!string.IsNullOrWhiteSpace(_settings.UserId))
-            {
-                _ = SyncNowAsync(silent: true);
-            }
             _ = LoadTogetherAsync();
             _ = EnrichMissingPostersAsync();
         }
@@ -1436,6 +1432,8 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
         ).SelectedIndex;
         set
         {
+            // ItemsSource replacement temporarily clears the WPF selection when labels change.
+            if (value < 0) return;
             var (platformValue, isCustomSelected) = QuickRecordPlatformSelector.ApplySelectionIndex(
                 value,
                 _quickPlatform,
@@ -1511,7 +1509,8 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
         set
         {
             var options = QuickPlaceComboOptions;
-            QuickPlace = (value <= 0 || value >= options.Length) ? string.Empty : options[value];
+            if (value < 0) return;
+            QuickPlace = (value == 0 || value >= options.Length) ? string.Empty : options[value];
         }
     }
 
@@ -1557,7 +1556,8 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
         set
         {
             var options = QuickOccasionComboOptions;
-            QuickOccasion = (value <= 0 || value >= options.Length) ? string.Empty : options[value];
+            if (value < 0) return;
+            QuickOccasion = (value == 0 || value >= options.Length) ? string.Empty : options[value];
         }
     }
 
@@ -1577,12 +1577,6 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
     {
         get => _quickNote;
         set { _quickNote = value; OnPropertyChanged(); }
-    }
-
-    public bool QuickSpoiler
-    {
-        get => _quickSpoiler;
-        set { _quickSpoiler = value; OnPropertyChanged(); }
     }
 
     public bool QuickShareTogether
@@ -2437,6 +2431,7 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
         ContentFilter? prefilledFilter = null,
         WatchLog? existingLogToEdit = null)
     {
+        OnPropertyChanged(nameof(QuickMaxSelectableDate));
         _manualTitleInput = string.Empty;
         _manualAuthorOrYearInput = string.Empty;
         _manualIsbnInput = string.Empty;
@@ -2455,7 +2450,6 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
             QuickSeasonText = existingLogToEdit.SeasonNumber?.ToString() ?? string.Empty;
             QuickEpisodeText = existingLogToEdit.EpisodeNumber?.ToString() ?? string.Empty;
             QuickNote = existingLogToEdit.Note ?? string.Empty;
-            QuickSpoiler = existingLogToEdit.Spoiler;
             QuickShareTogether = false;
             QuickStage = QuickRecordStage.FORM;
             IsQuickRecordOpen = true;
@@ -2472,7 +2466,6 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
         QuickSeasonText = string.Empty;
         QuickEpisodeText = string.Empty;
         QuickNote = string.Empty;
-        QuickSpoiler = false;
         QuickShareTogether = false;
 
         if (prefilledFilter.HasValue)
@@ -2505,7 +2498,7 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
         if (existing != null)
         {
             QuickStatus = existing.Status;
-            QuickFeeling = RecordFeelings.ResolveRecordFeeling(existing.Rating, existing.Reaction) ?? RecordFeeling.SATISFIED;
+            QuickFeeling = RecordFeelings.ResolveRecordFeeling(existing.Rating, existing.Reaction);
             QuickWatchedOn = RecordDate.OccurredAtToWatchedOnDate(existing.OccurredAt, existing.WatchedOn);
             if (string.IsNullOrWhiteSpace(QuickPlatform)) QuickPlatform = existing.Ott ?? string.Empty;
             QuickPlace = OttlinePresets.FormatPlace(existing.Place, _settings.Locale);
@@ -2513,7 +2506,6 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
             QuickSeasonText = existing.SeasonNumber?.ToString() ?? string.Empty;
             QuickEpisodeText = existing.EpisodeNumber?.ToString() ?? string.Empty;
             QuickNote = existing.Note ?? string.Empty;
-            QuickSpoiler = existing.Spoiler;
         }
         else if (title.Type.IsBook() && string.IsNullOrWhiteSpace(QuickPlatform))
         {
@@ -2579,7 +2571,7 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
             seasonNumber: season,
             episodeNumber: episode,
             note: QuickNote,
-            spoiler: QuickSpoiler,
+            spoiler: null,
             shareToTogether: QuickShareTogether
         );
 
@@ -2616,7 +2608,7 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
         if (!_autoSyncGate.ShouldRun(
                 trigger,
                 HasConnectedServerAccount,
-                _repo.Database.GetPendingOutbox().Count,
+                _repo.GetPendingOutboxCount(),
                 DateTimeOffset.UtcNow))
         {
             return;
@@ -2631,19 +2623,6 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
         try
         {
             var (_, msg) = await _repo.SyncAllAsync();
-            var syncedLogs = _repo.GetAllLogs();
-            if (syncedLogs.Count > 0)
-            {
-                await UrlToImageSourceConverter.PrefetchUrlsAsync(
-                    syncedLogs.Take(16).Select(l => l.Title.PosterUrl),
-                    isHero: false
-                );
-                await UrlToImageSourceConverter.PrefetchUrlsAsync(
-                    syncedLogs.Take(2).Select(l => l.Title.PosterUrl),
-                    isHero: true
-                );
-            }
-
             _autoSyncGate.MarkCompleted(DateTimeOffset.UtcNow);
             await RunOnUiThreadAsync(() =>
             {
@@ -2654,6 +2633,10 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
                     ShowToast(msg);
                 }
             });
+            if (_posterPrefetchTask.IsCompleted)
+            {
+                _posterPrefetchTask = PrefetchRecentPostersAsync(_repo.GetAllLogs());
+            }
         }
         catch
         {
@@ -2663,6 +2646,14 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
                 SyncStatusText = _strings.OfflineLabel;
             });
         }
+    }
+
+    private static async Task PrefetchRecentPostersAsync(IReadOnlyList<WatchLog> logs)
+    {
+        var urls = logs.Take(16).Select(log => log.Title.PosterUrl).ToArray();
+        if (urls.Length == 0) return;
+        await UrlToImageSourceConverter.PrefetchUrlsAsync(urls);
+        await UrlToImageSourceConverter.PrefetchUrlsAsync(urls.Take(2), isHero: true);
     }
 
     private static Task RunOnUiThreadAsync(Action action)
