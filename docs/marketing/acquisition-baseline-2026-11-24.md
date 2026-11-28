@@ -2,7 +2,7 @@
 
 - **기준일**: `2026-11-24` (`main` [`81b0a0c`](https://github.com/chawon/ott/commit/81b0a0c), Web·API 운영 [`c693fd8`](../web-api-rollout-2026-11-22.md))
 - **담당 역할**: 마케팅 담당 (`플랫폼=공통`)
-- **연결 카드·이슈**: [채널별 유입·첫 기록·반복 이용 기준선 정리](https://github.com/users/chawon/projects/1/views/2?pane=issue&itemId=313863452) · [Apple·네이티브 v2 출시 안내와 첫 유입 실험안](https://github.com/users/chawon/projects/1/views/2?pane=issue&itemId=313863479) · [Web 실행 #175](https://github.com/chawon/ott/issues/175)
+- **연결 카드·이슈**: [채널별 유입·첫 기록·반복 이용 기준선 정리](https://github.com/users/chawon/projects/1/views/2?pane=issue&itemId=313863452) · [Apple·네이티브 v2 출시 안내와 첫 유입 실험안](https://github.com/users/chawon/projects/1/views/2?pane=issue&itemId=313863479) · [Web 실행 #175](https://github.com/chawon/ott/issues/175) · [스토어 노출·오티티라인 ASO #187](https://github.com/chawon/ott/issues/187)
 - **연관 문서**: [마케팅 운영](../marketing-operations.md) · [통계 집계 기준](../realistic-analytics-metrics.md) · [유입 기반](../seo-acquisition-foundation-2026-07-19.md) · [경쟁 리서치](../research/competitor-landscape-2026-11.md) · [공통 계측 정합성 #169](https://github.com/chawon/ott/issues/169)
 
 > **공개 문서 경계**: 저장소 운영 규칙에 따라 비공개 운영 DB 집계([주간 사용 통계](https://github.com/users/chawon/projects/1/views/2?pane=issue&itemId=312007804))의 원천 수치·개인별 활동·식별자는 이 문서에 복제하지 않는다. 이 문서는 **측정 출처·기간 경계·분모/단위·확보 상태(`비공개 운영 집계 확인` vs `미측정`)·정성 진단과 측정 공백**을 정리한다. 과거 시점 참고 수치([2026-11-17 Microsoft Store 진단](../web-acquisition-funnel-plan-2026-11-17.md))를 현재 v2 실적으로 복사하지 않는다.
@@ -43,6 +43,8 @@
 | **토스 인앱 (`내 OTT 타임라인`)** | KO / iOS·Android 토스 앱 | 별도 출시 브랜치 공개판 유지 (최신 라이브 번들·실사용 미확인) | **미측정** | 토스 콘솔 방문·기록·재기록 및 서버 저장 성공 건수([채널 전략](../changes/v2-channel-strategy.md#토스-인앱)) |
 | **외부 커뮤니티·디렉토리** | KO·EN | GeekNews·디스콰이엇·Reddit·AlternativeTo·Product Hunt 등록/언급 미확인(`2026-11-22` 검색 점검) | **0건 (미집행)** | 출시 검증 완료 후 고정 UTM(`utm_source`, `utm_medium=community|directory`, `utm_campaign`)으로 계측 예정 |
 | **ChatGPT 앱** | — | **미운영** (공개 안내 제외 유지) | **대상 제외** | 실제 재제출·운영 전환 전까지 마케팅 채널 기준선에서 제외 |
+
+> 11월 28일 마케팅 점검에서 영문 `ottline`은 조사한 Apple·Google Play·Microsoft·Chrome 검색 결과의 첫 번째에 나왔다. 한국 스토어에서 `오티티라인`을 검색했을 때 같은 채널에서 우리 앱을 찾지 못했다. Mac의 띄어쓰기형 `오티티 라인` 조회는 403으로 끝났고, Edge·Whale의 한글 검색 순위는 미확인이다. Web·API 운영 버전은 `33942ae`, Windows 공개 버전은 `2.0.3.0`이다. [채널별 측정 범위와 문구 초안](store-search-visibility-and-ko-brand-aso-2026-11-28.md) · [실행 이슈 #187](https://github.com/chawon/ott/issues/187)
 
 ### 2-2. 사이트 진입 이후 · 첫 기록 · 반복 이용 · 다중 기기
 
