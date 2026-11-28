@@ -235,15 +235,95 @@ public static class OttlinePresets
 
     public static readonly IReadOnlyList<PlatformGroup> BookPlatformGroups = new List<PlatformGroup>
     {
-        new("BOOK_STORE", "서점", "Bookstore", new[] { "교보문고", "영풍문고", "예스24", "알라딘" }, true),
+        new("BOOK_STORE", "서점", "Bookstore", new[] { "종이책", "교보문고", "영풍문고", "예스24", "알라딘" }, true),
         new("BOOK_SERVICE", "전자책 / 오디오북 / 도서관", "E-book / Audiobook / Library", new[] { "리디", "밀리의서재", "윌라", "플레이북", "공공도서관", "대학도서관", "학교도서관" }, true)
     };
 
     public static readonly IReadOnlyList<PlatformGroup> BookPlatformGroupsEn = new List<PlatformGroup>
     {
-        new("BOOK_STORE", "서점", "Bookstore", new[] { "Amazon", "Bookshop.org", "Local bookstore" }, true),
+        new("BOOK_STORE", "서점", "Bookstore", new[] { "Print book", "Amazon", "Bookshop.org", "Local bookstore" }, true),
         new("BOOK_SERVICE", "전자책 / 오디오북 / 도서관", "E-book / Audiobook / Library", new[] { "Kindle", "Apple Books", "Google Play Books", "Kobo", "Audible", "Libby", "Public Library", "University Library", "School Library" }, true)
     };
+
+    private static readonly IReadOnlyList<string[]> PlatformCanonicalAliasGroups = new List<string[]>
+    {
+        new[] { "넷플릭스", "Netflix" },
+        new[] { "디즈니플러스", "Disney+", "Disney Plus" },
+        new[] { "티빙", "TVING" },
+        new[] { "웨이브", "Wavve" },
+        new[] { "쿠팡플레이", "Coupang Play" },
+        new[] { "애플티비", "Apple TV+", "Apple TV" },
+        new[] { "프라임비디오", "Prime Video" },
+        new[] { "왓챠", "Watcha" },
+        new[] { "롯데시네마", "Lotte Cinema" },
+        new[] { "메가박스", "Megabox" },
+        new[] { "씨네Q", "Cine Q" },
+        new[] { "채널", "Channel" },
+        new[] { "블루레이", "Blu-ray" },
+        new[] { "종이책", "Print book" },
+        new[] { "리디", "리디셀렉트", "Ridibooks", "RIDI" },
+        new[] { "밀리의서재", "Millie" },
+        new[] { "공공도서관", "Public Library" },
+        new[] { "대학도서관", "University Library" },
+        new[] { "학교도서관", "School Library" }
+    };
+
+    public static IReadOnlyList<string> GetQuickPlatformPresets(bool isBook, string locale = "ko")
+    {
+        var isEn = string.Equals(locale, "en", StringComparison.OrdinalIgnoreCase);
+        var groups = isBook
+            ? (isEn ? BookPlatformGroupsEn : BookPlatformGroups)
+            : (isEn ? VideoPlatformGroupsEn : VideoPlatformGroups);
+        var list = new List<string>();
+        foreach (var g in groups)
+        {
+            foreach (var opt in g.Options)
+            {
+                list.Add(opt);
+            }
+        }
+        return list;
+    }
+
+    public static bool TryMatchPlatformPresetIndex(IReadOnlyList<string> presets, string? rawPlatform, out int presetIndex)
+    {
+        presetIndex = -1;
+        if (string.IsNullOrWhiteSpace(rawPlatform)) return false;
+        var candidate = rawPlatform.Trim();
+
+        for (var i = 0; i < presets.Count; i++)
+        {
+            if (string.Equals(presets[i], candidate, StringComparison.OrdinalIgnoreCase))
+            {
+                presetIndex = i;
+                return true;
+            }
+        }
+
+        string[]? matchedGroup = null;
+        foreach (var group in PlatformCanonicalAliasGroups)
+        {
+            if (group.Any(a => string.Equals(a, candidate, StringComparison.OrdinalIgnoreCase)))
+            {
+                matchedGroup = group;
+                break;
+            }
+        }
+
+        if (matchedGroup != null)
+        {
+            for (var i = 0; i < presets.Count; i++)
+            {
+                if (matchedGroup.Any(a => string.Equals(a, presets[i], StringComparison.OrdinalIgnoreCase)))
+                {
+                    presetIndex = i;
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
 
     public static readonly IReadOnlyList<(string Wire, string Ko, string En)> PlaceItems = new List<(string, string, string)>
     {

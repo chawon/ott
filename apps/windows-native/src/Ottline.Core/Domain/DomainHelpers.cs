@@ -149,6 +149,27 @@ public static class RecordDate
         }
         return resolved;
     }
+
+    public static DateTime? ToPickerDate(string? watchedOn)
+    {
+        if (string.IsNullOrWhiteSpace(watchedOn)) return null;
+        var trimmed = watchedOn.Trim();
+        if (DateTime.TryParseExact(trimmed, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var exact))
+        {
+            return exact.Date;
+        }
+        if (IsValidMonthInput(trimmed) &&
+            DateTime.TryParseExact($"{trimmed}-01", "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var monthStart))
+        {
+            return monthStart.Date;
+        }
+        return null;
+    }
+
+    public static string FromPickerDate(DateTime? date, DateTimeOffset? now = null) =>
+        date.HasValue
+            ? date.Value.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)
+            : TodayDate(now);
 }
 
 public static class RecordFeelings
@@ -1502,5 +1523,159 @@ public static class OttlineWidgetSnapshotBuilder
             };
         }
         return obj;
+    }
+}
+
+public enum AutoSyncTrigger
+{
+    TabNavigation,
+    WindowActivated
+}
+
+public sealed class AutoSyncGate
+{
+    private readonly object _lock = new();
+    private DateTimeOffset? _lastCompletedUtc;
+
+    public TimeSpan TabNavigationCooldown { get; }
+    public TimeSpan WindowActivatedCooldown { get; }
+
+    public AutoSyncGate(
+        TimeSpan? tabNavigationCooldown = null,
+        TimeSpan? windowActivatedCooldown = null)
+    {
+        TabNavigationCooldown = tabNavigationCooldown ?? TimeSpan.FromMilliseconds(1500);
+        WindowActivatedCooldown = windowActivatedCooldown ?? TimeSpan.FromSeconds(5);
+    }
+
+    public DateTimeOffset? LastCompletedUtc
+    {
+        get
+        {
+            lock (_lock)
+            {
+                return _lastCompletedUtc;
+            }
+        }
+    }
+
+    public bool ShouldRun(
+        AutoSyncTrigger trigger,
+        bool hasConnectedAccount,
+        int pendingOutboxCount,
+        DateTimeOffset nowUtc)
+    {
+        if (!hasConnectedAccount && pendingOutboxCount <= 0)
+        {
+            return false;
+        }
+
+        lock (_lock)
+        {
+            if (!_lastCompletedUtc.HasValue)
+            {
+                return true;
+            }
+
+            var elapsed = nowUtc - _lastCompletedUtc.Value;
+            if (elapsed < TimeSpan.Zero)
+            {
+                return true;
+            }
+
+            var cooldown = trigger switch
+            {
+                AutoSyncTrigger.TabNavigation => TabNavigationCooldown,
+                AutoSyncTrigger.WindowActivated => WindowActivatedCooldown,
+                _ => TabNavigationCooldown
+            };
+
+            return elapsed >= cooldown;
+        }
+    }
+
+    public void MarkCompleted(DateTimeOffset completedUtc)
+    {
+        lock (_lock)
+        {
+            _lastCompletedUtc = completedUtc;
+        }
+    }
+}
+
+public sealed record QuickPlatformComboState(
+    string[] Options,
+    int SelectedIndex,
+    bool ShowCustomInput
+);
+
+public static class QuickRecordPlatformSelector
+{
+    public static string[] BuildOptions(bool isBook, string locale = "ko")
+    {
+        var isEn = string.Equals(locale, "en", StringComparison.OrdinalIgnoreCase);
+        var presets = OttlinePresets.GetQuickPlatformPresets(isBook, locale);
+        var result = new string[presets.Count + 2];
+        result[0] = isEn ? "None" : "선택 안 함";
+        for (var i = 0; i < presets.Count; i++)
+        {
+            result[i + 1] = presets[i];
+        }
+        result[^1] = isEn ? "Custom input" : "직접 입력";
+        return result;
+    }
+
+    public static QuickPlatformComboState Resolve(
+        string? currentPlatform,
+        bool isCustomExplicitlySelected,
+        bool isBook,
+        string locale = "ko")
+    {
+        var options = BuildOptions(isBook, locale);
+        var customIndex = options.Length - 1;
+
+        if (isCustomExplicitlySelected)
+        {
+            return new QuickPlatformComboState(options, customIndex, ShowCustomInput: true);
+        }
+
+        if (string.IsNullOrWhiteSpace(currentPlatform))
+        {
+            return new QuickPlatformComboState(options, SelectedIndex: 0, ShowCustomInput: false);
+        }
+
+        var presets = OttlinePresets.GetQuickPlatformPresets(isBook, locale);
+        if (OttlinePresets.TryMatchPlatformPresetIndex(presets, currentPlatform, out var presetIdx))
+        {
+            return new QuickPlatformComboState(options, SelectedIndex: presetIdx + 1, ShowCustomInput: false);
+        }
+
+        return new QuickPlatformComboState(options, customIndex, ShowCustomInput: true);
+    }
+
+    public static (string PlatformValue, bool IsCustomSelected) ApplySelectionIndex(
+        int selectedIndex,
+        string? currentPlatform,
+        bool isBook,
+        string locale = "ko")
+    {
+        var options = BuildOptions(isBook, locale);
+        var customIndex = options.Length - 1;
+
+        if (selectedIndex <= 0 || selectedIndex > customIndex)
+        {
+            return (string.Empty, false);
+        }
+
+        if (selectedIndex == customIndex)
+        {
+            var presets = OttlinePresets.GetQuickPlatformPresets(isBook, locale);
+            var trimmed = currentPlatform?.Trim() ?? string.Empty;
+            var preserveCustom = !string.IsNullOrWhiteSpace(trimmed)
+                                 && !OttlinePresets.TryMatchPlatformPresetIndex(presets, trimmed, out _);
+            return (preserveCustom ? trimmed : string.Empty, true);
+        }
+
+        return (options[selectedIndex], false);
     }
 }
