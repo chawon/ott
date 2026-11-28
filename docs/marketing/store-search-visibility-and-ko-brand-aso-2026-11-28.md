@@ -51,11 +51,11 @@
 | 구분 | 대상 위치 | 현재 상태 (`2026-11-28`) | 개선 필요 내용 |
 | --- | --- | --- | --- |
 | **1. Apple 기기 내 Spotlight** | [`SpotlightIndexManager.swift`](../../apps/apple-core/Sources/OttlineCore/Notifications/SpotlightIndexManager.swift#L69-L71) | `candidates`에 `"ottline"`, `"오트라인"`만 존재 (`"오티티라인"` 0건) | `"오티티라인"`, `"오티티 라인"` 반영(교체 또는 하위 호환 병기) 및 테스트 검증 |
-| **2. Apple KR 스토어 등록정보** | App Store Connect (`id6780318110`, iOS·iPadOS·macOS `2.0.1`) | `오티티라인` 미포함 + 공개 한국어 설명에 v1 구 용어(`평점`, `페어링 코드`, 상태 선택 즉시 저장처럼 읽히는 문장) 잔존, Mac 위젯 미언급 | KR 키워드에 `오티티라인,오티티` 추가 + 한국어 상세 설명을 `DESIGN.md` v2 용어(`기록 남기기`, `세 가지 느낌`, `기록 연결 코드`, Mac 위젯 3종)로 정비 |
+| **2. Apple KR 스토어 등록정보** | App Store Connect (`id6780318110`, iOS·iPadOS·macOS `2.0.1`) | `오티티라인` 미포함 + 공개 한국어 설명에 v1 구 용어(`평점`, `페어링 코드`, 상태 선택 즉시 저장처럼 읽히는 문장) 잔존, iOS/iPadOS·macOS 위젯 범위 미구분 | KR 키워드에 `오티티라인,오티티` 포함(UTF-8 100바이트 한도) + iOS/iPadOS 설명(홈 소형·중형·잠금 화면 위젯 3종·공유 시트)과 macOS 설명(데스크톱·알림 센터 위젯 3종)을 구분해 `DESIGN.md` v2 용어(`기록 남기기`, `세 가지 느낌`, `기록 연결 코드`, `함께 나누기`/`함께`)로 정비 |
 | **3. Google Play 등록정보** | Google Play Console (`app.ottline`, `ko-KR`) | v2 용어 대부분 반영됐으나 `오티티라인` 미포함, `기록 남기기` 저장 단계 및 `기록 연결 코드` 표현 일부 보강 필요 | 짧은 설명·상세 설명 첫 문장에 `ottline(오티티라인)` 병기 + `기록 남기기`·`기록 연결 코드` 정렬 |
-| **4. Microsoft Store 스크립트** | [`publish-msstore.ps1`](../../apps/windows-native/scripts/publish-msstore.ps1#L314-L369) | `$descriptionKo`·`$keywordsKo`에 `오티티라인` 미포함, 저장 버튼 명시 약함 | `$descriptionKo` 첫 문장 `ottline(오티티라인)`·`기록 남기기` 보강, `$keywordsKo`(7개 제한) 내 `"감상 수첩"` → `"오티티라인"` 교체 |
-| **5. 브라우저 확장 등록자료** | [`chrome-web-store-listing-2026-07-25.md`](../chrome-web-store-listing-2026-07-25.md#L58-L69) · [`messages.json`](../../apps/browser-extension/_locales/ko/messages.json#L1-L7) | Chrome·Edge 공개판 `0.1.0` 구 제목 유지, `0.1.1` 초안 설명에 `오티티라인` 미포함 및 구 용어 `평점` 잔존 | `0.1.1` 게시 시 한국어 설명에 `ottline(오티티라인)` 병기 및 `평점` → `세 가지 느낌` 정정 (`312000267` 연계) |
-| **6. Web SEO · AI 색인** | [`seo.ts`](../../apps/web/lib/seo.ts#L74-L81) · [`llms.txt`](../../apps/web/public/llms.txt#L1-L7) | `SoftwareApplication` JSON-LD에 `alternateName` 미지정, `llms.txt`에 `ottline` 단독 표기 | `alternateName: ["오티티라인", "오티티 라인"]` 추가([`seo.test.mjs`](../../apps/web/lib/seo.test.mjs) 포함) 및 `llms.txt` 한국어 소개에 `ottline(오티티라인)` 병기 |
+| **4. Microsoft Store 스크립트** | [`publish-msstore.ps1`](../../apps/windows-native/scripts/publish-msstore.ps1#L314-L369) | `$descriptionKo`·`$keywordsKo`에 `오티티라인` 미포함, 저장 버튼 명시 약함 + 하단 `$featuresKo`/`$featuresEn` 및 설명에 `"3단계 느낌"`·`"8자리 연결 코드"` 잔존 | `$descriptionKo` 첫 문장 `ottline(오티티라인)`·`기록 남기기` 보강, `$keywordsKo`(7개 제한) `"감상 수첩"` → `"오티티라인"` 교체, `$featuresKo`/`$featuresEn` 용어(`세 가지 느낌`·`기록 연결 코드`) 동반 정비(`2.0.4.0` 후보 `#185`/`PR #186` 주기 연계) |
+| **5. 브라우저 확장 등록자료** | [`chrome-web-store-listing-2026-07-25.md`](../chrome-web-store-listing-2026-07-25.md#L50-L84) · [`ko/messages.json`](../../apps/browser-extension/_locales/ko/messages.json#L1-L16) · [`en/messages.json`](../../apps/browser-extension/_locales/en/messages.json#L1-L16) | Chrome·Edge 공개판 `0.1.0` 구 제목 유지, `0.1.1` 초안의 KO 설명(`오티티라인` 부재·`평점` 잔존) 및 EN 요약·설명·팝업 문구(`QuickLog`, `rating`)에 v1 용어 잔존 | `0.1.1` 게시 시 KO 설명 `ottline(오티티라인)`·`세 가지 느낌` 정렬과 함께 EN 요약·설명·`_locales`의 `QuickLog`·`rating`도 동시 정비 (`312000267` 연계) |
+| **6. Web SEO · AI 색인** | [`seo.ts`](../../apps/web/lib/seo.ts#L74-L168) · [`llms.txt`](../../apps/web/public/llms.txt#L1-L7) | `SoftwareApplication` JSON-LD에 `alternateName` 미지정 + `featureList`에 `"페어링 코드 동기화"`/`"Pairing-code sync"` 잔존, `buildBrowserExtensionSchema`에 `softwareVersion: "0.1.1"`·`"QuickLog"` 잔존, `llms.txt` `ottline` 단독 표기 | `alternateName: ["오티티라인", "오티티 라인"]` 추가 + `featureList` `기록 연결 코드 동기화`/`Record connection code sync`·확장 스키마 버전/`QuickLog` 정합성 동반 정비([`seo.test.mjs`](../../apps/web/lib/seo.test.mjs) 포함) 및 `llms.txt` 한국어 소개에 `ottline(오티티라인)` 병기 |
 
 ---
 
@@ -76,22 +76,43 @@
   ```text
   diary,tracker,reading,journal,series,episode,watchlist,film,bookshelf,timeline,widget,notes,media
   ```
-- **한국어 상세 설명 정비 초안** *(v1 구 용어 `평점`·`페어링 코드` 제거, `ottline(오티티라인)`·`기록 남기기`·`세 가지 느낌`·Mac 위젯 3종 반영)*:
+- **한국어 상세 설명 정비 초안** *(App Store Connect는 iOS/iPadOS와 macOS 상세 설명이 별도 필드이므로 플랫폼별 위젯·확장 지원 범위를 구분해 반영. 실제 구현 근거: iPhone·iPad 홈 소형·중형 및 잠금 화면 위젯 3종 [`QuickLogWidget.swift`](../../apps/ios-native/Sources/OttlineWidget/QuickLogWidget.swift#L381)·공유 시트 [`ShareViewController.swift`](../../apps/ios-native/Sources/OttlineShare/ShareViewController.swift), Mac 데스크톱·알림 센터 소형·중형·대형 위젯 3종 [`QuickLogMacWidget.swift`](../../apps/macos-native/Sources/OttlineMacWidget/QuickLogMacWidget.swift#L311), 공개 동작 `‘함께 나누기’` vs 둘러보기 공간 `‘함께’` [`DESIGN.md`](../../DESIGN.md#10-voice--tone)·[`MacSecondaryPages.swift`](../../apps/macos-native/Sources/OttlineMacApp/UI/MacSecondaryPages.swift#L1767))*:
+  - **iPhone · iPad (`iOS·iPadOS`) 등록정보 초안** *(대형 홈 위젯 미지원)*:
   ```text
   ottline(오티티라인)은 영화, 시리즈, 책을 가입 없이 차분히 남겨두는 개인 타임라인 기록장입니다.
 
   작품을 검색하고 상태(봤어요·보는 중·보고 싶어요 / 읽었어요·읽는 중·읽고 싶어요)를 고른 뒤 ‘기록 남기기’를 누르면 내 기기에 먼저 보관돼요. 원할 때만 그날의 순간(날짜, 세 가지 느낌, 한 줄 메모, 플랫폼, 장소, 함께한 상황, 시리즈 시즌·회차)을 덧붙이면 되고, 메모를 비워도 온전한 기록으로 남아요.
 
-  타임라인에서는 지난 기록을 날짜와 필터로 다시 펼쳐보고, 그날의 온기를 떠올릴 수 있어요. ‘내 공간’의 기록 연결 코드로 iPhone, iPad, Mac과 웹에서 같은 타임라인을 이어가고, 원할 때만 공유 카드를 만들거나 ‘함께 나누기’로 다른 사람의 이야기를 둘러볼 수 있어요.
+  타임라인에서는 지난 기록을 날짜와 필터로 다시 펼쳐보고, 그날의 온기를 떠올릴 수 있어요. ‘내 공간’의 기록 연결 코드로 iPhone, iPad, Mac과 웹에서 같은 타임라인을 이어가고, 원할 때만 공유 카드를 만들거나 ‘함께 나누기’로 내 메모를 나누고 ‘함께’에서 다른 사람의 이야기를 둘러볼 수 있어요.
 
   주요 기능:
   - 회원가입·로그인 없이 바로 시작하는 영화·시리즈·책 기록
   - 별점 부담 없는 세 가지 느낌(선택)과 날짜·플랫폼·장소·상황·메모 기록
   - 시리즈 시즌·회차와 이어가는 작품(‘아직 못다 한 이야기’) 관리
-  - Mac 데스크톱·알림 센터 위젯 3종(소형·중형·대형) 지원
+  - iPhone·iPad 홈 화면 위젯(소형·중형), 잠금 화면 위젯 3종 및 공유 시트 빠른 기록 지원
   - 타임라인 검색·필터, 내 서가 분류, CSV 내보내기
   - ‘내 공간’의 기록 연결 코드 기반 기기 연결 및 로컬 우선 저장
-  - 기본 비공개 보관, 선택적 ‘함께 나누기’와 공유 카드 저장
+  - 기본 비공개 보관, 선택적 ‘함께 나누기’·‘함께’ 이야기 둘러보기·공유 카드 저장
+  - 기기 초기화와 서버 계정 전체 삭제 분리 지원
+
+  ottline(오티티라인)은 추천 피드보다 나의 기록과 회상을 먼저 생각합니다. 방금 본 작품이나 지금 읽고 있는 책 한 권부터 편하게 쌓아두세요.
+  ```
+  - **Mac (`macOS`) 등록정보 초안** *(공통 문단 동일, 위젯·단축키 불릿만 macOS 지원 범위로 교체)*:
+  ```text
+  ottline(오티티라인)은 영화, 시리즈, 책을 가입 없이 차분히 남겨두는 개인 타임라인 기록장입니다.
+
+  작품을 검색하고 상태(봤어요·보는 중·보고 싶어요 / 읽었어요·읽는 중·읽고 싶어요)를 고른 뒤 ‘기록 남기기’를 누르면 내 기기에 먼저 보관돼요. 원할 때만 그날의 순간(날짜, 세 가지 느낌, 한 줄 메모, 플랫폼, 장소, 함께한 상황, 시리즈 시즌·회차)을 덧붙이면 되고, 메모를 비워도 온전한 기록으로 남아요.
+
+  타임라인에서는 지난 기록을 날짜와 필터로 다시 펼쳐보고, 그날의 온기를 떠올릴 수 있어요. ‘내 공간’의 기록 연결 코드로 iPhone, iPad, Mac과 웹에서 같은 타임라인을 이어가고, 원할 때만 공유 카드를 만들거나 ‘함께 나누기’로 내 메모를 나누고 ‘함께’에서 다른 사람의 이야기를 둘러볼 수 있어요.
+
+  주요 기능:
+  - 회원가입·로그인 없이 바로 시작하는 영화·시리즈·책 기록
+  - 별점 부담 없는 세 가지 느낌(선택)과 날짜·플랫폼·장소·상황·메모 기록
+  - 시리즈 시즌·회차와 이어가는 작품(‘아직 못다 한 이야기’) 관리
+  - Mac 데스크톱·알림 센터 위젯 3종(소형·중형·대형) 및 단축키(⌘N) 빠른 기록 지원
+  - 타임라인 검색·필터, 내 서가 분류, CSV 내보내기
+  - ‘내 공간’의 기록 연결 코드 기반 기기 연결 및 로컬 우선 저장
+  - 기본 비공개 보관, 선택적 ‘함께 나누기’·‘함께’ 이야기 둘러보기·공유 카드 저장
   - 기기 초기화와 서버 계정 전체 삭제 분리 지원
 
   ottline(오티티라인)은 추천 피드보다 나의 기록과 회상을 먼저 생각합니다. 방금 본 작품이나 지금 읽고 있는 책 한 권부터 편하게 쌓아두세요.
@@ -131,11 +152,20 @@
 
   작품을 검색해 상태(봤어요·보는 중·보고 싶어요 / 읽었어요·읽는 중·읽고 싶어요)를 고르고, 원할 때 날짜·세 가지 느낌·메모·플랫폼·장소·함께한 상황을 덧붙인 뒤 ‘기록 남기기’를 누르면 시간순 타임라인에 차곡차곡 쌓입니다. 로그인이나 회원가입 없이 설치 즉시 시작할 수 있고, 오프라인에서도 로컬 SQLite DB에 먼저 안전하게 보관됩니다.
   ```
-  - *(참고: 하단 Windows 전용 기능의 연결 코드 문구는 `'내 공간'의 기록 연결 코드`로 용어를 맞추며, 교차 기기 동기화 범위는 `#161` 실기기 확인 완료 내용에 맞춥니다.)*
+- **하단 본문·`$featuresKo`/`$featuresEn` 잔여 구 용어 동반 정리 (`publish-msstore.ps1` L331, L337, L345, L352, L355, L365)**:
+  - `$descriptionKo`(L331)·`$featuresKo`(L352, L355): `"3단계 느낌"` → **`"세 가지 느낌"`**, `"8자리 연결 코드"` → **`"‘내 공간’의 기록 연결 코드"` / `"기록 연결 코드"`**로 통일
+  - `$descriptionEn`(L337, L345)·`$featuresEn`(L365): `"8-character connection code"` → **`"record connection code"`**로 통일하고 저장 안내 문구도 최종 저장 버튼 동작에 맞춤
+  - 교차 기기 동기화 범위는 `#161` 실기기 확인 완료 내용에 맞추며, 현재 진행 중인 **Windows `2.0.4.0` 후보([`#185`](https://github.com/chawon/ott/issues/185) / [`PR #186`](https://github.com/chawon/ott/pull/186)) 제출 주기**와 연계해 반영을 권장합니다.
 
-### 3-4. 브라우저 확장 (`Chrome · Edge · Whale`, [`chrome-web-store-listing-2026-07-25.md`](../chrome-web-store-listing-2026-07-25.md#L58-L69))
+### 3-4. 브라우저 확장 (`Chrome · Edge · Whale`, [`chrome-web-store-listing-2026-07-25.md`](../chrome-web-store-listing-2026-07-25.md#L50-L84))
 
-- **이름·요약 (`_locales/ko/messages.json`, 132자 제한)**: 기존 `0.1.1` 패키지 이름(`ottline - OTT 기록 도우미`)과 요약을 유지하고, 아직 미게시 상태인 `0.1.1`을 Chrome·Edge·Whale 스토어에 반영합니다([카드 `312000267`](https://github.com/users/chawon/projects/1/views/2?pane=issue&itemId=312000267)).
+- **패키지 `_locales` 이름·요약 (132자 제한)**:
+  - 한국어 ([`ko/messages.json`](../../apps/browser-extension/_locales/ko/messages.json#L1-L16)): 기존 `0.1.1` 이름(`ottline - OTT 기록 도우미`)과 요약(`47자`)을 유지하되, 팝업 안내(`popupDescription` L15)의 `QuickLog`를 `ottline 기록 화면`으로 함께 정비합니다.
+  - 영어 ([`en/messages.json`](../../apps/browser-extension/_locales/en/messages.json#L1-L16)): 이름(`ottline - Streaming Log Helper`)은 유지하고, `extensionDescription`(L6)의 `ottline QuickLog`를 제거한 아래 요약(**102자**, 132자 제한 이내)으로 정비합니다(`popupDescription` L15의 `ottline QuickLog`도 `ottline`으로 통일).
+  ```text
+  Send a title from a supported streaming page to ottline, ready for you to review and keep your record.
+  ```
+  - 아직 미게시 상태인 `0.1.1`을 Chrome·Edge·Whale 스토어에 반영할 때 한·영 설명을 동시에 적용합니다([카드 `312000267`](https://github.com/users/chawon/projects/1/views/2?pane=issue&itemId=312000267)).
 - **한국어 상세 설명 보강안** *(`ottline(오티티라인)` 병기 + 구 용어 `평점` → `세 가지 느낌` 정정, 개별 OTT 서비스명 미나열 규칙 유지)*:
   ```text
   웹에서 보고 있던 작품을 ottline(오티티라인) 기록 화면으로 가볍게 이어보세요.
@@ -149,11 +179,31 @@
 
   ottline(오티티라인)은 영화·시리즈·책 기록을 나만의 타임라인으로 모으는 기록 서비스입니다.
   ```
+- **English 상세 설명 정비 초안** *(v1 구 용어 `QuickLog`·`rating` 제거, `DESIGN.md` 기준 sentence case·`record`·`feeling`·`‘Keep this record’` 정렬, 개별 OTT 서비스명 미나열 규칙 유지)*:
+  ```text
+  Move smoothly from the title you are watching to a new record in ottline.
+
+  Open the extension on a supported title detail page to prefill the title and streaming service in ottline. Choose a status, add an optional feeling or note if you want, and select ‘Keep this record’ yourself.
+
+  - Skip typing the title again.
+  - Review every record in ottline before saving.
+  - No automatic watch tracking or background recording.
+  - Reads only the information needed from the current tab.
+
+  ottline brings your movie, series, and book records together in a personal timeline.
+  ```
 
 ### 3-5. Web SEO · `llms.txt` · Apple Spotlight 코드 반영 명세
 
-1. **Web JSON-LD ([`apps/web/lib/seo.ts`](../../apps/web/lib/seo.ts#L74-L81))**:
-   - `buildSoftwareApplicationSchema` 반환 객체에 `alternateName: ["오티티라인", "오티티 라인"]` 추가 (`buildBrowserExtensionSchema`에도 한국어일 때 동일 적용 검토) 및 [`apps/web/lib/seo.test.mjs`](../../apps/web/lib/seo.test.mjs) 단언 추가.
+1. **Web JSON-LD ([`apps/web/lib/seo.ts`](../../apps/web/lib/seo.ts#L74-L168))**:
+   - `buildSoftwareApplicationSchema` (L74-L120):
+     - `alternateName: ["오티티라인", "오티티 라인"]` 추가
+     - `featureList` (L109, L116)의 `"Pairing-code sync"` / `"페어링 코드 동기화"` → **`"Record connection code sync"` / `"기록 연결 코드 동기화"`** 동반 정정
+   - `buildBrowserExtensionSchema` (L122-L168):
+     - 한국어 로케일에서 `alternateName` 적용 여부 검토
+     - `featureList` (L157, L163)의 `"Prefill ottline QuickLog"` / `"ottline QuickLog 미리 채우기"` → **`"Prefill the ottline record form"` / `"ottline 기록 화면 미리 채우기"`** 정정
+     - `softwareVersion` (L148 `"0.1.1"` vs 현재 Chrome·Edge 공개 `0.1.0`): 실제 공개 버전과 어긋나지 않도록 `0.1.1` 스토어 게시 시점과 맞추거나 현재 공개 버전 정합성 확인
+   - 위 변경에 맞춰 [`apps/web/lib/seo.test.mjs`](../../apps/web/lib/seo.test.mjs) 단언을 함께 갱신.
 2. **AI 색인 안내 ([`apps/web/public/llms.txt`](../../apps/web/public/llms.txt#L1-L7))**:
    - 3행 한국어 소개 문장 보강 초안:
      `> ottline(오티티라인)은 가입 없이 영상과 책 기록을 시작하고, 개인 타임라인으로 다시 돌아보는 무료 기록 서비스입니다.`
@@ -168,9 +218,9 @@
 
 | 담당 역할 | 반영 대상 | 권장 반영 시점 | 완료 근거 |
 | --- | --- | --- | --- |
-| [Apple 공통 담당](https://github.com/users/chawon/projects/1/views/2?pane=issue&itemId=321363868) | App Store Connect KR/US 키워드·KR 설명, Spotlight 별칭 | 다음 iOS/macOS 제출 준비 | App Store Connect에 저장한 키워드, 공개 페이지의 설명, Spotlight 테스트와 기기 내 검색 결과 확인 |
+| [Apple 공통 담당](https://github.com/users/chawon/projects/1/views/2?pane=issue&itemId=321363868) | App Store Connect KR/US 키워드(각 100바이트 이내)·iOS/iPadOS와 macOS 분리 KR 설명(`함께 나누기`/`함께`·플랫폼별 위젯 구분), Spotlight 별칭 | 다음 iOS/macOS 제출 준비 | App Store Connect에 저장한 키워드, iOS/macOS 공개 페이지 설명, Spotlight 테스트와 기기 내 검색 결과 확인 |
 | [Android 담당](https://github.com/users/chawon/projects/1/views/2?pane=issue&itemId=321363874) | Google Play Console `ko-KR` 짧은 설명·상세 설명 | `2.0.6` 제출 또는 등록정보 단독 갱신 | Play 공개 페이지(`hl=ko&gl=KR`) 반영 확인 |
-| [Windows 담당](https://github.com/users/chawon/projects/1/views/2?pane=issue&itemId=321363878) | `publish-msstore.ps1` 설명·키워드(`오티티라인`) | 다음 Microsoft Store 제출 주기 | PR 병합 + 스토어 공개 반영 확인 |
-| [Web/PWA 담당](https://github.com/users/chawon/projects/1/views/2?pane=issue&itemId=321363881) | `seo.ts` `alternateName` + `seo.test.mjs` + `llms.txt` | 일반 Web 배포 주기 | PR·CI 통과 + 운영 배포 후 JSON-LD·`llms.txt` 응답 확인 |
-| [브라우저 확장 담당](https://github.com/users/chawon/projects/1/views/2?pane=issue&itemId=312000267) | `chrome-web-store-listing-2026-07-25.md` 및 `0.1.1` 스토어 게시 | `0.1.1` 스토어 갱신 시 | Chrome·Edge·Whale `0.1.1` 공개 확인 |
-| **마케팅 담당** | 반영 3~7일 후 전 스토어 `오티티라인`·`오티티 라인`·카테고리 키워드 재점검 | 각 스토어 공개 반영 후 | 공개 검색 재측정 기록 + 각 스토어 콘솔 노출·설치 지표 분리 대조 |
+| [Windows 담당](https://github.com/users/chawon/projects/1/views/2?pane=issue&itemId=321363878) | `publish-msstore.ps1` 설명·`$featuresKo`/`$featuresEn` 용어 정비·키워드(`오티티라인`) | Windows `2.0.4.0` 후보([`#185`](https://github.com/chawon/ott/issues/185) / [`PR #186`](https://github.com/chawon/ott/pull/186)) 제출 주기 | PR 병합 + 스토어 공개 반영 확인 |
+| [Web/PWA 담당](https://github.com/users/chawon/projects/1/views/2?pane=issue&itemId=321363881) | `seo.ts` `alternateName`·`featureList`·`buildBrowserExtensionSchema` 정합성 + `seo.test.mjs` + `llms.txt` | 일반 Web 배포 주기 | PR·CI 통과 + 운영 배포 후 JSON-LD·`llms.txt` 응답 확인 |
+| [브라우저 확장 담당](https://github.com/users/chawon/projects/1/views/2?pane=issue&itemId=312000267) | `chrome-web-store-listing-2026-07-25.md`·`_locales/{ko,en}/messages.json` 한·영 구 용어(`평점`·`QuickLog`·`rating`) 정비 및 `0.1.1` 스토어 게시 | `0.1.1` 스토어 갱신 시 | Chrome·Edge·Whale `0.1.1` 한·영 등록정보 공개 확인 |
+| **마케팅 담당** | 반영 3~7일 후 조사 대상 스토어 `오티티라인`·`오티티 라인`·카테고리 키워드 재점검 | 각 스토어 공개 반영 후 | 공개 검색 재측정 기록 + 각 스토어 콘솔 노출·설치 지표 분리 대조 |
