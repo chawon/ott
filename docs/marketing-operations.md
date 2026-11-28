@@ -28,7 +28,7 @@
 
 ## 첫 업무
 
-1. [채널별 유입·첫 기록·반복 이용 기준선](https://github.com/users/chawon/projects/1/views/2?pane=issue&itemId=313863452)을 정리한다. 자료가 없는 항목은 미측정으로 표시하고 확인 방법을 남긴다. — [1차 기준선 문서 (`2026-11-24`)](marketing/acquisition-baseline-2026-11-24.md)
+1. [채널별 유입·첫 기록·반복 이용 기준선](https://github.com/users/chawon/projects/1/views/2?pane=issue&itemId=313863452)을 정리한다. 자료가 없는 항목은 미측정으로 표시하고 확인 방법을 남긴다. — [1차 기준선 문서 (`2026-11-24`)](marketing/acquisition-baseline-2026-11-24.md) · [스토어 노출 점검·오티티라인 ASO (`2026-11-28`)](marketing/store-search-visibility-and-ko-brand-aso-2026-11-28.md)
 2. [Apple·네이티브 v2 출시 안내와 첫 유입 실험안](https://github.com/users/chawon/projects/1/views/2?pane=issue&itemId=313863479)을 준비한다. 현재 공개 상태·지원 기능·KO/EN·스토어 링크를 확인하고 첫 실행 후보 한 건을 제안한다. — [출시 안내 초안 및 첫 유입 실험안 (`2026-11-24`)](marketing/apple-v2-launch-and-first-experiment-2026-11-24.md)
 
 프로젝트의 `플랫폼=공통`, `담당 역할=마케팅 담당`을 사용한다. 첫 두 카드는 범위와 산출물을 등록한 대기 업무이며, 실제 착수 시 상태를 진행으로 갱신한다.
