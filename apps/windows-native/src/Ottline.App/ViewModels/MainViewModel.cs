@@ -1433,7 +1433,7 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
         set
         {
             // ItemsSource replacement temporarily clears the WPF selection when labels change.
-            if (value < 0) return;
+            if (value < 0 || value == QuickPlatformComboIndex) return;
             var (platformValue, isCustomSelected) = QuickRecordPlatformSelector.ApplySelectionIndex(
                 value,
                 _quickPlatform,
@@ -1508,8 +1508,8 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
         }
         set
         {
+            if (value < 0 || value == QuickPlaceComboIndex) return;
             var options = QuickPlaceComboOptions;
-            if (value < 0) return;
             QuickPlace = (value == 0 || value >= options.Length) ? string.Empty : options[value];
         }
     }
@@ -1555,8 +1555,8 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable
         }
         set
         {
+            if (value < 0 || value == QuickOccasionComboIndex) return;
             var options = QuickOccasionComboOptions;
-            if (value < 0) return;
             QuickOccasion = (value == 0 || value >= options.Length) ? string.Empty : options[value];
         }
     }

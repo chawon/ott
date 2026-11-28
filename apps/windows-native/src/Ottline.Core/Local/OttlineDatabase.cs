@@ -331,6 +331,28 @@ public sealed class OttlineDatabase : IDisposable
         }
     }
 
+    public void ApplyPulledLog(WatchLog log)
+    {
+        lock (_syncRoot)
+        {
+            if (HasPendingLogOutbox(log.Id)) return;
+            using var conn = OpenConnection();
+            using var tx = conn.BeginTransaction();
+            var previous = GetLogInternal(conn, tx, log.Id, includeDeleted: false);
+            if (previous != null)
+            {
+                EnsureHistorySnapshotInternal(conn, tx, previous);
+                if (SyncIdNormalizer.HasMeaningfulLogDifference(previous, log))
+                {
+                    log = log with { Revision = Math.Max(previous.Revision + 1, log.Revision) };
+                }
+            }
+            var saved = UpsertLogInternal(conn, tx, log, recordHistory: false);
+            EnsureHistorySnapshotInternal(conn, tx, saved);
+            tx.Commit();
+        }
+    }
+
     public WatchLog SaveLogAndOutboxAtomic(
         WatchLog log,
         bool recordHistory,

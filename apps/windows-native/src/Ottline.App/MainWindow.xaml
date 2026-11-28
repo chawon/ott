@@ -4149,10 +4149,10 @@
                                     </StackPanel>
                                     <StackPanel Grid.Column="2">
                                         <TextBlock Text="{Binding Strings.TimelineFilterPlatformLabel}" FontSize="12" Foreground="{DynamicResource ForegroundMutedBrush}" Margin="0,0,0,6" />
-                                        <ComboBox Style="{StaticResource OttlineComboBoxStyle}"
+                                        <ComboBox x:Name="QuickPlatformCombo" Style="{StaticResource OttlineComboBoxStyle}"
                                                   ItemsSource="{Binding QuickPlatformComboOptions}"
-                                                  SelectedIndex="{Binding QuickPlatformComboIndex}"
-                                                  SelectionChanged="QuickPlatformCombo_SelectionChanged" />
+                                                  SelectedIndex="{Binding QuickPlatformComboIndex, UpdateSourceTrigger=Explicit}"
+                                                  SelectionChanged="QuickRecordCombo_SelectionChanged" />
                                         <Grid Margin="0,6,0,0"
                                               Visibility="{Binding IsQuickPlatformCustomInput, Converter={StaticResource BoolToVis}}">
                                             <TextBox x:Name="QuickCustomPlatformTextBox"
@@ -4181,13 +4181,15 @@
                                         <TextBlock Text="{Binding Strings.QuickPlaceInputLabel}" FontSize="12" Foreground="{DynamicResource ForegroundMutedBrush}" Margin="0,0,0,6" />
                                         <ComboBox Style="{StaticResource OttlineComboBoxStyle}"
                                                   ItemsSource="{Binding QuickPlaceComboOptions}"
-                                                  SelectedIndex="{Binding QuickPlaceComboIndex}" />
+                                                  SelectedIndex="{Binding QuickPlaceComboIndex, UpdateSourceTrigger=Explicit}"
+                                                  SelectionChanged="QuickRecordCombo_SelectionChanged" />
                                     </StackPanel>
                                     <StackPanel Grid.Column="6">
                                         <TextBlock Text="{Binding Strings.QuickOccasionInputLabel}" FontSize="12" Foreground="{DynamicResource ForegroundMutedBrush}" Margin="0,0,0,6" />
                                         <ComboBox Style="{StaticResource OttlineComboBoxStyle}"
                                                   ItemsSource="{Binding QuickOccasionComboOptions}"
-                                                  SelectedIndex="{Binding QuickOccasionComboIndex}" />
+                                                  SelectedIndex="{Binding QuickOccasionComboIndex, UpdateSourceTrigger=Explicit}"
+                                                  SelectionChanged="QuickRecordCombo_SelectionChanged" />
                                     </StackPanel>
                                 </Grid>
 

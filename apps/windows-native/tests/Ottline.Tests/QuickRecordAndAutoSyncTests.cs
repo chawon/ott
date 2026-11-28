@@ -227,6 +227,11 @@ public sealed class QuickRecordAndAutoSyncTests
             Assert.Contains(logs, l => l.Id == androidLogId && l.Note == "안드로이드에서 남긴 기록" && l.Title.Title == "Past Lives");
             Assert.Contains(logs, l => l.TitleId == winTitleId && l.Note == "윈도우 기존 기록");
             Assert.NotEmpty(repo.GetHistoryForTitle(winTitleId));
+            var androidHistory = Assert.Single(repo.GetHistoryForTitle(androidTitleId));
+            Assert.Equal("안드로이드에서 남긴 기록", androidHistory.Note);
+            var (replayed, _) = await repo.SyncAllAsync();
+            Assert.True(replayed);
+            Assert.Equal(androidHistory.Id, Assert.Single(repo.GetHistoryForTitle(androidTitleId)).Id);
         }
         finally
         {

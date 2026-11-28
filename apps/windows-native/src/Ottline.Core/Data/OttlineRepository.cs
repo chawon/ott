@@ -1104,22 +1104,6 @@ public sealed class OttlineRepository : IDisposable
         };
     }
 
-    private static bool HasMeaningfulLogDifference(WatchLog local, WatchLog server)
-    {
-        static string Norm(string? s) => string.IsNullOrWhiteSpace(s) ? string.Empty : s.Trim();
-        if (local.Status != server.Status) return true;
-        if (local.Rating.HasValue != server.Rating.HasValue ||
-            (local.Rating.HasValue && Math.Abs(local.Rating.Value - server.Rating!.Value) > 0.05)) return true;
-        if (!string.Equals(Norm(local.Note), Norm(server.Note), StringComparison.Ordinal)) return true;
-        if (local.Spoiler != server.Spoiler) return true;
-        if (!string.Equals(Norm(local.Ott), Norm(server.Ott), StringComparison.OrdinalIgnoreCase)) return true;
-        if (!string.Equals(OttlinePresets.ToServerPlaceWire(local.Place) ?? "", OttlinePresets.ToServerPlaceWire(server.Place) ?? "", StringComparison.OrdinalIgnoreCase)) return true;
-        if (!string.Equals(OttlinePresets.ToServerOccasionWire(local.Occasion) ?? "", OttlinePresets.ToServerOccasionWire(server.Occasion) ?? "", StringComparison.OrdinalIgnoreCase)) return true;
-        if (local.SeasonNumber != server.SeasonNumber || local.EpisodeNumber != server.EpisodeNumber) return true;
-        if (!string.Equals(Norm(local.WatchedOn), Norm(server.WatchedOn), StringComparison.Ordinal)) return true;
-        return false;
-    }
-
     private static WatchLog? FindMatchingServerLog(WatchLog local, IReadOnlyList<WatchLog> serverLogs)
     {
         var byLogId = serverLogs.FirstOrDefault(s => SyncIdNormalizer.IsSameLogIdentity(local.Id, s.Id));
@@ -1273,7 +1257,7 @@ public sealed class OttlineRepository : IDisposable
                 continue;
             }
 
-            if (!HasMeaningfulLogDifference(local, matchedServer))
+            if (!SyncIdNormalizer.HasMeaningfulLogDifference(local, matchedServer))
             {
                 if (!string.Equals(local.SyncState, "synced", StringComparison.OrdinalIgnoreCase))
                 {
@@ -1422,7 +1406,7 @@ public sealed class OttlineRepository : IDisposable
             }
 
             _db.DeleteLogsByTitleExcept(remoteLog.TitleId, remoteLog.Id);
-            _db.UpsertLog(remoteLog with { SyncState = "synced", DeletedAt = null }, recordHistory: false);
+            _db.ApplyPulledLog(remoteLog with { SyncState = "synced", DeletedAt = null });
         }
     }
 

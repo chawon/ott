@@ -1030,9 +1030,14 @@ public partial class MainWindow : Window
         picker.IsDropDownOpen = true;
     }
 
-    private void QuickPlatformCombo_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+    private void QuickRecordCombo_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
     {
-        if (_vm.IsQuickPlatformCustomInput && string.IsNullOrEmpty(_vm.QuickPlatform))
+        if (sender is not System.Windows.Controls.ComboBox { SelectedIndex: >= 0 } combo ||
+            combo.DataContext is not MainViewModel vm) return;
+
+        var choosingCustomPlatform = combo == QuickPlatformCombo && !vm.IsQuickPlatformCustomInput;
+        combo.GetBindingExpression(Selector.SelectedIndexProperty)?.UpdateSource();
+        if (choosingCustomPlatform && vm.IsQuickPlatformCustomInput && string.IsNullOrEmpty(vm.QuickPlatform))
         {
             Dispatcher.BeginInvoke(() => QuickCustomPlatformTextBox.Focus());
         }
