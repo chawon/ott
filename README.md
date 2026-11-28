@@ -16,7 +16,7 @@
 
 ## 출시 현황
 
-2026년 11월 24일 기준 플랫폼별 출시·운영 상태예요.
+앱별 버전과 검증 기록은 [플랫폼 현황](docs/platforms.md)에서 확인할 수 있어요.
 
 | 플랫폼 | 공개 상태 | 이용·설치 |
 | --- | --- | --- |
@@ -24,7 +24,7 @@
 | Android | Google Play 출시 | [Google Play](https://play.google.com/store/apps/details?id=app.ottline) |
 | iPhone·iPad | App Store 2.0.1 출시 | [App Store](https://apps.apple.com/app/id6780318110) |
 | macOS | Mac App Store 2.0.1 출시 | [Mac App Store](https://apps.apple.com/app/id6780318110?platform=mac) |
-| Windows | 네이티브 앱 2.0.2.0 출시 | [Microsoft Store](https://apps.microsoft.com/detail/9nsvnzgdmgf5) |
+| Windows | 네이티브 앱 2.0.3.0 출시 | [Microsoft Store](https://apps.microsoft.com/detail/9nsvnzgdmgf5) |
 | Chrome 확장 | 배포 중 | [Chrome Web Store](https://chromewebstore.google.com/detail/achangjgnpbideilpolbohbkmmkmojpo) |
 | Edge 확장 | 배포 중 | [Edge Add-ons](https://microsoftedge.microsoft.com/addons/detail/egghbkekjopgknhggoeiekgdooofihbo) |
 | Whale 확장 | 배포 중 | [Whale Store](https://store.whale.naver.com/detail/fdifiinpckjcafdndikchfhmkejhdfhc) |

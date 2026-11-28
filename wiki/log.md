@@ -1,5 +1,9 @@
 # Wiki Log
 
+## 2026-11-28 Windows 공개판과 기존 설치판 업데이트 확인
+
+한국·미국 Microsoft Store에 x64·arm64 `2.0.3.0`이 공개됐고, 본부 ARM64 기기의 기존 Store 설치판도 `2.0.3.0`이었다. 월간 달력 착수 전에 Windows의 기록·이력 보존과 교차 동기화, Apple의 계정 삭제 실패 후 재시도 결과를 확인한다. [스토어 근거](pages/platforms/ms-store.md) · [본부 착수 조건](../docs/changes/next-cycle-proposal-2026-11-22.md)
+
 ## 2026-11-26 타임라인 삭제 기록과 설치 PWA 복구
 
 `33942ae`를 API와 Web에 배포했다. 합성 계정에서 목록의 삭제 기록 제외와 기기 간 삭제 수신을 확인했다. 업데이트 전 설치한 PWA에서 잘못 표시된 기록을 바로잡고 미전송 편집을 한 번 전송했다. [운영 배포 및 검증](../docs/changes/api-active-log-lists-182-2026-11-26.md)
@@ -12,7 +16,7 @@ PR #154를 `main` `392d0b7`에 병합했다. Android 원본 테스트 58건과 �
 
 - `v2.0.2.0`(`1152921505702478292`)의 Microsoft Store `Published` 공개를 확인한 뒤, [PR #172](https://github.com/chawon/ott/pull/172)([#161](https://github.com/chawon/ott/issues/161)) 병합본 `main` `7154328`(코드 `83cfa65`, 본부 재검토 **66/66**, `main` CI [`45615633182`](https://github.com/chawon/ott/actions/runs/45615633182))에서 `ottline-2.0.3.0.msixbundle`(`x64` `81.50 MB`, SHA-256 `2605CED75E081BA355F920802969375D1FB06F21459DBB2E700CA7A7417B5C4B` + `arm64` `77.56 MB`, SHA-256 `F390F3344C007179768304E2AC1ACB232705952009EEAFB2B861B984702C635D`, 총 `159.06 MB`, SHA-256 `6BDFFA58CB6EE063AFA268F24776DD72232D2407293EB3600A288941B5902E22`)을 빌드·무결성 검증(`Ottline.Tests` **65/65**)해 Partner Center `9NSVNZGDMGF5`에 제출했다.
 - 제출 결과: Submission ID **`1152921505702511198`**, 상태 **`Certification`**, `Errors = 0`, `Desktop` 전용(`Holographic = false`), 한·영 릴리스 노트 및 스토어 메타데이터 반영 완료.
-- 현재 한국·미국 스토어 공개판은 `2.0.2.0`이며, `2.0.3.0` 심사 승인·공개 후 기존 설치판 업데이트 및 Windows↔모바일·웹 교차 동기화 실기기 검증을 완료할 예정이다. [Windows Wiki](pages/platforms/windows-native.md) · [스토어 근거](pages/platforms/ms-store.md) · [후속 작업](../docs/changes/v2-follow-up.md#windows-후속-기능-통합-반영-2026-11-22-차기-v2020-후보)
+- 제출 당시 한국·미국 스토어 공개판은 `2.0.2.0`이며, `2.0.3.0` 심사 승인·공개 후 기존 설치판 업데이트 및 Windows↔모바일·웹 교차 동기화 실기기 검증을 완료할 예정이다. [Windows Wiki](pages/platforms/windows-native.md) · [스토어 근거](pages/platforms/ms-store.md) · [후속 작업](../docs/changes/v2-follow-up.md#windows-후속-기능-통합-반영-2026-11-22-차기-v2020-후보)
 
 ## 2026-11-25 Web 동기화·Apple 스토어 안내 배포와 Windows 공개판 확인
 

@@ -1,6 +1,6 @@
 # 플랫폼별 소스와 출시 현황
 
-11월 26일 Web/PWA와 공통 API를 `33942ae`로 배포했다. 11월 25일 한국·미국 스토어에서 Windows `2.0.2.0`과 Android `2.0.5`를 확인했다. Apple의 `2.0.1`은 11월 24일 공개됐다. [Web 배포](https://github.com/chawon/ott/actions/runs/45759995665) · [API·기존 PWA 검증](changes/api-active-log-lists-182-2026-11-26.md) · [Microsoft Store](../wiki/pages/platforms/ms-store.md) · [Google Play](../wiki/pages/platforms/android-native.md)
+11월 26일 Web/PWA와 공통 API를 `33942ae`로 배포했다. 11월 28일 한국·미국 스토어에서 Windows `2.0.3.0`과 Android `2.0.5`를 확인했다. Apple의 `2.0.1`은 11월 24일 공개됐다. [Web 배포](https://github.com/chawon/ott/actions/runs/45759995665) · [API·기존 PWA 검증](changes/api-active-log-lists-182-2026-11-26.md) · [Microsoft Store](../wiki/pages/platforms/ms-store.md) · [Google Play](../wiki/pages/platforms/android-native.md)
 
 | 대상 | 구현 소스 | 출시·개발 상태 | 기록 |
 | --- | --- | --- | --- |
@@ -8,7 +8,7 @@
 | Web/PWA | [apps/web](../apps/web) | 운영 `33942ae`. 기존 설치판은 첫 동기화에서 삭제 기록을 정정하고 미전송 편집을 보존한다. 여러 기기의 수정이 겹쳐 오래된 수정이 거절되면 최신 기록을 확인한 후 다음 기록을 전송한다. iPhone·iPad·Mac 방문자에게 기기에 맞는 App Store를 안내한다. | [운영 배포](https://github.com/chawon/ott/actions/runs/45759995665) · [동기화 인수 #162](https://github.com/chawon/ott/issues/162#issuecomment-7162996402) · [스토어 안내 #175](https://github.com/chawon/ott/issues/175) · [PWA](../wiki/pages/platforms/pwa.md) |
 | Android | [apps/android-native](../apps/android-native) | 한국·미국 Google Play 공개판 `2.0.5 (29)`. 웹 기록 이어받기의 실패·재시도를 고친 PR #154를 `392d0b7`에 병합하고 `2.0.6 (30)` 서명 후보를 검증했다. Play 반영과 설치판의 Chrome 복귀 확인은 Android 담당이 추적한다. | [Android Wiki](../wiki/pages/platforms/android-native.md) · [2.0.5 공개판 빌드](https://github.com/chawon/ott/actions/runs/44981269777) · [2.0.6 후보 빌드](https://github.com/chawon/ott/actions/runs/45750274521) · [인수와 후속](https://github.com/chawon/ott/issues/149#issuecomment-7182015348) |
 | iOS·iPadOS | [apps/ios-native](../apps/ios-native) · [apps/apple-core](../apps/apple-core) | SwiftUI `2.0.1` 공개(11월 24일, iOS/iPadOS 16 이상). 계정 삭제 실패 처리와 큐레이터 제거, iPad 함께 2단의 선택 유지·오류 안내를 반영했다. [PR #173](https://github.com/chawon/ott/pull/173) · [병합본 iOS CI 20/20](https://github.com/chawon/ott/actions/runs/45190943521) | [iOS·iPadOS Wiki](../wiki/pages/platforms/native.md) · [App Store](https://apps.apple.com/app/id6780318110) · [출시 후 검증](changes/v2-follow-up.md#2-apple-v2-업데이트-검증) |
-| Windows | [apps/windows-native](../apps/windows-native) | Microsoft Store 공개 `2.0.2.0`(x64·arm64). 기록 삭제와 편집이 겹칠 때 새 감상·기존 이력을 보존하는 `2.0.3.0`은 `main` `7154328` 병합·CI 통과 후 11월 26일 Partner Center 심사 제출(`1152921505702511198`, `Certification`, `Errors: 0`)을 마쳤다. | [공개 패키지·제출](../wiki/pages/platforms/ms-store.md) · [main CI](https://github.com/chawon/ott/actions/runs/45615633182) · [Partner Center 확인과 설치판 검증](https://github.com/chawon/ott/issues/161#issuecomment-7181905935) |
+| Windows | [apps/windows-native](../apps/windows-native) | Microsoft Store 공개 `2.0.3.0`(x64·arm64). 기록 삭제와 편집이 겹칠 때 새 감상과 기존 이력을 보존하는 수정이 포함됐다. 본부 ARM64 기기에서 기존 설치판 업데이트를 확인했다. | [공개·설치 근거](../wiki/pages/platforms/ms-store.md) · [병합본 CI](https://github.com/chawon/ott/actions/runs/45615633182) · [교차 기기 검증 #161](https://github.com/chawon/ott/issues/161) |
 | macOS | [apps/macos-native](../apps/macos-native) · [apps/apple-core](../apps/apple-core) | SwiftUI `2.0.1` 공개(11월 24일, macOS 14 이상, App Sandbox). 데스크톱·알림 센터 위젯 3종, 함께 목록의 필터·정렬, 큐레이터 제거와 계정 삭제 실패 처리를 반영했다. [PR #173](https://github.com/chawon/ott/pull/173) · [병합본 macOS CI 6/6](https://github.com/chawon/ott/actions/runs/45190943508) | [macOS Wiki](../wiki/pages/platforms/macos-native.md) · [Mac App Store](https://apps.apple.com/app/id6780318110?platform=mac) · [출시 후 검증](changes/v2-follow-up.md#2-apple-v2-업데이트-검증) |
 | Chrome·Edge·Whale | [apps/browser-extension](../apps/browser-extension) | Chrome 공개 버전은 `0.1.0`, 저장소 manifest는 `0.1.1`이다. Edge·Whale의 최신 게시 버전은 확인 대상이다. Windows 빠른 기록 선택은 기존 확장이 여는 웹에서 제공한다. | [확장 Wiki](../wiki/pages/platforms/browser-extension.md) · [데스크톱 연결](desktop-protocol-and-extension-bridge-plan-2026-11-18.md) |
 | 토스 인앱 | [토스 출시 브랜치](https://github.com/chawon/ott/tree/chore/toss-inapp-current-release-20260517)의 `apps/web` | `내 OTT 타임라인` 승인·출시 기록이 있다. 별도 빌드의 공개판을 유지하고 검색·기록·타임라인을 우선 검증한다. | [토스 인앱 Wiki](../wiki/pages/platforms/toss-inapp.md) |
@@ -21,7 +21,7 @@
 
 11월 23일 당시 Windows 공개 `2.0.1.0` 설치판(`ChawonLee.ottline_2.0.1.0_arm64__ry7416pek43sa`)에서 서버 계정 삭제 성공 시 로컬 초기화와 오프라인 실패 시 기록·연결 상태 보존을 2026-11-23 실기기 검증으로 완료했다. [삭제 정책과 Windows 검증](../wiki/pages/features/delete-sync.md#windows-확인-사항)
 
-Windows 담당은 11월 26일 `2.0.3.0`(Submission `1152921505702511198`, `Certification`)을 스토어에 제출했으며, 공개 게시 후 기존 설치판을 업데이트해 Windows·모바일·웹에서 최신 감상과 기존 이력이 보존되는지 확인한다. [후속 #161](https://github.com/chawon/ott/issues/161#issuecomment-7162883131)
+Windows 담당은 업데이트된 기존 설치판에서 기록과 수정 이력이 남고, 삭제와 편집이 겹쳐도 최신 감상이 모바일과 웹에 한 번씩 반영되는지 확인한다. [Windows 인수 조건 #161](https://github.com/chawon/ott/issues/161#issuecomment-7181905935)
 
 ## 이전 설치와 연결 채널
 
